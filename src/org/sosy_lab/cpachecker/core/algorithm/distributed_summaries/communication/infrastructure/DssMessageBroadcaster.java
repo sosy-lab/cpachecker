@@ -24,8 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
  */
 public class DssMessageBroadcaster {
 
-  public record CommunicationId(String senderId, DssCommunicationEntity dssCommunicationEntity) {}
-
   private final Map<String, BlockingQueue<DssMessage>> connectionsBySenderId;
   private final Multimap<DssCommunicationEntity, BlockingQueue<DssMessage>> connectionsByEntity;
 
