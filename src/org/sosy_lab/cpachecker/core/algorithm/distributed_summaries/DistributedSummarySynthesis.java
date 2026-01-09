@@ -74,7 +74,9 @@ import org.sosy_lab.java_smt.api.SolverException;
  * detects when the DSS algorithm reaches a final verdict.
  *
  * <h2>3. Execution</h2>
+ *
  * There are two execution strategies implemented in DSS:
+ *
  * <ul>
  *   <li>{@link NaiveDssExecutor}: All workers are started simultaneously, and the algorithm runs
  *       until a final result is reached.
