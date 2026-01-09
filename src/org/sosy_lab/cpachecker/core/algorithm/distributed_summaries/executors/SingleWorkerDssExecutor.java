@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
@@ -164,13 +165,12 @@ public class SingleWorkerDssExecutor implements DssExecutor {
                 () ->
                     new IllegalArgumentException(
                         "No block with id '" + spawnWorkerForId + "' found in the block graph."));
-    List<DssActor> actors =
+    DssActors actors =
         new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory)
             .addAnalysisWorker(blockNode, options)
             .build();
 
-    DssAnalysisWorker actor =
-        (DssAnalysisWorker) Objects.requireNonNull(Iterables.getOnlyElement(actors));
+    DssAnalysisWorker actor = (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor());
     // use list instead of set. Each message has a unique timestamp,
     // so there will be no duplicates that a set can remove.
     // But the equality checks are unnecessarily expensive

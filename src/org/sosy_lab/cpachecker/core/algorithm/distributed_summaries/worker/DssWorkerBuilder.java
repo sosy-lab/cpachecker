@@ -56,7 +56,7 @@ public class DssWorkerBuilder {
     workerGenerators = ImmutableMap.builder();
   }
 
-  public List<DssActor> build()
+  public DssActors build()
       throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
 
     // create a queue for each worker
@@ -80,7 +80,7 @@ public class DssWorkerBuilder {
       workers.add(generatorEntry.getValue().apply(connection));
     }
 
-    return workers.build();
+    return new DssActors(workers.build());
   }
 
   @CanIgnoreReturnValue

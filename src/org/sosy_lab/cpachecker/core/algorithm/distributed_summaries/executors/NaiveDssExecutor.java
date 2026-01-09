@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
@@ -48,7 +50,7 @@ public class NaiveDssExecutor implements DssExecutor {
     stats = new ArrayList<>();
   }
 
-  private List<DssActor> createDssActors(CFA cfa, BlockGraph blockGraph)
+  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
@@ -66,25 +68,17 @@ public class NaiveDssExecutor implements DssExecutor {
   @Override
   public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    List<DssActor> actors = createDssActors(cfa, blockGraph);
+    DssActors actors = createDssActors(cfa, blockGraph);
+    stats.addAll(actors.getWorkersWithStats());
+    DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
+    Preconditions.checkState(
+        observer.getId().equals(OBSERVER_WORKER_ID),
+        "Observer worker must have id %s but has id %s",
+        OBSERVER_WORKER_ID,
+        observer.getId());
     // run workers
-    List<Thread> threads = new ArrayList<>(actors.size());
-    DssObserverWorker observer = null;
-    for (DssActor worker : actors) {
-      if (worker instanceof Statistics workerStatistics) {
-        stats.add(workerStatistics);
-      }
-      if (worker.getId().equals(OBSERVER_WORKER_ID)) {
-        // the observer worker is special, it does not run in a thread
-        // but blocks the main thread until all workers are finished
-        if (worker instanceof DssObserverWorker o) {
-          observer = o;
-          continue;
-        }
-        throw new AssertionError(
-            "Observer worker must be an instance of DssObserverWorker, but is: "
-                + worker.getClass().getName());
-      }
+    List<Thread> threads = new ArrayList<>(actors.getActors().size());
+    for (DssActor worker : actors.getActors()) {
       Thread thread = new Thread(worker, worker.getId());
       threads.add(thread);
       thread.setDaemon(true);
