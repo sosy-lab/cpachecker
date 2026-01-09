@@ -20,14 +20,14 @@ public interface DeserializeOperator {
   String STATE_KEY = SerializeOperator.STATE_KEY;
 
   static CFANode startLocationFromMessageType(DssMessage pMessage, BlockNode blockNode) {
-    if (pMessage.getType() == DssMessageType.VIOLATION_CONDITION) {
-      return blockNode.getFinalLocation();
-    } else if (pMessage.getType() == DssMessageType.POST_CONDITION) {
-      return blockNode.getInitialLocation();
-    } else {
-      throw new IllegalArgumentException(
-          "Cannot deserialize BlockState from message of type: " + pMessage.getClass().getName());
-    }
+    return switch (pMessage.getType()) {
+      case VIOLATION_CONDITION -> blockNode.getFinalLocation();
+      case POST_CONDITION -> blockNode.getInitialLocation();
+      case EXCEPTION, RESULT, STATISTIC ->
+          throw new IllegalArgumentException(
+              "Cannot deserialize BlockState from message of type: "
+                  + pMessage.getClass().getName());
+    };
   }
 
   /**
