@@ -19,6 +19,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 
+/**
+ * Broadcasts DSS messages to multiple connections based on their communication entity or sender ID.
+ */
 public class DssMessageBroadcaster {
 
   public record CommunicationId(String senderId, DssCommunicationEntity dssCommunicationEntity) {}
