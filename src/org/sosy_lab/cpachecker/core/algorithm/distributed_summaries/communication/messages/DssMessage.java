@@ -77,7 +77,7 @@ public abstract class DssMessage {
   private final ImmutableMap<String, String> content;
 
   DssMessage(String pSenderId, DssMessageType pType, Map<String, String> pContent) {
-    checkArgument(isValid(pContent), "Invalid content for message type: " + "%s", pType);
+    checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
     senderId = pSenderId;
     type = pType;
     timestamp = Instant.now();
@@ -101,7 +101,7 @@ public abstract class DssMessage {
   private ContentReader getArbitraryContent(String pKey) {
     checkArgument(
         type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
-        "Cannot get content for type: " + "%s",
+        "Cannot get content for type: %s",
         type);
     Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
     Preconditions.checkState(
