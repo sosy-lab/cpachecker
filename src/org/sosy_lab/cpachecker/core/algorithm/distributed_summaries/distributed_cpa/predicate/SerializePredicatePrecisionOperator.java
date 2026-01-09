@@ -25,9 +25,16 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
 
   private final FormulaManagerView formulaManagerView;
 
+  /** Keys used in the serialized message for global predicates. */
   public static final String DSS_MESSAGE_GLOBAL_KEY = "global";
+
+  /** Key used in the serialized message for location-instance specific predicates. */
   public static final String DSS_MESSAGE_LOCATION_INSTANCES_KEY = "locationInstances";
+
+  /** Key used in the serialized message for location specific predicates. */
   public static final String DSS_MESSAGE_LOCAL_PREDICATES_KEY = "localPredicates";
+
+  /** Key used in the serialized message for function specific predicates. */
   public static final String DSS_MESSAGE_FUNCTION_PREDICATES_KEY = "functionPredicates";
 
   public SerializePredicatePrecisionOperator(final FormulaManagerView pFormulaManagerView) {
