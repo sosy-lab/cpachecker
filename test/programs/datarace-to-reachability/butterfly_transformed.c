@@ -25,24 +25,28 @@ typedef struct {
   int writers;
 } RaceMon;
 
-static RaceMon mon_m = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
-static RaceMon mon_n = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
-static RaceMon mon_success = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
-static RaceMon mon_w = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
-static RaceMon mon_x = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
-static RaceMon mon_y = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_rm = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_rn = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_rw = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_rw_1 = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_rw_2 = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_rw_3 = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_rx = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_ry = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 
 static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0);
-  __VERIFIER_atomic_end();
   rm->readers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->readers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -50,22 +54,24 @@ static void lock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0 && rm->readers == 0);
-  __VERIFIER_atomic_end();
   rm->writers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->writers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
 
 extern void abort(void);
 // void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 // void __VERIFIER_assert(int expression) { if (!expression) { ERROR: {reach_error();abort();}}; return; }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 // For most memory models (including SC), it is not possible to derive all coherence orders in polynomial time [1].
 // In fact, this program (coming from Fig. 6 in [2]) is a counter example to Theorem 2 in [3].
@@ -80,104 +86,56 @@ atomic_int m,n,x,y,w;
 atomic_int success = 0;
 
 void *p0(void *arg) {
-    lock_read(&mon_w);
     int rw = w; // w==2
-    unlock_read(&mon_w);
-    lock_write(&mon_m);
     m = 1;
-    unlock_write(&mon_m);
-    lock_read(&mon_x);
     int rx = x; // x==1
-    unlock_read(&mon_x);
     if (rw == 2 && rx == 1) {
-        lock_write(&mon_success);
         success++;
-        unlock_write(&mon_success);
     }
 }
 
 void *p1(void *arg) {
-    lock_read(&mon_w);
     int rw = w; // w==1
-    unlock_read(&mon_w);
-    lock_write(&mon_n);
     n = 1;
-    unlock_write(&mon_n);
-    lock_read(&mon_y);
     int ry = y; // y==2
-    unlock_read(&mon_y);
     if (rw == 1 && ry == 2) {
-        lock_write(&mon_success);
         success++;
-        unlock_write(&mon_success);
     }
 }
 
 void *p2(void *arg) {
-    lock_write(&mon_x);
     x = 1;
-    unlock_write(&mon_x);
-    lock_write(&mon_w);
     w = 1;
-    unlock_write(&mon_w);
-    lock_write(&mon_y);
     y = 1;
-    unlock_write(&mon_y);
-    lock_read(&mon_n);
     int rn = n; // n == 2
-    unlock_read(&mon_n);
     if (rn == 2) {
-        lock_write(&mon_success);
         success++;
-        unlock_write(&mon_success);
     }
 }
 
 void *p3(void *arg) {
-    lock_write(&mon_y);
     y = 2;
-    unlock_write(&mon_y);
-    lock_write(&mon_w);
     w = 2;
-    unlock_write(&mon_w);
-    lock_write(&mon_x);
     x = 2;
-    unlock_write(&mon_x);
-    lock_read(&mon_m);
     int rm = m; // m == 2
-    unlock_read(&mon_m);
     if (rm == 2) {
-        lock_write(&mon_success);
         success++;
-        unlock_write(&mon_success);
     }
 }
 
 void *p4(void *arg) {
-    lock_write(&mon_n);
     n = 2;
-    unlock_write(&mon_n);
-    lock_read(&mon_w);
     int rw = w; // w==2
-    unlock_read(&mon_w);
     if (rw == 2) {
-        lock_write(&mon_success);
         success++;
-        unlock_write(&mon_success);
     }
 }
 
 void *p5(void *arg) {
-    lock_write(&mon_m);
     m = 2;
-    unlock_write(&mon_m);
-    lock_read(&mon_w);
     int rw = w; // w==1
-    unlock_read(&mon_w);
     if (rw == 1) {
-        lock_write(&mon_success);
         success++;
-        unlock_write(&mon_success);
     }
 }
 

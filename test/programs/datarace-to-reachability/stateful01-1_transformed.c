@@ -9,7 +9,7 @@
 extern void abort(void);
 #include <assert.h>
 // void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 #include <pthread.h>
 extern void abort(void);
@@ -36,13 +36,15 @@ static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0);
-  __VERIFIER_atomic_end();
   rm->readers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->readers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -50,13 +52,15 @@ static void lock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0 && rm->readers == 0);
-  __VERIFIER_atomic_end();
   rm->writers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->writers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -107,8 +111,12 @@ int main()
   pthread_mutex_init(&ma, 0);
   pthread_mutex_init(&mb, 0);
 
+  lock_write(&mon_data1);
   data1 = 10;
+  unlock_write(&mon_data1);
+  lock_write(&mon_data2);
   data2 = 10;
+  unlock_write(&mon_data2);
 
   pthread_create(&t1, 0, thread1, 0);
   pthread_create(&t2, 0, thread2, 0);
@@ -119,7 +127,7 @@ int main()
   if (data1==16 && data2==5)
   {
 //     ERROR: {reach_error();abort();}
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
       ;    
   }
 

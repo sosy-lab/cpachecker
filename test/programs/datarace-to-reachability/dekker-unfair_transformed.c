@@ -5,7 +5,7 @@ void assume_abort_if_not(int cond) {
 extern void abort(void);
 #include <assert.h>
 // void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 /* Testcase from Threader's distribution. For details see:
    http://www.model.in.tum.de/~popeea/research/threader
@@ -13,9 +13,9 @@ extern void abort(void);
 
 #include <pthread.h>
 // #undef assert
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 // #define assert(e) if (!(e)) ERROR: reach_error()
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 #include <stdatomic.h>
 extern void abort(void);
@@ -35,22 +35,21 @@ typedef struct {
   int writers;
 } RaceMon;
 
-static RaceMon mon_flag1 = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
-static RaceMon mon_flag2 = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
-static RaceMon mon_turn = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 static RaceMon mon_x = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 
 static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0);
-  __VERIFIER_atomic_end();
   rm->readers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->readers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -58,13 +57,15 @@ static void lock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0 && rm->readers == 0);
-  __VERIFIER_atomic_end();
   rm->writers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->writers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -73,24 +74,18 @@ atomic_int turn; // integer variable to hold the ID of the thread whose turn is 
 int x; // boolean variable to test mutual exclusion
 
 void *thr1(void *_) {
-  lock_write(&mon_flag1);
   flag1 = 1;
-  unlock_write(&mon_flag1);
   while (flag2 >= 1) {
     if (turn != 0) {
-      lock_write(&mon_flag1);
       flag1 = 0;
-      unlock_write(&mon_flag1);
-      lock_read(&mon_turn);
       while (turn != 0) {};
-      unlock_read(&mon_turn);
-      lock_write(&mon_flag1);
       flag1 = 1;
-      unlock_write(&mon_flag1);
     }
   }
   // begin: critical section
+  lock_write(&mon_x);
   x = 0;
+  unlock_write(&mon_x);
   assert(x<=0);
   // end: critical section
   turn = 1;
@@ -99,24 +94,18 @@ void *thr1(void *_) {
 }
 
 void *thr2(void *_) {
-  lock_write(&mon_flag2);
   flag2 = 1;
-  unlock_write(&mon_flag2);
   while (flag1 >= 1) {
     if (turn != 1) {
-      lock_write(&mon_flag2);
       flag2 = 0;
-      unlock_write(&mon_flag2);
-      lock_read(&mon_turn);
       while (turn != 1) {};
-      unlock_read(&mon_turn);
-      lock_write(&mon_flag2);
       flag2 = 1;
-      unlock_write(&mon_flag2);
     }
   }
   // begin: critical section
+  lock_write(&mon_x);
   x = 1;
+  unlock_write(&mon_x);
   assert(x>=1);
   // end: critical section
   turn = 1; // should be 0 (turn is never set to 0 this way, making the algorithm unfair)

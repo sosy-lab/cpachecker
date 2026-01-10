@@ -30,20 +30,26 @@ typedef struct {
   int writers;
 } RaceMon;
 
+static RaceMon mon_condI = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_condJ = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 static RaceMon mon_i = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 static RaceMon mon_j = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_k = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_k_1 = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 
 static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0);
-  __VERIFIER_atomic_end();
   rm->readers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->readers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -51,18 +57,20 @@ static void lock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0 && rm->readers == 0);
-  __VERIFIER_atomic_end();
   rm->writers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->writers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
 // void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 int i = 3, j = 6;
 
@@ -111,7 +119,7 @@ int main(int argc, char **argv) {
 
   if (condI || condJ) {
 //     ERROR: {reach_error();abort();}
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
   }
 
   return 0;

@@ -5,7 +5,7 @@ void assume_abort_if_not(int cond) {
 extern void abort(void);
 #include <assert.h>
 // void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 /* Testcase from Threader's distribution. For details see:
    http://www.model.in.tum.de/~popeea/research/threader
@@ -41,13 +41,15 @@ static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0);
-  __VERIFIER_atomic_end();
   rm->readers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->readers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -55,20 +57,22 @@ static void lock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0 && rm->readers == 0);
-  __VERIFIER_atomic_end();
   rm->writers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->writers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
 // #undef assert
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 // #define assert(e) if (!(e)) ERROR: reach_error()
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 int block;
 int busy; // boolean flag indicating whether the block has been allocated to an inode
@@ -88,7 +92,9 @@ void *allocator(void *_){
     inode = 1;
     unlock_write(&mon_inode);
   }
+  lock_write(&mon_block);
   block = 1;
+  unlock_write(&mon_block);
   assert(block == 1);
   pthread_mutex_unlock(&m_inode);
   return NULL;
@@ -110,7 +116,11 @@ void *de_allocator(void *_){
  
 int main() {
   pthread_t t1, t2;
+  lock_read(&mon_busy);
+  lock_read(&mon_inode);
   assume_abort_if_not(inode == busy);
+  unlock_read(&mon_inode);
+  unlock_read(&mon_busy);
   pthread_mutex_init(&m_inode, 0);
   pthread_mutex_init(&m_busy, 0);
   pthread_create(&t1, 0, allocator, 0);

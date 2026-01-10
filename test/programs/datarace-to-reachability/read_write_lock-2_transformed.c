@@ -5,7 +5,7 @@ void assume_abort_if_not(int cond) {
 extern void abort(void);
 #include <assert.h>
 // void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 extern void __VERIFIER_atomic_begin(void);
 extern void __VERIFIER_atomic_end(void);
 
@@ -35,6 +35,9 @@ typedef struct {
   int writers;
 } RaceMon;
 
+static RaceMon mon_l = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_lx = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_ly = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 static RaceMon mon_r = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 static RaceMon mon_w = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 static RaceMon mon_x = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
@@ -44,13 +47,15 @@ static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0);
-  __VERIFIER_atomic_end();
   rm->readers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->readers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -58,41 +63,33 @@ static void lock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0 && rm->readers == 0);
-  __VERIFIER_atomic_end();
   rm->writers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->writers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
 // #undef assert
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 // #define assert(e) if (!(e)) ERROR: reach_error()
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 int w=0, r=0, x, y;
 
 void __VERIFIER_atomic_take_write_lock() {
-  lock_read(&mon_r);
-  lock_read(&mon_w);
   assume_abort_if_not(w==0 && r==0);
-  unlock_read(&mon_w);
-  unlock_read(&mon_r);
-  lock_write(&mon_w);
   w = 1;
-  unlock_write(&mon_w);
 } 
 
 void __VERIFIER_atomic_take_read_lock() {
-  lock_read(&mon_w);
   assume_abort_if_not(w==0);
-  unlock_read(&mon_w);
-  lock_write(&mon_r);
   r = r+1;
-  unlock_write(&mon_r);
 }
 
 void *writer(void *arg) { //writer
@@ -114,35 +111,43 @@ void *reader(void *arg) { //reader
   int l;
   __VERIFIER_atomic_take_read_lock();
   __VERIFIER_atomic_begin();
+  lock_write(&mon_l);
   lock_read(&mon_x);
   l = x;
   unlock_read(&mon_x);
+  unlock_write(&mon_l);
   __VERIFIER_atomic_end();
   __VERIFIER_atomic_begin();
+  lock_read(&mon_l);
   lock_write(&mon_y);
   y = l;
   unlock_write(&mon_y);
+  unlock_read(&mon_l);
   __VERIFIER_atomic_end();
   __VERIFIER_atomic_begin();
-  lock_read(&mon_y);
   int ly = y;
-  unlock_read(&mon_y);
   __VERIFIER_atomic_end();
   __VERIFIER_atomic_begin();
-  lock_read(&mon_x);
   int lx = x;
-  unlock_read(&mon_x);
   __VERIFIER_atomic_end();
+  lock_read(&mon_lx);
+  lock_read(&mon_ly);
   assert(ly == lx);
+  unlock_read(&mon_ly);
+  unlock_read(&mon_lx);
   __VERIFIER_atomic_begin();
+  lock_write(&mon_l);
   lock_read(&mon_r);
   l = r-1;
   unlock_read(&mon_r);
+  unlock_write(&mon_l);
   __VERIFIER_atomic_end();
   __VERIFIER_atomic_begin();
+  lock_read(&mon_l);
   lock_write(&mon_r);
   r = l;
   unlock_write(&mon_r);
+  unlock_read(&mon_l);
   __VERIFIER_atomic_end();
   return 0;
 }

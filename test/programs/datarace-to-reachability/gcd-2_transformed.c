@@ -1,7 +1,7 @@
 extern void abort(void);
 #include <assert.h>
 // void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 extern void abort(void);
 void assume_abort_if_not(int cond) {
   if(!cond) {abort();}
@@ -89,7 +89,7 @@ extern unsigned int __VERIFIER_nondet_uint();
 //   }
 //   return;
 // }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 #include <pthread.h>
 extern void abort(void);
@@ -116,13 +116,15 @@ static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0);
-  __VERIFIER_atomic_end();
   rm->readers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->readers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -130,13 +132,15 @@ static void lock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0 && rm->readers == 0);
-  __VERIFIER_atomic_end();
   rm->writers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->writers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -146,31 +150,27 @@ unsigned a, b;
 void __VERIFIER_atomic_dec_a()
 {
   if(a>b)
-    lock_write(&mon_a);
-    lock_read(&mon_b);
     a=a-b;
-    unlock_read(&mon_b);
-    unlock_write(&mon_a);
 }
 
 void __VERIFIER_atomic_dec_b()
 {
   if(b>a)
-    lock_read(&mon_a);
-    lock_write(&mon_b);
     b=b-a;
-    unlock_write(&mon_b);
-    unlock_read(&mon_a);
 }
 
 void* dec_a(void* arg)
 {
   (void)arg;
 
+  lock_read(&mon_a);
+  lock_read(&mon_b);
   while(a!=b)
   {
     __VERIFIER_atomic_dec_a();
   }
+  unlock_read(&mon_b);
+  unlock_read(&mon_a);
 
   return 0;
 }
@@ -179,10 +179,14 @@ void* dec_b(void* arg)
 {
   (void)arg;
 
+  lock_read(&mon_a);
+  lock_read(&mon_b);
   while(a!=b)
   {
     __VERIFIER_atomic_dec_b();
   }
+  unlock_read(&mon_b);
+  unlock_read(&mon_a);
 
   return 0;
 }

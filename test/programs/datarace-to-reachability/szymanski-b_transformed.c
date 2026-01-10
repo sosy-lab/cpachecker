@@ -1,7 +1,7 @@
 extern void abort(void);
 #include <assert.h>
 // void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 /* Testcase from Threader's distribution. For details see:
    http://www.model.in.tum.de/~popeea/research/threader
@@ -33,13 +33,15 @@ static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0);
-  __VERIFIER_atomic_end();
   rm->readers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->readers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -47,20 +49,22 @@ static void lock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0 && rm->readers == 0);
-  __VERIFIER_atomic_end();
   rm->writers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->writers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
 // #undef assert
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 // #define assert(e) if (!(e)) ERROR: reach_error()
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 int flag1 = 0, flag2 = 0; // integer flags 
 int x; // boolean variable to test mutual exclusion
@@ -69,11 +73,11 @@ void *thr1(void *_) {
   lock_write(&mon_flag1);
   flag1 = 1;
   unlock_write(&mon_flag1);
-  while (flag2 >= 3) {
   lock_read(&mon_flag2);
+  while (flag2 >= 3) {
     ;
-  unlock_read(&mon_flag2);
   }
+  unlock_read(&mon_flag2);
   lock_write(&mon_flag1);
   flag1 = 3;
   unlock_write(&mon_flag1);
@@ -81,20 +85,26 @@ void *thr1(void *_) {
     lock_write(&mon_flag1);
     flag1 = 2;
     unlock_write(&mon_flag1);
-    while (flag2 != 4) {
     lock_read(&mon_flag2);
+    while (flag2 != 4) {
       ;
-    unlock_read(&mon_flag2);
     }
+    unlock_read(&mon_flag2);
   }
+  lock_write(&mon_flag1);
   flag1 = 4;
+  unlock_write(&mon_flag1);
   while (flag2 >= 2);
   // begin critical section
+  lock_write(&mon_x);
   x = 0;
+  unlock_write(&mon_x);
   assert(x<=0);
   // end critical section
   while (2 <= flag2 && flag2 <= 3);
+  lock_write(&mon_flag1);
   flag1 = 0;
+  unlock_write(&mon_flag1);
   return 0;
 }
 
@@ -102,11 +112,11 @@ void *thr2(void *_) {
   lock_write(&mon_flag2);
   flag2 = 1;
   unlock_write(&mon_flag2);
-  while (flag1 >= 3) {
   lock_read(&mon_flag1);
+  while (flag1 >= 3) {
     ;
-  unlock_read(&mon_flag1);
   }
+  unlock_read(&mon_flag1);
   lock_write(&mon_flag2);
   flag2 = 3;
   unlock_write(&mon_flag2);
@@ -115,19 +125,23 @@ void *thr2(void *_) {
     flag2 = 2;
     unlock_write(&mon_flag2);
     while (flag1 != 4) {
-    lock_read(&mon_flag1);
       ;
-    unlock_read(&mon_flag1);
     }
   }
+  lock_write(&mon_flag2);
   flag2 = 4;
+  unlock_write(&mon_flag2);
   while (flag1 >= 2);
   // begin critical section
+  lock_write(&mon_x);
   x = 1;
+  unlock_write(&mon_x);
   assert(x>=1);
   // end critical section
   while (2 <= flag1 && flag1 <= 3);
+  lock_write(&mon_flag2);
   flag2 = 0;
+  unlock_write(&mon_flag2);
   return 0;
 }
 

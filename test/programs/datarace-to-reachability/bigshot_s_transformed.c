@@ -9,7 +9,7 @@
 extern void abort(void);
 #include <assert.h>
 // void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
+// Commented out due to possible Syntax or Logic Errors
 
 #include <stdlib.h>
 #include <pthread.h>
@@ -37,13 +37,15 @@ static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0);
-  __VERIFIER_atomic_end();
   rm->readers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->readers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
@@ -51,23 +53,21 @@ static void lock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
   __VERIFIER_atomic_begin();
   __VERIFIER_assert(rm->writers == 0 && rm->readers == 0);
-  __VERIFIER_atomic_end();
   rm->writers++;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 static void unlock_write(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
+  __VERIFIER_atomic_begin();
   rm->writers--;
+  __VERIFIER_atomic_end();
   pthread_mutex_unlock(&rm->m);
 }
 
 
 // void __VERIFIER_assert(int expression) { if (!expression) { ERROR: {reach_error();abort();}}; return; }
-// Commented out due to possible Syntax Errors
-<<<<<<< HEAD:test/programs/datarace-to-reachability/pthread/bigshot_p_transformed.c
-
-=======
->>>>>>> 66a0585252 (Added new test programs and modified datarace xml):test/programs/datarace-to-reachability/bigshot_s_transformed.c
+// Commented out due to possible Syntax or Logic Errors
 
 char *v;
 
@@ -81,13 +81,11 @@ void *thread1(void * arg)
 
 void *thread2(void *arg)
 {
-<<<<<<< HEAD:test/programs/datarace-to-reachability/pthread/bigshot_p_transformed.c
-=======
   if (v) {
->>>>>>> 66a0585252 (Added new test programs and modified datarace xml):test/programs/datarace-to-reachability/bigshot_s_transformed.c
   lock_write(&mon_v);
     strcpy(v, "Bigshot");
   unlock_write(&mon_v);
+  }
   return 0;
 }
 
@@ -102,7 +100,9 @@ int main()
   pthread_create(&t2, 0, thread2, 0);
   pthread_join(t2, 0);
 
+  lock_read(&mon_v);
   __VERIFIER_assert(!v || v[0] == 'B');
+  unlock_read(&mon_v);
 
   return 0;
 }
