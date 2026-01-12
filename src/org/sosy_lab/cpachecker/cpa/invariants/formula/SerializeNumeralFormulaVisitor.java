@@ -200,8 +200,8 @@ public class SerializeNumeralFormulaVisitor
   }
 
   private String typeInfoToString(TypeInfo typeInfo) {
-    if (typeInfo instanceof BitVectorInfo) {
-      return ((BitVectorInfo) typeInfo).getSize() + "," + ((BitVectorInfo) typeInfo).isSigned();
+    if (typeInfo instanceof BitVectorInfo bitVectorInfo) {
+      return bitVectorInfo.getSize() + "," + bitVectorInfo.isSigned();
     } else {
       return typeInfo.abbrev();
     }

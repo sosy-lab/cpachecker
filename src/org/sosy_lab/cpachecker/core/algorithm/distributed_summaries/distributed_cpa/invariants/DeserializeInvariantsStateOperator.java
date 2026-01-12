@@ -6,24 +6,24 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants;
+
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.SerializeDataflowAnalysisStateOperator.BOOLEAN_FORMULA;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.SerializeDataflowAnalysisStateOperator.STRATEGY;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.SerializeDataflowAnalysisStateOperator.VARIABLE_TYPES;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeParser;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.invariants.AbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
@@ -36,28 +36,20 @@ import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedV
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class DeserializeDataflowAnalysisStateOperator implements DeserializeOperator {
+public class DeserializeInvariantsStateOperator implements DeserializeOperator {
   private final CFA cfa;
   private final InvariantsCPA invariantsCPA;
-  private final BlockNode blockNode;
 
-  public DeserializeDataflowAnalysisStateOperator(
-      InvariantsCPA pInvariantsCPA, CFA pCFA, BlockNode pBlockNode) {
+  public DeserializeInvariantsStateOperator(InvariantsCPA pInvariantsCPA, CFA pCFA) {
     cfa = pCFA;
     invariantsCPA = pInvariantsCPA;
-    blockNode = pBlockNode;
   }
 
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
-    Optional<Object> abstractStateOptional = pMessage.getAbstractState(InvariantsCPA.class);
-    if (abstractStateOptional.isEmpty()) {
-      return invariantsCPA.getInitialState(
-          blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition());
-    }
-    String booleanFormulaString = (String) abstractStateOptional.orElseThrow();
+    ContentReader stateContent = pMessage.getAbstractStateContent(InvariantsState.class);
     BooleanFormula<CompoundInterval> booleanFormula =
-        StringToBooleanFormulaParser.parseBooleanFormula(booleanFormulaString);
+        StringToBooleanFormulaParser.parseBooleanFormula(stateContent.get(BOOLEAN_FORMULA));
     AcceptSpecifiedVariableSelection<CompoundInterval> collectVarsVariableSelection =
         new AcceptSpecifiedVariableSelection<>(booleanFormula.accept(new CollectVarsVisitor<>()));
     List<BooleanFormula<CompoundInterval>> assumptionParts =
@@ -78,11 +70,11 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
             collectVarsVariableSelection,
             invariantsCPA.getCompoundIntervalFormulaManagerFactory(),
             cfa.getMachineModel(),
-            extractAbstractionStrategy(pMessage)
+            extractAbstractionStrategy(stateContent)
                 .createStrategy(
                     invariantsCPA.getCompoundIntervalFormulaManagerFactory(), cfa.getMachineModel())
                 .getAbstractionState(),
-            extractVariableTypes(pMessage),
+            extractVariableTypes(stateContent),
             true);
 
     for (BooleanFormula<CompoundInterval> assumption : assumptionParts) {
@@ -94,13 +86,8 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     return deserializedInvariantsState;
   }
 
-  private Map<MemoryLocation, CType> extractVariableTypes(DssMessage pMessage) {
-    String variableTypesString = "";
-    if (pMessage instanceof DssPostConditionMessage postConditionMessage) {
-      variableTypesString = postConditionMessage.getVTypes();
-    } else if (pMessage instanceof DssViolationConditionMessage errorConditionMessage) {
-      variableTypesString = errorConditionMessage.getVTypes();
-    }
+  private Map<MemoryLocation, CType> extractVariableTypes(ContentReader pContentReader) {
+    String variableTypesString = pContentReader.get(VARIABLE_TYPES);
 
     Map<MemoryLocation, CType> variableTypes = new HashMap<>();
     for (String variableTypeEntry : Splitter.on(" && ").split(variableTypesString)) {
@@ -115,13 +102,8 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     return variableTypes;
   }
 
-  private AbstractionStrategyFactories extractAbstractionStrategy(DssMessage pMessage) {
-    String strategyString = "";
-    if (pMessage instanceof DssPostConditionMessage postMessage) {
-      strategyString = postMessage.getAbstractionStrategy();
-    } else if (pMessage instanceof DssViolationConditionMessage errorMessage) {
-      strategyString = errorMessage.getAbstractionStrategy();
-    }
+  private AbstractionStrategyFactories extractAbstractionStrategy(ContentReader pContentReader) {
+    String strategyString = pContentReader.get(STRATEGY);
     return AbstractionStrategyFactories.valueOf(strategyString);
   }
 }

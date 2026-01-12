@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DistributedARGCPA
     implements ForwardingDistributedConfigurableProgramAnalysis, StatisticsProvider {
@@ -103,7 +104,7 @@ public class DistributedARGCPA
   }
 
   @Override
-  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) throws CPAException {
     if (pAbstractState instanceof ARGState argstate) {
       return wrappedCPA.isMostGeneralBlockEntryState(argstate.getWrappedState());
     }

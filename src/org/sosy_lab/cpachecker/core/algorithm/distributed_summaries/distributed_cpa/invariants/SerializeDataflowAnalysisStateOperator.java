@@ -6,19 +6,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.SerializeCTypeVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
-import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeBooleanFormulaVisitor;
@@ -27,8 +27,12 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SerializeDataflowAnalysisStateOperator implements SerializeOperator {
 
+  public static final String STRATEGY = "abstractionStrategy";
+  public static final String BOOLEAN_FORMULA = "booleanFormula";
+  public static final String VARIABLE_TYPES = "vtypes";
+
   @Override
-  public DssMessagePayload serialize(AbstractState pState) {
+  public ImmutableMap<String, String> serialize(AbstractState pState) {
     InvariantsState state = (InvariantsState) pState;
     BooleanFormula<CompoundInterval> booleanFormula = state.asFormula();
     SerializeNumeralFormulaVisitor numeralFormulaVisitor = new SerializeNumeralFormulaVisitor();
@@ -50,15 +54,17 @@ public class SerializeDataflowAnalysisStateOperator implements SerializeOperator
 
     String serializedVariableTypes = Joiner.on(" && ").join(serializedVariableTypeEntries);
 
-    DssMessagePayload.Builder payload =
-        DssMessagePayload.builder()
-            .addEntry(InvariantsCPA.class.getName(), booleanFormulaString)
-            .addEntry(DssMessagePayload.STRATEGY, abstractionStrategy);
+    ContentBuilder builder = ContentBuilder.builder();
+
+    builder
+        .pushLevel(InvariantsState.class.getName())
+        .put(STRATEGY, abstractionStrategy)
+        .put(BOOLEAN_FORMULA, booleanFormulaString);
 
     if (!serializedVariableTypes.isEmpty()) {
-      payload.addEntry(DssMessagePayload.VTYPES, serializedVariableTypes);
+      builder.put(VARIABLE_TYPES, serializedVariableTypes);
     }
 
-    return payload.buildPayload();
+    return builder.build();
   }
 }

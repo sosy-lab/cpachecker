@@ -28,14 +28,11 @@ public class StringToBooleanFormulaParser {
     formulaString = formulaString.trim();
     formulaString = removeEnclosingParentheses(formulaString);
 
-    switch (formulaString) {
-      case "true":
-        return BooleanConstant.getTrue();
-      case "false":
-        return BooleanConstant.getFalse();
-      default:
-        return parseComplexBooleanFormula(formulaString);
-    }
+    return switch (formulaString) {
+      case "true" -> BooleanConstant.getTrue();
+      case "false" -> BooleanConstant.getFalse();
+      default -> parseComplexBooleanFormula(formulaString);
+    };
   }
 
   private static BooleanFormula<CompoundInterval> parseComplexBooleanFormula(String formulaString) {
@@ -245,14 +242,11 @@ public class StringToBooleanFormulaParser {
       boolean signed = Boolean.parseBoolean(parts.get(1).trim());
       return BitVectorInfo.from(size, signed);
     } else {
-      switch (typeInfo) {
-        case "float":
-          return FloatingPointTypeInfo.FLOAT;
-        case "double":
-          return FloatingPointTypeInfo.DOUBLE;
-        default:
-          throw new IllegalArgumentException("Unknown TypeInfo abbreviation: " + typeInfo);
-      }
+      return switch (typeInfo) {
+        case "float" -> FloatingPointTypeInfo.FLOAT;
+        case "double" -> FloatingPointTypeInfo.DOUBLE;
+        default -> throw new IllegalArgumentException("Unknown TypeInfo abbreviation: " + typeInfo);
+      };
     }
   }
 

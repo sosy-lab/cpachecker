@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow.DistributedDataFlowAnalysisCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.DistributedInvariantsAnalysisCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
@@ -44,11 +44,18 @@ public class DssFactory {
   private DssFactory() {}
 
   /**
-   * Register corresponding DCPA to a CPA
+   * Create a distributed version of the given CPA for the given block.
    *
-   * @param pCPA underlying CPA
-   * @param pBlockNode block node for which the new DCPA is responsible
-   * @return DCPA for pCPA
+   * @param pCPA The CPA to distribute
+   * @param pBlockNode The block for which the distributed CPA is created
+   * @param pCFA The underlying CFA
+   * @param pConfiguration The configuration
+   * @param pOptions The specific options for distributed analysis
+   * @param pMessageFactory The message factory for all distributed CPAs
+   * @param pLogManager The logger
+   * @param pShutdownNotifier The shutdown notifier
+   * @return The distributed CPA or null if the CPA cannot be distributed
+   * @throws InvalidConfigurationException If the configuration is invalid
    */
   public static DistributedConfigurableProgramAnalysis distribute(
       ConfigurableProgramAnalysis pCPA,
@@ -97,7 +104,7 @@ public class DssFactory {
               pMessageFactory,
               pLogManager,
               pShutdownNotifier);
-      case InvariantsCPA invariantsCPA -> distribute(invariantsCPA, pBlockNode, pOptions);
+      case InvariantsCPA invariantsCPA -> distribute(invariantsCPA, pBlockNode, pCFA);
       case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, integerToNodeMap);
       case null /*TODO check if null is necessary*/, default -> null;
     };
@@ -110,7 +117,7 @@ public class DssFactory {
 
   private static DistributedConfigurableProgramAnalysis distribute(
       InvariantsCPA pInvariantsCPA, BlockNode pBlockNode, CFA pCFA) {
-    return new DistributedDataFlowAnalysisCPA(pInvariantsCPA, pBlockNode, pCFA);
+    return new DistributedInvariantsAnalysisCPA(pInvariantsCPA, pBlockNode, pCFA);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

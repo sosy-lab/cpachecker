@@ -7,4 +7,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Distributes the DataFlowAnalysisCPA */
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants;

@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Extension of ConfigurableProgramAnalysis with serialization and deserialization capabilities for
@@ -99,7 +100,7 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @param pAbstractState Abstract state to check whether it is the most general block entry state.
    * @return {@code true} if the given abstract state is the most general block entry state,
    */
-  boolean isMostGeneralBlockEntryState(AbstractState pAbstractState);
+  boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) throws CPAException;
 
   /**
    * Reset the given abstract state to the initial value iff the abstract state is mutable.

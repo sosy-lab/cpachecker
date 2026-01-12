@@ -44,6 +44,22 @@ public class CTypeParser {
     }
   }
 
+  private static CTypeQualifiers getQualifiers(boolean isConst, boolean isVolatile) {
+    if (isConst) {
+      if (isVolatile) {
+        return CTypeQualifiers.CONST_VOLATILE;
+      } else {
+        return CTypeQualifiers.CONST;
+      }
+    } else {
+      if (isVolatile) {
+        return CTypeQualifiers.VOLATILE;
+      } else {
+        return CTypeQualifiers.NONE;
+      }
+    }
+  }
+
   private static CType parsePointerType(String input) {
     String content = extractInnerContent(input, "PointerType(");
     List<String> parts = splitIgnoringNestedCommas(content);
@@ -52,7 +68,7 @@ public class CTypeParser {
     boolean isVolatile = Boolean.parseBoolean(parts.get(1));
     CType innerType = parse(parts.get(2));
 
-    return new CPointerType(isConst, isVolatile, innerType);
+    return new CPointerType(getQualifiers(isConst, isVolatile), innerType);
   }
 
   private static CType parseArrayType(String input) {
@@ -63,7 +79,7 @@ public class CTypeParser {
     boolean isVolatile = Boolean.parseBoolean(parts.get(1));
     CType innerType = parse(parts.get(2));
 
-    return new CArrayType(isConst, isVolatile, innerType);
+    return new CArrayType(getQualifiers(isConst, isVolatile), innerType);
   }
 
   private static CType parseFunctionType(String input) {
@@ -98,7 +114,7 @@ public class CTypeParser {
     String name = parts.get(2);
     CType canonicalType = parse(parts.get(3));
 
-    return new CTypedefType(isConst, isVolatile, name, canonicalType);
+    return new CTypedefType(getQualifiers(isConst, isVolatile), name, canonicalType);
   }
 
   private static CType parseElaboratedType(String input) {
@@ -110,7 +126,7 @@ public class CTypeParser {
     String name = parts.get(3);
     String origName = parts.get(4);
 
-    return new CElaboratedType(isConst, isVolatile, kind, name, origName, null);
+    return new CElaboratedType(getQualifiers(isConst, isVolatile), kind, name, origName, null);
   }
 
   private static CType parseVoidType(String input) {
@@ -119,7 +135,7 @@ public class CTypeParser {
     boolean isConst = Boolean.parseBoolean(parts.get(0));
     boolean isVolatile = Boolean.parseBoolean(parts.get(1));
 
-    return CVoidType.create(isConst, isVolatile);
+    return CVoidType.create(getQualifiers(isConst, isVolatile));
   }
 
   private static CType parseSimpleType(String input) {
@@ -137,8 +153,7 @@ public class CTypeParser {
     boolean hasLongLongSpecifier = Boolean.parseBoolean(parts.get(9));
 
     return new CSimpleType(
-        isConst,
-        isVolatile,
+        getQualifiers(isConst, isVolatile),
         basicType,
         hasLongSpecifier,
         hasShortSpecifier,
@@ -159,7 +174,7 @@ public class CTypeParser {
     String name = parts.get(3);
     String origName = parts.get(4);
 
-    return new CCompositeType(isConst, isVolatile, kind, name, origName);
+    return new CCompositeType(getQualifiers(isConst, isVolatile), kind, name, origName);
   }
 
   private static CType parseEnumType(String input) {
@@ -185,9 +200,18 @@ public class CTypeParser {
 
     CSimpleType enumCompatibleType =
         new CSimpleType(
-            false, false, CBasicType.INT, false, false, false, false, false, false, false);
+            getQualifiers(false, false),
+            CBasicType.INT,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false);
 
-    return new CEnumType(isConst, isVolatile, enumCompatibleType, enumerators, name, origName);
+    return new CEnumType(
+        getQualifiers(isConst, isVolatile), enumCompatibleType, enumerators, name, origName);
   }
 
   private static List<String> splitIgnoringNestedCommas(String input) {
@@ -217,7 +241,7 @@ public class CTypeParser {
       }
     }
 
-    if (currentPart.length() > 0) {
+    if (!currentPart.isEmpty()) {
       parts.add(currentPart.toString().trim());
     }
     return parts;
@@ -236,24 +260,16 @@ public class CTypeParser {
   }
 
   private static CBasicType getBasicTypeFromString(String typeStr) {
-    switch (typeStr) {
-      case "_Bool":
-        return CBasicType.BOOL;
-      case "char":
-        return CBasicType.CHAR;
-      case "int":
-        return CBasicType.INT;
-      case "__int128":
-        return CBasicType.INT128;
-      case "float":
-        return CBasicType.FLOAT;
-      case "double":
-        return CBasicType.DOUBLE;
-      case "__float128":
-        return CBasicType.FLOAT128;
-      default:
-        return CBasicType.UNSPECIFIED;
-    }
+    return switch (typeStr) {
+      case "_Bool" -> CBasicType.BOOL;
+      case "char" -> CBasicType.CHAR;
+      case "int" -> CBasicType.INT;
+      case "__int128" -> CBasicType.INT128;
+      case "float" -> CBasicType.FLOAT;
+      case "double" -> CBasicType.DOUBLE;
+      case "__float128" -> CBasicType.FLOAT128;
+      default -> CBasicType.UNSPECIFIED;
+    };
   }
 
   private static String extractInnerContent(String input, String prefix) {

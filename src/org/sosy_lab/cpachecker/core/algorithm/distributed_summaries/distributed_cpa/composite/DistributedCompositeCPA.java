@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DistributedCompositeCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -108,7 +109,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) throws CPAException {
     CompositeState composite = (CompositeState) pAbstractState;
     Preconditions.checkArgument(composite.getWrappedStates().size() == wrappedCpas.size());
     for (CpaAndState cpaAndState : zip(wrappedCpas, composite)) {
