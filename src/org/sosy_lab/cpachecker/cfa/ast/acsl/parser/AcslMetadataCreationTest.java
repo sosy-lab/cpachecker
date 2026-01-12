@@ -97,12 +97,14 @@ public class AcslMetadataCreationTest {
   private static Object[] task(
       String program, int expectedAnnotations, int pExpectedLine, int pExpextedCol) {
     return new Object[] {
-      program, expectedAnnotations, Optional.of(pExpectedLine), Optional.of(pExpextedCol)
+      program, expectedAnnotations, Optional.of(pExpectedLine), Optional.of(pExpextedCol),
     };
   }
 
   private static Object[] task(String program, int expectedAnnotations) {
-    return new Object[] {program, expectedAnnotations, Optional.empty(), Optional.empty()};
+    return new Object[] {
+      program, expectedAnnotations, Optional.empty(), Optional.empty(),
+    };
   }
 
   @Test
