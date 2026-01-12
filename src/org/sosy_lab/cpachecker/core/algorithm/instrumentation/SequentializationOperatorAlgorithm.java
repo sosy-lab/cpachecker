@@ -96,6 +96,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     Map<CFANode, Integer> mapNodesToLineNumbers;
 
     if (instrumentationProperty == InstrumentationProperty.TERMINATION
+        || instrumentationProperty == InstrumentationProperty.TERMINATIONWITHABORTS
         || instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS
         || instrumentationProperty == InstrumentationProperty.ONESTEPREACHABILITY) {
       int index = 0;

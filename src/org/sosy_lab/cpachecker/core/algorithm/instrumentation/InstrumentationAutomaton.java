@@ -29,6 +29,7 @@ public class InstrumentationAutomaton {
   enum InstrumentationProperty {
     TERMINATION,
     TERMINATIONWITHCOUNTERS,
+    TERMINATIONWITHABORTS,
     ONESTEPREACHABILITY,
     NOOVERFLOW,
     DATA_RACE,
@@ -76,6 +77,7 @@ public class InstrumentationAutomaton {
     switch (pInstrumentationProperty) {
       case TERMINATION -> constructTerminationAutomaton(pIndex);
       case TERMINATIONWITHCOUNTERS -> constructTerminationWithCountersAutomaton(pIndex);
+      case TERMINATIONWITHABORTS -> constructTerminationWithAbortsAutomaton(pIndex);
       case ONESTEPREACHABILITY -> constructOneStepReachabilityAutomaton(pIndex);
       case NOOVERFLOW -> constructOverflowAutomaton();
       case DATA_RACE -> constructDataRaceAutomaton();
@@ -835,6 +837,89 @@ public class InstrumentationAutomaton {
                                     + ")")
                         .collect(Collectors.joining("||"))
                     + ");}"),
+            InstrumentationOrder.AFTER,
+            q3);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q3,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.AFTER,
+            q3);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
+  }
+
+  private void constructTerminationWithAbortsAutomaton(int pIndex) {
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+    this.initialState = q1;
+
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(
+                "; int saved_"
+                    + pIndex
+                    + " = 0; "
+                    + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                entry.getValue()
+                                    + " "
+                                    + entry.getKey()
+                                    + "_INSTR_"
+                                    + pIndex
+                                    + (entry.getKey().charAt(0) == '*'
+                                        ? " = alloca(sizeof("
+                                            + getAllocationForPointer(entry.getValue())
+                                            + "))"
+                                        : ""))
+                        .collect(Collectors.joining("; "))
+                    + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("[cond]"),
+            new InstrumentationOperation(
+                "if(__VERIFIER_nondet_int() && saved_"
+                    + pIndex
+                    + " == 0) { saved_"
+                    + pIndex
+                    + " =1; "
+                    + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_INSTR_"
+                                    + pIndex
+                                    + " = "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey())
+                        .collect(Collectors.joining("; "))
+                    + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
+                    + "} else { if((saved_"
+                    + pIndex
+                    + " == 1)"
+                    + (!liveVariablesAndTypes.isEmpty() ? " && " : "")
+                    + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                "("
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + " == "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_INSTR_"
+                                    + pIndex
+                                    + ")")
+                        .collect(Collectors.joining("&&"))
+                    + "){abort();}}"),
             InstrumentationOrder.AFTER,
             q3);
     InstrumentationTransition t3 =
