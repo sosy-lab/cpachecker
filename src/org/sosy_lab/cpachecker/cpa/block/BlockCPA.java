@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -39,7 +40,8 @@ public class BlockCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new BlockState(node, blockNode, BlockStateType.INITIAL, Optional.empty());
+    return new BlockState(
+        node, blockNode, BlockStateType.INITIAL, Optional.empty(), ImmutableList.of());
   }
 
   public static BlockCPA create() {
