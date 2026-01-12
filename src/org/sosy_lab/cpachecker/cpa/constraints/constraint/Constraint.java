@@ -28,7 +28,7 @@ public interface Constraint extends SymbolicValue {
    * Returns whether this constraint is trivial. A constraint is trivial if it does not contain any
    * symbolic identifiers.
    *
-   * <p>This method does not check whether a occurring symbolic identifier has a definite
+   * <p>This method does not check whether an occurring symbolic identifier has a definite
    * assignment, but always returns <code>false</code>, if one exists. To consider definite
    * assignments, use {@link
    * org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker}.

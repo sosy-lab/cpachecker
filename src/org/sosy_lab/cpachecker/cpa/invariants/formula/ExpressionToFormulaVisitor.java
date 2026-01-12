@@ -299,121 +299,85 @@ public class ExpressionToFormulaVisitor
     left = topIfProblematicType(calculationType, left);
     right = topIfProblematicType(calculationType, right);
 
-    final NumeralFormula<CompoundInterval> result;
-    switch (pCBinaryExpression.getOperator()) {
-      case BINARY_AND:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-      case BINARY_OR:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-      case BINARY_XOR:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-      case DIVIDE:
-        result = compoundIntervalFormulaManager.divide(left, right);
-        break;
-      case EQUALS:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.equal(left, right));
-        break;
-      case GREATER_EQUAL:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.greaterThanOrEqual(left, right));
-        break;
-      case GREATER_THAN:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.greaterThan(left, right));
-        break;
-      case LESS_EQUAL:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
-        break;
-      case LESS_THAN:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
-        break;
-      case MINUS:
-        if (!(promLeft instanceof CPointerType)
-            && !(promRight instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
-          result = compoundIntervalFormulaManager.subtract(left, right);
-        } else if (!(promRight instanceof CPointerType)) {
-          // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer
-          // target
-          result =
-              compoundIntervalFormulaManager.subtract(
+    final NumeralFormula<CompoundInterval> result =
+        switch (pCBinaryExpression.getOperator()) {
+          case BINARY_AND -> allPossibleValues(pCBinaryExpression);
+          case BINARY_OR -> allPossibleValues(pCBinaryExpression);
+          case BINARY_XOR -> allPossibleValues(pCBinaryExpression);
+          case DIVIDE -> compoundIntervalFormulaManager.divide(left, right);
+          case EQUALS ->
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.equal(left, right));
+          case GREATER_EQUAL ->
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.greaterThanOrEqual(left, right));
+          case GREATER_THAN ->
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.greaterThan(left, right));
+          case LESS_EQUAL ->
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
+          case LESS_THAN ->
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
+          case MINUS -> {
+            if (!(promLeft instanceof CPointerType)
+                && !(promRight instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
+              yield compoundIntervalFormulaManager.subtract(left, right);
+            } else if (!(promRight instanceof CPointerType)) {
+              // operand1 is a pointer => we should multiply the subtrahend by the size of the
+              // pointer target
+              yield compoundIntervalFormulaManager.subtract(
                   left,
                   compoundIntervalFormulaManager.multiply(
                       right,
                       getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType)));
-        } else if (promLeft instanceof CPointerType) {
-          // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
-          if (promLeft.equals(promRight)) {
-            result =
-                compoundIntervalFormulaManager.divide(
+            } else if (promLeft instanceof CPointerType cPointerType) {
+              // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
+              if (promLeft.equals(promRight)) {
+                yield compoundIntervalFormulaManager.divide(
                     compoundIntervalFormulaManager.subtract(left, right),
-                    getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType));
-          } else {
-            throw new UnrecognizedCodeException(
-                "Can't subtract pointers of different types", pCBinaryExpression);
+                    getPointerTargetSizeLiteral(cPointerType, calculationType));
+              } else {
+                throw new UnrecognizedCodeException(
+                    "Can't subtract pointers of different types", pCBinaryExpression);
+              }
+            } else {
+              throw new UnrecognizedCodeException(
+                  "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
+            }
           }
-        } else {
-          throw new UnrecognizedCodeException(
-              "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
-        }
-        break;
-      case MODULO:
-        result = compoundIntervalFormulaManager.modulo(left, right);
-        break;
-      case MULTIPLY:
-        result = compoundIntervalFormulaManager.multiply(left, right);
-        break;
-      case NOT_EQUALS:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo,
-                compoundIntervalFormulaManager.logicalNot(
-                    compoundIntervalFormulaManager.equal(left, right)));
-        break;
-      case PLUS:
-        if (!(promLeft instanceof CPointerType)
-            && !(promRight instanceof CPointerType)) { // Just an addition e.g. 6 + 7
-          result = compoundIntervalFormulaManager.add(left, right);
-        } else if (!(promRight instanceof CPointerType)) {
-          // operand1 is a pointer => we should multiply the second summand by the size of the
-          // pointer target
-          result =
-              compoundIntervalFormulaManager.add(
+          case MODULO -> compoundIntervalFormulaManager.modulo(left, right);
+          case MULTIPLY -> compoundIntervalFormulaManager.multiply(left, right);
+          case NOT_EQUALS ->
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo,
+                  compoundIntervalFormulaManager.logicalNot(
+                      compoundIntervalFormulaManager.equal(left, right)));
+          case PLUS -> {
+            if (!(promLeft instanceof CPointerType)
+                && !(promRight instanceof CPointerType)) { // Just an addition e.g. 6 + 7
+              yield compoundIntervalFormulaManager.add(left, right);
+            } else if (!(promRight instanceof CPointerType cPointerType)) {
+              // operand1 is a pointer => we should multiply the second summand by the size of the
+              // pointer target
+              yield compoundIntervalFormulaManager.add(
                   left,
                   compoundIntervalFormulaManager.multiply(
                       right,
                       getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType)));
-        } else if (!(promLeft instanceof CPointerType)) {
-          result =
-              compoundIntervalFormulaManager.add(
+            } else if (!(promLeft instanceof CPointerType)) {
+              yield compoundIntervalFormulaManager.add(
                   right,
                   compoundIntervalFormulaManager.multiply(
-                      left,
-                      getPointerTargetSizeLiteral((CPointerType) promRight, calculationType)));
-        } else {
-          throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
-        }
-        break;
-      case SHIFT_LEFT:
-        result = compoundIntervalFormulaManager.shiftLeft(left, right);
-        break;
-      case SHIFT_RIGHT:
-        result = compoundIntervalFormulaManager.shiftRight(left, right);
-        break;
-      default:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-    }
+                      left, getPointerTargetSizeLiteral(cPointerType, calculationType)));
+            } else {
+              throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
+            }
+          }
+          case SHIFT_LEFT -> compoundIntervalFormulaManager.shiftLeft(left, right);
+          case SHIFT_RIGHT -> compoundIntervalFormulaManager.shiftRight(left, right);
+        };
     return compoundIntervalFormulaManager.cast(typeInfo, result);
   }
 
@@ -425,8 +389,8 @@ public class ExpressionToFormulaVisitor
 
   private NumeralFormula<CompoundInterval> topIfProblematicType(
       CType pType, NumeralFormula<CompoundInterval> pFormula) {
-    if ((pType instanceof CSimpleType)
-        && ((CSimpleType) pType).getCanonicalType().hasUnsignedSpecifier()) {
+    if ((pType instanceof CSimpleType cSimpleType)
+        && cSimpleType.getCanonicalType().hasUnsignedSpecifier()) {
       CompoundInterval value = pFormula.accept(evaluationVisitor, environment);
       if (value.containsAllPossibleValues()) {
         return pFormula;
@@ -460,74 +424,85 @@ public class ExpressionToFormulaVisitor
     BooleanFormula<CompoundInterval> logicalRight =
         compoundIntervalFormulaManager.fromNumeral(right);
     TypeInfo typeInfo = TypeInfo.from(machineModel, pBinaryExpression.getExpressionType());
-    switch (pBinaryExpression.getOperator()) {
-      case BINARY_AND:
-        return allPossibleValues(pBinaryExpression);
-      case BINARY_OR:
-        return allPossibleValues(pBinaryExpression);
-      case BINARY_XOR:
-        return allPossibleValues(pBinaryExpression);
-      case CONDITIONAL_AND:
-        return allPossibleValues(pBinaryExpression);
-      case CONDITIONAL_OR:
-        return allPossibleValues(pBinaryExpression);
-      case DIVIDE:
-        return compoundIntervalFormulaManager.divide(left, right);
-      case EQUALS:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo, compoundIntervalFormulaManager.equal(left, right));
-      case GREATER_EQUAL:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo, compoundIntervalFormulaManager.greaterThanOrEqual(left, right));
-      case GREATER_THAN:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo, compoundIntervalFormulaManager.greaterThan(left, right));
-      case LESS_EQUAL:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
-      case LESS_THAN:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
-      case LOGICAL_AND:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo, compoundIntervalFormulaManager.logicalAnd(logicalLeft, logicalRight));
-      case LOGICAL_OR:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo, compoundIntervalFormulaManager.logicalOr(logicalLeft, logicalRight));
-      case LOGICAL_XOR:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo,
-            compoundIntervalFormulaManager.logicalOr(
-                compoundIntervalFormulaManager.logicalAnd(
-                    logicalLeft, compoundIntervalFormulaManager.logicalNot(logicalRight)),
-                compoundIntervalFormulaManager.logicalAnd(
-                    compoundIntervalFormulaManager.logicalNot(logicalLeft), logicalRight)));
-      case MINUS:
-        return compoundIntervalFormulaManager.subtract(left, right);
-      case MODULO:
-        return compoundIntervalFormulaManager.modulo(left, right);
-      case MULTIPLY:
-        return compoundIntervalFormulaManager.multiply(left, right);
-      case NOT_EQUALS:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo,
-            compoundIntervalFormulaManager.logicalNot(
-                compoundIntervalFormulaManager.equal(left, right)));
-      case PLUS:
-        return compoundIntervalFormulaManager.add(left, right);
-      case SHIFT_LEFT:
+    return switch (pBinaryExpression.getOperator()) {
+      case BINARY_AND -> allPossibleValues(pBinaryExpression);
+
+      case BINARY_OR -> allPossibleValues(pBinaryExpression);
+
+      case BINARY_XOR -> allPossibleValues(pBinaryExpression);
+
+      case CONDITIONAL_AND -> allPossibleValues(pBinaryExpression);
+
+      case CONDITIONAL_OR -> allPossibleValues(pBinaryExpression);
+
+      case DIVIDE -> compoundIntervalFormulaManager.divide(left, right);
+
+      case EQUALS ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo, compoundIntervalFormulaManager.equal(left, right));
+
+      case GREATER_EQUAL ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo, compoundIntervalFormulaManager.greaterThanOrEqual(left, right));
+
+      case GREATER_THAN ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo, compoundIntervalFormulaManager.greaterThan(left, right));
+
+      case LESS_EQUAL ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
+
+      case LESS_THAN ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
+
+      case LOGICAL_AND ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo, compoundIntervalFormulaManager.logicalAnd(logicalLeft, logicalRight));
+
+      case LOGICAL_OR ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo, compoundIntervalFormulaManager.logicalOr(logicalLeft, logicalRight));
+
+      case LOGICAL_XOR ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo,
+              compoundIntervalFormulaManager.logicalOr(
+                  compoundIntervalFormulaManager.logicalAnd(
+                      logicalLeft, compoundIntervalFormulaManager.logicalNot(logicalRight)),
+                  compoundIntervalFormulaManager.logicalAnd(
+                      compoundIntervalFormulaManager.logicalNot(logicalLeft), logicalRight)));
+
+      case MINUS -> compoundIntervalFormulaManager.subtract(left, right);
+
+      case MODULO -> compoundIntervalFormulaManager.modulo(left, right);
+
+      case MULTIPLY -> compoundIntervalFormulaManager.multiply(left, right);
+
+      case NOT_EQUALS ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo,
+              compoundIntervalFormulaManager.logicalNot(
+                  compoundIntervalFormulaManager.equal(left, right)));
+
+      case PLUS -> compoundIntervalFormulaManager.add(left, right);
+
+      case SHIFT_LEFT -> {
         right = truncateShiftOperand(pBinaryExpression.getExpressionType(), right);
-        return compoundIntervalFormulaManager.shiftLeft(left, right);
-      case SHIFT_RIGHT_SIGNED:
+        yield compoundIntervalFormulaManager.shiftLeft(left, right);
+      }
+      case SHIFT_RIGHT_SIGNED -> {
         right = truncateShiftOperand(pBinaryExpression.getExpressionType(), right);
-        return compoundIntervalFormulaManager.shiftRight(left, right);
-      case SHIFT_RIGHT_UNSIGNED:
+        yield compoundIntervalFormulaManager.shiftRight(left, right);
+      }
+      case SHIFT_RIGHT_UNSIGNED -> {
         right = truncateShiftOperand(pBinaryExpression.getExpressionType(), right);
         CompoundInterval leftEval = left.accept(evaluationVisitor, environment);
         NumeralFormula<CompoundInterval> forPositiveLeft =
             compoundIntervalFormulaManager.shiftRight(left, right);
         if (!leftEval.containsNegative()) {
-          return forPositiveLeft;
+          yield forPositiveLeft;
         }
         NumeralFormula<CompoundInterval> forNegativeLeft =
             compoundIntervalFormulaManager.add(
@@ -540,15 +515,12 @@ public class ExpressionToFormulaVisitor
                             .singleton(2)),
                     compoundIntervalFormulaManager.binaryNot(right)));
         if (!leftEval.containsPositive()) {
-          return forNegativeLeft;
+          yield forNegativeLeft;
         }
-        return compoundIntervalFormulaManager.union(forPositiveLeft, forNegativeLeft);
-      case STRING_CONCATENATION:
-        return allPossibleValues(pBinaryExpression);
-      default:
-        throw new AssertionError(
-            "Unhandled enum value in switch: " + pBinaryExpression.getOperator());
-    }
+        yield compoundIntervalFormulaManager.union(forPositiveLeft, forNegativeLeft);
+      }
+      case STRING_CONCATENATION -> allPossibleValues(pBinaryExpression);
+    };
   }
 
   private NumeralFormula<CompoundInterval> truncateShiftOperand(
@@ -580,7 +552,6 @@ public class ExpressionToFormulaVisitor
                   compoundIntervalFormulaManager.fromNumeral(
                       pUnaryExpression.getOperand().accept(this))));
       case PLUS -> pUnaryExpression.getOperand().accept(this);
-      default -> allPossibleValues(pUnaryExpression);
     };
   }
 
@@ -709,11 +680,10 @@ public class ExpressionToFormulaVisitor
     FormulaCompoundStateEvaluationVisitor evaluator =
         new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
     CompoundInterval value = formula.accept(evaluator, pEnvironment);
-    if (value instanceof CompoundIntegralInterval
+    if (value instanceof CompoundIntegralInterval integralValue
         && typeInfo instanceof BitVectorInfo bitVectorInfo) {
       BigInteger lowerInclusiveBound = bitVectorInfo.getMinValue();
       BigInteger upperExclusiveBound = bitVectorInfo.getMaxValue().add(BigInteger.ONE);
-      CompoundIntegralInterval integralValue = (CompoundIntegralInterval) value;
 
       if (typeInfo.isSigned()) {
         if (!value.hasLowerBound() || !value.hasUpperBound()) {
@@ -726,9 +696,10 @@ public class ExpressionToFormulaVisitor
           return InvariantsFormulaManager.INSTANCE.asConstant(typeInfo, cim.allPossibleValues());
         }
         // Handle implementation-defined cast to signed
-        if (pCompoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory
-            && !((CompoundBitVectorIntervalManagerFactory) pCompoundIntervalManagerFactory)
-                .isSignedWrapAroundAllowed()) {
+        if (pCompoundIntervalManagerFactory
+                instanceof
+                CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory
+            && !compoundBitVectorIntervalManagerFactory.isSignedWrapAroundAllowed()) {
           CompoundInterval ci = pFormula.accept(evaluator, pEnvironment);
           if (ci instanceof CompoundBitVectorInterval cbvi) {
             final AtomicBoolean overflows = new AtomicBoolean();
@@ -776,24 +747,24 @@ public class ExpressionToFormulaVisitor
 
   public static CRightHandSide makeCastFromArrayToPointerIfNecessary(
       CRightHandSide pExpression, CType pTargetType) {
-    if (pExpression instanceof CExpression) {
-      return makeCastFromArrayToPointerIfNecessary((CExpression) pExpression, pTargetType);
+    if (pExpression instanceof CExpression cExpression) {
+      return makeCastFromArrayToPointerIfNecessary(cExpression, pTargetType);
     }
     return pExpression;
   }
 
   public static AExpression makeCastFromArrayToPointerIfNecessary(
       AExpression pExpression, Type pTargetType) {
-    if (pExpression instanceof CExpression && pTargetType instanceof CType) {
-      return makeCastFromArrayToPointerIfNecessary((CExpression) pExpression, (CType) pTargetType);
+    if (pExpression instanceof CExpression cExpression && pTargetType instanceof CType cType) {
+      return makeCastFromArrayToPointerIfNecessary(cExpression, cType);
     }
     return pExpression;
   }
 
   public static ARightHandSide makeCastFromArrayToPointerIfNecessary(
       ARightHandSide pExpression, Type pTargetType) {
-    if (pExpression instanceof CExpression && pTargetType instanceof CType) {
-      return makeCastFromArrayToPointerIfNecessary((CExpression) pExpression, (CType) pTargetType);
+    if (pExpression instanceof CExpression cExpression && pTargetType instanceof CType cType) {
+      return makeCastFromArrayToPointerIfNecessary(cExpression, cType);
     }
     return pExpression;
   }

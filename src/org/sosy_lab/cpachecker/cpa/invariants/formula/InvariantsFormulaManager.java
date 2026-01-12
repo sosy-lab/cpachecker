@@ -75,21 +75,21 @@ public enum InvariantsFormulaManager {
   }
 
   /**
-   * Gets a invariants formula representing a constant with the given value.
+   * Gets an invariants formula representing a constant with the given value.
    *
    * @param pValue the value of the constant.
-   * @return a invariants formula representing a constant with the given value.
+   * @return an invariants formula representing a constant with the given value.
    */
   public <T extends Typed> NumeralFormula<T> asConstant(T pValue) {
     return Constant.of(pValue);
   }
 
   /**
-   * Gets a invariants formula representing a constant with the given value.
+   * Gets an invariants formula representing a constant with the given value.
    *
    * @param pTypeInfo the type information for the constant.
    * @param pValue the value of the constant.
-   * @return a invariants formula representing a constant with the given value.
+   * @return an invariants formula representing a constant with the given value.
    */
   public <T> NumeralFormula<T> asConstant(TypeInfo pTypeInfo, T pValue) {
     return Constant.of(pTypeInfo, pValue);

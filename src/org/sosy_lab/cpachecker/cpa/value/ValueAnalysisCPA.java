@@ -167,7 +167,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     return switch (unknownValueStrategy) {
       case DISCARD -> new UnknownValueAssigner();
       case INTRODUCE_SYMBOLIC -> new SymbolicValueAssigner(config);
-      default -> throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
     };
   }
 

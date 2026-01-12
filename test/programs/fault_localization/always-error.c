@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Lets FL produce an empty results set because there are no assertions.
+// Let's FL produce an empty results set because there are no assertions.
 int main() {
 	int i = 0;
 	i++;

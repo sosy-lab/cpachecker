@@ -12,7 +12,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.math.BigInteger;
@@ -49,6 +48,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -87,7 +87,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         List<SingleConcreteState> intermediateStates = new ArrayList<>();
         Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
         boolean isFirstIteration = true;
-        for (CFAEdge innerEdge : Lists.reverse(edges)) {
+        for (CFAEdge innerEdge : edges.reversed()) {
           ConcreteState state =
               createConcreteStateForMultiEdge(valueState, alreadyAssigned, innerEdge);
 
@@ -101,7 +101,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
             intermediateStates.add(new IntermediateConcreteState(innerEdge, state));
           }
         }
-        result.addAll(Lists.reverse(intermediateStates));
+        result.addAll(intermediateStates.reversed());
 
         // a normal edge, no special handling required
       } else {
@@ -135,8 +135,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     if (innerEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatement stmt = ((CStatementEdge) innerEdge).getStatement();
 
-      if (stmt instanceof CAssignment) {
-        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+      if (stmt instanceof CAssignment cAssignment) {
+        CLeftHandSide lhs = cAssignment.getLeftHandSide();
         alreadyAssigned.add(lhs);
       }
     }
@@ -148,7 +148,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       SMGState pValueState, MachineModel pMachineModel) {
     Map<LeftHandSide, Address> variableAddresses =
         generateVariableAddresses(Collections.singleton(pValueState));
-    // We assign every variable to the heap, thats why the variable map is empty.
+    // We assign every variable to the heap, that's why the variable map is empty.
     return new ConcreteState(
         ImmutableMap.of(),
         allocateAddresses(pValueState, variableAddresses),
@@ -173,8 +173,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
     CStatement stmt = pCfaEdge.getStatement();
 
-    if (stmt instanceof CAssignment) {
-      CLeftHandSide leftHandSide = ((CAssignment) stmt).getLeftHandSide();
+    if (stmt instanceof CAssignment cAssignment) {
+      CLeftHandSide leftHandSide = cAssignment.getLeftHandSide();
 
       return isLeftHandSideValueKnown(leftHandSide, pAlreadyAssigned);
     }
@@ -282,13 +282,13 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       MemoryLocation heapLoc = entry.getKey();
       Value valueAsValue = entry.getValue().getValue();
 
-      if (!valueAsValue.isNumericValue()) {
+      if (!(valueAsValue instanceof NumericValue numValue)) {
         // Skip non numerical values for now
         // TODO Should they also be integrated?
         continue;
       }
 
-      Number value = valueAsValue.asNumericValue().getNumber();
+      Number value = numValue.getNumber();
       LeftHandSide lhs = createBaseIdExpresssion(heapLoc);
       assert pVariableAddressMap.containsKey(lhs);
       Address baseAddress = pVariableAddressMap.get(lhs);

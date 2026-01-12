@@ -105,7 +105,7 @@ public class AbstractionBasedLifting implements Lifting {
       successful = true;
     }
 
-    public boolean isSuccessful() {
+    boolean isSuccessful() {
       return successful;
     }
   }
@@ -143,7 +143,7 @@ public class AbstractionBasedLifting implements Lifting {
       }
     }
 
-    public @Nullable BooleanFormula getInterpolant() {
+    @Nullable BooleanFormula getInterpolant() {
       checkState(isSuccessful(), "Lifting not yet performed or unsuccessful.");
       return interpolant;
     }

@@ -312,13 +312,13 @@ final class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinemen
       refinementRoot = (ARGState) reached.asReachedSet().getFirstState();
 
     } else if (refinementRoot == null) {
-      refinementRoot = changedElements.get(0);
+      refinementRoot = changedElements.getFirst();
 
       // search parent of both refinement roots and use this as the new
       // refinement root
     } else {
       PathIterator firstPath = ARGUtils.getOnePathTo(refinementRoot).pathIterator();
-      PathIterator secondPath = ARGUtils.getOnePathTo(changedElements.get(0)).pathIterator();
+      PathIterator secondPath = ARGUtils.getOnePathTo(changedElements.getFirst()).pathIterator();
 
       // TODO should they be equal or identical?
       while (firstPath.getAbstractState().equals(secondPath.getAbstractState())) {

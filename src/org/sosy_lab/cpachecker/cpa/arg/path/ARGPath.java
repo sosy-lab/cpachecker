@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -22,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -50,25 +50,26 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class ARGPath extends AbstractAppender {
 
   private final ImmutableList<ARGState> states;
-  private final List<CFAEdge> edges; // immutable, but may contain null
+  private final List<@Nullable CFAEdge> edges; // immutable, but may contain null
 
   @SuppressFBWarnings(
       value = "JCIP_FIELD_ISNT_FINAL_IN_IMMUTABLE_CLASS",
       justification =
           "This variable is only used for caching the full path for later use"
               + " without having to compute it again.")
-  private List<CFAEdge> fullPath = null;
+  private ImmutableList<CFAEdge> fullPath = null;
 
   protected ARGPath(ARGPath pArgPath) {
     states = pArgPath.states;
     edges = pArgPath.edges;
+    fullPath = pArgPath.fullPath;
   }
 
   public ARGPath(List<ARGState> pStates) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     states = ImmutableList.copyOf(pStates);
 
-    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
+    List<@Nullable CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
     for (int i = 0; i < states.size() - 1; i++) {
       ARGState parent = states.get(i);
       ARGState child = states.get(i + 1);
@@ -79,7 +80,27 @@ public class ARGPath extends AbstractAppender {
     assert states.size() - 1 == edges.size();
   }
 
-  public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
+  /**
+   * Create a new ARGPath from the given states and edges.
+   *
+   * @param pStates All states ordered from beginning to end of the path
+   * @param pPath The edges between the states
+   * @param pFullPath The full path including all CFAEdges between the states. In some cases, there
+   *     are more than one CFAEdge between two ARGStates. This list must contain all of them in the
+   *     correct order.
+   */
+  public ARGPath(List<ARGState> pStates, List<CFAEdge> pPath, List<CFAEdge> pFullPath) {
+    states = ImmutableList.copyOf(pStates);
+    edges = pPath;
+    fullPath = ImmutableList.copyOf(pFullPath);
+    for (int i = 0; i < fullPath.size() - 1; i++) {
+      if (!fullPath.get(i).getSuccessor().equals(fullPath.get(i + 1).getPredecessor())) {
+        throw new AssertionError("The full path should have the same predecessor");
+      }
+    }
+  }
+
+  public ARGPath(List<ARGState> pStates, List<@Nullable CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     checkArgument(
         pStates.size() - 1 == pEdges.size(), "ARGPaths must have one state more than edges");
@@ -96,7 +117,7 @@ public class ARGPath extends AbstractAppender {
    * Return the list of edges between the states. The result of this method is always one element
    * shorter than {@link #asStatesList()}.
    */
-  public List<CFAEdge> getInnerEdges() {
+  public List<@Nullable CFAEdge> getInnerEdges() {
     return edges;
   }
 
@@ -109,7 +130,7 @@ public class ARGPath extends AbstractAppender {
    * <p>If there is no path (null edges can not be filled up, may be happening when using bam) we
    * return an empty list instead.
    */
-  public List<CFAEdge> getFullPath() {
+  public ImmutableList<CFAEdge> getFullPath() {
     if (fullPath == null) {
       fullPath = buildFullPath();
     }
@@ -123,7 +144,7 @@ public class ARGPath extends AbstractAppender {
    * expensive.
    */
   @ForOverride
-  protected List<CFAEdge> buildFullPath() {
+  protected ImmutableList<CFAEdge> buildFullPath() {
     ImmutableList.Builder<CFAEdge> newFullPath = ImmutableList.builder();
     PathIterator it = pathIterator();
 
@@ -234,11 +255,11 @@ public class ARGPath extends AbstractAppender {
   }
 
   public ARGState getFirstState() {
-    return states.get(0);
+    return states.getFirst();
   }
 
   public ARGState getLastState() {
-    return Iterables.getLast(states);
+    return states.getLast();
   }
 
   @Override
@@ -252,12 +273,12 @@ public class ARGPath extends AbstractAppender {
       return true;
     }
     // We do not compare the states because they are different from iteration to iteration!
-    return pOther instanceof ARGPath && Objects.equals(edges, ((ARGPath) pOther).edges);
+    return pOther instanceof ARGPath other && Objects.equals(edges, other.edges);
   }
 
   @Override
   public void appendTo(Appendable appendable) throws IOException {
-    Joiner.on(System.lineSeparator()).skipNulls().appendTo(appendable, getFullPath());
+    Joiner.on(System.lineSeparator()).appendTo(appendable, getFullPath());
     appendable.append(System.lineSeparator());
   }
 }

@@ -28,8 +28,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 public class SMGSingleLinkedListCandidateTest {
 

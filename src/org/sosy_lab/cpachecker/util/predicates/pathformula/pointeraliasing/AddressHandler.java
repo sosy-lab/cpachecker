@@ -22,7 +22,7 @@ import org.sosy_lab.java_smt.api.Formula;
 
 /**
  * Handles common address-related operations on expressions, e.g., getting the value represented by
- * an {@code Expression}, dereferencing an {@code Expression}, and applying offsets an to {@code
+ * an {@code Expression}, dereferencing an {@code Expression}, and applying offsets to {@code
  * AliasedLocation}.
  */
 final class AddressHandler {

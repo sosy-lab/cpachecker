@@ -53,7 +53,7 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
 
     return obj instanceof CEnumerator other
         && super.equals(obj)
-        && value == other.value
+        && value.equals(other.value)
         && qualifiedName.equals(other.qualifiedName);
     // do not compare the enumType, comparing it with == is wrong because types which
     // are the same but not identical would lead to wrong results

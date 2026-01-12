@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -19,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -68,8 +68,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
   protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
-    List<CFAEdge> firstPath = getPath(firstUsage);
-    List<CFAEdge> secondPath = getPath(secondUsage);
+    @Nullable List<@Nullable CFAEdge> firstPath = getPath(firstUsage);
+    @Nullable List<@Nullable CFAEdge> secondPath = getPath(secondUsage);
 
     if (firstPath == null || secondPath == null) {
       return;
@@ -120,7 +120,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     List<CFAEdge> path = usage.getPath();
 
     CFAEdge warning =
-        Lists.reverse(path).stream()
+        path.reversed().stream()
             .filter(e -> Objects.equals(e.getSuccessor(), usage.getCFANode()))
             .filter(e -> e.toString().contains(pId.getName()))
             .findFirst()

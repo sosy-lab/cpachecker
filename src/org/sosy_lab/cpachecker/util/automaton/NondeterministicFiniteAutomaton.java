@@ -33,7 +33,7 @@ public final class NondeterministicFiniteAutomaton<T> {
 
       private final NondeterministicFiniteAutomaton<?> mAutomaton;
 
-      public StateIterable(NondeterministicFiniteAutomaton<?> pAutomaton) {
+      StateIterable(NondeterministicFiniteAutomaton<?> pAutomaton) {
         mAutomaton = pAutomaton;
       }
 
@@ -48,7 +48,7 @@ public final class NondeterministicFiniteAutomaton<T> {
       private final int mSize;
       private int mCounter;
 
-      public StateSetIterator(int pSize) {
+      StateSetIterator(int pSize) {
         mSize = pSize;
         mCounter = 0;
       }
@@ -82,7 +82,7 @@ public final class NondeterministicFiniteAutomaton<T> {
       mPool = new ArrayList<>();
     }
 
-    public State get(NondeterministicFiniteAutomaton<?> pAutomaton) {
+    State get(NondeterministicFiniteAutomaton<?> pAutomaton) {
       State lState;
 
       if (pAutomaton.mStatesCounter == mPool.size()) {

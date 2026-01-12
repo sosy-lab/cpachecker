@@ -57,7 +57,7 @@ def init(config, benchmark):
         return
 
     if not config.revision:
-        config.revision = "trunk:HEAD"
+        config.revision = "main:HEAD"
 
     _webclient = WebInterface(
         config.cloudMaster,

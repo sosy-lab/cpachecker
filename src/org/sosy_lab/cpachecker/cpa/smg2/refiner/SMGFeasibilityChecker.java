@@ -54,7 +54,7 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
    * This method acts as the constructor of the class.
    *
    * @param pLogger the logger to use
-   * @param pCfa the cfa in use
+   * @param pCfa the CFA in use
    */
   public SMGFeasibilityChecker(
       final StrongestPostOperator<SMGState> pStrongestPostOp,
@@ -99,9 +99,9 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
       SMGState next =
           SMGState.of(machineModel, logger, new SMGOptions(config), cfa, evaluator, statistics);
 
-      if (cfa.getMainFunction() instanceof CFunctionEntryNode) {
+      if (cfa.getMainFunction() instanceof CFunctionEntryNode functionNode) {
         // Init main
-        CFunctionEntryNode functionNode = (CFunctionEntryNode) cfa.getMainFunction();
+
         next = next.copyAndAddStackFrame(functionNode.getFunctionDefinition());
       }
 

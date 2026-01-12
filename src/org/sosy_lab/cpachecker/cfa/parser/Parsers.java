@@ -28,7 +28,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.Parser;
-import org.sosy_lab.cpachecker.cfa.export.CWriter;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.SvLibToCfaParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 /**
@@ -56,7 +56,7 @@ public class Parsers {
     @Option(
         secure = true,
         description =
-            "simplify pointer expressions like s->f to (*s).f with this option the cfa is"
+            "simplify pointer expressions like s->f to (*s).f with this option the CFA is"
                 + " simplified until at maximum one pointer is allowed for left- and rightHandSide")
     private boolean simplifyPointerExpressions = false;
 
@@ -106,9 +106,8 @@ public class Parsers {
       "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
   private static final String LLVM_PARSER_CLASS =
       "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
-
-  private static final String C_WRITER_CLASS =
-      "org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.EclipseCWriter";
+  private static final String LLVM_CLANG_PARSER_CLASS =
+      "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParserWithClang";
 
   private static WeakReference<ClassLoader> loadedClassLoader = new WeakReference<>(null);
 
@@ -118,8 +117,7 @@ public class Parsers {
       new WeakReference<>(null);
   private static WeakReference<Constructor<? extends Parser>> loadedLlvmParser =
       new WeakReference<>(null);
-
-  private static WeakReference<Constructor<? extends CWriter>> loadedCWriter =
+  private static WeakReference<Constructor<? extends Parser>> loadedLlvmClangParser =
       new WeakReference<>(null);
 
   private static final AtomicInteger loadingCount = new AtomicInteger(0);
@@ -205,8 +203,8 @@ public class Parsers {
       try {
         return parserConstructor.newInstance(logger, config, entryMethod);
       } catch (InvocationTargetException e) {
-        if (e.getCause() instanceof InvalidConfigurationException) {
-          throw (InvalidConfigurationException) e.getCause();
+        if (e.getCause() instanceof InvalidConfigurationException invalidConfigurationException) {
+          throw invalidConfigurationException;
         }
         throw e;
       }
@@ -234,6 +232,37 @@ public class Parsers {
       try {
         return parserConstructor.newInstance(pLogger, pMachineModel);
       } catch (InvocationTargetException e) {
+        if (e.getCause() instanceof InvalidConfigurationException invalidConfigurationException) {
+          throw invalidConfigurationException;
+        }
+        throw e;
+      }
+    } catch (ReflectiveOperationException e) {
+      throw new Classes.UnexpectedCheckedException("Failed to create LLVM parser", e);
+    }
+  }
+
+  public static Parser getLlvmClangParser(
+      final Configuration pConfig, final LogManager pLogger, final MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+    try {
+      Constructor<? extends Parser> parserConstructor = loadedLlvmClangParser.get();
+
+      if (parserConstructor == null) {
+        ClassLoader classLoader = getClassLoader(pLogger);
+
+        @SuppressWarnings("unchecked")
+        Class<? extends Parser> parserClass =
+            (Class<? extends Parser>) classLoader.loadClass(LLVM_CLANG_PARSER_CLASS);
+        parserConstructor =
+            parserClass.getConstructor(Configuration.class, LogManager.class, MachineModel.class);
+        parserConstructor.setAccessible(true);
+        loadedLlvmParser = new WeakReference<>(parserConstructor);
+      }
+
+      try {
+        return parserConstructor.newInstance(pConfig, pLogger, pMachineModel);
+      } catch (InvocationTargetException e) {
         if (e.getCause() instanceof InvalidConfigurationException) {
           throw (InvalidConfigurationException) e.getCause();
         }
@@ -244,28 +273,14 @@ public class Parsers {
     }
   }
 
-  public static CWriter getCWriter(
+  public static Parser getSvLibParser(
       final LogManager pLogger,
-      final ParserOptions pOptions,
+      final Configuration pConfig,
+      final MachineModel pMachineModel,
       final ShutdownNotifier pShutdownNotifier) {
-
-    try {
-      Constructor<? extends CWriter> writerConstructor = loadedCWriter.get();
-
-      if (writerConstructor == null) {
-        final ClassLoader classLoader = getClassLoader(pLogger);
-
-        @SuppressWarnings("unchecked")
-        final Class<? extends CWriter> writerClass =
-            (Class<? extends CWriter>) classLoader.loadClass(C_WRITER_CLASS);
-        writerConstructor = writerClass.getConstructor(ParserOptions.class, ShutdownNotifier.class);
-        writerConstructor.setAccessible(true);
-        loadedCWriter = new WeakReference<>(writerConstructor);
-      }
-
-      return writerConstructor.newInstance(pOptions, pShutdownNotifier);
-    } catch (final ReflectiveOperationException e) {
-      throw new Classes.UnexpectedCheckedException("Failed to create Eclipse CDT writer", e);
-    }
+    // TODO: Maybe use classloader like for the other parsers?
+    //       But this would require an even stricter separation of SvLib parser code from the rest
+    //       of CPAchecker.
+    return new SvLibToCfaParser(pLogger, pConfig, pMachineModel, pShutdownNotifier);
   }
 }

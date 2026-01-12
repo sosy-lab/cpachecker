@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
@@ -158,7 +157,7 @@ public enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
                   while (!successors.isEmpty()) {
                     CFANode current = successors.poll();
-                    for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(current)) {
+                    for (CFAEdge enteringEdge : current.getAllEnteringEdges()) {
                       if (enteringEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge) {
                         CFANode newSucc = enteringEdge.getPredecessor();
                         if (visited.add(newSucc)) {
@@ -191,9 +190,8 @@ public enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                 }
                 if (lastEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
                   AStatementEdge edge = (AStatementEdge) lastEdge;
-                  if (edge.getStatement() instanceof AExpressionStatement) {
-                    AExpressionStatement expressionStatement =
-                        (AExpressionStatement) edge.getStatement();
+                  if (edge.getStatement() instanceof AExpressionStatement expressionStatement) {
+
                     AExpression expression = expressionStatement.getExpression();
                     if (expression instanceof ALiteralExpression) {
                       continue;
@@ -201,9 +199,9 @@ public enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                     if (expression instanceof ALeftHandSide) {
                       continue;
                     }
-                  } else if (edge.getStatement() instanceof AExpressionAssignmentStatement) {
-                    AExpressionAssignmentStatement expressionAssignmentStatement =
-                        (AExpressionAssignmentStatement) edge.getStatement();
+                  } else if (edge.getStatement()
+                      instanceof AExpressionAssignmentStatement expressionAssignmentStatement) {
+
                     AExpression expression = expressionAssignmentStatement.getRightHandSide();
                     if (expression instanceof ALiteralExpression) {
                       continue;
@@ -224,9 +222,8 @@ public enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                     if (initializer == null) {
                       continue;
                     }
-                    if (initializer instanceof AInitializerExpression) {
-                      AExpression expression =
-                          ((AInitializerExpression) initializer).getExpression();
+                    if (initializer instanceof AInitializerExpression aInitializerExpression) {
+                      AExpression expression = aInitializerExpression.getExpression();
                       if (expression instanceof ALiteralExpression) {
                         continue;
                       }
@@ -285,10 +282,10 @@ public enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                               pEdge,
                               pWithEnteringEdges,
                               ImmutableMap.of()));
-                  if (expression instanceof CExpression) {
-                    wideningHint = ((CExpression) expression).accept(expressionToFormulaVisitor);
-                  } else if (expression instanceof JExpression) {
-                    wideningHint = ((JExpression) expression).accept(expressionToFormulaVisitor);
+                  if (expression instanceof CExpression cExpression) {
+                    wideningHint = cExpression.accept(expressionToFormulaVisitor);
+                  } else if (expression instanceof JExpression jExpression) {
+                    wideningHint = jExpression.accept(expressionToFormulaVisitor);
                   } else {
                     return ImmutableSet.of();
                   }
@@ -431,10 +428,10 @@ public enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
           }
           final Set<MemoryLocation> previousWideningTargets;
           final Set<BooleanFormula<CompoundInterval>> previousWideningHints;
-          if (pPrevious instanceof EnteringEdgesBasedAbstractionState) {
-            previousWideningTargets =
-                ((EnteringEdgesBasedAbstractionState) pPrevious).wideningTargets;
-            previousWideningHints = ((EnteringEdgesBasedAbstractionState) pPrevious).wideningHints;
+          if (pPrevious
+              instanceof EnteringEdgesBasedAbstractionState enteringEdgesBasedAbstractionState) {
+            previousWideningTargets = enteringEdgesBasedAbstractionState.wideningTargets;
+            previousWideningHints = enteringEdgesBasedAbstractionState.wideningHints;
           } else {
             previousWideningTargets = ImmutableSet.of();
             previousWideningHints = ImmutableSet.of();

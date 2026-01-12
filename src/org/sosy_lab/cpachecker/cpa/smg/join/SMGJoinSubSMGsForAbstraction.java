@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCand
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 public final class SMGJoinSubSMGsForAbstraction {
 
@@ -154,7 +155,7 @@ public final class SMGJoinSubSMGsForAbstraction {
 
     CLangSMG inputSMG = smg.copyOf();
 
-    /*Every value thats identical will be skipped, the join only iterates over non shared values, thats why we can introduce a
+    /*Every value that's identical will be skipped, the join only iterates over non shared values, that's why we can introduce a
      * level map only for non shared objects*/
     SMGLevelMapping levelMap = new SMGLevelMapping();
     levelMap.put(SMGJoinLevel.valueOf(obj1.getLevel(), obj2.getLevel()), destLevel);
@@ -257,20 +258,15 @@ public final class SMGJoinSubSMGsForAbstraction {
 
   private boolean shouldAbstractionIncreaseLevel(SMGObject pObj1, SMGObject pObj2) {
 
-    switch (pObj1.getKind()) {
-      case REG:
-      case OPTIONAL:
-        switch (pObj2.getKind()) {
-          case REG:
-          case OPTIONAL:
-            return true;
-          default:
-            return false;
-        }
+    return switch (pObj1.getKind()) {
+      case REG, OPTIONAL ->
+          switch (pObj2.getKind()) {
+            case REG, OPTIONAL -> true;
+            default -> false;
+          };
 
-      default:
-        return false;
-    }
+      default -> false;
+    };
   }
 
   private int getMinLength(SMGObject pObj) {

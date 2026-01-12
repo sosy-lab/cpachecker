@@ -48,11 +48,11 @@ public final class ProcessCpuTime {
       throw ManagementUtils.handleRuntimeErrorException(e);
     }
 
-    if (!(cputime instanceof Long)) {
+    if (!(cputime instanceof Long l)) {
       throw new JMException("Invalid value received for cpu time: " + cputime);
     }
 
-    long time = (Long) cputime;
+    long time = l;
     if (time < 0) {
       // value might be -1 if unsupported
       throw new JMException("Current platform does not support reading the process cpu time");

@@ -28,7 +28,7 @@ class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTr
     for (MemoryLocation trackedVar : pExpandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array/3") to match assignments in loops ("array[i]=12;")
       final String simpleName =
-          Splitter.on("/").splitToList(trackedVar.getExtendedQualifiedName()).get(0);
+          Splitter.on("/").splitToList(trackedVar.getExtendedQualifiedName()).getFirst();
       if (!pContext.getVariables().contains(simpleName)) {
         clonedElement.forget(trackedVar);
       }

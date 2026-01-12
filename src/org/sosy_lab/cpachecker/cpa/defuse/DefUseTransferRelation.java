@@ -54,22 +54,18 @@ public class DefUseTransferRelation extends SingleEdgeTransferRelation {
     DefUseState defUseState = (DefUseState) element;
 
     switch (cfaEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
-          CStatement expression = statementEdge.getStatement();
-          defUseState = handleExpression(defUseState, expression, cfaEdge);
-          break;
-        }
-      case DeclarationEdge:
-        {
-          CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
-          defUseState = handleDeclaration(defUseState, declarationEdge);
-          break;
-        }
-      default:
+      case StatementEdge -> {
+        CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
+        CStatement expression = statementEdge.getStatement();
+        defUseState = handleExpression(defUseState, expression, cfaEdge);
+      }
+      case DeclarationEdge -> {
+        CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
+        defUseState = handleDeclaration(defUseState, declarationEdge);
+      }
+      default -> {
         // not relevant for def-use
-        break;
+      }
     }
 
     return Collections.singleton(defUseState);

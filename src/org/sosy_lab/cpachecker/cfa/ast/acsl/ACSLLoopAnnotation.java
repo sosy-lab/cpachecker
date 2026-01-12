@@ -13,7 +13,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -42,12 +41,12 @@ public final class ACSLLoopAnnotation implements ACSLAnnotation {
   }
 
   @Override
-  public List<Behavior> getDeclaredBehaviors() {
+  public ImmutableList<Behavior> getDeclaredBehaviors() {
     return ImmutableList.of();
   }
 
   @Override
-  public List<Behavior> getReferencedBehaviors() {
+  public ImmutableList<Behavior> getReferencedBehaviors() {
     return FluentIterable.concat(additionalInvariants.keySet()).toList();
   }
 

@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /*
- * Sometimes we need to return a SMGValue and a Set of SMGObjects.
+ * Sometimes we need to return an SMGValue and a Set of SMGObjects.
  */
 public class ValueAndObjectSet {
 

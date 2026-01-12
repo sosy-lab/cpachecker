@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 
 class FileCoverageInformation {
@@ -31,11 +31,11 @@ class FileCoverageInformation {
   }
 
   final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
-  final Set<Integer> allLines = new LinkedHashSet<>();
+  final SequencedSet<Integer> allLines = new LinkedHashSet<>();
   final Multiset<String> visitedFunctions = LinkedHashMultiset.create();
-  final Set<FunctionInfo> allFunctions = new LinkedHashSet<>();
-  final Set<AssumeEdge> allAssumes = new LinkedHashSet<>();
-  final Set<AssumeEdge> visitedAssumes = new LinkedHashSet<>();
+  final SequencedSet<FunctionInfo> allFunctions = new LinkedHashSet<>();
+  final SequencedSet<AssumeEdge> allAssumes = new LinkedHashSet<>();
+  final SequencedSet<AssumeEdge> visitedAssumes = new LinkedHashSet<>();
 
   void addVisitedAssume(AssumeEdge pEdge) {
     visitedAssumes.add(pEdge);

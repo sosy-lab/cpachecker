@@ -1,0 +1,232 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
+import java.util.StringJoiner;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.CSeqLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqForLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqWhileLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
+/** A class to represent the {@code main()} function in the sequentialization. */
+public final class SeqMainFunction extends SeqFunction {
+
+  // CFunctionType
+
+  private static final CFunctionType MAIN_FUNCTION_TYPE =
+      new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
+
+  // CFunctionDeclaration
+
+  public static final CFunctionDeclaration MAIN_FUNCTION_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY, MAIN_FUNCTION_TYPE, "main", ImmutableList.of(), ImmutableSet.of());
+
+  public SeqMainFunction(
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
+
+    super(MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils));
+  }
+
+  private static String buildBody(
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
+
+    StringBuilder rBody = new StringBuilder();
+
+    // add main function argument non-deterministic assignments
+    rBody.append(buildMainFunctionArgNondetAssignments(pFields, pUtils.logger()));
+
+    if (pOptions.loopUnrolling()) {
+      // when unrolling loops, add function calls to the respective thread simulation
+      ImmutableList<CFunctionCallStatement> functionCallStatements =
+          NondeterministicSimulationBuilder.buildThreadSimulationFunctionCallStatements(
+              pOptions, pFields.threadSimulationFunctions.orElseThrow());
+      functionCallStatements.forEach(statement -> rBody.append(statement.toASTString()));
+
+    } else {
+      // otherwise include the thread simulations in the main function directly
+      ImmutableList.Builder<String> loopBlock = ImmutableList.builder();
+
+      if (pOptions.reduceLastThreadOrder()) {
+        // add last_thread = next_thread assignment (before setting next_thread)
+        if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
+          CExpressionAssignmentStatement assignment =
+              new CExpressionAssignmentStatement(
+                  FileLocation.DUMMY, SeqIdExpressions.LAST_THREAD, SeqIdExpressions.NEXT_THREAD);
+          loopBlock.add(assignment.toASTString());
+        }
+      }
+
+      // add if next_thread is a non-determinism source
+      if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
+        if (pOptions.comments()) {
+          loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
+        }
+        // next_thread = __VERIFIER_nondet_...()
+        CFunctionCallAssignmentStatement nextThreadAssignment =
+            VerifierNondetFunctionType.buildNondetIntegerAssignment(
+                pOptions, SeqIdExpressions.NEXT_THREAD);
+        loopBlock.add(nextThreadAssignment.toASTString());
+
+        // assume(0 <= next_thread && next_thread < NUM_THREADS)
+        String nextThreadAssumption =
+            SeqAssumeFunction.buildNextThreadAssumeCallFunctionCallStatement(
+                pOptions.nondeterminismSigned(),
+                pFields.numThreads,
+                pUtils.binaryExpressionBuilder());
+        loopBlock.add(nextThreadAssumption);
+
+        // for scalar pc, this is done separately at the start of the respective thread
+        if (!pOptions.scalarPc()) {
+          // assumptions over next_thread being active: pc[next_thread] != 0
+          if (pOptions.comments()) {
+            loopBlock.add(SeqComment.NEXT_THREAD_ACTIVE);
+          }
+          CFunctionCallStatement nextThreadActiveAssumption =
+              pFields.ghostElements.programCounterVariables().buildArrayPcUnequalExitPcAssumption();
+          loopBlock.add(nextThreadActiveAssumption.toASTString());
+        }
+      }
+
+      // assumptions that at least one thread is still active: assume(thread_count > 0)
+      if (pOptions.comments()) {
+        loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
+      }
+      // assume(thread_count > 0);
+      CBinaryExpression countGreaterZeroExpression =
+          pUtils
+              .binaryExpressionBuilder()
+              .buildBinaryExpression(
+                  SeqIdExpressions.THREAD_COUNT,
+                  SeqIntegerLiteralExpressions.INT_0,
+                  BinaryOperator.GREATER_THAN);
+      CFunctionCallStatement countAssumption =
+          SeqAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
+      loopBlock.add(countAssumption.toASTString());
+
+      // add all thread simulation control flow statements
+      if (pOptions.comments()) {
+        loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
+      }
+      loopBlock.add(
+          NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
+                  pOptions, pFields.ghostElements, pFields.clauses, pUtils)
+              .buildAllThreadSimulations());
+
+      // build the loop depending on settings, and include all statements in it
+      CSeqLoopStatement loopStatement =
+          buildLoopStatement(pOptions, loopBlock.build(), pUtils.binaryExpressionBuilder());
+      rBody.append(loopStatement.toASTString());
+    }
+    return rBody.toString();
+  }
+
+  /**
+   * Adds the non-deterministic initializations of {@code main} function arguments, e.g. {@code arg
+   * = __VERIFIER_nondet_int;}
+   */
+  private static String buildMainFunctionArgNondetAssignments(
+      SequentializationFields pFields, LogManager pLogger) {
+
+    // first extract all accesses to main function arguments
+    ImmutableSet<SubstituteEdge> allSubstituteEdges =
+        SeqThreadStatementClauseUtil.collectAllSubstituteEdges(pFields.clauses);
+    ImmutableSet<CVariableDeclaration> accessedMainFunctionArgs =
+        SubstituteUtil.findAllMainFunctionArgs(allSubstituteEdges);
+
+    // then add main function arg nondet assignments, if necessary
+    StringJoiner rAssignments = new StringJoiner(SeqSyntax.NEWLINE);
+    for (var entry : pFields.mainSubstitution.mainFunctionArgSubstitutes.entrySet()) {
+      // add assignment only if necessary, i.e. if it is accessed later (nondet is expensive)
+      if (accessedMainFunctionArgs.contains(entry.getKey().asVariableDeclaration())) {
+        CIdExpression mainArgSubstitute = entry.getValue();
+        CType mainArgType = mainArgSubstitute.getExpressionType();
+        Optional<CFunctionCallExpression> verifierNondet =
+            VerifierNondetFunctionType.tryBuildFunctionCallExpressionByType(mainArgType);
+        if (verifierNondet.isPresent()) {
+          CFunctionCallAssignmentStatement assignment =
+              new CFunctionCallAssignmentStatement(
+                  FileLocation.DUMMY, mainArgSubstitute, verifierNondet.orElseThrow());
+          rAssignments.add(assignment.toASTString());
+        } else {
+          pLogger.log(
+              Level.WARNING,
+              "could not find __VERIFIER_nondet function "
+                  + "for the following main function argument type: "
+                  + mainArgType.toASTString(""));
+        }
+      }
+    }
+    return rAssignments.toString();
+  }
+
+  private static CSeqLoopStatement buildLoopStatement(
+      MPOROptions pOptions,
+      ImmutableList<String> pLoopBody,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    checkArgument(!pOptions.loopUnrolling(), "cannot build loop head, loopUnrolling is enabled");
+
+    if (pOptions.loopIterations() == 0) {
+      // infinite while (1) loop
+      return new SeqWhileLoopStatement(SeqIntegerLiteralExpressions.INT_1, pLoopBody);
+
+    } else {
+      // bounded for (...) loop
+      CBinaryExpression forExpression =
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              SeqIdExpressions.ITERATION,
+              SeqExpressionBuilder.buildIntegerLiteralExpression(pOptions.loopIterations()),
+              BinaryOperator.LESS_THAN);
+      CExpressionAssignmentStatement forIterationUpdate =
+          SeqStatementBuilder.buildIncrementStatement(
+              SeqIdExpressions.ITERATION, pBinaryExpressionBuilder);
+      return new SeqForLoopStatement(
+          SeqVariableDeclarations.ITERATION, forExpression, forIterationUpdate, pLoopBody);
+    }
+  }
+}

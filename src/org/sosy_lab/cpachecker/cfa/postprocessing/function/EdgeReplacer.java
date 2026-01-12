@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 @Options
 public abstract class EdgeReplacer {
@@ -74,7 +75,7 @@ public abstract class EdgeReplacer {
   }
 
   /**
-   * This method adds 2 edges to the cfa: 1. trueEdge from rootNode to thenNode and 2. falseEdge
+   * This method adds 2 edges to the CFA: 1. trueEdge from rootNode to thenNode and 2. falseEdge
    * from rootNode to elseNode.
    */
   private void addConditionEdges(
@@ -163,7 +164,7 @@ public abstract class EdgeReplacer {
       CUnaryExpression amper =
           new CUnaryExpression(
               nameExp.getFileLocation(),
-              new CPointerType(false, false, func.getExpressionType()),
+              new CPointerType(CTypeQualifiers.NONE, func.getExpressionType()),
               func,
               CUnaryExpression.UnaryOperator.AMPER);
       CFANode retNode = newCFANode(start.getFunction());

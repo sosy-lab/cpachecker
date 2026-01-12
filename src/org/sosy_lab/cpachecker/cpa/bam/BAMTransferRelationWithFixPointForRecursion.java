@@ -45,7 +45,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       secure = true,
       description =
           "if we cannot determine a repeating/covering call-state, we will run into"
-              + " CallStackOverflowException. Thus we bound the stack size (unsound!). This option"
+              + " CallStackOverflowException. Thus, we bound the stack size (unsound!). This option"
               + " only limits non-covered recursion, but not a recursion where we find a coverage"
               + " and re-use the cached block several times. The value '-1' disables this option.")
   private int maximalDepthForExplicitRecursion = -1;
@@ -143,9 +143,9 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       logger.log(Level.FINEST, "Finished recursive analysis of main-block");
 
-      // EITHER: result is an target-state, return it 'as is' and let CEGAR-algorithm perform a
+      // EITHER: result is a target-state, return it 'as is' and let CEGAR-algorithm perform a
       // refinement, if needed.
-      // OR:     we have completely analyzed the main-block and have not found an target-state.
+      // OR:     we have completely analyzed the main-block and have not found a target-state.
       //         now we check, if we need to unwind recursive calls further until a fixpoint is
       // reached.
 
@@ -220,7 +220,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
         // previously reached state contains 'less' information, it is a super-state of the
         // currentState.
         // From currentState we could reach the levelState again (with further unrolling).
-        // Thus we would have found an endless recursion (with current information
+        // Thus, we would have found an endless recursion (with current information
         // (precision/state)).
 
         // TODO how to compare precisions? equality would be enough
@@ -308,7 +308,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     }
 
     if (recursionSeen) {
-      // we are returning from an recursive call.
+      // we are returning from a recursive call.
       // if we would need to do further analysis for recursion later (fixpoint-analysis!),
       // we need to know, where to update the reachedset --> store initialState for later usage
       potentialRecursionUpdateStates.add(initialState);
@@ -332,7 +332,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     if (coveringLevel != null) {
       // if level is twice in stack, we have endless recursion.
       // with current knowledge we would never abort unrolling the recursion.
-      // lets skip the function and return only a short "summary" of the function.
+      // let's skip the function and return only a short "summary" of the function.
       // this summary is the result of a previous analysis of this block from the cache.
       logger.logf(
           Level.FINEST,
@@ -464,7 +464,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   }
 
   /**
-   * Reconstruct the resulting state from root-, entry- and expanded-state. Also cleanup and update
+   * Reconstruct the resulting state from root-, entry- and expanded-state. Also, cleanup and update
    * the ARG with the new build state.
    */
   private AbstractState getRebuildState(
@@ -476,7 +476,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     logger.log(Level.ALL, "rebuilding state with expanded state", expandedState);
 
     final CFANode location = extractLocation(expandedState);
-    if (!(location instanceof FunctionExitNode)) {
+    if (!(location instanceof FunctionExitNode functionExitNode)) {
       logger.log(Level.ALL, "rebuilding skipped because of non-function-exit-location");
       assert isTargetState(expandedState) : "only target states are returned without rebuild";
       return expandedState;
@@ -484,7 +484,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
     final AbstractState rebuildState =
         wrappedReducer.rebuildStateAfterFunctionCall(
-            rootState, entryState, expandedState, (FunctionExitNode) location);
+            rootState, entryState, expandedState, functionExitNode);
     logger.log(Level.ALL, "rebuilding finished with state", rebuildState);
 
     // in the ARG of the outer block we have now the connection "rootState <-> expandedState"

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -156,7 +157,7 @@ class DynamicMemoryHandler {
     List<CExpression> parameters = e.getParameterExpressions();
 
     if (functionName.equals(CALLOC_FUNCTION) && parameters.size() == 2) {
-      CExpression param0 = parameters.get(0);
+      CExpression param0 = parameters.getFirst();
       CExpression param1 = parameters.get(1);
 
       // Build expression for param0 * param1 as new parameter.
@@ -176,7 +177,8 @@ class DynamicMemoryHandler {
                     multiplication,
                     conv.machineModel,
                     conv.logger)
-                .asLong(multiplication.getExpressionType());
+                .asLong(multiplication.getExpressionType())
+                .orElseThrow();
 
         CExpression newParam =
             new CIntegerLiteralExpression(
@@ -191,7 +193,7 @@ class DynamicMemoryHandler {
 
     } else if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.get(0));
+        parameters = Collections.singletonList(parameters.getFirst());
       } else {
         throw new UnrecognizedCodeException(
             String.format(
@@ -237,7 +239,7 @@ class DynamicMemoryHandler {
     // as it might refer to another function if this method is called from handleMemoryAllocation()
     if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.get(0));
+        parameters = Collections.singletonList(parameters.getFirst());
       } else {
         throw new UnrecognizedCodeException(
             String.format(
@@ -248,7 +250,7 @@ class DynamicMemoryHandler {
       }
     }
 
-    final CExpression parameter = parameters.get(0);
+    final CExpression parameter = parameters.getFirst();
     Long size = null;
     final CType newType;
     if (isSizeof(parameter)) {
@@ -258,9 +260,9 @@ class DynamicMemoryHandler {
       final CType operand1Type = getSizeofType(product.getOperand1());
       final CType operand2Type = getSizeofType(product.getOperand2());
       if (operand1Type != null) {
-        newType = new CArrayType(false, false, operand1Type, product.getOperand2());
+        newType = new CArrayType(CTypeQualifiers.NONE, operand1Type, product.getOperand2());
       } else if (operand2Type != null) {
-        newType = new CArrayType(false, false, operand2Type, product.getOperand1());
+        newType = new CArrayType(CTypeQualifiers.NONE, operand2Type, product.getOperand1());
       } else {
         throw new UnrecognizedCodeException(
             "Can't determine type for internal memory allocation", edge, e);
@@ -279,7 +281,7 @@ class DynamicMemoryHandler {
         } else {
           length = parameter;
         }
-        newType = new CArrayType(false, false, CVoidType.VOID, length);
+        newType = new CArrayType(CTypeQualifiers.NONE, CVoidType.VOID, length);
       } else {
         newType = null;
       }
@@ -357,8 +359,8 @@ class DynamicMemoryHandler {
     if (errorConditions.isEnabled()) {
       final Formula operand =
           expressionVisitor.asValueFormula(
-              parameters.get(0).accept(expressionVisitor),
-              typeHandler.getSimplifiedType(parameters.get(0)));
+              parameters.getFirst().accept(expressionVisitor),
+              typeHandler.getSimplifiedType(parameters.getFirst()));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
       for (String base : pts.getAllBases()) {
@@ -404,7 +406,7 @@ class DynamicMemoryHandler {
               CNumericTypes.SIGNED_CHAR,
               AliasedLocation.ofAddress(result),
               Value.ofValue(
-                  conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
+                  conv.fmgr.makeNumber(conv.getFormulaTypeFromType(CNumericTypes.SIGNED_CHAR), 0)),
               true,
               null,
               conv.bfmgr.makeTrue(),
@@ -435,8 +437,8 @@ class DynamicMemoryHandler {
           addAllFields(memberType);
         }
       }
-    } else if (type instanceof CArrayType) {
-      final CType elementType = checkIsSimplified(((CArrayType) type).getType());
+    } else if (type instanceof CArrayType cArrayType) {
+      final CType elementType = checkIsSimplified(cArrayType.getType());
       addAllFields(elementType);
     }
   }
@@ -476,23 +478,23 @@ class DynamicMemoryHandler {
    * @return The value, if the expression is an integer literal, or {@code null}
    */
   private static @Nullable Long tryEvaluateExpression(CExpression e) {
-    if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().longValueExact();
+    if (e instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      return cIntegerLiteralExpression.getValue().longValueExact();
     }
     return null;
   }
 
   /**
-   * Returns, whether a expression is a {@code sizeof} expression.
+   * Returns, whether an expression is a {@code sizeof} expression.
    *
    * @param e The C expression.
    * @return True, if the expression is a {@code sizeof} expression, false otherwise.
    */
   private static boolean isSizeof(final CExpression e) {
-    return (e instanceof CUnaryExpression
-            && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF)
-        || (e instanceof CTypeIdExpression
-            && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF);
+    return (e instanceof CUnaryExpression cUnaryExpression
+            && cUnaryExpression.getOperator() == UnaryOperator.SIZEOF)
+        || (e instanceof CTypeIdExpression cTypeIdExpression
+            && cTypeIdExpression.getOperator() == TypeIdOperator.SIZEOF);
   }
 
   /**
@@ -503,10 +505,9 @@ class DynamicMemoryHandler {
    *     otherwise.
    */
   private static boolean isSizeofMultiple(final CExpression e) {
-    return e instanceof CBinaryExpression
-        && ((CBinaryExpression) e).getOperator() == BinaryOperator.MULTIPLY
-        && (isSizeof(((CBinaryExpression) e).getOperand1())
-            || isSizeof(((CBinaryExpression) e).getOperand2()));
+    return e instanceof CBinaryExpression cBinaryExpression
+        && cBinaryExpression.getOperator() == BinaryOperator.MULTIPLY
+        && (isSizeof(cBinaryExpression.getOperand1()) || isSizeof(cBinaryExpression.getOperand2()));
   }
 
   /**
@@ -516,12 +517,12 @@ class DynamicMemoryHandler {
    * @return The size of the expression.
    */
   private @Nullable CType getSizeofType(CExpression e) {
-    if (e instanceof CUnaryExpression
-        && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
-      return typeHandler.getSimplifiedType(((CUnaryExpression) e).getOperand());
-    } else if (e instanceof CTypeIdExpression
-        && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF) {
-      return typeHandler.simplifyType(((CTypeIdExpression) e).getType());
+    if (e instanceof CUnaryExpression cUnaryExpression
+        && cUnaryExpression.getOperator() == UnaryOperator.SIZEOF) {
+      return typeHandler.getSimplifiedType(cUnaryExpression.getOperand());
+    } else if (e instanceof CTypeIdExpression cTypeIdExpression
+        && cTypeIdExpression.getOperator() == TypeIdOperator.SIZEOF) {
+      return typeHandler.simplifyType(cTypeIdExpression.getType());
     } else {
       return null;
     }
@@ -575,8 +576,7 @@ class DynamicMemoryHandler {
       }
 
       return new CArrayType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           type,
           new CIntegerLiteralExpression(
               sizeLiteral.getFileLocation(),
@@ -586,8 +586,8 @@ class DynamicMemoryHandler {
   }
 
   private static CType unwrapPointers(final CType type) {
-    if (type instanceof CPointerType) {
-      return unwrapPointers(((CPointerType) type).getType());
+    if (type instanceof CPointerType cPointerType) {
+      return unwrapPointers(cPointerType.getType());
     }
     return type;
   }
@@ -779,9 +779,9 @@ class DynamicMemoryHandler {
       }
     }
 
-    if (lhs instanceof CIdExpression) {
+    if (lhs instanceof CIdExpression cIdExpression) {
       // If LHS is a variable, remove previous points-to bindings containing it
-      pts.removeDeferredAllocationPointer(((CIdExpression) lhs).getDeclaration().getQualifiedName())
+      pts.removeDeferredAllocationPointer(cIdExpression.getDeclaration().getQualifiedName())
           .forEach(d -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises

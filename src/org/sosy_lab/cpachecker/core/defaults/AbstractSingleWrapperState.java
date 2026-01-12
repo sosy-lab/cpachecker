@@ -45,7 +45,7 @@ public abstract class AbstractSingleWrapperState
 
   @Override
   public boolean isTarget() {
-    return wrappedState instanceof Targetable && ((Targetable) wrappedState).isTarget();
+    return wrappedState instanceof Targetable targetable && targetable.isTarget();
   }
 
   @Override
@@ -56,8 +56,8 @@ public abstract class AbstractSingleWrapperState
 
   @Override
   public Object getPartitionKey() {
-    if (wrappedState instanceof Partitionable) {
-      return ((Partitionable) wrappedState).getPartitionKey();
+    if (wrappedState instanceof Partitionable partitionable) {
+      return partitionable.getPartitionKey();
     } else {
       return null;
     }
@@ -65,8 +65,8 @@ public abstract class AbstractSingleWrapperState
 
   @Override
   public Comparable<?> getPseudoPartitionKey() {
-    if (wrappedState instanceof PseudoPartitionable) {
-      return ((PseudoPartitionable) wrappedState).getPseudoPartitionKey();
+    if (wrappedState instanceof PseudoPartitionable pseudoPartitionable) {
+      return pseudoPartitionable.getPseudoPartitionKey();
     } else {
       return null;
     }
@@ -74,8 +74,8 @@ public abstract class AbstractSingleWrapperState
 
   @Override
   public Object getPseudoHashCode() {
-    if (wrappedState instanceof PseudoPartitionable) {
-      return ((PseudoPartitionable) wrappedState).getPseudoHashCode();
+    if (wrappedState instanceof PseudoPartitionable pseudoPartitionable) {
+      return pseudoPartitionable.getPseudoHashCode();
     } else {
       return null;
     }

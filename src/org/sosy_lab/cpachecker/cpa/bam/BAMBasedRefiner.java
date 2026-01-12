@@ -61,10 +61,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
         !(pRefiner instanceof Refiner),
         "ARGBasedRefiners may not implement Refiner, choose between these two!");
 
-    if (!(pCpa instanceof AbstractBAMCPA)) {
+    if (!(pCpa instanceof AbstractBAMCPA bamCpa)) {
       throw new InvalidConfigurationException("BAM CPA needed for BAM-based refinement");
     }
-    AbstractBAMCPA bamCpa = (AbstractBAMCPA) pCpa;
+
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
     return new BAMBasedRefiner(pRefiner, argCpa, bamCpa, bamCpa.getLogger());
   }
@@ -84,7 +84,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       // During the counter-example-path-building we already re-added the start-states of all
       // blocks,
       // that lead to the missing block, to the waitlists of those blocks.
-      // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
+      // Thus, missing blocks are analyzed and rebuild again in the next CPA-algorithm.
 
       stats.refinementWithMissingBlocks.inc();
       return CounterexampleInfo.spurious();

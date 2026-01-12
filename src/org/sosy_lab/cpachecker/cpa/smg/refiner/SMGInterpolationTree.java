@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
@@ -56,7 +57,7 @@ public class SMGInterpolationTree {
   private final ARGState root;
 
   /** the predecessor relation of the states contained in this tree */
-  private final Map<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
+  private final SequencedMap<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
 
   /** the successor relation of the states contained in this tree */
   private final ListMultimap<ARGState, ARGState> successorRelation = ArrayListMultimap.create();
@@ -108,7 +109,7 @@ public class SMGInterpolationTree {
       successorRelation.put(predecessorState, successorState);
     }
 
-    return states.get(0);
+    return states.getFirst();
   }
 
   /** This method builds an actual tree from multiple path. */
@@ -123,7 +124,7 @@ public class SMGInterpolationTree {
       if (currentState.getParents().iterator().hasNext()) {
 
         if (!predecessorRelation.containsKey(currentState)) {
-          ARGState parentState = currentState.getParents().iterator().next();
+          ARGState parentState = currentState.getParents().getFirst();
 
           predecessorRelation.put(currentState, parentState);
           successorRelation.put(parentState, currentState);
@@ -178,7 +179,7 @@ public class SMGInterpolationTree {
    * This method checks if for the given state a non-trivial interpolant is present.
    *
    * @param currentState the state for which to check
-   * @return true, if a non-trivial interpolant is present, else false
+   * @return whether a non-trivial interpolant is present
    */
   private boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
@@ -206,16 +207,16 @@ public class SMGInterpolationTree {
    * This method checks if for the given state a false interpolant is present.
    *
    * @param currentState the state for which to check
-   * @return true, if a false interpolant is present, else false
+   * @return whether a false interpolant is present
    */
   private boolean stateHasFalseInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && interpolants.get(currentState).isFalse();
   }
 
   /**
-   * This method decides whether or not there are more paths left for interpolation.
+   * This method decides whether there are more paths left for interpolation.
    *
-   * @return true if there are more paths left for interpolation, else false
+   * @return whether there are more paths left for interpolation
    */
   public boolean hasNextPathForInterpolation() {
     return strategy.hasNextPathForInterpolation();
@@ -344,7 +345,7 @@ public class SMGInterpolationTree {
     }
 
     /**
-     * The given state is not a valid interpolation root if it is associated with a interpolant
+     * The given state is not a valid interpolation root if it is associated with an interpolant
      * representing "false"
      */
     private boolean isValidInterpolationRoot(ARGState pRoot) {
@@ -376,13 +377,13 @@ public class SMGInterpolationTree {
     /** the states that are the sources for obtaining error paths */
     private List<ARGState> sources;
 
-    public BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
+    BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
       sources = new ArrayList<>(pTargets);
     }
 
     @Override
     public ARGPath getNextPathForInterpolation() {
-      ARGState current = sources.remove(0);
+      ARGState current = sources.removeFirst();
 
       assert current.isTarget() : "current element is not a target";
 

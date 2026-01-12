@@ -1,0 +1,5 @@
+# Kept empty on purpose
+# It makes no sense to have it since the specification
+# is inside the program.
+# But we need to have it for the expected verdict
+# in the task definition files

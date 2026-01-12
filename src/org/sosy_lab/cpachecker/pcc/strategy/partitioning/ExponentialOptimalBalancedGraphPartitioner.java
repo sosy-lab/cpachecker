@@ -60,7 +60,7 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
   private List<Set<Integer>> initPartition(final int pNumPartitions, final int maxSize) {
     List<Set<Integer>> result = new ArrayList<>(pNumPartitions);
     for (int i = 0; i < pNumPartitions; i++) {
-      result.add(i, new HashSet<>(maxSize));
+      result.add(new HashSet<>(maxSize));
     }
     return result;
   }

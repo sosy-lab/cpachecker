@@ -77,12 +77,12 @@ public class DeterministicVariablesTransferRelation
       throws CPATransferException {
 
     // we do only care about variable declarations
-    if (!(pDeclaration instanceof AVariableDeclaration)) {
+    if (!(pDeclaration instanceof AVariableDeclaration aVariableDeclaration)) {
       return state;
     }
 
     Wrapper<ASimpleDeclaration> varDeclaration = LIVE_DECL_EQUIVALENCE.wrap(pDeclaration);
-    AInitializer initializer = ((AVariableDeclaration) pDeclaration).getInitializer();
+    AInitializer initializer = aVariableDeclaration.getInitializer();
 
     // initializer is empty, return identity
     if (initializer == null) {
@@ -286,23 +286,24 @@ public class DeterministicVariablesTransferRelation
    */
   private Collection<Wrapper<ASimpleDeclaration>> getVariablesUsedForInitialization(
       final AInitializer init) throws CPATransferException {
-    if (init instanceof CDesignatedInitializer) {
-      // e.g. .x=b or .p.x.=1 as part of struct initialization
-      return getVariablesUsedForInitialization(((CDesignatedInitializer) init).getRightHandSide());
+    return switch (init) {
+      case CDesignatedInitializer cDesignatedInitializer ->
+          // e.g. .x=b or .p.x.=1 as part of struct initialization
+          getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide());
 
-    } else if (init instanceof CInitializerList) {
-      // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-      Collection<Wrapper<ASimpleDeclaration>> readVars = new ArrayList<>();
-
-      for (CInitializer inList : ((CInitializerList) init).getInitializers()) {
-        readVars.addAll(getVariablesUsedForInitialization(inList));
+      case CInitializerList cInitializerList -> {
+        // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
+        Collection<Wrapper<ASimpleDeclaration>> readVars = new ArrayList<>();
+        for (CInitializer inList : cInitializerList.getInitializers()) {
+          readVars.addAll(getVariablesUsedForInitialization(inList));
+        }
+        yield readVars;
       }
-      return readVars;
-    } else if (init instanceof AInitializerExpression) {
-      return handleExpression(((AInitializerExpression) init).getExpression());
-    } else {
-      throw new CPATransferException("Missing case for if-then-else statement.");
-    }
+      case AInitializerExpression aInitializerExpression ->
+          handleExpression(aInitializerExpression.getExpression());
+
+      default -> throw new CPATransferException("Missing case for if-then-else statement.");
+    };
   }
 
   @Override

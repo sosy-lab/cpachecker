@@ -16,8 +16,10 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -50,7 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  * </code> For traversing the CFA, a {@link CFAVisitor} needs to be given. Several default
  * implementations are available.
  *
- * <p>Important: The instances of this class do not track a set of already visited nodes. Thus a
+ * <p>Important: The instances of this class do not track a set of already visited nodes. Thus, a
  * visitor may be called several times for a single node. If the visitor never specifies to stop the
  * traversal and the CFA contains loops, this will produce an infinite loop! It is strongly
  * recommended to use the {@link NodeCollectingCFAVisitor} to prevent this and visit each node only
@@ -58,11 +60,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  */
 public class CFATraversal {
 
-  static final Function<CFANode, Iterable<CFAEdge>> FORWARD_EDGE_SUPPLIER =
-      CFAUtils::allLeavingEdges;
+  private static final Function<CFANode, Iterable<CFAEdge>> FORWARD_EDGE_SUPPLIER =
+      CFANode::getAllLeavingEdges;
 
-  static final Function<CFANode, Iterable<CFAEdge>> BACKWARD_EDGE_SUPPLIER =
-      CFAUtils::allEnteringEdges;
+  private static final Function<CFANode, Iterable<CFAEdge>> BACKWARD_EDGE_SUPPLIER =
+      CFANode::getAllEnteringEdges;
 
   // function providing the outgoing edges for a CFANode
   private final Function<CFANode, Iterable<CFAEdge>> edgeSupplier;
@@ -82,11 +84,7 @@ public class CFATraversal {
     ignoreEdge = pIgnoreEdge;
   }
 
-  /**
-   * Returns a default instance of this class, which iterates forward through the CFA, visiting all
-   * nodes in a DFS-like strategy. For every visited node, all outgoing edges are visited
-   * immediately. Hence, edges are not visited in a DFS-like strategy.
-   */
+  /** Returns a default instance of this class, which iterates forward through the CFA. */
   public static CFATraversal dfs() {
     return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.alwaysFalse());
   }
@@ -120,7 +118,7 @@ public class CFATraversal {
   /**
    * Returns a new instance of this class which behaves exactly like the current instance, except it
    * ignores function call and return edges. It will not call the visitor for them, and it will not
-   * follow this edge during traversing. Thus it will always stay inside the current function.
+   * follow this edge during traversing. Thus, it will always stay inside the current function.
    */
   @SuppressWarnings("unchecked")
   public CFATraversal ignoreFunctionCalls() {
@@ -148,6 +146,8 @@ public class CFATraversal {
   /**
    * Traverse through the CFA according to the strategy represented by the current instance,
    * starting at a given node and passing each encountered node and edge to a given visitor.
+   * Outgoing CFA edges are visited immediately after the node they originate from. Therefore, they
+   * are not visited in depth-first order.
    *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
@@ -192,11 +192,65 @@ public class CFATraversal {
    * <p>Each node will be visited only once. This method does the same as wrapping the given visitor
    * in a {@link NodeCollectingCFAVisitor} and calling {@link #traverse(CFANode, CFAVisitor)}.
    *
+   * <p>Outgoing CFA edges are visited immediately after the node they originate from. Therefore,
+   * they are not visited in depth-first order.
+   *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
   public void traverseOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
     traverse(startingNode, new NodeCollectingCFAVisitor(visitor));
+  }
+
+  /**
+   * Traverse through the CFA according to the strategy represented by the current instance,
+   * starting at a given node and passing each encountered node and edge to a given visitor. Unlike
+   * {@link #traverse(CFANode, CFAVisitor)} and {@link #traverseOnce(CFANode, CFAVisitor)}, this
+   * method visits the CFA edges in depth-first order and not only the CFA nodes.
+   *
+   * @param startingNode The starting node.
+   * @param visitor The visitor to notify.
+   */
+  public void traverseEdgesOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
+
+    record CFANodeCFAEdgePair(CFANode successor, CFAEdge enteringEdge) {}
+
+    Deque<CFANodeCFAEdgePair> toProcess = new ArrayDeque<>();
+    SequencedSet<CFANode> discovered = new LinkedHashSet<>();
+
+    toProcess.addLast(new CFANodeCFAEdgePair(startingNode, null));
+
+    while (!toProcess.isEmpty()) {
+      CFANodeCFAEdgePair cfaNodeCFAEdgePair = toProcess.removeLast();
+      CFANode currentNode = cfaNodeCFAEdgePair.successor();
+      CFAEdge entering = cfaNodeCFAEdgePair.enteringEdge();
+      if (entering != null) {
+        TraversalProcess result = visitor.visitEdge(entering);
+        if (result == TraversalProcess.ABORT) {
+          return;
+        }
+        if (result == TraversalProcess.SKIP) {
+          continue;
+        }
+      }
+      if (discovered.contains(currentNode)) {
+        continue;
+      }
+      discovered.add(currentNode);
+      CFATraversal.TraversalProcess result = visitor.visitNode(currentNode);
+      if (result == TraversalProcess.ABORT) {
+        return;
+      }
+      if (result == TraversalProcess.SKIP) {
+        continue;
+      }
+      for (CFAEdge edge : edgeSupplier.apply(currentNode)) {
+        if (ignoreEdge.apply(edge)) {
+          continue;
+        }
+        toProcess.add(new CFANodeCFAEdgePair(edge.getSuccessor(), edge));
+      }
+    }
   }
 
   /**
@@ -365,12 +419,12 @@ public class CFATraversal {
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
       String funName = pEdge.getSuccessor().getFunctionName();
-      if (pEdge instanceof ADeclarationEdge) {
-        ADeclaration decl = ((ADeclarationEdge) pEdge).getDeclaration();
+      if (pEdge instanceof ADeclarationEdge aDeclarationEdge) {
+        ADeclaration decl = aDeclarationEdge.getDeclaration();
         handleDeclaration(decl.isGlobal() ? "" : funName, decl.getOrigName());
-      } else if (pEdge instanceof FunctionCallEdge) {
+      } else if (pEdge instanceof FunctionCallEdge functionCallEdge) {
         for (AParameterDeclaration paramDecl :
-            ((FunctionCallEdge) pEdge).getSuccessor().getFunctionParameters()) {
+            functionCallEdge.getSuccessor().getFunctionParameters()) {
           handleDeclaration(funName, paramDecl.getOrigName());
         }
       }
@@ -402,7 +456,7 @@ public class CFATraversal {
    * will be called in the same order for each edge and node. If one visitor returns ABORT, the
    * other visitors will still be called, and ABORT is returned. If one visitor returns SKIP, the
    * other visitors will still be called, and SKIP is returned if none of them returned ABORT.
-   * Otherwise CONTINUE is returned.
+   * Otherwise, CONTINUE is returned.
    */
   public static class CompositeCFAVisitor implements CFAVisitor {
 

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 @SuppressWarnings("unused")
@@ -173,7 +174,7 @@ public class AtExitTransformer {
         // Add an edge to declare a tmp variable for the __CPACHECKER_atexit_next() call later
         CFANode n1 = mkNode(scope);
         CType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
-        CType fpointerType = new CPointerType(false, false, functionType);
+        CType fpointerType = new CPointerType(CTypeQualifiers.NONE, functionType);
         String var = mkTmpVariable();
         CVariableDeclaration declVar =
             new CVariableDeclaration(

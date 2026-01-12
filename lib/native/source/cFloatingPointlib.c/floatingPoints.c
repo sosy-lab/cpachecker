@@ -6,6 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#define __STDC_WANT_IEC_60559_EXT__
+
 #include"CFloatNativeAPI.h"
 
 #include<stdlib.h>
@@ -13,6 +15,7 @@
 #include<locale.h>
 
 #include<stdio.h>
+#include<stdint.h>
 
 #define min(x, y) (x < y ? x : y)
 #define max(x, y) (x > y ? x : y)
@@ -22,21 +25,31 @@
 
 const char* WRAPPER = "org/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper";
 const char* NUMBER = "Number";
-const char* EXCEPTION = "org/sosy_lab/cpachecker/util/floatingpoint/NativeComputationException";
+const char* EXCEPTION = "java/lang/IllegalArgumentException";
 
 const char* EX_TEXT = "Type invalid or not supported.";
 
-typedef struct {long long mantissa; long long exp_sig_pad; } t_ld_bits;
+typedef struct {unsigned long long lower; unsigned long long upper; } t_ld_bits;
 typedef union {t_ld_bits bitmask; long double ld_value; double d_value; float f_value; } t_ld;
 
 /**
  * Utility function to throw Java exceptions
  * as error handling.
  */
-void throwNativeException(JNIEnv* env, const char* message) {
+void throwException(JNIEnv* env, const char* message) {
 	jthrowable ex = (*env)->FindClass(env, EXCEPTION);
 	(*env)->ThrowNew(env, ex, message);
 }
+
+#define FLOAT_SIGNIFICAND_WIDTH 23
+#define FLOAT_SIGN_AND_EXPONENT_BITMASK 0xFF800000L
+#define FLOAT_SIGNIFICAND_BITMASK 0x007FFFFFL
+
+#define DOUBLE_SIGNIFICAND_WIDTH 52
+#define DOUBLE_SIGN_AND_EXPONENT_BITMASK 0xFFF0000000000000L
+#define DOUBLE_SIGNIFICAND_BITMASK 0xFFFFFFFFFFFFFL
+
+#define LONGDOUBLE_SIGN_AND_EXPONENT_BITMASK 0xFFFFL
 
 /**
  * Utility function to get the floating point
@@ -54,17 +67,17 @@ t_ld transformWrapperFromJava(JNIEnv* env, jobject wrapper, jint type) {
 	t_ld fp_obj = { .ld_value = 0.0L };
 	switch (type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			fp_obj.bitmask.mantissa ^= mantissa + (exponent << 23);
+			fp_obj.bitmask.lower = mantissa + (exponent << FLOAT_SIGNIFICAND_WIDTH);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			fp_obj.bitmask.mantissa ^= mantissa + (exponent << 52);
+			fp_obj.bitmask.lower = mantissa + (exponent << DOUBLE_SIGNIFICAND_WIDTH);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			fp_obj.bitmask.exp_sig_pad ^= exponent;
-			fp_obj.bitmask.mantissa ^= mantissa;
+			fp_obj.bitmask.upper = exponent;
+			fp_obj.bitmask.lower = mantissa;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return fp_obj;
@@ -85,19 +98,19 @@ jobject transformWrapperToJava(JNIEnv* env, t_ld fp_obj, jint type) {
 
 	switch (type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)((fp_obj.bitmask.mantissa & (511L << 23)) >> 23)));
-			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa & 8388607L));
+			(*env)->CallVoidMethod(env, wrapper, setE, (jlong) ((fp_obj.bitmask.lower & FLOAT_SIGN_AND_EXPONENT_BITMASK) >> FLOAT_SIGNIFICAND_WIDTH));
+			(*env)->CallVoidMethod(env, wrapper, setM, (jlong) (fp_obj.bitmask.lower & FLOAT_SIGNIFICAND_BITMASK));
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)((fp_obj.bitmask.mantissa & (4095L << 52)) >> 52)));
-			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa & 4503599627370495L));
+			(*env)->CallVoidMethod(env, wrapper, setE, (jlong) ((fp_obj.bitmask.lower & DOUBLE_SIGN_AND_EXPONENT_BITMASK) >> DOUBLE_SIGNIFICAND_WIDTH));
+			(*env)->CallVoidMethod(env, wrapper, setM, (jlong) (fp_obj.bitmask.lower & DOUBLE_SIGNIFICAND_BITMASK));
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)fp_obj.bitmask.exp_sig_pad));
-			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa));
+			(*env)->CallVoidMethod(env, wrapper, setE, (jlong) (fp_obj.bitmask.upper & LONGDOUBLE_SIGN_AND_EXPONENT_BITMASK));
+			(*env)->CallVoidMethod(env, wrapper, setM, (jlong) fp_obj.bitmask.lower);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return wrapper;
@@ -138,7 +151,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			fp_obj.ld_value = val;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 	jobject wrapper = transformWrapperToJava(env, fp_obj, type);
 	(*env)->ReleaseStringUTFChars(env, valString, string);
@@ -153,20 +166,22 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
  */
 JNIEXPORT jstring JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_printFp(JNIEnv* env, jclass cl, jobject wrapper, jint type) {
 	t_ld fp_obj = transformWrapperFromJava(env, wrapper, type);
-	char s[35000];
+
+	const int buffersize = 100; // always enough as we never print more than 20 digits for the significand
+	char s[buffersize];
 
 	switch(type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			snprintf(s, 35000, "%.2000f", fp_obj.f_value);
+		        snprintf(s, buffersize, "%.*e", 8, fp_obj.f_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			snprintf(s, 35000, "%.10000f", fp_obj.d_value);
+			snprintf(s, buffersize, "%.*e", 16, fp_obj.d_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			snprintf(s, 35000, "%.16445Lf", fp_obj.ld_value);
+			snprintf(s, buffersize, "%.*Le", 20, fp_obj.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return (*env)->NewStringUTF(env, s);
@@ -184,13 +199,13 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.f_value = fp_1.f_value + fp_2.f_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			result.d_value = chooseOf2(type1, fp_1) + chooseOf3(type2, fp_2);
+			result.d_value = chooseOf2(type1, fp_1) + chooseOf2(type2, fp_2);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			result.ld_value = chooseOf3(type1, fp_1) + chooseOf3(type2, fp_2);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -214,7 +229,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = chooseOf3(type1, fp_1) - chooseOf3(type2, fp_2);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -238,7 +253,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = chooseOf3(type1, fp_1) * chooseOf3(type2, fp_2);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -262,133 +277,101 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = chooseOf3(type1, fp_1) / chooseOf3(type2, fp_2);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
 }
 
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_addManyFp(JNIEnv* env, jclass cl, jobject wrapper, jintArray type, jobjectArray summands) {
-	jint* types = (*env)->GetIntArrayElements(env, type, 0);
-	t_ld fp = transformWrapperFromJava(env, wrapper, types[0]);
-	jsize size = (*env)->GetArrayLength(env, summands);
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_moduloFp(JNIEnv* env, jclass cl, jobject wrapper1, jint type1, jobject wrapper2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, wrapper1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, wrapper2, type2);
 
-	float tmpf;
-	double tmp;
+	t_ld result = { .ld_value = 0.0L };
 
-	jint maxType = types[0];
-
-	for (long long i = 0; i < size; i++) {
-		maxType = max(maxType, types[i+1]);
-	}
-
+	jint maxType = max(type1, type2);
 	switch(maxType) {
-		// lowest one does need no handling
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			result.f_value = fmodf(fp_1.f_value, fp_2.f_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			if (types[0] == 0) {
-				tmpf = fp.f_value;
-				fp.ld_value = 0.0L;
-				fp.d_value = tmpf;
-			}
+			result.d_value = fmod(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			if (types[0] == 0) {
-				tmpf = fp.f_value;
-				fp.ld_value = 0.0L;
-				fp.ld_value = tmpf;
-			}
-			if (types[0] == 1) {
-				tmp = fp.d_value;
-				fp.ld_value = 0.0L;
-				fp.ld_value = tmp;
-			}
+			result.ld_value = fmodl(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
-	for (long long i = 0; i < size; i++) {
-		t_ld cur_fp = transformWrapperFromJava(env, (*env)->GetObjectArrayElement(env, summands, i), types[i + 1]);
-
-		switch(maxType) {
-			case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-				fp.f_value = fp.f_value + cur_fp.f_value;
-				break;
-			case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-				fp.d_value = fp.d_value + chooseOf2(types[i+1], cur_fp);
-				break;
-			case  org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-				fp.ld_value = fp.ld_value + chooseOf3(types[i+1], cur_fp);
-				break;
-			default:
-				throwNativeException(env, EX_TEXT);
-		}
-	}
-
-	return transformWrapperToJava(env, fp, maxType);
+	return transformWrapperToJava(env, result, maxType);
 }
 
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_multiplyManyFp(JNIEnv* env, jclass cl, jobject wrapper, jintArray type, jobjectArray factors) {
-	jint* types = (*env)->GetIntArrayElements(env, type, 0);
-	t_ld fp = transformWrapperFromJava(env, wrapper, types[0]);
-	jsize size = (*env)->GetArrayLength(env, factors);
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_remainderFp(JNIEnv* env, jclass cl, jobject wrapper1, jint type1, jobject wrapper2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, wrapper1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, wrapper2, type2);
 
-	float tmpf;
-	double tmp;
+	t_ld result = { .ld_value = 0.0L };
 
-	jint maxType = types[0];
-
-	for (long long i = 0; i < size; i++) {
-		maxType = max(maxType, types[i+1]);
-	}
-
+	jint maxType = max(type1, type2);
 	switch(maxType) {
-		// lowest one does need no handling
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			result.f_value = remainderf(fp_1.f_value, fp_2.f_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			if (types[0] == 0) {
-				tmpf = fp.f_value;
-				fp.ld_value = 0.0L;
-				fp.d_value = tmpf;
-			}
+			result.d_value = remainder(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			if (types[0] == 0) {
-				tmpf = fp.f_value;
-				fp.ld_value = 0.0L;
-				fp.ld_value = tmpf;
-			}
-			if (types[0] == 1) {
-				tmp = fp.d_value;
-				fp.ld_value = 0.0L;
-				fp.ld_value = tmp;
-			}
+			result.ld_value = remainderl(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
-	for (long long i = 0; i < size; i++) {
-		t_ld cur_fp = transformWrapperFromJava(env, (*env)->GetObjectArrayElement(env, factors, 0), types[i + 1]);
-		switch(maxType) {
-			case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-				fp.f_value = fp.f_value * cur_fp.f_value;
-				break;
-			case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-				fp.d_value = fp.d_value * chooseOf2(types[i+1], cur_fp);
-				break;
-			case  org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-				fp.ld_value = fp.ld_value * chooseOf3(types[i+1], cur_fp);
-				break;
-			default:
-				throwNativeException(env, EX_TEXT);
-		}
+	return transformWrapperToJava(env, result, maxType);
+}
+
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_logFp(JNIEnv* env, jclass cl, jobject wrapper, jint type) {
+	t_ld fp = transformWrapperFromJava(env, wrapper, type);
+	t_ld result = { .ld_value = 0.0L };
+
+	switch(type) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			result.f_value = logf(fp.f_value);
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			result.d_value = log(fp.d_value);
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			result.ld_value = logl(fp.ld_value);
+			break;
+		default:
+			throwException(env, EX_TEXT);
 	}
 
-	return transformWrapperToJava(env, fp, maxType);
+	return transformWrapperToJava(env, result, type);
+}
+
+
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_expFp(JNIEnv* env, jclass cl, jobject wrapper, jint type) {
+	t_ld fp = transformWrapperFromJava(env, wrapper, type);
+	t_ld result = { .ld_value = 0.0L };
+
+	switch(type) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			result.f_value = expf(fp.f_value);
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			result.d_value = exp(fp.d_value);
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			result.ld_value = expl(fp.ld_value);
+			break;
+		default:
+			throwException(env, EX_TEXT);
+	}
+
+	return transformWrapperToJava(env, result, type);
 }
 
 JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_powFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
@@ -409,7 +392,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = powl(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -434,7 +417,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 				result.ld_value = 1.0L;
 				break;
 			default:
-				throwNativeException(env, EX_TEXT);
+				throwException(env, EX_TEXT);
 		}
 
 		// actual computation
@@ -459,7 +442,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 					fp_base.ld_value *= fp_base.ld_value;
 					break;
 				default:
-					throwNativeException(env, EX_TEXT);
+					throwException(env, EX_TEXT);
 			}
 			exp >>= 1;
 		}
@@ -484,7 +467,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = sqrtl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -506,7 +489,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = roundl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -528,7 +511,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = truncl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -550,7 +533,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = ceill(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -572,7 +555,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = floorl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -594,7 +577,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = fabsl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -611,7 +594,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return fp.ld_value == 0.0L || fp.ld_value == -0.0L;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
@@ -622,16 +605,149 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 
 	switch(type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			return fp.f_value == 1.0;
+			return fp.f_value == 1.0 || fp.f_value == -1.0;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			return fp.d_value == 1.0;
+			return fp.d_value == 1.0 || fp.d_value == -1.0;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			return fp.ld_value == 1.0L;
+			return fp.ld_value == 1.0L || fp.ld_value == -1.0L;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isEqualFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return fp_1.f_value == fp_2.f_value;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return chooseOf2(type1, fp_1) == chooseOf2(type2, fp_2);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return chooseOf3(type1, fp_1) == chooseOf3(type2, fp_2);
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isNotEqualFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return islessgreater(fp_1.f_value, fp_2.f_value);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return islessgreater(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return islessgreater(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isGreaterFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return isgreater(fp_1.f_value, fp_2.f_value);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return isgreater(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return isgreater(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isGreaterEqualFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return isgreaterequal(fp_1.f_value, fp_2.f_value);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return isgreaterequal(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return isgreaterequal(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isLessFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return isless(fp_1.f_value, fp_2.f_value);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return isless(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return isless(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isLessEqualFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return islessequal(fp_1.f_value, fp_2.f_value);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return islessequal(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return islessequal(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jint JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_totalOrderFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+        int leq, gte;
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			leq = totalorderf(&fp_1.f_value, &fp_2.f_value);
+			gte = totalorderf(&fp_2.f_value, &fp_1.f_value);
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			leq = totalorder(&fp_1.d_value, &fp_2.d_value);
+                        gte = totalorder(&fp_2.d_value, &fp_1.d_value);
+                        break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			leq = totalorderl(&fp_1.ld_value, &fp_2.ld_value);
+                        gte = totalorderl(&fp_2.ld_value, &fp_1.ld_value);
+                        break;
+		default:
+			throwException(env, EX_TEXT);
+	}
+
+	if (leq && gte) {
+	  return 0;
+	} else {
+	  return leq ? -1 : 1;
+	}
 }
 
 JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isNanFp(JNIEnv* env, jclass cl, jobject wrapper, jint type) {
@@ -645,7 +761,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return isnan(fp.ld_value);
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
@@ -662,7 +778,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return isinf(fp.ld_value);
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
@@ -679,7 +795,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return 0 != signbit(fp.ld_value);
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
@@ -699,10 +815,10 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.d_value = copysign(fp_1.d_value, fp_2.d_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			result.ld_value = copysign(fp_1.ld_value, fp_2.ld_value);
+			result.ld_value = copysignl(fp_1.ld_value, fp_2.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -732,173 +848,156 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			fp.ld_value = casted;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, fp, to_type);
 }
 
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castOtherToFp(JNIEnv* env, jclass cl, jobject number, jint from_type, jint to_fp_type) {
-	jclass number_clazz = (*env)->FindClass(env, NUMBER);
-
-	jmethodID getValue;
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castByteToFp(JNIEnv* env, jclass cl, jbyte number, jint to_fp_type) {
 	t_ld fp = { .ld_value = 0.0L };
-
-	switch(from_type) {
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_CHAR:
-			getValue = (*env)->GetMethodID(env, number_clazz, "byteValue", "()B");
-			switch(to_fp_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					fp.f_value = (float)((*env)->CallByteMethod(env, number, getValue));
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					fp.d_value = (double)((*env)->CallByteMethod(env, number, getValue));
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					fp.ld_value = (long double)((*env)->CallByteMethod(env, number, getValue));
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
-			break;
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_SHORT:
-			getValue = (*env)->GetMethodID(env, number_clazz, "shortValue", "()S");
-			switch(to_fp_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					fp.f_value = (float)((*env)->CallShortMethod(env, number, getValue));
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					fp.d_value = (double)((*env)->CallShortMethod(env, number, getValue));
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					fp.ld_value = (long double)((*env)->CallShortMethod(env, number, getValue));
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
-			break;
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_INT:
-			getValue = (*env)->GetMethodID(env, number_clazz, "intValue", "()I");
-			switch(to_fp_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					fp.f_value = (float)((*env)->CallIntMethod(env, number, getValue));
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					fp.d_value = (double)((*env)->CallIntMethod(env, number, getValue));
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					fp.ld_value = (long double)((*env)->CallIntMethod(env, number, getValue));
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
-			break;
-		// this has to be adjusted according to architecture
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_LONG:
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_LONG_LONG:
-			getValue = (*env)->GetMethodID(env, number_clazz, "longValue", "()J");
-			switch(to_fp_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					fp.f_value = (float)((*env)->CallLongMethod(env, number, getValue));
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					fp.d_value = (double)((*env)->CallLongMethod(env, number, getValue));
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					fp.ld_value = (long double)((*env)->CallLongMethod(env, number, getValue));
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
-			break;
-		default:
-			throwNativeException(env, EX_TEXT);
-	}
-
-	return transformWrapperToJava(env, fp, to_fp_type);
+        switch(to_fp_type) {
+                case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+        	        fp.f_value = (float) number;
+        		break;
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+        	        fp.d_value = (double) number;
+        		break;
+       		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+        		fp.ld_value = (long double) number;
+        	        break;
+        	default:
+        	        throwException(env, EX_TEXT);
+        }
+        return transformWrapperToJava(env, fp, to_fp_type);
 }
 
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToOther(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type, jint to_type) {
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castShortToFp(JNIEnv* env, jclass cl, jshort number, jint to_fp_type) {
+	t_ld fp = { .ld_value = 0.0L };
+        switch(to_fp_type) {
+                case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+        	        fp.f_value = (float) number;
+        		break;
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+        	        fp.d_value = (double) number;
+        		break;
+       		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+        		fp.ld_value = (long double) number;
+        	        break;
+        	default:
+        	        throwException(env, EX_TEXT);
+        }
+        return transformWrapperToJava(env, fp, to_fp_type);
+}
+
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castIntToFp(JNIEnv* env, jclass cl, jint number, jint to_fp_type) {
+	t_ld fp = { .ld_value = 0.0L };
+        switch(to_fp_type) {
+                case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+        	        fp.f_value = (float) number;
+        		break;
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+        	        fp.d_value = (double) number;
+        		break;
+       		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+        		fp.ld_value = (long double) number;
+        	        break;
+        	default:
+        	        throwException(env, EX_TEXT);
+        }
+        return transformWrapperToJava(env, fp, to_fp_type);
+}
+
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castLongToFp(JNIEnv* env, jclass cl, jlong number, jint to_fp_type) {
+	t_ld fp = { .ld_value = 0.0L };
+        switch(to_fp_type) {
+                case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+        	        fp.f_value = (float) number;
+        		break;
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+        	        fp.d_value = (double) number;
+        		break;
+       		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+        		fp.ld_value = (long double) number;
+        	        break;
+        	default:
+        	        throwException(env, EX_TEXT);
+        }
+        return transformWrapperToJava(env, fp, to_fp_type);
+}
+
+JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToByte(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
 	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
-
-	jobject number_obj;
-	jclass cls;
-	jmethodID constructor;
-
-	switch(to_type) {
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_CHAR:
-			cls = (*env)->FindClass(env, "Byte");
-			constructor = (*env)->GetMethodID(env, cls, "<init>", "(B)V");
-			switch(fp_from_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (char)(fp.f_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (char)(fp.d_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (char)(fp.ld_value)); 
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
+        jbyte r;
+        switch(fp_from_type) {
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			r = (int8_t) fp.f_value;
 			break;
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_SHORT:
-			cls = (*env)->FindClass(env, "Short");
-			constructor = (*env)->GetMethodID(env, cls, "<init>", "(S)V");
-			switch(fp_from_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (short)(fp.f_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (short)(fp.d_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (short)(fp.ld_value)); 
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			r = (int8_t) fp.d_value;
 			break;
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_INT:
-			cls = (*env)->FindClass(env, "Integer");
-			constructor = (*env)->GetMethodID(env, cls, "<init>", "(I)V");
-			switch(fp_from_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (int)(fp.f_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (int)(fp.d_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (int)(fp.ld_value)); 
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
-			break;
-		// adjust according to architecture
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_LONG:
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_LONG_LONG:
-			cls = (*env)->FindClass(env, "Long");
-			constructor = (*env)->GetMethodID(env, cls, "<init>", "(J)V");
-			switch(fp_from_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (long long)(fp.f_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (long long)(fp.d_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (long long)(fp.ld_value)); 
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			r = (int8_t) fp.ld_value;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
+	return r;
+}
 
-	return number_obj;
+JNIEXPORT jshort JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToShort(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
+	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
+        jshort r;
+        switch(fp_from_type) {
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			r = (int16_t) fp.f_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			r = (int16_t) fp.d_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			r = (int16_t) fp.ld_value;
+			break;
+		default:
+			throwException(env, EX_TEXT);
+	}
+	return r;
+}
+
+JNIEXPORT jint JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToInt(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
+	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
+        jint r;
+        switch(fp_from_type) {
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			r = (int32_t) fp.f_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			r = (int32_t) fp.d_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			r = (int32_t) fp.ld_value;
+			break;
+		default:
+			throwException(env, EX_TEXT);
+	}
+	return r;
+}
+
+JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToLong(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
+	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
+        jlong r;
+        switch(fp_from_type) {
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			r = (int64_t) fp.f_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			r = (int64_t) fp.d_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+		 	r = (int64_t) fp.ld_value;
+			break;
+		default:
+			throwException(env, EX_TEXT);
+	}
+	return r;
 }

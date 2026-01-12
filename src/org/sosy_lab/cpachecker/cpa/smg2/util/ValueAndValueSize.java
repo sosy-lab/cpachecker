@@ -42,10 +42,10 @@ public class ValueAndValueSize {
   @Override
   public boolean equals(Object other) {
     // FIXME violates contract because null check is not symmetric
-    if (!(other instanceof ValueAndValueSize)) {
+    if (!(other instanceof ValueAndValueSize otherVAS)) {
       return false;
     }
-    ValueAndValueSize otherVAS = (ValueAndValueSize) other;
+
     if (sizeOfValueInBits == null) {
       return value.equals(otherVAS.value);
     }

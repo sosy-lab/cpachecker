@@ -19,7 +19,7 @@ import org.sosy_lab.common.configuration.Configuration;
 @RunWith(Parameterized.class)
 public abstract class ToCTranslationTest extends AbstractTranslationTest {
 
-  protected final Path targetProgram;
+  private final Path targetProgram;
   private final boolean verdict;
   private final Configuration checkerConfig;
 

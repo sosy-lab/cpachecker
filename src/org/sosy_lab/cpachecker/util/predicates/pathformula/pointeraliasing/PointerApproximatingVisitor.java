@@ -63,8 +63,8 @@ class PointerApproximatingVisitor
   @Override
   public Optional<String> visit(final CFieldReference e) throws UnrecognizedCodeException {
     CType t = typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner());
-    if (t instanceof CCompositeType) {
-      return Optional.of(getFieldAccessName(((CCompositeType) t).getQualifiedName(), e));
+    if (t instanceof CCompositeType cCompositeType) {
+      return Optional.of(getFieldAccessName(cCompositeType.getQualifiedName(), e));
     } else {
       throw new UnrecognizedCodeException("Field owner of a non-composite type", edge, e);
     }

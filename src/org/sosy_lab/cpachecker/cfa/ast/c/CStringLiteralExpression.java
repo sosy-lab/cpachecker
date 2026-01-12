@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public final class CStringLiteralExpression extends AStringLiteralExpression
     implements CLiteralExpression {
@@ -119,7 +119,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    * @return List of character-literal expressions
    */
   public List<CCharLiteralExpression> expandStringLiteral(final CArrayType type) {
-    // The string literal is is always NULL terminated, but a string in an array might be not.
+    // The string literal is always NULL terminated, but a string in an array might be not.
     // We handle this below.
     final String s = getContentWithoutNullTerminator();
     final int length = type.getLengthAsInt().orElse(s.length() + 1);
@@ -148,6 +148,6 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     CExpression length =
         new CIntegerLiteralExpression(
             pFileLocation, CNumericTypes.INT, BigInteger.valueOf(astString.length() - 2 + 1));
-    return new CArrayType(false, false, CTypes.withConst(CNumericTypes.CHAR), length);
+    return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR, length);
   }
 }

@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
@@ -35,7 +36,7 @@ public class SMGDoublyLinkedListFinderTest {
 
   private CSimpleType intType = CNumericTypes.SIGNED_INT;
   private final MachineModel MM = MachineModel.LINUX32;
-  private CType pointerType = new CPointerType(false, false, intType);
+  private CType pointerType = new CPointerType(CTypeQualifiers.NONE, intType);
   private final BigInteger ptrSize = MM.getSizeofInBits(pointerType);
 
   private CLangSMG smg1;

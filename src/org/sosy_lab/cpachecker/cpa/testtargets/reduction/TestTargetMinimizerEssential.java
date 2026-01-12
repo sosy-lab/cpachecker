@@ -39,12 +39,12 @@ public class TestTargetMinimizerEssential {
   // only works correctly if DummyInputCFAEdge, DummyCFAEdge uses Object equals
   public Set<CFAEdge> reduceTargets(
       final Set<CFAEdge> pTestTargets, final CFA pCfa, final boolean fullCFACopy) {
-    // maps a copied edge to the testTarget that can be removed if its dominated by another
+    // maps a copied edge to the testTarget that can be removed if it's dominated by another
     // testTarget
     Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap = new HashMap<>();
     Set<CFAEdge> testTargets = new HashSet<>(pTestTargets);
 
-    // create a copy of the cfa graph that can be minimized using the essential Branch rules
+    // create a copy of the CFA graph that can be minimized using the essential Branch rules
     Pair<CFANode, CFANode> copiedFunctionEntryExit;
     if (fullCFACopy) {
       copiedFunctionEntryExit =
@@ -107,15 +107,15 @@ public class TestTargetMinimizerEssential {
                 });
       }
 
-      // create copies of all outgoing edges and the nodes they go into if they dont yet exist
-      for (CFAEdge currentEdge : CFAUtils.leavingEdges(currentNode)) {
+      // create copies of all outgoing edges and the nodes they go into if they don't yet exist
+      for (CFAEdge currentEdge : currentNode.getLeavingEdges()) {
         CFANode copiedSuccessorNode;
         if (origNodesCopied.contains(currentEdge.getSuccessor())) {
           // node the edge goes to has been added already so we retrieve the mapped dummy node to
           // create the new edge
           copiedSuccessorNode = origCFANodeToCopyMap.get(currentEdge.getSuccessor());
         } else {
-          // node the edge goes to hasnt been added yet so we add the a new copied node
+          // node the edge goes to hasn't been added yet so we add the a new copied node
           copiedSuccessorNode = CFANode.newDummyCFANode("");
           origCFANodeToCopyMap.put(currentEdge.getSuccessor(), copiedSuccessorNode);
           waitlist.add(currentEdge.getSuccessor());
@@ -170,8 +170,8 @@ public class TestTargetMinimizerEssential {
 
     boolean providesInput =
         pProvidesInputToRedirect
-            || (edgeToRedirect instanceof DummyInputCFAEdge
-                && ((DummyInputCFAEdge) edgeToRedirect).providesInput());
+            || (edgeToRedirect instanceof DummyInputCFAEdge dummyInputCFAEdge
+                && dummyInputCFAEdge.providesInput());
     /*
      * redirect edges (construct a new edge and replace because predecessors and successors are
      * immutable
@@ -202,15 +202,15 @@ public class TestTargetMinimizerEssential {
           new DummyInputCFAEdge(
               newSuccessor,
               newSuccessor,
-              edgeToRedirect instanceof DummyInputCFAEdge
-                  && ((DummyInputCFAEdge) edgeToRedirect).providesInput());
+              edgeToRedirect instanceof DummyInputCFAEdge dummyInputCFAEdge
+                  && dummyInputCFAEdge.providesInput());
     } else {
       redirectedEdge =
           new DummyInputCFAEdge(
               edgeToRedirect.getPredecessor(),
               newSuccessor,
-              edgeToRedirect instanceof DummyInputCFAEdge
-                  && ((DummyInputCFAEdge) edgeToRedirect).providesInput());
+              edgeToRedirect instanceof DummyInputCFAEdge dummyInputCFAEdge
+                  && dummyInputCFAEdge.providesInput());
     }
     edgeToRedirect.getPredecessor().removeLeavingEdge(edgeToRedirect);
     redirectedEdge.getPredecessor().addLeavingEdge(redirectedEdge);
@@ -272,7 +272,8 @@ public class TestTargetMinimizerEssential {
     CFANode pred = toRemove.getPredecessor();
     CFANode succ = toRemove.getSuccessor();
     boolean providesInput =
-        toRemove instanceof DummyInputCFAEdge && ((DummyInputCFAEdge) toRemove).providesInput();
+        toRemove instanceof DummyInputCFAEdge dummyInputCFAEdge
+            && dummyInputCFAEdge.providesInput();
 
     // remove the edge from its predecessor and successor
     pred.removeLeavingEdge(toRemove);
@@ -280,7 +281,7 @@ public class TestTargetMinimizerEssential {
 
     updateTestGoalMappingAfterRemoval(
         toRemove,
-        isLeaving ? CFAUtils.enteringEdges(pred) : CFAUtils.leavingEdges(succ),
+        isLeaving ? pred.getEnteringEdges() : succ.getLeavingEdges(),
         copiedEdgeToTestTargetsMap,
         pTestTargets);
 
@@ -338,7 +339,7 @@ public class TestTargetMinimizerEssential {
       }
 
       // register unexplored successors
-      for (CFAEdge leaveEdge : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge leaveEdge : currentNode.getLeavingEdges()) {
         if (visitedNodes.add(leaveEdge.getSuccessor())) {
           waitlist.add(leaveEdge.getSuccessor());
         }
@@ -373,8 +374,8 @@ public class TestTargetMinimizerEssential {
 
         waitlist.remove(currentNode);
       }
-      // add nodes to the queue that havent been added yet
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+      // add nodes to the queue that haven't been added yet
+      for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
         if (vistedNodes.add(leavingEdge.getSuccessor())) {
           waitlist.add(leavingEdge.getSuccessor());
         }
@@ -391,7 +392,7 @@ public class TestTargetMinimizerEssential {
     Pair<CFANode, CFANode> newPath;
     boolean viaInput;
 
-    for (CFAEdge leaving : CFAUtils.allLeavingEdges(pEntryNode)) {
+    for (CFAEdge leaving : pEntryNode.getAllLeavingEdges()) {
       newPath = Pair.of(pEntryNode, leaving.getSuccessor());
       pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
       waitlist.add(newPath);
@@ -399,7 +400,7 @@ public class TestTargetMinimizerEssential {
 
     while (!waitlist.isEmpty()) {
       path = waitlist.pop();
-      for (CFAEdge leaving : CFAUtils.allLeavingEdges(path.getSecond())) {
+      for (CFAEdge leaving : path.getSecond().getAllLeavingEdges()) {
         newPath = Pair.of(leaving.getPredecessor(), leaving.getSuccessor());
         viaInput = TestTargetReductionUtils.isInputEdge(leaving);
         if (!pathsToRequiredInputs.containsKey(newPath)
@@ -455,7 +456,7 @@ public class TestTargetMinimizerEssential {
       currentNode = waitlist.poll();
       ruleApplicable = currentNode.getNumEnteringEdges() > 0;
       removedEdge = null;
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
         if (!inverseDomTree.isAncestorOf(leavingEdge.getSuccessor(), currentNode)
             || pathsWithInput.contains(Pair.of(currentNode, leavingEdge.getSuccessor()))) {
           if (removedEdge == null) {
@@ -485,7 +486,7 @@ public class TestTargetMinimizerEssential {
       }
 
       if (!waitlist.contains(currentNode)) {
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+        for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
           if (visitedNodes.add(leavingEdge.getSuccessor())) {
             waitlist.add(leavingEdge.getSuccessor());
           }
@@ -517,7 +518,7 @@ public class TestTargetMinimizerEssential {
 
       ruleApplicable = currentNode.getNumLeavingEdges() > 0;
       removedEdge = null;
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode)) {
+      for (CFAEdge enteringEdge : currentNode.getEnteringEdges()) {
         if (!domTree.isAncestorOf(currentNode, enteringEdge.getPredecessor())) {
           if (removedEdge == null) {
             removedEdge = enteringEdge;
@@ -539,7 +540,7 @@ public class TestTargetMinimizerEssential {
       }
 
       // add successors of the current node to the queue
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
         if (visitedNodes.add(leavingEdge.getSuccessor())) {
           waitlist.add(leavingEdge.getSuccessor());
         }

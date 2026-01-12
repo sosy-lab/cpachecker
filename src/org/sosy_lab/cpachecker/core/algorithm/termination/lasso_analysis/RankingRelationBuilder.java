@@ -138,20 +138,17 @@ public class RankingRelationBuilder {
   private RankingRelation fromRankingFunction(
       Set<CVariableDeclaration> pRelevantVariables, RankingFunction rankingFunction)
       throws UnrecognizedCodeException, RankingRelationException {
-    if (rankingFunction instanceof LinearRankingFunction) {
-      AffineFunction function = ((LinearRankingFunction) rankingFunction).getComponent();
-      return fromAffineFunction(pRelevantVariables, function);
-
-    } else if (rankingFunction instanceof LexicographicRankingFunction) {
-      return fromLexicographicRankingFunction(
-          (LexicographicRankingFunction) rankingFunction, pRelevantVariables);
-
-    } else if (rankingFunction instanceof NestedRankingFunction) {
-      return fromNestedRankingFunction((NestedRankingFunction) rankingFunction, pRelevantVariables);
-
-    } else {
-      throw new UnsupportedOperationException(rankingFunction.getName());
-    }
+    return switch (rankingFunction) {
+      case LinearRankingFunction linearRankingFunction -> {
+        AffineFunction function = linearRankingFunction.getComponent();
+        yield fromAffineFunction(pRelevantVariables, function);
+      }
+      case LexicographicRankingFunction lexicographicRankingFunction ->
+          fromLexicographicRankingFunction(lexicographicRankingFunction, pRelevantVariables);
+      case NestedRankingFunction nestedRankingFunction ->
+          fromNestedRankingFunction(nestedRankingFunction, pRelevantVariables);
+      default -> throw new UnsupportedOperationException(rankingFunction.getName());
+    };
   }
 
   private RankingRelation fromLexicographicRankingFunction(
@@ -447,19 +444,19 @@ public class RankingRelationBuilder {
       primedFormulaSummands = pPrimedFormulaSummands;
     }
 
-    public Optional<CExpression> getPrimedExpression() {
+    Optional<CExpression> getPrimedExpression() {
       return primedExpression;
     }
 
-    public Optional<CExpression> getUnprimedExpression() {
+    Optional<CExpression> getUnprimedExpression() {
       return unprimedExpression;
     }
 
-    public NumeralFormula getPrimedFormula() {
+    NumeralFormula getPrimedFormula() {
       return sum(primedFormulaSummands);
     }
 
-    public NumeralFormula getUnprimedFormula() {
+    NumeralFormula getUnprimedFormula() {
       return sum(unprimedFormulaSummands);
     }
 

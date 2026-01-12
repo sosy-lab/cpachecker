@@ -68,7 +68,7 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
     final ImmutableList<BooleanFormula> result = interpolants.build();
     assert formulasWithStatesAndGroupdIds.size() == result.size() + 1;
     if (!result.isEmpty()) {
-      assert lastItp == Iterables.getLast(result);
+      assert lastItp == result.getLast();
     } // else: single block with unsatisfiable path formula -> no interpolant
     return result;
   }

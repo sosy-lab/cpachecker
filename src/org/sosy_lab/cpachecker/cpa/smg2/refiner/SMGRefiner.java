@@ -28,9 +28,9 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -83,14 +83,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
   @Option(
       secure = true,
-      description = "whether or not to do lazy-abstraction",
+      description = "whether to do lazy-abstraction",
       name = "restart",
       toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
       secure = true,
-      description = "whether or not to use heuristic to avoid similar, repeated refinements")
+      description = "whether to use heuristic to avoid similar, repeated refinements")
   private boolean avoidSimilarRepeatedRefinement = false;
 
   @Option(
@@ -105,7 +105,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
    * 05/2017: An evaluation on sv-benchmark files for ALL, SUBGRAPH, TARGET, and CUTPOINT showed:
    * - overall: SUBGRAPH >= ALL >> CUTPOINT > TARGET
    * - SUBGRAPH and ALL are nearly identical
-   * - CUTPOINT has smallest number of solved files,
+   * - CUTPOINT has the smallest number of solved files,
    *   especially there are many timeouts (900s) on the source files product-lines/email_spec*,
    *   and many solved tasks in ldv-linux-3.14/linux-3.14__complex_emg*
    * - TARGET is slowest and has less score
@@ -232,7 +232,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     final UnmodifiableReachedSet reached = pReached.asReachedSet();
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(reached);
 
-    Map<ARGState, List<Precision>> refinementInformation = new LinkedHashMap<>();
+    SequencedMap<ARGState, List<Precision>> refinementInformation = new LinkedHashMap<>();
     Collection<ARGState> refinementRoots =
         pInterpolationTree.obtainRefinementRoots(restartStrategy);
 
@@ -436,7 +436,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       final ARGState currentState = todo.removeFirst();
 
       if (currentState.getParents().iterator().hasNext()) {
-        ARGState parentState = currentState.getParents().iterator().next();
+        ARGState parentState = currentState.getParents().getFirst();
         todo.add(parentState);
         successorRelation.put(parentState, currentState);
 

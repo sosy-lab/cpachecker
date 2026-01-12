@@ -51,24 +51,22 @@ public interface SMGValue extends Comparable<SMGValue> {
     }
 
     // explicitValues (ordered by their value)
-    if (this instanceof SMGExplicitValue) {
+    if (this instanceof SMGExplicitValue thisValue) {
       if (other.isUnknown() || other.isZero()) {
         return 1;
-      } else if (other instanceof SMGExplicitValue) {
-        return ((SMGExplicitValue) this)
-            .getValue()
-            .compareTo(((SMGExplicitValue) other).getValue());
+      } else if (other instanceof SMGExplicitValue otherValue) {
+        return thisValue.getValue().compareTo(otherValue.getValue());
       } else {
         return -1;
       }
     }
 
     // symbolic values (ordered by their id)
-    if (this instanceof SMGSymbolicValue) {
-      if (other.isUnknown() || other.isZero() || !(other instanceof SMGSymbolicValue)) {
+    if (this instanceof SMGSymbolicValue thisValue) {
+      if (other.isUnknown() || other.isZero() || !(other instanceof SMGSymbolicValue otherValue)) {
         return 1;
       } else {
-        return ((SMGSymbolicValue) this).getId().compareTo(((SMGSymbolicValue) other).getId());
+        return thisValue.getId().compareTo(otherValue.getId());
       }
     }
 

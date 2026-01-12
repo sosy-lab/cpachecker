@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import com.google.common.collect.FluentIterable;
 import com.google.errorprone.annotations.DoNotCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 
@@ -47,5 +48,19 @@ public final class CFATerminationNode extends CFANode {
   @DoNotCall // safe to call but useless
   public FunctionSummaryEdge getLeavingSummaryEdge() {
     return null;
+  }
+
+  @Override
+  @Deprecated
+  @DoNotCall // safe to call but useless
+  public FluentIterable<CFAEdge> getLeavingEdges() {
+    return FluentIterable.of();
+  }
+
+  @Override
+  @Deprecated
+  @DoNotCall // safe to call but useless
+  public FluentIterable<CFAEdge> getAllLeavingEdges() {
+    return FluentIterable.of();
   }
 }

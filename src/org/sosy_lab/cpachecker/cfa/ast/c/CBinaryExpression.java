@@ -123,6 +123,7 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
       return op;
     }
 
+    @Override
     public boolean isLogicalOperator() {
       return switch (this) {
         case MULTIPLY,
@@ -137,7 +138,6 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
             BINARY_XOR ->
             false;
         case LESS_EQUAL, LESS_THAN, GREATER_EQUAL, GREATER_THAN, EQUALS, NOT_EQUALS -> true;
-        default -> throw new AssertionError("Unhandled case statement");
       };
     }
 

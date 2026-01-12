@@ -31,7 +31,7 @@ public interface Reducer {
 
   /**
    * Perform the opposite of the reduction: return an under-approximation of the state {@code
-   * reducedState} which includes constraints from {@code rootState}, where all of the added
+   * reducedState} which includes constraints from {@code rootState}, where all the added
    * constraints are irrelevant to {@code reducedContext}.
    *
    * @param rootState State which was not reduced, and contains the global information, some of

@@ -39,25 +39,25 @@ variables:
     reports:
       junit: "output/configuration-checks/TESTS-TestSuites.xml"
 
-configuration-checks:jdk-17:
+configuration-checks:jdk-21:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-17
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+    - build:jdk-21
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-configuration-checks:jdk-23:
+configuration-checks:jdk-24:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-23
+    - build:jdk-24
   needs:
     - build-dependencies
-    - build:jdk-23
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+    - build:jdk-24
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 configuration-documentation:
@@ -68,10 +68,10 @@ configuration-documentation:
     - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
   dependencies:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
 
 
 configuration-plot:
@@ -93,10 +93,10 @@ forbidden-apis:
   script: "ant $ANT_PROPS_CHECKS forbiddenapis"
   dependencies:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
 
 
 check-code-patterns:
@@ -104,32 +104,32 @@ check-code-patterns:
   script: "build/check-code-patterns.sh"
   dependencies: []
   needs: []
-  image: ubuntu:20.04
+  image: ubuntu:22.04
 
 
 .python-unit-tests: &python-unit-tests
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS python-unit-tests"
 
-python-unit-tests:jdk-17:
+python-unit-tests:jdk-21:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-17
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+    - build:jdk-21
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-python-unit-tests:jdk-23:
+python-unit-tests:jdk-24:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-23
+    - build:jdk-24
   needs:
     - build-dependencies
-    - build:jdk-23
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+    - build:jdk-24
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 javascript-build:
@@ -193,6 +193,12 @@ build-docker:test:node:
     DOCKERFILE: build/gitlab-ci.Dockerfile.node
     IMAGE: /test:node
 
+build-docker:dev-base:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/Dockerfile.dev-base
+    IMAGE: ":dev-base"
+
 # Build Docker images and push to Docker Hub
 # following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 .build-docker-hub:
@@ -215,7 +221,7 @@ build-docker:release:
   extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    TAG: "4.0"
+    TAG: "4.2.2"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest --destination docker.io/sosylab/cpachecker:latest"
   rules:
     - !reference [.build-docker-hub, rules]
@@ -227,10 +233,10 @@ javascript-e2e-tests:
   stage: checks
   dependencies:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
       # generate example report
@@ -251,16 +257,23 @@ javascript-e2e-tests:
 
 
 # Checks for Python code
-check-format-python:
+.base_ruff:
   stage: checks
   dependencies: []
   needs: []
-  image: python
+  interruptible: true
+  image: ghcr.io/astral-sh/ruff:0.14-alpine
   before_script:
-    - pip install 'black[jupyter]<25'
+    - ruff --version
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ".ruff_cache"
+
+check-format-python:
+  extends: .base_ruff
   script:
-    - black . --check --diff
-  <<: *pip-cache
+    - "ruff format --check --diff"
 
 flake8:
   stage: checks
@@ -278,10 +291,10 @@ build-tar:
   stage: checks
   dependencies:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
   script: "ant $ANT_PROPS_CHECKS dist-unix -Dnamet=cpachecker"
   artifacts:
     paths:
@@ -306,19 +319,13 @@ deploy-docker:
 
 
 # No coverage is computed for CPAchecker
-unit-tests:jdk-17:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-  artifacts:
-    reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
-
 unit-tests:jdk-21:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-23:
+unit-tests:jdk-24:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
@@ -326,31 +333,51 @@ unit-tests:jdk-23:
 
 
 # Override Java version for some jobs
-image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
 spotbugs:
   dependencies:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-17
+    - build:jdk-21
 
 refaster:
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
 
 # Disable Java 11 jobs
 build-docker:test:jdk-11:
-  only: []
+  rules:
+    - when: never
 
 build:jdk-11:
-  only: []
+  rules:
+    - when: never
 
 unit-tests:jdk-11:
-  only: []
+  rules:
+    - when: never
 
+# Disable Java 17 jobs
+build-docker:test:jdk-17:
+  rules:
+    - when: never
+
+build:jdk-17:
+  rules:
+    - when: never
+
+build-project-ecj:jdk-17:
+  rules:
+    - when: never
+
+unit-tests:jdk-17:
+  rules:
+    - when: never
 
 # Disable some checks because they are not used for CPAchecker
 javadoc:
-  only: []
+  rules:
+    - when: never

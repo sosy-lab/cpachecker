@@ -94,7 +94,7 @@ public abstract class PartitioningHeuristic {
    * of the block.)
    *
    * @param pBlockHead CFANode that should be cached.
-   * @return set of nodes that represent a {@link Block}, or NULL, if no block should be build for
+   * @return set of nodes that represent a {@link Block}, or NULL, if no block should be built for
    *     this node. In most cases, we will return NULL.
    */
   @Nullable

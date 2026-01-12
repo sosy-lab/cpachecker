@@ -58,16 +58,17 @@ class ExpressionValueVisitor
 
   @Override
   public FunctionPointerTarget visit(CUnaryExpression pE) {
-    if (pE.getOperator() == UnaryOperator.AMPER && pE.getOperand() instanceof CIdExpression) {
-      return extractFunctionId((CIdExpression) pE.getOperand());
+    if (pE.getOperator() == UnaryOperator.AMPER
+        && pE.getOperand() instanceof CIdExpression cIdExpression) {
+      return extractFunctionId(cIdExpression);
     }
     return visitDefault(pE);
   }
 
   @Override
   public FunctionPointerTarget visit(CPointerExpression pE) {
-    if (pE.getOperand() instanceof CIdExpression) {
-      return extractFunctionId((CIdExpression) pE.getOperand());
+    if (pE.getOperand() instanceof CIdExpression cIdExpression) {
+      return extractFunctionId(cIdExpression);
     }
     return visitDefault(pE);
   }

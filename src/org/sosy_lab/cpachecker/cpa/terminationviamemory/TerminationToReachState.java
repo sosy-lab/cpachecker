@@ -10,38 +10,60 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
-/** Tracks already seen states at loop-head locations */
+/**
+ * Tracks already seen states at loop-head locations and within the same call-stack. In the
+ * following documentation, a loop-head is given by the location and call-stack.
+ */
 public class TerminationToReachState implements Graphable, AbstractQueryableState, Targetable {
   private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
       SimpleTargetInformation.singleton("termination");
   private boolean isTarget;
 
-  /** The constraints on values of the variables that has already been seen in a loop-head */
-  private Map<LocationState, List<BooleanFormula>> storedValues;
+  /**
+   * The following map keeps track of all the variables as type of @Formula, so that they can be
+   * directly used in the further formulas by precision-adjustment operator. For every loop-head
+   * (i.e. given by location and call-stack), it keeps track of which variables (with SSA indices)
+   * where the most recent ones after how many iteration. In other words, it maps location and
+   * call-stack states of loop-heads to a map with information about which variables were seen after
+   * which unrolling of the loop.
+   */
+  private ImmutableMap<
+          Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+      storedValues;
 
-  /** We store number of times that we have iterated over a loop */
-  private Map<LocationState, Integer> numberOfIterations;
+  /**
+   * For every loop-head (given by location and call-stack), we track how many times have we passed
+   * it in the abstract graph until reaching this state.
+   */
+  private ImmutableMap<Pair<LocationState, CallstackState>, Integer> numberOfIterations;
 
-  /** Stores assumptions from path formula after i iterations of the loop */
-  private Set<BooleanFormula> pathFormulaForIteration;
+  /**
+   * For every loop-head (given by location and call-stack), we track the path formula until
+   * reaching this abstract state.
+   */
+  private ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
 
   public TerminationToReachState(
-      Map<LocationState, List<BooleanFormula>> pStoredValues,
-      Map<LocationState, Integer> pNumberOfIterations,
-      Set<BooleanFormula> pPathFormulaForIteration) {
+      ImmutableMap<
+              Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+          pStoredValues,
+      ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
+      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
@@ -49,50 +71,24 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = false;
   }
 
-  public void increaseNumberOfIterationsAtLoopHead(LocationState pLoopHead) {
-    if (numberOfIterations.containsKey(pLoopHead)) {
-      numberOfIterations.put(pLoopHead, numberOfIterations.get(pLoopHead) + 1);
-    } else {
-      numberOfIterations.put(pLoopHead, 1);
-    }
-  }
-
-  public int getNumberOfIterationsAtLoopHead(LocationState pLoopHead) {
-    if (numberOfIterations.containsKey(pLoopHead)) {
-      return numberOfIterations.get(pLoopHead);
+  public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
+    if (numberOfIterations.containsKey(pKeyPair)) {
+      return numberOfIterations.get(pKeyPair);
     }
     return 0;
   }
 
-  public Map<LocationState, Integer> getNumberOfIterationsMap() {
+  public ImmutableMap<Pair<LocationState, CallstackState>, Integer> getNumberOfIterationsMap() {
     return numberOfIterations;
   }
 
-  public void setNewStoredValues(
-      LocationState pLoopHead, BooleanFormula pNewStoredValues, int index) {
-    if (storedValues.containsKey(pLoopHead)) {
-      List<BooleanFormula> assumptions = storedValues.get(pLoopHead);
-      if (assumptions.size() <= index) {
-        assumptions.add(pNewStoredValues);
-      } else {
-        assumptions.add(index, pNewStoredValues);
-      }
-    } else {
-      List<BooleanFormula> newValues = new ArrayList<>();
-      newValues.add(pNewStoredValues);
-      storedValues.put(pLoopHead, newValues);
-    }
-  }
-
-  public Map<LocationState, List<BooleanFormula>> getStoredValues() {
+  public ImmutableMap<
+          Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+      getStoredValues() {
     return storedValues;
   }
 
-  public void putNewPathFormula(BooleanFormula pPathFormula) {
-    pathFormulaForIteration.add(pPathFormula);
-  }
-
-  public Set<BooleanFormula> getPathFormulas() {
+  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> getPathFormulas() {
     return pathFormulaForIteration;
   }
 
@@ -126,13 +122,14 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof TerminationToReachState
-        && storedValues.equals(((TerminationToReachState) pOther).getStoredValues());
+    return pOther instanceof TerminationToReachState other
+        && storedValues.equals(other.getStoredValues());
   }
 
   private String getReadableStoredValues() {
     StringBuilder sb = new StringBuilder();
-    for (Map.Entry<LocationState, List<BooleanFormula>> entry : getStoredValues().entrySet()) {
+    for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+        entry : getStoredValues().entrySet()) {
       sb.append(entry);
     }
     return sb.toString();

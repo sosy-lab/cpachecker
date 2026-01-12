@@ -173,7 +173,7 @@ public class CExpressionToOriginalCodeVisitor implements CExpressionVisitor<Stri
     if (substitute != null) {
       return substitute;
     }
-    return pFloatLiteralExpression.getValue().toString();
+    return pFloatLiteralExpression.toString();
   }
 
   @Override

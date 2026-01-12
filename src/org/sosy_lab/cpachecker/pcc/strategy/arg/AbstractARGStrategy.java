@@ -207,10 +207,10 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
     try {
       stats.getPreparationTimer().start();
-      if (!(pReadProof instanceof ARGState)) {
+      if (!(pReadProof instanceof ARGState aRGState)) {
         throw new InvalidConfigurationException("Proof Strategy requires ARG.");
       }
-      root = (ARGState) pReadProof;
+      root = aRGState;
     } finally {
       stats.getPreparationTimer().stop();
     }

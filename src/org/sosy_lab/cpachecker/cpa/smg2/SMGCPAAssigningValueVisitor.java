@@ -204,7 +204,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             getAssignable(lVarInBinaryExp, currentState);
         Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
         SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
-            leftHandSideAssignments.get(0);
+            leftHandSideAssignments.getFirst();
         currentState = leftHandSideAssignment.getSMGState();
 
         if (isAssignable(leftHandSideAssignments)) {
@@ -235,7 +235,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               getAssignable(rVarInBinaryExp, currentState);
           Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
           SMGStateAndOptionalSMGObjectAndOffset rightHandSideAssignment =
-              rightHandSideAssignments.get(0);
+              rightHandSideAssignments.getFirst();
           currentState = rightHandSideAssignment.getSMGState();
 
           if (isAssignable(rightHandSideAssignments)) {
@@ -302,7 +302,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               getAssignable(lVarInBinaryExp, currentState);
           Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
           SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
-              leftHandSideAssignments.get(0);
+              leftHandSideAssignments.getFirst();
           currentState = leftHandSideAssignment.getSMGState();
           if (isAssignable(leftHandSideAssignments)
               && getInitialVisitorOptions().isOptimizeBooleanVariables()) {
@@ -361,7 +361,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                 getAssignable(rVarInBinaryExp, currentState);
             Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
             SMGStateAndOptionalSMGObjectAndOffset rightHandSideAssignment =
-                rightHandSideAssignments.get(0);
+                rightHandSideAssignments.getFirst();
             currentState = rightHandSideAssignment.getSMGState();
 
             if (isAssignable(rightHandSideAssignments)) {
@@ -495,7 +495,10 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
     // if (true == (unknown == concrete_value)) we set the value (for true left and right)
     if (leftValue.isExplicitlyKnown()) {
-      Number lNum = leftValue.asNumericValue().getNumber();
+      if (!(leftValue instanceof NumericValue numLeft)) {
+        throw new SMGException("Error: explicit number for assignment not numeric");
+      }
+      Number lNum = numLeft.getNumber();
       if (BigInteger.ONE.equals(lNum)) {
         updatedStates =
             rVarInBinaryExp.accept(
@@ -511,7 +514,10 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                     callerFunctionName));
       }
     } else if (rightValue.isExplicitlyKnown()) {
-      Number rNum = rightValue.asNumericValue().bigIntegerValue();
+      if (!(rightValue instanceof NumericValue numRight)) {
+        throw new SMGException("Error: explicit number for assignment not numeric");
+      }
+      Number rNum = numRight.bigIntegerValue();
       if (BigInteger.ONE.equals(rNum)) {
         updatedStates =
             lVarInBinaryExp.accept(
@@ -622,13 +628,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * @throws SMGException in case of a critical error.
    */
   private String getExtendedQualifiedName(CExpression expr) throws SMGException {
-    if (expr instanceof CIdExpression) {
-      return ((CIdExpression) expr).getDeclaration().getQualifiedName();
+    if (expr instanceof CIdExpression cIdExpression) {
+      return cIdExpression.getDeclaration().getQualifiedName();
     } else if (expr instanceof CArraySubscriptExpression) {
       return expr.toQualifiedASTString();
-    } else if (expr instanceof CFieldReference) {
-      return ((CFieldReference) expr).getFieldOwner().toQualifiedASTString()
-          + ((CFieldReference) expr).getFieldName();
+    } else if (expr instanceof CFieldReference cFieldReference) {
+      return cFieldReference.getFieldOwner().toQualifiedASTString()
+          + cFieldReference.getFieldName();
     } else if (expr instanceof CPointerExpression) {
       return expr.toQualifiedASTString();
     }
@@ -639,12 +645,12 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * Tests if getExtendedQualifiedName() will succeed.
    *
    * @param expr current CExpression
-   * @return true if the expression is handleable by the assigning visitor
+   * @return whether the expression is handleable by the assigning visitor
    */
   private boolean isNestingHandleable(CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      return isNestingHandleable(((CBinaryExpression) expr).getOperand1())
-          && isNestingHandleable(((CBinaryExpression) expr).getOperand2());
+    if (expr instanceof CBinaryExpression cBinaryExpression) {
+      return isNestingHandleable(cBinaryExpression.getOperand1())
+          && isNestingHandleable(cBinaryExpression.getOperand2());
     } else {
       return expr instanceof CIdExpression
           || expr instanceof CArraySubscriptExpression
@@ -672,7 +678,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         for (SMGState stateWithConstraint : statesWithConstraints) {
           if (getInitialVisitorOptions().isSatCheckStrategyAtAssume()) {
             SolverResult solverResult =
-                solver.checkUnsat(stateWithConstraint.getConstraints(), callerFunctionName);
+                solver.checkUnsatWithOptionDefinedSolverReuse(
+                    stateWithConstraint.getConstraints(), callerFunctionName);
             if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
               resultStateBuilder.add(
                   stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
@@ -690,7 +697,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       }
       // TODO: replace this ugliness once we know its only ever 1 returned state
       ImmutableList<SMGState> returnList = resultStateBuilder.build();
-      return returnList.isEmpty() ? Optional.empty() : Optional.of(returnList.get(0));
+      return returnList.isEmpty() ? Optional.empty() : Optional.of(returnList.getFirst());
 
     } catch (InterruptedException | SolverException e) {
       throw new SMGSolverException(e, initialState);
@@ -729,7 +736,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       // TODO: is this still correct for more than one returned constraint? I.e. can a trivial
       //   constraint be non-trivial with a second constraint?
       if (newConstraint.isTrivial()) {
-        if (solver.checkUnsat(newConstraint, callerFunctionName).equals(Satisfiability.SAT)) {
+        if (solver
+            .checkUnsatWithFreshSolver(newConstraint, callerFunctionName)
+            .equals(Satisfiability.SAT)) {
           // Iff SAT -> we go that path with this state
           // We don't add the constraint as it is trivial
           stateBuilder.add(currentState);
@@ -751,12 +760,12 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
       throws CPATransferException {
 
-    if (pExpression instanceof CBinaryExpression) {
-      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
+    if (pExpression instanceof CBinaryExpression cBinaryExpression) {
+      return createConstraint(cBinaryExpression, pFactory, pTruthAssumption);
 
-    } else if (pExpression instanceof CIdExpression) {
+    } else if (pExpression instanceof CIdExpression cIdExpression) {
       // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-      return createConstraint((CIdExpression) pExpression, pFactory, pTruthAssumption);
+      return createConstraint(cIdExpression, pFactory, pTruthAssumption);
 
     } else {
       throw new AssertionError("Unhandled expression type " + pExpression.getClass());

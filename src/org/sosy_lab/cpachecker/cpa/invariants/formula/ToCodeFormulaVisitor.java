@@ -96,15 +96,10 @@ public class ToCodeFormulaVisitor
       }
       return CNumericTypes.INT;
     } else if (pTypeInfo instanceof FloatingPointTypeInfo fpTypeInfo) {
-      switch (fpTypeInfo) {
-        case FLOAT:
-          return CNumericTypes.FLOAT;
-        case DOUBLE:
-          return CNumericTypes.DOUBLE;
-        default:
-          // do nothing and throw the AssertionError below
-          break;
-      }
+      return switch (fpTypeInfo) {
+        case FLOAT -> CNumericTypes.FLOAT;
+        case DOUBLE -> CNumericTypes.DOUBLE;
+      };
     }
     throw new AssertionError("Unsupported type: " + pTypeInfo);
   }
@@ -140,9 +135,9 @@ public class ToCodeFormulaVisitor
    * @return a bit vector formula representing the given value as a bit vector with the given size.
    */
   private String asFormulaString(TypeInfo pInfo, Number pValue) {
-    if (pInfo instanceof BitVectorInfo bitVectorInfo && pValue instanceof BigInteger) {
+    if (pInfo instanceof BitVectorInfo bitVectorInfo && pValue instanceof BigInteger value) {
       int size = bitVectorInfo.getSize();
-      BigInteger value = (BigInteger) pValue;
+
       // Get only the [size] least significant bits
       BigInteger upperExclusive = BigInteger.valueOf(2).pow(size - 1);
       boolean negative = value.signum() < 0;
@@ -336,10 +331,10 @@ public class ToCodeFormulaVisitor
     TypeInfo targetInfo = pCast.getTypeInfo();
     String sourceFormula = pCast.getCasted().accept(this, pEnvironment);
     TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
-    if (targetInfo instanceof BitVectorInfo
+    if (targetInfo instanceof BitVectorInfo bitVectorInfo
         && sourceInfo instanceof BitVectorInfo sourceBitVectorInfo) {
       int sourceSize = sourceBitVectorInfo.getSize();
-      int targetSize = ((BitVectorInfo) targetInfo).getSize();
+      int targetSize = bitVectorInfo.getSize();
       if ((sourceSize == targetSize && sourceBitVectorInfo.isSigned() == targetInfo.isSigned())
           || sourceFormula == null) {
         return sourceFormula;

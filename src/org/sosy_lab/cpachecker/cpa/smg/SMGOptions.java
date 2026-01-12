@@ -51,7 +51,7 @@ public class SMGOptions {
       secure = true,
       description =
           "Patterns of unknown functions which are always considered as safe functions, i.e., free"
-              + " of memory-related side-effects.")
+              + " of memory-related side effects.")
   private ImmutableSet<String> safeUnknownFunctionsPatterns = ImmutableSet.of("abort");
 
   public enum UnknownFunctionHandling {

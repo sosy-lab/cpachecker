@@ -88,7 +88,7 @@ IF NOT [%1]==[] (
       REM if option is already quoted, we do not need to restore it
       SET "OPTIONS=%OPTIONS% %1 %2"
     ) ELSE (
-      REM equal sign is a separator in Batch commandline arguments, lets restore it
+      REM equal sign is a separator in Batch commandline arguments, let's restore it
       SET "OPTIONS=%OPTIONS% %1 %2^=%3"
       SHIFT
     )
@@ -98,7 +98,7 @@ IF NOT [%1]==[] (
       REM if option is already quoted, we do not need to restore it
       SET "OPTIONS=%OPTIONS% %1 %2"
     ) ELSE (
-      REM equal sign is a separator in Batch commandline arguments, lets restore it
+      REM equal sign is a separator in Batch commandline arguments, let's restore it
       SET "OPTIONS=%OPTIONS% %1 %2^=%3"
       SHIFT
     )
@@ -120,10 +120,12 @@ IF NOT "%TMPDIR%"=="" (
 )
 
 REM Determine whether to enable Java assertions
-IF defined BENCHMARK_MODE (
-  SET JAVA_ASSERTIONS=-da
-) ELSE (
-  SET JAVA_ASSERTIONS=-ea
+IF NOT defined JAVA_ASSERTIONS (
+  IF defined BENCHMARK_MODE (
+    SET JAVA_ASSERTIONS=-da
+  ) ELSE (
+    SET JAVA_ASSERTIONS=-ea
+  )
 )
 
 REM Determine heap size

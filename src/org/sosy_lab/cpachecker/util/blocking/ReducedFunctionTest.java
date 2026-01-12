@@ -17,7 +17,7 @@ import org.junit.Test;
 public class ReducedFunctionTest {
 
   private static class ReducedFunctionUnderTest extends ReducedFunction {
-    public ReducedFunctionUnderTest(ReducedNode pEntryNode, ReducedNode pExitNode) {
+    ReducedFunctionUnderTest(ReducedNode pEntryNode, ReducedNode pExitNode) {
       super(pEntryNode, pExitNode);
     }
   }

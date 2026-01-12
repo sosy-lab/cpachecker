@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -39,12 +40,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -96,7 +98,7 @@ final class PredicateStaticRefiner extends StaticRefiner
               + " precision.")
   private boolean applyScoped = true;
 
-  @Option(secure = true, description = "Add all assumptions along a error trace to the precision.")
+  @Option(secure = true, description = "Add all assumptions along an error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
   @Option(
@@ -231,7 +233,7 @@ final class PredicateStaticRefiner extends StaticRefiner
 
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       ARGState root = (ARGState) reached.getFirstState();
-      ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size() - 1);
+      ARGState targetState = abstractionStatesTrace.getLast();
 
       PredicatePrecision heuristicPrecision;
       predicateExtractionTime.start();
@@ -287,16 +289,14 @@ final class PredicateStaticRefiner extends StaticRefiner
     Multimap<String, AStatementEdge> directlyAffectingStatements = LinkedHashMultimap.create();
 
     for (CFANode u : cfa.nodes()) {
-      Deque<CFAEdge> edgesToHandle = CFAUtils.leavingEdges(u).copyInto(new ArrayDeque<>());
+      Deque<CFAEdge> edgesToHandle = u.getLeavingEdges().copyInto(new ArrayDeque<>());
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();
         if ((e instanceof CStatementEdge stmtEdge)
-            && (stmtEdge.getStatement() instanceof CAssignment)) {
-          CAssignment assign = (CAssignment) stmtEdge.getStatement();
+            && (stmtEdge.getStatement() instanceof CAssignment assign)) {
 
-          if (assign.getLeftHandSide() instanceof CIdExpression) {
-            String variable =
-                ((CIdExpression) assign.getLeftHandSide()).getDeclaration().getQualifiedName();
+          if (assign.getLeftHandSide() instanceof CIdExpression cIdExpression) {
+            String variable = cIdExpression.getDeclaration().getQualifiedName();
             directlyAffectingStatements.put(variable, stmtEdge);
           }
         }
@@ -378,7 +378,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
     for (ARGState s : allStatesOnPath) {
       CFANode u = AbstractStates.extractLocation(s);
-      for (CFAEdge e : CFAUtils.leavingEdges(u)) {
+      for (CFAEdge e : u.getLeavingEdges()) {
         CFANode v = e.getSuccessor();
         Collection<AbstractState> reachedOnV = reached.getReached(v);
 
@@ -425,7 +425,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     Iterable<CFANode> targetLocations = AbstractStates.extractLocations(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
-    Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    SequencedSet<AssumeEdge> assumeEdges = new LinkedHashSet<>();
 
     Multimap<String, AStatementEdge> directlyAffectingStatements =
         buildDirectlyAffectingStatements();
@@ -451,14 +451,13 @@ final class PredicateStaticRefiner extends StaticRefiner
       // Check whether the predicate should be used global or only local
       boolean applyGlobal = true;
       if (applyScoped) {
-        for (CIdExpression idExpr :
-            CFAUtils.getIdExpressionsOfExpression((CExpression) assume.getExpression())) {
-          CSimpleDeclaration decl = idExpr.getDeclaration();
-          if (decl instanceof CVariableDeclaration) {
-            if (!((CVariableDeclaration) decl).isGlobal()) {
+        for (AIdExpression idExpr : CFAUtils.getIdExpressionsOfExpression(assume.getExpression())) {
+          ASimpleDeclaration decl = idExpr.getDeclaration();
+          if (decl instanceof AVariableDeclaration variableDeclaration) {
+            if (!variableDeclaration.isGlobal()) {
               applyGlobal = false;
             }
-          } else if (decl instanceof CParameterDeclaration) {
+          } else if (decl instanceof AParameterDeclaration) {
             applyGlobal = false;
           }
         }
@@ -508,8 +507,8 @@ final class PredicateStaticRefiner extends StaticRefiner
   private void dumpAssumePredicate(Path target) {
     try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
       for (CFAEdge e : cfa.edges()) {
-        if (e instanceof AssumeEdge) {
-          Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, (AssumeEdge) e);
+        if (e instanceof AssumeEdge assumeEdge) {
+          Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, assumeEdge);
           for (AbstractionPredicate p : preds) {
             w.append(p.getSymbolicAtom().toString());
             w.append("\n");
@@ -532,8 +531,8 @@ final class PredicateStaticRefiner extends StaticRefiner
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
-    if (delegate instanceof StatisticsProvider) {
-      ((StatisticsProvider) delegate).collectStatistics(pStatsCollection);
+    if (delegate instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 

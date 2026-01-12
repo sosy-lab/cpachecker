@@ -146,7 +146,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
     for (CFANode target : targets) {
       pShutdown.shutdownIfNecessary();
       List<CFAEdge> allEdgesOnPathsToTarget = getAllEdgesOnPathToTarget(target);
-      Iterable<CFAEdge> targetEdges = CFAUtils.allEnteringEdges(target);
+      Iterable<CFAEdge> targetEdges = target.getAllEnteringEdges();
       for (CFAEdge e : targetEdges) {
         putAllLocationsOnPathWithTarget(allEdgesOnPathsToTarget, e, locToTargets);
       }

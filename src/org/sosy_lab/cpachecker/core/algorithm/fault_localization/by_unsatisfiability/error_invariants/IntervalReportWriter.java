@@ -39,13 +39,13 @@ public class IntervalReportWriter extends FaultReportWriter {
 
   @Override
   public String toHtml(Fault pFault) {
-    if (pFault instanceof Interval) {
+    if (pFault instanceof Interval interval) {
       List<CFAEdge> edges =
           pFault.stream()
               .map(FaultContribution::correspondingEdge)
               .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
               .collect(ImmutableList.toImmutableList());
-      return intervalToHtml((Interval) pFault, pFault.getInfos(), edges);
+      return intervalToHtml(interval, pFault.getInfos(), edges);
     } else {
       return super.toHtml(pFault);
     }
@@ -60,17 +60,9 @@ public class IntervalReportWriter extends FaultReportWriter {
     // Sorted insert
     for (FaultInfo info : infos) {
       switch (info.getType()) {
-        case FIX:
-          faultFix.add((PotentialFix) info);
-          break;
-        case REASON:
-          faultReasons.add((FaultReason) info);
-          break;
-        case RANK_INFO:
-          faultInfo.add((RankInfo) info);
-          break;
-        default:
-          throw new AssertionError("Unknown InfoType");
+        case FIX -> faultFix.add((PotentialFix) info);
+        case REASON -> faultReasons.add((FaultReason) info);
+        case RANK_INFO -> faultInfo.add((RankInfo) info);
       }
     }
     // every second entry symbolizes an interval (i.e. index/2 equals the current number of

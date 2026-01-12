@@ -42,10 +42,8 @@ public class WitnessJoinerDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
       throws CPAException, InterruptedException {
-    return pState1 instanceof WitnessJoinerState
-        && pState2 instanceof WitnessJoinerState
-        && wrappedDomain.isLessOrEqual(
-            ((WitnessJoinerState) pState1).getWrappedState(),
-            ((WitnessJoinerState) pState2).getWrappedState());
+    return pState1 instanceof WitnessJoinerState state1
+        && pState2 instanceof WitnessJoinerState state2
+        && wrappedDomain.isLessOrEqual(state1.getWrappedState(), state2.getWrappedState());
   }
 }

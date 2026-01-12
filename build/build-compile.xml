@@ -132,7 +132,7 @@ SPDX-License-Identifier: Apache-2.0
         <mkdir dir="${source.generated.dir}"/>
 
         <copy file=".settings/org.eclipse.jdt.core.prefs" tofile="${ivy.lib.dir}/build/org.eclipse.jdt.core.prefs">
-            <!-- Convert all compiler warnings to errors. -->
+            <!-- Convert all compiler warnings to errors and ignore info messages to not clutter the output. -->
             <filterchain>
                 <replacetokens begintoken="=" endtoken="g">
                     <token key="warnin" value="=error"/>

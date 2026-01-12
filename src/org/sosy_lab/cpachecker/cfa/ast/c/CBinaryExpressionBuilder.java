@@ -14,8 +14,8 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT128;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -67,17 +68,17 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class CBinaryExpressionBuilder {
 
-  private static final Set<BinaryOperator> shiftOperators =
+  private static final ImmutableSet<BinaryOperator> shiftOperators =
       Sets.immutableEnumSet(BinaryOperator.SHIFT_LEFT, BinaryOperator.SHIFT_RIGHT);
 
-  private static final Set<BinaryOperator> additiveOperators =
+  private static final ImmutableSet<BinaryOperator> additiveOperators =
       Sets.immutableEnumSet(BinaryOperator.PLUS, BinaryOperator.MINUS);
 
   @SuppressWarnings("unused")
-  private static final Set<BinaryOperator> multiplicativeOperators =
+  private static final ImmutableSet<BinaryOperator> multiplicativeOperators =
       Sets.immutableEnumSet(BinaryOperator.MULTIPLY, BinaryOperator.MODULO, BinaryOperator.DIVIDE);
 
-  private static final Set<BinaryOperator> bitwiseOperators =
+  private static final ImmutableSet<BinaryOperator> bitwiseOperators =
       Sets.immutableEnumSet(
           BinaryOperator.BINARY_AND, BinaryOperator.BINARY_OR, BinaryOperator.BINARY_XOR);
 
@@ -172,10 +173,9 @@ public class CBinaryExpressionBuilder {
       }
       // others can be negated using De Morgan's law:
       if (binOp.equals(BinaryOperator.BINARY_AND) || binOp.equals(BinaryOperator.BINARY_OR)) {
-        if (binExpr.getOperand1() instanceof CBinaryExpression
-            && binExpr.getOperand2() instanceof CBinaryExpression) {
-          final CBinaryExpression binExpr1 = (CBinaryExpression) binExpr.getOperand1();
-          final CBinaryExpression binExpr2 = (CBinaryExpression) binExpr.getOperand2();
+        if (binExpr.getOperand1() instanceof CBinaryExpression binExpr1
+            && binExpr.getOperand2() instanceof CBinaryExpression binExpr2) {
+
           if (binExpr1.getOperator().isLogicalOperator()
               && binExpr2.getOperator().isLogicalOperator()) {
             BinaryOperator negatedOperator =
@@ -213,8 +213,8 @@ public class CBinaryExpressionBuilder {
      * shall be an integer constant expression, that has a value representable as an int.
      */
     if (pType instanceof CEnumType
-        || (pType instanceof CElaboratedType
-            && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
+        || (pType instanceof CElaboratedType cElaboratedType
+            && cElaboratedType.getKind() == ComplexTypeKind.ENUM)) {
       return CNumericTypes.SIGNED_INT;
     } else if (pType instanceof CBitFieldType bitFieldType) {
       CType handledInnerType = handleEnum(bitFieldType.getType());
@@ -234,7 +234,7 @@ public class CBinaryExpressionBuilder {
    * @return the wrapped type for all bit-field types, and the type itself otherwise.
    */
   private CType unwrapBitFields(CType pType) {
-    return pType instanceof CBitFieldType ? ((CBitFieldType) pType).getType() : pType;
+    return pType instanceof CBitFieldType cBitFieldType ? cBitFieldType.getType() : pType;
   }
 
   /**
@@ -332,11 +332,10 @@ public class CBinaryExpressionBuilder {
     }
 
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
-    if (pType1 instanceof CSimpleType && pType2 instanceof CSimpleType) {
-      // TODO we need an recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
+    if (pType1 instanceof CSimpleType simpleType1 && pType2 instanceof CSimpleType simpleType2) {
+      // TODO we need a recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
 
-      final CType commonType =
-          getCommonSimpleTypeForBinaryOperation((CSimpleType) pType1, (CSimpleType) pType2);
+      final CType commonType = getCommonSimpleTypeForBinaryOperation(simpleType1, simpleType2);
 
       logger.logf(
           Level.ALL,
@@ -375,12 +374,12 @@ public class CBinaryExpressionBuilder {
       }
 
       // we compare function-pointer and function, so return function-pointer
-      if (pType1 instanceof CPointerType && pType2 instanceof CFunctionType) {
-        if (((CPointerType) pType1).getType() instanceof CFunctionType) {
+      if (pType1 instanceof CPointerType cPointerType && pType2 instanceof CFunctionType) {
+        if (cPointerType.getType() instanceof CFunctionType) {
           return pType1;
         }
-      } else if (pType2 instanceof CPointerType && pType1 instanceof CFunctionType) {
-        if (((CPointerType) pType2).getType() instanceof CFunctionType) {
+      } else if (pType2 instanceof CPointerType cPointerType && pType1 instanceof CFunctionType) {
+        if (cPointerType.getType() instanceof CFunctionType) {
           return pType2;
         }
       }
@@ -435,7 +434,7 @@ public class CBinaryExpressionBuilder {
       final CExpression op2)
       throws UnrecognizedCodeException {
 
-    // if one type is an pointer, return the pointer.
+    // if one type is a pointer, return the pointer.
     if (pType instanceof CPointerType) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCodeException(
@@ -446,14 +445,14 @@ public class CBinaryExpressionBuilder {
     }
 
     // if one type is an array, return the pointer-equivalent to the array-type.
-    if (pType instanceof CArrayType) {
+    if (pType instanceof CArrayType at) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCodeException(
             "Operator " + pBinOperator + " cannot be used with array operand",
             getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
-      final CArrayType at = ((CArrayType) pType);
-      return new CPointerType(at.isConst(), at.isVolatile(), at.getType());
+
+      return new CPointerType(at.getQualifiers(), at.getType());
     }
 
     if (pType instanceof CProblemType) {
@@ -593,7 +592,7 @@ public class CBinaryExpressionBuilder {
     }
 
     /* Otherwise, if the type of the operand with signed integer type
-     * can represent all of the values of the type of the operand with
+     * can represent all the values of the type of the operand with
      * unsigned integer type, then the operand with unsigned integer type
      * is converted to the type of the operand with signed integer type. */
 
@@ -610,8 +609,7 @@ public class CBinaryExpressionBuilder {
 
     if (t1.hasSignedSpecifier()) {
       return new CSimpleType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           INT,
           t1.hasLongSpecifier(),
           false,
@@ -624,8 +622,7 @@ public class CBinaryExpressionBuilder {
 
     if (t2.hasSignedSpecifier()) {
       return new CSimpleType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           INT,
           t2.hasLongSpecifier(),
           false,
@@ -645,15 +642,15 @@ public class CBinaryExpressionBuilder {
     CBasicType type = t.getType();
 
     switch (type) {
-      case BOOL:
+      case BOOL -> {
         // The rank of _Bool shall be less than the rank of all other standard integer types.
         return 10;
-
-      case CHAR:
+      }
+      case CHAR -> {
         // The rank of char shall equal the rank of signed char and unsigned char.
         return 20;
-
-      case INT:
+      }
+      case INT -> {
         /* The rank of any unsigned integer type shall equal the rank of the
          * corresponding signed integer type, if any.
          * The rank of long long int shall be greater than the rank of long int,
@@ -671,12 +668,11 @@ public class CBinaryExpressionBuilder {
           return 60;
         }
         return 40;
-
-      case INT128:
+      }
+      case INT128 -> {
         return 70;
-
-      default:
-        throw new AssertionError("unhandled CSimpleType: " + t);
+      }
+      default -> throw new AssertionError("unhandled CSimpleType: " + t);
     }
   }
 

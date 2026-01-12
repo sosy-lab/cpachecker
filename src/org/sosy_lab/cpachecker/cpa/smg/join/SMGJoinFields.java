@@ -14,6 +14,7 @@ import com.google.common.collect.Iterables;
 import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
@@ -25,6 +26,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 class SMGJoinFields {
   private final SMG newSMG1;
@@ -187,7 +189,7 @@ class SMGJoinFields {
   @VisibleForTesting
   static Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> retset = new LinkedHashSet<>();
+    SequencedSet<SMGEdgeHasValue> retset = new LinkedHashSet<>();
 
     SMGEdgeHasValueFilter nonNullPtrInSmg2 =
         SMGEdgeHasValueFilter.objectFilter(pObj2).filterNotHavingValue(SMGZeroValue.INSTANCE);
@@ -227,7 +229,7 @@ class SMGJoinFields {
   @VisibleForTesting
   static Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> retset = new LinkedHashSet<>();
+    SequencedSet<SMGEdgeHasValue> retset = new LinkedHashSet<>();
     NavigableMap<Long, Long> map1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
     NavigableMap<Long, Long> map2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
     for (Entry<Long, Long> entry1 : map1.entrySet()) {

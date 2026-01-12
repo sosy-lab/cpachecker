@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Repo
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
@@ -39,12 +40,12 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
 
   /**
    * Create an invariant in the format for witnesses version 2.0 for the abstractions encoded by the
-   * arg states
+   * ARG states
    *
-   * @param argStates the arg states encoding abstractions of the state
+   * @param argStates the ARG states encoding abstractions of the state
    * @param node the node at whose location the state should be over approximated
-   * @param type the type of the invariant. Currently only `loop_invariant` and `location_invariant`
-   *     are supported
+   * @param type the type of the invariant. Currently, only `loop_invariant` and
+   *     `location_invariant` are supported
    * @return an invariant over approximating the abstraction at the state
    * @throws InterruptedException if the execution is interrupted
    */
@@ -86,8 +87,8 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
-    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
-    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
+    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants();
+    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants();
 
     // Use the collected states to generate invariants
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();

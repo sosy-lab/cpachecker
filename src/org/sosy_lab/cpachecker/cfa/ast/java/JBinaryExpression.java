@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * Operand1 is the left operand. Operand2 the right operand. The possible Operators are represented
  * by the enum {@link JBinaryExpression.BinaryOperator}
  *
- * <p>Some expression in Java, like the postfix increment, will be transformed into a infix
+ * <p>Some expression in Java, like the postfix increment, will be transformed into an infix
  * expression in the CFA and also be represented by this class.
  */
 public final class JBinaryExpression extends ABinaryExpression implements JExpression {
@@ -101,6 +101,37 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     @Override
     public String getOperator() {
       return op;
+    }
+
+    @Override
+    public boolean isLogicalOperator() {
+      return switch (this) {
+        case STRING_CONCATENATION,
+            MULTIPLY,
+            DIVIDE,
+            MODULO,
+            PLUS,
+            MINUS,
+            SHIFT_LEFT,
+            SHIFT_RIGHT_SIGNED,
+            SHIFT_RIGHT_UNSIGNED,
+            BINARY_AND,
+            BINARY_OR,
+            BINARY_XOR ->
+            false;
+        case LESS_EQUAL,
+            LESS_THAN,
+            GREATER_EQUAL,
+            GREATER_THAN,
+            EQUALS,
+            NOT_EQUALS,
+            CONDITIONAL_AND,
+            CONDITIONAL_OR,
+            LOGICAL_XOR,
+            LOGICAL_OR,
+            LOGICAL_AND ->
+            true;
+      };
     }
   }
 

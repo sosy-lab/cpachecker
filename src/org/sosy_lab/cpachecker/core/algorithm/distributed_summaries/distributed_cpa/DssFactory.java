@@ -17,6 +17,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
@@ -24,8 +25,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow.DistributedDataFlowAnalysisCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -60,57 +62,50 @@ public class DssFactory {
       throws InvalidConfigurationException {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
-    if (pCPA instanceof PredicateCPA predicateCPA) {
-      return distribute(
-          predicateCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pOptions,
-          pLogManager,
-          pShutdownNotifier,
-          integerToNodeMap);
-    }
+    return switch (pCPA) {
+      case PredicateCPA predicateCPA ->
+          distribute(
+              predicateCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pLogManager,
+              pShutdownNotifier,
+              integerToNodeMap);
+      case CallstackCPA callstackCPA ->
+          distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
+      case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
+      case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
+      case ARGCPA argCPA ->
+          distribute(
+              argCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier);
+      case CompositeCPA compositeCPA ->
+          distribute(
+              compositeCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier);
+      case InvariantsCPA invariantsCPA -> distribute(invariantsCPA, pBlockNode, pOptions);
+      case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, integerToNodeMap);
+      case null /*TODO check if null is necessary*/, default -> null;
+    };
+  }
 
-    if (pCPA instanceof InvariantsCPA invariantsCPA) {
-      return distribute(invariantsCPA, pBlockNode, pCFA);
-    }
-    if (pCPA instanceof CallstackCPA callstackCPA) {
-      return distribute(callstackCPA, pCFA, integerToNodeMap);
-    }
-    if (pCPA instanceof FunctionPointerCPA functionPointerCPA) {
-      return distribute(functionPointerCPA, integerToNodeMap);
-    }
-    if (pCPA instanceof BlockCPA blockCPA) {
-      return distribute(blockCPA, pBlockNode, integerToNodeMap);
-    }
-    if (pCPA instanceof ARGCPA argCPA) {
-      return distribute(
-          argCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pOptions,
-          pMessageFactory,
-          pLogManager,
-          pShutdownNotifier);
-    }
-    if (pCPA instanceof CompositeCPA compositeCPA) {
-      return distribute(
-          compositeCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pOptions,
-          pMessageFactory,
-          pLogManager,
-          pShutdownNotifier,
-          integerToNodeMap);
-    }
-    /* TODO: implement support for LocationCPA and LocationBackwardCPA
-    as soon as targetCFANode is not required anymore */
-    // creates CPA for every thread without communication
-    return null;
+  private static DistributedConfigurableProgramAnalysis distribute(
+      BlockCPA pBlockCPA, BlockNode pBlockNode, DssAnalysisOptions pOptions) {
+    return new DistributedBlockCPA(pBlockCPA, pBlockNode, pOptions);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
@@ -119,8 +114,8 @@ public class DssFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      BlockCPA pBlockCPA, BlockNode pBlockNode, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
-    return new DistributedBlockCPA(pBlockCPA, pBlockNode, pIntegerCFANodeMap);
+      LocationCPA pLocationCPA, BlockNode pNode, Map<Integer, CFANode> pNodeMap) {
+    return new DistributedLocationCPA(pLocationCPA, pNode, pNodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
@@ -131,7 +126,7 @@ public class DssFactory {
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      Map<Integer, CFANode> pIntegerCFANodeMap)
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap)
       throws InvalidConfigurationException {
     return new DistributedPredicateCPA(
         pPredicateCPA,
@@ -145,13 +140,16 @@ public class DssFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      CallstackCPA pCallstackCPA, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
-    return new DistributedCallstackCPA(pCallstackCPA, pCFA, pIdToNodeMap);
+      CallstackCPA pCallstackCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Map<Integer, CFANode> pIdToNodeMap) {
+    return new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pCFA, pIdToNodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      FunctionPointerCPA pFunctionPointerCPA, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
-    return new DistributedFunctionPointerCPA(pFunctionPointerCPA, pIntegerCFANodeMap);
+      FunctionPointerCPA pFunctionPointerCPA, BlockNode pNode) {
+    return new DistributedFunctionPointerCPA(pFunctionPointerCPA, pNode);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
@@ -162,8 +160,7 @@ public class DssFactory {
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
       LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap)
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     ImmutableMap.Builder<
             Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
@@ -184,8 +181,7 @@ public class DssFactory {
       }
       builder.put(wrappedCPA.getClass(), dcpa);
     }
-    return new DistributedCompositeCPA(
-        pCompositeCPA, pBlockNode, pIntegerCFANodeMap, builder.buildOrThrow());
+    return new DistributedCompositeCPA(pCompositeCPA, pBlockNode, builder.buildOrThrow());
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

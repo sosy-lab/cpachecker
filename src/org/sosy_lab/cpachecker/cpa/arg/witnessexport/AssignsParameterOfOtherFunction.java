@@ -50,10 +50,10 @@ class AssignsParameterOfOtherFunction implements Predicate<AExpressionStatement>
   @Override
   public boolean apply(AExpressionStatement pStmt) {
     AExpression exp = pStmt.getExpression();
-    if (!(exp instanceof CExpression)) {
+    if (!(exp instanceof CExpression cExp)) {
       return false;
     }
-    CExpression cExp = (CExpression) exp;
+
     return cExp.accept(
         new CExpressionVisitor<Boolean, NoException>() {
 

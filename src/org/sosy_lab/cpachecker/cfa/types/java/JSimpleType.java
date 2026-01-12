@@ -13,6 +13,7 @@ import com.google.common.base.Strings;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Description of a simple Java structure's type.
@@ -35,7 +36,7 @@ public enum JSimpleType implements JType {
 
   private final String code;
 
-  private JSimpleType(String pCode) {
+  JSimpleType(String pCode) {
     code = pCode;
   }
 
@@ -49,7 +50,7 @@ public enum JSimpleType implements JType {
 
   @Override
   public String toASTString(String pDeclarator) {
-    List<String> parts = new ArrayList<>();
+    List<@Nullable String> parts = new ArrayList<>();
 
     parts.add(Strings.emptyToNull(code));
     parts.add(Strings.emptyToNull(pDeclarator));

@@ -64,51 +64,47 @@ public class ExpandFunctionPointerArrayAssignments {
 
       for (CFANode node : ImmutableList.copyOf(cfa.getFunctionNodes(function))) {
         switch (node.getNumLeavingEdges()) {
-          case 0:
-            break;
-          case 1:
-            handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
-            break;
-          case 2:
-            break;
-          default:
-            throw new AssertionError("Too many leaving edges on CFANode");
+          case 0 -> {}
+          case 1 -> handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
+          case 2 -> {}
+          default -> throw new AssertionError("Too many leaving edges on CFANode");
         }
       }
     }
   }
 
   private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) {
-    if (!(edge instanceof CStatementEdge)) {
+    if (!(edge instanceof CStatementEdge cStatementEdge)) {
       return;
     }
 
-    CStatement stmt = ((CStatementEdge) edge).getStatement();
-    if (!(stmt instanceof CExpressionAssignmentStatement)) {
+    CStatement stmt = cStatementEdge.getStatement();
+    if (!(stmt instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement)) {
       return;
     }
 
-    CLeftHandSide lhs = ((CExpressionAssignmentStatement) stmt).getLeftHandSide();
-    CExpression rhs = ((CExpressionAssignmentStatement) stmt).getRightHandSide();
+    CLeftHandSide lhs = cExpressionAssignmentStatement.getLeftHandSide();
+    CExpression rhs = cExpressionAssignmentStatement.getRightHandSide();
     if (!isFunctionPointerType(lhs.getExpressionType())) {
       return;
     }
 
-    if (!(lhs instanceof CArraySubscriptExpression)) {
+    if (!(lhs instanceof CArraySubscriptExpression array)) {
       return;
     }
-    CArraySubscriptExpression array = ((CArraySubscriptExpression) lhs);
+
     if (!(array.getSubscriptExpression() instanceof CIdExpression)) {
       return;
     }
     final CExpression subscript = array.getSubscriptExpression();
 
     CType arrayType = array.getArrayExpression().getExpressionType().getCanonicalType();
-    if (!(arrayType instanceof CArrayType)
-        || !(((CArrayType) arrayType).getLength() instanceof CIntegerLiteralExpression)) {
+    if (!(arrayType instanceof CArrayType cArrayType)
+        || !(cArrayType.getLength()
+            instanceof CIntegerLiteralExpression cIntegerLiteralExpression)) {
       return;
     }
-    final long length = ((CIntegerLiteralExpression) ((CArrayType) arrayType).getLength()).asLong();
+    final long length = cIntegerLiteralExpression.asLong();
 
     final CFANode startNode = edge.getPredecessor();
     final CFANode endNode = edge.getSuccessor();

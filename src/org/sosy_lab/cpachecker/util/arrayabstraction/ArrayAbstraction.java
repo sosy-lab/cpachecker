@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -377,8 +376,7 @@ public class ArrayAbstraction {
     createIndexStepCondition(index).ifPresent(conditions::add);
 
     // reverse list, because the last edge inserted with insertSuccessor is the first condition edge
-    Collections.reverse(conditions);
-    for (CExpression condition : conditions) {
+    for (CExpression condition : conditions.reversed()) {
 
       CAssumeEdge enterBodyEdge = createAssumeEdge(function, condition, true);
       pGraph.insertSuccessor(pBodyEntryNode, new CFANode(function), enterBodyEdge);
@@ -504,8 +502,8 @@ public class ArrayAbstraction {
 
     CExpression arrayExpression = pArrayAccess.getArrayExpression();
 
-    if (arrayExpression instanceof CIdExpression) {
-      CSimpleDeclaration declaration = ((CIdExpression) arrayExpression).getDeclaration();
+    if (arrayExpression instanceof CIdExpression cIdExpression) {
+      CSimpleDeclaration declaration = cIdExpression.getDeclaration();
       TransformableArray transformableArray = pTransformableArrayMap.get(declaration);
       return Optional.ofNullable(transformableArray);
     }
@@ -588,8 +586,8 @@ public class ArrayAbstraction {
         CFAEdge updateIndexEdge = loop.getIndex().getUpdateEdge();
 
         CFAEdge postDominatedEdge = pEdge;
-        if (pEdge instanceof CFunctionCallEdge) {
-          postDominatedEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();
+        if (pEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
+          postDominatedEdge = cFunctionCallEdge.getSummaryEdge();
         }
 
         if (subscriptExpression.equals(preciseSubscriptExpression)

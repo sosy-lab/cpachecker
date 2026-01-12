@@ -1,0 +1,869 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- 
+This run-collection defines run-definitions for all important CPAchecker SMG based configurations
+on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memcleanup and/or no-overflow. 
+-->
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="4">
+
+  <!-- Default for SV-COMP, override if necessary/desired, e.g. in command-line-->
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
+
+  <option name="--heap">10000M</option>
+  <option name="--benchmark"/>
+  <option name="--timelimit">900s</option>
+
+
+  <!-- #################### MemSafety #################### -->
+  <!-- Note: MemCleanup is below, as they need to be separate since they share the same tasks -->
+
+  <rundefinition name="MemSafety_SVCOMP26">
+    <option name="--svcomp26" />
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Heap">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.LinkedLists">
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Other">
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety_SMG-Portfolio">
+    <option name="--smg" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Heap">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.LinkedLists">
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Other">
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety_SMG-SymEx">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Heap">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.LinkedLists">
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Other">
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety_SMG-Value">
+    <option name="--smgValueAnalysis"></option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Heap">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.LinkedLists">
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Other">
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety_SMG-SymEx-NoStop-NoAbstr">
+    <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Heap">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.LinkedLists">
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Other">
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety_SMG-Value-NoStop-noAbstr">
+    <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Heap">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.LinkedLists">
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Other">
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety_SMG-SymEx-overapproximateMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Heap">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.LinkedLists">
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Other">
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety_SMG-SymEx-concreteMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Heap">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.LinkedLists">
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Other">
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety_SMG-Value-overapproximateConcreteValues">
+    <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Heap">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.LinkedLists">
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Other">
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+
+  <!-- #################### SoftwareSystems-MemSafety #################### -->
+  <!-- Note: MemCleanup is below, as they need to be separate since they share the same tasks -->
+
+  <rundefinition name="SoftwareSystems-MemSafety_SVCOMP26">
+    <option name="--svcomp26" />
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+        <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemSafety_SMG-Portfolio">
+    <option name="--smg" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+        <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemSafety_SMG-SymEx">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+        <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemSafety_SMG-Value">
+    <option name="--smgValueAnalysis"></option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+        <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemSafety_SMG-SymEx-NoStop-NoAbstr">
+    <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+        <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemSafety_SMG-Value-NoStop-noAbstr">
+    <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+        <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemSafety_SMG-SymEx-overapproximateMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+        <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemSafety_SMG-SymEx-concreteMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+        <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemSafety_SMG-Value-overapproximateConcreteValues">
+    <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+        <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+
+
+    <!-- #################### Concurrency-MemSafety #################### -->
+
+  <rundefinition name="Concurrency-MemSafety_SVCOMP26">
+    <option name="--svcomp26" />
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Concurrency-MemSafety_SMG-Portfolio">
+    <option name="--smg" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Concurrency-MemSafety_SMG-SymEx">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Concurrency-MemSafety_SMG-Value">
+    <option name="--smgValueAnalysis"></option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Concurrency-MemSafety_SMG-SymEx-NoStop-NoAbstr">
+    <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Concurrency-MemSafety_SMG-Value-NoStop-noAbstr">
+    <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Concurrency-MemSafety_SMG-SymEx-overapproximateMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Concurrency-MemSafety_SMG-SymEx-concreteMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Concurrency-MemSafety_SMG-Value-overapproximateConcreteValues">
+    <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <tasks name="C.valid-memsafety.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+
+  <!-- #################### MemSafety-MemCleanup #################### -->
+
+  <rundefinition name="MemSafety-MemCleanup_SVCOMP26">
+    <option name="--svcomp26" />
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.MemCleanup">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety-MemCleanup_SMG-SymEx">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.MemCleanup">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety-MemCleanup_SMG-Value">
+    <option name="--smgValueAnalysis" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.MemCleanup">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety-MemCleanup_SMG-Value-overapproximateConcreteValues">
+    <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.MemCleanup">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety-MemCleanup_SMG-SymEx-concreteMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.MemCleanup">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety-MemCleanup_SMG-SymEx-overapproximateMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.MemCleanup">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety-MemCleanup_SMG-Value-noStop-noAbstr">
+    <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.MemCleanup">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="MemSafety-MemCleanup_SMG-SymEx-noStop-noAbstr">
+    <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.MemCleanup">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+
+    <!-- #################### SoftwareSystems-MemCleanup #################### -->
+
+  <rundefinition name="SoftwareSystems-MemCleanup_SVCOMP26">
+    <option name="--svcomp26" />
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemCleanup_SMG-SymEx">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemCleanup_SMG-Value">
+    <option name="--smgValueAnalysis" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemCleanup_SMG-Value-overapproximateConcreteValues">
+    <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemCleanup_SMG-SymEx-concreteMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemCleanup_SMG-SymEx-overapproximateMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemCleanup_SMG-Value-noStop-noAbstr">
+    <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SoftwareSystems-MemCleanup_SMG-SymEx-noStop-noAbstr">
+    <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+
+  <!-- #################### No-Overflow #################### -->
+
+  <rundefinition name="SV-COMP26_no-overflow_SMG-SymEx">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <tasks name="C.no-overflow.Main">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+      <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/ECA.set</includesfile>
+      <includesfile>../programs/benchmarks/Floats.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <includesfile>../programs/benchmarks/XCSP.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+
+    <tasks name="C.no-overflow.SoftwareSystems-BusyBox">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+
+    <tasks name="C.no-overflow.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+
+</benchmark>

@@ -67,8 +67,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -164,7 +164,7 @@ public class SMGCPA
         initializeCToFormulaConverter(
             formulaManager, logger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
     constraintsSolver =
-        new ConstraintsSolver(pConfig, solver, formulaManager, converter, statistics);
+        new ConstraintsSolver(pConfig, machineModel, solver, formulaManager, converter, statistics);
     evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel, logger, exportOptions, options, constraintsSolver);
@@ -359,8 +359,8 @@ public class SMGCPA
       MachineModel pMachineModel)
       throws InvalidConfigurationException {
 
-    FormulaEncodingWithPointerAliasingOptions formulaOptions =
-        new FormulaEncodingWithPointerAliasingOptions(pConfig);
+    CFormulaEncodingWithPointerAliasingOptions formulaOptions =
+        new CFormulaEncodingWithPointerAliasingOptions(pConfig);
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, pMachineModel, formulaOptions);
 

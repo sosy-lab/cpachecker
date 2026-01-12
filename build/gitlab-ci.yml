@@ -2,7 +2,7 @@
 # a collection of common files and build definitions for Java projects:
 # https://gitlab.com/sosy-lab/software/java-project-template
 #
-# SPDX-FileCopyrightText: 2018-2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2018-2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -64,9 +64,9 @@ build:jdk-21:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build:jdk-23:
+build:jdk-24:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 # For checks that need the binaries
@@ -77,8 +77,6 @@ build:jdk-23:
 # For checks that only need the source code, not the binaries
 .source_check: &source_check
   stage: checks
-  dependencies:
-    - build-dependencies
   needs:
     - build-dependencies
   interruptible: true
@@ -96,9 +94,9 @@ build-project-ecj:jdk-21:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build-project-ecj:jdk-23:
+build-project-ecj:jdk-24:
   <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 check-format:
@@ -118,9 +116,6 @@ checkstyle:
 javadoc:
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS javadoc"
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
   needs:
     - build-dependencies
     - build:jdk-11
@@ -133,9 +128,6 @@ spotbugs:
   script:
     - 'ant $ANT_PROPS_CHECKS spotbugs'
     - 'test \! -f SpotBugs.html'
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
   needs:
     - build-dependencies
     - build:jdk-11
@@ -158,9 +150,6 @@ spotbugs:
 
 unit-tests:jdk-11:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
   needs:
     - build-dependencies
     - build:jdk-11
@@ -168,9 +157,6 @@ unit-tests:jdk-11:
 
 unit-tests:jdk-17:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
   needs:
     - build-dependencies
     - build:jdk-17
@@ -178,23 +164,17 @@ unit-tests:jdk-17:
 
 unit-tests:jdk-21:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-21
   needs:
     - build-dependencies
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-unit-tests:jdk-23:
+unit-tests:jdk-24:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-23
   needs:
     - build-dependencies
-    - build:jdk-23
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+    - build:jdk-24
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 refaster:
@@ -220,10 +200,8 @@ refaster:
       - "error-prone.patch"
       - "rule.refaster"
     when: on_failure
-  except:
-    variables:
-      - $REFASTER_REPO_REVISION == null # required for job
-      - $REFASTER_VERSION == null # required for job
+  rules:
+    - if: $REFASTER_REPO_REVISION != null && $REFASTER_VERSION != null  # required for job
 
 
 # check license declarations etc.
@@ -232,7 +210,7 @@ reuse:
   dependencies: []
   needs: []
   image:
-    name: fsfe/reuse:3
+    name: fsfe/reuse:6
     entrypoint: [""]
   script:
     - reuse lint
@@ -241,19 +219,19 @@ reuse:
 deploy-gh-pages:
   stage: deploy
   script: "build/deploy-gh-pages.sh"
-  dependencies:
-    - build:jdk-11
-    - javadoc
   needs:
     - build:jdk-11
     - javadoc
-  only:
-    variables:
-      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # only on default branch
-      - $CI_PROJECT_PATH == $PROJECT_PATH # not on forks
-  except:
-    variables:
-      - $GH_TOKEN == null # required for job
+  environment: deploy/gh-pages
+  rules:
+    # run only if:
+    # - on default branch
+    # - not on a fork,
+    # - GH_TOKEN is present (required for job)
+    - if: >
+        $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+        && $CI_PROJECT_PATH == $PROJECT_PATH
+        && $GH_TOKEN != null
 
 
 # Build container images
@@ -269,9 +247,9 @@ deploy-gh-pages:
     - mkdir -p /root/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE$IMAGE $EXTRA_ARGS
-  only:
-    - schedules
-    - web
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
 
 build-docker:test:jdk-11:
   extends: .build-docker
@@ -291,8 +269,8 @@ build-docker:test:jdk-21:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-21
     IMAGE: /test:jdk-21
 
-build-docker:test:jdk-23:
+build-docker:test:jdk-24:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-23
-    IMAGE: /test:jdk-23
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-24
+    IMAGE: /test:jdk-24

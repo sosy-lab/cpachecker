@@ -33,7 +33,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
    * This method acts as the constructor of the class.
    *
    * @param pLogger the logger to use
-   * @param pCfa the cfa in use
+   * @param pCfa the CFA in use
    */
   public SMGPrefixProvider(
       ConstraintsSolver pSolver,

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
-import com.google.common.collect.Iterables;
 import java.io.Serial;
 import java.util.Iterator;
 import java.util.NavigableSet;
@@ -44,7 +43,7 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
   }
 
   public UsageInfo getOneExample() {
-    return Iterables.get(this, 0);
+    return getFirst();
   }
 
   public UsageInfoSet copy() {

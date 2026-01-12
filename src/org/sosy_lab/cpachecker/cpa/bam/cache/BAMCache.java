@@ -113,7 +113,7 @@ public interface BAMCache extends Statistics {
     }
 
     private String id(AbstractState s) {
-      return "" + (s instanceof ARGState ? ((ARGState) s).getStateId() : s);
+      return "" + (s instanceof ARGState aRGState ? aRGState.getStateId() : s);
     }
 
     @Override

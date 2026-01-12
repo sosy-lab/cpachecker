@@ -90,7 +90,7 @@ public class DestructiveWeakeningManager {
    * ("true" is inductive), remove selectors which can be removed while keeping the overall query
    * inductive.
    *
-   * <p>This is a standard algorithm, however it pays the cost of N SMT calls upfront. Note that
+   * <p>This is a standard algorithm. However, it pays the cost of N SMT calls upfront. Note that
    * since at every iteration the set of abstracted variables is inductive, the algorithm can be
    * terminated early.
    *

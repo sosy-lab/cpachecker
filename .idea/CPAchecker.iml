@@ -5,7 +5,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -20,13 +20,16 @@ SPDX-License-Identifier: Apache-2.0
       <excludeFolder url="file://$MODULE_DIR$/test/programs/benchmarks" />
       <excludeFolder url="file://$MODULE_DIR$/test/programs/ldv-benchmarks" />
       <excludeFolder url="file://$MODULE_DIR$/test/results" />
+      <excludeFolder url="file://$MODULE_DIR$/output/block_analysis" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
+          <root url="file://$MODULE_DIR$/lib" />
           <root url="file://$MODULE_DIR$/lib/java/runtime" />
+          <root url="file://$MODULE_DIR$/lib/java/test" />
         </CLASSES>
         <JAVADOC />
         <NATIVE>
@@ -35,47 +38,11 @@ SPDX-License-Identifier: Apache-2.0
         <SOURCES>
           <root url="file://$MODULE_DIR$/lib/java-contrib" />
         </SOURCES>
-        <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" />
-        <jarDirectory url="file://$MODULE_DIR$/lib/java-contrib" recursive="false" type="SOURCES" />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="file://$MODULE_DIR$/lib/java/test" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="file://$MODULE_DIR$/lib/java/test" />
-          <root url="file://$MODULE_DIR$/lib/java-contrib" />
-        </SOURCES>
-        <jarDirectory url="file://$MODULE_DIR$/lib/java/test" recursive="false" />
-        <jarDirectory url="file://$MODULE_DIR$/lib/java-contrib" recursive="false" type="SOURCES" />
-        <jarDirectory url="file://$MODULE_DIR$/lib/java/test" recursive="false" type="SOURCES" />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/java/build/error_prone_annotations.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/java-contrib/error_prone_annotations-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="file://$MODULE_DIR$/lib" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="file://$MODULE_DIR$/lib" />
-        </SOURCES>
         <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/test" recursive="false" />
         <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" type="SOURCES" />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" type="SOURCES" />
       </library>
     </orderEntry>
   </component>

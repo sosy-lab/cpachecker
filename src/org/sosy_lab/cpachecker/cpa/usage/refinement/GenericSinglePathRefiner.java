@@ -62,7 +62,7 @@ public abstract class GenericSinglePathRefiner
     Preconditions.checkArgument(!path.isUnreachable(), "Path could not be unreachable here");
 
     if (path.isRefinedAsReachableBy(this)) {
-      // Means that is is reachable, but other refiners declined it.
+      // Means that it is reachable, but other refiners declined it.
       // Now the pair changes. Do not refine it again.
       numberOfRepeatedPath.inc();
       return RefinementResult.createTrue();

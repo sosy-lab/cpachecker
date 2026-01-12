@@ -7,6 +7,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # add new commits on top
+84c3cfc9ae30a51c662e9d0258a71183f946e61f # Move SMT-LIB related code into its own package
+fc6386038c8706477a939cc9340b5b2f2c28ab18 # Move specification ast classes for SV-LIB into another package
+3154b8810c18571e834064ceef9c0dc1d8a03af0 # Refactor structure of SV-LIB AST classes
+4e36402de0cabd6b78ad9d964a3ee5a012177664 # Rename K3 into SV-LIB for the intermediate verification language
 b4c108f78988bdec853771d893f35066267f6c44 # reformat with Google Java Format 1.19
 b4c1a2604a4db6df4732aadfa5a9a392a3831661 # reformat with Google Java Format 1.16
 0ff16ae4e008e3eb0af0d5dcb6bd42d429fe9384 # reformat other packages

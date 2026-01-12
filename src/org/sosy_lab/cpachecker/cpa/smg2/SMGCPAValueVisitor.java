@@ -10,18 +10,21 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -67,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
@@ -75,13 +79,14 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -105,6 +110,7 @@ public class SMGCPAValueVisitor
 
   // The evaluator translates C expressions into the SMG counterparts and vice versa.
   private final SMGCPAExpressionEvaluator evaluator;
+  private final MachineModel machineModel;
 
   private final SMGState state;
 
@@ -122,6 +128,7 @@ public class SMGCPAValueVisitor
       LogManagerWithoutDuplicates pLogger,
       SMGOptions pOptions) {
     evaluator = pEvaluator;
+    machineModel = evaluator.getMachineModel();
     state = currentState;
     cfaEdge = edge;
     logger = pLogger;
@@ -144,8 +151,7 @@ public class SMGCPAValueVisitor
     List<ValueAndSMGState> uncastedValuesAndStates = pExp.accept(this);
     ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
     for (ValueAndSMGState uncastedValueAndState : uncastedValuesAndStates) {
-      Value castedValue =
-          castCValue(uncastedValueAndState.getValue(), pTargetType, evaluator.getMachineModel());
+      Value castedValue = castCValue(uncastedValueAndState.getValue(), pTargetType);
       result.add(ValueAndSMGState.of(castedValue, uncastedValueAndState.getState()));
     }
     return result.build();
@@ -211,19 +217,12 @@ public class SMGCPAValueVisitor
                   explicitFieldRef.getFieldName());
           Value finalReadOffset = evaluator.addBitOffsetValues(ptrTargetOffset, fieldOffset);
 
-          if (finalReadOffset.isExplicitlyKnown()
-              && finalReadOffset
-                  .asNumericValue()
-                  .bigIntegerValue()
-                  .equals(linkedListObj.getNextOffset())
-              && finalReadOffset.isExplicitlyKnown()) {
+          if (finalReadOffset instanceof NumericValue numericFinalReadOffset
+              && numericFinalReadOffset.bigIntegerValue().equals(linkedListObj.getNextOffset())) {
 
             ValueAndSMGState fieldReadAndState =
                 currentState.readValueWithoutMaterialization(
-                    linkedListObj,
-                    finalReadOffset.asNumericValue().bigIntegerValue(),
-                    readSize,
-                    returnType);
+                    linkedListObj, numericFinalReadOffset.bigIntegerValue(), readSize, returnType);
             // This is now the next pointer from the last element of the list (this is the ptr->next
             // part)
             currentState = fieldReadAndState.getState();
@@ -294,7 +293,7 @@ public class SMGCPAValueVisitor
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 currentState,
-                "Returned unknown value due to a invalid address or offset in subscript expression"
+                "Returned unknown value due to an invalid address or offset in subscript expression"
                     + " in ",
                 cfaEdge));
         continue;
@@ -312,7 +311,7 @@ public class SMGCPAValueVisitor
         SMGState newState = subscriptValueAndState.getState();
         // If the subscript is an unknown value, we can't read anything and return unknown
         // We also overapproximate the access and assume unsafe
-        if (!subscriptValue.isNumericValue() && !options.trackErrorPredicates()) {
+        if (!(subscriptValue instanceof NumericValue) && !options.trackErrorPredicates()) {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   newState.withUnknownOffsetMemoryAccess(),
@@ -394,7 +393,7 @@ public class SMGCPAValueVisitor
             returnBuilder.add(
                 ValueAndSMGState.ofUnknownValue(
                     newState,
-                    "Returned unknown value due to a invalid address or offset in read expression"
+                    "Returned unknown value due to an invalid address or offset in read expression"
                         + " with dereference in ",
                     cfaEdge));
           } else {
@@ -415,10 +414,9 @@ public class SMGCPAValueVisitor
             returnType,
             exprThatCalledThis);
       }
-    } else if (arrayValue instanceof SymbolicIdentifier
-        && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
-      MemoryLocation memloc =
-          ((SymbolicIdentifier) arrayValue).getRepresentedLocation().orElseThrow();
+    } else if (arrayValue instanceof SymbolicIdentifier symbolicIdentifier
+        && symbolicIdentifier.getRepresentedLocation().isPresent()) {
+      MemoryLocation memloc = symbolicIdentifier.getRepresentedLocation().orElseThrow();
       String qualifiedVarName = memloc.getIdentifier();
       Value finalOffset =
           evaluator.addBitOffsetValues(additionalOffset, BigInteger.valueOf(memloc.getOffset()));
@@ -427,7 +425,7 @@ public class SMGCPAValueVisitor
           || returnType instanceof CArrayType
           || returnType instanceof CFunctionType) {
 
-        if (!additionalOffset.isNumericValue()) {
+        if (!(additionalOffset instanceof NumericValue numAdditionalOffset)) {
           throw new RuntimeException(
               "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"
                   + " analysis.");
@@ -436,8 +434,7 @@ public class SMGCPAValueVisitor
         return ImmutableList.of(
             ValueAndSMGState.of(
                 SymbolicValueFactory.getInstance()
-                    .newIdentifier(
-                        memloc.withAddedOffset(additionalOffset.asNumericValue().longValue())),
+                    .newIdentifier(memloc.withAddedOffset(numAdditionalOffset.longValue())),
                 newState));
 
       } else if (returnType instanceof CPointerType) {
@@ -453,7 +450,7 @@ public class SMGCPAValueVisitor
             returnBuilder.add(
                 ValueAndSMGState.ofUnknownValue(
                     newState,
-                    "Returned unknown value due to a invalid address or offset in read with"
+                    "Returned unknown value due to an invalid address or offset in read with"
                         + " dereference expression in ",
                     cfaEdge));
           } else {
@@ -572,10 +569,10 @@ public class SMGCPAValueVisitor
                 && (rightValue instanceof ConstantSymbolicExpression
                     && evaluator.isPointerValue(
                         ((ConstantSymbolicExpression) rightValue).getValue(), currentState))))
-        && !(leftValue.isNumericValue() && rightValue.isNumericValue())) {
+        && !(leftValue instanceof NumericValue && rightValue instanceof NumericValue)) {
 
       // It is possible that addresses get cast to int or smth like it
-      // Then the SymbolicIdentifier is returned not in a AddressExpression
+      // Then the SymbolicIdentifier is returned not in an AddressExpression
       // They might be wrapped in a ConstantSymbolicExpression
       // We don't remove this wrapping for the rest of the analysis as they might actually get
       // treated as ints or something
@@ -592,114 +589,120 @@ public class SMGCPAValueVisitor
         nonConstLeftValue = ((ConstantSymbolicExpression) leftValue).getValue();
       }
 
-      if (binaryOperator == BinaryOperator.EQUALS) {
-        Preconditions.checkArgument(returnType instanceof CSimpleType);
-        if ((!(nonConstLeftValue instanceof AddressExpression)
-                && !evaluator.isPointerValue(nonConstLeftValue, currentState))
-            || (!(nonConstRightValue instanceof AddressExpression)
-                && !evaluator.isPointerValue(nonConstRightValue, currentState))) {
+      switch (binaryOperator) {
+        case EQUALS -> {
+          Preconditions.checkArgument(returnType instanceof CSimpleType);
+          if ((!(nonConstLeftValue instanceof AddressExpression)
+                  && !evaluator.isPointerValue(nonConstLeftValue, currentState))
+              || (!(nonConstRightValue instanceof AddressExpression)
+                  && !evaluator.isPointerValue(nonConstRightValue, currentState))) {
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due non-address value in binary expression evaluated as"
+                        + " pointer arithmetics in ",
+                    cfaEdge));
+          }
+          // address == address or address == not address
           return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due non-address value in binary expression evaluated as"
-                      + " pointer arithmetics in ",
-                  cfaEdge));
-        }
-        // address == address or address == not address
-        return ImmutableList.of(
-            ValueAndSMGState.of(
-                evaluator.checkEqualityForAddresses(
-                    nonConstLeftValue, nonConstRightValue, currentState),
-                currentState));
-
-      } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
-        Preconditions.checkArgument(returnType instanceof CSimpleType);
-        // address != address or address != not address
-        return ImmutableList.of(
-            ValueAndSMGState.of(
-                evaluator.checkNonEqualityForAddresses(
-                    nonConstLeftValue, nonConstRightValue, currentState),
-                currentState));
-
-      } else if (binaryOperator == BinaryOperator.PLUS || binaryOperator == BinaryOperator.MINUS) {
-        Value leftAddrExpr = nonConstLeftValue;
-        if (!(nonConstLeftValue instanceof AddressExpression)
-            && evaluator.isPointerValue(nonConstLeftValue, currentState)
-            && !leftAddrExpr.isExplicitlyKnown()) {
-          leftAddrExpr =
-              AddressExpression.withZeroOffset(
-                  nonConstLeftValue, SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
-        }
-        Value rightAddrExpr = nonConstRightValue;
-        if (!(nonConstRightValue instanceof AddressExpression)
-            && evaluator.isPointerValue(nonConstRightValue, currentState)
-            && !rightAddrExpr.isExplicitlyKnown()) {
-          rightAddrExpr =
-              AddressExpression.withZeroOffset(
-                  nonConstRightValue, SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
+              ValueAndSMGState.of(
+                  evaluator.checkEqualityForAddresses(
+                      nonConstLeftValue, nonConstRightValue, currentState),
+                  currentState));
         }
 
-        // Pointer arithmetics case and fall through (handled inside the method)
-        // i.e. address + 3
-        // (This only handles address +- value!)
-        return calculatePointerArithmetics(
-            leftAddrExpr,
-            rightAddrExpr,
-            binaryOperator,
-            e.getExpressionType(),
-            calculationType,
-            SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
-            SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
-            currentState);
-      } else if (binaryOperator == BinaryOperator.GREATER_EQUAL
-          || binaryOperator == BinaryOperator.LESS_EQUAL
-          || binaryOperator == BinaryOperator.GREATER_THAN
-          || binaryOperator == BinaryOperator.LESS_THAN) {
-        // < <= > >=
-        // For the same memory, we can check < etc.
-
-        // First check that left and right point to the SAME memory region
-        // Check that both Values are truly addresses
-        ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
-        leftValue = leftValueAndState.getValue();
-        ValueAndSMGState rightValueAndState =
-            evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
-        rightValue = rightValueAndState.getValue();
-        currentState = rightValueAndState.getState();
-        if (!evaluator.isPointerValue(rightValue, currentState)
-            || !evaluator.isPointerValue(leftValue, currentState)) {
+        case NOT_EQUALS -> {
+          Preconditions.checkArgument(returnType instanceof CSimpleType);
+          // address != address or address != not address
           return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due to non-address value in binary pointer comparison"
-                      + " expression in ",
-                  cfaEdge));
-        }
-        if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
-          // This is undefined behavior in C99/C11
-          // But since we don't really handle this we just return unknown :D
-          return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due to address values in binary pointer comparison"
-                      + " expression not pointing to the same target memory in ",
-                  cfaEdge));
+              ValueAndSMGState.of(
+                  evaluator.checkNonEqualityForAddresses(
+                      nonConstLeftValue, nonConstRightValue, currentState),
+                  currentState));
         }
 
-        // Then get the offsets
-        Value offsetLeft = currentState.getPointerOffset(leftValue);
-        Value offsetRight = currentState.getPointerOffset(rightValue);
-        if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
-          return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due to unknown offset value(s) in binary pointer"
-                      + " comparison expression in ",
-                  cfaEdge));
+        case PLUS, MINUS -> {
+          Value leftAddrExpr = nonConstLeftValue;
+          if (!(nonConstLeftValue instanceof AddressExpression)
+              && evaluator.isPointerValue(nonConstLeftValue, currentState)
+              && !leftAddrExpr.isExplicitlyKnown()) {
+            leftAddrExpr =
+                AddressExpression.withZeroOffset(
+                    nonConstLeftValue, SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
+          }
+          Value rightAddrExpr = nonConstRightValue;
+          if (!(nonConstRightValue instanceof AddressExpression)
+              && evaluator.isPointerValue(nonConstRightValue, currentState)
+              && !rightAddrExpr.isExplicitlyKnown()) {
+            rightAddrExpr =
+                AddressExpression.withZeroOffset(
+                    nonConstRightValue,
+                    SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
+          }
+          // Pointer arithmetics case and fall through (handled inside the method)
+          // i.e. address + 3
+          // (This only handles address +- value!)
+          return calculatePointerArithmetics(
+              leftAddrExpr,
+              rightAddrExpr,
+              binaryOperator,
+              e.getExpressionType(),
+              calculationType,
+              SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
+              SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
+              currentState);
         }
 
-        // Create binary expr with offsets and restart this with it
-        return handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
+        case GREATER_EQUAL, LESS_EQUAL, GREATER_THAN, LESS_THAN -> {
+          // < <= > >=
+          // For the same memory, we can check < etc.
+          // First check that left and right point to the SAME memory region
+          // Check that both Values are truly addresses
+          ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
+          leftValue = leftValueAndState.getValue();
+          ValueAndSMGState rightValueAndState =
+              evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
+          rightValue = rightValueAndState.getValue();
+          currentState = rightValueAndState.getState();
+          if (!evaluator.isPointerValue(rightValue, currentState)
+              || !evaluator.isPointerValue(leftValue, currentState)) {
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due to non-address value in binary pointer comparison"
+                        + " expression in ",
+                    cfaEdge));
+          }
+          if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
+            // This is undefined behavior in C99/C11
+            // But since we don't really handle this we just return unknown :D
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due to address values in binary pointer comparison"
+                        + " expression not pointing to the same target memory in ",
+                    cfaEdge));
+          }
+
+          // Then get the offsets
+          Value offsetLeft = currentState.getPointerOffset(leftValue);
+          Value offsetRight = currentState.getPointerOffset(rightValue);
+          if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due to unknown offset value(s) in binary pointer"
+                        + " comparison expression in ",
+                    cfaEdge));
+          }
+
+          // Create binary expr with offsets and restart this with it
+          return handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
+        }
+
+        default -> {
+          // handled below
+        }
       }
     }
 
@@ -723,7 +726,8 @@ public class SMGCPAValueVisitor
               calculateSymbolicBinaryExpression(leftValue, rightValue, e), currentState));
     }
 
-    if (!leftValue.isNumericValue() || !rightValue.isNumericValue()) {
+    if (!(leftValue instanceof NumericValue numLeftValue)
+        || !(rightValue instanceof NumericValue numRightValue)) {
       logger.logf(
           Level.FINE,
           "Parameters to binary operation '%s %s %s' are no numeric values. Returned unknown value"
@@ -738,14 +742,13 @@ public class SMGCPAValueVisitor
     if (isArithmeticOperation(binaryOperator)) {
       // Actual computations
       Value arithResult =
-          arithmeticOperation(
-              (NumericValue) leftValue, (NumericValue) rightValue, binaryOperator, calculationType);
+          arithmeticOperation(numLeftValue, numRightValue, binaryOperator, calculationType);
       return ImmutableList.of(castCValue(arithResult, e.getExpressionType(), currentState));
 
     } else if (isComparison(binaryOperator)) {
       // comparisons
       Value returnValue =
-          booleanOperation(
+          comparisonOperation(
               (NumericValue) leftValue, (NumericValue) rightValue, binaryOperator, calculationType);
       // we do not cast here, because 0 and 1 are small enough for every type.
       return ImmutableList.of(ValueAndSMGState.of(returnValue, currentState));
@@ -782,7 +785,6 @@ public class SMGCPAValueVisitor
 
   public ValueAndSMGState castCValue(Value value, CType targetType, SMGState currentState)
       throws CPATransferException {
-    MachineModel machineModel = evaluator.getMachineModel();
     if (targetType instanceof CPointerType) {
       if (value instanceof AddressExpression || value instanceof NumericValue) {
         return ValueAndSMGState.of(value, currentState);
@@ -790,10 +792,6 @@ public class SMGCPAValueVisitor
       } else if (evaluator.isPointerValue(value, currentState)) {
         return ValueAndSMGState.of(
             AddressExpression.withZeroOffset(value, targetType), currentState);
-
-      } else if (value.isNumericValue() && options.isCastMemoryAddressesToNumeric()) {
-        logger.logf(Level.FINE, "Numeric Value '%s' interpreted as memory address.", value);
-        return evaluator.getPointerFromNumeric(value, currentState);
 
       } else if (options.trackPredicates() && value instanceof SymbolicValue) {
         return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
@@ -805,7 +803,7 @@ public class SMGCPAValueVisitor
 
     // Interpret address as numeric, try to calculate the operation based on the numeric
     // A pointer deref on a numeric (or a cast) should return it to an address expr or pointer
-    if (targetType instanceof CSimpleType && !((CSimpleType) targetType).hasComplexSpecifier()) {
+    if (targetType instanceof CSimpleType cSimpleType && !cSimpleType.hasComplexSpecifier()) {
       if (((value instanceof AddressExpression) || evaluator.isPointerValue(value, currentState))
           && options.isCastMemoryAddressesToNumeric()) {
 
@@ -820,12 +818,11 @@ public class SMGCPAValueVisitor
     }
 
     // We only use numeric/symbolic/unknown values anyway, and we can't cast unknowns
-    if (!value.isNumericValue()) {
+    if (!(value instanceof NumericValue numericValue)) {
       logger.logf(
           Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
       return ValueAndSMGState.of(value, currentState);
     }
-    NumericValue numericValue = (NumericValue) value;
 
     CType type = targetType.getCanonicalType();
     final int size;
@@ -838,7 +835,7 @@ public class SMGCPAValueVisitor
       return ValueAndSMGState.of(value, currentState);
     }
 
-    return ValueAndSMGState.of(castNumeric(numericValue, type, machineModel, size), currentState);
+    return ValueAndSMGState.of(castNumeric(numericValue, type, size), currentState);
   }
 
   @Override
@@ -862,7 +859,7 @@ public class SMGCPAValueVisitor
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : ownerExpression.accept(this)) {
       SMGState currentState = valueAndState.getState();
-      // This value is either a AddressValue for pointers i.e. (*struct).field or a general
+      // This value is either an AddressValue for pointers i.e. (*struct).field or a general
       // SymbolicValue
       Value structValue = valueAndState.getValue();
       if (structValue.isUnknown()) {
@@ -887,9 +884,8 @@ public class SMGCPAValueVisitor
           || ownerExpression.getExpressionType() instanceof CElaboratedType
           || ownerExpression.getExpressionType() instanceof CArrayType
           || ownerExpression.getExpressionType() instanceof CTypedefType) {
-        if (structValue instanceof SymbolicIdentifier) {
-          Preconditions.checkArgument(
-              ((SymbolicIdentifier) structValue).getRepresentedLocation().isPresent());
+        if (structValue instanceof SymbolicIdentifier symbolicIdentifier) {
+          Preconditions.checkArgument(symbolicIdentifier.getRepresentedLocation().isPresent());
         } else {
           Preconditions.checkArgument(structValue instanceof AddressExpression);
         }
@@ -911,7 +907,7 @@ public class SMGCPAValueVisitor
     // Either CEnumerator, CVariableDeclaration, CParameterDeclaration
     // Could also be a type/function declaration, one of which is malloc().
     // We either read the stack/global variable for non pointer and non struct/unions, or package it
-    // in a AddressExpression for pointers
+    // in an AddressExpression for pointers
     // or SymbolicValue with a memory location and the name of the variable inside.
 
     CSimpleDeclaration varDecl = e.getDeclaration();
@@ -926,14 +922,13 @@ public class SMGCPAValueVisitor
     ImmutableList.Builder<SMGState> creationBuilder = ImmutableList.builder();
     if (!state.isLocalOrGlobalVariablePresent(variableName)
         && !state.isLocalVariablePresentOnPreviousStackFrame(variableName)) {
-      if (varDecl instanceof CVariableDeclaration) {
+      if (varDecl instanceof CVariableDeclaration cVariableDeclaration) {
+        creationBuilder.addAll(
+            evaluator.handleVariableDeclarationWithoutInizializer(state, cVariableDeclaration));
+      } else if (varDecl instanceof CParameterDeclaration cParameterDeclaration) {
         creationBuilder.addAll(
             evaluator.handleVariableDeclarationWithoutInizializer(
-                state, (CVariableDeclaration) varDecl));
-      } else if (varDecl instanceof CParameterDeclaration) {
-        creationBuilder.addAll(
-            evaluator.handleVariableDeclarationWithoutInizializer(
-                state, ((CParameterDeclaration) varDecl).asVariableDeclaration()));
+                state, cParameterDeclaration.asVariableDeclaration()));
       } else {
         throw new SMGException("Unhandled on-the-fly variable creation type: " + varDecl);
       }
@@ -964,9 +959,10 @@ public class SMGCPAValueVisitor
       } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
         // Pointer/Array/Function types should return a Value that internally can be translated into
         // a
-        // SMGValue that leads to a SMGPointsToEdge that leads to the correct object (with potential
-        // offsets inside the points to edge). These have to be packaged into a AddressExpression
-        // with an 0 offset. Modifications of the offset of the address can be done by subsequent
+        // SMGValue that leads to an SMGPointsToEdge that leads to the correct object (with
+        // potential
+        // offsets inside the points to edge). These have to be packaged into an AddressExpression
+        // with a 0 offset. Modifications of the offset of the address can be done by subsequent
         // methods. (The check is fine because we already filtered out structs/unions)
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
         // Now use the qualified name to get the actual global/stack memory location
@@ -1028,7 +1024,7 @@ public class SMGCPAValueVisitor
   @Override
   public List<ValueAndSMGState> visit(CFloatLiteralExpression e) throws CPATransferException {
     // Floating point value expression
-    BigDecimal value = e.getValue();
+    FloatValue value = e.getValue();
 
     // We simply return the Value, as if a mapping to SMGValue is needed only after Value is written
     // into the memory, but when writing a mapping is created anyway
@@ -1047,7 +1043,7 @@ public class SMGCPAValueVisitor
 
   @Override
   public List<ValueAndSMGState> visit(CStringLiteralExpression e) throws CPATransferException {
-    // TODO: both the value and old smg analysis simply return unknown in this case
+    // TODO: both the value and old SMG analysis simply return unknown in this case
     // String string = e.getContentString();
     // ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
     logger.log(Level.WARNING, "Analysis approximated string literal expression in " + cfaEdge);
@@ -1064,24 +1060,24 @@ public class SMGCPAValueVisitor
     final TypeIdOperator idOperator = e.getOperator();
     final CType innerType = e.getType();
 
-    switch (idOperator) {
-      case SIZEOF:
+    return switch (idOperator) {
+      case SIZEOF -> {
         BigInteger size = evaluator.getBitSizeof(state, innerType);
-        return ImmutableList.of(ValueAndSMGState.of(new NumericValue(size), state));
-
-      case ALIGNOF:
+        yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(size), state));
+      }
+      case ALIGNOF -> {
         BigInteger align = evaluator.getAlignOf(innerType);
-        return ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
-
-      case TYPEOF: // This can't really be solved here as we can only return Values
-
-      default:
+        yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
+      }
+      case TYPEOF -> {
+        // This can't really be solved here as we can only return Values
         logger.log(
             Level.WARNING,
             "Approximated unknown value due to missing handling of type id expression in "
                 + cfaEdge);
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
-    }
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+      }
+    };
   }
 
   @Override
@@ -1096,24 +1092,22 @@ public class SMGCPAValueVisitor
         SMGCPAExpressionEvaluator.getCanonicalType(unaryOperand.getExpressionType());
 
     switch (unaryOperator) {
-      case SIZEOF:
+      case SIZEOF -> {
         BigInteger sizeInBits = evaluator.getBitSizeof(state, operandType);
         return ImmutableList.of(
             ValueAndSMGState.of(new NumericValue(sizeInBits.divide(BigInteger.valueOf(8))), state));
-
-      case ALIGNOF:
+      }
+      case ALIGNOF -> {
         return ImmutableList.of(
             ValueAndSMGState.of(
-                new NumericValue(
-                    evaluator.getMachineModel().getAlignof(unaryOperand.getExpressionType())),
+                new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType())),
                 state));
-
-      case AMPER:
+      }
+      case AMPER -> {
         // Note: this returns AddressExpressions! Unwrap before saving!
         return evaluator.createAddress(unaryOperand, state, cfaEdge);
-
-      default:
-        break;
+      }
+      default -> {}
     }
 
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
@@ -1121,43 +1115,37 @@ public class SMGCPAValueVisitor
       SMGState currentState = valueAndState.getState();
       Value value = valueAndState.getValue();
 
+      ValueAndSMGState newValueAndState;
       if (value instanceof SymbolicValue) {
-        builder.add(
+        newValueAndState =
             ValueAndSMGState.of(
                 createSymbolicExpression(value, operandType, unaryOperator, returnType),
-                currentState));
-        continue;
-      } else if (!value.isNumericValue()) {
+                currentState);
+      } else if (!(value instanceof NumericValue numericValue)) {
         logger.logf(
             Level.FINE,
             "Returned unknown due to invalid argument %s for unary operator %s.",
             value,
             unaryOperator);
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
-        continue;
+        newValueAndState = ValueAndSMGState.ofUnknownValue(currentState);
+      } else {
+
+        final NumericValue newValue =
+            switch (unaryOperator) {
+              case MINUS -> numericValue.negate();
+              case TILDE -> new NumericValue(~numericValue.longValue());
+              default -> throw new AssertionError("Unknown unary operator: " + unaryOperator);
+            };
+        newValueAndState = ValueAndSMGState.of(newValue, currentState);
       }
-
-      final NumericValue numericValue = (NumericValue) value;
-      switch (unaryOperator) {
-        case MINUS:
-          builder.add(ValueAndSMGState.of(numericValue.negate(), currentState));
-          continue;
-
-        case TILDE:
-          builder.add(
-              ValueAndSMGState.of(new NumericValue(~numericValue.longValue()), currentState));
-          continue;
-
-        default:
-          throw new AssertionError("Unknown unary operator: " + unaryOperator);
-      }
+      builder.add(newValueAndState);
     }
     return builder.build();
   }
 
   @Override
   public List<ValueAndSMGState> visit(CPointerExpression e) throws CPATransferException {
-    // This should subevaluate to a AddressExpression in the visit call in the beginning as we
+    // This should subevaluate to an AddressExpression in the visit call in the beginning as we
     // always evaluate to the address, but only
     // dereference and read it if it's not a struct/union as those will be dereferenced
     // by the field expression
@@ -1167,7 +1155,7 @@ public class SMGCPAValueVisitor
     // Get the expression that is dereferenced
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
-    // the target and an offset. If this fails this returns a UnknownValue.
+    // the target and an offset. If this fails this returns an UnknownValue.
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : expr.accept(this)) {
       SMGState currentState = valueAndState.getState();
@@ -1187,11 +1175,11 @@ public class SMGCPAValueVisitor
             AddressExpression.of(value, e.getExpressionType(), new NumericValue(BigInteger.ZERO));
       }
 
-      if (!(value instanceof AddressExpression)) {
+      if (!(value instanceof AddressExpression pointerValue)) {
         // Non-pointer dereference, either numeric or symbolic
         Preconditions.checkArgument(
-            (value.isNumericValue()
-                    && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))
+            (value instanceof NumericValue numValue
+                    && numValue.bigIntegerValue().equals(BigInteger.ZERO))
                 || !evaluator.isPointerValue(value, currentState));
         builder.add(
             ValueAndSMGState.ofUnknownValue(
@@ -1202,11 +1190,9 @@ public class SMGCPAValueVisitor
         continue;
       }
 
-      AddressExpression pointerValue = (AddressExpression) value;
-
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();
-      if (!offset.isNumericValue() && !options.trackErrorPredicates()) {
+      if (!(offset instanceof NumericValue) && !options.trackErrorPredicates()) {
         // If the offset is not numericly known we can't read a value, return unknown iff we don't
         // check with SMT solvers later
         builder.add(
@@ -1221,8 +1207,8 @@ public class SMGCPAValueVisitor
       BigInteger sizeInBits = evaluator.getBitSizeof(currentState, returnType);
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
-        if (!offset.isNumericValue()) {
-          // If the offset is not numericly known we can't read a value
+        if (!(offset instanceof NumericValue)) {
+          // If the offset is not numerically known we can't read a value
           builder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState.withUnknownOffsetMemoryAccess(),
@@ -1261,7 +1247,7 @@ public class SMGCPAValueVisitor
                     sizeInBits,
                     returnType,
                     e)
-                .get(0);
+                .getFirst();
         currentState = readValueAndState.getState();
 
         if (returnType instanceof CPointerType) {
@@ -1283,7 +1269,7 @@ public class SMGCPAValueVisitor
     // && expression
     // This is not in the C standard, just gcc
     // https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html
-    // Returns a address to a function
+    // Returns an address to a function
     // TODO:
 
     return visitDefault(e);
@@ -1322,8 +1308,8 @@ public class SMGCPAValueVisitor
   private Value castSymbolicValue(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-    if (pValue instanceof SymbolicValue && pTargetType instanceof CSimpleType) {
-      return factory.cast((SymbolicValue) pValue, pTargetType);
+    if (pValue instanceof SymbolicValue symbolicValue && pTargetType instanceof CSimpleType) {
+      return factory.cast(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -1332,54 +1318,69 @@ public class SMGCPAValueVisitor
 
   /** Taken from the value analysis CPA. TODO: check that all casts are correct and add missing. */
   private Value castNumeric(
-      @NonNull final NumericValue numericValue,
-      final CType type,
-      final MachineModel machineModel,
-      final int size) {
+      @NonNull final NumericValue numericValue, final CType type, final int size) {
 
-    if (!(type instanceof CSimpleType)) {
+    if (!(type instanceof CSimpleType st)) {
       return numericValue;
     }
 
-    final CSimpleType st = (CSimpleType) type;
-
     switch (st.getType()) {
-      case BOOL:
+      case BOOL -> {
         return convertToBool(numericValue);
-      case INT128:
-      case INT:
-      case CHAR:
-        {
-          if (isNan(numericValue)) {
-            // result of conversion of NaN to integer is undefined
+      }
+      case INT128, INT, CHAR -> {
+        // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+        // TODO: check for overflow(source larger than the highest number we can store in target
+        // etc.)
+
+        boolean targetIsSigned = machineModel.isSigned(st);
+        BigInteger integerValue;
+
+        // Convert the value to integer
+        if (numericValue.hasFloatType()) {
+          // Casting from a floating point value to BigInteger
+          Optional<BigInteger> maybeInteger = numericValue.getFloatValue().toInteger();
+          if (maybeInteger.isEmpty()) {
+            // If the value was NaN or Infinity the result of the conversion is undefined
             return UnknownValue.getInstance();
-
-          } else if ((numericValue.getNumber() instanceof Float
-                  || numericValue.getNumber() instanceof Double)
-              && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
-            // if number is a float and float can not be exactly represented as integer, the
-            // result of the conversion of float to integer is undefined
-            return UnknownValue.getInstance();
-          }
-
-          final BigInteger valueToCastAsInt = numericValue.bigIntegerValue();
-          final boolean targetIsSigned = machineModel.isSigned(st);
-
-          final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
-          BigInteger result = valueToCastAsInt.remainder(maxValue); // shrink to number of bits
-
-          BigInteger signedUpperBound;
-          BigInteger signedLowerBound;
-          if (targetIsSigned) {
-            // signed value must be put in interval [-(maxValue/2), (maxValue/2)-1]
-            // upper bound maxValue / 2 - 1
-            signedUpperBound = maxValue.divide(BigInteger.valueOf(2)).subtract(BigInteger.ONE);
-            // lower bound -maxValue / 2
-            signedLowerBound = maxValue.divide(BigInteger.valueOf(2)).negate();
           } else {
-            signedUpperBound = maxValue.subtract(BigInteger.ONE);
-            signedLowerBound = BigInteger.ZERO;
+            integerValue = maybeInteger.orElseThrow();
           }
+        } else {
+          // Casting from Rational or one of the integer types
+          integerValue = numericValue.bigIntegerValue();
+        }
+
+        // Calculate bounds for overflow
+        final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
+        BigInteger signedUpperBound;
+        BigInteger signedLowerBound;
+        if (targetIsSigned) {
+          // signed value must be put in interval [-(maxValue/2), (maxValue/2)-1]
+          // upper bound maxValue / 2 - 1
+          signedUpperBound = maxValue.divide(BigInteger.valueOf(2)).subtract(BigInteger.ONE);
+          // lower bound -maxValue / 2
+          signedLowerBound = maxValue.divide(BigInteger.valueOf(2)).negate();
+        } else {
+          signedUpperBound = maxValue.subtract(BigInteger.ONE);
+          signedLowerBound = BigInteger.ZERO;
+        }
+
+        BigInteger result;
+
+        // Check for overflows
+        if (numericValue.hasFloatType()) {
+          // Casting from a floating point value
+          if (isGreaterThan(integerValue, signedUpperBound)
+              || isLessThan(integerValue, signedLowerBound)) {
+            // If the number does not fit into the target type the result is undefined
+            return UnknownValue.getInstance();
+          } else {
+            result = integerValue;
+          }
+        } else {
+          // Casting from Rational or an integer type
+          result = integerValue.remainder(maxValue); // shrink to number of bits
 
           if (isGreaterThan(result, signedUpperBound)) {
             // if result overflows, let it 'roll around' and add overflow to lower bound
@@ -1387,53 +1388,73 @@ public class SMGCPAValueVisitor
           } else if (isLessThan(result, signedLowerBound)) {
             result = result.add(maxValue);
           }
+        }
 
+        // transform result to a long and fail if it doesn't fit
+        if (size < SIZE_OF_JAVA_LONG || (size == SIZE_OF_JAVA_LONG && targetIsSigned)) {
+          return new NumericValue(result.longValueExact());
+        } else {
           return new NumericValue(result);
         }
+      }
 
-      case FLOAT:
-      case DOUBLE:
-      case FLOAT128:
-        {
-          // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
-          // TODO: check for overflow(source larger than the highest number we can store in target
-          // etc.)
+      case FLOAT, DOUBLE, FLOAT128 -> {
+        FloatValue.Format target;
 
-          // casting to DOUBLE, if value is INT or FLOAT. This is sound, if we would also do this
-          // cast in C.
-          Value result;
-
-          final int bitPerByte = machineModel.getSizeofCharInBits();
-
-          if (isNan(numericValue) || isInfinity(numericValue)) {
-            result = numericValue;
-          } else if (size == machineModel.getSizeofFloat() * 8) {
-            // 32 bit means Java float
-            result = new NumericValue(numericValue.floatValue());
-          } else if (size == machineModel.getSizeofDouble() * 8) {
-            // 64 bit means Java double
-            result = new NumericValue(numericValue.doubleValue());
-          } else if (size == machineModel.getSizeofFloat128() * 8) {
-            result = new NumericValue(numericValue.bigDecimalValue());
-          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte
-              || size == machineModel.getSizeofDouble()) {
-
-            if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
-              result = new NumericValue(numericValue.doubleValue());
-            } else if (numericValue.bigDecimalValue().floatValue() == numericValue.floatValue()) {
-              result = new NumericValue(numericValue.floatValue());
-            } else {
-              result = UnknownValue.getInstance();
-            }
-          } else {
-            // TODO: Think of floating point types!
-            throw new AssertionError("Unhandled floating point type: " + type);
-          }
-          return result;
+        // Find the target format
+        final int bitPerByte = machineModel.getSizeofCharInBits();
+        if (size == machineModel.getSizeofFloat() * bitPerByte) {
+          target = FloatValue.Format.Float32;
+        } else if (size == machineModel.getSizeofDouble() * bitPerByte) {
+          target = FloatValue.Format.Float64;
+        } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+          // Must be Linux32 or Linux64, otherwise the second clause would have matched
+          target = FloatValue.Format.Float80;
+        } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
+          target = FloatValue.Format.Float128;
+        } else {
+          // Unsupported target format
+          throw new AssertionError(
+              String.format(
+                  "Unsupported target format. Value `%s` with bitwidth %d can't be cast to type"
+                      + "`%s`",
+                  numericValue, size, st.getType()));
         }
 
-      default:
-        throw new AssertionError("Unhandled type: " + type);
+        Number result;
+
+        // Convert to target format
+        // TODO: Add warnings for lossy conversions?
+        if (numericValue.hasFloatType()) {
+          // Casting from a floating point value
+          if (numericValue.getNumber() instanceof FloatValue floatValue) {
+            // Already a FloatValue
+            // We just need to adjust the precision
+            result = floatValue.withPrecision(target);
+          } else {
+            // Either Double or Float
+            // Cast to double and then convert
+            result = FloatValue.fromDouble(numericValue.doubleValue());
+          }
+        } else if (numericValue.hasIntegerType()) {
+          // Casting from an integer
+          result = FloatValue.fromInteger(target, numericValue.bigIntegerValue());
+        } else if (numericValue.getNumber() instanceof Rational rationalValue) {
+          // Casting from a rational
+          result = FloatValue.fromRational(target, rationalValue);
+        } else {
+          // Unsupported value type
+          throw new AssertionError(
+              String.format(
+                  "Unsupported type. Value `%s` has type `%s`, but only integers, floating points"
+                      + "and rationals are allowed.",
+                  numericValue, numericValue.getNumber().getClass().getSimpleName()));
+        }
+
+        return new NumericValue(result);
+      }
+
+      default -> throw new AssertionError("Unhandled type: " + type);
     }
   }
 
@@ -1451,23 +1472,8 @@ public class SMGCPAValueVisitor
   private boolean isBooleanFalseRepresentation(final Number n) {
     return ((n instanceof Float || n instanceof Double) && 0 == n.doubleValue())
         || (n instanceof BigInteger && BigInteger.ZERO.equals(n))
-        || (n instanceof BigDecimal && ((BigDecimal) n).compareTo(BigDecimal.ZERO) == 0)
+        || (n instanceof BigDecimal bigDecimal && bigDecimal.compareTo(BigDecimal.ZERO) == 0)
         || 0 == n.longValue();
-  }
-
-  /** Taken from the value analysis CPA. */
-  private boolean isNan(NumericValue pValue) {
-    Number n = pValue.getNumber();
-    return n.equals(Float.NaN) || n.equals(Double.NaN) || NegativeNaN.VALUE.equals(n);
-  }
-
-  /** Taken from the value analysis CPA. */
-  private boolean isInfinity(NumericValue pValue) {
-    Number n = pValue.getNumber();
-    return n.equals(Double.POSITIVE_INFINITY)
-        || n.equals(Double.NEGATIVE_INFINITY)
-        || n.equals(Float.POSITIVE_INFINITY)
-        || n.equals(Float.NEGATIVE_INFINITY);
   }
 
   /**
@@ -1487,153 +1493,65 @@ public class SMGCPAValueVisitor
   // +++++++++++++++++++ Below this point methods for handling functions
 
   private boolean isUnspecifiedType(CType pType) {
-    return pType instanceof CSimpleType
-        && ((CSimpleType) pType).getType() == CBasicType.UNSPECIFIED;
+    return pType instanceof CSimpleType cSimpleType
+        && cSimpleType.getType() == CBasicType.UNSPECIFIED;
   }
 
-  private Value fmin(Number pOp1, Number pOp2) {
-    if (Double.isNaN(pOp1.doubleValue())
-        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() > 0)
-        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() < 0)) {
-      return new NumericValue(pOp2);
-    }
-    if (Double.isNaN(pOp2.doubleValue())
-        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() > 0)
-        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() < 0)) {
-      return new NumericValue(pOp1);
-    }
-
-    final BigDecimal op1bd;
-    final BigDecimal op2bd;
-
-    if (pOp1 instanceof BigDecimal) {
-      op1bd = (BigDecimal) pOp1;
-    } else {
-      op1bd = BigDecimal.valueOf(pOp1.doubleValue());
-    }
-    if (pOp2 instanceof BigDecimal) {
-      op2bd = (BigDecimal) pOp2;
-    } else {
-      op2bd = BigDecimal.valueOf(pOp2.doubleValue());
-    }
-
-    if (op1bd.compareTo(op2bd) < 0) {
-      return new NumericValue(op1bd);
-    }
-    return new NumericValue(op2bd);
+  /** Cast the argument to a floating point type */
+  private static FloatValue castToFloat(
+      MachineModel pMachineModel, CSimpleType pTargetType, NumericValue pValue) {
+    checkArgument(pTargetType.getType().isFloatingPointType());
+    FloatValue.Format precision = FloatValue.Format.fromCType(pMachineModel, pTargetType);
+    return pValue.floatingPointValue(precision);
   }
 
-  private Value fdim(Number pOp1, Number pOp2, String pFunctionName) {
-    if (Double.isNaN(pOp1.doubleValue()) || Double.isNaN(pOp2.doubleValue())) {
-      return new NumericValue(Double.NaN);
-    }
+  /**
+   * Helper method to handle unary builtin function in {@link
+   * AbstractExpressionValueVisitor#visit(CFunctionCallExpression)}
+   */
+  private List<ValueAndSMGState> handleBuiltinFunction1(
+      String pName,
+      List<Value> pArguments,
+      SMGState pState,
+      Function<FloatValue, Value> pOperation) {
+    final Value parameter = Iterables.getOnlyElement(pArguments);
+    if (parameter.isExplicitlyKnown()) {
+      // Cast the argument to match the function type
+      FloatValue value =
+          castToFloat(
+              machineModel,
+              BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
+              (NumericValue) parameter);
 
-    if (Double.isInfinite(pOp1.doubleValue())) {
-      if (Double.isInfinite(pOp2.doubleValue())) {
-        if (pOp1.doubleValue() > pOp2.doubleValue()) {
-          return new NumericValue(pOp1.doubleValue() - pOp2.doubleValue());
-        }
-        return new NumericValue(0.0);
-      }
-      if (pOp1.doubleValue() < 0) {
-        return new NumericValue(0.0);
-      }
-      return new NumericValue(pOp1);
-    }
-    if (Double.isInfinite(pOp2.doubleValue())) {
-      if (pOp2.doubleValue() < 0) {
-        return new NumericValue(Double.NaN);
-      }
-      return new NumericValue(0.0);
-    }
-
-    final BigDecimal op1bd;
-    final BigDecimal op2bd;
-
-    if (pOp1 instanceof BigDecimal) {
-      op1bd = (BigDecimal) pOp1;
+      return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value), pState));
     } else {
-      op1bd = BigDecimal.valueOf(pOp1.doubleValue());
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
     }
-    if (pOp2 instanceof BigDecimal) {
-      op2bd = (BigDecimal) pOp2;
-    } else {
-      op2bd = BigDecimal.valueOf(pOp2.doubleValue());
-    }
-    if (op1bd.compareTo(op2bd) > 0) {
-      BigDecimal difference = op1bd.subtract(op2bd);
-
-      CSimpleType type = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
-      BigDecimal maxValue;
-      switch (type.getType()) {
-        case FLOAT:
-          maxValue = BigDecimal.valueOf(Float.MAX_VALUE);
-          break;
-        case DOUBLE:
-          maxValue = BigDecimal.valueOf(Double.MAX_VALUE);
-          break;
-        default:
-          return Value.UnknownValue.getInstance();
-      }
-      if (difference.compareTo(maxValue) > 0) {
-        return new NumericValue(Double.POSITIVE_INFINITY);
-      }
-      return new NumericValue(difference);
-    }
-    return new NumericValue(0.0);
   }
 
-  private Optional<Boolean> isNegative(Number pNumber) {
-    if (pNumber instanceof BigDecimal) {
-      return Optional.of(((BigDecimal) pNumber).signum() < 0);
-    } else if (pNumber instanceof Float) {
-      float number = pNumber.floatValue();
-      if (Float.isNaN(number)) {
-        return Optional.of(false);
-      }
-      return Optional.of(number < 0 || 1 / number < 0);
-    } else if (pNumber instanceof Double) {
-      double number = pNumber.doubleValue();
-      if (Double.isNaN(number)) {
-        return Optional.of(false);
-      }
-      return Optional.of(number < 0 || 1 / number < 0);
-    } else if (pNumber instanceof NegativeNaN) {
-      return Optional.of(true);
-    }
-    return Optional.empty();
-  }
+  /**
+   * Helper method to handle binary builtin function in {@link
+   * AbstractExpressionValueVisitor#visit(CFunctionCallExpression)}
+   */
+  private List<ValueAndSMGState> handleBuiltinFunction2(
+      String pName,
+      List<Value> pArguments,
+      SMGState pState,
+      BiFunction<FloatValue, FloatValue, Value> pOperation) {
+    checkArgument(pArguments.size() == 2);
+    Value parameter1 = pArguments.getFirst();
+    Value parameter2 = pArguments.get(1);
 
-  private Value fmax(Number pOp1, Number pOp2) {
-    if (Double.isNaN(pOp1.doubleValue())
-        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() < 0)
-        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() > 0)) {
-      return new NumericValue(pOp2);
-    }
-    if (Double.isNaN(pOp2.doubleValue())
-        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() < 0)
-        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() > 0)) {
-      return new NumericValue(pOp1);
-    }
+    if (parameter1.isExplicitlyKnown() && parameter2.isExplicitlyKnown()) {
+      // Cast both arguments to match the function type
+      CSimpleType targetType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName);
+      FloatValue value1 = castToFloat(machineModel, targetType, (NumericValue) parameter1);
+      FloatValue value2 = castToFloat(machineModel, targetType, (NumericValue) parameter2);
 
-    final BigDecimal op1bd;
-    final BigDecimal op2bd;
-
-    if (pOp1 instanceof BigDecimal) {
-      op1bd = (BigDecimal) pOp1;
+      return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value1, value2), pState));
     } else {
-      op1bd = BigDecimal.valueOf(pOp1.doubleValue());
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
     }
-    if (pOp2 instanceof BigDecimal) {
-      op2bd = (BigDecimal) pOp2;
-    } else {
-      op2bd = BigDecimal.valueOf(pOp2.doubleValue());
-    }
-
-    if (op1bd.compareTo(op2bd) > 0) {
-      return new NumericValue(op1bd);
-    }
-    return new NumericValue(op2bd);
   }
 
   /*
@@ -1644,8 +1562,8 @@ public class SMGCPAValueVisitor
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
     // We only handle builtin functions
-    if (functionNameExp instanceof CIdExpression) {
-      String calledFunctionName = ((CIdExpression) functionNameExp).getName();
+    if (functionNameExp instanceof CIdExpression cIdExpression) {
+      String calledFunctionName = cIdExpression.getName();
 
       if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
 
@@ -1675,9 +1593,9 @@ public class SMGCPAValueVisitor
           List<ValueAndSMGState> newValuesAndStates =
               vv.evaluate(currParamExp, SMGCPAExpressionEvaluator.getCanonicalType(currParamExp));
           Preconditions.checkArgument(newValuesAndStates.size() == 1);
-          Value newValue = newValuesAndStates.get(0).getValue();
+          Value newValue = newValuesAndStates.getFirst().getValue();
           // CPA access has side effects! Always take the newest state!
-          currentState = newValuesAndStates.get(0).getState();
+          currentState = newValuesAndStates.getFirst().getState();
 
           parameterValuesBuilder.add(newValue);
         }
@@ -1686,577 +1604,303 @@ public class SMGCPAValueVisitor
         // TODO: split this mess into functions
         if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           /*
-           * Problem: this method needs a AbstractExpressionValueVisitor as input (this)
+           * Problem: this method needs an AbstractExpressionValueVisitor as input (this)
            * but this class is not correctly abstracted such that we can inherit it here
            * (because it essentially is the same except for 1 method that would need to be
            * abstract)
            *
            * return BuiltinOverflowFunctions.evaluateFunctionCall(
-           *   pIastFunctionCallExpression, this, evaluator.getMachineModel(), logger);
+           *   pIastFunctionCallExpression, this, machineModel, logger);
            */
           return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
+
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
-          assert parameterValues.size() == 1;
-
-          final CType parameterType = parameterExpressions.get(0).getExpressionType();
-          final Value parameter = parameterValues.get(0);
-
-          if (parameterType instanceof CSimpleType
-              && !((CSimpleType) parameterType).hasSignedSpecifier()) {
-            return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
-
-          } else if (parameter.isExplicitlyKnown()) {
-            assert parameter.isNumericValue();
-            final double absoluteValue = Math.abs(((NumericValue) parameter).doubleValue());
-
-            // absolute value for INT_MIN is undefined behaviour, so we do not bother handling it
-            // in any specific way
-            return ImmutableList.of(
-                ValueAndSMGState.of(new NumericValue(absoluteValue), currentState));
-          }
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue(arg.abs()));
 
         } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
             || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
-
-          assert parameterValues.isEmpty();
-          if (BuiltinFloatFunctions.matchesHugeValFloat(calledFunctionName)
-              || BuiltinFloatFunctions.matchesInfinityFloat(calledFunctionName)) {
-
-            return ImmutableList.of(
-                ValueAndSMGState.of(new NumericValue(Float.POSITIVE_INFINITY), currentState));
-
-          } else {
-            assert BuiltinFloatFunctions.matchesInfinityDouble(calledFunctionName)
-                    || BuiltinFloatFunctions.matchesInfinityLongDouble(calledFunctionName)
-                    || BuiltinFloatFunctions.matchesHugeValDouble(calledFunctionName)
-                    || BuiltinFloatFunctions.matchesHugeValLongDouble(calledFunctionName)
-                : " Unhandled builtin function for infinity: " + calledFunctionName;
-
-            return ImmutableList.of(
-                ValueAndSMGState.of(new NumericValue(Double.POSITIVE_INFINITY), currentState));
-          }
+          checkArgument(parameterValues.isEmpty());
+          FloatValue.Format precision =
+              FloatValue.Format.fromCType(
+                  machineModel,
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
+          return ImmutableList.of(
+              ValueAndSMGState.of(new NumericValue(FloatValue.infinity(precision)), currentState));
 
         } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
-          assert parameterValues.isEmpty() || parameterValues.size() == 1;
+          // FIXME: Add support for NaN payloads
+          checkArgument(parameterValues.size() < 2);
+          FloatValue.Format precision =
+              FloatValue.Format.fromCType(
+                  machineModel,
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
+          return ImmutableList.of(
+              ValueAndSMGState.of(new NumericValue(FloatValue.nan(precision)), currentState));
 
-          if (BuiltinFloatFunctions.matchesNaNFloat(calledFunctionName)) {
-            return ImmutableList.of(ValueAndSMGState.of(new NumericValue(Float.NaN), currentState));
-          } else {
-            assert BuiltinFloatFunctions.matchesNaNDouble(calledFunctionName)
-                    || BuiltinFloatFunctions.matchesNaNLongDouble(calledFunctionName)
-                : "Unhandled builtin function for NaN: " + calledFunctionName;
-
-            return ImmutableList.of(
-                ValueAndSMGState.of(new NumericValue(Double.NaN), currentState));
-          }
         } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
-          if (parameterValues.size() == 1) {
-            Value value = parameterValues.get(0);
-            if (value.isExplicitlyKnown()) {
-              NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
-              switch (paramType.getType()) {
-                case FLOAT:
-                  return Float.isNaN(numericValue.floatValue())
-                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState))
-                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
-                case DOUBLE:
-                  return Double.isNaN(numericValue.doubleValue())
-                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState))
-                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
-                default:
-                  break;
-              }
-            }
-          }
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue(arg.isNan() ? 1 : 0));
+
         } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
-          if (parameterValues.size() == 1) {
-            Value value = parameterValues.get(0);
-            if (value.isExplicitlyKnown()) {
-              NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
-              switch (paramType.getType()) {
-                case FLOAT:
-                  return Float.isInfinite(numericValue.floatValue())
-                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState))
-                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
-                case DOUBLE:
-                  return Double.isInfinite(numericValue.doubleValue())
-                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState))
-                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
-                default:
-                  break;
-              }
-            }
-          }
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue(arg.isInfinite() ? 1 : 0));
+
+        } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) ->
+                  new NumericValue(arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0));
+
         } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
-          if (parameterValues.size() == 1) {
-            Value value = parameterValues.get(0);
-            if (value.isExplicitlyKnown()) {
-              NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
-              switch (paramType.getType()) {
-                case FLOAT:
-                  return Float.isInfinite(numericValue.floatValue())
-                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState))
-                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState));
-                case DOUBLE:
-                  return Double.isInfinite(numericValue.doubleValue())
-                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState))
-                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState));
-                default:
-                  break;
-              }
-            }
-          }
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1));
+
         } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
-          if (parameterValues.size() == 1) {
-            Value parameter = parameterValues.get(0);
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue(arg.round(FloatValue.RoundingMode.FLOOR)));
 
-            if (parameter.isExplicitlyKnown()) {
-              assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
-              if (number instanceof BigDecimal) {
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.FLOOR)),
-                        currentState));
-              } else if (number instanceof Float) {
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(Math.floor(number.floatValue())), currentState));
-              } else if (number instanceof Double) {
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(Math.floor(number.doubleValue())), currentState));
-              } else if (number instanceof NumericValue.NegativeNaN) {
-                return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
-              }
-            }
-          }
         } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
-          if (parameterValues.size() == 1) {
-            Value parameter = parameterValues.get(0);
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue(arg.round(FloatValue.RoundingMode.CEILING)));
 
-            if (parameter.isExplicitlyKnown()) {
-              assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
-              if (number instanceof BigDecimal) {
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.CEILING)),
-                        currentState));
-              } else if (number instanceof Float) {
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(Math.ceil(number.floatValue())), currentState));
-              } else if (number instanceof Double) {
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(Math.ceil(number.doubleValue())), currentState));
-              } else if (number instanceof NumericValue.NegativeNaN) {
-                return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
-              }
-            }
-          }
-        } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)
-            || BuiltinFloatFunctions.matchesLround(calledFunctionName)
-            || BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
-          if (parameterValues.size() == 1) {
-            Value parameter = parameterValues.get(0);
-            if (parameter.isExplicitlyKnown()) {
-              assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
-              if (number instanceof BigDecimal) {
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.HALF_UP)),
-                        currentState));
-              } else if (number instanceof Float) {
-                float f = number.floatValue();
-                if (0 == f || Float.isInfinite(f)) {
-                  return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
-                }
-                return ImmutableList.of(
-                    ValueAndSMGState.of(new NumericValue(Math.round(f)), currentState));
-              } else if (number instanceof Double) {
-                double d = number.doubleValue();
-                if (0 == d || Double.isInfinite(d)) {
-                  return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
-                }
-                return ImmutableList.of(
-                    ValueAndSMGState.of(new NumericValue(Math.round(d)), currentState));
-              } else if (number instanceof NumericValue.NegativeNaN) {
-                return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
-              }
-            }
-          }
+        } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)) {
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) ->
+                  new NumericValue(arg.round(FloatValue.RoundingMode.NEAREST_AWAY)));
+
+        } else if (BuiltinFloatFunctions.matchesLround(calledFunctionName)) {
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> {
+                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+                return switch (machineModel.getSizeofLongInt()) {
+                  case Integer.BYTES -> new NumericValue(value.integerValue());
+                  case Long.BYTES -> new NumericValue(value.longValue());
+                  default -> Value.UnknownValue.getInstance();
+                };
+              });
+
+        } else if (BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> {
+                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+                return switch (machineModel.getSizeofLongLongInt()) {
+                  case Integer.BYTES -> new NumericValue(value.integerValue());
+                  case Long.BYTES -> new NumericValue(value.longValue());
+                  default -> Value.UnknownValue.getInstance();
+                };
+              });
+
         } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
-          if (parameterValues.size() == 1) {
-            Value parameter = parameterValues.get(0);
-            if (parameter.isExplicitlyKnown()) {
-              assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
-              if (number instanceof BigDecimal) {
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.DOWN)),
-                        currentState));
-              } else if (number instanceof Float) {
-                float f = number.floatValue();
-                if (0 == f || Float.isInfinite(f) || Float.isNaN(f)) {
-                  // +/-0.0 and +/-INF and +/-NaN are returned unchanged
-                  return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
-                }
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(
-                            BigDecimal.valueOf(number.floatValue())
-                                .setScale(0, RoundingMode.DOWN)
-                                .floatValue()),
-                        currentState));
-              } else if (number instanceof Double) {
-                double d = number.doubleValue();
-                if (0 == d || Double.isInfinite(d) || Double.isNaN(d)) {
-                  // +/-0.0 and +/-INF and +/-NaN are returned unchanged
-                  return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
-                }
-                return ImmutableList.of(
-                    ValueAndSMGState.of(
-                        new NumericValue(
-                            BigDecimal.valueOf(number.doubleValue())
-                                .setScale(0, RoundingMode.DOWN)
-                                .doubleValue()),
-                        currentState));
-              } else if (number instanceof NumericValue.NegativeNaN) {
-                return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
-              }
-            }
-          }
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue(arg.round(FloatValue.RoundingMode.TRUNCATE)));
+
         } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
-          if (parameterValues.size() == 2) {
-            Value operand1 = parameterValues.get(0);
-            Value operand2 = parameterValues.get(1);
-            if (operand1.isExplicitlyKnown() && operand2.isExplicitlyKnown()) {
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(
+                      arg1.lessOrEqual(arg2)
+                          ? FloatValue.zero(arg1.getFormat())
+                          : arg1.subtract(arg2)));
 
-              assert operand1.isNumericValue();
-              assert operand2.isNumericValue();
-
-              Number op1 = operand1.asNumericValue().getNumber();
-              Number op2 = operand2.asNumericValue().getNumber();
-
-              Value result = fdim(op1, op2, calledFunctionName);
-              if (!Value.UnknownValue.getInstance().equals(result)) {
-                return ImmutableList.of(ValueAndSMGState.of(result, currentState));
-              }
-            }
-          }
         } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
-          if (parameterValues.size() == 2) {
-            Value operand1 = parameterValues.get(0);
-            Value operand2 = parameterValues.get(1);
-            if (operand1.isExplicitlyKnown() && operand2.isExplicitlyKnown()) {
+          // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
+          // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
+          // return the first argument.
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(
+                      switch (arg1.compareWithTotalOrder(arg2)) {
+                        case -1 -> arg2.isNan() ? arg1 : arg2;
+                        case +1 -> arg1.isNan() ? arg2 : arg1;
+                        default -> arg1;
+                      }));
 
-              assert operand1.isNumericValue();
-              assert operand2.isNumericValue();
-
-              Number op1 = operand1.asNumericValue().getNumber();
-              Number op2 = operand2.asNumericValue().getNumber();
-
-              return ImmutableList.of(ValueAndSMGState.of(fmax(op1, op2), currentState));
-            }
-          }
         } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
-          if (parameterValues.size() == 2) {
-            Value operand1 = parameterValues.get(0);
-            Value operand2 = parameterValues.get(1);
-            if (operand1.isExplicitlyKnown() && operand2.isExplicitlyKnown()) {
+          // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
+          // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
+          // argument for `float` or `double` and the second for `long double`
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(
+                      switch (arg1.compareWithTotalOrder(arg2)) {
+                        case -1 -> arg1.isNan() ? arg2 : arg1;
+                        case +1 -> arg2.isNan() ? arg1 : arg2;
+                        default -> arg1;
+                      }));
 
-              assert operand1.isNumericValue();
-              assert operand2.isNumericValue();
-
-              Number op1 = operand1.asNumericValue().getNumber();
-              Number op2 = operand2.asNumericValue().getNumber();
-
-              return ImmutableList.of(ValueAndSMGState.of(fmin(op1, op2), currentState));
-            }
-          }
         } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
-          if (parameterValues.size() == 1) {
-            Value parameter = parameterValues.get(0);
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue(arg.isNegative() ? 1 : 0));
 
-            if (parameter.isExplicitlyKnown()) {
-              assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
-              Optional<Boolean> isNegative = isNegative(number);
-              if (isNegative.isPresent()) {
+        } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.copySign(arg2)));
+
+        } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> {
+                int fpClass;
+                if (arg.isNan()) {
+                  fpClass = 0;
+                } else if (arg.isInfinite()) {
+                  fpClass = 1;
+                } else if (arg.isZero()) {
+                  fpClass = 2;
+                } else if (arg.abs().lessThan(FloatValue.minNormal(arg.getFormat()))) {
+                  // Subnormal numbers
+                  fpClass = 3;
+                } else {
+                  fpClass = 4;
+                }
+                return new NumericValue(fpClass);
+              });
+
+        } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
+          // FIXME: Assign the integer part to the pointer from the second parameter
+          if (parameterValues.size() == 2) {
+            Value value = parameterValues.getFirst();
+            if (value.isExplicitlyKnown()) {
+              FloatValue arg =
+                  castToFloat(
+                      machineModel,
+                      BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
+                      (NumericValue) value);
+
+              if (arg.isInfinite()) {
+                // Return zero if the number is infinite
                 return ImmutableList.of(
                     ValueAndSMGState.of(
-                        new NumericValue(isNegative.orElseThrow() ? 1 : 0), currentState));
-              }
-            }
-          }
-        } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
-          if (parameterValues.size() == 2) {
-            Value target = parameterValues.get(0);
-            Value source = parameterValues.get(1);
-            if (target.isExplicitlyKnown() && source.isExplicitlyKnown()) {
-              assert target.isNumericValue();
-              assert source.isNumericValue();
-              Number targetNumber = target.asNumericValue().getNumber();
-              Number sourceNumber = source.asNumericValue().getNumber();
-              Optional<Boolean> sourceNegative = isNegative(sourceNumber);
-              Optional<Boolean> targetNegative = isNegative(targetNumber);
-              if (sourceNegative.isPresent() && targetNegative.isPresent()) {
-                if (sourceNegative.orElseThrow().equals(targetNegative.orElseThrow())) {
-                  return ImmutableList.of(
-                      ValueAndSMGState.of(new NumericValue(targetNumber), currentState));
-                }
+                        new NumericValue(
+                            arg.isNegative()
+                                ? FloatValue.negativeZero(arg.getFormat())
+                                : FloatValue.zero(arg.getFormat())),
+                        currentState));
+              } else {
+                // Otherwise, get the fractional part
                 return ImmutableList.of(
-                    ValueAndSMGState.of(target.asNumericValue().negate(), currentState));
+                    ValueAndSMGState.of(
+                        new NumericValue(arg.modulo(FloatValue.one(arg.getFormat()))),
+                        currentState));
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
 
-          if (parameterValues.size() == 1) {
-            Value value = parameterValues.get(0);
-            if (value.isExplicitlyKnown()) {
-              NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
-              switch (paramType.getType()) {
-                case FLOAT:
-                  {
-                    float v = numericValue.floatValue();
-                    if (Float.isNaN(v)) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(0), currentState));
-                    }
-                    if (Float.isInfinite(v)) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(1), currentState));
-                    }
-                    if (v == 0.0) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(2), currentState));
-                    }
-                    if (Float.toHexString(v).startsWith("0x0.")) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(3), currentState));
-                    }
-                    return ImmutableList.of(ValueAndSMGState.of(new NumericValue(4), currentState));
-                  }
-                case DOUBLE:
-                  {
-                    double v = numericValue.doubleValue();
-                    if (Double.isNaN(v)) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(0), currentState));
-                    }
-                    if (Double.isInfinite(v)) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(1), currentState));
-                    }
-                    if (v == 0.0) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(2), currentState));
-                    }
-                    if (Double.toHexString(v).startsWith("0x0.")) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(3), currentState));
-                    }
-                    return ImmutableList.of(ValueAndSMGState.of(new NumericValue(4), currentState));
-                  }
-                default:
-                  break;
-              }
-            }
-          }
-        } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
-          if (parameterValues.size() == 2) {
-            Value value = parameterValues.get(0);
-            if (value.isExplicitlyKnown()) {
-              NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
-              switch (paramType.getType()) {
-                case FLOAT:
-                  {
-                    long integralPart = (long) numericValue.floatValue();
-                    float fractionalPart = numericValue.floatValue() - integralPart;
-                    return ImmutableList.of(
-                        ValueAndSMGState.of(new NumericValue(fractionalPart), currentState));
-                  }
-                case DOUBLE:
-                  {
-                    long integralPart = (long) numericValue.doubleValue();
-                    double fractionalPart = numericValue.doubleValue() - integralPart;
-                    return ImmutableList.of(
-                        ValueAndSMGState.of(new NumericValue(fractionalPart), currentState));
-                  }
-                default:
-                  break;
-              }
-            }
-          }
         } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
-          if (parameterValues.size() == 2) {
-            Value numer = parameterValues.get(0);
-            Value denom = parameterValues.get(1);
-            if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
-              NumericValue numerValue = numer.asNumericValue();
-              NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName)
-                  .getType()) {
-                case FLOAT:
-                  {
-                    float num = numerValue.floatValue();
-                    float den = denomValue.floatValue();
-                    if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(Float.NaN), currentState));
-                    }
-                    return ImmutableList.of(
-                        ValueAndSMGState.of(
-                            new NumericValue((float) Math.IEEEremainder(num, den)), currentState));
-                  }
-                case DOUBLE:
-                  {
-                    double num = numerValue.doubleValue();
-                    double den = denomValue.doubleValue();
-                    if (Double.isNaN(num)
-                        || Double.isNaN(den)
-                        || Double.isInfinite(num)
-                        || den == 0) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(Double.NaN), currentState));
-                    }
-                    return ImmutableList.of(
-                        ValueAndSMGState.of(
-                            new NumericValue(Math.IEEEremainder(num, den)), currentState));
-                  }
-                default:
-                  break;
-              }
-            }
-          }
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.remainder(arg2)));
+
         } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
-          if (parameterValues.size() == 2) {
-            Value numer = parameterValues.get(0);
-            Value denom = parameterValues.get(1);
-            if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
-              NumericValue numerValue = numer.asNumericValue();
-              NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName)
-                  .getType()) {
-                case FLOAT:
-                  {
-                    float num = numerValue.floatValue();
-                    float den = denomValue.floatValue();
-                    if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(Float.NaN), currentState));
-                    }
-                    if (num == 0 && den != 0) {
-                      // keep the sign on +0 and -0
-                      return ImmutableList.of(ValueAndSMGState.of(numer, currentState));
-                    }
-                    // TODO computations on float/double are imprecise! Use epsilon environment?
-                    return ImmutableList.of(
-                        ValueAndSMGState.of(new NumericValue(num % den), currentState));
-                  }
-                case DOUBLE:
-                  {
-                    double num = numerValue.doubleValue();
-                    double den = denomValue.doubleValue();
-                    if (Double.isNaN(num)
-                        || Double.isNaN(den)
-                        || Double.isInfinite(num)
-                        || den == 0) {
-                      return ImmutableList.of(
-                          ValueAndSMGState.of(new NumericValue(Double.NaN), currentState));
-                    }
-                    if (num == 0 && den != 0) {
-                      // keep the sign on +0 and -0
-                      return ImmutableList.of(ValueAndSMGState.of(numer, currentState));
-                    }
-                    // TODO computations on float/double are imprecise! Use epsilon environment?
-                    return ImmutableList.of(
-                        ValueAndSMGState.of(new NumericValue(num % den), currentState));
-                  }
-                default:
-                  break;
-              }
-            }
-          }
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)));
+
         } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
-          Value op1 = parameterValues.get(0);
-          Value op2 = parameterValues.get(1);
-          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
-            return ImmutableList.of(
-                ValueAndSMGState.of(new NumericValue(num1 > num2 ? 1 : 0), currentState));
-          }
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(arg1.greaterThan(arg2) ? 1 : 0));
+
         } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
-          Value op1 = parameterValues.get(0);
-          Value op2 = parameterValues.get(1);
-          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
-            return ImmutableList.of(
-                ValueAndSMGState.of(new NumericValue(num1 >= num2 ? 1 : 0), currentState));
-          }
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(arg1.greaterOrEqual(arg2) ? 1 : 0));
+
         } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
-          Value op1 = parameterValues.get(0);
-          Value op2 = parameterValues.get(1);
-          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
-            return ImmutableList.of(
-                ValueAndSMGState.of(new NumericValue(num1 < num2 ? 1 : 0), currentState));
-          }
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessThan(arg2) ? 1 : 0));
+
         } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
-          Value op1 = parameterValues.get(0);
-          Value op2 = parameterValues.get(1);
-          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
-            return ImmutableList.of(
-                ValueAndSMGState.of(new NumericValue(num1 <= num2 ? 1 : 0), currentState));
-          }
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(arg1.lessOrEqual(arg2) ? 1 : 0));
+
         } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
-          Value op1 = parameterValues.get(0);
-          Value op2 = parameterValues.get(1);
-          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
-            return ImmutableList.of(
-                ValueAndSMGState.of(
-                    new NumericValue(num1 > num2 || num1 < num2 ? 1 : 0), currentState));
-          }
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(arg1.lessOrGreater(arg2) ? 1 : 0));
+
         } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
-          Value op1 = parameterValues.get(0);
-          Value op2 = parameterValues.get(1);
-          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
-            return ImmutableList.of(
-                ValueAndSMGState.of(
-                    new NumericValue(Double.isNaN(num1) || Double.isNaN(num2) ? 1 : 0),
-                    currentState));
-          }
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue((arg1.isNan() || arg2.isNan()) ? 1 : 0));
         }
       }
-
       // This checks and uses builtins and also unknown functions based on the options
       SMGCPABuiltins smgBuiltins = evaluator.getBuiltinFunctionHandler();
-
-      return smgBuiltins.handleFunctionCall(
+      return smgBuiltins.handleFunctionCallWithoutBody(
           pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
     }
     return ImmutableList.of(
@@ -2274,10 +1918,10 @@ public class SMGCPAValueVisitor
   // commutative
   private Value calculateExpressionWithFunctionValue(
       BinaryOperator binaryOperator, Value val1, Value val2) {
-    if (val1 instanceof FunctionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val1, val2);
-    } else if (val2 instanceof FunctionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val2, val1);
+    if (val1 instanceof FunctionValue functionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val2);
+    } else if (val2 instanceof FunctionValue functionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val1);
     } else {
       return new Value.UnknownValue();
     }
@@ -2286,7 +1930,8 @@ public class SMGCPAValueVisitor
   /**
    * Calculates pointer/address arithmetic expressions. Valid is only address + value or value +
    * address and address minus value or address minus address. All others are simply unknown value!
-   * One of the 2 entered values must be a AddressExpression, no other preconditions have to be met.
+   * One of the 2 entered values must be an AddressExpression, no other preconditions have to be
+   * met.
    *
    * @param leftValue left hand side value of the arithmetic operation.
    * @param rightValue right hand side value of the arithmetic operation.
@@ -2331,7 +1976,7 @@ public class SMGCPAValueVisitor
         && !(rightValue instanceof AddressExpression)) {
       Value addressOffset = addressValue.getOffset();
       if (!options.trackPredicates()
-          && (!rightValue.isNumericValue() || !addressOffset.isNumericValue())) {
+          && (!(rightValue instanceof NumericValue) || !(addressOffset instanceof NumericValue))) {
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
                 currentState,
@@ -2388,8 +2033,8 @@ public class SMGCPAValueVisitor
     } else if (!(leftValue instanceof AddressExpression)
         && rightValue instanceof AddressExpression addressValue) {
       Value addressOffset = addressValue.getOffset();
-      if (!leftValue.isNumericValue()
-          || !addressOffset.isNumericValue()
+      if (!(leftValue instanceof NumericValue numLeftValue)
+          || !(addressOffset instanceof NumericValue numAddressOffset)
           || binaryOperator == BinaryOperator.MINUS) {
         // TODO: symbolic values if possible
         return ImmutableList.of(
@@ -2404,16 +2049,16 @@ public class SMGCPAValueVisitor
         correctlyTypedOffset =
             arithmeticOperation(
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-                (NumericValue) leftValue,
+                numLeftValue,
                 BinaryOperator.MULTIPLY,
-                evaluator.getMachineModel().getPointerSizedIntType());
+                machineModel.getPointerSizedIntType());
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
             arithmeticOperation(
                 new NumericValue(BigInteger.valueOf(8)),
-                (NumericValue) leftValue,
+                numLeftValue,
                 BinaryOperator.MULTIPLY,
                 calculationType);
       }
@@ -2421,7 +2066,7 @@ public class SMGCPAValueVisitor
       Value finalOffset =
           arithmeticOperation(
               (NumericValue) correctlyTypedOffset,
-              (NumericValue) addressOffset,
+              numAddressOffset,
               binaryOperator,
               calculationType);
 
@@ -2430,12 +2075,9 @@ public class SMGCPAValueVisitor
 
     } else {
       // Either we have 2 address expressions or 2 numeric 0
-      if (rightValue.isNumericValue()
-          && leftValue.isNumericValue()
-          && rightValue
-              .asNumericValue()
-              .getNumber()
-              .equals(leftValue.asNumericValue().getNumber())) {
+      if (rightValue instanceof NumericValue numRightValue
+          && leftValue instanceof NumericValue numLeftValue
+          && numRightValue.getNumber().equals(numLeftValue.getNumber())) {
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
       }
       // Both are pointers, we allow minus here to get the distance
@@ -2448,8 +2090,8 @@ public class SMGCPAValueVisitor
       // We need the non-equal method for SMGs here as it might be that due to abstraction 2 values
       // are not equal but refer to the same structure!
       if (binaryOperator != BinaryOperator.MINUS
-          || !rightOffset.isNumericValue()
-          || !leftOffset.isNumericValue()) {
+          || !(rightOffset instanceof NumericValue)
+          || !(leftOffset instanceof NumericValue)) {
         // TODO: symbolic values if possible
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
@@ -2467,7 +2109,7 @@ public class SMGCPAValueVisitor
 
         Value distanceInBits = distanceInBitsAndState.getValue();
         currentState = distanceInBitsAndState.getState();
-        if (!distanceInBits.isNumericValue()) {
+        if (!(distanceInBits instanceof NumericValue numDistanceInBits)) {
           returnBuilder.add(ValueAndSMGState.of(distanceInBits, currentState));
           continue;
         }
@@ -2475,10 +2117,8 @@ public class SMGCPAValueVisitor
         // distance in bits / type size = distance
         // The type in both pointers is the same, we need the return type from one of them
         NumericValue size;
-        if (leftValueType instanceof CPointerType) {
-          size =
-              new NumericValue(
-                  evaluator.getBitSizeof(currentState, ((CPointerType) leftValueType).getType()));
+        if (leftValueType instanceof CPointerType cPointerType) {
+          size = new NumericValue(evaluator.getBitSizeof(currentState, cPointerType.getType()));
         } else if (addressRight.getType() instanceof CArrayType) {
           size =
               new NumericValue(
@@ -2495,10 +2135,10 @@ public class SMGCPAValueVisitor
         assert leftValueType.equals(rightValueType);
         Value distance =
             arithmeticOperation(
-                (NumericValue) distanceInBits,
+                numDistanceInBits,
                 size,
                 BinaryOperator.DIVIDE,
-                evaluator.getMachineModel().getPointerSizedIntType());
+                machineModel.getPointerSizedIntType());
 
         returnBuilder.add(ValueAndSMGState.of(distance, currentState));
       }
@@ -2561,7 +2201,10 @@ public class SMGCPAValueVisitor
     final CType calculationType = pExpression.getCalculationType();
 
     // Evaluate == symbolics if possible
-    if (operator.equals(BinaryOperator.EQUALS) && pLValue.equals(pRValue)) {
+    if (operator.equals(BinaryOperator.EQUALS)
+        && pLValue.equals(pRValue)
+        && !(calculationType instanceof CSimpleType simpleType
+            && simpleType.getType().isFloatingPointType())) {
       return new NumericValue(1);
     }
 
@@ -2585,7 +2228,7 @@ public class SMGCPAValueVisitor
       CType pCalculationType)
       throws SMGException {
 
-    if (pLeftValue.isNumericValue() && pRightValue.isNumericValue()) {
+    if (pLeftValue instanceof NumericValue && pRightValue instanceof NumericValue) {
       throw new SMGException(
           "Error when creating a symbolic expression. Please inform the maintainer of SMG2.");
     }
@@ -2594,8 +2237,36 @@ public class SMGCPAValueVisitor
     SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
     SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
 
-    if (pLeftValue.isNumericValue()) {
-      BigInteger leftNum = pLeftValue.asNumericValue().bigIntegerValue();
+    // Simplify floating point expressions
+    // TODO Add more simplifications
+    // TODO Move this code to the methods in SymbolicValueFactory?
+    if (pLeftValue instanceof NumericValue leftValue && leftValue.hasFloatType()) {
+      FloatValue leftNum = leftValue.getFloatValue();
+      if (ImmutableList.of(
+                  BinaryOperator.PLUS,
+                  BinaryOperator.MINUS,
+                  BinaryOperator.MULTIPLY,
+                  BinaryOperator.DIVIDE)
+              .contains(pOperator)
+          && leftNum.isNan()) {
+        return pLeftValue;
+      }
+    }
+    if (pRightValue instanceof NumericValue rightValue && rightValue.hasFloatType()) {
+      FloatValue rightNum = rightValue.getFloatValue();
+      if (ImmutableList.of(
+                  BinaryOperator.PLUS,
+                  BinaryOperator.MINUS,
+                  BinaryOperator.MULTIPLY,
+                  BinaryOperator.DIVIDE)
+              .contains(pOperator)
+          && rightNum.isNan()) {
+        return pRightValue;
+      }
+    }
+
+    if (pLeftValue instanceof NumericValue leftValue) {
+      BigInteger leftNum = leftValue.bigIntegerValue();
       rightOperand = factory.asConstant(pRightValue, pRightType);
       if ((pOperator == BinaryOperator.PLUS && leftNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ONE))) {
@@ -2609,9 +2280,9 @@ public class SMGCPAValueVisitor
           || (pOperator == BinaryOperator.DIVIDE && leftNum.equals(BigInteger.ZERO))) {
         return new NumericValue(BigInteger.ZERO);
       }
-    } else if (pRightValue.isNumericValue()) {
+    } else if (pRightValue instanceof NumericValue rightValue) {
       leftOperand = factory.asConstant(pLeftValue, pLeftType);
-      BigInteger rightNum = pRightValue.asNumericValue().bigIntegerValue();
+      BigInteger rightNum = rightValue.bigIntegerValue();
       if ((pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ONE))
           || (pOperator == BinaryOperator.PLUS && rightNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.MINUS && rightNum.equals(BigInteger.ZERO))) {
@@ -2652,7 +2323,6 @@ public class SMGCPAValueVisitor
           factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_EQUAL ->
           factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
     };
   }
 
@@ -2691,65 +2361,43 @@ public class SMGCPAValueVisitor
     }
 
     try {
-      switch (type.getType()) {
-        case INT:
-          {
-            // Both l and r must be of the same type, which in this case is INT, so we can cast to
-            // long.
-            long lVal = lNum.getNumber().longValue();
-            long rVal = rNum.getNumber().longValue();
-            long result = arithmeticOperation(lVal, rVal, op, calculationType);
-            return new NumericValue(result);
-          }
-        case INT128:
-          {
-            BigInteger lVal = lNum.bigIntegerValue();
-            BigInteger rVal = rNum.bigIntegerValue();
-            BigInteger result = arithmeticOperation(lVal, rVal, op);
-            return new NumericValue(result);
-          }
-        case DOUBLE:
-          {
-            if (type.hasLongSpecifier()) {
-              return arithmeticOperationForLongDouble(lNum, rNum, op, calculationType);
-            } else {
-              double lVal = lNum.doubleValue();
-              double rVal = rNum.doubleValue();
-              double result = arithmeticOperation(lVal, rVal, op, calculationType);
-              return new NumericValue(result);
-            }
-          }
-        case FLOAT:
-          {
-            float lVal = lNum.floatValue();
-            float rVal = rNum.floatValue();
-            float result = arithmeticOperation(lVal, rVal, op);
-            return new NumericValue(result);
-          }
-        default:
-          {
-            logger.logf(
-                Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-            return Value.UnknownValue.getInstance();
-          }
-      }
+      return switch (type.getType()) {
+        case INT -> {
+          // Both l and r must be of the same type, which in this case is INT, so we can cast to
+          // long.
+          long lVal = lNum.getNumber().longValue();
+          long rVal = rNum.getNumber().longValue();
+          long result = arithmeticOperation(lVal, rVal, op, calculationType);
+          yield new NumericValue(result);
+        }
+        case INT128 -> {
+          BigInteger lVal = lNum.bigIntegerValue();
+          BigInteger rVal = rNum.bigIntegerValue();
+          BigInteger result = arithmeticOperation(lVal, rVal, op);
+          yield new NumericValue(result);
+        }
+        case FLOAT, DOUBLE, FLOAT128 ->
+            new NumericValue(
+                arithmeticOperation(
+                    op,
+                    castToFloat(machineModel, type, lNum),
+                    castToFloat(machineModel, type, rNum)));
+        default -> {
+          logger.logf(
+              Level.FINE, "unsupported type for result of binary operation %s", type.toString());
+          yield Value.UnknownValue.getInstance();
+        }
+      };
     } catch (ArithmeticException e) { // log warning and ignore expression
       logger.logf(
           Level.WARNING,
           "expression causes arithmetic exception (%s): %s %s %s",
           e.getMessage(),
-          lNum.bigDecimalValue(),
+          lNum,
           op.getOperator(),
-          rNum.bigDecimalValue());
+          rNum);
       return Value.UnknownValue.getInstance();
     }
-  }
-
-  @SuppressWarnings("unused")
-  private Value arithmeticOperationForLongDouble(
-      NumericValue pLNum, NumericValue pRNum, BinaryOperator pOp, CType pCalculationType) {
-    // TODO: cf. https://gitlab.com/sosy-lab/software/cpachecker/issues/507
-    return Value.UnknownValue.getInstance();
   }
 
   /**
@@ -2768,18 +2416,19 @@ public class SMGCPAValueVisitor
     // because Java only has SIGNED_LONGLONG
     CSimpleType st = getArithmeticType(calculationType);
     if (st != null) {
-      if (evaluator.getMachineModel().getSizeofInBits(st) >= SIZE_OF_JAVA_LONG
-          && st.hasUnsignedSpecifier()) {
+      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.hasUnsignedSpecifier()) {
         switch (op) {
-          case DIVIDE:
+          case DIVIDE -> {
             if (r == 0) {
               logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
               return 0;
             }
             return UnsignedLongs.divide(l, r);
-          case MODULO:
+          }
+          case MODULO -> {
             return UnsignedLongs.remainder(l, r);
-          case SHIFT_RIGHT:
+          }
+          case SHIFT_RIGHT -> {
             /*
              * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
              *
@@ -2788,28 +2437,33 @@ public class SMGCPAValueVisitor
              * after ">>" depends on sign extension.
              */
             return l >>> r;
-          default:
-            // fall-through, calculation is done correct as SINGED_LONG_LONG
+          }
+          default -> {}
         }
       }
     }
 
     switch (op) {
-      case PLUS:
+      case PLUS -> {
         return l + r;
-      case MINUS:
+      }
+      case MINUS -> {
         return l - r;
-      case DIVIDE:
+      }
+      case DIVIDE -> {
         if (r == 0) {
           logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
           return 0;
         }
         return l / r;
-      case MODULO:
+      }
+      case MODULO -> {
         return l % r;
-      case MULTIPLY:
+      }
+      case MULTIPLY -> {
         return l * r;
-      case SHIFT_LEFT:
+      }
+      case SHIFT_LEFT -> {
         /* There is a difference in the SHIFT-operation in Java and C.
          * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
          *
@@ -2822,47 +2476,21 @@ public class SMGCPAValueVisitor
          * The shift distance actually used is therefore always in the range 0 to 63.
          */
         return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
-      case SHIFT_RIGHT:
+      }
+      case SHIFT_RIGHT -> {
         return l >> r;
-      case BINARY_AND:
+      }
+      case BINARY_AND -> {
         return l & r;
-      case BINARY_OR:
+      }
+      case BINARY_OR -> {
         return l | r;
-      case BINARY_XOR:
+      }
+      case BINARY_XOR -> {
         return l ^ r;
-
-      default:
-        throw new AssertionError("unknown binary operation: " + op);
+      }
+      default -> throw new AssertionError("unknown binary operation: " + op);
     }
-  }
-
-  /**
-   * Calculate an arithmetic operation on two double types.
-   *
-   * @param l left hand side value
-   * @param r right hand side value
-   * @param op the binary operator
-   * @param calculationType The type the result of the calculation should have
-   * @return the resulting value
-   */
-  private double arithmeticOperation(
-      final double l, final double r, final BinaryOperator op, final CType calculationType) {
-
-    checkArgument(
-        calculationType.getCanonicalType() instanceof CSimpleType
-            && !((CSimpleType) calculationType.getCanonicalType()).hasLongSpecifier(),
-        "Value analysis can't compute long double values in a precise manner");
-
-    return switch (op) {
-      case PLUS -> l + r;
-      case MINUS -> l - r;
-      case DIVIDE -> l / r;
-      case MODULO -> l % r;
-      case MULTIPLY -> l * r;
-      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
-          throw new AssertionError("Trying to perform " + op + " on floating point operands");
-      default -> throw new AssertionError("Unknown binary operation: " + op);
-    };
   }
 
   /**
@@ -2877,22 +2505,27 @@ public class SMGCPAValueVisitor
       final BigInteger l, final BigInteger r, final BinaryOperator op) {
 
     switch (op) {
-      case PLUS:
+      case PLUS -> {
         return l.add(r);
-      case MINUS:
+      }
+      case MINUS -> {
         return l.subtract(r);
-      case DIVIDE:
+      }
+      case DIVIDE -> {
         if (r.equals(BigInteger.ZERO)) {
           // this matches the behavior of long
           logger.logf(Level.SEVERE, "Division by Zero (%s / %s)", l.toString(), r.toString());
           return BigInteger.ZERO;
         }
         return l.divide(r);
-      case MODULO:
+      }
+      case MODULO -> {
         return l.mod(r);
-      case MULTIPLY:
+      }
+      case MULTIPLY -> {
         return l.multiply(r);
-      case SHIFT_LEFT:
+      }
+      case SHIFT_LEFT -> {
         // (C11, 6.5.7p3) "If the value of the right operand is negative
         // or is greater than or equal to the width of the promoted left operand,
         // the behavior is undefined"
@@ -2905,45 +2538,52 @@ public class SMGCPAValueVisitor
               r.toString());
           return BigInteger.ZERO;
         }
-      case SHIFT_RIGHT:
+      }
+      case SHIFT_RIGHT -> {
         if (r.compareTo(BigInteger.valueOf(128)) <= 0 && r.signum() != -1) {
           return l.shiftRight(r.intValue());
         } else {
           return BigInteger.ZERO;
         }
-      case BINARY_AND:
+      }
+      case BINARY_AND -> {
         return l.and(r);
-      case BINARY_OR:
+      }
+      case BINARY_OR -> {
         return l.or(r);
-      case BINARY_XOR:
+      }
+      case BINARY_XOR -> {
         return l.xor(r);
-      default:
-        throw new AssertionError("Unknown binary operation: " + op);
+      }
+      default -> throw new AssertionError("Unknown binary operation: " + op);
     }
   }
 
   /**
-   * Calculate an arithmetic operation on two float types.
+   * Calculate an arithmetic operation on two floating point values.
    *
-   * @param l left hand side value
-   * @param r right hand side value
+   * @param pOperation the binary operator
+   * @param pArg1 left hand side value
+   * @param pArg2 right hand side value
    * @return the resulting value
    */
-  private float arithmeticOperation(final float l, final float r, final BinaryOperator op) {
+  private FloatValue arithmeticOperation(
+      final BinaryOperator pOperation, final FloatValue pArg1, final FloatValue pArg2) {
 
-    return switch (op) {
-      case PLUS -> l + r;
-      case MINUS -> l - r;
-      case DIVIDE -> l / r;
-      case MODULO -> l % r;
-      case MULTIPLY -> l * r;
+    return switch (pOperation) {
+      case PLUS -> pArg1.add(pArg2);
+      case MINUS -> pArg1.subtract(pArg2);
+      case DIVIDE -> pArg1.divide(pArg2);
+      case MODULO -> pArg1.modulo(pArg2);
+      case MULTIPLY -> pArg1.multiply(pArg2);
       case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
-          throw new AssertionError("Trying to perform " + op + " on floating point operands");
-      default -> throw new AssertionError("Unknown binary operation: " + op);
+          throw new UnsupportedOperationException(
+              "Trying to perform " + pOperation + " on floating point operands");
+      default -> throw new IllegalArgumentException("Unknown binary operation: " + pOperation);
     };
   }
 
-  private Value booleanOperation(
+  private Value comparisonOperation(
       final NumericValue l,
       final NumericValue r,
       final BinaryOperator op,
@@ -2957,62 +2597,63 @@ public class SMGCPAValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    final int cmp;
-    switch (type.getType()) {
-      case INT128:
-      case CHAR:
-      case INT:
-        {
-          // TODO: test this in particular!
-          BigInteger leftBigInt = l.bigIntegerValue();
-          BigInteger rightBigInt = r.bigIntegerValue();
-          cmp = leftBigInt.compareTo(rightBigInt);
-          break;
-        }
-      case FLOAT:
-        {
-          float lVal = l.floatValue();
-          float rVal = r.floatValue();
+    return switch (type.getType()) {
+      case INT128, CHAR, INT -> {
+        // TODO: test this in particular!
+        BigInteger leftBigInt = l.bigIntegerValue();
+        BigInteger rightBigInt = r.bigIntegerValue();
+        final int cmp = leftBigInt.compareTo(rightBigInt);
+        // returns True, iff cmp fulfills the boolean operation.
+        boolean result =
+            switch (op) {
+              case GREATER_THAN -> cmp > 0;
+              case GREATER_EQUAL -> cmp >= 0;
+              case LESS_THAN -> cmp < 0;
+              case LESS_EQUAL -> cmp <= 0;
+              case EQUALS -> cmp == 0;
+              case NOT_EQUALS -> cmp != 0;
+              default -> throw new AssertionError("Unknown binary operation: " + op);
+            };
+        // return 1 if expression holds, 0 otherwise
+        yield new NumericValue(result ? 1 : 0);
+      }
+      case FLOAT, DOUBLE, FLOAT128 -> {
+        boolean result =
+            comparisonOperation(
+                op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
+        yield new NumericValue(result ? 1 : 0);
+      }
+      default -> {
+        logger.logf(
+            Level.FINE,
+            "unsupported type %s for result of binary operation %s",
+            type.toString(),
+            op);
+        yield Value.UnknownValue.getInstance();
+      }
+    };
+  }
 
-          if (Float.isNaN(lVal) || Float.isNaN(rVal)) {
-            return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
-          }
-          if (lVal == 0 && rVal == 0) {
-            cmp = 0;
-          } else {
-            cmp = Float.compare(lVal, rVal);
-          }
-          break;
-        }
-      case DOUBLE:
-        {
-          double lVal = l.doubleValue();
-          double rVal = r.doubleValue();
+  /**
+   * Calculate a comparison operation on two floating point values.
+   *
+   * @param pOperation the binary operator
+   * @param pArg1 left hand side value
+   * @param pArg2 right hand side value
+   * @return the resulting value
+   */
+  private boolean comparisonOperation(
+      final BinaryOperator pOperation, final FloatValue pArg1, final FloatValue pArg2) {
 
-          if (Double.isNaN(lVal) || Double.isNaN(rVal)) {
-            return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
-          }
-
-          if (lVal == 0 && rVal == 0) {
-            cmp = 0;
-          } else {
-            cmp = Double.compare(lVal, rVal);
-          }
-          break;
-        }
-      default:
-        {
-          logger.logf(
-              Level.FINE,
-              "unsupported type %s for result of binary operation %s",
-              type.toString(),
-              op);
-          return Value.UnknownValue.getInstance();
-        }
-    }
-
-    // return 1 if expression holds, 0 otherwise
-    return new NumericValue(matchBooleanOperation(op, cmp) ? 1L : 0L);
+    return switch (pOperation) {
+      case GREATER_THAN -> pArg1.greaterThan(pArg2);
+      case GREATER_EQUAL -> pArg1.greaterOrEqual(pArg2);
+      case LESS_THAN -> pArg1.lessThan(pArg2);
+      case LESS_EQUAL -> pArg1.lessOrEqual(pArg2);
+      case EQUALS -> pArg1.equalTo(pArg2);
+      case NOT_EQUALS -> !pArg1.equalTo(pArg2);
+      default -> throw new AssertionError("unknown binary operation: " + pOperation);
+    };
   }
 
   /**
@@ -3022,16 +2663,14 @@ public class SMGCPAValueVisitor
    *
    * @param value will be cast.
    * @param targetType value will be cast to targetType.
-   * @param machineModel contains information about types
    * @return the cast Value
    */
-  public Value castCValue(
-      @NonNull final Value value, final CType targetType, final MachineModel machineModel) {
+  public Value castCValue(@NonNull final Value value, final CType targetType) {
 
     if (!value.isExplicitlyKnown()) {
       if (value instanceof AddressExpression
-          || (value instanceof SymbolicIdentifier
-              && ((SymbolicIdentifier) value).getRepresentedLocation().isPresent())) {
+          || (value instanceof SymbolicIdentifier symbolicIdentifier
+              && symbolicIdentifier.getRepresentedLocation().isPresent())) {
         // Don't cast pointers or values carrying location information
         return value;
       } else {
@@ -3040,12 +2679,11 @@ public class SMGCPAValueVisitor
     }
 
     // For now can only cast numeric value's
-    if (!value.isNumericValue()) {
+    if (!(value instanceof NumericValue numericValue)) {
       logger.logf(
           Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
       return value;
     }
-    NumericValue numericValue = (NumericValue) value;
 
     CType type = targetType.getCanonicalType();
     final int size;
@@ -3059,33 +2697,20 @@ public class SMGCPAValueVisitor
       return value;
     }
 
-    return castNumeric(numericValue, type, machineModel, size);
+    return castNumeric(numericValue, type, size);
   }
 
   private static Value castIfSymbolic(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-    if (pValue instanceof SymbolicValue
+    if (pValue instanceof SymbolicValue symbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast((SymbolicValue) pValue, pTargetType);
+      return factory.cast(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
     return pValue;
-  }
-
-  /** returns True, iff cmp fulfills the boolean operation. */
-  private boolean matchBooleanOperation(final BinaryOperator op, final int cmp) {
-    return switch (op) {
-      case GREATER_THAN -> cmp > 0;
-      case GREATER_EQUAL -> cmp >= 0;
-      case LESS_THAN -> cmp < 0;
-      case LESS_EQUAL -> cmp <= 0;
-      case EQUALS -> cmp == 0;
-      case NOT_EQUALS -> cmp != 0;
-      default -> throw new AssertionError("Unknown binary operation: " + op);
-    };
   }
 
   /**

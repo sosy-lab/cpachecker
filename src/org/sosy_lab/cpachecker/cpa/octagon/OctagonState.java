@@ -322,10 +322,10 @@ public class OctagonState implements AbstractState {
     if (getVariableIndexFor(pTempVarName) == -1) {
       return this;
     }
-    if (oct instanceof OctagonSimpleCoefficients) {
-      return makeAssignment(pTempVarName, (OctagonSimpleCoefficients) oct);
-    } else if (oct instanceof OctagonIntervalCoefficients) {
-      return makeAssignment(pTempVarName, (OctagonIntervalCoefficients) oct);
+    if (oct instanceof OctagonSimpleCoefficients octagonSimpleCoefficients) {
+      return makeAssignment(pTempVarName, octagonSimpleCoefficients);
+    } else if (oct instanceof OctagonIntervalCoefficients octagonIntervalCoefficients) {
+      return makeAssignment(pTempVarName, octagonIntervalCoefficients);
     } else if (oct instanceof OctagonUniversalCoefficients) {
       return forget(pTempVarName);
     }

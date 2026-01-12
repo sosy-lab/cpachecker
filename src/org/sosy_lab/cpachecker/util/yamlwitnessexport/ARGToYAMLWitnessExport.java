@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -53,11 +56,10 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
           Level.INFO,
           commonPrefix
               + "Witnesses exported in versions "
-              + String.join(
-                  ", ",
-                  FluentIterable.from(pWitnessExportResults.entrySet())
-                      .filter(entry -> !entry.getValue().translationAlwaysSuccessful())
-                      .transform(entry -> entry.getKey().toString()))
+              + from(pWitnessExportResults.entrySet())
+                  .filter(entry -> !entry.getValue().translationAlwaysSuccessful())
+                  .transform(entry -> entry.getKey().toString())
+                  .join(Joiner.on(", "))
               + " had problems during the translation process. "
               + "This may result in invariants being too large an over approximation.");
     }

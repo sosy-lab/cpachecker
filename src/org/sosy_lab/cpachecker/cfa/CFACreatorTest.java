@@ -301,19 +301,18 @@ public class CFACreatorTest {
    * 'false'.
    */
   private static boolean isFunctionCall(CFAEdge pCfaEdge, String pExpectedFunctionName) {
-    if (!(pCfaEdge instanceof AStatementEdge)) {
+    if (!(pCfaEdge instanceof AStatementEdge aStatementEdge)) {
       return false;
     }
-    AStatement statement = ((AStatementEdge) pCfaEdge).getStatement();
-    if (!(statement instanceof AFunctionCall)) {
+    AStatement statement = aStatementEdge.getStatement();
+    if (!(statement instanceof AFunctionCall aFunctionCall)) {
       return false;
     }
-    AExpression callee =
-        ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-    if (!(callee instanceof AIdExpression)) {
+    AExpression callee = aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+    if (!(callee instanceof AIdExpression aIdExpression)) {
       return false;
     }
-    String functionName = ((AIdExpression) callee).getName();
+    String functionName = aIdExpression.getName();
     return functionName.equals(pExpectedFunctionName);
   }
 

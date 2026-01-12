@@ -266,8 +266,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner
           // should helps that the waitlist does not run dry too fast
           // -> did not help much
 
-          ARGState parent = Iterables.getFirst(currentState.getParents(), null);
-          if (parent != null) {
+          if (!currentState.getParents().isEmpty()) {
+            // ARGState parent = currentState.getParents().getFirst();
             // readdSiblings(pReached, parent, currentState, newPrecision);
           }
 

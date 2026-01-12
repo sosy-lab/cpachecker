@@ -16,7 +16,10 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -55,6 +58,8 @@ public class ConstraintFactory {
 
   private SymbolicValueFactory expressionFactory;
 
+  private final CBinaryExpressionBuilder exprBuilder;
+
   private ConstraintFactory(
       SMGState pSmgState,
       MachineModel pMachineModel,
@@ -70,6 +75,7 @@ public class ConstraintFactory {
     options = pOptions;
     evaluator = pEvaluator;
     edge = pEdge;
+    exprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
   }
 
   public static ConstraintFactory getInstance(
@@ -116,9 +122,20 @@ public class ConstraintFactory {
       throws CPATransferException {
     final ExpressionTransformer transformer = getCTransformer();
 
-    assert isConstraint(pExpression);
+    CBinaryExpression expression = pExpression;
+    if (!isConstraint(pExpression)) {
+      // Make non-logical constraints logical, so that SMT can be used for C
+      // Example: an expression (x | y) in C returns a number, which can be interpreted as bool with
+      // (x | y) != 0
+      expression =
+          exprBuilder.negateExpressionAndSimplify(
+              exprBuilder.buildBinaryExpression(
+                  expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS));
+    }
+    assert isConstraint(expression); // Non-logical expressions WILL fail in the transformer!
+
     return transformedImmutableListCopy(
-        transformer.transform(pExpression),
+        transformer.transform(expression),
         n -> ConstraintAndSMGState.of((Constraint) n.getSymbolicExpression(), n.getState()));
   }
 
@@ -141,8 +158,8 @@ public class ConstraintFactory {
 
       if (symbolicExpression == null) {
         return null;
-      } else if (symbolicExpression instanceof Constraint) {
-        builder.add(ConstraintAndSMGState.of((Constraint) symbolicExpression, currentState));
+      } else if (symbolicExpression instanceof Constraint constraint) {
+        builder.add(ConstraintAndSMGState.of(constraint, currentState));
 
       } else {
         builder.add(
@@ -174,15 +191,16 @@ public class ConstraintFactory {
   }
 
   private boolean isNumeric(Type pType) {
-    if (pType instanceof CType) {
-      CType canonicalType = ((CType) pType).getCanonicalType();
-      if (canonicalType instanceof CSimpleType) {
-        switch (((CSimpleType) canonicalType).getType()) {
-          case FLOAT:
-          case INT:
+    if (pType instanceof CType cType) {
+      CType canonicalType = cType.getCanonicalType();
+      if (canonicalType instanceof CSimpleType cSimpleType) {
+        switch (cSimpleType.getType()) {
+          case FLOAT, INT -> {
             return true;
-          default:
+          }
+          default -> {
             // DO NOTHING, false is returned below
+          }
         }
       }
 

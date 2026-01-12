@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static java.lang.Character.isDigit;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /**
  * This Class contains functions, that convert literals (chars, numbers) from C-source into
@@ -40,7 +38,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
  */
 // Deprecated because of the temporary use of the CFloatNative class. This will be replaced by
 // CFloatImpl as soon as available.
-@SuppressWarnings("deprecation")
 class ASTLiteralConverter {
 
   private final MachineModel machine;
@@ -88,8 +85,7 @@ class ASTLiteralConverter {
     valueStr = valueStr.substring(0, valueStr.length() - 1);
     type =
         new CSimpleType(
-            type.isConst(),
-            type.isVolatile(),
+            type.getQualifiers(),
             type.getType(),
             type.hasLongSpecifier(),
             type.hasShortSpecifier(),
@@ -98,26 +94,24 @@ class ASTLiteralConverter {
             type.hasComplexSpecifier(),
             true,
             type.hasLongLongSpecifier());
-    switch (exp.getKind()) {
-      case IASTLiteralExpression.lk_char_constant:
-        return new CImaginaryLiteralExpression(
-            fileLoc,
-            type,
-            new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp)));
-
-      case IASTLiteralExpression.lk_integer_constant:
+    return switch (exp.getKind()) {
+      case IASTLiteralExpression.lk_char_constant ->
+          new CImaginaryLiteralExpression(
+              fileLoc,
+              type,
+              new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp)));
+      case IASTLiteralExpression.lk_integer_constant -> {
         CLiteralExpression intLiteralExp = parseIntegerLiteral(fileLoc, valueStr, exp);
-        return new CImaginaryLiteralExpression(
+        yield new CImaginaryLiteralExpression(
             fileLoc, intLiteralExp.getExpressionType(), intLiteralExp);
-
-      case IASTLiteralExpression.lk_float_constant:
+      }
+      case IASTLiteralExpression.lk_float_constant -> {
         CLiteralExpression floatLiteralExp = parseFloatLiteral(fileLoc, type, valueStr, exp);
-        return new CImaginaryLiteralExpression(
+        yield new CImaginaryLiteralExpression(
             fileLoc, floatLiteralExp.getExpressionType(), floatLiteralExp);
-
-      default:
-        throw parseContext.parseError("Unknown imaginary literal", exp);
-    }
+      }
+      default -> throw parseContext.parseError("Unknown imaginary literal", exp);
+    };
   }
 
   @VisibleForTesting
@@ -150,39 +144,42 @@ class ASTLiteralConverter {
   }
 
   @VisibleForTesting
-  CLiteralExpression parseFloatLiteral(
+  CFloatLiteralExpression parseFloatLiteral(
       FileLocation pFileLoc, CType pType, String pValueStr, IASTLiteralExpression pExp) {
+    String input = Ascii.toLowerCase(pValueStr);
 
     // According to section 6.4.4.2 "Floating constants" of the C standard,
     // an unsuffixed floating constant has type double. If suffixed by the letter f or F, it has
     // type float. If suffixed by the letter l or L, it has type long double.
-
-    // TODO: replace CFloatNative-class by CFloatImpl when available
-    CFloat cFloat;
-    if (pValueStr.endsWith("L") || pValueStr.endsWith("l")) {
-      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    } else if (pValueStr.endsWith("F") || pValueStr.endsWith("f")) {
-      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_SINGLE);
+    FloatValue.Format format;
+    if (input.endsWith("l")) {
+      input = input.substring(0, input.length() - 1);
+      format = FloatValue.Format.Float80;
+    } else if (input.endsWith("f")) {
+      input = input.substring(0, input.length() - 1);
+      format = FloatValue.Format.Float32;
     } else {
-      // literal has no suffix declared
-      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_DOUBLE);
+      format = FloatValue.Format.Float64;
     }
 
-    if (cFloat.isInfinity()) {
-      if (cFloat.isNegative()) {
-        return CFloatLiteralExpression.forNegativeInfinity(pFileLoc, pType);
-      } else {
-        return CFloatLiteralExpression.forPositiveInfinity(pFileLoc, pType);
-      }
-    }
-
+    FloatValue value;
     try {
-      BigDecimal value = new BigDecimal(cFloat.toString());
-      return new CFloatLiteralExpression(pFileLoc, pType, value);
-    } catch (NumberFormatException e) {
+      // FloatValue.fromString allows some inputs that would not be legal in a C program.
+      // Specifically, it will parse special values like "inf" or "nan" and allows a "+" or "-" sign
+      // in front of the number. This is not a problem as the Eclipse CDT parser follows the C
+      // standard and will not recognize such floating point literals.
+      // For all inputs that we do encounter in this function FloatValue.fromString behaves exactly
+      // as specified by the C standard.
+      value = FloatValue.fromString(format, input);
+    } catch (IllegalArgumentException e) {
       throw parseContext.parseError(
-          String.format("unable to parse floating point literal (%s)", cFloat.toString()), pExp);
+          String.format("unable to parse floating point literal (%s)", pValueStr), pExp);
     }
+
+    // Round the parsed value to the target type
+    value = value.withPrecision(FloatValue.Format.fromCType(machine, pType));
+
+    return new CFloatLiteralExpression(pFileLoc, machine, pType, value);
   }
 
   @VisibleForTesting
@@ -281,9 +278,6 @@ class ASTLiteralConverter {
             case OCTAL -> new BigInteger(s, 8);
             case DECIMAL -> new BigInteger(s, 10);
             case HEXADECIMAL -> new BigInteger(s.substring(2), 16); // remove "0x" from the string
-            default ->
-                throw parseContext.parseError(
-                    String.format("invalid constant type: %s", type.name()), e);
           };
     } catch (NumberFormatException exception) {
       throw parseContext.parseError("invalid number", e);
@@ -368,23 +362,12 @@ class ASTLiteralConverter {
         Arrays.stream(Suffix.values()).filter(x -> x.compareTo(pDenotedSuffix) >= 0);
 
     switch (pDenotedSuffix) {
-      case NONE:
-      case L:
-      case LL:
+      case NONE, L, LL -> {
         if (pType == ConstantType.DECIMAL) {
           stream = stream.filter(Suffix::isSigned);
         }
-        break;
-
-      case U:
-      case UL:
-      case ULL:
-        stream = stream.filter(x -> !x.isSigned());
-        break;
-
-      default:
-        throw new CFAGenerationRuntimeException(
-            String.format("Unhandled suffix: %s", pDenotedSuffix.name()));
+      }
+      case U, UL, ULL -> stream = stream.filter(x -> !x.isSigned());
     }
 
     return stream.collect(ImmutableList.toImmutableList());
@@ -547,10 +530,10 @@ class ASTLiteralConverter {
       }
     };
 
-    public abstract boolean isSigned();
+    abstract boolean isSigned();
 
-    public abstract CSimpleType getType();
+    abstract CSimpleType getType();
 
-    public abstract int getLength();
+    abstract int getLength();
   }
 }

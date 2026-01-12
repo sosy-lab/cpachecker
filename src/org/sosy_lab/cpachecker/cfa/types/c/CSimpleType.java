@@ -33,14 +33,12 @@ public final class CSimpleType implements CType {
   private final boolean isComplex;
   private final boolean isImaginary;
   private final boolean isLongLong;
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
 
   @LazyInit private int hashCache = 0;
 
   public CSimpleType(
-      final boolean pConst,
-      final boolean pVolatile,
+      final CTypeQualifiers pQualifiers,
       final CBasicType pType,
       final boolean pIsLong,
       final boolean pIsShort,
@@ -49,8 +47,7 @@ public final class CSimpleType implements CType {
       final boolean pIsComplex,
       final boolean pIsImaginary,
       final boolean pIsLongLong) {
-    isConst = pConst;
-    isVolatile = pVolatile;
+    qualifiers = checkNotNull(pQualifiers);
     type = checkNotNull(pType);
     isLong = pIsLong;
     isShort = pIsShort;
@@ -62,13 +59,8 @@ public final class CSimpleType implements CType {
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   public CBasicType getType() {
@@ -129,8 +121,7 @@ public final class CSimpleType implements CType {
       hashCache =
           Objects.hash(
               isComplex,
-              isConst,
-              isVolatile,
+              qualifiers,
               isImaginary,
               isLong,
               isLongLong,
@@ -155,8 +146,7 @@ public final class CSimpleType implements CType {
 
     return obj instanceof CSimpleType other
         && isComplex == other.isComplex
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && isImaginary == other.isImaginary
         && isLong == other.isLong
         && isLongLong == other.isLongLong
@@ -179,14 +169,8 @@ public final class CSimpleType implements CType {
   @Override
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
-    List<String> parts = new ArrayList<>();
-
-    if (isConst()) {
-      parts.add("const");
-    }
-    if (isVolatile()) {
-      parts.add("volatile");
-    }
+    List<@Nullable String> parts = new ArrayList<>();
+    parts.add(Strings.emptyToNull(qualifiers.toASTStringPrefix().trim()));
 
     if (isUnsigned) {
       parts.add("unsigned");
@@ -217,11 +201,13 @@ public final class CSimpleType implements CType {
 
   @Override
   public CSimpleType getCanonicalType() {
-    return getCanonicalType(false, false);
+    return getCanonicalType(CTypeQualifiers.NONE);
   }
 
   @Override
-  public CSimpleType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+  public CSimpleType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    CTypeQualifiers newQualifiers = CTypeQualifiers.union(qualifiers, pQualifiersToAdd);
+
     CBasicType newType = type;
     if (newType == CBasicType.UNSPECIFIED) {
       newType = CBasicType.INT;
@@ -232,16 +218,12 @@ public final class CSimpleType implements CType {
       newIsSigned = true;
     }
 
-    if ((isConst == pForceConst)
-        && (isVolatile == pForceVolatile)
-        && (type == newType)
-        && (isSigned == newIsSigned)) {
+    if (qualifiers.equals(newQualifiers) && type == newType && isSigned == newIsSigned) {
       return this;
     }
 
     return new CSimpleType(
-        isConst || pForceConst,
-        isVolatile || pForceVolatile,
+        newQualifiers,
         newType,
         isLong,
         isShort,
@@ -250,5 +232,22 @@ public final class CSimpleType implements CType {
         isComplex,
         isImaginary,
         isLongLong);
+  }
+
+  @Override
+  public CSimpleType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
+      return this;
+    }
+    return new CSimpleType(
+        pNewQualifiers,
+        getType(),
+        hasLongSpecifier(),
+        hasShortSpecifier(),
+        hasSignedSpecifier(),
+        hasUnsignedSpecifier(),
+        hasComplexSpecifier(),
+        hasImaginarySpecifier(),
+        hasLongLongSpecifier());
   }
 }

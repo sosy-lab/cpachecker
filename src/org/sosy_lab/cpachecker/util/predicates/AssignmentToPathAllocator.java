@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -63,7 +64,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -92,7 +93,7 @@ public class AssignmentToPathAllocator {
     machineModel = pMachineModel;
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(
-            pLogger, pMachineModel, new FormulaEncodingWithPointerAliasingOptions(pConfig));
+            pLogger, pMachineModel, new CFormulaEncodingWithPointerAliasingOptions(pConfig));
     memoryName = exp -> typeHandler.getPointerAccessNameForType(typeHandler.getSimplifiedType(exp));
   }
 
@@ -114,14 +115,14 @@ public class AssignmentToPathAllocator {
         ImmutableList.builderWithExpectedSize(pPath.getInnerEdges().size());
     ImmutableMap<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
 
-    // Its too inefficient to recreate every assignment from scratch, but the ssaIndex of the
-    // Assignable Terms are needed, thats why we declare two maps of variables and functions. One
+    // It's too inefficient to recreate every assignment from scratch, but the ssaIndex of the
+    // Assignable Terms are needed, that's why we declare two maps of variables and functions. One
     // for the calculation of the SSAIndex, the other to save the references to the objects we want
     // to store in the concrete State, so we can avoid recreating those objects
-    final Map<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
-    final Map<LeftHandSide, Object> variables = new LinkedHashMap<>();
+    final SequencedMap<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
+    final SequencedMap<LeftHandSide, Object> variables = new LinkedHashMap<>();
     final SetMultimap<String, ValueAssignment> functionEnvironment = LinkedHashMultimap.create();
-    final Map<String, Map<Address, Object>> memory = new LinkedHashMap<>();
+    final SequencedMap<String, SequencedMap<Address, Object>> memory = new LinkedHashMap<>();
 
     int ssaMapIndex = 0;
 
@@ -187,7 +188,7 @@ public class AssignmentToPathAllocator {
 
     private final Multimap<String, ValueAssignment> uninterpretedFunctions;
 
-    public PredicateAnalysisConcreteExpressionEvaluator(
+    PredicateAnalysisConcreteExpressionEvaluator(
         Multimap<String, ValueAssignment> pUninterpretedFunction) {
       uninterpretedFunctions = pUninterpretedFunction;
     }
@@ -212,15 +213,10 @@ public class AssignmentToPathAllocator {
         String opString = binExp.getOperator().getOperator();
 
         switch (binExp.getOperator()) {
-          case MULTIPLY:
-          // $FALL-THROUGH$
-          case MODULO:
-          // $FALL-THROUGH$
-          case DIVIDE:
-            opString = "_" + opString;
-            break;
-          default:
+          case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
+          default -> {
             // default
+          }
         }
 
         return typeName + "_" + opString + "_";
@@ -295,11 +291,11 @@ public class AssignmentToPathAllocator {
 
     private Value asValue(Object pValue) {
 
-      if (!(pValue instanceof Number)) {
+      if (!(pValue instanceof Number number)) {
         return Value.UnknownValue.getInstance();
       }
 
-      return new NumericValue((Number) pValue);
+      return new NumericValue(number);
     }
 
     @Override
@@ -359,10 +355,10 @@ public class AssignmentToPathAllocator {
     boolean isReference = references.size() > IS_FIELD_REFERENCE;
 
     if (isNotGlobal) {
-      function = nameAndFunction.get(0);
+      function = nameAndFunction.getFirst();
       name = nameAndFunction.get(1);
     } else {
-      name = nameAndFunction.get(0);
+      name = nameAndFunction.getFirst();
     }
 
     if (isReference) {
@@ -400,10 +396,10 @@ public class AssignmentToPathAllocator {
   /** We need the variableEnvironment and functionEnvironment for their SSAIndeces. */
   private void createAssignments(
       ImmutableCollection<ValueAssignment> terms,
-      Map<String, ValueAssignment> variableEnvironment,
-      Map<LeftHandSide, Object> pVariables,
+      SequencedMap<String, ValueAssignment> variableEnvironment,
+      SequencedMap<LeftHandSide, Object> pVariables,
       Multimap<String, ValueAssignment> functionEnvironment,
-      Map<String, Map<Address, Object>> memory) {
+      SequencedMap<String, SequencedMap<Address, Object>> memory) {
 
     for (final ValueAssignment term : terms) {
       String name = term.getName();
@@ -466,10 +462,11 @@ public class AssignmentToPathAllocator {
   }
 
   private void addHeapValue(
-      Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
+      SequencedMap<String, SequencedMap<Address, Object>> memory,
+      ValueAssignment pFunctionAssignment) {
     String heapName = getName(pFunctionAssignment);
 
-    Map<Address, Object> heap = memory.get(heapName);
+    SequencedMap<Address, Object> heap = memory.get(heapName);
     if (heap == null) {
       heap = new LinkedHashMap<>();
       memory.put(heapName, heap);
@@ -542,7 +539,7 @@ public class AssignmentToPathAllocator {
   }
 
   /*
-   * Allocate the assignable terms with a SSAIndex in the given model
+   * Allocate the assignable terms with an SSAIndex in the given model
    * to the position in the path they were first used. The result of this
    * allocation is used to determine the model at each edge of the path.
    *
@@ -617,13 +614,17 @@ public class AssignmentToPathAllocator {
     return result;
   }
 
+  public MachineModel getMachineModel() {
+    return machineModel;
+  }
+
   private static final class AssignableTermsInPath {
 
     private final ImmutableSetMultimap<Integer, ValueAssignment> assignableTermsAtPosition;
     private final ImmutableSet<ValueAssignment> constants;
     private final ImmutableSet<ValueAssignment> ufFunctionsWithoutSSAIndex;
 
-    public AssignableTermsInPath(
+    AssignableTermsInPath(
         ImmutableSetMultimap<Integer, ValueAssignment> pAssignableTermsAtPosition,
         ImmutableSet<ValueAssignment> pConstants,
         ImmutableSet<ValueAssignment> pUfFunctionsWithoutSSAIndex) {
@@ -633,16 +634,16 @@ public class AssignmentToPathAllocator {
       ufFunctionsWithoutSSAIndex = pUfFunctionsWithoutSSAIndex;
     }
 
-    public ImmutableSetMultimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
+    ImmutableSetMultimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
       return assignableTermsAtPosition;
     }
 
-    public ImmutableSet<ValueAssignment> getConstants() {
+    ImmutableSet<ValueAssignment> getConstants() {
       return constants;
     }
 
     @SuppressWarnings("unused")
-    public ImmutableSet<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
+    ImmutableSet<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
       return ufFunctionsWithoutSSAIndex;
     }
 

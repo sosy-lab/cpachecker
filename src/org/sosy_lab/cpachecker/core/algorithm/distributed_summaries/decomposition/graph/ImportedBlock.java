@@ -18,4 +18,5 @@ public record ImportedBlock(
     int endNode,
     List<List<Integer>> edges,
     int abstractionLocation,
-    List<String> loopPredecessors) {}
+    List<String> loopPredecessors,
+    List<String> loopSuccessors) {}

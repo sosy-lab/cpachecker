@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -40,9 +41,9 @@ public class CompositeState
         Splitable {
   @Serial private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> states;
-  private transient Object partitionKey; // lazily initialized
-  private transient Comparable<?> pseudoPartitionKey; // lazily initialized
-  private transient Object pseudoHashCode; // lazily initialized
+  private transient @Nullable Object partitionKey; // lazily initialized
+  private transient @Nullable Comparable<?> pseudoPartitionKey; // lazily initialized
+  private transient @Nullable Object pseudoHashCode; // lazily initialized
 
   public CompositeState(List<AbstractState> elements) {
     states = ImmutableList.copyOf(elements);
@@ -55,7 +56,7 @@ public class CompositeState
   @Override
   public boolean isTarget() {
     for (AbstractState element : states) {
-      if ((element instanceof Targetable) && ((Targetable) element).isTarget()) {
+      if ((element instanceof Targetable targetable) && targetable.isTarget()) {
         return true;
       }
     }
@@ -67,8 +68,8 @@ public class CompositeState
     checkState(isTarget());
     ImmutableSet.Builder<TargetInformation> properties = ImmutableSet.builder();
     for (AbstractState element : states) {
-      if ((element instanceof Targetable) && ((Targetable) element).isTarget()) {
-        properties.addAll(((Targetable) element).getTargetInformation());
+      if ((element instanceof Targetable targetable) && targetable.isTarget()) {
+        properties.addAll(targetable.getTargetInformation());
       }
     }
     return properties.build();
@@ -93,8 +94,8 @@ public class CompositeState
   public String toDOTLabel() {
     StringBuilder builder = new StringBuilder();
     for (AbstractState element : states) {
-      if (element instanceof Graphable) {
-        String label = ((Graphable) element).toDOTLabel();
+      if (element instanceof Graphable graphable) {
+        String label = graphable.toDOTLabel();
         if (!label.isEmpty()) {
           builder.append(element.getClass().getSimpleName());
           builder.append(": ");
@@ -110,8 +111,8 @@ public class CompositeState
   @Override
   public boolean shouldBeHighlighted() {
     for (AbstractState element : states) {
-      if (element instanceof Graphable) {
-        if (((Graphable) element).shouldBeHighlighted()) {
+      if (element instanceof Graphable graphable) {
+        if (graphable.shouldBeHighlighted()) {
           return true;
         }
       }
@@ -135,8 +136,8 @@ public class CompositeState
 
       int i = 0;
       for (AbstractState element : states) {
-        if (element instanceof Partitionable) {
-          keys[i] = ((Partitionable) element).getPartitionKey();
+        if (element instanceof Partitionable partitionable) {
+          keys[i] = partitionable.getPartitionKey();
         }
         i++;
       }
@@ -155,8 +156,8 @@ public class CompositeState
 
       int i = 0;
       for (AbstractState element : states) {
-        if (element instanceof PseudoPartitionable) {
-          keys[i] = ((PseudoPartitionable) element).getPseudoPartitionKey();
+        if (element instanceof PseudoPartitionable pseudoPartitionable) {
+          keys[i] = pseudoPartitionable.getPseudoPartitionKey();
         }
         i++;
       }
@@ -175,8 +176,8 @@ public class CompositeState
 
       int i = 0;
       for (AbstractState element : states) {
-        if (element instanceof PseudoPartitionable) {
-          keys[i] = ((PseudoPartitionable) element).getPseudoHashCode();
+        if (element instanceof PseudoPartitionable pseudoPartitionable) {
+          keys[i] = pseudoPartitionable.getPseudoHashCode();
         }
         i++;
       }
@@ -190,7 +191,7 @@ public class CompositeState
 
   private static final class CompositePartitionKey {
 
-    private final Object[] keys;
+    private final @Nullable Object[] keys;
 
     private CompositePartitionKey(Object[] pElements) {
       keys = pElements;
@@ -202,8 +203,8 @@ public class CompositeState
         return true;
       }
 
-      return pObj instanceof CompositePartitionKey
-          && Arrays.equals(keys, ((CompositePartitionKey) pObj).keys);
+      return pObj instanceof CompositePartitionKey compositePartitionKey
+          && Arrays.equals(keys, compositePartitionKey.keys);
     }
 
     @Override
@@ -221,7 +222,7 @@ public class CompositeState
   private static final class CompositePseudoPartitionKey
       implements Comparable<CompositePseudoPartitionKey> {
 
-    private final Comparable<?>[] keys;
+    private final @Nullable Comparable<?>[] keys;
 
     private CompositePseudoPartitionKey(Comparable<?>[] pElements) {
       keys = pElements;
@@ -233,8 +234,8 @@ public class CompositeState
         return true;
       }
 
-      return pObj instanceof CompositePseudoPartitionKey
-          && Arrays.equals(keys, ((CompositePseudoPartitionKey) pObj).keys);
+      return pObj instanceof CompositePseudoPartitionKey compositePseudoPartitionKey
+          && Arrays.equals(keys, compositePseudoPartitionKey.keys);
     }
 
     @Override
@@ -264,8 +265,8 @@ public class CompositeState
       // if state was not replaced, add it:
       if (targetSize > newWrappedStates.size()) {
         // recursion might end here if state is not splitable:
-        if (state instanceof Splitable) {
-          newWrappedStates.add(((Splitable) state).forkWithReplacements(pReplacementStates));
+        if (state instanceof Splitable splitable) {
+          newWrappedStates.add(splitable.forkWithReplacements(pReplacementStates));
         } else {
           newWrappedStates.add(state);
         }

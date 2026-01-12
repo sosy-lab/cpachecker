@@ -43,8 +43,8 @@ public class SymbolicValueFactory {
   public SymbolicExpression asConstant(Value pValue, Type pType) {
     checkNotNull(pValue);
     assert !pValue.isUnknown();
-    if (pValue instanceof SymbolicExpression) {
-      return ((SymbolicExpression) pValue);
+    if (pValue instanceof SymbolicExpression symbolicExpression) {
+      return symbolicExpression;
 
     } else {
       return new ConstantSymbolicExpression(pValue, getCanonicalType(pType));
@@ -83,8 +83,8 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression negate(SymbolicExpression pFormula, Type pType) {
     checkNotNull(pFormula);
-    if (pFormula instanceof NegationExpression) {
-      return ((NegationExpression) pFormula).getOperand();
+    if (pFormula instanceof NegationExpression negationExpression) {
+      return negationExpression.getOperand();
 
     } else {
       return new NegationExpression(pFormula, pType);
@@ -228,8 +228,8 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression logicalNot(SymbolicExpression pOperand, Type pType) {
 
-    if (pOperand instanceof LogicalNotExpression) {
-      return ((LogicalNotExpression) pOperand).getOperand();
+    if (pOperand instanceof LogicalNotExpression logicalNotExpression) {
+      return logicalNotExpression.getOperand();
 
     } else {
       return new LogicalNotExpression(pOperand, getCanonicalType(pType));
@@ -238,8 +238,8 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression binaryNot(SymbolicExpression pOperand, Type pType) {
 
-    if (pOperand instanceof BinaryNotExpression) {
-      return ((BinaryNotExpression) pOperand).getOperand();
+    if (pOperand instanceof BinaryNotExpression binaryNotExpression) {
+      return binaryNotExpression.getOperand();
 
     } else {
       return new BinaryNotExpression(pOperand, getCanonicalType(pType));
@@ -291,10 +291,10 @@ public class SymbolicValueFactory {
       return (SymbolicExpression) pValue;
     }
 
-    if (!(pValue instanceof SymbolicExpression)) {
+    if (!(pValue instanceof SymbolicExpression symbolicExpression)) {
       return asConstant(pValue, canonicalTargetType);
     } else {
-      operand = (SymbolicExpression) pValue;
+      operand = symbolicExpression;
     }
 
     if (operand.getType().equals(canonicalTargetType)) {
@@ -314,8 +314,8 @@ public class SymbolicValueFactory {
     checkNotNull(pOperand);
 
     // &*a = a
-    if (pOperand instanceof PointerExpression) {
-      return ((PointerExpression) pOperand).getOperand();
+    if (pOperand instanceof PointerExpression pointerExpression) {
+      return pointerExpression.getOperand();
 
     } else {
       return new AddressOfExpression(pOperand, getCanonicalType(pType));
@@ -323,8 +323,8 @@ public class SymbolicValueFactory {
   }
 
   private Type getCanonicalType(Type pType) {
-    if (pType instanceof CType) {
-      return ((CType) pType).getCanonicalType();
+    if (pType instanceof CType cType) {
+      return cType.getCanonicalType();
     } else {
       return pType;
     }
