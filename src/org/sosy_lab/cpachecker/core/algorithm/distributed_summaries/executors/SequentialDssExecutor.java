@@ -45,8 +45,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class SequentialDssExecutor implements DssExecutor {
 
-  private static final String OBSERVER_WORKER_ID = "__observer__";
-
   private final DssMessageFactory messageFactory;
   private final DssAnalysisOptions options;
   private final Specification specification;
