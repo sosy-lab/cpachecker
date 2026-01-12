@@ -68,17 +68,17 @@ public class STBridges {
           CFANode last = null;
           CFANode first = null;
 
-        for (CFANode cfaNode : connection) {
-          boolean hasSuccessorInIncludes = false;
-          boolean hasSuccessorOutOfIncludes = false;
-          for (CFAEdge leavingEdge : cfaNode.getLeavingEdges()) {
-            if (includes.contains(leavingEdge.getSuccessor())) {
-              connectionEdges.add(leavingEdge);
-              hasSuccessorInIncludes = true;
-            } else {
-              hasSuccessorOutOfIncludes = true;
+          for (CFANode cfaNode : connection) {
+            boolean hasSuccessorInIncludes = false;
+            boolean hasSuccessorOutOfIncludes = false;
+            for (CFAEdge leavingEdge : cfaNode.getLeavingEdges()) {
+              if (includes.contains(leavingEdge.getSuccessor())) {
+                connectionEdges.add(leavingEdge);
+                hasSuccessorInIncludes = true;
+              } else {
+                hasSuccessorOutOfIncludes = true;
+              }
             }
-          }
 
             if (!hasSuccessorInIncludes) {
               // terminating functions may cause 0 successors, too
@@ -91,15 +91,15 @@ public class STBridges {
               last = cfaNode;
             }
 
-          boolean hasPredecessorInIncludes = false;
-          boolean hasPredecessorOutOfIncludes = false;
-          for (CFAEdge enteringEdge : cfaNode.getEnteringEdges()) {
-            if (includes.contains(enteringEdge.getPredecessor())) {
-              hasPredecessorInIncludes = true;
-            } else {
-              hasPredecessorOutOfIncludes = true;
+            boolean hasPredecessorInIncludes = false;
+            boolean hasPredecessorOutOfIncludes = false;
+            for (CFAEdge enteringEdge : cfaNode.getEnteringEdges()) {
+              if (includes.contains(enteringEdge.getPredecessor())) {
+                hasPredecessorInIncludes = true;
+              } else {
+                hasPredecessorOutOfIncludes = true;
+              }
             }
-          }
 
             if (!hasPredecessorInIncludes) {
               first = cfaNode;
