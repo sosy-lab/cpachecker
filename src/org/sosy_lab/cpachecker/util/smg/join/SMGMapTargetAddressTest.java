@@ -13,7 +13,7 @@ import static com.google.common.truth.Truth.assertThat;
 import java.math.BigInteger;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
@@ -115,7 +115,7 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
     assertThat(mta.mapping2.getMappedValue(value2)).isSameInstanceAs(mta.getValue());
 
     assertThat(newEdge.pointsTo()).isSameInstanceAs(destObj);
-    assertThat(newEdge.getOffset().isNumericValue()).isTrue();
-    assertThat(newEdge.getOffset().asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.ZERO);
+    assertThat(newEdge.getOffset() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) newEdge.getOffset()).bigIntegerValue()).isEqualTo(BigInteger.ZERO);
   }
 }

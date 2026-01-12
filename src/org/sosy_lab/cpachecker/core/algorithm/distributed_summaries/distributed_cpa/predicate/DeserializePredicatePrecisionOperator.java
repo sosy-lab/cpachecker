@@ -29,6 +29,17 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
+/**
+ * Operator to deserialize PredicatePrecisions from DssMessages. The operator deserializes the
+ * following parts of a PredicatePrecision:
+ *
+ * <ul>
+ *   <li>Location-instance specific predicates
+ *   <li>Location specific predicates
+ *   <li>Function specific predicates
+ *   <li>Global predicates
+ * </ul>
+ */
 public class DeserializePredicatePrecisionOperator implements DeserializePrecisionOperator {
 
   private final Solver solver;

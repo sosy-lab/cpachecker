@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -92,7 +93,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -100,8 +100,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -189,8 +189,8 @@ public class SMGTransferRelation
         Solver.create(
             Configuration.defaultConfiguration(), pLogger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
-    FormulaEncodingWithPointerAliasingOptions formulaOptions =
-        new FormulaEncodingWithPointerAliasingOptions(Configuration.defaultConfiguration());
+    CFormulaEncodingWithPointerAliasingOptions formulaOptions =
+        new CFormulaEncodingWithPointerAliasingOptions(Configuration.defaultConfiguration());
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, pMachineModel, formulaOptions);
 
@@ -687,10 +687,11 @@ public class SMGTransferRelation
         // For pointer -> array we get an addressExpr that wraps the pointer
 
         // We don't support symbolic pointer arithmetics yet
-        if (!addrParam.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        if (!(addrParam.getOffset() instanceof NumericValue numAddrParamOffset)
+            || !numAddrParamOffset.bigIntegerValue().equals(BigInteger.ZERO)) {
           // UNKNOWN as we can't handle symbolic or non-zero offsets right now
           // TODO: implement either a workaround for pointers with offset to a memory region or
-          // switch to pointers for arrays per default
+          //  switch to pointers for arrays per default
           throw new SMGException(
               "Usage of symbolic or non-zero offsets for pointer targets in function arguments for"
                   + " pointer to array assignment not supported at the moment: "
@@ -707,15 +708,10 @@ public class SMGTransferRelation
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
         throw new SMGException("Could not associate a local array in a new function.");
-      } else if (knownMemoryAndState.getOffsetForObject().isNumericValue()
-          && knownMemoryAndState
-                  .getOffsetForObject()
-                  .asNumericValue()
-                  .bigIntegerValue()
-                  .compareTo(BigInteger.ZERO)
-              != 0) {
+      } else if (knownMemoryAndState.getOffsetForObject() instanceof NumericValue knownMemoryOffset
+          && knownMemoryOffset.bigIntegerValue().compareTo(BigInteger.ZERO) != 0) {
         throw new SMGException("Could not associate a local array in a new function.");
-      } else if (!knownMemoryAndState.getOffsetForObject().isNumericValue()) {
+      } else if (!(knownMemoryAndState.getOffsetForObject() instanceof NumericValue)) {
         throw new SMGException("Could not associate a local array in a new function.");
       }
       // arrays don't get copied! They are handled via pointers.
@@ -747,13 +743,13 @@ public class SMGTransferRelation
         }
 
         Value offsetForObject = derefedPointerOffsetAndState.getFirst().getOffsetForObject();
-        if (!offsetForObject.isNumericValue()) {
+        if (!(offsetForObject instanceof NumericValue numOffsetForObject)) {
           throw new SMGException(
               "Usage of symbolic offsets in function arguments for structs not supported at the"
                   + " moment. "
                   + callEdge);
         }
-        offsetSource = offsetForObject.asNumericValue().bigIntegerValue();
+        offsetSource = numOffsetForObject.bigIntegerValue();
         memorySource = derefedPointerOffsetAndState.getFirst().getSMGObject();
         sizeOfNewVariable = evaluator.subtractBitOffsetValues(memorySource.getSize(), offsetSource);
 
@@ -855,8 +851,10 @@ public class SMGTransferRelation
     truthValue = simplifiedExpression.getSecond();
 
     if (expression instanceof CBinaryExpression binEx
-        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
+        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound
+        && loopBound.getValue().bitCount() <= 32) {
       if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
+        // TODO: add option and extract to method
         // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
         if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
                 <= loopBound.getValue().intValueExact()
@@ -926,33 +924,20 @@ public class SMGTransferRelation
     return resultStateBuilder.build();
   }
 
-  /*
-   *  returns 'true' if the given value represents the specified boolean bool.
-   *  A return of 'false' does not necessarily mean that the given value represents !bool,
-   *  but only that it does not represent bool.
-   *
-   *  For example:
-   *    * representsTrue(BooleanValue.valueOf(true), true)  = true
-   *    * representsTrue(BooleanValue.valueOf(false), true) = false
-   *  but:
-   *    * representsTrue(NullValue.getInstance(), true)     = false
-   *    * representsTrue(NullValue.getInstance(), false)    = false
-   *
+  /**
+   * Returns 'true' if the given value represents the specified boolean value in the C programming
+   * language.
    */
   private boolean representsBoolean(Value value, boolean bool) {
-    if (value instanceof BooleanValue booleanValue) {
-      return booleanValue.isTrue() == bool;
-
-    } else if (value.isNumericValue()) {
+    if (value instanceof NumericValue numericValue) {
+      boolean numericIsZero = numericValue.bigIntegerValue().compareTo(BigInteger.ZERO) == 0;
       if (bool) {
-        return value.asNumericValue().longValue() == 1L;
+        return !numericIsZero;
       } else {
-        return value.asNumericValue().longValue() == 0L;
+        return numericIsZero;
       }
-
-    } else {
-      return false;
     }
+    return false;
   }
 
   @Override
@@ -976,60 +961,81 @@ public class SMGTransferRelation
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String calledFunctionName = fileNameExpression.toASTString();
 
-      ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
+      List<ValueAndSMGState> handledFunReturn =
+          evaluator
+              .getBuiltinFunctionHandler()
+              .handleFunctionCallWithoutBody(cFCExpression, calledFunctionName, state, pCfaEdge);
 
-      // function calls without assignments
-      resultStatesBuilder.addAll(
-          handleFunctionCallWithoutBody(state, pCfaEdge, cFCExpression, calledFunctionName));
+      // Memory allocating function calls that need to be freed without remembering the pointer
+      // leads to memory-leaks. Speed up this process.
+      handledFunReturn =
+          postprocessBuiltinCFunctionWithoutReturn(handledFunReturn, pCfaEdge, calledFunctionName);
 
-      return resultStatesBuilder.build();
+      return transformedImmutableListCopy(handledFunReturn, ValueAndSMGState::getState);
+
     } else {
       // Fall through for unneeded cases
       return ImmutableList.of(state);
     }
   }
 
-  /*
-   * Function calls without assignment only. Checks the arguments for validity!
-   * The split up of the methods used helps with better errors.
+  /**
+   * Post-processes C builtin function calls without subsequent assignments. Shortcuts errors for
+   * memory allocating functions and returns them with memory-leaks, as their pointers can never be
+   * freed. Other function calls are handled normally. Expects the input states to already have the
+   * functions handled, and the values being the return values of the functions.
    */
-  private Collection<SMGState> handleFunctionCallWithoutBody(
-      SMGState pState,
+  private List<ValueAndSMGState> postprocessBuiltinCFunctionWithoutReturn(
+      List<ValueAndSMGState> statesWithHandledFunctions,
       CStatementEdge pCfaEdge,
-      CFunctionCallExpression cFCExpression,
       String calledFunctionName)
       throws CPATransferException {
-    SMGCPABuiltins builtins = evaluator.getBuiltinFunctionHandler();
-    List<ValueAndSMGState> uselessValuesAndStates;
-    if (builtins.isABuiltIn(calledFunctionName)) {
-      if (builtins.isConfigurableAllocationFunction(calledFunctionName)) {
-        ImmutableList.Builder<SMGState> newStatesBuilder = ImmutableList.builder();
-        String errorMSG =
-            "Calling " + functionName + " and not using the return value results in a memory leak.";
-        logger.logf(Level.INFO, "Error in %s: %s", errorMSG, pCfaEdge.getFileLocation());
-        List<ValueAndSMGState> uselessValuesAndNewStates =
-            builtins.evaluateConfigurableAllocationFunction(
-                cFCExpression, calledFunctionName, pState, pCfaEdge);
-        for (ValueAndSMGState valueAndState : uselessValuesAndNewStates) {
-          newStatesBuilder.add(
-              valueAndState
-                  .getState()
-                  .withMemoryLeak(errorMSG, ImmutableList.of(valueAndState.getValue())));
+
+    if (isMemoryAllocatingFunction(calledFunctionName)) {
+      // Shortcut to faster errors
+      ImmutableList.Builder<ValueAndSMGState> newReturnBuilder = ImmutableList.builder();
+      String errorMSG =
+          "Calling "
+              + calledFunctionName
+              + " and not using the return value, results in a memory-leak at "
+              + pCfaEdge;
+
+      for (ValueAndSMGState valueAndState : statesWithHandledFunctions) {
+        Value funReturn = valueAndState.getValue();
+        SMGState funReturnState = valueAndState.getState();
+
+        if (funReturn instanceof NumericValue numRet
+            && numRet.bigIntegerValue().equals(BigInteger.ZERO)) {
+          // 0 returns do not need freeing
+          newReturnBuilder.add(valueAndState);
+        } else if (funReturnState.isPointer(funReturn)) {
+          // Valid pointer returned, this needs to be freed, but can't be freed as the pointer will
+          // be lost
+          logger.logf(
+              Level.INFO,
+              "Called memory allocating C function %s() that needs freeing, but did not assign the"
+                  + " returned value %s; memory-leak assumed following %s",
+              funReturn,
+              calledFunctionName,
+              pCfaEdge);
+
+          newReturnBuilder.add(
+              ValueAndSMGState.of(funReturn, funReturnState.withMemoryLeak(errorMSG, funReturn)));
+
+        } else {
+          throw new SMGException(
+              "Error: unexpected return value "
+                  + funReturn
+                  + " encountered in post-processing of function call to "
+                  + functionName
+                  + "() without assigning the functions return value at "
+                  + pCfaEdge);
         }
-        return newStatesBuilder.build();
       }
-      if (builtins.isDeallocationFunction(calledFunctionName)) {
-        return builtins.evaluateFree(cFCExpression, pState, pCfaEdge);
-      } else {
-        uselessValuesAndStates =
-            builtins.handleBuiltinFunctionCall(pCfaEdge, cFCExpression, calledFunctionName, pState);
-      }
-    } else {
-      // Check arguments for unknown functions without body
-      uselessValuesAndStates =
-          builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
+      return newReturnBuilder.build();
     }
-    return transformedImmutableListCopy(uselessValuesAndStates, ValueAndSMGState::getState);
+
+    return statesWithHandledFunctions;
   }
 
   @Override
@@ -1274,7 +1280,8 @@ public class SMGTransferRelation
     SMGState currentState = pCurrentState;
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type
-    Value sizeInBits = new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
+    NumericValue sizeInBits =
+        new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
 
     if (valueToWrite instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
@@ -1296,7 +1303,7 @@ public class SMGTransferRelation
                 || rightHandSideType.canBeAssignedFrom(leftHandSideType));
         // This is a copy based on a pointer
         Value pointerOffset = addressInValue.getOffset();
-        if (!pointerOffset.isNumericValue()) {
+        if (!(pointerOffset instanceof NumericValue numPointerOffset)) {
           // Write unknown to left
           return ImmutableList.of(
               currentState.writeValueWithChecks(
@@ -1307,7 +1314,7 @@ public class SMGTransferRelation
                   leftHandSideType,
                   edge));
         }
-        BigInteger baseOffsetFromPointer = pointerOffset.asNumericValue().bigIntegerValue();
+        BigInteger baseOffsetFromPointer = numPointerOffset.bigIntegerValue();
 
         Value properPointer;
         // We need a true pointer without AddressExpr
@@ -1349,11 +1356,12 @@ public class SMGTransferRelation
       } else {
         // Genuine pointer that needs to be written
         // Retranslate into a pointer and write the pointer
-        if (addressInValue.getOffset().isNumericValue()
-            && addressInValue.getOffset().asNumericValue().longValue() == 0) {
+        if (addressInValue.getOffset() instanceof NumericValue addressInValueOffset
+            && addressInValueOffset.longValue() == 0) {
           // offset == 0 -> write the value directly (known pointer)
           valueToWrite = addressInValue.getMemoryAddress();
-        } else if (addressInValue.getOffset().isNumericValue() || options.trackPredicates()) {
+        } else if (addressInValue.getOffset() instanceof NumericValue
+            || options.trackPredicates()) {
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
@@ -1369,12 +1377,10 @@ public class SMGTransferRelation
           valueToWrite = UnknownValue.getInstance();
         }
         Preconditions.checkArgument(
-            sizeInBits.isNumericValue()
-                && sizeInBits
-                        .asNumericValue()
-                        .bigIntegerValue()
-                        .compareTo(evaluator.getBitSizeof(currentState, leftHandSideType))
-                    == 0);
+            sizeInBits
+                    .bigIntegerValue()
+                    .compareTo(evaluator.getBitSizeof(currentState, leftHandSideType))
+                == 0);
 
         return ImmutableList.of(
             currentState.writeValueWithChecks(

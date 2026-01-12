@@ -1063,6 +1063,13 @@ public class SMG {
     return smgObjects.keySet();
   }
 
+  public Set<SMGObject> getValidObjects() {
+    return smgObjects.entrySet().stream()
+        .filter(e -> e.getValue())
+        .map(e -> e.getKey())
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
   /**
    * Returns all SMGValues associated with this SMG and their current nesting levels.
    *
@@ -1231,6 +1238,34 @@ public class SMG {
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
     return SMGAndHasValueEdges.of(newSMG, newHVEdge);
+  }
+
+  public SMG copyAndRemoveAllEdgesFrom(SMGObject object) {
+    return copyAndRemoveHVEdges(hasValueEdges.getOrDefault(object, PersistentSet.of()), object);
+  }
+
+  public SMG copyAndRemoveAllEdgesFrom(SMGObject object, BigInteger startingFromOffsetInBits) {
+    return copyAndRemoveHVEdges(
+        hasValueEdges.getOrDefault(object, PersistentSet.of()).stream()
+            .filter(
+                hve ->
+                    hve.getSizeInBits().add(hve.getOffset()).compareTo(startingFromOffsetInBits)
+                        > 0)
+            .collect(ImmutableList.toImmutableList()),
+        object);
+  }
+
+  public SMG copyAndRemoveAllEdgesFrom(
+      SMGObject object, BigInteger offsetInBits, BigInteger sizeInBits) {
+    BigInteger sizePlusOffsetInBits = offsetInBits.add(sizeInBits);
+    return copyAndRemoveHVEdges(
+        hasValueEdges.getOrDefault(object, PersistentSet.of()).stream()
+            .filter(
+                hve ->
+                    !(sizePlusOffsetInBits.compareTo(hve.getOffset()) < 0
+                        || hve.getSizeInBits().add(hve.getOffset()).compareTo(offsetInBits) < 0))
+            .collect(ImmutableList.toImmutableList()),
+        object);
   }
 
   /**
@@ -2686,7 +2721,7 @@ public class SMG {
     /*for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
       // References to invalid objects might exist, as well as references to invalid objects sizes
       Value sizeOfObj = obj.getKey().getSize();
-      if (!sizeOfObj.isNumericValue()
+      if (!(sizeOfObj instanceof NumericValue)
           && !pExistingValueMapping.containsKey(pValueWrapper.wrap(sizeOfObj))
           && obj.getValue()) {
         // If the size is in a valid object, we need a mapping!

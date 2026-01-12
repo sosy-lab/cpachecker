@@ -273,7 +273,7 @@ class EclipseCParser implements CParser {
       for (IASTPreprocessorIncludeStatement include : result.getIncludeDirectives()) {
         if (!include.isResolved()) {
           if (include.isSystemInclude()) {
-            throw new CFAGenerationRuntimeException(
+            throw new CParsingFailureRequiringPreprocessingException(
                 "File includes system headers, either preprocess it manually or specify"
                     + " --preprocess.");
           } else {
@@ -448,7 +448,7 @@ class EclipseCParser implements CParser {
       CodePosition result =
           delegate.getOriginLineFromAnalysisCodeLine(analysisFile, pAnalysisCodeLine);
 
-      if (result.getFileName().equals(analysisFile)) {
+      if (result.fileName().equals(analysisFile)) {
         // reverse mapping
         result = result.withFileName(pAnalysisFile);
       }

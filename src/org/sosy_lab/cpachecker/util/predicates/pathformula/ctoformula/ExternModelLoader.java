@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -105,7 +106,9 @@ public class ExternModelLoader {
                 // this variable was already declared in the program
                 Formula formulaVar =
                     fmgr.makeVariable(
-                        conv.getFormulaTypeFromCType(ssa.getType(predName)), predName, ssaIndex);
+                        conv.getFormulaTypeFromType((CType) ssa.getType(predName)),
+                        predName,
+                        ssaIndex);
                 if (elem > 0) {
                   constraintPart =
                       fmgr.makeNot(fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)

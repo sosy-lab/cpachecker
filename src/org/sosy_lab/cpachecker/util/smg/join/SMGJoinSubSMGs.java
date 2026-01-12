@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.exception.SMGJoinException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
@@ -140,8 +140,8 @@ public class SMGJoinSubSMGs extends SMGAbstractJoin {
    * @return true if sizes are equal and prev/head offset not equal to edge offset.
    */
   private boolean matchesOffsetAndSize(SMGDoublyLinkedListSegment dlls, SMGHasValueEdge edge) {
-    if (dlls.getSize().isNumericValue()
-        && dlls.getSize().asNumericValue().bigIntegerValue().equals(edge.getSizeInBits())) {
+    if (dlls.getSize() instanceof NumericValue dllsSize
+        && dllsSize.bigIntegerValue().equals(edge.getSizeInBits())) {
       return !dlls.getNextOffset().equals(edge.getOffset())
           && !dlls.getPrevOffset().equals(edge.getOffset());
     }

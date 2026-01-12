@@ -27,7 +27,9 @@ SPDX-License-Identifier: Apache-2.0
     <orderEntry type="module-library">
       <library>
         <CLASSES>
+          <root url="file://$MODULE_DIR$/lib" />
           <root url="file://$MODULE_DIR$/lib/java/runtime" />
+          <root url="file://$MODULE_DIR$/lib/java/test" />
         </CLASSES>
         <JAVADOC />
         <NATIVE>
@@ -36,47 +38,11 @@ SPDX-License-Identifier: Apache-2.0
         <SOURCES>
           <root url="file://$MODULE_DIR$/lib/java-contrib" />
         </SOURCES>
-        <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" />
-        <jarDirectory url="file://$MODULE_DIR$/lib/java-contrib" recursive="false" type="SOURCES" />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="file://$MODULE_DIR$/lib/java/test" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="file://$MODULE_DIR$/lib/java/test" />
-          <root url="file://$MODULE_DIR$/lib/java-contrib" />
-        </SOURCES>
-        <jarDirectory url="file://$MODULE_DIR$/lib/java/test" recursive="false" />
-        <jarDirectory url="file://$MODULE_DIR$/lib/java-contrib" recursive="false" type="SOURCES" />
-        <jarDirectory url="file://$MODULE_DIR$/lib/java/test" recursive="false" type="SOURCES" />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/java/build/error_prone_annotations.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/java-contrib/error_prone_annotations-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="file://$MODULE_DIR$/lib" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="file://$MODULE_DIR$/lib" />
-        </SOURCES>
         <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/test" recursive="false" />
         <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" type="SOURCES" />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" type="SOURCES" />
       </library>
     </orderEntry>
   </component>

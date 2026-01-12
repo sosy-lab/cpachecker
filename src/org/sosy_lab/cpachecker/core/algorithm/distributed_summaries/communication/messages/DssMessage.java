@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
@@ -37,11 +38,34 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public abstract class DssMessage {
 
   public enum DssMessageType {
-    PRECONDITION,
+    POST_CONDITION,
     VIOLATION_CONDITION,
     EXCEPTION,
     RESULT,
     STATISTIC
+  }
+
+  private static class DssMessageProxy {
+    private final ImmutableMap<String, String> header;
+    private final ImmutableMap<String, String> content;
+
+    @JsonCreator
+    DssMessageProxy(
+        @JsonProperty(DSS_MESSAGE_HEADER_ID) Map<String, String> pHeader,
+        @JsonProperty(DSS_MESSAGE_CONTENT_ID) Map<String, String> pContent) {
+      Preconditions.checkNotNull(pHeader, "Message JSON does not contain header");
+      Preconditions.checkNotNull(pContent, "Message JSON does not contain content");
+      header = ImmutableMap.copyOf(pHeader);
+      content = ImmutableMap.copyOf(pContent);
+    }
+
+    private ImmutableMap<String, String> getHeader() {
+      return header;
+    }
+
+    private ImmutableMap<String, String> getContent() {
+      return content;
+    }
   }
 
   public static final String DSS_MESSAGE_HEADER_ID = "header";
@@ -65,7 +89,7 @@ public abstract class DssMessage {
    * @param pContent the content of the message
    */
   DssMessage(String pSenderId, DssMessageType pType, Map<String, String> pContent) {
-    checkArgument(isValid(pContent), "Invalid content for message type: " + "%s", pType);
+    checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
     senderId = pSenderId;
     type = pType;
     timestamp = Instant.now();
@@ -94,8 +118,8 @@ public abstract class DssMessage {
 
   private ContentReader getArbitraryContent(String pKey) {
     checkArgument(
-        type == DssMessageType.PRECONDITION || type == DssMessageType.VIOLATION_CONDITION,
-        "Cannot get content for type: " + "%s",
+        type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
+        "Cannot get content for type: %s",
         type);
     Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
     Preconditions.checkState(
@@ -106,13 +130,19 @@ public abstract class DssMessage {
     return ContentReader.read(stateContent);
   }
 
-  public final int getNumberOfContainedStates() {
+  /**
+   * Get the number of contained states in this message, if any.
+   *
+   * @return An OptionalInt containing the number of states, or empty if not present.
+   */
+  public final OptionalInt getNumberOfContainedStates() {
     if (content.containsKey(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY)) {
-      return Integer.parseInt(
-          Objects.requireNonNull(
-              content.get(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY)));
+      return OptionalInt.of(
+          Integer.parseInt(
+              Objects.requireNonNull(
+                  content.get(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY))));
     }
-    return -1;
+    return OptionalInt.empty();
   }
 
   public final DssMessage advance(String pPrefix) {
@@ -138,14 +168,14 @@ public abstract class DssMessage {
   public final Result getResult() {
     checkArgument(type == DssMessageType.RESULT, "Cannot get content for type: " + "%s", type);
     String resultString = content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY);
-    Preconditions.checkNotNull(resultString, "Result content is missing in message: " + this);
+    Preconditions.checkNotNull(resultString, "Result content is missing in message: %s", this);
     return Result.valueOf(resultString);
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
     checkArgument(
-        type == DssMessageType.PRECONDITION || type == DssMessageType.VIOLATION_CONDITION,
-        "Cannot get content for type: " + "%s",
+        type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
+        "Cannot get content for type: %s",
         type);
     ContentReader reader =
         ContentReader.read(content).pushLevel(DssMessageFactory.DSS_MESSAGE_STATUS_KEY);
@@ -173,10 +203,18 @@ public abstract class DssMessage {
     checkArgument(type == DssMessageType.EXCEPTION, "Cannot get content for type: " + "%s", type);
     String exceptionMessage = content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY);
     Preconditions.checkNotNull(
-        exceptionMessage, "Exception message is missing in message: " + this);
+        exceptionMessage, "Exception message is missing in message: %s", this);
     return exceptionMessage;
   }
 
+  /**
+   * Convert the message to a JSON representation with an identifier.
+   *
+   * @param pIdentifier A unique identifier indicating a set of messages that belong together. All
+   *     messages produced in one run of DSS should have the same identifier. This simplifies the
+   *     separation of old and new messages after the analysis, especially, .
+   * @return JSON representation of the message.
+   */
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
       int pIdentifier) {
@@ -210,29 +248,6 @@ public abstract class DssMessage {
     return statsBuilder.buildOrThrow();
   }
 
-  private static class DssMessageProxy {
-    private final ImmutableMap<String, String> header;
-    private final ImmutableMap<String, String> content;
-
-    @JsonCreator
-    DssMessageProxy(
-        @JsonProperty(DSS_MESSAGE_HEADER_ID) Map<String, String> pHeader,
-        @JsonProperty(DSS_MESSAGE_CONTENT_ID) Map<String, String> pContent) {
-      Preconditions.checkNotNull(pHeader, "Message JSON does not contain header");
-      Preconditions.checkNotNull(pContent, "Message JSON does not contain content");
-      header = ImmutableMap.copyOf(pHeader);
-      content = ImmutableMap.copyOf(pContent);
-    }
-
-    private ImmutableMap<String, String> getHeader() {
-      return header;
-    }
-
-    private ImmutableMap<String, String> getContent() {
-      return content;
-    }
-  }
-
   public static DssMessage fromJson(Path pJson) throws IOException {
     ObjectMapper mapper = new ObjectMapper();
     DssMessageProxy proxy = mapper.readValue(pJson.toFile(), DssMessageProxy.class);
@@ -255,7 +270,7 @@ public abstract class DssMessage {
     DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));
 
     return switch (type) {
-      case PRECONDITION -> new DssPreconditionMessage(senderId, ImmutableList.of(), content);
+      case POST_CONDITION -> new DssPostConditionMessage(senderId, ImmutableList.of(), content);
       case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);

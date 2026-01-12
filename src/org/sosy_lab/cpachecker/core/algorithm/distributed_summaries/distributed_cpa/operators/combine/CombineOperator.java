@@ -12,6 +12,12 @@ import java.util.Collection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+/**
+ * An operator to combine multiple abstract states into a single abstract state. This is useful in
+ * distributed CPA settings where states from different analysis nodes need to be merged.
+ *
+ * <p>The resulting state must follow the contract that it over-approximates all input states.
+ */
 public interface CombineOperator {
 
   AbstractState combine(Collection<AbstractState> states) throws CPAException, InterruptedException;

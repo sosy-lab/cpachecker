@@ -167,6 +167,14 @@ public class FormulaManagerView {
   @Option(
       secure = true,
       description =
+          "When using encodeBitvectorAs=INTEGER, this will modify the bitvector replacement"
+              + " behavior such that unbounded integer arithmetic (NLA) (and additional\n"
+              + " constraints) is used to model wrap-around and boundedness.")
+  private boolean useNonlinearArithmeticForIntAsBv = false;
+
+  @Option(
+      secure = true,
+      description =
           "Theory to use as backend for floats. If different from FLOAT, the specified theory is"
               + " used to approximate floats. This can be used for solvers that do not support"
               + " floating-point arithmetic, or for increased performance. If UNSUPPORTED, solvers"
@@ -200,6 +208,11 @@ public class FormulaManagerView {
               + encodeBitvectorAs
               + " for option cpa.predicate.encodeBitvectorAs. "
               + "This kind of theory approximation is not supported.");
+    }
+    if (encodeBitvectorAs != Theory.INTEGER && useNonlinearArithmeticForIntAsBv) {
+      throw new InvalidConfigurationException(
+          "Setting cpa.predicate.useNonlinearArithmeticForIntAsBv without"
+              + " cpa.predicate.encodeBitvectorAs = INTEGER is not supported.");
     }
     if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.FLOAT, Theory.INTEGER, Theory.RATIONAL)
         .contains(encodeFloatAs)) {
@@ -291,13 +304,23 @@ public class FormulaManagerView {
       rawBvmgr =
           switch (encodeBitvectorAs) {
             case BITVECTOR -> manager.getBitvectorFormulaManager();
-            case INTEGER ->
-                new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+            case INTEGER -> {
+              if (useNonlinearArithmeticForIntAsBv) {
+                yield new ReplaceBitvectorWithNLAIntegerTheory(
                     wrappingHandler,
                     manager.getBooleanFormulaManager(),
                     manager.getIntegerFormulaManager(),
                     manager.getUFManager(),
                     config);
+              } else {
+                yield new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                    wrappingHandler,
+                    manager.getBooleanFormulaManager(),
+                    manager.getIntegerFormulaManager(),
+                    manager.getUFManager(),
+                    config);
+              }
+            }
             case RATIONAL ->
                 new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
                     wrappingHandler,
@@ -364,7 +387,19 @@ public class FormulaManagerView {
               + "but CPAchecker will crash if floats are used during the analysis.",
           e);
     }
-    return new FloatingPointFormulaManagerView(wrappingHandler, rawFpmgr, manager.getUFManager());
+    if (wrappingHandler.useIntForBitvectors()) {
+      try {
+        return new FloatingPointFormulaManagerView(
+            wrappingHandler,
+            rawFpmgr,
+            manager.getUFManager(),
+            manager.getBitvectorFormulaManager());
+      } catch (UnsupportedOperationException e) {
+        logger.logDebugException(e);
+      }
+    }
+    return new FloatingPointFormulaManagerView(
+        wrappingHandler, rawFpmgr, manager.getUFManager(), null);
   }
 
   /** Creates the IntegerFormulaManager or a replacement based on the option encodeIntegerAs. */
@@ -955,6 +990,24 @@ public class FormulaManagerView {
       T term, T start, T end, boolean signed) {
     return booleanFormulaManager.and(
         makeLessOrEqual(start, term, signed), makeLessOrEqual(term, end, signed));
+  }
+
+  /**
+   * Create a formula for the constraint that a term is within the full range of its type. For
+   * bitvectors encoded as integers, this checks that the term fits within its signed or unsigned
+   * bounds. For other theories and encodings, this returns {@code true} (no constraint).
+   *
+   * @param term The term that should be checked against its full type range.
+   * @param signed Whether the arithmetic should be signed or unsigned (relevant for bitvectors).
+   * @return A BooleanFormula representing a constraint about term, or {@code true} if not
+   *     applicable.
+   */
+  public <T extends Formula> BooleanFormula makeDomainRangeConstraint(T term, boolean signed) {
+    if (getFormulaType(term).isBitvectorType()) {
+      return bitvectorFormulaManager.makeDomainRangeConstraint((BitvectorFormula) term, signed);
+    } else {
+      return booleanFormulaManager.makeTrue();
+    }
   }
 
   /** Create a variable with an SSA index. */

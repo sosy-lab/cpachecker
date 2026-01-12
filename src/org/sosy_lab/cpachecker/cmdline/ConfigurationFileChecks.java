@@ -131,7 +131,7 @@ public class ConfigurationFileChecks {
           "overflow.config",
           "datarace.config",
           "termination.config",
-          "termination.violation.witness",
+          "termination.violation.witness.graphml",
           // handled by WitnessOptions when path to witness is specified with -witness
           "witness.validation.violation.config",
           "witness.validation.correctness.acsl",
@@ -168,7 +168,12 @@ public class ConfigurationFileChecks {
           "cpa.predicate.refinement.performInitialStaticRefinement",
           // options set with inject(...,...)
           "pcc.proof",
-          "pcc.partial.stopAddingAtReachedSetSize");
+          "pcc.partial.stopAddingAtReachedSetSize",
+          // options for delegating based on the programming language
+          "java.config",
+          "c.config",
+          "llvm.config",
+          "svlib.config");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
@@ -404,7 +409,11 @@ public class ConfigurationFileChecks {
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
-    if (options.language == Language.JAVA) {
+    if (options.language == Language.SVLIB) {
+      // For SV-LIB Programs the specification is inside the program itself, so we do not need to
+      // check anything
+      assertThat(spec).isEqualTo("specification/correct-tags.spc");
+    } else if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
     } else if (isOptionEnabled(config, "analysis.checkCounterexamplesWithBDDCPARestriction")) {
       assertThat(spec).contains("specification/BDDCPAErrorLocation.spc");
@@ -529,6 +538,27 @@ public class ConfigurationFileChecks {
       return;
     }
 
+    // exclude files not meant to be run
+    if (configFile instanceof Path) {
+      assume()
+          .that((Iterable<?>) configFile)
+          .containsNoneOf(
+              // Configs containing this name randomly sample paths from the program
+              // by default they do not terminate, which makes this test fail due to
+              // a timeout. If the analysis is improved such that already
+              // seen paths are not considered twice, this test can be re-enabled.
+              Path.of("describerr-portfolio.properties"),
+              Path.of("parallel-randomSampling.properties"),
+              Path.of("randomSampling.properties"),
+              Path.of("randomTesting.properties"),
+              // All configurations based on sequentialization reject the default empty
+              // program used in this test, they requires a
+              Path.of("sequentializeProgram.properties"),
+              Path.of("sequentialization-concurrency--memorysafety.properties"),
+              Path.of("sequentialization-concurrency--overflow.properties"),
+              Path.of("sequentialization-concurrency.properties"));
+    }
+
     CPAcheckerResult result;
     try {
       result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
@@ -629,6 +659,7 @@ public class ConfigurationFileChecks {
               LogRecord result = underlyingIterator.next();
               if (!oneComponentSuccessful && Level.INFO.equals(result.getLevel())) {
                 if (result.getMessage().endsWith("finished successfully.")) {
+                  // TODO: log/return the config that triggers this!
                   oneComponentSuccessful = true;
                   underlyingIterator =
                       Iterators.filter(

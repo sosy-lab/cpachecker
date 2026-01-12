@@ -59,6 +59,10 @@ class MemoryAccess {
     return memoryLocation.isAmbiguous() || !memoryLocation.isPrecise();
   }
 
+  boolean memoryLocationIsAtomic() {
+    return memoryLocation.getType().getCanonicalType().isAtomic();
+  }
+
   boolean mightAccessSameLocationAs(MemoryAccess other) {
     return !Sets.intersection(
             memoryLocation.getMemoryLocations(), other.memoryLocation.getMemoryLocations())

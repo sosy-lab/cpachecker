@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure;
 
-/** Entities for communication in distributed summaries. */
+/** Enum representing different communication entities in Distributed Summaries Synthesis. */
 public enum DssCommunicationEntity {
-  /* Block worker */
+  /**
+   * Block entities are responsible for sharing information about code blocks (preconditions,
+   * postconditions).
+   */
   BLOCK,
-  /* Observer worker (thread monitor and result check) */
+  /** Observers decide whether to terminate the analysis based on received information. */
   OBSERVER,
-  /* any entity */
+  /** ALL represents all communication entities. */
   ALL
 }

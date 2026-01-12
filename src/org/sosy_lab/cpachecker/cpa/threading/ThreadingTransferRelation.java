@@ -531,9 +531,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         (CFunctionEntryNode)
             Preconditions.checkNotNull(
                 cfa.getFunctionHead(functionName),
-                "Function '"
-                    + functionName
-                    + "' was not found. Please enable cloning for the CFA!");
+                "Function '%s' was not found. Please enable cloning for the CFA!",
+                functionName);
     CFunctionDeclaration functionDeclaration =
         (CFunctionDeclaration) functioncallNode.getFunction();
     CIdExpression functionId =
@@ -574,7 +573,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     CFANode functioncallNode =
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName),
-            "Function '" + functionName + "' was not found. Please enable cloning for the CFA!");
+            "Function '%s' was not found. Please enable cloning for the CFA!",
+            functionName);
     AbstractState initialStack =
         callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
     AbstractState initialLoc =

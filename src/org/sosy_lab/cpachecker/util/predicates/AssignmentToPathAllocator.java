@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -93,7 +93,7 @@ public class AssignmentToPathAllocator {
     machineModel = pMachineModel;
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(
-            pLogger, pMachineModel, new FormulaEncodingWithPointerAliasingOptions(pConfig));
+            pLogger, pMachineModel, new CFormulaEncodingWithPointerAliasingOptions(pConfig));
     memoryName = exp -> typeHandler.getPointerAccessNameForType(typeHandler.getSimplifiedType(exp));
   }
 
@@ -612,6 +612,10 @@ public class AssignmentToPathAllocator {
     }
 
     return result;
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 
   private static final class AssignableTermsInPath {

@@ -42,8 +42,7 @@ class FunctionPointerExpressionValueVisitor extends ExpressionValueVisitor {
 
   @Override
   public MemoryLocation evaluateRelativeMemLocForStructMember(
-      MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType)
-      throws UnrecognizedCodeException {
+      MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType) {
 
     MemoryLocationEvaluator locationEvaluator = new FunctionPointerMemoryLocationEvaluator(this);
 

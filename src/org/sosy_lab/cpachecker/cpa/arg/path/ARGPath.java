@@ -79,6 +79,15 @@ public class ARGPath extends AbstractAppender {
     assert states.size() - 1 == edges.size();
   }
 
+  /**
+   * Create a new ARGPath from the given states and edges.
+   *
+   * @param pStates All states ordered from beginning to end of the path
+   * @param pPath The edges between the states
+   * @param pFullPath The full path including all CFAEdges between the states. In some cases, there
+   *     are more than one CFAEdge between two ARGStates. This list must contain all of them in the
+   *     correct order.
+   */
   public ARGPath(List<ARGState> pStates, List<CFAEdge> pPath, List<CFAEdge> pFullPath) {
     states = ImmutableList.copyOf(pStates);
     edges = pPath;

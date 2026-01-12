@@ -348,7 +348,7 @@ public class SymbolicProgramConfiguration {
   private PersistentMap<SMGObject, BigInteger> calculateNewNumericAddressMapForNewSMGObject(
       SMGObject newObject) {
     if (memoryAddressAssumptionsMap.containsKey(newObject)
-        || !newObject.getSize().isNumericValue()) {
+        || !(newObject.getSize() instanceof NumericValue newObjectSize)) {
       return memoryAddressAssumptionsMap;
     }
     // Add buffer
@@ -357,7 +357,7 @@ public class SymbolicProgramConfiguration {
         memoryAddressAssumptionsMap.putAndCopy(newObject, currentMemoryAssumptionMax);
     currentMemoryAssumptionMax =
         currentMemoryAssumptionMax.add(
-            newObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.valueOf(8)));
+            newObjectSize.bigIntegerValue().divide(BigInteger.valueOf(8)));
     return newMap;
   }
 
@@ -1783,6 +1783,20 @@ public class SymbolicProgramConfiguration {
     return copyAndReplaceSMG(smg.writeValue(pObject, pFieldOffset, pSizeofInBits, pValue));
   }
 
+  public SymbolicProgramConfiguration copyAndRemoveAllEdgesFrom(SMGObject pObject) {
+    return copyAndReplaceSMG(smg.copyAndRemoveAllEdgesFrom(pObject));
+  }
+
+  public SymbolicProgramConfiguration copyAndRemoveAllEdgesFrom(
+      SMGObject pObject, BigInteger startingFromOffsetInBits) {
+    return copyAndReplaceSMG(smg.copyAndRemoveAllEdgesFrom(pObject, startingFromOffsetInBits));
+  }
+
+  public SymbolicProgramConfiguration copyAndRemoveAllEdgesFrom(
+      SMGObject pObject, BigInteger offsetInBits, BigInteger sizeInBits) {
+    return copyAndReplaceSMG(smg.copyAndRemoveAllEdgesFrom(pObject, offsetInBits, sizeInBits));
+  }
+
   /**
    * This assumes that the entered {@link SMGObject} is part of the SPC!
    *
@@ -2525,7 +2539,7 @@ public class SymbolicProgramConfiguration {
       //   (they don't do harm and having a mapping is quicker later)
       if (!value.isZero()
           && !valuesToRegionsTheyAreSavedIn.containsKey(value)
-          && (maybeMapping.isEmpty() || !maybeMapping.orElseThrow().isNumericValue())) {
+          && (maybeMapping.isEmpty() || !(maybeMapping.orElseThrow() instanceof NumericValue))) {
         // Check if the value is referenced by the atexit stack
         if (maybeMapping.isPresent()) {
           for (Value atExitAddressValue : atExitStack) {

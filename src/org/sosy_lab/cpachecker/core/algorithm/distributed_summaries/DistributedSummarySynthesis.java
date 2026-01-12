@@ -31,10 +31,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.NaiveDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.MultithreadingDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SequentialDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SingleWorkerDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -83,9 +86,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  *       </ul>
  * </ul>
  *
- * <h2>Special Modes</h2>
- *
- * <p>DistributedSummarySynthesis supports several operational modes:
+ * There are two execution strategies implemented in DSS:
  *
  * <ul>
  *   <li><strong>Block Graph Export Only:</strong> When {@link
@@ -137,7 +138,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private DssExecutor getExecutor(Specification specification)
       throws InvalidConfigurationException {
     return switch (executorType) {
-      case DSS -> new NaiveDssExecutor(configuration, specification);
+      case DSS -> new MultithreadingDssExecutor(configuration, specification);
       case SINGLE_WORKER -> new SingleWorkerDssExecutor(configuration, specification);
       case SEQUENTIAL -> new SequentialDssExecutor(configuration, specification);
     };
@@ -159,12 +160,13 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
     dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
     if (!abstractionDeadEnds.isEmpty() && !decompositionOptions.allowMissingAbstractionNodes()) {
-      for (BlockNode node : blockGraph.getRoots()) {
-        if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
-          throw new AssertionError(
-              "Direct successors of the root node are required to have an abstraction"
-                  + " location.");
-        }
+      if (blockGraph
+          .getRoot()
+          .getViolationConditionLocation()
+          .equals(blockGraph.getRoot().getFinalLocation())) {
+        throw new AssertionError(
+            "Direct successors of the root node are required to have an abstraction"
+                + " location.");
       }
     }
     if (!abstractionDeadEnds.isEmpty()) {

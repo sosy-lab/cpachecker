@@ -16,18 +16,14 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.SequencedSet;
-import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -36,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -78,24 +73,6 @@ public class BlockGraphModification {
       Map<CFANode, CFANode> originalToInstrumentedNodes,
       Map<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
 
-  private static MutableCFA createMutableCfaCopy(
-      CFA pCfa, Configuration pConfig, LogManager pLogger) {
-    // create a clone of the specified CFA (clones all CFA nodes and edges)
-    CFA clone =
-        CCfaTransformer.substituteAstNodes(pConfig, pLogger, pCfa, (cfaEdge, astNode) -> astNode);
-    // create a `MutableCFA` for the clone (contains the same CFA nodes and edges as `clone`)
-    NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
-    TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
-    for (CFANode node : clone.nodes()) {
-      String functionName = node.getFunction().getQualifiedName();
-      allNodes.put(functionName, node);
-      if (node instanceof FunctionEntryNode functionEntryNode) {
-        functionEntryNodes.put(functionName, functionEntryNode);
-      }
-    }
-    return new MutableCFA(functionEntryNodes, allNodes, clone.getMetadata());
-  }
-
   public static Modification instrumentCFA(
       CFA pCFA, BlockGraph pBlockGraph, Configuration pConfig, LogManager pLogger) {
     // If the block graph consists of a single block that is the full CFA,
@@ -104,7 +81,7 @@ public class BlockGraphModification {
       return getUnchanged(pCFA, pBlockGraph);
     }
 
-    MutableCFA mutableCfa = createMutableCfaCopy(pCFA, pConfig, pLogger);
+    MutableCFA mutableCfa = MutableCFA.copyOf(pCFA, pConfig, pLogger);
     ModificationMetadata modificationMetadata =
         addBlankEdgesAtBlockEnds(mutableCfa, pCFA, pBlockGraph);
     Map<CFANode, CFANode> originalInstrumentedMapping =

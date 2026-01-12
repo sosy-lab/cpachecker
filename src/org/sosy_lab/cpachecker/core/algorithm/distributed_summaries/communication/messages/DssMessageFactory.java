@@ -42,20 +42,20 @@ public class DssMessageFactory {
         .build();
   }
 
-  public DssPreconditionMessage createDssPreconditionMessage(
+  public DssPostConditionMessage createDssPostConditionMessage(
       String pSenderId,
       boolean pReachable,
       boolean pSound,
       AlgorithmStatus pStatus,
       List<String> pReceivers,
       ImmutableMap<String, String> pStateContent) {
-    return new DssPreconditionMessage(
+    return new DssPostConditionMessage(
         pSenderId,
         pReceivers,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
-            .put(DssPreconditionMessage.DSS_MESSAGE_REACHABLE_KEY, Boolean.toString(pReachable))
-            .put(DssPreconditionMessage.DSS_PRECONDITION_SOUND_KEY, Boolean.toString(pSound))
+            .put(DssPostConditionMessage.DSS_MESSAGE_REACHABLE_KEY, Boolean.toString(pReachable))
+            .put(DssPostConditionMessage.DSS_PRECONDITION_SOUND_KEY, Boolean.toString(pSound))
             .putAll(pStateContent)
             .buildOrThrow());
   }

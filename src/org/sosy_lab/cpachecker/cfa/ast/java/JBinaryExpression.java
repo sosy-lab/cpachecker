@@ -102,6 +102,37 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     public String getOperator() {
       return op;
     }
+
+    @Override
+    public boolean isLogicalOperator() {
+      return switch (this) {
+        case STRING_CONCATENATION,
+            MULTIPLY,
+            DIVIDE,
+            MODULO,
+            PLUS,
+            MINUS,
+            SHIFT_LEFT,
+            SHIFT_RIGHT_SIGNED,
+            SHIFT_RIGHT_UNSIGNED,
+            BINARY_AND,
+            BINARY_OR,
+            BINARY_XOR ->
+            false;
+        case LESS_EQUAL,
+            LESS_THAN,
+            GREATER_EQUAL,
+            GREATER_THAN,
+            EQUALS,
+            NOT_EQUALS,
+            CONDITIONAL_AND,
+            CONDITIONAL_OR,
+            LOGICAL_XOR,
+            LOGICAL_OR,
+            LOGICAL_AND ->
+            true;
+      };
+    }
   }
 
   @Override

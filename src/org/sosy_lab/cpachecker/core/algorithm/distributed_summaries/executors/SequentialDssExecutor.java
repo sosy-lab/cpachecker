@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
@@ -61,7 +63,7 @@ public class SequentialDssExecutor implements DssExecutor {
     stats = new ArrayList<>();
   }
 
-  private List<DssActor> createDssActors(CFA cfa, BlockGraph blockGraph)
+  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
@@ -79,38 +81,27 @@ public class SequentialDssExecutor implements DssExecutor {
   @Override
   public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    List<DssActor> actors = createDssActors(cfa, blockGraph);
-    DssObserverWorker observer = null;
-    for (DssActor worker : actors) {
-      if (worker instanceof Statistics workerStatistics) {
-        stats.add(workerStatistics);
-      }
-      if (worker.getId().equals(OBSERVER_WORKER_ID)) {
-        // the observer worker is special, it does not run in a thread
-        // but blocks the main thread until all workers are finished
-        if (worker instanceof DssObserverWorker o) {
-          observer = o;
-          continue;
-        }
-        throw new AssertionError(
-            "Observer worker must be an instance of DssObserverWorker, but is: "
-                + worker.getClass().getName());
-      }
-    }
+    DssActors actors = createDssActors(cfa, blockGraph);
+    DssObserverWorker observer =
+        Iterables.getOnlyElement(
+            actors.getObservers().stream()
+                .filter(o -> o.getId().equals(OBSERVER_WORKER_ID))
+                .toList());
+    stats.addAll(actors.getWorkersWithStats());
 
     Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
 
     Set<String> finished = new LinkedHashSet<>();
 
     try {
-      for (DssActor actor : actors) {
+      for (DssActor actor : actors.getActors()) {
         if (actor instanceof DssAnalysisWorker analysisWorker) {
           analysisWorker.broadcastInitialMessages();
         }
       }
 
       while (finished.size() < actors.size()) {
-        for (DssActor actor : actors) {
+        for (DssActor actor : actors.getActors()) {
           if (actor.getConnection().hasPendingMessages()) {
             finished.remove(actor.getId());
             DssMessage next = actor.nextMessage();

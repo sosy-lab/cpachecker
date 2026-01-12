@@ -134,7 +134,8 @@ public abstract class AbstractTranslationTest {
       throws IOException, InterruptedException {
     final LogManager logger = LogManager.createTestLogManager();
     final List<String> compileCommandList =
-        ImmutableList.of(COMPILER, PARAM_NO_LINKING, "-o", "/dev/null", program.toString());
+        ImmutableList.of(
+            COMPILER, PARAM_NO_LINKING, "-std=c11", "-o", "/dev/null", program.toString());
     final String[] compileCommand = compileCommandList.toArray(new String[0]);
 
     final CompilerExecutor exec = new CompilerExecutor(logger, compileCommand);
