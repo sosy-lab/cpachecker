@@ -100,8 +100,8 @@ public class DistributedInvariantsAnalysisCPA
               getInitialState(
                   blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition()))
           .isLessOrEqual(((InvariantsState) pAbstractState));
-    } catch (InterruptedException pE) {
-      throw new CPAException("Interrupted while checking for most general block entry state", pE);
+    } catch (InterruptedException e) {
+      throw new CPAException("Interrupted while checking for most general block entry state", e);
     }
   }
 
