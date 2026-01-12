@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,9 +25,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @RunWith(Parameterized.class)
@@ -35,14 +37,22 @@ public class AcslMetadataCreationTest {
 
   private final String programName;
   private final int expectedAnnotations;
-  private final int expectedOffset;
+  // private final int expectedNode;
   private final CFACreator cfaCreator;
+  private final Optional<Integer> expectedLine;
+  private final Optional<Integer> expectedCol;
 
-  public AcslMetadataCreationTest(String pProgramName, int pExpetedAnnotions, int pExpectedOffset)
+  public AcslMetadataCreationTest(
+      String pProgramName,
+      int pExpetedAnnotions,
+      Optional<Integer> pExpectedLine,
+      Optional<Integer> pExpectedCol)
       throws InvalidConfigurationException {
     programName = pProgramName;
     expectedAnnotations = pExpetedAnnotions;
-    expectedOffset = pExpectedOffset;
+    expectedLine = pExpectedLine;
+    expectedCol = pExpectedCol;
+    // expectedNode = pExpectedNode;
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
@@ -54,12 +64,38 @@ public class AcslMetadataCreationTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    b.add(task("minimal_example.c", 1, 304));
+
+    /*
+    Regular ACSL statement annotation
+     */
+    b.add(task("even.c", 1, 21, 3));
+    b.add(task("inv_for.c", 1, 13, 3));
+    b.add(task("inv_short-for.c", 1, 13, 3));
+    b.add(task("minimal_example.c", 1, 12, 5));
+
+    /*
+    Function contracts
+     */
+    b.add(task("abs2.c", 1, 21, 1));
+    b.add(task("abs.c", 1, 21, 1));
+    b.add(task("simple.c", 3, 18, 1));
+
+    /*
+    Special cases
+     */
+    b.add(task("no_annotations.c", 0));
     return b.build();
   }
 
-  private static Object[] task(String program, int expectedAnnotations, int expectedOffset) {
-    return new Object[] {program, expectedAnnotations, expectedOffset};
+  private static Object[] task(
+      String program, int expectedAnnotations, int pExpectedLine, int pExpextedCol) {
+    return new Object[] {
+      program, expectedAnnotations, Optional.of(pExpectedLine), Optional.of(pExpextedCol)
+    };
+  }
+
+  private static Object[] task(String program, int expectedAnnotations) {
+    return new Object[] {program, expectedAnnotations, Optional.empty(), Optional.empty()};
   }
 
   @Test
@@ -78,13 +114,26 @@ public class AcslMetadataCreationTest {
     CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
     if (cfa.getMetadata().getAcslMetadata() != null) {
       ImmutableList<AcslComment> acslComments = cfa.getMetadata().getAcslMetadata().pAcslComments();
-      CFANode actualNode = acslComments.getFirst().getCfaNode();
-      ImmutableList<CFAEdge> outgoingEdge =
-          actualNode
-              .getLeavingEdges()
-              .filter(n -> n.getFileLocation().getNodeOffset() == expectedOffset)
-              .toList();
-      assertThat(outgoingEdge).hasSize(1);
+      if (!acslComments.isEmpty()) {
+        CFANode actualNode = acslComments.getFirst().getCfaNode();
+        FileLocation actualLocation = describeFileLocation(actualNode);
+        assert actualLocation.isRealLocation();
+        assertThat(Optional.of(actualLocation.getStartingLineNumber())).isEqualTo(expectedLine);
+        assertThat(Optional.of(actualLocation.getStartColumnInLine())).isEqualTo(expectedCol);
+      }
     }
+  }
+
+  public FileLocation describeFileLocation(CFANode node) {
+    if (node instanceof FunctionEntryNode) {
+      return ((FunctionEntryNode) node).getFileLocation();
+    }
+    if (node.getNumLeavingEdges() > 0) {
+      return node.getLeavingEdge(0).getFileLocation();
+    }
+    if (node.getNumEnteringEdges() > 0) {
+      return node.getEnteringEdge(0).getFileLocation();
+    }
+    return FileLocation.DUMMY;
   }
 }
