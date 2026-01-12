@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeBooleanFormulaVis
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeNumeralFormulaVisitor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class SerializeDataflowAnalysisStateOperator implements SerializeOperator {
+public class SerializeInvariantsStateOperator implements SerializeOperator {
 
   public static final String STRATEGY = "abstractionStrategy";
   public static final String BOOLEAN_FORMULA = "booleanFormula";

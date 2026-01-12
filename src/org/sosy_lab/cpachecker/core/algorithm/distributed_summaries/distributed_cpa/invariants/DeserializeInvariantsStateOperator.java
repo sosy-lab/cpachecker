@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants;
 
-import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.SerializeDataflowAnalysisStateOperator.BOOLEAN_FORMULA;
-import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.SerializeDataflowAnalysisStateOperator.STRATEGY;
-import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.SerializeDataflowAnalysisStateOperator.VARIABLE_TYPES;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.SerializeInvariantsStateOperator.BOOLEAN_FORMULA;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.SerializeInvariantsStateOperator.STRATEGY;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.invariants.SerializeInvariantsStateOperator.VARIABLE_TYPES;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;

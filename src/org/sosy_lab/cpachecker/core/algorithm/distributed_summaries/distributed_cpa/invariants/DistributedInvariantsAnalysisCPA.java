@@ -44,7 +44,7 @@ public class DistributedInvariantsAnalysisCPA
   public DistributedInvariantsAnalysisCPA(InvariantsCPA pInvariantsCPA, BlockNode pNode, CFA pCFA) {
     invariantsCPA = pInvariantsCPA;
     blockNode = pNode;
-    serializeOperator = new SerializeDataflowAnalysisStateOperator();
+    serializeOperator = new SerializeInvariantsStateOperator();
     deserializeOperator = new DeserializeInvariantsStateOperator(invariantsCPA, pCFA);
     serializePrecisionOperator = new SerializeInvariantsPrecisionOperator();
     deserializePrecisionOperator = new DeserializeInvariantsPrecisionOperator(invariantsCPA, pCFA);
