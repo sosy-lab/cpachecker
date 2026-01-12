@@ -125,8 +125,8 @@ public class AcslMetadataCreationTest {
   }
 
   public FileLocation describeFileLocation(CFANode node) {
-    if (node instanceof FunctionEntryNode) {
-      return ((FunctionEntryNode) node).getFileLocation();
+    if (node instanceof FunctionEntryNode functionEntryNode) {
+      return functionEntryNode.getFileLocation();
     }
     if (node.getNumLeavingEdges() > 0) {
       return node.getLeavingEdge(0).getFileLocation();
