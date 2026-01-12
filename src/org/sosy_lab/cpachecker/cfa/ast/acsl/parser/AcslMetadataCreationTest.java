@@ -37,7 +37,6 @@ public class AcslMetadataCreationTest {
 
   private final String programName;
   private final int expectedAnnotations;
-  // private final int expectedNode;
   private final CFACreator cfaCreator;
   private final Optional<Integer> expectedLine;
   private final Optional<Integer> expectedCol;
@@ -52,7 +51,6 @@ public class AcslMetadataCreationTest {
     expectedAnnotations = pExpetedAnnotions;
     expectedLine = pExpectedLine;
     expectedCol = pExpectedCol;
-    // expectedNode = pExpectedNode;
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
@@ -72,6 +70,8 @@ public class AcslMetadataCreationTest {
     b.add(task("inv_for.c", 1, 13, 3));
     b.add(task("inv_short-for.c", 1, 13, 3));
     b.add(task("minimal_example.c", 1, 12, 5));
+    b.add(task("traps.c", 2, 26, 11));
+    b.add(task("statements.c", 4, 11, 5));
 
     /*
     Function contracts
@@ -81,9 +81,16 @@ public class AcslMetadataCreationTest {
     b.add(task("simple.c", 3, 18, 1));
 
     /*
+    Behaviors
+     */
+    b.add(task("nested.c", 2, 19, 5));
+
+    /*
     Special cases
      */
     b.add(task("no_annotations.c", 0));
+    b.add(task("empty.c", 1));
+
     return b.build();
   }
 
