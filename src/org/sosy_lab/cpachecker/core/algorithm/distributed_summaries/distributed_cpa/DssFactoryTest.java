@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.google.common.collect.BiMap;
+import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -27,12 +28,12 @@ public class DssFactoryTest {
   private static final String PROGRAM = "doc/examples/example.c";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
-  private final TestUtil testUtil = new TestUtil(tempFolder);
 
   @Test
   public void testCanResetCfaNodeIdMap() throws Exception {
-    CFA originalCFA = generateCfa();
-    CFA shiftedCFA = generateCfa();
+    Path tempFolderPath = tempFolder.getRoot().toPath();
+    CFA originalCFA = generateCfa(tempFolderPath);
+    CFA shiftedCFA = generateCfa(tempFolderPath);
 
     assumeTrue(originalCFA.nodes() != shiftedCFA.nodes());
 
@@ -43,8 +44,8 @@ public class DssFactoryTest {
     assertThat(cfaNodeIdMapWithOriginalCFA.keySet()).isEqualTo(cfaNodeIdMapWithShiftedCFA.keySet());
   }
 
-  private CFA generateCfa() throws Exception {
-    Configuration configToGenerateCfa = testUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA);
+  private CFA generateCfa(Path tempFolderPath) throws Exception {
+    Configuration configToGenerateCfa = TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
     TestResults result = CPATestRunner.run(configToGenerateCfa, PROGRAM);
     return result.getCheckerResult().getCfa();
   }
