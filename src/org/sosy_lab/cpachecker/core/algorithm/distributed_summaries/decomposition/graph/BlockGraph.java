@@ -260,7 +260,7 @@ public class BlockGraph {
 
     return pOther instanceof BlockGraph other
         && nodes.equals(other.nodes)
-        && roots.equals(other.roots);
+        && root.equals(other.root);
   }
 
   @Override
