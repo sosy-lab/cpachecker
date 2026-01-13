@@ -15,10 +15,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -86,13 +88,13 @@ public class ConstraintsTransferRelation
       final ConstraintsSolver pSolver,
       final ConstraintsStatistics pStats,
       final MachineModel pMachineModel,
-      final LogManagerWithoutDuplicates pLogger,
+      final LogManager pLogger,
       final Configuration pConfig)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     simplifier = new StateSimplifier(pConfig, pStats);
     solver = pSolver;
@@ -455,9 +457,10 @@ public class ConstraintsTransferRelation
       assert pStrengtheningState instanceof BlockState;
       if (!((BlockState) pStrengtheningState).isTarget()) return Optional.empty();
 
-      Optional<AbstractState> errorState = ((BlockState) pStrengtheningState).getErrorCondition();
+      List<? extends @NonNull AbstractState> violations =
+          ((BlockState) pStrengtheningState).getViolationConditions();
 
-      if (errorState.isEmpty() || !(errorState.get() instanceof ARGState cS)) {
+      if (!(violations.getFirst() instanceof ARGState cS)) {
         return Optional.empty();
       }
 
@@ -471,15 +474,7 @@ public class ConstraintsTransferRelation
 
         ConstraintsState currStateToStrengthen = newStates.getFirst();
 
-        if (currStrengtheningState instanceof ValueAnalysisState valueState) {
-          ConstraintsState newState = simplify(currStateToStrengthen, valueState);
-          newStates.clear();
-          newStates.add(newState);
-        }
-        if (currStrengtheningState instanceof AutomatonState) {
-          strengthenOperator = new AutomatonStrengthenOperator();
-
-        } else if (currStrengtheningState instanceof ConstraintsState) {
+        if (currStrengtheningState instanceof ConstraintsState) {
           strengthenOperator = new ConstraintsAnalysisStrengthenOperator();
         }
 
@@ -518,13 +513,12 @@ public class ConstraintsTransferRelation
         throws CPATransferException, InterruptedException {
 
       assert pStrengtheningState instanceof ConstraintsState;
-      ConstraintsState newState = pStateToStrengthen;
+      if (pStateToStrengthen.equals(pStrengtheningState)) return Optional.empty();
 
-      for (Constraint constraint : ((ConstraintsState) pStrengtheningState).getConstraints()) {
+      ConstraintsState newState = pStateToStrengthen;
+      for (Constraint constraint : ((ConstraintsState) pStrengtheningState)) {
         newState = newState.copyWithNew(constraint);
       }
-
-      if (pStateToStrengthen.equals(newState)) return Optional.empty();
 
       try {
         newState = getIfSatisfiable(newState, functionName, solver);
