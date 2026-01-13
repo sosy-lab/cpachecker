@@ -16,6 +16,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -28,9 +29,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueViolationConditionOperator implements ViolationConditionOperator {
   public final MachineModel machineModel;
+  public final BlockNode blockNode;
 
-  public ValueViolationConditionOperator(MachineModel pMachineModel) {
+  public ValueViolationConditionOperator(MachineModel pMachineModel, BlockNode pBlockNode) {
     machineModel = pMachineModel;
+    blockNode = pBlockNode;
   }
 
   @Override
@@ -57,7 +60,10 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
     ValueAnalysisState violationValue = getViolationValueState(states.getLast(), machineModel);
     for (Map.Entry<MemoryLocation, ValueAndType> variable : violationValue.getConstants()) {
       if (!violationCondition.contains(variable.getKey())
-          && !declared.contains(variable.getKey().getQualifiedName()))
+          && !declared.contains(variable.getKey().getQualifiedName())
+          && !DeserializeValueAnalysisStateOperator.accessedVariables
+              .get(blockNode.getId())
+              .containsKey(variable.getKey().getQualifiedName()))
         violationCondition.assignConstant(
             variable.getKey(), variable.getValue().getValue(), variable.getValue().getType());
     }
