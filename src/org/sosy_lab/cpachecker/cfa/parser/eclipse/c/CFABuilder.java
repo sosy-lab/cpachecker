@@ -575,7 +575,7 @@ class CFABuilder extends ASTVisitor {
             nextNode
                 .orElseThrow()
                 .getEnteringEdges()
-                .filter(e -> e.getPredecessor() instanceof FunctionEntryNode f)
+                .filter(e -> e.getPredecessor() instanceof FunctionEntryNode)
                 .toList();
         if (edges.size() == 1 && edges.getFirst().getPredecessor() instanceof FunctionEntryNode f) {
           return Optional.of(f);
