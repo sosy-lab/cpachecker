@@ -68,7 +68,8 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
   public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
     MULTIPLY("*"),
     DIVIDE("/"),
-    MODULO("%"),
+    /** Java % (remainder) operator. */
+    Remainder("%"),
     STRING_CONCATENATION("+"),
     PLUS("+"),
     MINUS("-"),
@@ -109,7 +110,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
         case STRING_CONCATENATION,
             MULTIPLY,
             DIVIDE,
-            MODULO,
+            Remainder,
             PLUS,
             MINUS,
             SHIFT_LEFT,

@@ -88,7 +88,7 @@ public class JExpressionTransformer extends ExpressionTransformer
           factory.multiply(operand1Expression, operand2Expression, expressionType, expressionType);
       case DIVIDE ->
           factory.divide(operand1Expression, operand2Expression, expressionType, expressionType);
-      case MODULO ->
+      case Remainder ->
           factory.modulo(operand1Expression, operand2Expression, expressionType, expressionType);
       case SHIFT_LEFT ->
           factory.shiftLeft(operand1Expression, operand2Expression, expressionType, expressionType);

@@ -476,7 +476,7 @@ public class ExpressionToFormulaVisitor
 
       case MINUS -> compoundIntervalFormulaManager.subtract(left, right);
 
-      case MODULO -> compoundIntervalFormulaManager.modulo(left, right);
+      case Remainder -> compoundIntervalFormulaManager.modulo(left, right);
 
       case MULTIPLY -> compoundIntervalFormulaManager.multiply(left, right);
 
