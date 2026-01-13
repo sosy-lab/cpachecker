@@ -13,6 +13,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -68,7 +70,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -502,29 +503,9 @@ class CFABuilder extends ASTVisitor {
     ImmutableSet.Builder<AcslComment> notAStatementAnnotationBuilder = ImmutableSet.builder();
 
     for (AcslComment comment : pResult.acslComments().orElseThrow()) {
-
-      FileLocation commentLocation = comment.getFileLocation();
-
-      Optional<ASTElement> tightestStatement =
-          pAstCfaRelation.getElemForStarting(
-              commentLocation.getStartingLineNumber(),
-              OptionalInt.of(commentLocation.getStartColumnInLine()));
-
-      if (tightestStatement.isPresent()) {
-        FluentIterable<CFANode> predecessors =
-            FluentIterable.from(tightestStatement.orElseThrow().edges())
-                .transform(e -> e.getPredecessor());
-        FluentIterable<CFANode> successors =
-            FluentIterable.from(tightestStatement.orElseThrow().edges())
-                .transform(e -> e.getSuccessor());
-        List<CFANode> nodesForComment =
-            successors
-                .filter(n -> !predecessors.contains(n) && !(n instanceof FunctionExitNode))
-                .toList();
-
-        // An AcslComment should belong to exactly one CfaNode
-        Verify.verify(nodesForComment.size() == 1);
-        comment.updateCfaNode(nodesForComment.getFirst());
+      Optional<CFANode> nodeForComment = nodeForRegularAnnotation(comment, pAstCfaRelation);
+      if (nodeForComment.isPresent()) {
+        comment.updateCfaNode(nodeForComment.orElseThrow());
       } else {
         notAStatementAnnotationBuilder.add(comment);
       }
@@ -538,43 +519,70 @@ class CFABuilder extends ASTVisitor {
     ImmutableSet.Builder<AcslComment> notAFunctionContractBuilder = ImmutableSet.builder();
 
     for (AcslComment comment : notStatementAnnotations) {
-      FileLocation nextStatement =
-          pAstCfaRelation.nextStartStatementLocation(comment.getFileLocation().getNodeOffset());
-      Optional<CFANode> nextNode =
-          pAstCfaRelation.getNodeForStatementLocation(
-              nextStatement.getStartingLineNumber(), nextStatement.getStartColumnInLine());
-      if (nextNode.isPresent()) {
-        ImmutableSet<FunctionEntryNode> predecessors =
-            CFAUtils.predecessorsOf(nextNode.orElseThrow())
-                .filter(n -> n instanceof FunctionEntryNode)
-                .transform(n -> (FunctionEntryNode) n)
-                .toSet();
-        if (predecessors.size() != 1) {
-          // not a function contract
-          notAFunctionContractBuilder.add(comment);
-        } else {
-          FunctionEntryNode entryNode = predecessors.stream().toList().getFirst();
-          // check there is no annotation inbetween
-          for (AcslComment other : pResult.acslComments().orElseThrow()) {
-            if (!other.equals(comment)
-                && other.getFileLocation().getNodeOffset()
-                    > comment.getFileLocation().getNodeOffset()
-                        + comment.getFileLocation().getNodeLength()
-                && other.getFileLocation().getNodeOffset() + other.getFileLocation().getNodeLength()
-                    < nextStatement.getNodeOffset()) {
-              // There is an annotation inbetween the comment and the statement: It is not a
-              // function contract
-              notAFunctionContractBuilder.add(comment);
-              break;
-            }
-          }
-          comment.updateCfaNode(entryNode);
-        }
+      Optional<FunctionEntryNode> functionEntryNode =
+          nodeForFunctionContract(comment, pAstCfaRelation, pResult.acslComments().get());
+      if (functionEntryNode.isPresent()) {
+        comment.updateCfaNode(functionEntryNode.orElseThrow());
+      } else {
+        notAFunctionContractBuilder.add(comment);
       }
     }
     ImmutableSet<AcslComment> notFunctionContracts = notAFunctionContractBuilder.build();
+    // ToDo: Handle special cases
     Verify.verify(notFunctionContracts.isEmpty());
     return AcslMetadata.withComments(pResult.acslComments().orElseThrow());
+  }
+
+  private Optional<CFANode> nodeForRegularAnnotation(
+      AcslComment pComment, AstCfaRelation pAstCfaRelation) {
+    FileLocation commentLocation = pComment.getFileLocation();
+
+    Optional<ASTElement> tightestStatement =
+        pAstCfaRelation.getElemForStarting(
+            commentLocation.getStartingLineNumber(),
+            OptionalInt.of(commentLocation.getStartColumnInLine()));
+
+    if (tightestStatement.isPresent() && !tightestStatement.orElseThrow().edges().isEmpty()) {
+      FluentIterable<CFANode> predecessors =
+          FluentIterable.from(tightestStatement.orElseThrow().edges())
+              .transform(e -> e.getPredecessor());
+      FluentIterable<CFANode> successors =
+          FluentIterable.from(tightestStatement.orElseThrow().edges())
+              .transform(e -> e.getSuccessor());
+      List<CFANode> nodesForComment =
+          successors
+              .filter(n -> !predecessors.contains(n) && !(n instanceof FunctionExitNode))
+              .toList();
+
+      // An AcslComment should belong to exactly one CfaNode
+      if (nodesForComment.size() == 1) {
+        return Optional.of(nodesForComment.getFirst());
+      }
+    }
+    return Optional.empty();
+  }
+
+  private Optional<FunctionEntryNode> nodeForFunctionContract(
+      AcslComment pComment, AstCfaRelation pAstCfaRelation, List<AcslComment> pAllComments) {
+    FileLocation nextLocation =
+        pAstCfaRelation.nextStartStatementLocation(pComment.getFileLocation().getNodeOffset());
+    if (nextLocation.isRealLocation() && pComment.noCommentInBetween(nextLocation, pAllComments)) {
+      Optional<CFANode> nextNode =
+          pAstCfaRelation.getNodeForStatementLocation(
+              nextLocation.getStartingLineNumber(), nextLocation.getStartColumnInLine());
+      if (nextNode.isPresent()) {
+        ImmutableList<CFAEdge> edges =
+            nextNode
+                .orElseThrow()
+                .getEnteringEdges()
+                .filter(e -> e.getPredecessor() instanceof FunctionEntryNode f)
+                .toList();
+        if (edges.size() == 1 && edges.getFirst().getPredecessor() instanceof FunctionEntryNode f) {
+          return Optional.of(f);
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   @Override
