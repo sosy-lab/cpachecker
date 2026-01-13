@@ -1427,7 +1427,7 @@ public abstract class AbstractExpressionValueVisitor
           MINUS,
           DIVIDE,
           MULTIPLY,
-           SHIFT_LEFT_SIGNED,
+          SHIFT_LEFT_SIGNED,
           BINARY_AND,
           BINARY_OR,
           BINARY_XOR,

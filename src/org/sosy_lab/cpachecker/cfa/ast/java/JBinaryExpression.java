@@ -74,20 +74,22 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     PLUS("+"),
     MINUS("-"),
     /**
-     * Java << (signed left shift) operator. The bit pattern is given by the left-hand operand, and
-     * the number of positions to shift by the right-hand operand.
+     * Java << (signed left shift) operator, shifts a bit pattern to the left. The bit pattern is
+     * given by the left-hand operand, and the number of positions to shift by the right-hand
+     * operand.
      */
     SHIFT_LEFT_SIGNED("<<"),
     /**
-     * Java >> (signed right shift) operator. The bit pattern is given by the left-hand operand, and
-     * the number of positions to shift by the right-hand operand. The leftmost position after
-     * shifting depends on sign extension.
+     * Java >> (signed right shift) operator, shifts a bit pattern to the right. The bit pattern is
+     * given by the left-hand operand, and the number of positions to shift by the right-hand
+     * operand. The leftmost position after shifting depends on sign extension.
      */
     SHIFT_RIGHT_SIGNED(">>"),
     /**
-     * Java >>> (unsigned right shift) operator. The bit pattern is given by the left-hand operand,
-     * and the number of positions to shift by the right-hand operand. A zero is shifted into the
-     * leftmost position.
+     * Java >>> (unsigned right shift) operator, shifts a bit pattern to the right. The bit pattern
+     * is given by the left-hand operand, and the number of positions to shift by the right-hand
+     * operand. The left-hand operand is treated as unsigned. A zero is shifted into the leftmost
+     * position.
      */
     SHIFT_RIGHT_UNSIGNED(">>>"),
     LESS_THAN("<"),
@@ -127,7 +129,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
             REMAINDER,
             PLUS,
             MINUS,
-             SHIFT_LEFT_SIGNED,
+            SHIFT_LEFT_SIGNED,
             SHIFT_RIGHT_SIGNED,
             SHIFT_RIGHT_UNSIGNED,
             BINARY_AND,
