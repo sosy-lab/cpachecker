@@ -82,7 +82,6 @@ SPDX-License-Identifier: Apache-2.0
             <compilerarg value="-Xlint:-this-escape" if:set="java21"/> <!-- false alarm for every use of configuration injection -->
             <compilerarg value="-Werror" unless:set="compile.warn"/>
             <compilerarg line="${errorprone.options.required}" unless:set="errorprone.disable"/>
-            <compilerarg value="-XDaddTypeAnnotationsToSymbol=true" if:set="java21" unless:set="errorprone.disable"/> <!-- necessary for Error Prone on Java 21, can be removed once minimal version is Java 22 -->
             <compilerarg value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}" unless:set="errorprone.disable"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
             <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
@@ -109,7 +108,6 @@ SPDX-License-Identifier: Apache-2.0
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
             <compilerarg line="${errorprone.options.required}" unless:set="errorprone.disable"/>
-            <compilerarg value="-XDaddTypeAnnotationsToSymbol=true" if:set="java21" unless:set="errorprone.disable"/> <!-- necessary for Error Prone on Java 21, can be removed once minimal version is Java 22 -->
             <compilerarg value="-Xplugin:ErrorProne -XepPatchChecks:refaster:${refaster.rule.file} -XepPatchLocation:${basedir}" unless:set="errorprone.disable"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
             <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
