@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.base.Verify;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,5 +47,19 @@ public class AcslComment {
 
   public Boolean hasCfaNode() {
     return cfaNode != null;
+  }
+
+  public boolean noCommentInBetween(FileLocation nextStatement, List<AcslComment> otherComments) {
+    for (AcslComment other : otherComments) {
+      if (!other.equals(this)
+          && other.getFileLocation().getNodeOffset()
+              > this.getFileLocation().getNodeOffset() + this.getFileLocation().getNodeLength()
+          && other.getFileLocation().getNodeOffset() + other.getFileLocation().getNodeLength()
+              < nextStatement.getNodeOffset()) {
+        // There is an annotation inbetween the comment and the statement
+        return false;
+      }
+    }
+    return true;
   }
 }
