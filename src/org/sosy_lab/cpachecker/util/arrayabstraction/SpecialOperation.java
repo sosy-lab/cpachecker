@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -85,8 +86,8 @@ abstract class SpecialOperation {
       return Optional.empty();
     }
 
-    if (value.isExplicitlyKnown() && value.isNumericValue()) {
-      Number number = value.asNumericValue().getNumber();
+    if (value.isExplicitlyKnown() && value instanceof NumericValue numValue) {
+      Number number = numValue.getNumber();
       if (number instanceof BigInteger bigInteger) {
         return Optional.of(bigInteger);
       } else if (number instanceof Byte
