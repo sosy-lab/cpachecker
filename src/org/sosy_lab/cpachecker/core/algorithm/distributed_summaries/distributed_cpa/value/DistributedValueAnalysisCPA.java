@@ -72,7 +72,8 @@ public class DistributedValueAnalysisCPA
     formulaManager = solver.getFormulaManager();
     serializeOperator = new SerializeValueAnalysisStateOperator();
     deserializeOperator = new DeserializeValueAnalysisStateOperator(pBlockNode, pCFA);
-    violationConditionOperator = new ValueViolationConditionOperator(cfa.getMachineModel());
+    violationConditionOperator =
+        new ValueViolationConditionOperator(cfa.getMachineModel(), pBlockNode);
 
     serializePrecisionOperator = new SerializeValuePrecisionOperator();
     deserializePrecisionOperator =
