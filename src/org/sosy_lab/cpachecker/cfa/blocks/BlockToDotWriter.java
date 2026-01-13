@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** This Writer can dump a CFA with blocks into a file. */
 public class BlockToDotWriter {
@@ -143,7 +142,7 @@ public class BlockToDotWriter {
     for (CFANode node : block.getNodes()) {
       if (finished.add(node)) {
         app.append(formatNode(node));
-        Iterables.addAll(edges, CFAUtils.leavingEdges(node));
+        Iterables.addAll(edges, node.getLeavingEdges());
         FunctionSummaryEdge func = node.getEnteringSummaryEdge();
         if (func != null) {
           edges.add(func);

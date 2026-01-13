@@ -24,6 +24,15 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
     solver = pSolver;
   }
 
+  /**
+   * Check whether state1 is subsumed by state2, i.e., whether state1 implies state2. The formulas
+   * used for the implication check encode all information transported by the
+   * PredicateAbstractState. Even pointer information is included in the abstraction formulas.
+   *
+   * @param state1 First abstract state
+   * @param state2 Second abstract state
+   * @return True if state1 is subsumed by state2
+   */
   @Override
   public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {

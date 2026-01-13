@@ -16,6 +16,8 @@ SPDX-License-Identifier: Apache-2.0
          even if that field is not used from other threads.
          Maybe re-evaluate in the future. -->
     <Match><Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/></Match>
+    <!-- Warns about every harmless subclass of Guava's Equivalence -->
+    <Match><Bug pattern="HE_INHERITS_EQUALS_USE_HASHCODE"/></Match>
 
     <!-- Forbidding static methods in subclasses with same name often makes no sense,
          for example for factor() etc. -->
@@ -58,7 +60,10 @@ SPDX-License-Identifier: Apache-2.0
     </Match>
     <Match>
         <!-- Ignore Antlr-generated files. -->
-        <Package name="org.sosy_lab.cpachecker.util.ltl.generated"/>
+        <OR>
+            <Package name="org.sosy_lab.cpachecker.util.ltl.generated"/>
+            <Package name="org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated"/>
+        </OR>
     </Match>
     <Match>
         <!-- Generated parsers sometimes have more or less issues that need to be suppressed. -->

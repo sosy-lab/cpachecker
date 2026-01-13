@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
@@ -49,8 +48,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
     }
 
     Set<CFAEdge> intersection =
-        Sets.intersection(
-            CFAUtils.leavingEdges(node).toSet(), blockState.getBlockNode().getEdges());
+        Sets.intersection(node.getLeavingEdges().toSet(), blockState.getBlockNode().getEdges());
 
     if (intersection.contains(cfaEdge)) {
       return ImmutableList.of(

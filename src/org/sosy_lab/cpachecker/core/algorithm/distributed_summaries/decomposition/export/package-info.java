@@ -8,8 +8,6 @@
 
 /**
  * This package contains classes for exporting block nodes in the DSS framework to YML files. The
- * format is heavily inspired by software verification witnesses 2.0. The exported data can be used
- * to export C code for the specific blocks with an external tool and is manily used in
- * multiprocessing DSS.
+ * format is heavily inspired by software verification witnesses 2.0.
  */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.export;

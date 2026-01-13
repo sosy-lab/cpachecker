@@ -26,8 +26,6 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
 
   private final LoadingCache<CacheKey, ImmutableSet<CFANode>> cache =
       CacheBuilder.newBuilder()
-          .weakKeys()
-          .weakValues()
           .build(
               new CacheLoader<CacheKey, ImmutableSet<CFANode>>() {
 

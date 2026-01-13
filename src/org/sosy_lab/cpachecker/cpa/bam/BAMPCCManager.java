@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Manipulating proof-carrying code for BAM. */
@@ -175,7 +174,7 @@ public final class BAMPCCManager {
       }
 
       // no call node, check if successors can be constructed with help of CFA edges
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge leavingEdge : node.getLeavingEdges()) {
         // edge leads to node in inner block
         Collection<Block> blocks = partitioning.getBlocksForReturnNode(node);
         Preconditions.checkState(

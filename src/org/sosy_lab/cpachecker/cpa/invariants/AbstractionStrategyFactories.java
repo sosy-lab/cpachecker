@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
@@ -158,7 +157,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
                   while (!successors.isEmpty()) {
                     CFANode current = successors.poll();
-                    for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(current)) {
+                    for (CFAEdge enteringEdge : current.getAllEnteringEdges()) {
                       if (enteringEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge) {
                         CFANode newSucc = enteringEdge.getPredecessor();
                         if (visited.add(newSucc)) {

@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -121,8 +122,8 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
   }
 
   @Override
-  public Long asLong(CType type) {
-    return null;
+  public OptionalLong asLong(CType type) {
+    return OptionalLong.empty();
   }
 
   @Override

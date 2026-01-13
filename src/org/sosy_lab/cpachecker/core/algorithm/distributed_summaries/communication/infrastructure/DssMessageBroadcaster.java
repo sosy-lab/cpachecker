@@ -19,9 +19,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 
+/**
+ * Broadcasts DSS messages to multiple connections based on their communication entity or sender ID.
+ */
 public class DssMessageBroadcaster {
-
-  public record CommunicationId(String senderId, DssCommunicationEntity dssCommunicationEntity) {}
 
   private final Map<String, BlockingQueue<DssMessage>> connectionsBySenderId;
   private final Multimap<DssCommunicationEntity, BlockingQueue<DssMessage>> connectionsByEntity;
@@ -39,10 +40,8 @@ public class DssMessageBroadcaster {
 
   private void broadcast(DssMessage message, DssCommunicationEntity entity) {
     Collection<BlockingQueue<DssMessage>> queues = connectionsByEntity.get(entity);
-    synchronized (connectionsByEntity) {
-      for (BlockingQueue<DssMessage> queue : queues) {
-        queue.add(message);
-      }
+    for (BlockingQueue<DssMessage> queue : queues) {
+      queue.add(message);
     }
   }
 
@@ -53,6 +52,11 @@ public class DssMessageBroadcaster {
     }
   }
 
+  /**
+   * Broadcasts a message to all connected entities.
+   *
+   * @param message the message to broadcast
+   */
   public void broadcastToAll(DssMessage message) {
     broadcast(message, DssCommunicationEntity.ALL);
   }

@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.java_smt.api.FloatingPointNumber;
+import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
 
 /**
  * Java based implementation of multi-precision floating point values with correct rounding.
@@ -535,6 +537,21 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public static FloatValue nan(Format pFormat) {
     return new FloatValue(
         pFormat, false, pFormat.maxExp() + 1, BigInteger.ONE.shiftLeft(pFormat.sigBits - 1));
+  }
+
+  /**
+   * Create a random FloatValue.
+   *
+   * @param pFormat The format of the generated value according to machine model and C type.
+   * @param pRandomGenerator The random generator to use.
+   * @return A random FloatValue.
+   */
+  public static FloatValue randomValue(Format pFormat, Random pRandomGenerator) {
+    return new FloatValue(
+        pFormat,
+        pRandomGenerator.nextBoolean(),
+        pRandomGenerator.nextLong(pFormat.minExp(), pFormat.maxExp() + 1),
+        new BigInteger(pFormat.sigBits() + 1, pRandomGenerator));
   }
 
   /** Positive infinity. */
@@ -2686,13 +2703,13 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       // significand
       significand = significand.setBit(format.sigBits);
     }
-    return new FloatValue(format, pNumber.getSign(), exponent, significand);
+    return new FloatValue(format, pNumber.getMathSign().isNegative(), exponent, significand);
   }
 
   /** Convert this {@link FloatValue} to {@link FloatingPointNumber} */
   public FloatingPointNumber toFloatingPointNumber() {
     return FloatingPointNumber.of(
-        sign,
+        Sign.of(sign),
         BigInteger.valueOf(exponent + format.bias()),
         significand.clearBit(format.sigBits()),
         format.expBits(),

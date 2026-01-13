@@ -10,7 +10,10 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.errorprone.annotations.InlineMe;
+import java.util.Arrays;
 
 /**
  * This class represents the type "void". It does not allow any modifiers and has only a single
@@ -18,21 +21,21 @@ import com.google.errorprone.annotations.InlineMe;
  */
 public enum CVoidType implements CType {
   VOID(CTypeQualifiers.NONE),
+  ATOMIC_VOID(CTypeQualifiers.ATOMIC),
   CONST_VOID(CTypeQualifiers.CONST),
   VOLATILE_VOID(CTypeQualifiers.VOLATILE),
+  ATOMIC_CONST_VOID(CTypeQualifiers.ATOMIC_CONST),
+  ATOMIC_VOLATILE_VOID(CTypeQualifiers.ATOMIC_VOLATILE),
   CONST_VOLATILE_VOID(CTypeQualifiers.CONST_VOLATILE),
+  ATOMIC_CONST_VOLATILE_VOID(CTypeQualifiers.ATOMIC_CONST_VOLATILE),
   ;
 
-  private static CVoidType create(boolean pIsConst, boolean pIsVolatile) {
-    if (pIsConst) {
-      return pIsVolatile ? CONST_VOLATILE_VOID : CONST_VOID;
-    } else {
-      return pIsVolatile ? VOLATILE_VOID : VOID;
-    }
-  }
+  private static ImmutableMap<CTypeQualifiers, CVoidType> LOOKUP =
+      Arrays.stream(CVoidType.values())
+          .collect(Maps.toImmutableEnumMap(t -> t.getQualifiers(), t -> t));
 
-  public static CVoidType create(CTypeQualifiers pQualifiers) {
-    return create(pQualifiers.containsConst(), pQualifiers.containsVolatile());
+  public static CVoidType create(CTypeQualifiers qualifiers) {
+    return checkNotNull(LOOKUP.get(qualifiers));
   }
 
   private final CTypeQualifiers qualifiers;

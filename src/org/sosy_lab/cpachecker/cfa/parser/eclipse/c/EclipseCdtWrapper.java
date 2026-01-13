@@ -40,6 +40,12 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
  */
 public class EclipseCdtWrapper {
 
+  /**
+   * As a workaround for missing CDT support for _Atomic, we use a macro that replaces _Atomic with
+   * an attribute with this name. Cf. #1253
+   */
+  static final String ATOMIC_ATTRIBUTE = "__CPAchecker_Atomic__";
+
   // we don't use IASTName#getImageLocation(), so the parser doesn't need to create them
   private static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
 
@@ -191,6 +197,8 @@ public class EclipseCdtWrapper {
       macrosBuilder.put("__SIZEOF_DOUBLE__", Integer.toString(pMachineModel.getSizeofDouble()));
       macrosBuilder.put(
           "__SIZEOF_LONG_DOUBLE__", Integer.toString(pMachineModel.getSizeofLongDouble()));
+
+      macrosBuilder.put("_Atomic", "__attribute__((%s))".formatted(ATOMIC_ATTRIBUTE));
 
       macros = macrosBuilder.buildOrThrow();
     }

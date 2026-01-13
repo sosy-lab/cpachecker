@@ -295,13 +295,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty(), cfa);
 
       final Specification constrSpec =
           spec.withAdditionalSpecificationFile(
               ImmutableSet.of(conditionSpec, condition), cfa, config, logger, shutdown);
 
-      ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
+      ConfigurableProgramAnalysis cpa = coreComponents.createCPA(constrSpec);
 
       ReachedSet reached = coreComponents.createReachedSet(cpa);
       reached.add(

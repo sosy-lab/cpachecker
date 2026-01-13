@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -26,8 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /** Contains information relating the CFA to the AST of the program. */
 public final class AstCfaRelation {
@@ -59,11 +58,11 @@ public final class AstCfaRelation {
   @LazyInit private ImmutableMap<CFAEdge, IfElement> conditionEdgesToIfStructure = null;
 
   @LazyInit
-  private ImmutableMap<Pair<Integer, Integer>, IfElement> lineAndStartColumnToIfStructure = null;
+  private ImmutableSortedMap<StartingLocation, IfElement> lineAndStartColumnToIfStructure = null;
 
   @LazyInit
-  private ImmutableMap<StartingLocation, IterationElement> lineAndStartColumnToIterationStructure =
-      null;
+  private ImmutableSortedMap<StartingLocation, IterationElement>
+      lineAndStartColumnToIterationStructure = null;
 
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
@@ -171,7 +170,7 @@ public final class AstCfaRelation {
    */
   public Optional<CFANode> getNodeForIterationStatementLocation(int line, int column) {
     for (IterationElement structure : iterationStructures) {
-      if (structure.getCompleteElement().location().getStartingLineNumber() == line
+      if (structure.getCompleteElement().location().getStartingLineInOrigin() == line
           && structure.getCompleteElement().location().getStartColumnInLine() == column) {
         return structure.getLoopHead();
       }
@@ -193,7 +192,7 @@ public final class AstCfaRelation {
                 startingLocationToTightestStatement.floorEntry(new StartingLocation(column, line)))
             .getValue();
 
-    if (statement.location().getStartingLineNumber() != line
+    if (statement.location().getStartingLineInOrigin() != line
         || statement.location().getStartColumnInLine() != column) {
       // We only want to match the exact starting location of the statement
       return Optional.empty();
@@ -206,31 +205,38 @@ public final class AstCfaRelation {
     if (lineAndStartColumnToIfStructure != null) {
       return;
     }
-    ImmutableMap.Builder<Pair<Integer, Integer>, IfElement> builder = new ImmutableMap.Builder<>();
+    ImmutableSortedMap.Builder<StartingLocation, IfElement> builder =
+        new ImmutableSortedMap.Builder<>(StartingLocation::compareTo);
     for (IfElement structure : ifElements) {
       FileLocation location = structure.getCompleteElement().location();
-      Pair<Integer, Integer> key =
-          Pair.of(location.getStartColumnInLine(), location.getStartingLineNumber());
+      StartingLocation key =
+          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
       builder.put(key, structure);
     }
     lineAndStartColumnToIfStructure = builder.buildOrThrow();
   }
 
   /**
-   * Returns the IfElement that starts at the given column and line.
+   * Returns the IfElement that starts after the given column at the same line.
    *
-   * @param pColumn the column to look for
+   * @param pColumn the column to look for. In case of empty, the first IfElement at the given line
+   *     is returned
    * @param pLine the line to look for
-   * @return the IfElement that starts at the given column and line
+   * @return the IfElement that starts after the given column at the same line
    */
-  public Optional<IfElement> getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
+  public Optional<IfElement> getIfStructureFollowingColumnAtTheSameLine(
+      Integer pLine, OptionalInt pColumn) {
     if (lineAndStartColumnToIfStructure == null) {
       initializeMapFromLineAndStartColumnToIfStructure();
     }
 
-    Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
-    if (lineAndStartColumnToIfStructure.containsKey(key)) {
-      return Optional.ofNullable(lineAndStartColumnToIfStructure.get(key));
+    StartingLocation key = new StartingLocation(pColumn.orElse(-1), pLine);
+    Entry<StartingLocation, IfElement> startingLocationIfElementEntry =
+        lineAndStartColumnToIfStructure.ceilingEntry(key);
+    if (startingLocationIfElementEntry != null
+        // The lines must be equal, for the location to match the requested one
+        && startingLocationIfElementEntry.getKey().line == key.line) {
+      return Optional.ofNullable(startingLocationIfElementEntry.getValue());
     }
 
     return Optional.empty();
@@ -240,32 +246,38 @@ public final class AstCfaRelation {
     if (lineAndStartColumnToIterationStructure != null) {
       return;
     }
-    ImmutableMap.Builder<StartingLocation, IterationElement> builder = new ImmutableMap.Builder<>();
+    ImmutableSortedMap.Builder<StartingLocation, IterationElement> builder =
+        new ImmutableSortedMap.Builder<>(StartingLocation::compareTo);
     for (IterationElement structure : iterationStructures) {
       FileLocation location = structure.getCompleteElement().location();
       StartingLocation key =
-          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineNumber());
+          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
       builder.put(key, structure);
     }
     lineAndStartColumnToIterationStructure = builder.buildOrThrow();
   }
 
   /**
-   * Returns the IterationElement that starts at the given column and line.
+   * Returns the IterationElement that starts after the given column at the same line.
    *
-   * @param pColumn the column
-   * @param pLine the line
-   * @return the IterationElement that starts at the given column and line
+   * @param pColumn the column to look for. In case of empty, the first IterationElement at the
+   *     given line is returned
+   * @param pLine the line to look for
+   * @return the IterationElement that starts after the given column at the same line
    */
-  public Optional<IterationElement> getIterationStructureStartingAtColumn(
-      Integer pColumn, Integer pLine) {
+  public Optional<IterationElement> getIterationStructureFollowingColumnAtTheSameLine(
+      OptionalInt pColumn, Integer pLine) {
     if (lineAndStartColumnToIterationStructure == null) {
       initializeMapFromLineAndStartColumnToIterationStructure();
     }
 
-    StartingLocation key = new StartingLocation(pColumn, pLine);
-    if (lineAndStartColumnToIterationStructure.containsKey(key)) {
-      return Optional.ofNullable(lineAndStartColumnToIterationStructure.get(key));
+    StartingLocation key = new StartingLocation(pColumn.orElse(-1), pLine);
+    Entry<StartingLocation, IterationElement> startingLocationIterationElementEntry =
+        lineAndStartColumnToIterationStructure.ceilingEntry(key);
+    if (startingLocationIterationElementEntry != null
+        // The lines must be equal, for the location to match the requested one
+        && startingLocationIterationElementEntry.getKey().line == key.line) {
+      return Optional.ofNullable(startingLocationIterationElementEntry.getValue());
     }
 
     return Optional.empty();
@@ -295,20 +307,37 @@ public final class AstCfaRelation {
       StartingLocation key =
           new StartingLocation(
               element.getCompleteElement().location().getStartColumnInLine(),
-              element.getCompleteElement().location().getStartingLineNumber());
+              element.getCompleteElement().location().getStartingLineInOrigin());
       builder.put(key, element.getCompleteElement());
     }
     startingLocationToTightestStatement = builder.buildOrThrow();
   }
 
-  public ASTElement getTightestStatementForStarting(int pLine, int pColumn) {
+  public Optional<ASTElement> getTightestStatementForStarting(int pLine, OptionalInt pColumn) {
     if (startingLocationToTightestStatement == null) {
       initializeMapFromStartingLocationToTightestStatement();
     }
 
-    return Objects.requireNonNull(
-            startingLocationToTightestStatement.floorEntry(new StartingLocation(pColumn, pLine)))
-        .getValue();
+    if (pColumn.isPresent()) {
+      StartingLocation key = new StartingLocation(pColumn.orElseThrow(), pLine);
+      Entry<StartingLocation, ASTElement> startingLocationASTElementEntry =
+          startingLocationToTightestStatement.floorEntry(key);
+      if (startingLocationASTElementEntry != null
+          && startingLocationASTElementEntry.getKey().line == key.line) {
+        return Optional.ofNullable(startingLocationASTElementEntry.getValue());
+      }
+      return Optional.empty();
+    } else {
+      StartingLocation key = new StartingLocation(-1, pLine);
+      // We want the first statement at the given line
+      Entry<StartingLocation, ASTElement> startingLocationASTElementEntry =
+          startingLocationToTightestStatement.ceilingEntry(key);
+      if (startingLocationASTElementEntry != null
+          && startingLocationASTElementEntry.getKey().line == key.line) {
+        return Optional.ofNullable(startingLocationASTElementEntry.getValue());
+      }
+      return Optional.empty();
+    }
   }
 
   /**
@@ -360,13 +389,13 @@ public final class AstCfaRelation {
 
     if (pNode.getNumLeavingEdges() != 0) {
       FileLocation closestFileLocationToNode =
-          CFAUtils.allLeavingEdges(pNode).transform(CFAEdge::getFileLocation).stream()
+          pNode.getAllLeavingEdges().transform(CFAEdge::getFileLocation).stream()
               .min(Comparator.naturalOrder())
               .orElseThrow();
       StartingLocation closestStartingLocationToNode =
           new StartingLocation(
               closestFileLocationToNode.getStartColumnInLine(),
-              closestFileLocationToNode.getStartingLineNumber());
+              closestFileLocationToNode.getStartingLineInOrigin());
 
       Entry<StartingLocation, ASTElement> element =
           startingLocationToTightestStatement.floorEntry(closestStartingLocationToNode);
@@ -379,13 +408,13 @@ public final class AstCfaRelation {
       return Optional.of(element.getValue().location());
     } else if (pNode.getNumLeavingEdges() != 0) {
       FileLocation closestFileLocationToNode =
-          CFAUtils.allLeavingEdges(pNode).transform(CFAEdge::getFileLocation).stream()
+          pNode.getAllLeavingEdges().transform(CFAEdge::getFileLocation).stream()
               .max(Comparator.naturalOrder())
               .orElseThrow();
       StartingLocation closestStartingLocationToNode =
           new StartingLocation(
               closestFileLocationToNode.getStartColumnInLine(),
-              closestFileLocationToNode.getStartingLineNumber());
+              closestFileLocationToNode.getStartingLineInOrigin());
       Entry<StartingLocation, ASTElement> element =
           startingLocationToTightestStatement.ceilingEntry(closestStartingLocationToNode);
 
@@ -399,5 +428,12 @@ public final class AstCfaRelation {
       // Could happen if a node is not connected to the CFA
       return Optional.empty();
     }
+  }
+
+  public Optional<ImmutableSet<AVariableDeclaration>> getGlobalVariables() {
+    if (globalVariables == null) {
+      return Optional.empty();
+    }
+    return Optional.of(globalVariables);
   }
 }

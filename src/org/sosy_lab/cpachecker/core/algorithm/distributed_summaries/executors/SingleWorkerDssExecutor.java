@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,7 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
@@ -133,7 +132,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
     boolean isFirstPostcondition = true;
     for (Path newMessageFile : pNewConditions) {
       DssMessage message = DssMessage.fromJson(newMessageFile);
-      if (message.getType() == DssMessageType.PRECONDITION) {
+      if (message.getType() == DssMessageType.POST_CONDITION) {
         if (isFirstPostcondition) {
           // Do postconditions first, so that information is known before error conditions are
           // checked
@@ -164,13 +163,12 @@ public class SingleWorkerDssExecutor implements DssExecutor {
                 () ->
                     new IllegalArgumentException(
                         "No block with id '" + spawnWorkerForId + "' found in the block graph."));
-    List<DssActor> actors =
+    DssActors actors =
         new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory)
             .addAnalysisWorker(blockNode, options)
             .build();
 
-    DssAnalysisWorker actor =
-        (DssAnalysisWorker) Objects.requireNonNull(Iterables.getOnlyElement(actors));
+    DssAnalysisWorker actor = (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor());
     // use list instead of set. Each message has a unique timestamp,
     // so there will be no duplicates that a set can remove.
     // But the equality checks are unnecessarily expensive

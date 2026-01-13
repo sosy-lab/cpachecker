@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -93,7 +92,7 @@ public final class ReachingDefUtils {
         currentElement = currentWaitlist.pop();
         nodes.add(currentElement);
 
-        for (CFAEdge out : CFAUtils.leavingEdges(currentElement)) {
+        for (CFAEdge out : currentElement.getLeavingEdges()) {
           if (out instanceof FunctionReturnEdge) {
             continue;
           }

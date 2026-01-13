@@ -18,6 +18,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import java.time.Instant;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -26,32 +27,29 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockExport {
 
-  public static String writeBlockDefinition(BlockGraph blockGraph) throws JsonProcessingException {
+  public String writeBlockDefinition(BlockGraph blockGraph) throws JsonProcessingException {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     BlockDefinition def = export(blockGraph);
     return mapper.writeValueAsString(def);
   }
 
-  public static BlockDefinition export(BlockGraph pBlockGraph) {
+  public BlockDefinition export(BlockGraph pBlockGraph) {
     return new BlockDefinition(
         new DssMetadata(
             "1.0",
             Instant.now().toString(),
             new Producer("CPAchecker", "2.2", "DSS"),
             new Task(ImmutableList.of(), ImmutableMap.of(), "unreach", "C")),
-        transformedImmutableListCopy(pBlockGraph.getNodes(), BlockExport::export));
+        transformedImmutableListCopy(pBlockGraph.getNodes(), this::export));
   }
 
-  public static BlockMetadata export(BlockNode pNode) {
+  private BlockSegment createBlockSegmentFromInitialLocation(BlockNode pNode) {
     CFANode initialLocation = pNode.getInitialLocation();
-    ImmutableList.Builder<BlockSegment> segments =
-        ImmutableList.builderWithExpectedSize(pNode.getEdges().size() + 2);
-    FluentIterable<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(initialLocation);
+    FluentIterable<CFAEdge> leavingEdges = initialLocation.getAllLeavingEdges();
     int numLeavingEdges = leavingEdges.size();
     int containedLeavingEdges = 0;
     Optional<Boolean> follow = Optional.empty();
@@ -61,12 +59,16 @@ public class BlockExport {
         if (earliestFileLocation == null) {
           earliestFileLocation = leavingEdge.getFileLocation();
         } else {
-          if (leavingEdge.getFileLocation().getStartingLineInOrigin()
-                  < earliestFileLocation.getStartingLineInOrigin()
-              || (leavingEdge.getFileLocation().getStartingLineInOrigin()
-                      == earliestFileLocation.getStartingLineInOrigin()
-                  && leavingEdge.getFileLocation().getStartColumnInLine()
-                      < earliestFileLocation.getStartColumnInLine())) {
+          boolean isEarlier =
+              leavingEdge.getFileLocation().getStartingLineInOrigin()
+                  < earliestFileLocation.getStartingLineInOrigin();
+          boolean startsOnSameLine =
+              leavingEdge.getFileLocation().getStartingLineInOrigin()
+                  == earliestFileLocation.getStartingLineInOrigin();
+          boolean isEarlierOnLine =
+              leavingEdge.getFileLocation().getStartColumnInLine()
+                  < earliestFileLocation.getStartColumnInLine();
+          if (isEarlier || (startsOnSameLine && isEarlierOnLine)) {
             earliestFileLocation = leavingEdge.getFileLocation();
           }
         }
@@ -81,33 +83,19 @@ public class BlockExport {
     if (containedLeavingEdges == numLeavingEdges) {
       follow = Optional.empty();
     }
-    segments.add(
-        new BlockSegment(
-            ImmutableList.of(
-                new BlockSummaryWaypoint(
-                    true,
-                    export(earliestFileLocation),
-                    follow.map(b -> Boolean.toString(b)),
-                    ImmutableList.sortedCopyOf(pNode.getPredecessorIds())))));
-    CFANode finalLocation = pNode.getFinalLocation();
-    for (CFAEdge edge : pNode.getEdges()) {
-      String type;
-      String action;
-      if (edge instanceof AssumeEdge) {
-        type = "branching";
-        action = "follow-true";
-      } else if (edge.getSuccessor().equals(finalLocation)) {
-        type = "target";
-        action = "follow";
-      } else {
-        type = "follow";
-        action = "follow";
-      }
-      segments.add(export(edge, type, action));
-    }
+    return new BlockSegment(
+        ImmutableList.of(
+            new BlockSummaryWaypoint(
+                true,
+                export(earliestFileLocation),
+                follow.map(b -> Boolean.toString(b)),
+                ImmutableList.sortedCopyOf(pNode.getPredecessorIds()))));
+  }
 
+  private BlockSegment createBlockSegmentFromFinalLocation(BlockNode pNode) {
+    CFANode finalLocation = pNode.getFinalLocation();
     FileLocation latestFileLocation = null;
-    for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(finalLocation)) {
+    for (CFAEdge enteringEdge : finalLocation.getAllEnteringEdges()) {
       if (pNode.getEdges().contains(enteringEdge)) {
         if (latestFileLocation == null) {
           latestFileLocation = enteringEdge.getFileLocation();
@@ -125,28 +113,56 @@ public class BlockExport {
     }
     Preconditions.checkNotNull(
         latestFileLocation, "No entering edges found for block node: %s", pNode);
+    return new BlockSegment(
+        ImmutableList.of(
+            new BlockSummaryWaypoint(
+                false,
+                export(latestFileLocation),
+                Optional.empty(),
+                ImmutableList.sortedCopyOf(pNode.getSuccessorIds()))));
+  }
 
-    segments.add(
-        new BlockSegment(
-            ImmutableList.of(
-                new BlockSummaryWaypoint(
-                    false,
-                    export(latestFileLocation),
-                    Optional.empty(),
-                    ImmutableList.sortedCopyOf(pNode.getSuccessorIds())))));
+  public BlockMetadata export(BlockNode pNode) {
+    ImmutableList.Builder<BlockSegment> segments =
+        ImmutableList.builderWithExpectedSize(pNode.getEdges().size() + 2);
+
+    BlockSegment firstSegment = createBlockSegmentFromInitialLocation(pNode);
+    BlockLocation initialLocation =
+        Iterables.getOnlyElement(firstSegment.getWaypoints()).getLocation();
+    segments.add(firstSegment);
+
+    // export all segments for remaining edges
+    CFANode finalLocation = pNode.getFinalLocation();
+    for (CFAEdge edge : pNode.getEdges()) {
+      String type;
+      String action;
+      if (edge instanceof AssumeEdge) {
+        type = "branching";
+        action = "follow-true";
+      } else if (edge.getSuccessor().equals(finalLocation)) {
+        type = "target";
+        action = "follow";
+      } else {
+        type = "follow";
+        action = "follow";
+      }
+      segments.add(export(edge, type, action));
+    }
+
+    segments.add(createBlockSegmentFromFinalLocation(pNode));
     return new BlockMetadata(
         pNode.getId(),
         ImmutableList.sortedCopyOf(pNode.getPredecessorIds()),
         ImmutableList.sortedCopyOf(pNode.getSuccessorIds()),
-        new BlockDescription(export(earliestFileLocation), segments.build()));
+        new BlockDescription(initialLocation, segments.build()));
   }
 
-  public static BlockSegment export(CFAEdge pEdge, String pType, String pAction) {
+  public BlockSegment export(CFAEdge pEdge, String pType, String pAction) {
     return new BlockSegment(
         ImmutableList.of(new BlockWaypoint(pType, pAction, export(pEdge.getFileLocation()))));
   }
 
-  public static BlockLocation export(FileLocation pFileLocation) {
+  public BlockLocation export(FileLocation pFileLocation) {
     return new BlockLocation(
         pFileLocation.getFileName().toString(),
         pFileLocation.getStartingLineInOrigin(),

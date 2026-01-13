@@ -33,9 +33,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.NaiveDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.MultithreadingDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SingleWorkerDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -48,6 +51,40 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * Main class for Distributed Summary Synthesis (DSS).
+ *
+ * <p>DSS partitions the program into blocks and distributes verification across multiple workers
+ * that communicate via message passing. The analysis follows these phases:
+ *
+ * <h2>1. Decomposition</h2>
+ *
+ * <p>The CFA is partitioned into blocks using some {@link DssBlockDecomposition}. The resulting
+ * {@link BlockGraph} and the underlying CFA are then instrumented with {@link
+ * BlockGraphModification} to ensure clean block boundaries.
+ *
+ * <h2>2. Worker Creation</h2>
+ *
+ * <p>DSS spawns multiple workers through {@link DssWorkerBuilder}:
+ *
+ * <p>For each block, an {@link DssWorkerBuilder#addAnalysisWorker(BlockNode, DssAnalysisOptions)}
+ * is created. If {@link DssAnalysisOptions#isDebugModeEnabled() debug mode} is enabled, a {@link
+ * DssWorkerBuilder#addVisualizationWorker(BlockGraph, DssAnalysisOptions) visualization worker} is
+ * used to provide a visualization of the message exchange between analysis workers.
+ *
+ * <p>DSS also manually creates the {@link DssObserverWorker}, which monitors message exchange and
+ * detects when the DSS algorithm reaches a final verdict.
+ *
+ * <h2>3. Execution</h2>
+ *
+ * There are two execution strategies implemented in DSS:
+ *
+ * <ul>
+ *   <li>{@link MultithreadingDssExecutor}: All workers are started simultaneously, and the
+ *       algorithm runs until a final result is reached.
+ *   <li>{@link SingleWorkerDssExecutor}: Only one worker is active.
+ * </ul>
+ */
 @Options(prefix = "distributedSummaries")
 public class DistributedSummarySynthesis implements Algorithm, StatisticsProvider {
 
@@ -92,7 +129,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private DssExecutor getExecutor(Specification specification)
       throws InvalidConfigurationException {
     return switch (executorType) {
-      case DSS -> new NaiveDssExecutor(configuration, specification);
+      case DSS -> new MultithreadingDssExecutor(configuration, specification);
       case SINGLE_WORKER -> new SingleWorkerDssExecutor(configuration, specification);
     };
   }
@@ -114,12 +151,13 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
     dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
     if (!abstractionDeadEnds.isEmpty() && !decompositionOptions.allowMissingAbstractionNodes()) {
-      for (BlockNode node : blockGraph.getRoots()) {
-        if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
-          throw new AssertionError(
-              "Direct successors of the root node are required to have an abstraction"
-                  + " location.");
-        }
+      if (blockGraph
+          .getRoot()
+          .getViolationConditionLocation()
+          .equals(blockGraph.getRoot().getFinalLocation())) {
+        throw new AssertionError(
+            "Direct successors of the root node are required to have an abstraction"
+                + " location.");
       }
     }
     if (!abstractionDeadEnds.isEmpty()) {

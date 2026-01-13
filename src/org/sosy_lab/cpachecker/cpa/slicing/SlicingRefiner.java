@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
@@ -464,7 +463,7 @@ public class SlicingRefiner implements Refiner {
 
     CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
     List<CFAEdge> edgesToTarget =
-        CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
+        finalNode.getEnteringEdges().filter(innerEdges::contains).toList();
     criteriaEdges.addAll(edgesToTarget);
 
     relevantEdges.addAll(slicer.getSlice(cfa, criteriaEdges).getRelevantEdges());

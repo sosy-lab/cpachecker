@@ -120,7 +120,7 @@ public interface PointerTargetSetBuilder {
 
     private final TypeHandlerWithPointerAliasing typeHandler;
     private final PointerTargetSetManager ptsMgr;
-    private final FormulaEncodingWithPointerAliasingOptions options;
+    private final CFormulaEncodingWithPointerAliasingOptions options;
     private final MemoryRegionManager regionMgr;
 
     // These fields all exist in PointerTargetSet and are documented there.
@@ -142,7 +142,7 @@ public interface PointerTargetSetBuilder {
         final PointerTargetSet pointerTargetSet,
         final TypeHandlerWithPointerAliasing pTypeHandler,
         final PointerTargetSetManager pPtsMgr,
-        final FormulaEncodingWithPointerAliasingOptions pOptions,
+        final CFormulaEncodingWithPointerAliasingOptions pOptions,
         final MemoryRegionManager pRegionMgr) {
       bases = pointerTargetSet.getBases();
       fields = pointerTargetSet.getFields();

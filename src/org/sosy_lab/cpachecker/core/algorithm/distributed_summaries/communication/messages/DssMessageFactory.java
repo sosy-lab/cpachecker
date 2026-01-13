@@ -42,18 +42,18 @@ public class DssMessageFactory {
         .build();
   }
 
-  public DssPreconditionMessage createDssPreconditionMessage(
+  public DssPostConditionMessage createDssPreconditionMessage(
       String pSenderId,
       boolean pReachable,
       AlgorithmStatus pStatus,
       List<String> pReceivers,
       ImmutableMap<String, String> pStateContent) {
-    return new DssPreconditionMessage(
+    return new DssPostConditionMessage(
         pSenderId,
         pReceivers,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
-            .put(DssPreconditionMessage.DSS_MESSAGE_REACHABLE_KEY, Boolean.toString(pReachable))
+            .put(DssPostConditionMessage.DSS_MESSAGE_REACHABLE_KEY, Boolean.toString(pReachable))
             .putAll(pStateContent)
             .buildOrThrow());
   }

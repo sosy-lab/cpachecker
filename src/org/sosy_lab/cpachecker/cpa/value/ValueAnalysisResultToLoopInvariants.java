@@ -83,9 +83,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -213,7 +213,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     varToType = extractVarsWithType(pCfa);
     c2Formula =
         new CtoFormulaConverter(
-            new FormulaEncodingOptions(pConfig),
+            new CFormulaEncodingOptions(pConfig),
             solver.getFormulaManager(),
             pCfa.getMachineModel(),
             pCfa.getVarClassification(),
@@ -1594,8 +1594,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         final CType goalType,
         final FormulaManagerView pFmgrV,
         final CtoFormulaConverter pC2Formula) {
-      final FormulaType<?> fromType = pC2Formula.getFormulaTypeFromCType(originalType);
-      final FormulaType<?> toType = pC2Formula.getFormulaTypeFromCType(goalType);
+      final FormulaType<?> fromType = pC2Formula.getFormulaTypeFromType(originalType);
+      final FormulaType<?> toType = pC2Formula.getFormulaTypeFromType(goalType);
 
       Preconditions.checkArgument(
           (fromType.isBitvectorType() && toType.isBitvectorType()) || toType.isFloatingPointType());
@@ -1677,7 +1677,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       if (pExportOpt != EXPORT_OPTION.ONLY_OPT) {
         if (alwaysTrue || alwaysFalse) {
           FormulaType<?> formulaType =
-              pC2Formula.getFormulaTypeFromCType((CType) pVarToType.get(var));
+              pC2Formula.getFormulaTypeFromType((CType) pVarToType.get(var));
           Formula varF = pFmgrV.makeVariable(formulaType, var.getExtendedQualifiedName());
 
           if (varF instanceof BooleanFormula booleanFormula) {
@@ -1810,7 +1810,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       Preconditions.checkState(!(alwaysEven && alwaysOdd));
       Collection<BooleanFormula> result = new ArrayList<>(4);
 
-      FormulaType<?> formulaType = pC2Formula.getFormulaTypeFromCType((CType) pVarToType.get(var));
+      FormulaType<?> formulaType = pC2Formula.getFormulaTypeFromType((CType) pVarToType.get(var));
       Formula varF = pFmgrV.makeVariable(formulaType, var.getExtendedQualifiedName());
       // assume type is signed (by default) if it is not a simple type
       boolean signed =
@@ -1948,7 +1948,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       Formula varF =
           simpleCast(
               pFmgrV.makeVariable(
-                  pC2Formula.getFormulaTypeFromCType((CType) pVarToType.get(var)),
+                  pC2Formula.getFormulaTypeFromType((CType) pVarToType.get(var)),
                   var.getExtendedQualifiedName()),
               pMachineModel.isSigned((CSimpleType) pVarToType.get(var)),
               (CType) pVarToType.get(var),
@@ -1959,7 +1959,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       Formula varF2 =
           simpleCast(
               pFmgrV.makeVariable(
-                  pC2Formula.getFormulaTypeFromCType((CType) pVarToType.get(var2)),
+                  pC2Formula.getFormulaTypeFromType((CType) pVarToType.get(var2)),
                   var2.getExtendedQualifiedName()),
               pMachineModel.isSigned((CSimpleType) pVarToType.get(var2)),
               (CType) pVarToType.get(var2),
@@ -2278,10 +2278,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
       Formula varF =
           pFmgrV.makeVariable(
-              pC2Formula.getFormulaTypeFromCType(type1), var1.getExtendedQualifiedName());
+              pC2Formula.getFormulaTypeFromType(type1), var1.getExtendedQualifiedName());
       Formula varF2 =
           pFmgrV.makeVariable(
-              pC2Formula.getFormulaTypeFromCType(type2), var2.getExtendedQualifiedName());
+              pC2Formula.getFormulaTypeFromType(type2), var2.getExtendedQualifiedName());
 
       if (opMul.getSecond() != EqualCompareType.NONE) {
         formulaType =
@@ -2295,7 +2295,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                     simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
                 opMul,
                 pFmgrV,
-                pC2Formula.getFormulaTypeFromCType(formulaType),
+                pC2Formula.getFormulaTypeFromType(formulaType),
                 signed));
       }
 
@@ -2313,7 +2313,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       signed),
                   opDiv,
                   pFmgrV,
-                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  pC2Formula.getFormulaTypeFromType(formulaType),
                   signed));
         } else {
           result.add(
@@ -2324,7 +2324,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       signed),
                   opDiv,
                   pFmgrV,
-                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  pC2Formula.getFormulaTypeFromType(formulaType),
                   signed));
         }
       }
@@ -2343,7 +2343,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                     signed),
                 opModVar1Left,
                 pFmgrV,
-                pC2Formula.getFormulaTypeFromCType(formulaType),
+                pC2Formula.getFormulaTypeFromType(formulaType),
                 signed));
       }
 
@@ -2361,7 +2361,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                     signed),
                 opModVar2Left,
                 pFmgrV,
-                pC2Formula.getFormulaTypeFromCType(formulaType),
+                pC2Formula.getFormulaTypeFromType(formulaType),
                 signed));
       }
 
@@ -2648,10 +2648,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
       Formula varF =
           pFmgrV.makeVariable(
-              pC2Formula.getFormulaTypeFromCType(type1), var1.getExtendedQualifiedName());
+              pC2Formula.getFormulaTypeFromType(type1), var1.getExtendedQualifiedName());
       Formula varF2 =
           pFmgrV.makeVariable(
-              pC2Formula.getFormulaTypeFromCType(type2), var2.getExtendedQualifiedName());
+              pC2Formula.getFormulaTypeFromType(type2), var2.getExtendedQualifiedName());
 
       Preconditions.checkState(
           varF instanceof BitvectorFormula && varF2 instanceof BitvectorFormula);
@@ -2670,7 +2670,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
                   opBitAnd,
                   pFmgrV,
-                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  pC2Formula.getFormulaTypeFromType(formulaType),
                   signed));
         }
 
@@ -2687,7 +2687,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
                   opBitOr,
                   pFmgrV,
-                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  pC2Formula.getFormulaTypeFromType(formulaType),
                   signed));
         }
 
@@ -2704,7 +2704,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
                   opBitXor,
                   pFmgrV,
-                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  pC2Formula.getFormulaTypeFromType(formulaType),
                   signed));
         }
       }
@@ -2724,7 +2724,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
                   opVar1ShiftLeft,
                   pFmgrV,
-                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  pC2Formula.getFormulaTypeFromType(formulaType),
                   signed));
         }
 
@@ -2741,7 +2741,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       simpleCast(varF, signed, type1, formulaType, pFmgrV, pC2Formula)),
                   opVar2ShiftLeft,
                   pFmgrV,
-                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  pC2Formula.getFormulaTypeFromType(formulaType),
                   signed));
         }
 
@@ -2759,7 +2759,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       signed),
                   opVar1ShiftRight,
                   pFmgrV,
-                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  pC2Formula.getFormulaTypeFromType(formulaType),
                   signed));
         }
 
@@ -2777,7 +2777,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       signed),
                   opVar2ShiftRight,
                   pFmgrV,
-                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  pC2Formula.getFormulaTypeFromType(formulaType),
                   signed));
         }
       }
@@ -2909,7 +2909,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         signed = pMachineModel.isSigned(commonType);
       }
 
-      FormulaType<?> formulaType = pC2Formula.getFormulaTypeFromCType(commonType);
+      FormulaType<?> formulaType = pC2Formula.getFormulaTypeFromType(commonType);
 
       for (int i = 0; i < vars.length; i++) {
         var = vars[i];
@@ -2917,7 +2917,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         varTerm =
             simpleCast(
                 pFmgrV.makeVariable(
-                    pC2Formula.getFormulaTypeFromCType((CType) pVarToType.get(var)),
+                    pC2Formula.getFormulaTypeFromType((CType) pVarToType.get(var)),
                     var.getExtendedQualifiedName()),
                 signed,
                 (CType) pVarToType.get(var),

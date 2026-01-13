@@ -533,7 +533,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
               pCurrentContext.getConfig(),
               logger,
               localShutdownManager.getNotifier(),
-              aggregateReached);
+              aggregateReached,
+              cfa);
 
       boolean newReachedSet = false;
 
@@ -543,8 +544,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           // create cpa only once when not initialized, use global limits (i.e. shutdownNotifier)
           CoreComponentsFactory globalCoreComponents =
               new CoreComponentsFactory(
-                  pCurrentContext.getConfig(), logger, shutdownNotifier, aggregateReached);
-          cpa = globalCoreComponents.createCPA(cfa, specification);
+                  pCurrentContext.getConfig(), logger, shutdownNotifier, aggregateReached, cfa);
+          cpa = globalCoreComponents.createCPA(specification);
           pCurrentContext.setCPA(cpa);
           if (!pCurrentContext.reusePrecision()) {
             // create reached set only once, continue analysis
@@ -555,7 +556,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       } else {
         // do not reuse cpa, and, thus reached set
         try {
-          cpa = localCoreComponents.createCPA(cfa, specification);
+          cpa = localCoreComponents.createCPA(specification);
           pCurrentContext.setCPA(cpa);
           newReachedSet = true;
         } catch (InvalidConfigurationException e) {
@@ -604,7 +605,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       // always create algorithm with new "local" shutdown manager
-      Algorithm algorithm = localCoreComponents.createAlgorithm(cpa, cfa, specification);
+      Algorithm algorithm = localCoreComponents.createAlgorithm(cpa, specification);
 
       if (algorithm instanceof CompositionAlgorithm) {
         // To avoid accidental infinitely-recursive nesting.

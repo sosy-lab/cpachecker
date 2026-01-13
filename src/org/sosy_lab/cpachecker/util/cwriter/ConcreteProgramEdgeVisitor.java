@@ -38,10 +38,10 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
   public void visit(ARGState pChildElement, CFAEdge pEdge, Deque<FunctionBody> pFunctionStack) {
     translator.processEdge(pChildElement, pEdge, pFunctionStack);
 
-    createAssumedAssigmentString(pFunctionStack, pEdge);
+    createAssumedAssignmentString(pFunctionStack, pEdge);
   }
 
-  private void createAssumedAssigmentString(
+  private void createAssumedAssignmentString(
       Deque<FunctionBody> functionStack, CFAEdge currentCFAEdge) {
     CFAEdgeWithAssumptions e = findMatchingEdge(currentCFAEdge);
     if (e != null && e.getCFAEdge() instanceof CStatementEdge cse) {

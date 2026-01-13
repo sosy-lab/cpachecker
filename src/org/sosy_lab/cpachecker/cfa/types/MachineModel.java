@@ -810,7 +810,7 @@ public enum MachineModel {
    * @param pOwnerType a {@link CCompositeType} to calculate its fields offsets
    * @return a mapping of typeMemberDeclarations to there corresponding offsets in pOwnerType
    */
-  public Map<CCompositeTypeMemberDeclaration, BigInteger> getAllFieldOffsetsInBits(
+  public ImmutableMap<CCompositeTypeMemberDeclaration, BigInteger> getAllFieldOffsetsInBits(
       CCompositeType pOwnerType) {
     ImmutableMap.Builder<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap =
         ImmutableMap.builder();
