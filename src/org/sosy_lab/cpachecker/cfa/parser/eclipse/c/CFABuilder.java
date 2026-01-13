@@ -520,7 +520,7 @@ class CFABuilder extends ASTVisitor {
 
     for (AcslComment comment : notStatementAnnotations) {
       Optional<FunctionEntryNode> functionEntryNode =
-          nodeForFunctionContract(comment, pAstCfaRelation, pResult.acslComments().get());
+          nodeForFunctionContract(comment, pAstCfaRelation, pResult.acslComments().orElseThrow());
       if (functionEntryNode.isPresent()) {
         comment.updateCfaNode(functionEntryNode.orElseThrow());
       } else {
