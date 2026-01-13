@@ -5388,8 +5388,8 @@ public class SMGState
   private Value getNewSymbolicValueForType(CType valueType) {
     // For unknown values we use a new symbolic value without memory location as this is
     // handled by the SMGs
-    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.asConstant(factory.newIdentifier(null), valueType);
+    return ConstantSymbolicExpression.of(
+        SymbolicValueFactory.getInstance().newIdentifier(null), valueType);
   }
 
   /**
@@ -5404,8 +5404,8 @@ public class SMGState
     if (valueToTakeTypeFrom instanceof ConstantSymbolicExpression constSym) {
       valueType = (CType) constSym.getType();
     }
-    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.asConstant(factory.newIdentifier(null), valueType);
+    return ConstantSymbolicExpression.of(
+        SymbolicValueFactory.getInstance().newIdentifier(null), valueType);
   }
 
   /**

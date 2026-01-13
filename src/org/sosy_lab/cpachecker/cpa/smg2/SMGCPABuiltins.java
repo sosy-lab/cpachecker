@@ -65,7 +65,11 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -2729,8 +2733,7 @@ public class SMGCPABuiltins {
           || nequalityCheck.proveInequality(hve1SMGValue, hve2SMGValue)) {
         // Not equal.
         // Return a new symbolic value that is not 0.
-        SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        Value notZeroValue = factory.newIdentifier(null);
+        Value notZeroValue = SymbolicValueFactory.getInstance().newIdentifier(null);
         final ConstraintFactory constraintFactory =
             ConstraintFactory.getInstance(
                 pCurrentState, machineModel, logger, options, evaluator, pCFAEdge);
@@ -3185,26 +3188,27 @@ public class SMGCPABuiltins {
         SymbolicExpression symbolicParam = (SymbolicExpression) castParamValue;
         int parameterBitSize = machineModel.getSizeofInBits(paramType);
 
-        final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
+        SymbolicExpression one =
+            ConstantSymbolicExpression.of(new NumericValue(1), CNumericTypes.INT);
         SymbolicExpression constraint =
-            factory.binaryAnd(symbolicParam, one, CNumericTypes.INT, paramType);
+            BinaryAndExpression.of(symbolicParam, one, CNumericTypes.INT, paramType);
 
         // Add up the bits one by one
         // (castParamValue >> 0) & 1 + (castParamValue >> 1) & 1 + ...
         for (int i = 1; i < parameterBitSize; i++) {
           SymbolicExpression countOfBitAtIndex =
-              factory.binaryAnd(
-                  factory.shiftRightUnsigned(
+              BinaryAndExpression.of(
+                  ShiftRightExpression.ofUnsigned(
                       symbolicParam,
-                      factory.asConstant(new NumericValue(i), CNumericTypes.INT),
+                      ConstantSymbolicExpression.of(new NumericValue(i), CNumericTypes.INT),
                       paramType,
                       paramType),
                   one,
                   CNumericTypes.INT,
                   paramType);
           constraint =
-              factory.add(constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+              AdditionExpression.of(
+                  constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
         }
 
         result.add(ValueAndSMGState.of(constraint, currentState));
