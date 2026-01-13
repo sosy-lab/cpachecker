@@ -66,15 +66,17 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
   }
 
   public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
+    /** Java * (multiplication) operator. */
     MULTIPLY("*"),
+    /** Java / (division) operator. */
     DIVIDE("/"),
     /** Java % (remainder) operator. */
     REMAINDER("%"),
-    /**
-     * Java + (addition) operator, but used exclusively for string concatenation.
-     */
+    /** Java + (additive) operator, but used exclusively for string concatenation. */
     STRING_CONCATENATION("+"),
+    /** Java + (additive) operator, but exclusively for arithmetic addition. */
     PLUS("+"),
+    /** Java - (subtraction) operator. */
     MINUS("-"),
     /**
      * Java << (signed left shift) operator, shifts a bit pattern to the left. The bit pattern is
@@ -95,19 +97,33 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
      * position.
      */
     SHIFT_RIGHT_UNSIGNED(">>>"),
+    /** Java < (less than) operator. */
     LESS_THAN("<"),
+    /** Java > (greater than) operator. */
     GREATER_THAN(">"),
+    /** Java <= (less than or equal to) operator. */
     LESS_EQUAL("<="),
+    /** Java >= (greater than or equal to) operator. */
     GREATER_EQUAL(">="),
+    /** Java & (bitwise AND) operator. */
     BINARY_AND("&"),
+    /** Java ^ (bitwise exclusive OR) operator. */
     BINARY_XOR("^"),
+    /** Java | (bitwise inclusive OR) operator. */
     BINARY_OR("|"),
+    /** Java & (bitwise AND) operator. */
     LOGICAL_AND("&"),
+    /** Java | (bitwise inclusive OR) operator. */
     LOGICAL_OR("|"),
+    /** Java ^ (bitwise exclusive OR) operator. */
     LOGICAL_XOR("^"),
+    /** Java && (conditional AND) operator. */
     CONDITIONAL_AND("&&"),
+    /** Java || (conditional OR) operator. */
     CONDITIONAL_OR("||"),
+    /** Java == (equal to) operator. */
     EQUALS("=="),
+    /** Java != (not equal to) operator. */
     NOT_EQUALS("!="),
     ;
 
