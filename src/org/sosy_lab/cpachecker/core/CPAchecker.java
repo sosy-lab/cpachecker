@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Optionals;
@@ -299,10 +298,12 @@ public class CPAchecker {
 
       cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
+      logAboutSpecification();
       factory =
           new CoreComponentsFactory(
               config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
-      return run0(cfa, null, factory, stats);
+
+      return run0(cfa, factory, stats);
 
     } catch (InvalidConfigurationException
         | ParserException
@@ -315,33 +316,26 @@ public class CPAchecker {
     }
   }
 
-  public CPAcheckerResult run(
-      CFA cfa,
-      Specification specification,
-      CoreComponentsFactory factory,
-      MainCPAStatistics stats) {
+  public CPAcheckerResult run(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      return run0(cfa, specification, factory, stats);
+      return run0(cfa, factory, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
   }
 
-  private CPAcheckerResult run0(
-      CFA cfa,
-      @Nullable Specification specification,
-      CoreComponentsFactory factory,
-      MainCPAStatistics stats) {
+  private CPAcheckerResult run0(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
 
     Algorithm algorithm = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
     String targetDescription = "";
+    Specification specification;
 
     try {
 
@@ -355,11 +349,10 @@ public class CPAchecker {
       }
       stats.cpaCreationTime.start();
       try {
-        if (specification == null) {
-          logAboutSpecification();
-          specification =
-              Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
-        }
+        logAboutSpecification();
+        specification =
+            Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+
         cpa = factory.createCPA(specification);
       } finally {
         stats.cpaCreationTime.stop();
