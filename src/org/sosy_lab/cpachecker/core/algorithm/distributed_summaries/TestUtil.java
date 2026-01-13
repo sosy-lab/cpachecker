@@ -17,9 +17,7 @@ public class TestUtil {
   public static Configuration generateConfig(String configFile, Path testFolder)
       throws InvalidConfigurationException, IOException {
     Configuration configForFiles =
-        Configuration.builder()
-            .setOption("output.path", testFolder.toString())
-            .build();
+        Configuration.builder().setOption("output.path", testFolder.toString()).build();
     FileTypeConverter fileTypeConverter = FileTypeConverter.create(configForFiles);
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
     ConfigurationBuilder configBuilder = Configuration.builder();

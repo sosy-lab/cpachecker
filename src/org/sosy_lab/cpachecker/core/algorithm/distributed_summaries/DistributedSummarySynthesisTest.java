@@ -42,7 +42,8 @@ public class DistributedSummarySynthesisTest {
   @Test
   public void testBlockDecompositionExportsJson() throws Exception {
     Path tempFolderPath = tempFolder.getRoot().toPath();
-    Configuration config = TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
+    Configuration config =
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
     File expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH).toFile();
 
     TestResults result = CPATestRunner.run(config, PROGRAM);

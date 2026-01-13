@@ -32,6 +32,7 @@ public class BlockGraphTest {
   private static final String EXPORT_BLOCKS_JSON_PATH_2 = "block_analysis/blocks2.json";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+
   /**
    * Tests that {@link BlockGraph}s created from the same {@link CFA} with different starting node
    * IDs can export to the same JSON representation.
@@ -71,7 +72,8 @@ public class BlockGraphTest {
   }
 
   private CFA generateCfa(Path tempFolderPath) throws Exception {
-    Configuration configToGenerateCfa = TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
+    Configuration configToGenerateCfa =
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
     TestResults result = CPATestRunner.run(configToGenerateCfa, PROGRAM);
     return result.getCheckerResult().getCfa();
   }

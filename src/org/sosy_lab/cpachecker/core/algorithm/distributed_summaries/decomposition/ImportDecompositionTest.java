@@ -48,7 +48,8 @@ public class ImportDecompositionTest {
     Path expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH);
     assumeTrue(expectedBlocksJson.toFile().exists());
 
-    Configuration configToGenerateCfa = TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
+    Configuration configToGenerateCfa =
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
     TestResults runWithShiftedCfa = CPATestRunner.run(configToGenerateCfa, PROGRAM);
     CFA shiftedCFA = runWithShiftedCfa.getCheckerResult().getCfa();
 
