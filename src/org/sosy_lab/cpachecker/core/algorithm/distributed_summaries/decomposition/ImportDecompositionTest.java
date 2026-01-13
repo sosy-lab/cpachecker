@@ -31,7 +31,6 @@ public class ImportDecompositionTest {
   private static final String BLOCKS_JSON_PATH = "block_analysis/blocks.json";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
-  private final TestUtil testUtil = new TestUtil(tempFolder);
 
   /**
    * Tests that {@link ImportDecomposition} can decompose a {@link CFA} to a {@link BlockGraph} when
@@ -39,16 +38,17 @@ public class ImportDecompositionTest {
    */
   @Test
   public void testCanDecomposeCfaWithNodeIdThatStartsAtNonZero() throws Exception {
+    Path tempFolderPath = tempFolder.getRoot().toPath();
     Configuration configToGenerateBlockGraph =
-        testUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH);
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
     TestResults runWithBlockGraph = CPATestRunner.run(configToGenerateBlockGraph, PROGRAM);
     CFA originalCFA = runWithBlockGraph.getCheckerResult().getCfa();
 
     // runWithBlockGraph should have generated the blocks json
-    Path expectedBlocksJson = tempFolder.getRoot().toPath().resolve(BLOCKS_JSON_PATH);
+    Path expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH);
     assumeTrue(expectedBlocksJson.toFile().exists());
 
-    Configuration configToGenerateCfa = testUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA);
+    Configuration configToGenerateCfa = TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
     TestResults runWithShiftedCfa = CPATestRunner.run(configToGenerateCfa, PROGRAM);
     CFA shiftedCFA = runWithShiftedCfa.getCheckerResult().getCfa();
 

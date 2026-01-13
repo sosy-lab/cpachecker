@@ -32,27 +32,25 @@ public class BlockGraphTest {
   private static final String EXPORT_BLOCKS_JSON_PATH_2 = "block_analysis/blocks2.json";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
-  private final TestUtil testUtil = new TestUtil(tempFolder);
-
   /**
    * Tests that {@link BlockGraph}s created from the same {@link CFA} with different starting node
    * IDs can export to the same JSON representation.
    */
   @Test
   public void testCanExportWithNodeIdThatStartsAtNonZero() throws Exception {
-    CFA originalCFA = generateCfa();
-    CFA shiftedCFA = generateCfa();
+    Path tempFolderPath = tempFolder.getRoot().toPath();
+    CFA originalCFA = generateCfa(tempFolderPath);
+    CFA shiftedCFA = generateCfa(tempFolderPath);
 
     assumeTrue(originalCFA.nodes() != shiftedCFA.nodes());
 
-    BlockGraph blockGraphFromOriginalCfa = generateBlockGraph(originalCFA);
-    BlockGraph blockGraphFromShiftedCfa = generateBlockGraph(shiftedCFA);
+    BlockGraph blockGraphFromOriginalCfa = generateBlockGraph(originalCFA, tempFolderPath);
+    BlockGraph blockGraphFromShiftedCfa = generateBlockGraph(shiftedCFA, tempFolderPath);
 
     assumeTrue(blockGraphFromOriginalCfa != blockGraphFromShiftedCfa);
 
-    Path exportPathForOriginalCfa =
-        tempFolder.getRoot().toPath().resolve(EXPORT_BLOCKS_JSON_PATH_1);
-    Path exportPathForShiftedCfa = tempFolder.getRoot().toPath().resolve(EXPORT_BLOCKS_JSON_PATH_2);
+    Path exportPathForOriginalCfa = tempFolderPath.resolve(EXPORT_BLOCKS_JSON_PATH_1);
+    Path exportPathForShiftedCfa = tempFolderPath.resolve(EXPORT_BLOCKS_JSON_PATH_2);
 
     blockGraphFromOriginalCfa.export(exportPathForOriginalCfa, originalCFA);
     blockGraphFromShiftedCfa.export(exportPathForShiftedCfa, shiftedCFA);
@@ -64,16 +62,16 @@ public class BlockGraphTest {
         .isEqualTo(Files.readString(exportPathForShiftedCfa));
   }
 
-  private BlockGraph generateBlockGraph(CFA cfa) throws Exception {
+  private BlockGraph generateBlockGraph(CFA cfa, Path tempFolderPath) throws Exception {
     Configuration configForMergeDecomposition =
-        testUtil.generateConfig(CONFIGURATION_FILE_MERGE_DECOMPOSITION);
+        TestUtil.generateConfig(CONFIGURATION_FILE_MERGE_DECOMPOSITION, tempFolderPath);
     DssDecompositionOptions options = new DssDecompositionOptions(configForMergeDecomposition, cfa);
     DssBlockDecomposition decomposer = options.getConfiguredDecomposition();
     return decomposer.decompose(cfa);
   }
 
-  private CFA generateCfa() throws Exception {
-    Configuration configToGenerateCfa = testUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA);
+  private CFA generateCfa(Path tempFolderPath) throws Exception {
+    Configuration configToGenerateCfa = TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
     TestResults result = CPATestRunner.run(configToGenerateCfa, PROGRAM);
     return result.getCheckerResult().getCfa();
   }

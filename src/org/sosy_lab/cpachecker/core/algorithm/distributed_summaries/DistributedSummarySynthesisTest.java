@@ -16,6 +16,7 @@ import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -32,7 +33,6 @@ public class DistributedSummarySynthesisTest {
   private static final String BLOCKS_JSON_PATH = "block_analysis/blocks.json";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
-  private final TestUtil testUtil = new TestUtil(tempFolder);
 
   // discard printed statistics; we only care about generation
   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
@@ -41,8 +41,9 @@ public class DistributedSummarySynthesisTest {
 
   @Test
   public void testBlockDecompositionExportsJson() throws Exception {
-    Configuration config = testUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH);
-    File expectedBlocksJson = tempFolder.getRoot().toPath().resolve(BLOCKS_JSON_PATH).toFile();
+    Path tempFolderPath = tempFolder.getRoot().toPath();
+    Configuration config = TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
+    File expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH).toFile();
 
     TestResults result = CPATestRunner.run(config, PROGRAM);
     result.getCheckerResult().printStatistics(statisticsStream);
