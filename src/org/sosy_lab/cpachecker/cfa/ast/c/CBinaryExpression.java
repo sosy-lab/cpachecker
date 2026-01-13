@@ -95,34 +95,31 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
   public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
     /**
      * Binary * (multiplication) operator, defined in the C11 standard §6.5.5 as the product of the
-     * operands for arithmetic types. More details can be found in the standard.
+     * operands for arithmetic types.
      */
     MULTIPLY("*"),
     /**
      * C / (division) operator, defined in the C11 standard §6.5.5 as the quotient from the division
      * of the first operand by the second for arithmetic types. Since C99, integer division is
      * always truncated to zero. If the value of the second operand is zero, the behavior is
-     * undefined. More details can be found in the standard.
+     * undefined.
      */
     DIVIDE("/"),
     /**
      * C % (remainder) operator, defined in the C11 standard §6.5.5 as (a/b)*b + a%b = a, i.e. a%b =
      * a - (a/b)*b, for arithmetic types. Since C99, integer division is always truncated to zero.
-     * If the value of the second operand is zero, the behavior is undefined. More details can be
-     * found in the standard. Note: modulo is defined distinctly, and there is no modulo operator in
-     * C!
+     * If the value of the second operand is zero, the behavior is undefined. Note: modulo is
+     * defined distinctly, and there is no modulo operator in C!
      */
     REMAINDER("%"),
     /**
      * Binary + (additive) operator, defined in the C11 standard §6.5.6 as the sum of the operands
-     * for arithmetic types. Pointers are handled distinctly! More details can be found in the
-     * standard.
+     * for arithmetic types.
      */
     PLUS("+"),
     /**
      * Binary - (subtraction) operator, defined in the C11 standard §6.5.6 as the difference
      * resulting from the subtraction of the second operand from the first for arithmetic types.
-     * Pointers are handled distinctly! More details can be found in the standard.
      */
     MINUS("-"),
     /**
@@ -132,8 +129,7 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
      * value representable in the result type. If E1 has a signed type and nonnegative value, and E1
      * × 2E2 is representable in the result type, then that is the resulting value; otherwise, the
      * behavior is undefined. If the value of the right operand is negative or is greater than or
-     * equal to the width of the promoted left operand, the behavior is undefined. More details can
-     * be found in the standard.
+     * equal to the width of the promoted left operand, the behavior is undefined.
      */
     SHIFT_LEFT("<<"),
     /**
@@ -142,67 +138,57 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
      * and a nonnegative value, the value of the result is the integral part of the quotient of E1 /
      * 2E2. If E1 has a signed type and a negative value, the resulting value is
      * implementation-defined. If the value of the right operand is negative or is greater than or
-     * equal to the width of the promoted left operand, the behavior is undefined. More details can
-     * be found in the standard.
+     * equal to the width of the promoted left operand, the behavior is undefined.
      */
     SHIFT_RIGHT(">>"),
     /**
      * Relational operator < (less than), defined in the C11 standard §6.5.8 as yielding integer
-     * literal 1 if the specified relation is true and integer literal 0 if it is false. Special
-     * handling occurs if there is at least one operand that is a pointer. More details can be found
-     * in the standard.
+     * literal 1 if the specified relation is true and integer literal 0 if it is false.
      */
     LESS_THAN("<"),
     /**
      * Relational operator > (greater than), defined in the C11 standard §6.5.8 as yielding integer
-     * literal 1 if the specified relation is true and integer literal 0 if it is false. Special
-     * handling occurs if there is at least one operand that is a pointer. More details can be found
-     * in the standard.
+     * literal 1 if the specified relation is true and integer literal 0 if it is false.
      */
     GREATER_THAN(">"),
     /**
      * Relational operator <= (less than or equal to), defined in the C11 standard §6.5.8 as
      * yielding integer literal 1 if the specified relation is true and integer literal 0 if it is
-     * false. Special handling occurs if there is at least one operand that is a pointer. More
-     * details can be found in the standard.
+     * false.
      */
     LESS_EQUAL("<="),
     /**
      * Relational operator >= (greater than or equal to), defined in the C11 standard §6.5.8 as
      * yielding integer literal 1 if the specified relation is true and integer literal 0 if it is
-     * false. Special handling occurs if there is at least one operand that is a pointer. More
-     * details can be found in the standard.
+     * false.
      */
     GREATER_EQUAL(">="),
     /**
      * Bitwise & (AND) operator, defined in the C11 standard §6.5.10 such that each bit in the
      * result is set if and only if each of the corresponding bits in the converted operands is set
-     * More details can be found in the standard.
      */
     BITWISE_AND("&"),
     /**
      * Bitwise ^ (exclusive OR) operator, defined in the C11 standard §6.5.11 such that each bit in
      * the result is set if and only if exactly one of the corresponding bits in the operands is
-     * set. More details can be found in the standard.
+     * set.
      */
     BITWISE_XOR("^"),
     /**
      * Bitwise | (inclusive OR) operator, defined in the C11 standard §6.5.12 such that each bit in
      * the result is set if and only if at least one of the corresponding bits in the converted
-     * operands is set. More details can be found in the standard.
+     * operands is set.
      */
     BITWISE_OR("|"),
     /**
      * == (equal to) operator, defined in the C11 standard §6.5.9 as returning integer literal 1 if
      * the specified relation is true, i.e. the two operands are equal, and integer literal 0 if the
-     * specified relation is false. Special handling occurs if at least one of the two operands is a
-     * pointer. More details can be found in the standard.
+     * specified relation is false.
      */
     EQUALS("=="),
     /**
      * != (not equal to) operator, defined in the C11 standard §6.5.9 as the inverse operator to
-     * {@link BinaryOperator#EQUALS}. Special handling occurs if at least one of the two operands is
-     * a pointer. More details can be found in the standard.
+     * {@link BinaryOperator#EQUALS}.
      */
     NOT_EQUALS("!="),
     ;
