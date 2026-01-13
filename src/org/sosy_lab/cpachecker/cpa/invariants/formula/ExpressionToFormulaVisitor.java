@@ -488,7 +488,7 @@ public class ExpressionToFormulaVisitor
 
       case PLUS -> compoundIntervalFormulaManager.add(left, right);
 
-      case SIGNED_SHIFT_LEFT -> {
+      case SHIFT_LEFT_SIGNED -> {
         right = truncateShiftOperand(pBinaryExpression.getExpressionType(), right);
         yield compoundIntervalFormulaManager.shiftLeft(left, right);
       }

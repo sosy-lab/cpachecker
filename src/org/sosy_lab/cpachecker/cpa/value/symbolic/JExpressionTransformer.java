@@ -90,7 +90,7 @@ public class JExpressionTransformer extends ExpressionTransformer
           factory.divide(operand1Expression, operand2Expression, expressionType, expressionType);
       case REMAINDER ->
           factory.modulo(operand1Expression, operand2Expression, expressionType, expressionType);
-      case SIGNED_SHIFT_LEFT ->
+      case SHIFT_LEFT_SIGNED ->
           factory.shiftLeft(operand1Expression, operand2Expression, expressionType, expressionType);
       case SHIFT_RIGHT_SIGNED ->
           factory.shiftRightSigned(

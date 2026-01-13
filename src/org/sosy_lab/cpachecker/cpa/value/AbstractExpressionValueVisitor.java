@@ -1373,7 +1373,7 @@ public abstract class AbstractExpressionValueVisitor
       case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case REMAINDER ->
           factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SIGNED_SHIFT_LEFT ->
+      case SHIFT_LEFT_SIGNED ->
           factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT_SIGNED ->
           factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
@@ -1427,7 +1427,7 @@ public abstract class AbstractExpressionValueVisitor
           MINUS,
           DIVIDE,
           MULTIPLY,
-          SIGNED_SHIFT_LEFT,
+           SHIFT_LEFT_SIGNED,
           BINARY_AND,
           BINARY_OR,
           BINARY_XOR,
@@ -1459,7 +1459,7 @@ public abstract class AbstractExpressionValueVisitor
 
               // shift operations' behaviour is determined by whether the left hand side value is of
               // type int or long, so we have to cast if the actual type is int.
-              case SIGNED_SHIFT_LEFT -> {
+              case SHIFT_LEFT_SIGNED -> {
                 if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
                   final int intResult = ((int) lVal) << rVal;
                   yield intResult;
