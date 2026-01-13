@@ -298,11 +298,9 @@ public class CPAchecker {
 
       cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
-      logAboutSpecification();
       factory =
           new CoreComponentsFactory(
               config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
-
       return run0(cfa, factory, stats);
 
     } catch (InvalidConfigurationException
