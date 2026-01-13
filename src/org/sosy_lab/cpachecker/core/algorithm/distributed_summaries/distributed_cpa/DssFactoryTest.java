@@ -45,7 +45,8 @@ public class DssFactoryTest {
   }
 
   private CFA generateCfa(Path tempFolderPath) throws Exception {
-    Configuration configToGenerateCfa = TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
+    Configuration configToGenerateCfa =
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
     TestResults result = CPATestRunner.run(configToGenerateCfa, PROGRAM);
     return result.getCheckerResult().getCfa();
   }
