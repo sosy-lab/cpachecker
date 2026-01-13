@@ -2433,7 +2433,7 @@ class ASTConverter {
     } else if (op.equals(Assignment.Operator.PLUS_ASSIGN)) {
       return BinaryOperator.PLUS;
     } else if (op.equals(Assignment.Operator.REMAINDER_ASSIGN)) {
-      return BinaryOperator.Remainder;
+      return BinaryOperator.REMAINDER;
     } else if (op.equals(Assignment.Operator.TIMES_ASSIGN)) {
       return BinaryOperator.MULTIPLY;
 
@@ -2648,7 +2648,7 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.TIMES)) {
       return BinaryOperator.MULTIPLY;
     } else if (op.equals(InfixExpression.Operator.REMAINDER)) {
-      return BinaryOperator.Remainder;
+      return BinaryOperator.REMAINDER;
     } else if (op.equals(InfixExpression.Operator.GREATER)) {
       return BinaryOperator.GREATER_THAN;
     } else if (op.equals(InfixExpression.Operator.LESS)) {

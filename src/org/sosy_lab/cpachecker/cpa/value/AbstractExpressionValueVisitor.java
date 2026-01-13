@@ -1371,7 +1371,7 @@ public abstract class AbstractExpressionValueVisitor
       case MULTIPLY ->
           factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case Remainder ->
+      case REMAINDER ->
           factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SIGNED_SHIFT_LEFT ->
           factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
@@ -1431,7 +1431,7 @@ public abstract class AbstractExpressionValueVisitor
           BINARY_AND,
           BINARY_OR,
           BINARY_XOR,
-          Remainder,
+           REMAINDER,
           SHIFT_RIGHT_SIGNED,
           SHIFT_RIGHT_UNSIGNED -> {
         long numResult =
@@ -1455,7 +1455,7 @@ public abstract class AbstractExpressionValueVisitor
 
               case BINARY_XOR -> lVal ^ rVal;
 
-              case Remainder -> lVal % rVal;
+              case REMAINDER -> lVal % rVal;
 
               // shift operations' behaviour is determined by whether the left hand side value is of
               // type int or long, so we have to cast if the actual type is int.
@@ -1537,7 +1537,7 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     return switch (pBinaryOperator) {
-      case PLUS, MINUS, DIVIDE, MULTIPLY, Remainder ->
+      case PLUS, MINUS, DIVIDE, MULTIPLY, REMAINDER ->
           switch (pBinaryOperator) {
             case PLUS -> new NumericValue(lVal + rVal);
 
@@ -1552,7 +1552,7 @@ public abstract class AbstractExpressionValueVisitor
 
             case MULTIPLY -> new NumericValue(lVal * rVal);
 
-            case Remainder -> new NumericValue(lVal % rVal);
+            case REMAINDER -> new NumericValue(lVal % rVal);
 
             default ->
                 throw new AssertionError(

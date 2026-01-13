@@ -69,7 +69,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     MULTIPLY("*"),
     DIVIDE("/"),
     /** Java % (remainder) operator. */
-    Remainder("%"),
+    REMAINDER("%"),
     STRING_CONCATENATION("+"),
     PLUS("+"),
     MINUS("-"),
@@ -114,7 +114,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
         case STRING_CONCATENATION,
             MULTIPLY,
             DIVIDE,
-            Remainder,
+             REMAINDER,
             PLUS,
             MINUS,
             SIGNED_SHIFT_LEFT,
