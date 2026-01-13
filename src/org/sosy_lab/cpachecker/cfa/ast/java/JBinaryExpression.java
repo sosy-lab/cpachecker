@@ -73,7 +73,11 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     STRING_CONCATENATION("+"),
     PLUS("+"),
     MINUS("-"),
-    SHIFT_LEFT("<<"),
+    /**
+     * Java << (signed left shift) operator. The bit pattern is given by the left-hand operand, and
+     * the number of positions to shift by the right-hand operand.
+     */
+    SIGNED_SHIFT_LEFT("<<"),
     SHIFT_RIGHT_SIGNED(">>"),
     SHIFT_RIGHT_UNSIGNED(">>>"),
     LESS_THAN("<"),
@@ -113,7 +117,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
             Remainder,
             PLUS,
             MINUS,
-            SHIFT_LEFT,
+            SIGNED_SHIFT_LEFT,
             SHIFT_RIGHT_SIGNED,
             SHIFT_RIGHT_UNSIGNED,
             BINARY_AND,
