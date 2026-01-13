@@ -1431,7 +1431,7 @@ public abstract class AbstractExpressionValueVisitor
           BINARY_AND,
           BINARY_OR,
           BINARY_XOR,
-           REMAINDER,
+          REMAINDER,
           SHIFT_RIGHT_SIGNED,
           SHIFT_RIGHT_UNSIGNED -> {
         long numResult =

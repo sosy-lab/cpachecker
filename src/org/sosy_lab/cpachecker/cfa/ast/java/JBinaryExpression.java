@@ -78,7 +78,17 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
      * the number of positions to shift by the right-hand operand.
      */
     SIGNED_SHIFT_LEFT("<<"),
+    /**
+     * Java >> (signed right shift) operator. The bit pattern is given by the left-hand operand, and
+     * the number of positions to shift by the right-hand operand. The leftmost position after
+     * shifting depends on sign extension.
+     */
     SHIFT_RIGHT_SIGNED(">>"),
+    /**
+     * Java >>> (unsigned right shift) operator. The bit pattern is given by the left-hand operand,
+     * and the number of positions to shift by the right-hand operand. A zero is shifted into the
+     * leftmost position.
+     */
     SHIFT_RIGHT_UNSIGNED(">>>"),
     LESS_THAN("<"),
     GREATER_THAN(">"),
@@ -114,7 +124,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
         case STRING_CONCATENATION,
             MULTIPLY,
             DIVIDE,
-             REMAINDER,
+            REMAINDER,
             PLUS,
             MINUS,
             SIGNED_SHIFT_LEFT,
