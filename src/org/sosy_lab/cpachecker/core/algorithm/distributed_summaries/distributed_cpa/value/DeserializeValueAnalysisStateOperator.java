@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -37,9 +38,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.util.SymbolicIdentifierRenamer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -47,7 +51,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
   static Map<String, Map<String, Type>> accessedVariables = new HashMap<>();
   private final BlockNode blockNode;
-  static Optional<Map<String, Type>> globals = Optional.empty();
 
   public DeserializeValueAnalysisStateOperator(BlockNode pBlockNode, CFA pCFA) {
     blockNode = pBlockNode;
@@ -77,10 +80,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
       MemoryLocation mL = MemoryLocation.fromQualifiedName(entry.getKey());
       if (pState.contains(mL)) continue;
       pState.assignConstant(
-          mL,
-          SymbolicValueFactory.getInstance()
-              .asConstant(SymbolicValueFactory.getInstance().newIdentifier(mL), entry.getValue()),
-          entry.getValue());
+          mL, SymbolicValueFactory.getInstance().newIdentifier(mL), entry.getValue());
     }
   }
 
@@ -151,5 +151,21 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     }
     accessedVariables.put(pBlockNode.getId(), accessed);
     return accessed;
+  }
+
+  public static ValueAnalysisState renameIds(
+      ValueAnalysisState pState, SymbolicIdentifierRenamer pVisitor) {
+    ValueAnalysisState newState = new ValueAnalysisState(pState.getMachineModel());
+
+    for (Entry<MemoryLocation, ValueAndType> constant : pState.getConstants()) {
+      if (constant.getValue().getValue() instanceof SymbolicValue symValue) {
+        newState.assignConstant(
+            constant.getKey(), symValue.accept(pVisitor), constant.getValue().getType());
+      } else {
+        newState.assignConstant(
+            constant.getKey(), constant.getValue().getValue(), constant.getValue().getType());
+      }
+    }
+    return newState;
   }
 }

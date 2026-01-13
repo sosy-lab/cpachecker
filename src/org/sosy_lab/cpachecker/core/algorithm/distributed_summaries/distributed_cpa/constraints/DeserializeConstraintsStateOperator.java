@@ -13,6 +13,7 @@ import java.util.HashSet;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.util.SymbolicIdentifierRenamer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -40,5 +41,15 @@ public class DeserializeConstraintsStateOperator implements DeserializeOperator 
     } catch (ClassCastException e) {
       throw new AssertionError("Could not deserialize constraints", e);
     }
+  }
+
+  public static ConstraintsState renameIds(
+      ConstraintsState pState, SymbolicIdentifierRenamer visitor) {
+    ConstraintsState newState = new ConstraintsState();
+    for (Constraint constraint : pState) {
+      assert constraint != null;
+      newState = newState.copyWithNew((Constraint) constraint.accept(visitor));
+    }
+    return newState;
   }
 }

@@ -113,6 +113,10 @@ public final class ValueAnalysisState
    */
   private PersistentMap<MemoryLocation, ValueAndType> constantsMap;
 
+  public @Nullable MachineModel getMachineModel() {
+    return machineModel;
+  }
+
   /**
    * hashCode needs to be updated with every change of {@link #constantsMap}.
    *
