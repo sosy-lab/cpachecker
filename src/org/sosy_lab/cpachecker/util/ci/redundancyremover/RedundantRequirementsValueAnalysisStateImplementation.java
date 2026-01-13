@@ -40,13 +40,11 @@ public class RedundantRequirementsValueAnalysisStateImplementation
       return -1;
     } else if (pO1.isUnknown()) {
       return 1;
-    } else if (pO1 instanceof NumericValue pO1Numeric && pO2 instanceof NumericValue pO2Numeric) {
-
-      return (int)
-          (pO1Numeric.getNumber().doubleValue() - pO2Numeric.getNumber().doubleValue()); // TODO
     }
 
-    throw new ClassCastException("Expected NumericValue.");
+    return (int)
+        (((NumericValue) pO1).getNumber().doubleValue()
+            - ((NumericValue) pO2).getNumber().doubleValue()); // TODO
   }
 
   @Override
