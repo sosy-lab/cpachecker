@@ -200,7 +200,7 @@ public class DssFactory {
             pShutdownNotifier));
   }
 
-  public static BiMap<Integer, CFANode> createCfaNodeIdMap(CFA pCFA) {
+  static BiMap<Integer, CFANode> createCfaNodeIdMap(CFA pCFA) {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
 
