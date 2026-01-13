@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Preconditions;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.DistributedConstraintsCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -43,6 +44,12 @@ public class CompositeStateCoverageOperator implements CoverageOperator {
             dcpa.doesOperateOn(wrappedState1.getClass())
                 && dcpa.doesOperateOn(wrappedState2.getClass()),
             "Wrapped states must be compatible with the corresponding CPA.");
+
+        if (dcpa instanceof DistributedConstraintsCPA) {
+          wrappedState1 = compositeState1;
+          wrappedState2 = compositeState2;
+        }
+
         if (!dcpa.getCoverageOperator().isSubsumed(wrappedState1, wrappedState2)) {
           return false;
         }

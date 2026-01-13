@@ -8,27 +8,25 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ConstraintsStateCoverageOperator implements CoverageOperator {
-  public final ConstraintsSolver solver;
-  public final String functionName;
+  private final ConstraintsSolver constraintsSolver;
+  private final String functionName;
 
   public ConstraintsStateCoverageOperator(ConstraintsCPA pCPA, CFANode pCFANode) {
-    solver = pCPA.getSolver();
+    constraintsSolver = pCPA.getSolver();
     functionName = pCFANode.getFunctionName();
   }
 
@@ -36,23 +34,30 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
   public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
 
-    ImmutableSet<Constraint> constraints1 = ((ConstraintsState) state1).getConstraints();
-    ImmutableSet<Constraint> constraints2 = ((ConstraintsState) state2).getConstraints();
+    ValueAnalysisState v1 = AbstractStates.extractStateByType(state1, ValueAnalysisState.class);
+    ValueAnalysisState v2 = AbstractStates.extractStateByType(state2, ValueAnalysisState.class);
 
-    if (constraints2.isEmpty()) return true;
-    HashSet<Constraint> constraints = HashSet.newHashSet(constraints1.size() + constraints2.size());
+    ConstraintsState c1 = AbstractStates.extractStateByType(state1, ConstraintsState.class);
+    ConstraintsState c2 = AbstractStates.extractStateByType(state2, ConstraintsState.class);
 
-    constraints.addAll(constraints1);
-    for (Constraint c : constraints2) {
-      constraints.add(new LogicalNotExpression((SymbolicExpression) c, c.getType()));
-    }
+    assert v1 != null && v2 != null && c1 != null && c2 != null;
+
+    if (c2.isEmpty() || c1.equals(c2)) return true;
+    BooleanFormulaManagerView bfm =
+        constraintsSolver.getFormulaManager().getBooleanFormulaManager();
+    BooleanFormula stateAsFormula1 = bfm.and(constraintsSolver.getFullFormula(c1, functionName));
+    BooleanFormula stateAsFormula2 = bfm.and(constraintsSolver.getFullFormula(c2, functionName));
+    BooleanFormula compareValues =
+        bfm.and(
+            constraintsSolver.getFullFormula(
+                ValueAnalysisState.compareInConstraint(v1, v2), functionName));
 
     try {
-      SolverResult result =
-          solver.checkUnsatWithFreshSolver(new ConstraintsState(constraints), functionName);
-      return result.isUNSAT();
-    } catch (SolverException pE) {
-      throw new CPAException("Solver failed checking ConstraintState subsumption", pE);
+      return constraintsSolver
+          .getSolver()
+          .implies(bfm.and(stateAsFormula1, compareValues), stateAsFormula2);
+    } catch (SolverException e) {
+      throw new CPAException("Solver encountered an issue when calculating implication.", e);
     }
   }
 
