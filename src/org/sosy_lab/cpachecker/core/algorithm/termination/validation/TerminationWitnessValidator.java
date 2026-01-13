@@ -428,7 +428,9 @@ public class TerminationWitnessValidator implements Algorithm {
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       strengtheningFormula =
           bfmgr.and(
-              strengtheningFormula, fmgr.instantiate(supportingInvariant,
+              strengtheningFormula,
+              fmgr.instantiate(
+                  supportingInvariant,
                   TransitionInvariantUtils.setIndicesToDifferentValues(
                       pCandidateInvariant,
                       PrevStateIndices.INDEX_FIRST,
@@ -537,7 +539,9 @@ public class TerminationWitnessValidator implements Algorithm {
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       strengtheningFormula =
           bfmgr.and(
-              strengtheningFormula, fmgr.instantiate(supportingInvariant,
+              strengtheningFormula,
+              fmgr.instantiate(
+                  supportingInvariant,
                   TransitionInvariantUtils.setIndicesToDifferentValues(
                       pCandidateInvariant,
                       PrevStateIndices.INDEX_FIRST,
