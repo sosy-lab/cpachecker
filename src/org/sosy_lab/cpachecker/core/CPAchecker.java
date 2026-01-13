@@ -306,7 +306,7 @@ public class CPAchecker {
         | IOException
         | InterruptedException e) {
       logErrorMessage(e, logger);
-      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, null, logger, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
@@ -327,17 +327,15 @@ public class CPAchecker {
 
   private CPAcheckerResult run0(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
 
+    ConfigurableProgramAnalysis cpa = null;
     Algorithm algorithm = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
     String targetDescription = "";
     Specification specification;
 
+    // create reached set, cpa, algorithm
     try {
-
-      // create reached set, cpa, algorithm
-      ConfigurableProgramAnalysis cpa;
-
       // When the run method is called from the main entry run method, the creationTime
       // is already running. In this case, we do not need to start it again.
       if (!stats.creationTime.isRunning()) {
@@ -417,7 +415,7 @@ public class CPAchecker {
     } finally {
       CPAs.closeIfPossible(algorithm, logger);
     }
-    return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
+    return new CPAcheckerResult(result, targetDescription, reached, cfa, cpa, logger, stats);
   }
 
   private static void handleParserException(ParserException e, LogManager pLogger) {
