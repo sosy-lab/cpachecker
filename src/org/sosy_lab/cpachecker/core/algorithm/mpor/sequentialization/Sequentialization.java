@@ -29,8 +29,6 @@ public class Sequentialization {
               + " equivalent",
           "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker.");
 
-  static final int FIRST_LINE = 1;
-
   @CanIgnoreReturnValue
   public static String tryBuildProgramString(
       MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)

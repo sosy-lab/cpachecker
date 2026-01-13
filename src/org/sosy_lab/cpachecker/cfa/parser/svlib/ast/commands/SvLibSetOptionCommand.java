@@ -25,9 +25,9 @@ public final class SvLibSetOptionCommand implements SmtLibCommand, SvLibCommand 
   // Some constants to identify common options
   public static final String OPTION_WITNESS_OUTPUT_CHANNEL = ":witness-output-channel";
 
-  public static String OPTION_PRODUCE_CORRECTNESS = ":produce-correctness-witnesses";
+  public static final String OPTION_PRODUCE_CORRECTNESS = ":produce-correctness-witnesses";
 
-  public static String OPTION_PRODUCE_VIOLATION = ":produce-violation-witnesses";
+  public static final String OPTION_PRODUCE_VIOLATION = ":produce-violation-witnesses";
 
   public SvLibSetOptionCommand(String pOption, String pValue, FileLocation pFileLocation) {
     Preconditions.checkArgument(pOption != null);
@@ -64,7 +64,16 @@ public final class SvLibSetOptionCommand implements SmtLibCommand, SvLibCommand 
 
   @Override
   public String toASTString() {
-    return "(set-option " + option + " " + value + ")";
+    return "(set-option "
+        + option
+        + " "
+        // Add quotation marks to the String if value does not represent a boolean value,
+        // but a String, i.e. a witness-output-channel.
+        // The quotation marks are needed so that toASTString conforms to the expected format
+        // for options with a value of type String and serialization of Sv-Lib programs works
+        // correctly.
+        + (getBooleanValue().equals(Optional.empty()) ? "\"" + value + "\"" : value)
+        + ")";
   }
 
   @Override

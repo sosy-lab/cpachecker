@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -195,12 +194,14 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES);
     }
     for (MPORSubstitution substitution : pSubstitutions) {
-      ImmutableList<CParameterDeclaration> parameterDeclarations =
+      ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarationSubstitutes();
-      for (CParameterDeclaration parameterDeclaration : parameterDeclarations) {
+      for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
+        // exclude all pthread objects such as pthread_mutex_t, they are not required in the output
         if (!PthreadUtil.isAnyPthreadObjectType(parameterDeclaration.getType())) {
-          // CParameterDeclarations require addition semicolon
-          rDeclarations.add(parameterDeclaration.toASTString() + SeqSyntax.SEMICOLON);
+          rDeclarations.add(
+              SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
+                  parameterDeclaration, AAstNodeRepresentation.DEFAULT));
         }
       }
     }
@@ -231,13 +232,14 @@ public class SequentializationBuilder {
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES);
     }
-    ImmutableList<CParameterDeclaration> startRoutineArgDeclarations =
+    ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
-    for (CParameterDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
+    for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
       // TODO why exclude pthread objects here? add explaining comment
       if (!PthreadUtil.isAnyPthreadObjectType(startRoutineArgDeclaration.getType())) {
-        // add trailing ; as CParameterDeclaration is without semicolons
-        rDeclarations.add(startRoutineArgDeclaration.toASTString() + SeqSyntax.SEMICOLON);
+        rDeclarations.add(
+            SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
+                startRoutineArgDeclaration, AAstNodeRepresentation.DEFAULT));
       }
     }
     return rDeclarations.toString();
@@ -283,9 +285,10 @@ public class SequentializationBuilder {
     // malloc is required for valid-memsafety tasks
     rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
 
-    // thread simulation functions, only enabled with loop is unrolled
+    // thread simulation functions, only enabled when loop is unrolled
     if (pOptions.loopUnrolling()) {
-      for (SeqThreadSimulationFunction threadFunction : pFields.threadSimulationFunctions) {
+      for (SeqThreadSimulationFunction threadFunction :
+          pFields.threadSimulationFunctions.orElseThrow()) {
         rDeclarations.add(threadFunction.declaration.toASTString());
       }
     }
@@ -314,8 +317,9 @@ public class SequentializationBuilder {
     rDefinitions.add(assume.buildDefinition());
     // create separate thread simulation function definitions, if enabled
     if (pOptions.loopUnrolling()) {
-      for (SeqThreadSimulationFunction threadSimulation : pFields.threadSimulationFunctions) {
-        rDefinitions.add(threadSimulation.buildDefinition());
+      for (SeqThreadSimulationFunction threadFunction :
+          pFields.threadSimulationFunctions.orElseThrow()) {
+        rDefinitions.add(threadFunction.buildDefinition());
       }
     }
     // create clauses in main method
@@ -390,10 +394,8 @@ public class SequentializationBuilder {
       }
     }
 
-    // active_thread_count / cnt
-    if (pOptions.isThreadCountRequired()) {
-      rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
-    }
+    // track active thread number via thread_count
+    rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
 
     // if enabled: round_max and round
     if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {

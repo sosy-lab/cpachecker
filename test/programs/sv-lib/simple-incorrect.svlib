@@ -12,5 +12,5 @@
 
 (declare-var w Int)
 (declare-var z Int)
-(define-proc f1 ((x Int) (y Int)) () () (sequence (assume (= x y)) (! (assume (= x y)) :check-true (not (= x y)))))
+(define-proc f1 ((x Int) (y Int)) () () (!(sequence (assume (= x y)) (! (assume (= x y)) :check-true (not (= x y)))) :tag proc-f1))
 (verify-call f1 (w z))

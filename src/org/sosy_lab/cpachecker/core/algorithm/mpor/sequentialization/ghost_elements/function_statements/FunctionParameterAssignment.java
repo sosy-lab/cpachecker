@@ -10,10 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -28,14 +25,4 @@ public record FunctionParameterAssignment(
   public CExpressionAssignmentStatement toExpressionAssignmentStatement() {
     return SeqStatementBuilder.buildExpressionAssignmentStatement(leftHandSide, rightHandSide);
   }
-
-  public CParameterDeclaration getLeftHandSideParameterDeclaration() {
-    assert leftHandSide instanceof CIdExpression : "leftHandSide must be CIdExpression";
-    CSimpleDeclaration simpleDeclaration = ((CIdExpression) leftHandSide).getDeclaration();
-    assert simpleDeclaration instanceof CParameterDeclaration
-        : "leftHandSide declaration must be CParameterDeclaration";
-    return (CParameterDeclaration) simpleDeclaration;
-  }
-
-  // getters
 }

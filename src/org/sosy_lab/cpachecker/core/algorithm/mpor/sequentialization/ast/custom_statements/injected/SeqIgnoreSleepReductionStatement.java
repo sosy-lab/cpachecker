@@ -83,4 +83,14 @@ public record SeqIgnoreSleepReductionStatement(
         binaryExpressionBuilder,
         targetGoto);
   }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return true;
+  }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return false;
+  }
 }

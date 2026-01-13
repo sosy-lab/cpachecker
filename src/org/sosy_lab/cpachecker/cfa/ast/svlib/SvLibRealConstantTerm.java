@@ -52,12 +52,12 @@ public final class SvLibRealConstantTerm implements SvLibConstantTerm {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return value.toString();
+    return "(/ " + value.getNum() + " " + value.getDen() + ")";
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return value.toString();
+    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override

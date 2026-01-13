@@ -363,6 +363,13 @@ analysis.algorithm.MPOR.reduceIgnoreSleep = false
 # enforce an execution order when the current and previous thread commute?
 analysis.algorithm.MPOR.reduceLastThreadOrder = false
 
+# Continue executing the current thread if it is the only active thread. This
+# option utilizes a thread_count ghost variable which is incremented for each
+# created thread and decremented for each terminated thread. These increments
+# and decrement are placed inside a possibly infinite loop, so when analyzing
+# for overflows, it may be more efficient to disable this option.
+analysis.algorithm.MPOR.reduceSingleActiveThread = true
+
 # continue executing the current thread until it is in conflict with at least
 # another thread?
 analysis.algorithm.MPOR.reduceUntilConflict = false
@@ -931,9 +938,6 @@ bdd.sylvan.threads = 0
 
 # sequentialize all accesses to the BDD library.
 bdd.synchronizeLibraryAccess = false
-
-# output file for visualizing the block graph
-blockCFAFile = "block_analysis/blocks.json"
 
 # Allow reduction of function entries; calculate abstractions always at
 # function entries?
@@ -1978,6 +1982,9 @@ cpa.callstack.depth = 0
 # faster since it uses only object equivalence
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
+
+# ignore the callstack and do not track it this heavily over-approximates.
+cpa.callstack.ignoreTransfer = false
 
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
@@ -4462,38 +4469,55 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
-# Abstraction nodes are added to each block after they are created. They are
-# needed to strengthen the preconditions of blocks. Missing blocks make the
-# analysis slower but not impossible.
-distributedSummaries.allowMissingAbstractionNodes = true
-
-# The number of blocks is dependent by the number of functions in the
-# program.A tolerance of 1 means, that we subtract 1 of the total number of
-# functions.
-distributedSummaries.allowSingleBlockDecompositionWhenMerging = false
-
-# Where to store the block graph in JSON format
-distributedSummaries.blockCFAFile = "block_analysis/blocks.json"
-
 # Whether to enable debug mode of block-summary analysis. This creates visual
 # output for debugging and exports additional metadata.Creating this
 # information consumes resources and should not be used for benchmarks.
 distributedSummaries.debug = false
+
+# Abstraction nodes are added to each block after they are created. They are
+# needed to strengthen the preconditions of blocks. Missing blocks make the
+# analysis slower but not impossible.
+distributedSummaries.decomposition.allowMissingAbstractionNodes = true
+
+# The number of blocks is dependent by the number of functions in the
+# program.A tolerance of 1 means, that we subtract 1 of the total number of
+# functions.
+distributedSummaries.decomposition.allowSingleBlockDecompositionWhenMerging = false
+
+# Where to store the block graph in JSON format
+distributedSummaries.decomposition.blockCFAFile = "block_analysis/blocks.json"
 
 # Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
 # creates blocks from each merge/branching point to the next merge/branching
 # point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
-distributedSummaries.decompositionType = MERGE_DECOMPOSITION
+distributedSummaries.decomposition.decompositionType = MERGE_DECOMPOSITION
   enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
              NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
-distributedSummaries.generateBlockGraphOnly = false
+distributedSummaries.decomposition.generateBlockGraphOnly = false
 
 # Import an existing decomposition from a file
-distributedSummaries.importDecomposition = no default value
+distributedSummaries.decomposition.importDecomposition = no default value
+
+# Decomposition type to use for the block analysis.
+distributedSummaries.executorType = DSS
+  enum:     [DSS, SINGLE_WORKER]
+
+# If this option is set to true, the analysis will try to cover all violation
+# conditions in the block, even if no valid ARG path exists. In some cases,
+# ARGUtils#getAllPaths does not compute all paths as promised. However,
+# setting this option to true may lead to a significant increase in analysis
+# time.
+distributedSummaries.forcefullyCollectAllViolationConditions = false
+
+# output file for visualizing the block graph
+distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
+
+# output file for visualizing message exchange
+distributedSummaries.logging.reportFiles = "block_analysis/messages"
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
@@ -4501,7 +4525,7 @@ distributedSummaries.importDecomposition = no default value
 # the block-summary analysis assumes these pre- and verification-conditions.
 # If no file is provided, the block-summary analysis assumes the precondition
 # 'true' and the verification condition 'false'.
-distributedSummaries.knownConditions = []
+distributedSummaries.singleWorker.knownConditions = []
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'new' by block-summary analysis. For each message
@@ -4511,19 +4535,13 @@ distributedSummaries.knownConditions = []
 # assumes these pre- and verification-conditions. If no file is provided, the
 # block-summary analysis assumes the precondition 'true' and the verification
 # condition 'false'.
-distributedSummaries.newConditions = []
+distributedSummaries.singleWorker.newConditions = []
 
 # Where to write responses
-distributedSummaries.outputMessages = "messages/"
-
-# Change the queue type. VIOLATION_CONDITION prioritizes the processing of
-# ViolationConditionMessages. DEFAULT does not differ between PostCondition
-# and ViolationCondition messages.
-distributedSummaries.queue = DEFAULT
-  enum:     [VIOLATION_CONDITION, DEFAULT]
+distributedSummaries.singleWorker.outputMessages = "messages/"
 
 # Whether to spawn a worker for only one block id
-distributedSummaries.spawnWorkerForId = ""
+distributedSummaries.singleWorker.spawnWorkerForId = ""
 
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
@@ -4531,9 +4549,6 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
-
-# output file for visualizing message exchange
-dss.logging.reportFiles = "block_analysis/messages"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

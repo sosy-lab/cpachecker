@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -284,7 +285,7 @@ public class SMGExpressionEvaluator {
     Value value = rValue.accept(visitor);
     SMGState newState = visitor.getState();
 
-    if (!value.isExplicitlyKnown() || !value.isNumericValue()) {
+    if (!(value instanceof NumericValue numValue)) {
 
       // Sometimes, we can get the explicit Value from SMGCPA, especially if the
       // result happens to
@@ -294,7 +295,7 @@ public class SMGExpressionEvaluator {
         result.add(deriveExplicitValueFromSymbolicValue(symbolicValueAndState));
       }
     } else {
-      BigInteger bigInteger = value.asNumericValue().bigIntegerValue();
+      BigInteger bigInteger = numValue.bigIntegerValue();
       result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(bigInteger)));
     }
 
