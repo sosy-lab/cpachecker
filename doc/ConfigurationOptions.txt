@@ -3385,6 +3385,15 @@ cpa.smg2.abstraction.removeUnusedConstraints = false
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
 
+# Specifies the handling for all concrete arithmetic and bitwise operations
+# resulting in undefined behavior. Examples: divisions by zero as a result of
+# division or remainder operations, or bitwise shift operations with a
+# negative second argument, or bitwise shift operations with a second
+# argument exceeding the width of the first arguments type.
+cpa.smg2.arithmeticUndefinedBehaviorHandling = WARN_AND_RETURN_ZERO
+  enum:     [WARN_AND_RETURN_UNKNOWN, WARN_AND_RETURN_ZERO, WARN_AND_RETURN_ONE,
+             STOP_ANALYSIS]
+
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
 
