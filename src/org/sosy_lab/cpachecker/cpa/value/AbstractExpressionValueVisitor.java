@@ -1379,15 +1379,15 @@ public abstract class AbstractExpressionValueVisitor
           factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT_UNSIGNED ->
           factory.shiftRightUnsigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND ->
+      case INTEGER_BITWISE_AND ->
           factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BOOLEAN_LOGICAL_BITWISE_AND ->
           factory.logicalAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR ->
+      case INTEGER_BITWISE_OR ->
           factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BOOLEAN_LOGICAL_BITWISE_OR ->
           factory.logicalOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR, BOOLEAN_LOGICAL_BITWISE_XOR ->
+      case INTEGER_BITWISE_XOR, BOOLEAN_LOGICAL_BITWISE_XOR ->
           factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case NOT_EQUALS ->
@@ -1428,9 +1428,9 @@ public abstract class AbstractExpressionValueVisitor
           DIVIDE,
           MULTIPLY,
           SHIFT_LEFT_SIGNED,
-          BINARY_AND,
-          BINARY_OR,
-          BINARY_XOR,
+          INTEGER_BITWISE_AND,
+          INTEGER_BITWISE_OR,
+          INTEGER_BITWISE_XOR,
           REMAINDER,
           SHIFT_RIGHT_SIGNED,
           SHIFT_RIGHT_UNSIGNED -> {
@@ -1449,11 +1449,11 @@ public abstract class AbstractExpressionValueVisitor
               }
               case MULTIPLY -> lVal * rVal;
 
-              case BINARY_AND -> lVal & rVal;
+              case INTEGER_BITWISE_AND -> lVal & rVal;
 
-              case BINARY_OR -> lVal | rVal;
+              case INTEGER_BITWISE_OR -> lVal | rVal;
 
-              case BINARY_XOR -> lVal ^ rVal;
+              case INTEGER_BITWISE_XOR -> lVal ^ rVal;
 
               case REMAINDER -> lVal % rVal;
 
@@ -1586,14 +1586,14 @@ public abstract class AbstractExpressionValueVisitor
     return switch (operator) {
       case CONDITIONAL_AND,
           BOOLEAN_LOGICAL_BITWISE_AND -> // we do not care about sideeffects through evaluation of
-                                         // the
+          // the
           // righthandside at this point -
           // this must be handled
           // earlier
           BooleanValue.valueOf(lVal && rVal);
       case CONDITIONAL_OR,
           BOOLEAN_LOGICAL_BITWISE_OR -> // we do not care about sideeffects through evaluation of
-                                        // the
+          // the
           // righthandside at this point
           BooleanValue.valueOf(lVal || rVal);
       case BOOLEAN_LOGICAL_BITWISE_XOR -> BooleanValue.valueOf(lVal ^ rVal);
