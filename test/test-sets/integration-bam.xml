@@ -21,8 +21,6 @@ SPDX-License-Identifier: Apache-2.0
     - BAM with predicate analysis
   -->
 
-  <option name="--preprocess"/>
-
   <columns>
     <column title="block building time">Time for building block partitioning</column>
     <column title="#blocks">Number of blocks</column>

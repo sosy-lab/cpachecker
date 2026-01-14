@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -43,5 +44,11 @@ public final class CFunctionEntryNode extends FunctionEntryNode {
   @Override
   public Optional<CVariableDeclaration> getReturnVariable() {
     return (Optional<CVariableDeclaration>) super.getReturnVariable();
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public final FluentIterable<CFunctionCallEdge> getEnteringCallEdges() {
+    return (FluentIterable<CFunctionCallEdge>) super.getEnteringCallEdges();
   }
 }

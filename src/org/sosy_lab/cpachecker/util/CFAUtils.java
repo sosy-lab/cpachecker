@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -88,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -100,6 +102,27 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -665,7 +688,7 @@ public class CFAUtils {
    * duplicates.
    */
   public static FluentIterable<String> getVariableNamesOfExpression(CExpression expr) {
-    return getIdExpressionsOfExpression(expr)
+    return getCIdExpressionsOfExpression(expr)
         .transform(id -> id.getDeclaration().getQualifiedName());
   }
 
@@ -673,8 +696,16 @@ public class CFAUtils {
    * Return all {@link CIdExpression}s that appear in an expression, in pre-order and possibly with
    * duplicates.
    */
-  public static FluentIterable<CIdExpression> getIdExpressionsOfExpression(CExpression expr) {
+  public static FluentIterable<CIdExpression> getCIdExpressionsOfExpression(CExpression expr) {
     return traverseRecursively(expr).filter(CIdExpression.class);
+  }
+
+  /**
+   * Return all {@link AIdExpression}s that appear in an expression, in pre-order and possibly with
+   * duplicates.
+   */
+  public static FluentIterable<AIdExpression> getIdExpressionsOfExpression(AExpression expr) {
+    return traverseRecursively(expr).filter(AIdExpression.class);
   }
 
   /** Get an iterable that recursively lists all AST nodes that occur in an AST (in pre-order). */
@@ -738,6 +769,34 @@ public class CFAUtils {
       }
     }
     return false;
+  }
+
+  /**
+   * Extracts all {@link CVariableDeclaration} from {@code pCfa} that are global, including
+   * duplicates, e.g. {@code int x; int x = 0;}.
+   */
+  public static ImmutableList<AVariableDeclaration> getGlobalVariableDeclarations(CFA pCfa) {
+    ImmutableList.Builder<AVariableDeclaration> rGlobalVariables = ImmutableList.builder();
+
+    CFAEdge currentEdge = Iterables.getOnlyElement(pCfa.getMainFunction().getLeavingEdges());
+    // consider only if currentEdge is declaration or blank, since all global variables
+    // declarations are before any actual statement
+    while (currentEdge instanceof ADeclarationEdge || currentEdge instanceof BlankEdge) {
+      // if declaration edge, check for global CVariableDeclarations
+      if (currentEdge instanceof ADeclarationEdge declarationEdge) {
+        ADeclaration declaration = declarationEdge.getDeclaration();
+        if (declaration.isGlobal()) {
+          if (declaration instanceof AVariableDeclaration variableDeclaration) {
+            rGlobalVariables.add(variableDeclaration);
+          }
+        }
+      }
+      if (currentEdge.getSuccessor().getLeavingEdges().size() > 1) {
+        break;
+      }
+      currentEdge = Iterables.getOnlyElement(currentEdge.getSuccessor().getLeavingEdges());
+    }
+    return rGlobalVariables.build();
   }
 
   /**
@@ -1005,6 +1064,135 @@ public class CFAUtils {
     public Iterable<? extends AAstNode> visit(JClassLiteralExpression pJClassLiteralExpression)
         throws NoException {
       return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(SvLibVariableDeclaration pSvLibVariableDeclaration) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        SvLibParameterDeclaration pSvLibParameterDeclaration) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibFunctionCallExpression pSvLibFunctionCallExpression) throws NoException {
+      return FluentIterable.from(pSvLibFunctionCallExpression.getParameterExpressions());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibFunctionDeclaration pSvLibFunctionDeclaration)
+        throws NoException {
+      return FluentIterable.from(pSvLibFunctionDeclaration.getParameters());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibParameterDeclaration pSvLibParameterDeclaration)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibVariableDeclarationTuple pSvLibVariableDeclarationTuple) throws NoException {
+      return pSvLibVariableDeclarationTuple.getDeclarations();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibAtTerm pSvLibAtTerm) throws NoException {
+      return ImmutableList.of(pSvLibAtTerm.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibSymbolApplicationTerm pSvLibSymbolApplicationTerm) {
+      return FluentIterable.concat(
+          pSvLibSymbolApplicationTerm.getTerms(),
+          ImmutableList.of(pSvLibSymbolApplicationTerm.getSymbol()));
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibIdTerm pSvLibIdTerm) {
+      return ImmutableList.of(pSvLibIdTerm.getDeclaration());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibIntegerConstantTerm pSvLibIntegerConstantTerm)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibSymbolApplicationRelationalTerm pSvLibSymbolApplicationRelationalTerm)
+        throws NoException {
+      return pSvLibSymbolApplicationRelationalTerm.getTerms();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibBooleanConstantTerm pSvLibBooleanConstantTerm)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibRealConstantTerm pSvLibRealConstantTerm)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibTagReference pSvLibTagReference) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibCheckTrueTag pSvLibCheckTrueTag) {
+      return ImmutableList.of(pSvLibCheckTrueTag.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibRequiresTag pSvLibRequiresTag)
+        throws NoException {
+      return ImmutableList.of(pSvLibRequiresTag.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibEnsuresTag pSvLibEnsuresTag)
+        throws NoException {
+      return ImmutableList.of(pSvLibEnsuresTag.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibInvariantTag pSvLibInvariantTag)
+        throws NoException {
+      return ImmutableList.of(pSvLibInvariantTag.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibTermAssignmentCfaStatement pSvLibTermAssignmentCfaStatement) throws NoException {
+      return ImmutableList.of(
+          pSvLibTermAssignmentCfaStatement.getLeftHandSide(),
+          pSvLibTermAssignmentCfaStatement.getRightHandSide());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibFunctionCallAssignmentStatement pSvLibFunctionCallAssignmentStatement)
+        throws NoException {
+      return ImmutableList.of(
+          pSvLibFunctionCallAssignmentStatement.getLeftHandSide(),
+          pSvLibFunctionCallAssignmentStatement.getRightHandSide());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibIdTermTuple pSvLibIdTermTuple)
+        throws NoException {
+      return pSvLibIdTermTuple.getIdTerms();
     }
   }
 }

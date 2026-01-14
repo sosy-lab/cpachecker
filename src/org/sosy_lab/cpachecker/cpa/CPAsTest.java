@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -121,7 +122,7 @@ public class CPAsTest {
   private static final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
   private static final StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
   private static Configuration config;
-  private static CFA cfa;
+  private static ImmutableCFA cfa;
   private static FunctionEntryNode main;
 
   @Parameter(0)

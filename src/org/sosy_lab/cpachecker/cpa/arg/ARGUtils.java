@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
@@ -49,6 +50,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -77,6 +79,40 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /** Helper class with collection of ARG related utility methods. */
 public class ARGUtils {
+
+  private record ArgPathWithEdges(List<ARGState> states, List<CFAEdge> edges) {
+
+    private ARGState getLastState() {
+      return states.getLast();
+    }
+
+    /**
+     * Create a copy of the current arg path with edges and append a new abstract state with its
+     * corresponding edges to it.
+     *
+     * @param pNewParent the new parent state to append
+     * @param pEdges The corresponding list of edges traversed to reach this abstract state. The
+     *     list is reveresed (i.e., from child to parent).
+     * @return A new instance of ArgPathWithEdges combining the current with the new information.
+     */
+    private ArgPathWithEdges copyWith(ARGState pNewParent, List<CFAEdge> pEdges) {
+      CFAEdge last = edges.getLast();
+      ImmutableList<ARGState> argStates = listAndElement(states, pNewParent);
+      if (edges.isEmpty() || last.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
+        return new ArgPathWithEdges(
+            argStates, ImmutableList.<CFAEdge>builder().addAll(edges).addAll(pEdges).build());
+      }
+
+      ImmutableList.Builder<CFAEdge> path =
+          ImmutableList.<CFAEdge>builder().addAll(edges).add(last);
+      while (!last.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
+        Collection<CFAEdge> successors = last.getPredecessor().getEnteringEdges().toList();
+        last = Objects.requireNonNull(Iterables.getOnlyElement(successors));
+        path.add(last);
+      }
+      return new ArgPathWithEdges(argStates, path.build());
+    }
+  }
 
   private ARGUtils() {}
 
@@ -1260,6 +1296,47 @@ public class ARGUtils {
 
   public static FluentIterable<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
     return pRoot.getSubgraph().filter(s -> !s.isCovered());
+  }
+
+  private static Collection<ARGPath> allArgPathsFromState(ARGState state) {
+    List<ArgPathWithEdges> waitlist = new ArrayList<>();
+    waitlist.add(new ArgPathWithEdges(ImmutableList.of(state), ImmutableList.of()));
+    ImmutableList.Builder<ARGPath> finished = ImmutableList.builder();
+    while (!waitlist.isEmpty()) {
+      ArgPathWithEdges current = waitlist.removeLast();
+      ARGState last = current.getLastState();
+      if (last.getParents().isEmpty()) {
+        finished.add(
+            new ARGPath(
+                current.states().reversed(),
+                current.edges().reversed(),
+                current.edges().reversed()));
+        continue;
+      }
+      for (ARGState parent : last.getParents()) {
+        if (current.states().contains(parent)) {
+          throw new AssertionError("Recursive ARG paths are not supported");
+        }
+        waitlist.add(current.copyWith(parent, parent.getEdgesToChild(last).reversed()));
+      }
+    }
+    return finished.build();
+  }
+
+  /**
+   * Collect all ARG paths from the given set of states to the root(s) of the ARG. This considers
+   * all possible paths for each state and supports cases where there are multiple edges between two
+   * states.
+   *
+   * @param states the set of target states to collect path to
+   * @return A collection of all possible ARG paths from the root(s) of the ARG to the targets.
+   */
+  public static Collection<ARGPath> collectAllArgPaths(Set<@NonNull ARGState> states) {
+    ImmutableList.Builder<ARGPath> builder = ImmutableList.builder();
+    for (ARGState state : states) {
+      builder.addAll(allArgPathsFromState(state));
+    }
+    return builder.build();
   }
 
   /** Returns all possible paths from the given state to the root of the ARG. */

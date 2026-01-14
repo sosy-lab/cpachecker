@@ -21,6 +21,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -73,6 +76,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -338,6 +342,13 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.terminationWitnessCheck",
+      description =
+          "use termination witness validator to check a correctness witness for termination")
+  private boolean useTerminationWitnessValidation = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.undefinedFunctionCollector",
       description = "collect undefined functions")
   private boolean useUndefinedFunctionCollector = false;
@@ -363,6 +374,30 @@ public class CoreComponentsFactory {
           "stop the analysis with the result unknown if the program does not satisfies certain"
               + " restrictions.")
   private boolean unknownIfUnrestrictedProgram = false;
+
+  @Option(
+      secure = true,
+      name = "preprocessing.MPOR",
+      description =
+          "Use Modular Partial Order Reduction (MPOR) algorithm to sequentialize a concurrent C"
+              + " program. This algorithm transforms the input program into a sequential program"
+              + " that preserves the properties of the original concurrent program.\n"
+              + "If the sequentialized program should be analyzed inside CPAchecker"
+              + " directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.")
+  private boolean useMporPreprocessing = false;
+
+  @Option(
+      secure = true,
+      name = "preprocessing.preferOriginalCfaOverSequentialized",
+      description =
+          "In case the CFA was modified in a pre-processing step (e.g., by sequentialization), if"
+              + " this option is set to true the original CFA is used instead of the modified one"
+              + " for the analysis. This is useful when the pre-processing should be done for"
+              + " multiple algorithms in a parallel portfolio, but some of them should analyze the"
+              + " original CFA. For example, when using some analyses which support concurrency"
+              + " natively alongside analyses which need sequentialization in a parallel portfolio"
+              + " we want the analyses which natively support concurrency to use the original CFA.")
+  private boolean preferOriginalCfaOverSequentialized = false;
 
   @Option(
       secure = true,
@@ -432,7 +467,7 @@ public class CoreComponentsFactory {
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
-  private final CFA cfa;
+  private CFA cfa;
   private final CFA oldCfa;
 
   private final ReachedSetFactory reachedSetFactory;
@@ -467,6 +502,25 @@ public class CoreComponentsFactory {
       shutdownNotifier = pShutdownNotifier;
     }
 
+    // Allow for deactivating pre-processing steps like the sequentialization in inner analyses
+    // which do not need it.
+    CfaTransformationMetadata transformationMetadata =
+        cfa.getMetadata().getTransformationMetadata();
+
+    // Whenever we want to use the original CFA instead of a pre-processed one, we retrieve it here.
+    // This is necessary to pre-process the CFA only once, e.g., by sequentialization, but still
+    // allow analyses which do not need the pre-processed CFA to use the original one. For example,
+    // when using some analyses which support concurrency natively alongside analyses which need
+    // sequentialization in a parallel portfolio we want the analyses which natively support
+    // concurrency to use the original CFA.
+    if (preferOriginalCfaOverSequentialized
+        && transformationMetadata != null
+        && transformationMetadata
+            .transformation()
+            .equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)) {
+      cfa = transformationMetadata.originalCfa();
+    }
+
     if (useTerminationAlgorithm) {
       aggregatedReachedSetManager = new AggregatedReachedSetManager();
       aggregatedReachedSetManager.addAggregated(pAggregatedReachedSets);
@@ -496,6 +550,10 @@ public class CoreComponentsFactory {
         && (useBMC || useIMC || useDAR);
   }
 
+  private boolean analysisSequentializesCfa() {
+    return useMporPreprocessing && !preferOriginalCfaOverSequentialized;
+  }
+
   /**
    * This method can be used in case the factory constructs a new copy of cfa on which it operates.
    * This way, caller algorithms can get hold of this copy.
@@ -510,6 +568,7 @@ public class CoreComponentsFactory {
       final ConfigurableProgramAnalysis cpa, final Specification specification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
+
     if (disableAnalysis) {
       return NoopAlgorithm.INSTANCE;
     }
@@ -519,6 +578,19 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
+    } else if (analysisSequentializesCfa()) {
+      // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
+      // Only in case the CFA is not already sequentialized, since in that case we are somewhere
+      // inside a nested algorithm inside of the `MporPreprocessingAlgorithm`.
+      // In such a case we want to continue creating the algorithm with the already sequentialized
+      // CFA.
+      //
+      // This is usefull in order to be able to write `analysis.preprocessing.MPOR=true` in the
+      // existing configuration and have all (sub-)analyses automatically operate on the
+      // sequentialized CFA no matter how deep they are nested. In particular this works for
+      // parallel compositions, sequential compositions, and restart algorithm.
+      algorithm =
+          new MporPreprocessingAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
@@ -688,6 +760,19 @@ public class CoreComponentsFactory {
                 aggregatedReachedSetManager,
                 algorithm,
                 cpa);
+      }
+
+      if (useTerminationWitnessValidation) {
+        logger.log(Level.INFO, "Using validator for correctness witnesses for termination");
+        algorithm =
+            new TerminationWitnessValidator(
+                cfa,
+                cpa,
+                config,
+                logger,
+                shutdownNotifier,
+                specification.getPathToSpecificationAutomata().keySet(),
+                specification);
       }
 
       if (checkCounterexamples) {
@@ -881,7 +966,8 @@ public class CoreComponentsFactory {
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
-        || useRandomTestCaseGeneratorAlgorithm) {
+        || useRandomTestCaseGeneratorAlgorithm
+        || analysisSequentializesCfa()) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

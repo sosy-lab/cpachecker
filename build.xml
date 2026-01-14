@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="4.1-git"/> <!-- change here for a release -->
+    <property name="version.base" value="4.2.2-git"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="class.dir" value="classes"/>
@@ -94,6 +94,7 @@ SPDX-License-Identifier: Apache-2.0
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/svlib/antlr/AntlrParser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" target="clean" inheritAll="false"/>
     </target>
 
@@ -146,6 +147,8 @@ SPDX-License-Identifier: Apache-2.0
             <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
             <echo message="Generate antlr4 parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" inheritAll="false"/>
+            <echo message="Generate SV-LIB parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/svlib/antlr/AntlrParser.xml" inheritAll="false"/>
             <echo message="Generate ACSL parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" inheritAll="false"/>
     </target>

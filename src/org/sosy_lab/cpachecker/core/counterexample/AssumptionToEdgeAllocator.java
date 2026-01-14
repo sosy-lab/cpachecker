@@ -351,7 +351,6 @@ public class AssumptionToEdgeAllocator {
 
     if (!(pCFAEdge instanceof CAssumeEdge cAssumeEdge)) {
       return ImmutableList.of();
-
     } else {
       CExpression pCExpression = cAssumeEdge.getExpression();
 
@@ -741,11 +740,11 @@ public class AssumptionToEdgeAllocator {
         throw new IllegalArgumentException(e1);
       }
 
-      if (addressV.isUnknown() && !addressV.isNumericValue()) {
+      if (!(addressV instanceof NumericValue numAddressV)) {
         return null;
       }
 
-      return addressV.asNumericValue().getNumber();
+      return numAddressV.getNumber();
     }
 
     private Address evaluateNumericalValueAsAddress(CExpression exp) {
@@ -1154,17 +1153,15 @@ public class AssumptionToEdgeAllocator {
 
             Value offsetValueV = pointerOffset.accept(this);
 
-            if (addressValueV.isUnknown()
-                || offsetValueV.isUnknown()
-                || !addressValueV.isNumericValue()
-                || !offsetValueV.isNumericValue()) {
+            if (!(addressValueV instanceof NumericValue numAddressValueV)
+                || !(offsetValueV instanceof NumericValue numOffsetValueV)) {
               yield Value.UnknownValue.getInstance();
             }
 
-            Number addressValueNumber = addressValueV.asNumericValue().getNumber();
+            Number addressValueNumber = numAddressValueV.getNumber();
             BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
             // Because address and offset value may be interchanged, use BigDecimal for both
-            Number offsetValueNumber = offsetValueV.asNumericValue().getNumber();
+            Number offsetValueNumber = numOffsetValueV.getNumber();
             BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
             BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
@@ -1535,11 +1532,11 @@ public class AssumptionToEdgeAllocator {
         Value castValue =
             AbstractExpressionValueVisitor.castCValue(
                 new NumericValue(pIntegerValue), pType, machineModel, logManager);
-        if (castValue.isUnknown()) {
+        if (!(castValue instanceof NumericValue numericCastValue)) {
           return UnknownValueLiteral.getInstance();
         }
 
-        Number number = castValue.asNumericValue().getNumber();
+        Number number = numericCastValue.getNumber();
         final BigInteger valueAsBigInt;
         if (number instanceof BigInteger bigInteger) {
           valueAsBigInt = bigInteger;

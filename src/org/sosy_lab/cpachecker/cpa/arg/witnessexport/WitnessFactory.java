@@ -642,7 +642,7 @@ class WitnessFactory implements EdgeAppender {
     ImmutableList.Builder<AExpressionStatement> assignments = ImmutableList.builder();
     for (AExpressionStatement s : cfaEdgeWithAssignments.getExpStmts()) {
       if (s.getExpression() instanceof CExpression cExpression
-          && CFAUtils.getIdExpressionsOfExpression(cExpression).allMatch(isGoodVariable)) {
+          && CFAUtils.getCIdExpressionsOfExpression(cExpression).allMatch(isGoodVariable)) {
         assignments.add(s);
       }
     }
@@ -656,7 +656,7 @@ class WitnessFactory implements EdgeAppender {
       if (functionValidAssignment instanceof CExpressionStatement) {
         CExpression expression = (CExpression) functionValidAssignment.getExpression();
         for (CIdExpression idExpression :
-            CFAUtils.getIdExpressionsOfExpression(expression).toSet()) {
+            CFAUtils.getCIdExpressionsOfExpression(expression).toSet()) {
           final CSimpleDeclaration declaration = idExpression.getDeclaration();
           final String qualified = declaration.getQualifiedName();
           if (declaration.getName().contains("static")

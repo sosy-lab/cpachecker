@@ -87,7 +87,11 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -234,19 +238,12 @@ public class SMGCPAValueVisitor
                   explicitFieldRef.getFieldName());
           Value finalReadOffset = evaluator.addBitOffsetValues(ptrTargetOffset, fieldOffset);
 
-          if (finalReadOffset.isExplicitlyKnown()
-              && finalReadOffset
-                  .asNumericValue()
-                  .bigIntegerValue()
-                  .equals(linkedListObj.getNextOffset())
-              && finalReadOffset.isExplicitlyKnown()) {
+          if (finalReadOffset instanceof NumericValue numericFinalReadOffset
+              && numericFinalReadOffset.bigIntegerValue().equals(linkedListObj.getNextOffset())) {
 
             ValueAndSMGState fieldReadAndState =
                 currentState.readValueWithoutMaterialization(
-                    linkedListObj,
-                    finalReadOffset.asNumericValue().bigIntegerValue(),
-                    readSize,
-                    returnType);
+                    linkedListObj, numericFinalReadOffset.bigIntegerValue(), readSize, returnType);
             // This is now the next pointer from the last element of the list (this is the ptr->next
             // part)
             currentState = fieldReadAndState.getState();
@@ -335,7 +332,7 @@ public class SMGCPAValueVisitor
         SMGState newState = subscriptValueAndState.getState();
         // If the subscript is an unknown value, we can't read anything and return unknown
         // We also overapproximate the access and assume unsafe
-        if (!subscriptValue.isNumericValue() && !options.trackErrorPredicates()) {
+        if (!(subscriptValue instanceof NumericValue) && !options.trackErrorPredicates()) {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   newState.withUnknownOffsetMemoryAccess(),
@@ -447,7 +444,7 @@ public class SMGCPAValueVisitor
           || returnType instanceof CArrayType
           || returnType instanceof CFunctionType) {
 
-        if (!additionalOffset.isNumericValue()) {
+        if (!(additionalOffset instanceof NumericValue numAdditionalOffset)) {
           throw new RuntimeException(
               "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"
                   + " analysis.");
@@ -456,8 +453,7 @@ public class SMGCPAValueVisitor
         return ImmutableList.of(
             ValueAndSMGState.of(
                 SymbolicValueFactory.getInstance()
-                    .newIdentifier(
-                        memloc.withAddedOffset(additionalOffset.asNumericValue().longValue())),
+                    .newIdentifier(memloc.withAddedOffset(numAdditionalOffset.longValue())),
                 newState));
 
       } else if (returnType instanceof CPointerType) {
@@ -765,10 +761,6 @@ public class SMGCPAValueVisitor
         return ValueAndSMGState.of(
             AddressExpression.withZeroOffset(value, targetType), currentState);
 
-      } else if (value.isNumericValue() && options.isCastMemoryAddressesToNumeric()) {
-        logger.logf(Level.FINE, "Numeric Value '%s' interpreted as memory address.", value);
-        return evaluator.getPointerFromNumeric(value, currentState);
-
       } else if (options.trackPredicates() && value instanceof SymbolicValue) {
         return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
@@ -795,12 +787,11 @@ public class SMGCPAValueVisitor
     }
 
     // We only use numeric/symbolic/unknown values anyway, and we can't cast unknowns
-    if (!value.isNumericValue()) {
+    if (!(value instanceof NumericValue numericValue)) {
       logger.logf(
           Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
       return ValueAndSMGState.of(value, currentState);
     }
-    NumericValue numericValue = (NumericValue) value;
 
     CType type = targetType.getCanonicalType();
     final int size;
@@ -1101,7 +1092,7 @@ public class SMGCPAValueVisitor
             ValueAndSMGState.of(
                 createBinarySymbolicExpression(value, operandType, unaryOperator, returnType),
                 currentState);
-      } else if (!value.isNumericValue()) {
+      } else if (!(value instanceof NumericValue numericValue)) {
         logger.logf(
             Level.FINE,
             "Returned unknown due to invalid argument %s for unary operator %s.",
@@ -1109,7 +1100,7 @@ public class SMGCPAValueVisitor
             unaryOperator);
         newValueAndState = ValueAndSMGState.ofUnknownValue(currentState);
       } else {
-        final NumericValue numericValue = (NumericValue) value;
+
         final NumericValue newValue =
             switch (unaryOperator) {
               case MINUS -> numericValue.negate();
@@ -1158,8 +1149,8 @@ public class SMGCPAValueVisitor
       if (!(value instanceof AddressExpression pointerValue)) {
         // Non-pointer dereference, either numeric or symbolic
         checkArgument(
-            (value.isNumericValue()
-                    && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))
+            (value instanceof NumericValue numValue
+                    && numValue.bigIntegerValue().equals(BigInteger.ZERO))
                 || !evaluator.isPointerValue(value, currentState));
         builder.add(
             ValueAndSMGState.ofUnknownValue(
@@ -1172,7 +1163,7 @@ public class SMGCPAValueVisitor
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();
-      if (!offset.isNumericValue() && !options.trackErrorPredicates()) {
+      if (!(offset instanceof NumericValue) && !options.trackErrorPredicates()) {
         // If the offset is not numericly known we can't read a value, return unknown iff we don't
         // check with SMT solvers later
         builder.add(
@@ -1187,8 +1178,8 @@ public class SMGCPAValueVisitor
       BigInteger sizeInBits = evaluator.getBitSizeof(currentState, returnType);
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
-        if (!offset.isNumericValue()) {
-          // If the offset is not numericly known we can't read a value
+        if (!(offset instanceof NumericValue)) {
+          // If the offset is not numerically known we can't read a value
           builder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState.withUnknownOffsetMemoryAccess(),
@@ -1272,12 +1263,11 @@ public class SMGCPAValueVisitor
   // Copied from value CPA
   private Value createBinarySymbolicExpression(
       Value pValue, CType pOperandType, UnaryOperator pUnaryOperator, CType pExpressionType) {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
+    SymbolicExpression operand = ConstantSymbolicExpression.of(pValue, pOperandType);
 
     return switch (pUnaryOperator) {
-      case MINUS -> factory.negate(operand, pExpressionType);
-      case TILDE -> factory.binaryNot(operand, pExpressionType);
+      case MINUS -> NegationExpression.of(operand, pExpressionType);
+      case TILDE -> BinaryNotExpression.of(operand, pExpressionType);
       default -> throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
     };
   }
@@ -1286,10 +1276,9 @@ public class SMGCPAValueVisitor
 
   /** Taken from the value analysis CPA and modified. Casts symbolic {@link Value}s. */
   private Value castSymbolicValue(Value pValue, Type pTargetType) {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue symbolicValue && pTargetType instanceof CSimpleType) {
-      return factory.cast(symbolicValue, pTargetType);
+      return CastExpression.of(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -1953,7 +1942,7 @@ public class SMGCPAValueVisitor
         && !(rightValue instanceof AddressExpression)) {
       Value addressOffset = addressValue.getOffset();
       if (!options.trackPredicates()
-          && (!rightValue.isNumericValue() || !addressOffset.isNumericValue())) {
+          && (!(rightValue instanceof NumericValue) || !(addressOffset instanceof NumericValue))) {
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
                 currentState,
@@ -2017,9 +2006,9 @@ public class SMGCPAValueVisitor
     } else if (!(leftValue instanceof AddressExpression)
         && rightValue instanceof AddressExpression addressValue) {
       Value addressOffset = addressValue.getOffset();
-      if (!leftValue.isNumericValue()
-          || !addressOffset.isNumericValue()
-          || binaryOperator == MINUS) {
+      if (!(leftValue instanceof NumericValue numLeftValue)
+          || !(addressOffset instanceof NumericValue numAddressOffset)
+          || binaryOperator == BinaryOperator.MINUS) {
         // TODO: symbolic values if possible
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
@@ -2034,20 +2023,20 @@ public class SMGCPAValueVisitor
             handleBinaryArithmeticOrBitwiseOperation(
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
                 machineModel.getPointerSizedIntType(),
-                leftValue,
+                numLeftValue,
                 leftValueType,
                 MULTIPLY,
                 machineModel.getPointerSizedIntType(),
                 machineModel.getPointerSizedIntType(),
                 originalExpressionForErrorMessages);
       } else {
-        // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
+        // If it's a cast pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
             handleBinaryArithmeticOrBitwiseOperation(
                 new NumericValue(BigInteger.valueOf(8)),
                 machineModel.getPointerSizedIntType(),
-                leftValue,
+                numLeftValue,
                 leftValueType,
                 MULTIPLY,
                 canonicalReturnType,
@@ -2059,7 +2048,7 @@ public class SMGCPAValueVisitor
           handleBinaryArithmeticOrBitwiseOperation(
               correctlyTypedOffset,
               machineModel.getPointerSizedIntType(),
-              addressOffset,
+              numAddressOffset,
               machineModel.getPointerSizedIntType(),
               binaryOperator,
               canonicalReturnType,
@@ -2071,12 +2060,9 @@ public class SMGCPAValueVisitor
 
     } else {
       // Either we have 2 address expressions or 2 numeric 0
-      if (rightValue.isNumericValue()
-          && leftValue.isNumericValue()
-          && rightValue
-              .asNumericValue()
-              .getNumber()
-              .equals(leftValue.asNumericValue().getNumber())) {
+      if (rightValue instanceof NumericValue numRightValue
+          && leftValue instanceof NumericValue numLeftValue
+          && numRightValue.getNumber().equals(numLeftValue.getNumber())) {
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
       }
       // Both are pointers, we allow minus here to get the distance
@@ -2088,9 +2074,9 @@ public class SMGCPAValueVisitor
       // This fails if the underlying structure is not the same!
       // We need the non-equal method for SMGs here as it might be that due to abstraction 2 values
       // are not equal but refer to the same structure!
-      if (binaryOperator != MINUS
-          || !rightOffset.isNumericValue()
-          || !leftOffset.isNumericValue()) {
+      if (binaryOperator != BinaryOperator.MINUS
+          || !(rightOffset instanceof NumericValue)
+          || !(leftOffset instanceof NumericValue)) {
         // TODO: symbolic values if possible
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
@@ -2108,7 +2094,7 @@ public class SMGCPAValueVisitor
 
         Value distanceInBits = distanceInBitsAndState.getValue();
         currentState = distanceInBitsAndState.getState();
-        if (!distanceInBits.isNumericValue()) {
+        if (!(distanceInBits instanceof NumericValue numDistanceInBits)) {
           returnBuilder.add(ValueAndSMGState.of(distanceInBits, currentState));
           continue;
         }
@@ -2134,7 +2120,7 @@ public class SMGCPAValueVisitor
         assert leftValueType.equals(rightValueType);
         Value distance =
             handleBinaryArithmeticOrBitwiseOperation(
-                distanceInBits,
+                numDistanceInBits,
                 leftValueType,
                 size,
                 rightValueType,
@@ -2219,42 +2205,14 @@ public class SMGCPAValueVisitor
     // TODO: add automatic NaN behavior to numeric/symbolic values!
     // TODO: move to handling of common simplifications to the expressions directly?
 
-    checkArgument(!(pLeftValue.isNumericValue() && pRightValue.isNumericValue()));
+    checkArgument(!(pLeftValue instanceof NumericValue && pRightValue instanceof NumericValue));
     checkArgument(!pLeftValue.isUnknown() || !pRightValue.isUnknown());
 
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
-    SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
+    SymbolicExpression leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
+    SymbolicExpression rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
 
-    return switch (pOperator) {
-      case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS -> factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MULTIPLY ->
-          factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_LEFT ->
-          factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT ->
-          factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND ->
-          factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR ->
-          factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR ->
-          factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case NOT_EQUALS ->
-          factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_THAN ->
-          factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_EQUAL ->
-          factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_THAN ->
-          factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_EQUAL ->
-          factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default -> throw new IllegalStateException("Unexpected value: " + pOperator);
-    };
+    return BinarySymbolicExpression.of(
+        leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
   }
 
   private NumericValue calculateOperationWithFunctionValue(
@@ -4036,12 +3994,11 @@ public class SMGCPAValueVisitor
     }
 
     // For now can only cast numeric value's
-    if (!value.isNumericValue()) {
+    if (!(value instanceof NumericValue numericValue)) {
       logger.logf(
           Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
       return value;
     }
-    NumericValue numericValue = (NumericValue) value;
 
     CType type = targetType.getCanonicalType();
     final int size;
@@ -4059,12 +4016,11 @@ public class SMGCPAValueVisitor
   }
 
   private static Value castIfSymbolic(Value pValue, Type pTargetType) {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue symbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast(symbolicValue, pTargetType);
+      return CastExpression.of(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.

@@ -113,8 +113,6 @@ public class ConstraintsStrengthenOperator implements Statistics {
       return pValueState;
     }
 
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-
     for (Entry<MemoryLocation, ValueAndType> e : pValueState.getConstants()) {
       Value currV = e.getValue().getValue();
       Type valueType = e.getValue().getType();
@@ -128,7 +126,8 @@ public class ConstraintsStrengthenOperator implements Statistics {
       if (isIndependentInValueState(castVal, currLoc, pValueState)
           && doesNotAppearInConstraints(castVal, pConstraints)) {
         SymbolicValue newIdentifier =
-            factory.asConstant(factory.newIdentifier(e.getKey()), valueType);
+            ConstantSymbolicExpression.of(
+                SymbolicValueFactory.getInstance().newIdentifier(e.getKey()), valueType);
         pValueState.assignConstant(currLoc, newIdentifier, valueType);
         logger.log(Level.FINE, "Replaced %s with %s", currV, newIdentifier);
         replacedSymbolicExpressions++;

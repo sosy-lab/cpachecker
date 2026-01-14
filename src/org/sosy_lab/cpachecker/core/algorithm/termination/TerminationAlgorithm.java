@@ -101,7 +101,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -272,9 +271,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         for (CVariableDeclaration variable : getRelevantVariables(loop)) {
           if (variable.getType().getCanonicalType() instanceof CSimpleType pType
               && !cfa.getMachineModel().isSigned(pType)) {
-            throw new UnsupportedCodeException(
-                "LassoRanker does not support domains with possible overflows.",
-                loop.getInnerLoopEdges().asList().getFirst());
+            // We cannot determine the loop terminating because it contains unsigned integers and
+            // the analysis is possibly unsound.
+            logger.log(
+                WARNING,
+                "The program contains variables with unsigned type, so, the program cannot be"
+                    + " proven terminating.");
+            status = status.withSound(false);
           }
         }
       }

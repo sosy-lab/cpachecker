@@ -141,7 +141,7 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   }
 
   @SuppressWarnings("unchecked")
-  public final FluentIterable<FunctionCallEdge> getEnteringCallEdges() {
+  public FluentIterable<? extends FunctionCallEdge> getEnteringCallEdges() {
     return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) getEnteringEdges();
   }
 

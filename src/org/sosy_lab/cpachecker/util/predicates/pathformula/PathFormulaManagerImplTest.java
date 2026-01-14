@@ -23,6 +23,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -100,7 +101,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
             Optional.empty(),
-            AnalysisDirection.FORWARD);
+            AnalysisDirection.FORWARD,
+            Language.C);
 
     pfmgrBwd =
         new PathFormulaManagerImpl(
@@ -110,7 +112,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
             Optional.empty(),
-            AnalysisDirection.BACKWARD);
+            AnalysisDirection.BACKWARD,
+            Language.C);
 
     createEdges();
   }

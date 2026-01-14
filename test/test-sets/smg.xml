@@ -12,7 +12,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <!-- 
 This run-collection defines run-definitions for all important CPAchecker SMG based configurations
-on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memcleanup. 
+on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memcleanup and/or no-overflow. 
 -->
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="4">
@@ -813,5 +813,57 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
       <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
     </tasks>
   </rundefinition>
+
+
+  <!-- #################### No-Overflow #################### -->
+
+  <rundefinition name="SV-COMP26_no-overflow_SMG-SymEx">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <tasks name="C.no-overflow.Main">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+      <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/ECA.set</includesfile>
+      <includesfile>../programs/benchmarks/Floats.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <includesfile>../programs/benchmarks/XCSP.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.Juliet">
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+
+    <tasks name="C.no-overflow.SoftwareSystems-BusyBox">
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.SoftwareSystems-coreutils">
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.SoftwareSystems-uthash">
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+
+    <tasks name="C.no-overflow.Concurrency">
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
 
 </benchmark>
