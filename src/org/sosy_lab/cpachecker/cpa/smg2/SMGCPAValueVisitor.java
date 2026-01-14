@@ -2485,12 +2485,12 @@ public class SMGCPAValueVisitor
       // Simplify (x + 0) = x
       if (leftValue instanceof NumericValue numLeft
           && numLeft.bigIntegerValue().equals(BigInteger.ZERO)
-          && !(calculationType.getType().isFloatingPointType())) {
+          && !calculationType.getType().isFloatingPointType()) {
         return rightValue;
       }
       if (rightValue instanceof NumericValue numRight
           && numRight.bigIntegerValue().equals(BigInteger.ZERO)
-          && !(calculationType.getType().isFloatingPointType())) {
+          && !calculationType.getType().isFloatingPointType()) {
         return leftValue;
       }
 
@@ -2582,7 +2582,7 @@ public class SMGCPAValueVisitor
       // Simplify (0 - x) = -x
       if (leftValue instanceof NumericValue numLeft
           && numLeft.bigIntegerValue().equals(BigInteger.ZERO)
-          && !(calculationType.getType().isFloatingPointType())) {
+          && !calculationType.getType().isFloatingPointType()) {
         // Automatically strips negation if already present
         return createBinarySymbolicExpression(
             rightValue, calculationType, UnaryOperator.MINUS, returnType);
@@ -2590,7 +2590,7 @@ public class SMGCPAValueVisitor
       // Simplify (x - 0) = x
       if (rightValue instanceof NumericValue numRight
           && numRight.bigIntegerValue().equals(BigInteger.ZERO)
-          && !(calculationType.getType().isFloatingPointType())) {
+          && !calculationType.getType().isFloatingPointType()) {
         return leftValue;
       }
 
@@ -2678,7 +2678,7 @@ public class SMGCPAValueVisitor
       // 2 numerics.
       // Simplify (0 * x) = 0 and (1 * x) = x
       if (leftValue instanceof NumericValue numLeft
-          && !(calculationType.getType().isFloatingPointType())) {
+          && !calculationType.getType().isFloatingPointType()) {
         if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
           return leftValue; // 0
         } else if (numLeft.bigIntegerValue().equals(BigInteger.ONE)) {
@@ -2687,7 +2687,7 @@ public class SMGCPAValueVisitor
       }
       // Simplify (x * 0) = 0 and (x * 1) = x
       if (rightValue instanceof NumericValue numRight
-          && !(calculationType.getType().isFloatingPointType())) {
+          && !calculationType.getType().isFloatingPointType()) {
         if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
           return rightValue; // 0
         } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
@@ -2731,7 +2731,7 @@ public class SMGCPAValueVisitor
 
     // Simplify (x / 0) = 0 and (x / 1) = x
     if (rightValue instanceof NumericValue numRight
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
         return handleDivisionByZero(expression);
       } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
@@ -2741,14 +2741,14 @@ public class SMGCPAValueVisitor
 
     // Simplify (0 / x) = 0
     if (leftValue instanceof NumericValue numLeft
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
         return leftValue; // 0
       }
     }
 
     // Simplify (x / x) = 1
-    if (leftValue.equals(rightValue) && !(calculationType.getType().isFloatingPointType())) {
+    if (leftValue.equals(rightValue) && !calculationType.getType().isFloatingPointType()) {
       return new NumericValue(1);
     }
 
@@ -2852,7 +2852,7 @@ public class SMGCPAValueVisitor
 
     // Handle (x % 0) = 0 and simplify (a % 1) = 0
     if (rightValue instanceof NumericValue numRight
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
         return handleDivisionByZero(expression);
       } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
@@ -2862,13 +2862,13 @@ public class SMGCPAValueVisitor
 
     // Simplify (0 % b) = 0
     if (leftValue instanceof NumericValue numLeft
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
         return leftValue; // 0
       }
     }
     // Simplify (x % x) = 0
-    if (leftValue.equals(rightValue) && !(calculationType.getType().isFloatingPointType())) {
+    if (leftValue.equals(rightValue) && !calculationType.getType().isFloatingPointType()) {
       return new NumericValue(0);
     }
 
@@ -2956,7 +2956,7 @@ public class SMGCPAValueVisitor
 
     // Handle negative or larger second arguments
     if (rightValue instanceof NumericValue numRight
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       // Is this handling correct for integer promotion?
       if (numRight.bigIntegerValue().signum() < 0) {
         return handleUndefinedBitwiseShift(
@@ -2973,7 +2973,7 @@ public class SMGCPAValueVisitor
 
     // Simplify (0 << x) = 0 ?
     if (leftValue instanceof NumericValue numLeft
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
         // TODO: look into this!
         // return leftValue; // 0
@@ -3065,7 +3065,7 @@ public class SMGCPAValueVisitor
 
     // Handle negative or larger second arguments
     if (rightValue instanceof NumericValue numRight
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       // Is this handling correct for integer promotion?
       if (numRight.bigIntegerValue().signum() < 0) {
         return handleUndefinedBitwiseShift(
@@ -3082,7 +3082,7 @@ public class SMGCPAValueVisitor
 
     // Simplify (0 << x) = 0 ?
     if (leftValue instanceof NumericValue numLeft
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
         // TODO: look into this!
         // return leftValue; // 0
@@ -3167,7 +3167,7 @@ public class SMGCPAValueVisitor
     // TODO: more simplifications possible?
     // If one operand is 0, all bits are 0, hence the other does not matter, the result is 0!
     if (rightValue instanceof NumericValue numRight
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       // Is this handling correct for integer promotion?
       if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
         return rightValue; // 0
@@ -3175,7 +3175,7 @@ public class SMGCPAValueVisitor
     }
 
     if (leftValue instanceof NumericValue numLeft
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
         return leftValue; // 0
       }
@@ -3261,7 +3261,7 @@ public class SMGCPAValueVisitor
     // If one operand is 0, all bits of the other are taken
     // x ^ 0 = x
     if (rightValue instanceof NumericValue numRight
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       // Is this handling correct for integer promotion?
       if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
         return leftValue;
@@ -3270,7 +3270,7 @@ public class SMGCPAValueVisitor
 
     // 0 ^ x = x
     if (leftValue instanceof NumericValue numLeft
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
         return rightValue;
       }
@@ -3359,7 +3359,7 @@ public class SMGCPAValueVisitor
     // If one operand is 0, all bits of the other are taken
     // x ^ 0 = x
     if (rightValue instanceof NumericValue numRight
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       // Is this handling correct for integer promotion?
       if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
         return leftValue;
@@ -3368,7 +3368,7 @@ public class SMGCPAValueVisitor
 
     // 0 ^ x = x
     if (leftValue instanceof NumericValue numLeft
-        && !(calculationType.getType().isFloatingPointType())) {
+        && !calculationType.getType().isFloatingPointType()) {
       if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
         return rightValue;
       }
@@ -3758,7 +3758,7 @@ public class SMGCPAValueVisitor
 
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
-      if (left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+      if (left.equals(right) && !calculationType.getType().isFloatingPointType()) {
         return new NumericValue(1);
       }
       // TODO: we can handle some Float combinations here as well! e.g. if one is NaN, this is
@@ -3805,7 +3805,7 @@ public class SMGCPAValueVisitor
 
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
-      if (left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+      if (left.equals(right) && !calculationType.getType().isFloatingPointType()) {
         return new NumericValue(0);
       }
       // TODO: we can handle some Float combinations here as well! e.g. if one is NaN, this is
@@ -3850,7 +3850,7 @@ public class SMGCPAValueVisitor
 
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
-      // if (!left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+      // if (!left.equals(right) && !calculationType.getType().isFloatingPointType()) {
       //   return new NumericValue(1);
       // }
       // TODO: look into additional cases (e.g. equality -> can't be less than)
@@ -3893,7 +3893,7 @@ public class SMGCPAValueVisitor
 
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
-      if (left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+      if (left.equals(right) && !calculationType.getType().isFloatingPointType()) {
         return new NumericValue(1);
       }
       // TODO: look into additional cases (beyond equality == less equals)
@@ -3936,7 +3936,7 @@ public class SMGCPAValueVisitor
 
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
-      // if (!left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+      // if (!left.equals(right) && !calculationType.getType().isFloatingPointType()) {
       //   return new NumericValue(1);
       // }
       // TODO: look into additional cases (e.g. equality -> not greater than)
@@ -3979,7 +3979,7 @@ public class SMGCPAValueVisitor
 
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
-      if (left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+      if (left.equals(right) && !calculationType.getType().isFloatingPointType()) {
         return new NumericValue(1);
       }
       // TODO: look into additional cases (beyond equality == greater equals)
