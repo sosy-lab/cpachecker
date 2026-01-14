@@ -301,7 +301,7 @@ public class CPAchecker {
       factory =
           new CoreComponentsFactory(
               config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
-      return run0(cfa, factory, stats);
+      return run0(cfa, null, factory, stats);
 
     } catch (InvalidConfigurationException
         | ParserException
@@ -314,26 +314,33 @@ public class CPAchecker {
     }
   }
 
-  public CPAcheckerResult run(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
+  public CPAcheckerResult run(
+      CFA cfa,
+      Specification specification,
+      CoreComponentsFactory factory,
+      MainCPAStatistics stats) {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      return run0(cfa, factory, stats);
+      return run0(cfa, specification, factory, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
   }
 
-  private CPAcheckerResult run0(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
+  private CPAcheckerResult run0(
+      CFA cfa,
+      Specification specification,
+      CoreComponentsFactory factory,
+      MainCPAStatistics stats) {
 
     Algorithm algorithm = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
     String targetDescription = "";
-    Specification specification;
 
     try {
 
@@ -347,10 +354,11 @@ public class CPAchecker {
       }
       stats.cpaCreationTime.start();
       try {
-        logAboutSpecification();
-        specification =
-            Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
-
+        if (specification == null) {
+          logAboutSpecification();
+          specification =
+              Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+        }
         cpa = factory.createCPA(specification);
       } finally {
         stats.cpaCreationTime.stop();
