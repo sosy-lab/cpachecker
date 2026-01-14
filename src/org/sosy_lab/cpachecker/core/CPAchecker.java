@@ -314,18 +314,23 @@ public class CPAchecker {
     }
   }
 
-  public CPAcheckerResult run(
-      CFA cfa,
-      Specification specification,
-      CoreComponentsFactory factory,
-      MainCPAStatistics stats) {
+  public CPAcheckerResult run(CFA cfa, Specification specification, MainCPAStatistics stats) {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
+
+    CoreComponentsFactory factory;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
+      factory =
+          new CoreComponentsFactory(
+              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
       return run0(cfa, specification, factory, stats);
+
+    } catch (InvalidConfigurationException e) {
+      logErrorMessage(e, logger);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
