@@ -92,6 +92,10 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
     return (BinaryOperator) super.getOperator();
   }
 
+  /*
+   * More information about the operands, e.g. integer promotion, pointer arithmetics etc.,
+   * can be found in the standard as well, and should be looked up before implementing them!
+   */
   public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
     /**
      * Binary * (multiplication) operator, defined in the C11 standard §6.5.5 as the product of the
