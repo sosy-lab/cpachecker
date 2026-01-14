@@ -98,8 +98,7 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
    */
   public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
     /**
-     * Binary * (multiplication) operator, defined in the C11 standard §6.5.5 for arithmetic types
-     * as the product of the operands for arithmetic types.
+     * Binary * (multiplication) operator, defined in the C11 standard §6.5.5 for arithmetic types.
      */
     MULTIPLY("*"),
     /**
@@ -112,8 +111,7 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
     /**
      * C % (remainder) operator, defined in the C11 standard §6.5.5 as (a/b)*b + a%b = a, i.e. a%b =
      * a - (a/b)*b, for arithmetic types. Since C99, integer division is always truncated to zero.
-     * If the value of the second operand is zero, the behavior is undefined. Note: modulo is
-     * defined distinctly, and there is no modulo operator in C!
+     * If the value of the second operand is zero, the behavior is undefined.
      */
     REMAINDER("%"),
     /**
