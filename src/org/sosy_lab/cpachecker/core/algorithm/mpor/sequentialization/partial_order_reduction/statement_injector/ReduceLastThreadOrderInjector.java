@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-record ReduceLastThreadOrderInjector(
+public record ReduceLastThreadOrderInjector(
     MPOROptions options,
     int numThreads,
     MPORThread activeThread,
@@ -54,15 +54,6 @@ record ReduceLastThreadOrderInjector(
     BitVectorVariables bitVectorVariables,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
-
-  CSeqThreadStatement injectLastThreadOrderReductionIntoStatement(
-      CSeqThreadStatement pStatement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
-      throws UnrecognizedCodeException {
-
-    CSeqThreadStatement withConflictOrder = injectLastThreadOrderIntoStatement(pStatement);
-    return injectLastUpdatesIntoStatement(withConflictOrder, pLabelClauseMap);
-  }
 
   // Private =======================================================================================
 
@@ -112,7 +103,7 @@ record ReduceLastThreadOrderInjector(
 
   // Last Updates ==================================================================================
 
-  private CSeqThreadStatement injectLastUpdatesIntoStatement(
+  CSeqThreadStatement injectLastUpdatesIntoStatement(
       CSeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
