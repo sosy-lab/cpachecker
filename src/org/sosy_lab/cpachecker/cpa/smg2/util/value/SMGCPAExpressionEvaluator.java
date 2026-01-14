@@ -226,8 +226,8 @@ public class SMGCPAExpressionEvaluator {
   public ValueAndSMGState unpackAddressExpression(Value value, SMGState state) throws SMGException {
     if (!(value instanceof AddressExpression addressExpr)) {
       checkState(
-          value instanceof ConstantSymbolicExpression constValue
-              && !(constValue.getValue() instanceof AddressExpression));
+          !(value instanceof ConstantSymbolicExpression constValue)
+              || !(constValue.getValue() instanceof AddressExpression));
       return ValueAndSMGState.of(value, state);
     }
 
