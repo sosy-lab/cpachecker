@@ -153,13 +153,27 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     /**
      * Java == (equal to) operator, defined in <a
      * href="https://docs.oracle.com/javase/specs/jls/se25/jls25.pdf#%5B%7B%22num%22%3A7515%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C72%2C179%2Cnull%5D">§15.21
-     * of the Java specification</a>.
+     * of the Java specification</a>. The equal to operator is split into:
+     *
+     * <ul>
+     *   <li>numerical equality, if both operands are of numeric type, or one is of numeric type and
+     *       the other is convertible (§5.1.8) to numeric type.
+     *   <li>boolean equality, if both operands are of the type boolean, or if one operand is of
+     *       type boolean and the other is of type Boolean.
+     *   <li>reference equality, if the operands are both of either reference type or the null type.
      */
     EQUALS("=="),
     /**
      * Java != (not equal to) operator, defined in <a
      * href="https://docs.oracle.com/javase/specs/jls/se25/jls25.pdf#%5B%7B%22num%22%3A7515%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C72%2C179%2Cnull%5D">§15.21
-     * of the Java specification</a>.
+     * of the Java specification</a>. The not equal to operator is split into:
+     *
+     * <ul>
+     *   <li>numerical equality, if both operands are of numeric type, or one is of numeric type and
+     *       the other is convertible (§5.1.8) to numeric type.
+     *   <li>boolean equality, if both operands are of the type boolean, or if one operand is of
+     *       type boolean and the other is of type Boolean.
+     *   <li>reference equality, if the operands are both of either reference type or the null type.
      */
     NOT_EQUALS("!="),
     ;
