@@ -3531,9 +3531,10 @@ public class SMGCPAValueVisitor
    * To be called for handling of bitwise shift operations (<< or >>) that exhibit undefined
    * behavior, e.g. due to negative second argument.
    */
-  private Value handleUndefinedBitwiseShift(CBinaryExpression pExpression, String additionalMsg)
+  private Value handleUndefinedBitwiseShift(
+      final CBinaryExpression pExpression, final String additionalMsg)
       throws UnsupportedCodeException {
-    String loggedMsg =
+    final String loggedMsg =
         String.format(
             "Bitwise shift operation with undefined behavior detected in expression %s due to %s."
                 + " %s",
@@ -3546,18 +3547,18 @@ public class SMGCPAValueVisitor
    * throws {@link UnsupportedCodeException}, or returns a {@link UnknownValue}, or a {@link
    * NumericValue}, depending on the set option for how this is handled.
    */
-  private Value handleDivisionByZero(CBinaryExpression pExpression)
+  private Value handleDivisionByZero(final CBinaryExpression pExpression)
       throws UnsupportedCodeException {
     // C11 §6.5.5.5: The result of the / operator is the quotient from the division of the first
     // operand by the second; the result of the % operator is the remainder. In both operations,
     // if the value of the second operand is zero, the behavior is undefined.
-    String loggedMsg =
+    final String loggedMsg =
         String.format(
             "Concrete division by Zero detected in expression %s, in %s", pExpression, cfaEdge);
     return handleArithmeticUndefinedBehavior(loggedMsg);
   }
 
-  private Value handleArithmeticUndefinedBehavior(String loggedMsg)
+  private Value handleArithmeticUndefinedBehavior(final String loggedMsg)
       throws UnsupportedCodeException {
     return switch (options.getArithmeticUndefinedBehaviorHandling()) {
       case WARN_AND_RETURN_UNKNOWN ->
@@ -3573,7 +3574,8 @@ public class SMGCPAValueVisitor
     };
   }
 
-  private Value logDivisionByZeroAndReturnValue(Value returnedValue, String loggedMsg) {
+  @SuppressWarnings("FormatStringAnnotation")
+  private Value logDivisionByZeroAndReturnValue(final Value returnedValue, final String loggedMsg) {
     logger.logf(Level.SEVERE, loggedMsg, cfaEdge);
     return returnedValue;
   }
