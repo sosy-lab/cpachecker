@@ -73,10 +73,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     DIVIDE("/"),
     /** Java % (remainder) operator. Defined in the Java specification §15.17.3. */
     REMAINDER("%"),
-    /**
-     * Java + (additive) operator, but used exclusively for string concatenation. Defined in the
-     * Java specification §15.18.1.
-     */
+    /** Java + (string concatenation) operator. Defined in the Java specification §15.18.1. */
     STRING_CONCATENATION("+"),
     /**
      * Java + (additive) operator, but exclusively for arithmetic addition. Defined in the Java
