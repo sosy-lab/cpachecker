@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
@@ -170,7 +169,7 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws CPATransferException {
     List<ValueAndSMGState> uncastedValuesAndStates = pExp.accept(this);
-    Builder<ValueAndSMGState> result = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
     for (ValueAndSMGState uncastedValueAndState : uncastedValuesAndStates) {
       Value castedValue = castCValue(uncastedValueAndState.getValue(), pTargetType);
       result.add(ValueAndSMGState.of(castedValue, uncastedValueAndState.getState()));
@@ -297,7 +296,7 @@ public class SMGCPAValueVisitor
     // Or a CPointerType in which we read and wrap in AddressExpression
     // Or in all other cases just read and return
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState arrayValueAndState : arrayExpr.accept(this)) {
       // The arrayValue is either AddressExpression for pointer + offset
       // SymbolicIdentifier with MemoryLocation for variable name + offset
@@ -397,7 +396,7 @@ public class SMGCPAValueVisitor
         // This of course does not need to be a pointer value! If this is an unknown we just
         // return unknown.
         // All else gets wrapped and the final read/deref will throw an error
-        Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
+        ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
         for (ValueAndSMGState readPointerAndState :
             evaluator.readValueWithPointerDereference(
                 newState,
@@ -459,7 +458,7 @@ public class SMGCPAValueVisitor
       } else if (returnType instanceof CPointerType) {
         // This of course does not need to be a pointer value! If this is an unknown we just
         // return unknown. All else gets wrapped and the final read/deref will throw an error
-        Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
+        ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
         for (ValueAndSMGState readPointerAndState :
             evaluator.readStackOrGlobalVariable(
                 newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType)) {
@@ -513,7 +512,7 @@ public class SMGCPAValueVisitor
       CExpression lVarInBinaryExp, CExpression rVarInBinaryExp, CBinaryExpression e)
       throws CPATransferException {
 
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState leftValueAndState : lVarInBinaryExp.accept(this)) {
       Value leftValue = leftValueAndState.getValue();
       SMGState currentState = leftValueAndState.getState();
@@ -741,7 +740,7 @@ public class SMGCPAValueVisitor
     // Get the type and value from the nested expression (might be SMG) and cast the value
     // Also most of this code is taken from the value analysis CPA and modified
     CType targetType = e.getExpressionType();
-    Builder<ValueAndSMGState> builder = new Builder<>();
+    ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : e.getOperand().accept(this)) {
       SMGState currentState = valueAndState.getState();
       Value value = valueAndState.getValue();
@@ -825,7 +824,7 @@ public class SMGCPAValueVisitor
 
     // For (*pointer).field case or struct.field case the visitor returns the Value as
     // AddressExpression. For struct.field it's a SymbolicIdentifier with MemoryLocation
-    Builder<ValueAndSMGState> builder = new Builder<>();
+    ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : ownerExpression.accept(this)) {
       SMGState currentState = valueAndState.getState();
       // This value is either an AddressValue for pointers i.e. (*struct).field or a general
@@ -888,7 +887,7 @@ public class SMGCPAValueVisitor
 
     String variableName = varDecl.getQualifiedName();
 
-    Builder<SMGState> creationBuilder = ImmutableList.builder();
+    ImmutableList.Builder<SMGState> creationBuilder = ImmutableList.builder();
     if (!state.isLocalOrGlobalVariablePresent(variableName)
         && !state.isLocalVariablePresentOnPreviousStackFrame(variableName)) {
       if (varDecl instanceof CVariableDeclaration cVariableDeclaration) {
@@ -905,7 +904,7 @@ public class SMGCPAValueVisitor
       creationBuilder.add(state);
     }
 
-    Builder<ValueAndSMGState> finalStatesBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> finalStatesBuilder = ImmutableList.builder();
     for (SMGState currentState : creationBuilder.build()) {
       if (returnType instanceof CArrayType) {
         // If the variable is a pointer to an array, deref that and return the array
@@ -1081,7 +1080,7 @@ public class SMGCPAValueVisitor
       default -> {}
     }
 
-    Builder<ValueAndSMGState> builder = new Builder<>();
+    ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : unaryOperand.accept(this)) {
       SMGState currentState = valueAndState.getState();
       Value value = valueAndState.getValue();
@@ -1127,7 +1126,7 @@ public class SMGCPAValueVisitor
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
     // the target and an offset. If this fails this returns an UnknownValue.
-    Builder<ValueAndSMGState> builder = new Builder<>();
+    ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : expr.accept(this)) {
       SMGState currentState = valueAndState.getState();
       // Try to disassemble the values (AddressExpression)
@@ -1554,7 +1553,7 @@ public class SMGCPAValueVisitor
 
         List<CExpression> parameterExpressions =
             pIastFunctionCallExpression.getParameterExpressions();
-        Builder<Value> parameterValuesBuilder = ImmutableList.builder();
+        ImmutableList.Builder<Value> parameterValuesBuilder = ImmutableList.builder();
 
         // Evaluate all parameters
         SMGState currentState = state;
@@ -2086,7 +2085,7 @@ public class SMGCPAValueVisitor
                 cfaEdge));
       }
 
-      Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
+      ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
       // Our offsets are in bits here! This also checks that it's the same underlying memory object.
       for (ValueAndSMGState distanceInBitsAndState :
           evaluator.calculateAddressDistance(
