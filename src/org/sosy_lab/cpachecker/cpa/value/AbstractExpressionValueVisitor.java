@@ -1381,13 +1381,13 @@ public abstract class AbstractExpressionValueVisitor
           factory.shiftRightUnsigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_AND ->
           factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LOGICAL_AND ->
+      case BOOLEAN_LOGICAL_BITWISE_AND ->
           factory.logicalAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_OR ->
           factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LOGICAL_OR ->
+      case BOOLEAN_LOGICAL_BITWISE_OR ->
           factory.logicalOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR, LOGICAL_XOR ->
+      case BINARY_XOR, BOOLEAN_LOGICAL_BITWISE_XOR ->
           factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case NOT_EQUALS ->
@@ -1585,16 +1585,18 @@ public abstract class AbstractExpressionValueVisitor
 
     return switch (operator) {
       case CONDITIONAL_AND,
-          LOGICAL_AND -> // we do not care about sideeffects through evaluation of the
+          BOOLEAN_LOGICAL_BITWISE_AND -> // we do not care about sideeffects through evaluation of
+                                         // the
           // righthandside at this point -
           // this must be handled
           // earlier
           BooleanValue.valueOf(lVal && rVal);
       case CONDITIONAL_OR,
-          LOGICAL_OR -> // we do not care about sideeffects through evaluation of the
+          BOOLEAN_LOGICAL_BITWISE_OR -> // we do not care about sideeffects through evaluation of
+                                        // the
           // righthandside at this point
           BooleanValue.valueOf(lVal || rVal);
-      case LOGICAL_XOR -> BooleanValue.valueOf(lVal ^ rVal);
+      case BOOLEAN_LOGICAL_BITWISE_XOR -> BooleanValue.valueOf(lVal ^ rVal);
       case EQUALS -> BooleanValue.valueOf(lVal == rVal);
       case NOT_EQUALS -> BooleanValue.valueOf(lVal != rVal);
       default ->

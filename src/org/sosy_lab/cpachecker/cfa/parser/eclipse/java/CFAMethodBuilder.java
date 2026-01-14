@@ -1443,7 +1443,8 @@ class CFAMethodBuilder extends ASTVisitor {
           true);
 
     } else if (condition instanceof JBinaryExpression jBinaryExpression
-        && jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_OR) {
+        && jBinaryExpression.getOperator()
+            == JBinaryExpression.BinaryOperator.BOOLEAN_LOGICAL_BITWISE_OR) {
       CFANode innerNode = new CFANode(cfa.getFunction());
       CFANode innerEagerNode = new CFANode(cfa.getFunction());
       cfaNodes.add(innerNode);
@@ -1480,7 +1481,8 @@ class CFAMethodBuilder extends ASTVisitor {
           true);
 
     } else if (condition instanceof JBinaryExpression jBinaryExpression
-        && jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_AND) {
+        && jBinaryExpression.getOperator()
+            == JBinaryExpression.BinaryOperator.BOOLEAN_LOGICAL_BITWISE_AND) {
       CFANode innerNode = new CFANode(cfa.getFunction());
       CFANode innerEagerNode = new CFANode(cfa.getFunction());
       cfaNodes.add(innerNode);

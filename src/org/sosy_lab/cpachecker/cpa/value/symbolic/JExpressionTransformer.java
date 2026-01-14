@@ -119,12 +119,12 @@ public class JExpressionTransformer extends ExpressionTransformer
       case GREATER_EQUAL ->
           factory.greaterThanOrEqual(
               operand1Expression, operand2Expression, expressionType, expressionType);
-      case LOGICAL_AND, CONDITIONAL_AND ->
+      case BOOLEAN_LOGICAL_BITWISE_AND, CONDITIONAL_AND ->
           factory.logicalAnd(
               operand1Expression, operand2Expression, expressionType, expressionType);
-      case LOGICAL_OR, CONDITIONAL_OR ->
+      case BOOLEAN_LOGICAL_BITWISE_OR, CONDITIONAL_OR ->
           factory.logicalOr(operand1Expression, operand2Expression, expressionType, expressionType);
-      case LOGICAL_XOR ->
+      case BOOLEAN_LOGICAL_BITWISE_XOR ->
           factory.binaryXor(operand1Expression, operand2Expression, expressionType, expressionType);
       default -> throw new AssertionError("Unhandled operator " + operator);
     };

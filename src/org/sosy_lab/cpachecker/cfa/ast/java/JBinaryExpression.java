@@ -130,17 +130,17 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     /**
      * Java & (boolean logical bitwise AND) operator, defined in §15.22.2 of the Java specification.
      */
-    LOGICAL_AND("&"),
+    BOOLEAN_LOGICAL_BITWISE_AND("&"),
     /**
      * Java | (boolean logical bitwise inclusive OR) operator, defined in §15.22.2 of the Java
      * specification.
      */
-    LOGICAL_OR("|"),
+    BOOLEAN_LOGICAL_BITWISE_OR("|"),
     /**
      * Java ^ (boolean logical bitwise exclusive OR) operator, defined in §15.22.2 of the Java
      * specification.
      */
-    LOGICAL_XOR("^"),
+    BOOLEAN_LOGICAL_BITWISE_XOR("^"),
     /**
      * Java && (conditional AND) operator, defined in <a
      * href="https://docs.oracle.com/javase/specs/jls/se25/jls25.pdf#%5B%7B%22num%22%3A7590%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C72%2C361%2Cnull%5D">§15.23
@@ -203,9 +203,9 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
             NOT_EQUALS,
             CONDITIONAL_AND,
             CONDITIONAL_OR,
-            LOGICAL_XOR,
-            LOGICAL_OR,
-            LOGICAL_AND ->
+            BOOLEAN_LOGICAL_BITWISE_XOR,
+            BOOLEAN_LOGICAL_BITWISE_OR,
+            BOOLEAN_LOGICAL_BITWISE_AND ->
             true;
       };
     }
