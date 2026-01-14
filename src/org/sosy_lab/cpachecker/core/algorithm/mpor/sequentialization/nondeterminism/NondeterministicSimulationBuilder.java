@@ -343,7 +343,7 @@ public class NondeterministicSimulationBuilder {
       CIdExpression pSyncFlag,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    if (!pOptions.isThreadSyncFlagRequired()) {
+    if (!pOptions.reduceIgnoreSleep()) {
       return pBlock;
     }
     ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
@@ -387,9 +387,7 @@ public class NondeterministicSimulationBuilder {
                 pTargetClause.orElseThrow().getAllStatements());
     CIntegerLiteralExpression value =
         isSync ? SeqIntegerLiteralExpressions.INT_1 : SeqIntegerLiteralExpressions.INT_0;
-    SeqSyncUpdateStatement syncUpdate =
-        new SeqSyncUpdateStatement(
-            SeqStatementBuilder.buildExpressionAssignmentStatement(pSyncVariable, value));
+    SeqSyncUpdateStatement syncUpdate = new SeqSyncUpdateStatement(pSyncVariable, value);
     return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, syncUpdate);
   }
 }

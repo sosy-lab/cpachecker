@@ -85,9 +85,9 @@ public record StatementInjector(
               bitVectorVariables,
               memoryModel,
               utils);
-      // the last thread updates should be placed after reduceUntilConflict, since if the reduction
-      // aborts, then the variable updates are pruned anyway.
-      pStatement = reduceLastThreadOrderInjector.injectLastUpdatesIntoStatement(pStatement);
+      pStatement =
+          reduceLastThreadOrderInjector.injectLastThreadOrderReductionIntoStatement(
+              pStatement, labelClauseMap);
     }
     if (options.reduceIgnoreSleep()) {
       // this needs to be last, it collects the prior injections

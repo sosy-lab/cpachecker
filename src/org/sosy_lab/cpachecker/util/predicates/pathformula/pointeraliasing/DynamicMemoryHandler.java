@@ -171,12 +171,13 @@ class DynamicMemoryHandler {
       Long value1 = tryEvaluateExpression(param1);
       if (value0 != null && value1 != null) {
         long result =
-            AbstractExpressionValueVisitor.calculateBinaryOperation(
-                    new NumericValue(value0),
-                    new NumericValue(value1),
-                    multiplication,
-                    conv.machineModel,
-                    conv.logger)
+            ((NumericValue)
+                    AbstractExpressionValueVisitor.calculateBinaryOperation(
+                        new NumericValue(value0),
+                        new NumericValue(value1),
+                        multiplication,
+                        conv.machineModel,
+                        conv.logger))
                 .asLong(multiplication.getExpressionType())
                 .orElseThrow();
 

@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record ReduceLastThreadOrderInjector(
+record ReduceLastThreadOrderInjector(
     MPOROptions options,
     int numThreads,
     MPORThread activeThread,
@@ -54,6 +54,15 @@ public record ReduceLastThreadOrderInjector(
     BitVectorVariables bitVectorVariables,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
+
+  CSeqThreadStatement injectLastThreadOrderReductionIntoStatement(
+      CSeqThreadStatement pStatement,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
+      throws UnrecognizedCodeException {
+
+    CSeqThreadStatement withConflictOrder = injectLastThreadOrderIntoStatement(pStatement);
+    return injectLastUpdatesIntoStatement(withConflictOrder, pLabelClauseMap);
+  }
 
   // Private =======================================================================================
 
@@ -103,37 +112,53 @@ public record ReduceLastThreadOrderInjector(
 
   // Last Updates ==================================================================================
 
-  CSeqThreadStatement injectLastUpdatesIntoStatement(CSeqThreadStatement pStatement) {
+  private CSeqThreadStatement injectLastUpdatesIntoStatement(
+      CSeqThreadStatement pStatement,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+
     if (pStatement.getTargetPc().isPresent()) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
+      // if a thread exits, set last_thread to NUM_THREADS - 1.
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
-        // if a thread exits, set LAST_THREAD to NUM_THREADS because thread IDs range from 0 to
-        // NUM_THREADS - 1 -> 'LAST_THREAD < n' never holds
-        CExpressionAssignmentStatement lastThreadExit =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                SeqIdExpressions.LAST_THREAD,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(numThreads));
-        SeqLastBitVectorUpdateStatement lastUpdateStatement =
-            new SeqLastBitVectorUpdateStatement(lastThreadExit, ImmutableList.of());
-        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-            pStatement, lastUpdateStatement);
-
-      } else {
-        // for all other target pc, set LAST_THREAD to current thread id and update last bitvectors
-        CExpressionAssignmentStatement lastThreadUpdate =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                SeqIdExpressions.LAST_THREAD,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()));
-        SeqLastBitVectorUpdateStatement lastUpdateStatement =
-            new SeqLastBitVectorUpdateStatement(
-                lastThreadUpdate, buildLastAccessBitVectorUpdatesByEncoding());
-        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-            pStatement, lastUpdateStatement);
+        return injectLastThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
       }
-    } else {
-      // no valid target pc -> no conflict order required
-      return pStatement;
+      // if targetPc != EXIT_PC, then pLabelClause contains targetPc, otherwise NPE
+      SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+      // for sync locations, set LAST_THREAD to NUM_THREADS - 1. this is necessary, otherwise
+      // the analysis is unsound.
+      // simple example: LAST_THREAD is at a sync location that uses assume. the current thread
+      // has a reduceLastThreadOrder instrumentation and because it is not in conflict with
+      // LAST_THREAD, current thread aborts. but LAST_THREAD may e.g. call pthread_join on the
+      // current thread -> both abort, and no thread makes any progress
+      if (SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
+        return injectLastThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
+      } else {
+        // bit vector updates are only added when the LAST_THREAD != NUM_THREADS -1.
+        // this is because the bit vectors are only accessed anyway if LAST_THREAD < some_int holds.
+        ImmutableList<CExpressionAssignmentStatement> lastBitVectorUpdates =
+            buildLastAccessBitVectorUpdatesByEncoding();
+        // for all other target pc, set last_thread to current thread id and update last bitvectors
+        return injectLastThreadUpdateIntoStatement(
+            pStatement, activeThread.id(), lastBitVectorUpdates);
+      }
     }
+    // no valid target pc -> no conflict order required
+    return pStatement;
+  }
+
+  private CSeqThreadStatement injectLastThreadUpdateIntoStatement(
+      CSeqThreadStatement pStatement,
+      int pLastThreadValue,
+      ImmutableList<CExpressionAssignmentStatement> pLastBitVectorUpdates) {
+
+    CExpressionAssignmentStatement lastThreadExit =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
+            SeqIdExpressions.LAST_THREAD,
+            SeqExpressionBuilder.buildIntegerLiteralExpression(pLastThreadValue));
+    SeqLastBitVectorUpdateStatement lastUpdateStatement =
+        new SeqLastBitVectorUpdateStatement(lastThreadExit, pLastBitVectorUpdates);
+    return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+        pStatement, lastUpdateStatement);
   }
 
   // Last Access Bit Vectors =======================================================================

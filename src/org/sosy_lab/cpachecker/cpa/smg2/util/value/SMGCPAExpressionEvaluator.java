@@ -74,7 +74,11 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -1029,12 +1033,13 @@ public class SMGCPAExpressionEvaluator {
                         + " distance."));
             break;
           }
-          final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
           CType addressDistanceType = getCTypeForBitPreciseMemoryAddresses();
-          SymbolicExpression leftOffsetSym = factory.asConstant(leftOffset, addressDistanceType);
-          SymbolicExpression rightOffsetSym = factory.asConstant(rightOffset, addressDistanceType);
+          SymbolicExpression leftOffsetSym =
+              ConstantSymbolicExpression.of(leftOffset, addressDistanceType);
+          SymbolicExpression rightOffsetSym =
+              ConstantSymbolicExpression.of(rightOffset, addressDistanceType);
           distance =
-              factory.minus(
+              SubtractionExpression.of(
                   leftOffsetSym, rightOffsetSym, addressDistanceType, addressDistanceType);
         } else {
           distance =
@@ -2802,13 +2807,12 @@ public class SMGCPAExpressionEvaluator {
 
     } else if (!leftValue.isUnknown() && !rightValue.isUnknown()) {
       // Not numeric and not unknown -> symbolic
-      final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
       CType offsetBitType = getCTypeForBitPreciseMemoryAddresses();
 
-      SymbolicExpression leftOperand = factory.asConstant(leftValue, offsetBitType);
-      SymbolicExpression rightOperand = factory.asConstant(rightValue, offsetBitType);
+      SymbolicExpression leftOperand = ConstantSymbolicExpression.of(leftValue, offsetBitType);
+      SymbolicExpression rightOperand = ConstantSymbolicExpression.of(rightValue, offsetBitType);
 
-      return factory.add(leftOperand, rightOperand, offsetBitType, offsetBitType);
+      return AdditionExpression.of(leftOperand, rightOperand, offsetBitType, offsetBitType);
 
     } else {
       // At some point this triggers with unknowns. And i want to know from where ;D
@@ -2870,13 +2874,12 @@ public class SMGCPAExpressionEvaluator {
 
     } else if (!leftValue.isUnknown() && !rightValue.isUnknown()) {
       // Not numeric and not unknown -> symbolic
-      final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
       CType offsetBitType = getCTypeForBitPreciseMemoryAddresses();
 
-      SymbolicExpression leftOperand = factory.asConstant(leftValue, offsetBitType);
-      SymbolicExpression rightOperand = factory.asConstant(rightValue, offsetBitType);
+      SymbolicExpression leftOperand = ConstantSymbolicExpression.of(leftValue, offsetBitType);
+      SymbolicExpression rightOperand = ConstantSymbolicExpression.of(rightValue, offsetBitType);
 
-      return factory.minus(leftOperand, rightOperand, offsetBitType, offsetBitType);
+      return SubtractionExpression.of(leftOperand, rightOperand, offsetBitType, offsetBitType);
 
     } else {
       // At some point this triggers with unknowns. And i want to know from where ;D
@@ -2915,13 +2918,14 @@ public class SMGCPAExpressionEvaluator {
 
     if (!leftValue.isUnknown() && !rightValue.isUnknown()) {
       CType calculationAndReturnType = getCTypeForBitPreciseMemoryAddresses();
-      final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
       // Not numeric and not unknown -> symbolic
-      SymbolicExpression leftOperand = factory.asConstant(leftValue, calculationAndReturnType);
-      SymbolicExpression rightOperand = factory.asConstant(rightValue, calculationAndReturnType);
+      SymbolicExpression leftOperand =
+          ConstantSymbolicExpression.of(leftValue, calculationAndReturnType);
+      SymbolicExpression rightOperand =
+          ConstantSymbolicExpression.of(rightValue, calculationAndReturnType);
 
-      return factory.multiply(
+      return MultiplicationExpression.of(
           leftOperand, rightOperand, calculationAndReturnType, calculationAndReturnType);
 
     } else {

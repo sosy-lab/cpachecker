@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -175,10 +176,9 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   private void assignSymbolicIdentifier(
       ValueAnalysisState pState, MemoryLocation pVarLocation, Type pVarType) {
 
-    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-
-    SymbolicIdentifier newIdentifier = factory.newIdentifier(pVarLocation);
-    SymbolicValue newIdentifierWithType = factory.asConstant(newIdentifier, pVarType);
+    SymbolicIdentifier newIdentifier =
+        SymbolicValueFactory.getInstance().newIdentifier(pVarLocation);
+    SymbolicValue newIdentifierWithType = ConstantSymbolicExpression.of(newIdentifier, pVarType);
 
     pState.assignConstant(pVarLocation, newIdentifierWithType, pVarType);
   }
