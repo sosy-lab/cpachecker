@@ -38,7 +38,7 @@ public final class AcslRequires extends AAcslAnnotation {
   }
 
   @Override
-  String toAstString() {
+  public String toAstString() {
     return "requires " + predicate.toASTString() + ";";
   }
 

@@ -27,7 +27,7 @@ public final class AcslAssertion extends AAcslAnnotation {
   }
 
   @Override
-  String toAstString() {
+  public String toAstString() {
     return "assert " + predicate.toASTString() + ";";
   }
 

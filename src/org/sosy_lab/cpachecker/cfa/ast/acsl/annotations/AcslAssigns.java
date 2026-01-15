@@ -39,7 +39,7 @@ public final class AcslAssigns extends AAcslAnnotation {
   }
 
   @Override
-  String toAstString() {
+  public String toAstString() {
     StringBuilder astString = new StringBuilder("assigns ");
     for (AcslMemoryLocationSet l : locations) {
       astString.append(l.toASTString()).append(", ");

@@ -38,7 +38,7 @@ public final class AcslEnsures extends AAcslAnnotation {
   }
 
   @Override
-  String toAstString() {
+  public String toAstString() {
     return "ensures " + predicate.toASTString() + ";";
   }
 

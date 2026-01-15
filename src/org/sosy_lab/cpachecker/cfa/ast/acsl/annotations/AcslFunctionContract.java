@@ -48,7 +48,7 @@ public final class AcslFunctionContract extends AAcslAnnotation {
   }
 
   @Override
-  String toAstString() {
+  public String toAstString() {
     StringBuilder astString = new StringBuilder();
     if (ensuresClauses != null) {
       for (AcslEnsures e : ensuresClauses) {

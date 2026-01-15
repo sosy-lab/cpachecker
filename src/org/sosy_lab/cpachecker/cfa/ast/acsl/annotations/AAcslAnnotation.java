@@ -38,5 +38,5 @@ public abstract sealed class AAcslAnnotation
   @Override
   public abstract int hashCode();
 
-  abstract String toAstString();
+  public abstract String toAstString();
 }

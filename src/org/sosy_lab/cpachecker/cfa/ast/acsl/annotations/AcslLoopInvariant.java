@@ -21,7 +21,7 @@ public final class AcslLoopInvariant extends AAcslAnnotation {
   }
 
   @Override
-  String toAstString() {
+  public String toAstString() {
     return "loop invariant " + predicate.toASTString() + ";";
   }
 
