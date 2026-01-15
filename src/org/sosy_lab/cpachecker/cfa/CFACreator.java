@@ -18,7 +18,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -60,7 +62,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlockStructureBuilder;
@@ -750,7 +757,12 @@ public class CFACreator {
     }
 
     if (pParseResult.acslMetadata().isPresent()) {
-      cfa.setAcslMetadata(pParseResult.acslMetadata().orElseThrow());
+      CProgramScope cScope = new CProgramScope(cfa, logger);
+      try {
+        cfa.setAcslMetadata(createAcslMetadata(cScope, pParseResult));
+      } catch (AcslParseException e) {
+        logger.log(Level.WARNING, e);
+      }
     }
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
@@ -780,6 +792,22 @@ public class CFACreator {
         Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
     return immutableCFA;
+  }
+
+  private AcslMetadata createAcslMetadata(CProgramScope pScope, ParseResult pParseResult)
+      throws AcslParseException {
+    Verify.verify(pParseResult.acslComments().isPresent());
+
+    ImmutableListMultimap.Builder<CFANode, AAcslAnnotation> annotationBuilder =
+        ImmutableListMultimap.builder();
+    for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
+      annotationBuilder.putAll(
+          comment.getCfaNode(),
+          AcslParser.parseAcslComment(
+              comment.getComment(), comment.getFileLocation(), pScope, AcslScope.empty()));
+    }
+    ImmutableListMultimap<CFANode, AAcslAnnotation> annotations = annotationBuilder.build();
+    return AcslMetadata.withGenericAnnotations(annotations);
   }
 
   /**

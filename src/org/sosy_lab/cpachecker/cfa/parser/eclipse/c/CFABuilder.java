@@ -45,18 +45,12 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -496,8 +490,7 @@ class CFABuilder extends ASTVisitor {
     functionBuilder.finish();
   }
 
-  public AcslMetadata createAcslMetadata(ParseResult pResult, AstCfaRelation pAstCfaRelation)
-      throws CParserException {
+  public ParseResult matchAcslCommentsToNodes(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
 
     /*
     Find the CfaNode for each Acsl Comment
@@ -537,6 +530,7 @@ class CFABuilder extends ASTVisitor {
     // ToDo: Handle special cases
     Verify.verify(notFunctionContracts.isEmpty());
 
+    /*
     ImmutableList.Builder<AAcslAnnotation> annotationBuilder = ImmutableList.builder();
     for (AcslComment c : pResult.acslComments().orElseThrow()) {
       try {
@@ -553,6 +547,8 @@ class CFABuilder extends ASTVisitor {
     }
     ImmutableList<AAcslAnnotation> acslAnnotations = annotationBuilder.build();
     return AcslMetadata.withGenericAnnotations(acslAnnotations);
+     */
+    return pResult.withAcslComments(acslComments, blocks);
   }
 
   private Optional<CFANode> nodeForRegularAnnotation(

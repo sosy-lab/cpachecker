@@ -364,8 +364,8 @@ class EclipseCParser implements CParser {
       result = result.withASTStructure(astCfaRelation);
 
       if (result.acslComments().isPresent()) {
-        AcslMetadata acslMetadata = builder.createAcslMetadata(result, astCfaRelation);
-        result = result.withAcslMetadata(acslMetadata);
+        //AcslMetadata acslMetadata = builder.matchAcslCommentsToNodes(result, astCfaRelation);
+        result = builder.matchAcslCommentsToNodes(result, astCfaRelation);
       }
 
       return result;
