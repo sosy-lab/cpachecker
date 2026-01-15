@@ -45,13 +45,18 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -491,7 +496,8 @@ class CFABuilder extends ASTVisitor {
     functionBuilder.finish();
   }
 
-  public AcslMetadata createAcslMetadata(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
+  public AcslMetadata createAcslMetadata(ParseResult pResult, AstCfaRelation pAstCfaRelation)
+      throws CParserException {
 
     /*
     Find the CfaNode for each Acsl Comment
@@ -530,7 +536,23 @@ class CFABuilder extends ASTVisitor {
     ImmutableSet<AcslComment> notFunctionContracts = notAFunctionContractBuilder.build();
     // ToDo: Handle special cases
     Verify.verify(notFunctionContracts.isEmpty());
-    return AcslMetadata.withComments(pResult.acslComments().orElseThrow());
+
+    ImmutableList.Builder<AAcslAnnotation> annotationBuilder = ImmutableList.builder();
+    for (AcslComment c : pResult.acslComments().orElseThrow()) {
+      try {
+        annotationBuilder.addAll(
+            AcslParser.parseAcslComment(
+                c.getComment(),
+                c.getFileLocation(),
+                (CProgramScope) artificialScope,
+                AcslScope.empty()));
+      } catch (AcslParseException e) {
+        throw new CParserException(
+            "The Acsl comment '" + c.getComment() + "' could not be parsed", e);
+      }
+    }
+    ImmutableList<AAcslAnnotation> acslAnnotations = annotationBuilder.build();
+    return AcslMetadata.withGenericAnnotations(acslAnnotations);
   }
 
   private Optional<CFANode> nodeForRegularAnnotation(

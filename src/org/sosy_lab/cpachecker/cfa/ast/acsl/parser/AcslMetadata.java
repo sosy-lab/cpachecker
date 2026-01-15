@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public record AcslMetadata(
     ImmutableList<AcslComment> pAcslComments,
+    ImmutableList<AAcslAnnotation> genericAnnotations,
     ImmutableSet<AcslDeclaration> globalAcslDeclarations,
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions,
     ImmutableSetMultimap<CFANode, AcslLoopInvariant> invariants,
@@ -39,6 +41,7 @@ public record AcslMetadata(
   public static AcslMetadata empty() {
     return new AcslMetadata(
         ImmutableList.of(),
+        ImmutableList.of(),
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of(),
@@ -46,9 +49,10 @@ public record AcslMetadata(
         ImmutableSetMultimap.of());
   }
 
-  public static AcslMetadata withComments(List<AcslComment> pAcslCommentList) {
+  public static AcslMetadata withGenericAnnotations(List<AAcslAnnotation> pAnnotations) {
     return new AcslMetadata(
-        ImmutableList.copyOf(pAcslCommentList),
+        ImmutableList.of(),
+        ImmutableList.copyOf(pAnnotations),
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of(),
