@@ -2062,6 +2062,7 @@ public class SMGCPAValueVisitor
       if (rightValue instanceof NumericValue numRightValue
           && leftValue instanceof NumericValue numLeftValue
           && numRightValue.getNumber().equals(numLeftValue.getNumber())) {
+        checkArgument(numRightValue.bigIntegerValue().equals(BigInteger.ZERO));
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
       }
       // Both are pointers, we allow minus here to get the distance
@@ -4181,8 +4182,8 @@ public class SMGCPAValueVisitor
    */
   private Value unwrapPotentialAddressExpression(Value pMaybeAddress, SMGState currentState) {
     Value maybeAddress = pMaybeAddress;
-    if (maybeAddress instanceof AddressExpression rightAddress) {
-      maybeAddress = rightAddress.getMemoryAddress();
+    if (maybeAddress instanceof AddressExpression targetAddress) {
+      maybeAddress = targetAddress.getMemoryAddress();
       if (maybeAddress instanceof ConstantSymbolicExpression constRight) {
         maybeAddress = constRight.getValue();
       }
