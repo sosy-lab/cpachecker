@@ -370,10 +370,6 @@ public class MPOROptions {
     return false;
   }
 
-  public boolean isThreadSyncFlagRequired() {
-    return reduceLastThreadOrder || reduceIgnoreSleep;
-  }
-
   // public getters ================================================================================
 
   public boolean allowPointerWrites() {
