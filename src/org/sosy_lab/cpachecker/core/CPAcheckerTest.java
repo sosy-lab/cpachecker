@@ -79,7 +79,8 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForSafeCProgram() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
 
     // Code duplication in the later tests is on purpose; we don't want to hide the method calls
     // that are included in the test through indirection, as long as the tests stay as simple
@@ -93,7 +94,8 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForSafeSvLibProgram() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
     TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
@@ -104,7 +106,8 @@ public class CPAcheckerTest {
   private Configuration svLibConfigWithWitnessOutput(Path witnessOutputPath)
       throws InvalidConfigurationException, IOException {
     return Configuration.builder()
-        .copyFrom(getConfig(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib))
+        .copyFrom(
+            getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib))
         .setOption("output.path", witnessOutputPath.getParent().toString())
         .setOption("counterexample.export.svlib", witnessOutputPath.getFileName().toString())
         .setOption("cpa.arg.svLibCorrectnessWitness", witnessOutputPath.getFileName().toString())
@@ -167,7 +170,8 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForUnsafeSvLibProgram() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
     TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
@@ -196,7 +200,8 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForUnsafeCProgram() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
 
     TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_C);
     result.getCheckerResult().printStatistics(statisticsStream);
@@ -207,7 +212,8 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForSafeJavaProgram() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
 
     TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_JAVA);
     result.getCheckerResult().printStatistics(statisticsStream);
@@ -218,7 +224,8 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForUnsafeJavaProgram() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
 
     TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_JAVA);
     result.getCheckerResult().printStatistics(statisticsStream);
@@ -231,7 +238,8 @@ public class CPAcheckerTest {
   @Deprecated // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
   @Ignore
   public void testRunForSafeLlvmProgram() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
 
     TestResults result;
     try {
@@ -249,7 +257,8 @@ public class CPAcheckerTest {
   @Deprecated // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
   @Ignore
   public void testRunForUnsafeLlvmProgram() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
 
     TestResults result;
     try {
@@ -264,7 +273,7 @@ public class CPAcheckerTest {
     result.assertIsUnsafe();
   }
 
-  private Configuration getConfig(
+  protected Configuration getConfigWithOutputFiles(
       String configurationFile, Language inputLanguage, String specificationFile)
       throws InvalidConfigurationException, IOException {
 
@@ -273,7 +282,16 @@ public class CPAcheckerTest {
         Configuration.builder()
             .setOption("output.path", tempFolder.getRoot().getAbsolutePath())
             .build();
-    FileTypeConverter fileTypeConverter = FileTypeConverter.create(configForFiles);
+    return setUpConfiguration(configurationFile, inputLanguage, specificationFile, configForFiles);
+  }
+
+  public static Configuration setUpConfiguration(
+      String configurationFile,
+      Language inputLanguage,
+      String specificationFile,
+      Configuration pConfigForFiles)
+      throws InvalidConfigurationException, IOException {
+    FileTypeConverter fileTypeConverter = FileTypeConverter.create(pConfigForFiles);
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder
