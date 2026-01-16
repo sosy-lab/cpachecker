@@ -953,7 +953,8 @@ public class SMGCPAValueVisitor
           }
 
           Value addressValue;
-          if (evaluator.isPointerValue(readValue, newState)) {
+          if (evaluator.isPointerValue(readValue, newState)
+              && !(readValue instanceof NumericValue)) {
             addressValue = AddressExpression.withZeroOffset(readValue, returnType);
           } else {
             // Not a known pointer value, most likely an unknown value as symbolic identifier
@@ -1900,11 +1901,11 @@ public class SMGCPAValueVisitor
   /**
    * Calculates pointer/address arithmetic expressions. Valid is only address + value or value +
    * address and address minus value or address minus address. All others are simply unknown value!
-   * One of the 2 entered values must be an AddressExpression, no other preconditions have to be
-   * met.
+   * One of the 2 entered values must be a pointer and none may be an {@link AddressExpression}, no
+   * other preconditions have to be met.
    *
-   * @param leftValue left hand side value of the arithmetic operation.
-   * @param rightValue right hand side value of the arithmetic operation.
+   * @param leftValue left hand side value of the pointer arithmetic operation.
+   * @param rightValue right hand side value of the pointer arithmetic operation.
    * @param binaryOperator {@link BinaryOperator} in between the values.
    * @param expressionType {@link CType} of the final expression.
    * @param calculationType {@link CType} of the calculation. (Should be int for pointers)
@@ -1929,7 +1930,15 @@ public class SMGCPAValueVisitor
     checkState(binaryOperator == PLUS || binaryOperator == MINUS);
     boolean leftIsPointer = currentState.isPointer(leftValue);
     boolean rightIsPointer = currentState.isPointer(rightValue);
-    checkState(leftIsPointer || rightIsPointer);
+    if (!leftIsPointer && !rightIsPointer) {
+      // We allow only 0 for now here, see if someone does something like: 0 + 3
+      checkArgument(
+          rightValue instanceof NumericValue numRightValue
+              && leftValue instanceof NumericValue
+              && numRightValue.bigIntegerValue().equals(BigInteger.ZERO));
+      return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
+    }
+    // At least one is a pointer from this point onward
 
     // The canonical type is the return type of the pointer expression!
     CType canonicalReturnType = expressionType.getCanonicalType();
@@ -1937,160 +1946,47 @@ public class SMGCPAValueVisitor
       canonicalReturnType = ((CPointerType) expressionType).getType();
     }
 
-    if (leftValue instanceof AddressExpression addressValue
-        && !(rightValue instanceof AddressExpression)) {
-      Value addressOffset = addressValue.getOffset();
-      if (!options.trackPredicates()
-          && (!(rightValue instanceof NumericValue) || !(addressOffset instanceof NumericValue))) {
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                currentState,
-                "Returned unknown value due to symbolic or unknown offset value in pointer"
-                    + " arithmetics expression without predicate tracking in ",
-                cfaEdge));
-      }
+    if (leftIsPointer && !rightIsPointer) {
 
-      Value correctlyTypedOffset;
-      if (calculationType instanceof CPointerType) {
-        // This is the pointer++; case for example.
-        // We need the correct types here; the types of the returned value after the pointer
-        // expression!
-        correctlyTypedOffset =
-            calculateArithmeticOperationWithBitPromotionForAddresses(
-                new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-                leftValueType,
-                rightValue,
-                rightValueType,
-                MULTIPLY,
-                originalExpressionForErrorMessages);
-      } else {
-        // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
-        // then this is just the numeric value * 8 and then the operation.
-        correctlyTypedOffset =
-            calculateArithmeticOperationWithBitPromotionForAddresses(
-                new NumericValue(BigInteger.valueOf(8)),
-                leftValueType,
-                rightValue,
-                rightValueType,
-                MULTIPLY,
-                originalExpressionForErrorMessages);
-      }
+      // e.g. pointer + 3
+      return calculatePointerArithmeticsOperationWithPointerAndNonPointer(
+          leftValue,
+          leftValueType,
+          rightValue,
+          rightValueType,
+          binaryOperator,
+          calculationType,
+          currentState,
+          originalExpressionForErrorMessages,
+          canonicalReturnType);
 
-      Value finalOffset =
-          calculateArithmeticOperationWithBitPromotionForAddresses(
-              addressOffset,
-              leftValueType,
-              correctlyTypedOffset,
-              rightValueType,
-              binaryOperator,
-              originalExpressionForErrorMessages);
+    } else if (!leftIsPointer) {
 
-      if (finalOffset instanceof SymbolicExpression symOffset) {
-        int currentOffsetTypeBits =
-            evaluator
-                .getMachineModel()
-                .getSizeofInBits((CType) symOffset.getType())
-                .intValueExact();
-        int pointerTypeInBits =
-            evaluator
-                .getMachineModel()
-                .getSizeofInBits(CPointerType.POINTER_TO_CHAR)
-                .intValueExact();
-        checkArgument(currentOffsetTypeBits >= (pointerTypeInBits + 3));
-      }
-
-      return ImmutableList.of(
-          ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
-
-    } else if (!(leftValue instanceof AddressExpression)
-        && rightValue instanceof AddressExpression addressValue) {
-      Value addressOffset = addressValue.getOffset();
-      if (!(leftValue instanceof NumericValue numLeftValue)
-          || !(addressOffset instanceof NumericValue numAddressOffset)
-          || binaryOperator == BinaryOperator.MINUS) {
-        // TODO: symbolic values if possible
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                currentState,
-                "Returned unknown value due to unknown offset value in pointer arithmetics"
-                    + " expression in ",
-                cfaEdge));
-      }
-      Value correctlyTypedOffset;
-      if (calculationType instanceof CPointerType) {
-        correctlyTypedOffset =
-            handleBinaryArithmeticOrBitwiseOperation(
-                new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-                machineModel.getPointerSizedIntType(),
-                numLeftValue,
-                leftValueType,
-                MULTIPLY,
-                machineModel.getPointerSizedIntType(),
-                machineModel.getPointerSizedIntType(),
-                originalExpressionForErrorMessages);
-      } else {
-        // If it's a cast pointer, i.e. ((unsigned int) pointer) + 8;
-        // then this is just the numeric value * 8 and then the operation.
-        correctlyTypedOffset =
-            handleBinaryArithmeticOrBitwiseOperation(
-                new NumericValue(BigInteger.valueOf(8)),
-                machineModel.getPointerSizedIntType(),
-                numLeftValue,
-                leftValueType,
-                MULTIPLY,
-                canonicalReturnType,
-                calculationType,
-                originalExpressionForErrorMessages);
-      }
-
-      Value finalOffset =
-          handleBinaryArithmeticOrBitwiseOperation(
-              correctlyTypedOffset,
-              machineModel.getPointerSizedIntType(),
-              numAddressOffset,
-              machineModel.getPointerSizedIntType(),
-              binaryOperator,
-              canonicalReturnType,
-              calculationType,
-              originalExpressionForErrorMessages);
-
-      return ImmutableList.of(
-          ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
+      // e.g. 3 + pointer
+      // Just the reverse of above (with the caveat that 3 - pointer does not make sense ;D)
+      checkArgument(binaryOperator != MINUS);
+      return calculatePointerArithmeticsOperationWithPointerAndNonPointer(
+          rightValue,
+          rightValueType,
+          leftValue,
+          leftValueType,
+          binaryOperator,
+          calculationType,
+          currentState,
+          originalExpressionForErrorMessages,
+          canonicalReturnType);
 
     } else {
-      // Either we have 2 address expressions or 2 numeric 0
-      if (rightValue instanceof NumericValue numRightValue
-          && leftValue instanceof NumericValue numLeftValue
-          && numRightValue.getNumber().equals(numLeftValue.getNumber())) {
-        checkArgument(numRightValue.bigIntegerValue().equals(BigInteger.ZERO));
-        return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
-      }
-      // Both are pointers, we allow minus here to get the distance
-      AddressExpression addressRight = (AddressExpression) rightValue;
-      AddressExpression addressLeft = (AddressExpression) leftValue;
-      Value leftOffset = addressLeft.getOffset();
-      Value rightOffset = addressRight.getOffset();
 
-      // This fails if the underlying structure is not the same!
-      // We need the non-equal method for SMGs here as it might be that due to abstraction 2 values
-      // are not equal but refer to the same structure!
-      if (binaryOperator != BinaryOperator.MINUS
-          || !(rightOffset instanceof NumericValue)
-          || !(leftOffset instanceof NumericValue)) {
-        // TODO: symbolic values if possible
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                currentState,
-                "Returned unknown value due to unknown offset value in pointer dereference"
-                    + " expression in ",
-                cfaEdge));
-      }
+      // Both are pointers, we allow minus here to get the distance between them
+      checkArgument(currentState.isPointer(rightValue));
+      checkArgument(currentState.isPointer(leftValue));
+      checkArgument(binaryOperator == MINUS);
 
       ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
       // Our offsets are in bits here! This also checks that it's the same underlying memory object.
       for (ValueAndSMGState distanceInBitsAndState :
-          evaluator.calculateAddressDistance(
-              currentState, addressLeft.getMemoryAddress(), addressRight.getMemoryAddress())) {
+          evaluator.calculateAddressDistance(currentState, leftValue, rightValue)) {
 
         Value distanceInBits = distanceInBitsAndState.getValue();
         currentState = distanceInBitsAndState.getState();
@@ -2104,7 +2000,7 @@ public class SMGCPAValueVisitor
         NumericValue size;
         if (leftValueType instanceof CPointerType cPointerType) {
           size = new NumericValue(evaluator.getBitSizeof(currentState, cPointerType.getType()));
-        } else if (addressRight.getType() instanceof CArrayType) {
+        } else if (rightValueType.getCanonicalType() instanceof CArrayType) {
           size =
               new NumericValue(
                   evaluator.getBitSizeof(currentState, ((CArrayType) leftValueType).getType()));
@@ -2133,6 +2029,108 @@ public class SMGCPAValueVisitor
       }
       return returnBuilder.build();
     }
+  }
+
+  /**
+   * Calculates a pointer arithmetics expression of ONLY the form "pointer +- non-pointer"!
+   *
+   * @param leftValue some pointer.
+   * @param rightValue some non-pointer. Either a {@link NumericValue}, {@link UnknownValue}, or
+   *     variable in the form of a {@link SymbolicValue}.
+   */
+  private ImmutableList<ValueAndSMGState>
+      calculatePointerArithmeticsOperationWithPointerAndNonPointer(
+          Value leftValue,
+          CType leftValueType,
+          Value rightValue,
+          CType rightValueType,
+          BinaryOperator binaryOperator,
+          CType calculationType,
+          SMGState currentState,
+          CBinaryExpression originalExpressionForErrorMessages,
+          CType canonicalReturnType)
+          throws CPATransferException {
+
+    if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Returned unknown value due to unknown input value in pointer"
+                  + " arithmetics expression in ",
+              cfaEdge));
+    }
+    checkArgument(currentState.isPointer(leftValue));
+    checkArgument(!currentState.isPointer(rightValue)); // 0 would be allowed, add if this happens
+
+    if (!options.trackPredicates() && !(rightValue instanceof NumericValue)) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Returned unknown value due to symbolic or unknown offset value in pointer"
+                  + " arithmetics expression without predicate tracking in ",
+              cfaEdge));
+    }
+
+    NumericValue bitSize;
+    if (calculationType instanceof CPointerType) {
+      // This is the pointer++; case for example.
+      // We need the correct types here; the types of the returned value after the pointer
+      // expression!
+      bitSize = new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType));
+    } else {
+      // If it's a cast pointer, i.e. ((unsigned int) pointer) + 8;
+      // then this is just the numeric value * 8 (i.e. 8 bit == 1 byte) and then the operation.
+      bitSize = new NumericValue(BigInteger.valueOf(8));
+    }
+    // Transform the numeric byte value into bits, as we calculate with bits internally
+    // (e.g. a "pointer + 3" becomes "pointer + (3*8)" for an int pointer)
+    Value additionalOffsetInBits =
+        calculateArithmeticOperationWithBitPromotionForAddresses(
+            bitSize,
+            leftValueType,
+            rightValue,
+            rightValueType,
+            MULTIPLY,
+            originalExpressionForErrorMessages);
+
+    // We don't really dereference here, we only want the offset and target, so we don't break
+    // abstraction here!
+    Optional<SMGStateAndOptionalSMGObjectAndOffset> dereferencedLeftValue =
+        currentState.dereferencePointerWithoutMaterilization(leftValue);
+    SMGObject pointerTarget = dereferencedLeftValue.orElseThrow().getSMGObject();
+    Value pointerOffsetInBits = dereferencedLeftValue.orElseThrow().getOffsetForObject();
+
+    if (!options.trackPredicates() && !(pointerOffsetInBits instanceof NumericValue)) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Returned unknown value due to symbolic or unknown offset value in pointer"
+                  + " arithmetics expression without predicate tracking in ",
+              cfaEdge));
+    }
+
+    Value newOffsetInBits =
+        calculateArithmeticOperationWithBitPromotionForAddresses(
+            pointerOffsetInBits,
+            leftValueType,
+            additionalOffsetInBits,
+            rightValueType,
+            binaryOperator,
+            originalExpressionForErrorMessages);
+
+    if (newOffsetInBits instanceof SymbolicExpression newSymbolicOffsetInBits) {
+      int newOffsetTypeBits =
+          evaluator
+              .getMachineModel()
+              .getSizeofInBits((CType) newSymbolicOffsetInBits.getType())
+              .intValueExact();
+      int pointerTypeInBits =
+          evaluator.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_CHAR).intValueExact();
+      // Make sure that the bit type can truly fit the byte * 8 sizes!
+      checkArgument(newOffsetTypeBits >= (pointerTypeInBits + 3));
+    }
+
+    return ImmutableList.of(evaluator.searchOrCreatePointer(pointerTarget, newOffsetInBits, state));
   }
 
   /**
@@ -4137,7 +4135,11 @@ public class SMGCPAValueVisitor
     }
 
     if (op.isLogicalOperator()) {
-      // Both need to be pointers with the same type!
+      // Both need to be pointers with the same type or numeric 0
+      if ((leftIsZero && rightType instanceof CPointerType)
+          || (rightIsZero && leftType instanceof CPointerType)) {
+        return true;
+      }
       if (!(leftType instanceof CPointerType leftPtrType
           && rightType instanceof CPointerType rightPtrType)) {
         if (leftType instanceof CArrayType && rightType instanceof CArrayType) {
