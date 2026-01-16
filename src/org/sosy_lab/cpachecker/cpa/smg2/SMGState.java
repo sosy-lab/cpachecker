@@ -6795,7 +6795,8 @@ public class SMGState
    * execution. Expects the pointer parameter to be a valid pointer!
    *
    * @param pointer target pointer.
-   * @return {@link SMGStateAndOptionalSMGObjectAndOffset} with the target if it exists.
+   * @return {@link SMGStateAndOptionalSMGObjectAndOffset} with the target if it exists and always
+   *     the same initial state used to call this (without change).
    */
   public Optional<SMGStateAndOptionalSMGObjectAndOffset> dereferencePointerWithoutMaterilization(
       Value pointer) {
