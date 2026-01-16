@@ -84,7 +84,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * </ul>
  */
 @Options(prefix = "distributedSummaries")
-public class DistributedSummarySynthesis implements Algorithm, StatisticsProvider {
+public class DistributedSummarySynthesis implements Algorithm, StatisticsProvider, AutoCloseable {
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -215,5 +215,10 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(dssStats);
     executor.collectStatistics(statsCollection);
+  }
+
+  @Override
+  public void close() {
+    executor.close();
   }
 }

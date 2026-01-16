@@ -24,7 +24,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * <p>It is the executor's decision how to schedule the workers, e.g., using multiple threads or a
  * single worker.
  */
-public interface DssExecutor extends StatisticsProvider {
+public interface DssExecutor extends StatisticsProvider, AutoCloseable {
 
   /**
    * Execute the DSS analysis on the given CFA and its block decomposition.
@@ -39,4 +39,7 @@ public interface DssExecutor extends StatisticsProvider {
           InterruptedException,
           InvalidConfigurationException,
           SolverException;
+
+  @Override
+  void close();
 }

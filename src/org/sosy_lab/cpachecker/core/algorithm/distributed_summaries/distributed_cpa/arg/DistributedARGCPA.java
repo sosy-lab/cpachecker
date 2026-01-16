@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
 import java.util.Collection;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -21,16 +22,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.*;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class DistributedARGCPA
-    implements ForwardingDistributedConfigurableProgramAnalysis, StatisticsProvider {
+    implements ForwardingDistributedConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA {
 
   private final ARGCPA argcpa;
   private final DistributedConfigurableProgramAnalysis wrappedCPA;
@@ -141,5 +138,15 @@ public class DistributedARGCPA
     if (wrappedCPA instanceof StatisticsProvider statisticsProvider) {
       statisticsProvider.collectStatistics(statsCollection);
     }
+  }
+
+  @Override
+  public @Nullable <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
+    return argcpa.retrieveWrappedCpa(type);
+  }
+
+  @Override
+  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return argcpa.getWrappedCPAs();
   }
 }
