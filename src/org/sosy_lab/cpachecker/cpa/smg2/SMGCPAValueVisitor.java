@@ -4125,6 +4125,10 @@ public class SMGCPAValueVisitor
         rightIsNumeric && rightValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO);
     checkState(!(rightIsPointer && rightIsNumeric) || rightIsZero);
 
+    if (rightIsNumeric && leftIsNumeric) {
+      return false; // 0 is a pointer internally, but this can just be calculated normally
+    }
+
     boolean oneTypeIsPointer =
         leftType instanceof CPointerType || rightType instanceof CPointerType;
     boolean oneValueIsPointer = leftIsPointer || rightIsPointer;
