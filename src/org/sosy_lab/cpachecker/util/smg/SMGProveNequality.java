@@ -157,7 +157,7 @@ public class SMGProveNequality {
       }
 
       // Just "out of bounds" -> overapproximate
-      return pToEdgeOffset.bigIntegerValue().compareTo(targetObjSize.bigIntegerValue()) > 0
+      return pToEdgeOffset.bigIntegerValue().compareTo(targetObjSize.bigIntegerValue()) >= 0
           || pToEdgeOffset.bigIntegerValue().signum() < 0;
     } else {
       // Use SMT solver
