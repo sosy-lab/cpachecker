@@ -24,6 +24,14 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
 
+  @Option(
+      secure = true,
+      description =
+          "Overapproximates all C pointers that point out of bounds to their originating memory to"
+              + " also point towards all other pointers when comparing pointers using pointer"
+              + " arithmetics.")
+  private boolean overapproximatePointerArithmeticsOutOfBoundsEquality = true;
+
   private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
 
   @Option(
@@ -707,5 +715,9 @@ public class SMGOptions {
 
   public boolean isResolveDefinites() {
     return resolveDefinites;
+  }
+
+  public boolean isOverapproximatePointerArithmeticsOutOfBoundsEquality() {
+    return overapproximatePointerArithmeticsOutOfBoundsEquality;
   }
 }

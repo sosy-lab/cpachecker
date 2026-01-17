@@ -2225,7 +2225,7 @@ public class SMGState
   public boolean proveInequality(SMGValue pValue1, SMGValue pValue2) throws SMGSolverException {
     // Can this be solved without creating a new SMGProveNequality every time?
     // TODO: Since we need to rework the values anyway, make a new class for this.
-    SMGProveNequality nequality = new SMGProveNequality(this);
+    SMGProveNequality nequality = new SMGProveNequality(this, options);
     return nequality.proveInequality(pValue1, pValue2);
   }
 

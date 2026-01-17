@@ -2598,7 +2598,7 @@ public class SMGCPABuiltins {
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hvesByObjects =
         pCurrentState.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges();
 
-    SMGProveNequality nequalityCheck = new SMGProveNequality(pCurrentState);
+    SMGProveNequality nequalityCheck = new SMGProveNequality(pCurrentState, options);
 
     BigInteger numericSizeArgumentInBits =
         sizeValue.bigIntegerValue().multiply(BigInteger.valueOf(8));
