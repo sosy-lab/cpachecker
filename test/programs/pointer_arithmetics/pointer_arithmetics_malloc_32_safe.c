@@ -99,15 +99,19 @@ int main() {
   if (otherPtr == ptrPlusOne) {
     goto ERROR;
   }
-  if (otherPtr == ptrMinusOne) {
+  if (otherPtr == ptrMinusOne) { // This can never work, as otherPtr is 10 integers big and we have the initial pointer here
     goto ERROR;
   }
   if (otherPtr == ptrPlusNine) {
     goto ERROR;
   }
-  if (otherPtr == ptrPlusTen) {
-    goto ERROR;
+  // Note: the check below MIGHT actually succeed!
+  // if (otherPtr == ptrPlusTen) {
+
+  if ((otherPtr + 1) == ptrPlusTen) {
+    goto ERROR; // Unreachable, as we know that ptrPlusTen exceeds only by 1 integer size, and (otherPtr + 1) has a buffer of that size
   }
+
 
   if ((otherPtr - 1) == ptr) {
     goto ERROR;
