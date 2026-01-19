@@ -756,7 +756,7 @@ public class CFACreator {
       cfa.setSvLibCfaMetadata(pParseResult.svLibCfaMetadata().orElseThrow());
     }
 
-    if (pParseResult.acslMetadata().isPresent()) {
+    if (pParseResult.acslComments().isPresent()) {
       CProgramScope cScope = new CProgramScope(cfa, logger);
       try {
         cfa.setAcslMetadata(createAcslMetadata(cScope, pParseResult));
