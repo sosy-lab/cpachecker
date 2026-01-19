@@ -39,10 +39,10 @@ public class AcslMetadataParsingTest {
   private final CFACreator cfaCreator;
   private final LogManager logManager;
 
-  public AcslMetadataParsingTest(String pProgramName, List<String> pAnnotations)
+  public AcslMetadataParsingTest(String pProgramName, ImmutableList<String> pAnnotations)
       throws InvalidConfigurationException {
     programName = pProgramName;
-    expectedComments = ImmutableList.copyOf(pAnnotations);
+    expectedComments = pAnnotations;
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
@@ -54,11 +54,11 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    b.add(task("minimal_example.c", List.of("ensures x == 10;")));
+    b.add(task("minimal_example.c", ImmutableList.of("ensures x == 10;")));
     return b.build();
   }
 
-  private static Object[] task(String program, List<String> annotations) {
+  private static Object[] task(String program, ImmutableList<String> annotations) {
     return new Object[] {program, annotations};
   }
 
