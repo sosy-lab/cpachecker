@@ -154,11 +154,12 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
   }
 
   public static ValueAnalysisState renameIds(
-      ValueAnalysisState pState, SymbolicIdentifierRenamer pVisitor) {
+      ValueAnalysisState pState, SymbolicIdentifierRenamer pVisitor, String pBlockID) {
     ValueAnalysisState newState = new ValueAnalysisState(pState.getMachineModel());
 
     for (Entry<MemoryLocation, ValueAndType> constant : pState.getConstants()) {
-      if (constant.getValue().getValue() instanceof SymbolicValue symValue) {
+      if (constant.getValue().getValue() instanceof SymbolicValue symValue &&
+          accessedVariables.get(pBlockID).containsKey(constant.getKey().getExtendedQualifiedName())) {
         newState.assignConstant(
             constant.getKey(), symValue.accept(pVisitor), constant.getValue().getType());
       } else {

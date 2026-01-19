@@ -71,7 +71,7 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
 
     for (AbstractState state : pState.getWrappedStates()) {
       if (state instanceof ValueAnalysisState valueState) {
-        states.add(DeserializeValueAnalysisStateOperator.renameIds(valueState, visitor));
+        states.add(DeserializeValueAnalysisStateOperator.renameIds(valueState, visitor, blockNode.getId()));
       } else if (state instanceof ConstraintsState constraintsState) {
         states.add(DeserializeConstraintsStateOperator.renameIds(constraintsState, visitor));
       } else {
