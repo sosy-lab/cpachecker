@@ -47,8 +47,12 @@ public class FunArrayUnification {
     while (currentIndex <= boundsA.size() && currentIndex <= boundsB.size()) {
 
       // Case 6
-      if (currentIndex == boundsA.size() || currentIndex == boundsB.size()) {
-        handleExtremal();
+      if (currentIndex == boundsA.size() - 1) {
+        handleLastInA();
+        continue;
+      }
+      if (currentIndex == boundsB.size() - 1) {
+        handleLastInB();
         continue;
       }
 
@@ -276,8 +280,33 @@ public class FunArrayUnification {
     return a || b;
   }
 
-  // Corresponds to case 6: The next bound is the last one in either of the arrays.
-  private void handleExtremal() {
-    //TODO
+  private void handleLastInA(){
+    handleLast(boundsA, boundsB, valuesB, emptinessB, currentIndex);
+  }
+
+  private void handleLastInB(){
+    handleLast(boundsB, boundsA, valuesA, emptinessA, currentIndex);
+  }
+
+  private static void handleLast(
+      List<Bound> exhaustedBounds,
+      List<Bound> ongoingBounds,
+      List<Interval> ongoingValues,
+      List<Boolean> ongoingEmptiness,
+      int currentIndex
+  ){
+    assert ongoingBounds.size() > currentIndex;
+
+    var currentBoundA = exhaustedBounds.get(currentIndex);
+    var currentBoundB = ongoingBounds.get(currentIndex);
+    var nextBoundB = ongoingBounds.get(currentIndex + 1);
+
+    var joinedBound = currentBoundA.union(currentBoundB).union(nextBoundB);
+
+    exhaustedBounds.set(currentIndex, joinedBound);
+    ongoingBounds.set(currentIndex, joinedBound);
+    ongoingBounds.remove(currentIndex + 1);
+    ongoingValues.remove(currentIndex);
+    ongoingEmptiness.remove(currentIndex);
   }
 }
