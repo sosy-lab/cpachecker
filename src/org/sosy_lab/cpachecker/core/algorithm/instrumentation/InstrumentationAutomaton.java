@@ -777,16 +777,16 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                "; int __saved_INSTR_"
+                "; int __INSTR_saved_"
                     + pIndex
                     + " = 0; "
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
                                 entry.getValue()
-                                    + " __"
+                                    + " __INSTR_"
                                     + entry.getKey()
-                                    + "_INSTR_"
+                                    + "_"
                                     + pIndex
                                     + (entry.getKey().charAt(0) == '*'
                                         ? " = alloca(sizeof("
@@ -802,25 +802,25 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                "if(__VERIFIER_nondet_int() && __saved_INSTR_"
+                "if(__VERIFIER_nondet_int() && __INSTR_saved_"
                     + pIndex
-                    + " == 0) { __saved_INSTR_"
+                    + " == 0) { __INSTR_saved_"
                     + pIndex
                     + " =1; "
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
                                 getDereferencesForPointer(entry.getValue())
-                                    + " __"
+                                    + " __INSTR_"
                                     + entry.getKey()
-                                    + "_INSTR_"
+                                    + "_"
                                     + pIndex
                                     + " = "
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey())
                         .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
-                    + "} else { __VERIFIER_assert((__saved_INSTR_"
+                    + "} else { __VERIFIER_assert((__INSTR_saved_"
                     + pIndex
                     + " == 0)"
                     + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
@@ -830,10 +830,10 @@ public class InstrumentationAutomaton {
                                 "("
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey()
-                                    + " != __"
+                                    + " != __INSTR_"
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey()
-                                    + "_INSTR_"
+                                    + "_"
                                     + pIndex
                                     + ")")
                         .collect(Collectors.joining("||"))
@@ -861,16 +861,16 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                "; int __saved_INSTR_"
+                "; int __INSTR_saved_"
                     + pIndex
                     + " = 0; "
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
                                 entry.getValue()
-                                    + " __"
+                                    + " __INSTR_"
                                     + entry.getKey()
-                                    + "_INSTR_"
+                                    + "_"
                                     + pIndex
                                     + (entry.getKey().charAt(0) == '*'
                                         ? " = alloca(sizeof("
@@ -886,25 +886,25 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                "if(__VERIFIER_nondet_int() && __saved_INSTR_"
+                "if(__VERIFIER_nondet_int() && __INSTR_saved_"
                     + pIndex
-                    + " == 0) { __saved_INSTR_"
+                    + " == 0) { __INSTR_saved_"
                     + pIndex
                     + " =1; "
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
                                 getDereferencesForPointer(entry.getValue())
-                                    + " __"
+                                    + " __INSTR_"
                                     + entry.getKey()
-                                    + "_INSTR_"
+                                    + "_"
                                     + pIndex
                                     + " = "
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey())
                         .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
-                    + "} else { if((__saved_INSTR_"
+                    + "} else { if((__INSTR_saved_"
                     + pIndex
                     + " == 1)"
                     + (!liveVariablesAndTypes.isEmpty() ? " && " : "")
@@ -916,9 +916,9 @@ public class InstrumentationAutomaton {
                                     + entry.getKey()
                                     + " == "
                                     + getDereferencesForPointer(entry.getValue())
-                                    + " __"
+                                    + " __INSTR_"
                                     + entry.getKey()
-                                    + "_INSTR_"
+                                    + "_"
                                     + pIndex
                                     + ")")
                         .collect(Collectors.joining("&&"))
@@ -947,14 +947,13 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                (pIndex == 0 ? "; int saved = 0; int pc_INSTR = 0; " : "")
+                (pIndex == 0 ? "; int __INSTR_saved = 0; int __INSTR_pc = 0; " : "")
                     + undeclaredVariables.entrySet().stream()
                         .map(
                             (entry) ->
                                 entry.getValue()
-                                    + " "
+                                    + " __INSTR_"
                                     + entry.getKey()
-                                    + "_INSTR"
                                     + (entry.getKey().charAt(0) == '*'
                                         ? " = alloca(sizeof("
                                             + getAllocationForPointer(entry.getValue())
@@ -969,38 +968,38 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                "if (saved == 0) {pc_INSTR = "
+                "if (__INSTR_saved == 0) {__INSTR_pc = "
                     + pIndex
                     + (!liveVariablesAndTypes.isEmpty() ? " ; " : "")
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
                                 getDereferencesForPointer(entry.getValue())
+                                    + "__INSTR_"
                                     + entry.getKey()
-                                    + "_INSTR"
                                     + " = "
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey())
                         .collect(Collectors.joining(";"))
                     + ";}\\n"
-                    + "if(__VERIFIER_nondet_int() && saved"
-                    + " == 0) { saved"
-                    + " =1; pc_INSTR = "
+                    + "if(__VERIFIER_nondet_int() && __INSTR_saved"
+                    + " == 0) { __INSTR_saved"
+                    + " =1; __INSTR_pc = "
                     + pIndex
                     + "; "
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
                                 getDereferencesForPointer(entry.getValue())
+                                    + "__INSTR_"
                                     + entry.getKey()
-                                    + "_INSTR"
                                     + " = "
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey())
                         .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
-                    + "} else { __VERIFIER_assert((saved"
-                    + " == 0) || (pc_INSTR != "
+                    + "} else { __VERIFIER_assert((__INSTR_saved"
+                    + " == 0) || (__INSTR_pc != "
                     + pIndex
                     + ")"
                     + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
@@ -1012,8 +1011,8 @@ public class InstrumentationAutomaton {
                                     + entry.getKey()
                                     + " != "
                                     + getDereferencesForPointer(entry.getValue())
+                                    + "__INSTR_"
                                     + entry.getKey()
-                                    + "_INSTR"
                                     + ")")
                         .collect(Collectors.joining("||"))
                     + ");}"),
