@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class FunArrayUnification {
 
@@ -84,7 +86,7 @@ public class FunArrayUnification {
           // ││ A │ B│
           // │└───┘  │
           // └───────┘
-          handleBIsSuperset();
+          handleBIsSuperset(uniqueToB, intersection, neutralElementB);
           continue;
         }
       } else {
@@ -96,7 +98,7 @@ public class FunArrayUnification {
           // │A │ B ││
           // │  └───┘│
           // └───────┘
-          handleAIsSuperset();
+          handleAIsSuperset(uniqueToA, intersection, neutralElementA);
           continue;
         } else {
           assert currentBoundA.expressions().containsAll(intersection.expressions());
@@ -119,17 +121,78 @@ public class FunArrayUnification {
 
   // Corresponds to case 1: The bounds are equal.
   private void handleEqual() {
-    //TODO
+    currentIndex++;
   }
 
   // Corresponds to case 2: Current bound A is a superset of current bound B.
-  private void handleAIsSuperset() {
-    //TODO
+  private void handleAIsSuperset(
+      Bound uniqueToA,
+      Bound intersection,
+      Interval neutralElementA
+  ) {
+    handleSuperset(
+        uniqueToA,
+        intersection,
+        boundsA,
+        valuesA,
+        emptinessA,
+        boundsB,
+        neutralElementA
+    );
   }
 
   // Corresponds to case 3: Current bound B is a superset of current bound A.
-  private void handleBIsSuperset() {
-    //TODO
+  private void handleBIsSuperset(
+      Bound uniqueToB,
+      Bound intersection,
+      Interval neutralElementB
+  ) {
+    handleSuperset(
+        uniqueToB,
+        intersection,
+        boundsB,
+        valuesB,
+        emptinessB,
+        boundsA,
+        neutralElementB
+    );
+  }
+
+  // The general case for either case 2 or 3
+  private void handleSuperset(
+      Bound uniqueToSuperset,
+      Bound intersection,
+      List<Bound> bounds,
+      List<Interval> values,
+      List<Boolean> emptiness,
+      List<Bound> oppositeBounds,
+      Interval neutralElement
+  ) {
+    var anticipatedInOppositeBounds =
+        filterAnticipatedInOppositeBounds(uniqueToSuperset, oppositeBounds);
+    if (anticipatedInOppositeBounds.isEmpty()) {
+      // Corresponds to case 2.1 (or 3.1)
+      bounds.set(currentIndex, intersection);
+    } else {
+      // Corresponds to case 2.2 (or 3.2)
+      values.add(currentIndex, neutralElement);
+      emptiness.add(currentIndex, true);
+      bounds.set(currentIndex, uniqueToSuperset);
+      bounds.add(currentIndex, intersection);
+    }
+  }
+
+  private Set<NormalFormExpression> filterAnticipatedInOppositeBounds(
+      Bound bound,
+      List<Bound> oppositeBounds) {
+    var anticipatedInOppositeBounds = oppositeBounds.stream()
+        .skip(currentIndex)
+        .flatMap(b -> b.expressions().stream())
+        .collect(Collectors.toSet());
+
+    return bound.expressions().stream()
+        .filter(e -> anticipatedInOppositeBounds.contains(e))
+        .collect(Collectors.toSet());
   }
 
   // Corresponds to case 4: The bounds are partially overlapping.
