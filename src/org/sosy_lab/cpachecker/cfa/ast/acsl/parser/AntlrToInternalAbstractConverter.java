@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarBaseVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -59,6 +60,8 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
     if (cVariableDeclaration != null && acslVariableDeclaration == null) {
       if (cVariableDeclaration instanceof CVariableDeclaration var) {
         return new AcslCVariableDeclaration(var);
+      } else if (cVariableDeclaration instanceof CParameterDeclaration var) {
+        return new AcslCVariableDeclaration(var.asVariableDeclaration());
       } else {
         throw new RuntimeException(
             "Expected a C variable declaration, but got: " + cVariableDeclaration);
