@@ -35,14 +35,14 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class AcslMetadataParsingTest {
   private static final String TEST_DIR = "test/programs/acsl/";
   private final String programName;
-  private final String annotation;
+  private final ImmutableList<String> expectedComments;
   private final CFACreator cfaCreator;
   private final LogManager logManager;
 
-  public AcslMetadataParsingTest(String pProgramName, String pAnnotations)
+  public AcslMetadataParsingTest(String pProgramName, List<String> pAnnotations)
       throws InvalidConfigurationException {
     programName = pProgramName;
-    annotation = pAnnotations;
+    expectedComments = ImmutableList.copyOf(pAnnotations);
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
@@ -54,11 +54,11 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    b.add(task("minimal_example.c", "ensures x == 10;"));
+    b.add(task("minimal_example.c", List.of("ensures x == 10;")));
     return b.build();
   }
 
-  private static Object[] task(String program, String annotations) {
+  private static Object[] task(String program, List<String> annotations) {
     return new Object[] {program, annotations};
   }
 
@@ -68,14 +68,20 @@ public class AcslMetadataParsingTest {
     CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
 
     CProgramScope programScope = new CProgramScope(cfa, logManager);
-    AAcslAnnotation expectedAnnotation =
-        AcslParser.parseAcslAnnotation(
-            annotation, FileLocation.DUMMY, programScope, AcslScope.empty());
+
+    ImmutableList.Builder<AAcslAnnotation> expectedBuilder = ImmutableList.builder();
+    for (String s : expectedComments) {
+      expectedBuilder.add(
+          AcslParser.parseAcslAnnotation(s, FileLocation.DUMMY, programScope, AcslScope.empty()));
+    }
+    ImmutableList<AAcslAnnotation> expectedAnnotations = expectedBuilder.build();
 
     AcslMetadata acslMetadata = cfa.getMetadata().getAcslMetadata();
     ImmutableListMultimap<AAcslAnnotation, CFANode> annotations =
         acslMetadata.genericAnnotations().inverse();
-    assert annotations.containsKey(expectedAnnotation);
+    for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
+      assert annotations.containsKey(expectedAnnotation);
+    }
   }
 
   public record CodeLoctation(int line, int column) {}
