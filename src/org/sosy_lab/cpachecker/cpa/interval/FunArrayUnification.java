@@ -110,7 +110,13 @@ public class FunArrayUnification {
           // │  │    │  │
           // └──┼────┘ B│
           //    └───────┘
-          handlePartiallyOverlapping();
+          handlePartiallyOverlapping(
+              uniqueToA,
+              uniqueToB,
+              intersection,
+              neutralElementA,
+              neutralElementB
+          );
           continue;
         }
       }
@@ -160,6 +166,7 @@ public class FunArrayUnification {
   }
 
   // The general case for either case 2 or 3
+  // TODO Hofstetter: This is propably just a special case of case 4. Replace it.
   private void handleSuperset(
       Bound uniqueToSuperset,
       Bound intersection,
@@ -197,8 +204,30 @@ public class FunArrayUnification {
   }
 
   // Corresponds to case 4: The bounds are partially overlapping.
-  private void handlePartiallyOverlapping() {
-    //TODO
+  private void handlePartiallyOverlapping(
+      Bound uniqueToA,
+      Bound uniqueToB,
+      Bound intersection,
+      Interval neutralElementA,
+      Interval neutralElementB
+  ) {
+    var anticipatedFromA = filterAnticipatedInOppositeBounds(uniqueToA, boundsB);
+    var anticipatedFromB = filterAnticipatedInOppositeBounds(uniqueToB, boundsA);
+
+    boundsA.set(currentIndex, intersection);
+    boundsB.set(currentIndex, intersection);
+
+    if (!anticipatedFromA.isEmpty()) {
+      boundsA.add(currentIndex + 1, new Bound(anticipatedFromA));
+      valuesA.add(neutralElementA);
+      emptinessA.add(currentIndex, true);
+    }
+
+    if (!anticipatedFromB.isEmpty()) {
+      boundsB.add(currentIndex + 1, new Bound(anticipatedFromB));
+      valuesB.add(neutralElementB);
+      emptinessB.add(currentIndex, true);
+    }
   }
 
   // Corresponds to case 5: The bounds are entirely disjoint.
