@@ -36,16 +36,13 @@ public class AcslMetadataParsingTest {
   private static final String TEST_DIR = "test/programs/acsl/";
   private final String programName;
   private final String annotation;
-  private final CodeLoctation loctations;
   private final CFACreator cfaCreator;
   private final LogManager logManager;
 
-  public AcslMetadataParsingTest(
-      String pProgramName, String pAnnotations, CodeLoctation pLoctations)
+  public AcslMetadataParsingTest(String pProgramName, String pAnnotations)
       throws InvalidConfigurationException {
     programName = pProgramName;
     annotation = pAnnotations;
-    loctations = pLoctations;
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
@@ -57,12 +54,12 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    b.add(task("minimal_example.c", "ensures x == 10;", new CodeLoctation(12, 5)));
+    b.add(task("minimal_example.c", "ensures x == 10;"));
     return b.build();
   }
 
-  private static Object[] task(String program, String annotations, CodeLoctation locations) {
-    return new Object[] {program, annotations, locations};
+  private static Object[] task(String program, String annotations) {
+    return new Object[] {program, annotations};
   }
 
   @Test
