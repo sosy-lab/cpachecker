@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
@@ -364,7 +363,6 @@ class EclipseCParser implements CParser {
       result = result.withASTStructure(astCfaRelation);
 
       if (result.acslComments().isPresent()) {
-        //AcslMetadata acslMetadata = builder.matchAcslCommentsToNodes(result, astCfaRelation);
         result = builder.matchAcslCommentsToNodes(result, astCfaRelation);
       }
 

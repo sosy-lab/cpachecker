@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -45,7 +44,6 @@ public record ParseResult(
     List<Path> fileNames,
     Optional<AstCfaRelation> astStructure,
     Optional<List<AcslComment>> acslComments,
-    Optional<AcslMetadata> acslMetadata,
     Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
     Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
@@ -67,7 +65,6 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
         Optional.empty());
   }
 
@@ -77,7 +74,6 @@ public record ParseResult(
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames,
       List<AcslComment> pAcslComments,
-      AcslMetadata pAcslMetadata,
       List<SyntacticBlock> pBlocks) {
     this(
         pFunctions,
@@ -86,7 +82,6 @@ public record ParseResult(
         pFileNames,
         Optional.empty(),
         Optional.of(pAcslComments),
-        Optional.of(pAcslMetadata),
         Optional.of(pBlocks),
         Optional.empty(),
         Optional.empty(),
@@ -109,7 +104,6 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
         Optional.of(pSvLibCfaMetadata));
   }
 
@@ -126,7 +120,6 @@ public record ParseResult(
         fileNames,
         Optional.of(pAstCfaRelation),
         acslComments,
-        acslMetadata,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
@@ -145,7 +138,6 @@ public record ParseResult(
         fileNames,
         astStructure,
         acslComments,
-        acslMetadata,
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
         Optional.of(pCfaNodeToAstParametersInScope),
@@ -160,7 +152,6 @@ public record ParseResult(
         pFileNames,
         astStructure,
         acslComments,
-        acslMetadata,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
@@ -176,24 +167,7 @@ public record ParseResult(
         fileNames,
         astStructure,
         Optional.of(pAcslComments),
-        acslMetadata,
         Optional.of(pBlocks),
-        cfaNodeToAstLocalVariablesInScope,
-        cfaNodeToAstParametersInScope,
-        Optional.empty());
-  }
-
-  public ParseResult withAcslMetadata(AcslMetadata pAcslMetadata) {
-    Verify.verify(acslMetadata.isEmpty());
-    return new ParseResult(
-        functions,
-        cfaNodes,
-        globalDeclarations,
-        fileNames,
-        astStructure,
-        acslComments,
-        Optional.of(pAcslMetadata),
-        blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
         Optional.empty());
