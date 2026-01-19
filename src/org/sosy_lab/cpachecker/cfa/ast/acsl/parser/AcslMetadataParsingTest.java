@@ -74,12 +74,11 @@ public class AcslMetadataParsingTest {
     AAcslAnnotation expectedAnnotation =
         AcslParser.parseAcslAnnotation(
             annotation, FileLocation.DUMMY, programScope, AcslScope.empty());
-    //String expectedAstString = expectedAnnotation.toAstString();
 
     AcslMetadata acslMetadata = cfa.getMetadata().getAcslMetadata();
-    if (acslMetadata != null) {
-      ImmutableListMultimap<CFANode, AAcslAnnotation> annotations = acslMetadata.genericAnnotations();
-    }
+    ImmutableListMultimap<AAcslAnnotation, CFANode> annotations =
+        acslMetadata.genericAnnotations().inverse();
+    assert annotations.containsKey(expectedAnnotation);
   }
 
   public record CodeLoctation(int line, int column) {}
