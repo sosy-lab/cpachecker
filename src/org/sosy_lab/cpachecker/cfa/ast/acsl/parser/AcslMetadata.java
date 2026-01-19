@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
@@ -49,15 +50,27 @@ public record AcslMetadata(
         ImmutableSetMultimap.of());
   }
 
-  public static AcslMetadata withGenericAnnotations(
-      ImmutableListMultimap<CFANode, AAcslAnnotation> pAnnotations) {
+  public static AcslMetadata withComments(
+      AcslMetadata pAcslMetadata, List<AcslComment> pAcslComments) {
     return new AcslMetadata(
-        ImmutableList.of(),
+        ImmutableList.copyOf(pAcslComments),
+        pAcslMetadata.genericAnnotations,
+        pAcslMetadata.globalAcslDeclarations,
+        pAcslMetadata.assertions,
+        pAcslMetadata.invariants,
+        pAcslMetadata.functionContracts,
+        pAcslMetadata.modifiedMemoryLocations);
+  }
+
+  public static AcslMetadata withGenericAnnotations(
+      AcslMetadata pAcslMetadata, ImmutableListMultimap<CFANode, AAcslAnnotation> pAnnotations) {
+    return new AcslMetadata(
+        pAcslMetadata.pAcslComments,
         pAnnotations,
-        ImmutableSet.of(),
-        ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of());
+        pAcslMetadata.globalAcslDeclarations,
+        pAcslMetadata.assertions,
+        pAcslMetadata.invariants,
+        pAcslMetadata.functionContracts,
+        pAcslMetadata.modifiedMemoryLocations);
   }
 }

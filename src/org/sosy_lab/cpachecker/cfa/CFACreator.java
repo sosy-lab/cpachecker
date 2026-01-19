@@ -798,6 +798,8 @@ public class CFACreator {
       throws AcslParseException {
     Verify.verify(pParseResult.acslComments().isPresent());
 
+    AcslMetadata metadata =
+        AcslMetadata.withComments(AcslMetadata.empty(), pParseResult.acslComments().orElseThrow());
     ImmutableListMultimap.Builder<CFANode, AAcslAnnotation> annotationBuilder =
         ImmutableListMultimap.builder();
     for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
@@ -807,7 +809,7 @@ public class CFACreator {
               comment.getComment(), comment.getFileLocation(), pScope, AcslScope.empty()));
     }
     ImmutableListMultimap<CFANode, AAcslAnnotation> annotations = annotationBuilder.build();
-    return AcslMetadata.withGenericAnnotations(annotations);
+    return AcslMetadata.withGenericAnnotations(metadata, annotations);
   }
 
   /**
