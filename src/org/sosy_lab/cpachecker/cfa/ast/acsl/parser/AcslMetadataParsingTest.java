@@ -55,6 +55,30 @@ public class AcslMetadataParsingTest {
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
     b.add(task("minimal_example.c", ImmutableList.of("ensures x == 10;")));
+    b.add(task("after_else.c", ImmutableList.of("assert a == 10 || a == 20;")));
+    b.add(task("after_for_loop2.c", ImmutableList.of("assert b == 20;")));
+    b.add(task("after_if.c", ImmutableList.of("assert a != 20;")));
+    b.add(task("after_loop.c", ImmutableList.of("assert a == 20;")));
+    b.add(task("after_loop2.c", ImmutableList.of("assert  a == 20;")));
+    b.add(task("at_end.c", ImmutableList.of("assert a == 20;")));
+    b.add(task("badVariable.c", ImmutableList.of()));
+    b.add(task("empty.c", ImmutableList.of("assert \true")));
+    b.add(task("end_of_do_while.c", ImmutableList.of("assert a <= 20")));
+    b.add(task("even.c", ImmutableList.of("loop invariant x % 2 == 0;")));
+    b.add(task("even2.c", ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;")));
+    b.add(task("in_middle.c", ImmutableList.of("assert a == 19;")));
+    b.add(task("inv_for.c", ImmutableList.of("loop invariant x + y == 20;")));
+    b.add(task("inv_short-for.c", ImmutableList.of("loop invariant x + y == 20;")));
+    b.add(task("no_annotations.c", ImmutableList.of()));
+    b.add(
+        task(
+            "statements.c",
+            ImmutableList.of(
+                "ensures x == 0;",
+                "ensures y == 0;",
+                "ensures x == i;",
+                "requires x == i; ensures y == i;")));
+    b.add(task("traps.c", ImmutableList.of("assert \false;", "ensures y > 0")));
     return b.build();
   }
 
