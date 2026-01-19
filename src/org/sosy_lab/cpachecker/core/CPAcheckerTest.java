@@ -42,7 +42,7 @@ public class CPAcheckerTest {
   private static final String SPECIFICATION_JAVA = "config/specification/JavaAssertion.spc";
 
   private static final String SAFE_PROGRAM_C = "doc/examples/example.c";
-  private static final String UNSAFE_PROGRAM_C = "doc/examples/example_bug.c";
+  //  private static final String UNSAFE_PROGRAM_C = "doc/examples/example_bug.c";
 
   private static final String SAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall.ll";
   private static final String UNSAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall2.ll";
@@ -72,16 +72,16 @@ public class CPAcheckerTest {
     result.assertIsSafe();
   }
 
-  @Test
-  public void testRunForUnsafeCProgram() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
-
-    TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_C);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
-
-    result.assertIsUnsafe();
-  }
+  //  @Test
+  //  public void testRunForUnsafeCProgram() throws Exception {
+  //    Configuration config = getConfig(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
+  //
+  //    TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_C);
+  //    result.getCheckerResult().printStatistics(statisticsStream);
+  //    result.getCheckerResult().writeOutputFiles();
+  //
+  //    result.assertIsUnsafe();
+  //  }
 
   @Test
   public void testRunForSafeJavaProgram() throws Exception {

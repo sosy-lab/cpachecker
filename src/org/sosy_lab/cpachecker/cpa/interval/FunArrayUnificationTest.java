@@ -20,8 +20,8 @@ public class FunArrayUnificationTest {
     Bound boundB = new Bound(new NormalFormExpression(5));
     Bound boundC = new Bound(new NormalFormExpression(10));
 
-    Interval valueA = new Interval(1L,1L);
-    Interval valueB = new Interval(2L,2L);
+    Interval valueA = new Interval(1L, 1L);
+    Interval valueB = new Interval(2L, 2L);
 
     // {0} [1,1] {10}
     FunArray arrayA =
@@ -31,7 +31,9 @@ public class FunArrayUnificationTest {
     // {0} [2,2] {5} [2,2] {10}
     FunArray arrayB =
         new FunArray(
-            ImmutableList.of(boundA, boundB, boundC), ImmutableList.of(valueB, valueB), ImmutableList.of(false, false));
+            ImmutableList.of(boundA, boundB, boundC),
+            ImmutableList.of(valueB, valueB),
+            ImmutableList.of(false, false));
 
     FunArray.UnifyResult result = arrayA.unify(arrayB, Interval.EMPTY, Interval.EMPTY);
     FunArray resultA = result.resultThis();

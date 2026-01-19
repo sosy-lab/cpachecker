@@ -25,10 +25,7 @@ public class FunArrayUnification {
 
   int currentIndex;
 
-  public FunArrayUnification(
-      FunArray arrayA,
-      FunArray arrayB
-  ) {
+  public FunArrayUnification(FunArray arrayA, FunArray arrayB) {
     this.boundsA = new ArrayList<>(arrayA.bounds());
     this.boundsB = new ArrayList<>(arrayB.bounds());
     this.valuesA = new ArrayList<>(arrayA.values());
@@ -37,13 +34,9 @@ public class FunArrayUnification {
     this.emptinessB = new ArrayList<>(arrayB.emptiness());
   }
 
-  public record UnifyResult(FunArray resultA, FunArray resultB) {
-  }
+  public record UnifyResult(FunArray resultA, FunArray resultB) {}
 
-  public UnifyResult unify(
-      Interval neutralElementA,
-      Interval neutralElementB
-  ) {
+  public UnifyResult unify(Interval neutralElementA, Interval neutralElementB) {
     while (currentIndex <= boundsA.size() && currentIndex <= boundsB.size()) {
 
       // Case 6
@@ -82,7 +75,6 @@ public class FunArrayUnification {
           // │  A=B  │
           // └───────┘
           handleEqual();
-          continue;
         } else {
           assert currentBoundB.expressions().containsAll(currentBoundA.expressions());
           // Case 3
@@ -92,7 +84,6 @@ public class FunArrayUnification {
           // │└───┘  │
           // └───────┘
           handleBIsSuperset(uniqueToB, intersection, neutralElementB);
-          continue;
         }
       } else {
         if (uniqueToB.isEmpty()) {
@@ -104,7 +95,6 @@ public class FunArrayUnification {
           // │  └───┘│
           // └───────┘
           handleAIsSuperset(uniqueToA, intersection, neutralElementA);
-          continue;
         } else {
           assert currentBoundA.expressions().containsAll(intersection.expressions());
           assert currentBoundB.expressions().containsAll(intersection.expressions());
@@ -115,13 +105,7 @@ public class FunArrayUnification {
           // └──┼────┘ B│
           //    └───────┘
           handlePartiallyOverlapping(
-              uniqueToA,
-              uniqueToB,
-              intersection,
-              neutralElementA,
-              neutralElementB
-          );
-          continue;
+              uniqueToA, uniqueToB, intersection, neutralElementA, neutralElementB);
         }
       }
     }
@@ -136,37 +120,13 @@ public class FunArrayUnification {
   }
 
   // Corresponds to case 2: Current bound A is a superset of current bound B.
-  private void handleAIsSuperset(
-      Bound uniqueToA,
-      Bound intersection,
-      Interval neutralElementA
-  ) {
-    handleSuperset(
-        uniqueToA,
-        intersection,
-        boundsA,
-        valuesA,
-        emptinessA,
-        boundsB,
-        neutralElementA
-    );
+  private void handleAIsSuperset(Bound uniqueToA, Bound intersection, Interval neutralElementA) {
+    handleSuperset(uniqueToA, intersection, boundsA, valuesA, emptinessA, boundsB, neutralElementA);
   }
 
   // Corresponds to case 3: Current bound B is a superset of current bound A.
-  private void handleBIsSuperset(
-      Bound uniqueToB,
-      Bound intersection,
-      Interval neutralElementB
-  ) {
-    handleSuperset(
-        uniqueToB,
-        intersection,
-        boundsB,
-        valuesB,
-        emptinessB,
-        boundsA,
-        neutralElementB
-    );
+  private void handleBIsSuperset(Bound uniqueToB, Bound intersection, Interval neutralElementB) {
+    handleSuperset(uniqueToB, intersection, boundsB, valuesB, emptinessB, boundsA, neutralElementB);
   }
 
   // The general case for either case 2 or 3
@@ -178,8 +138,7 @@ public class FunArrayUnification {
       List<Interval> values,
       List<Boolean> emptiness,
       List<Bound> oppositeBounds,
-      Interval neutralElement
-  ) {
+      Interval neutralElement) {
     var anticipatedInOppositeBounds =
         filterAnticipatedInOppositeBounds(uniqueToSuperset, oppositeBounds);
     if (anticipatedInOppositeBounds.isEmpty()) {
@@ -195,12 +154,12 @@ public class FunArrayUnification {
   }
 
   private Set<NormalFormExpression> filterAnticipatedInOppositeBounds(
-      Bound bound,
-      List<Bound> oppositeBounds) {
-    var anticipatedInOppositeBounds = oppositeBounds.stream()
-        .skip(currentIndex)
-        .flatMap(b -> b.expressions().stream())
-        .collect(Collectors.toSet());
+      Bound bound, List<Bound> oppositeBounds) {
+    var anticipatedInOppositeBounds =
+        oppositeBounds.stream()
+            .skip(currentIndex)
+            .flatMap(b -> b.expressions().stream())
+            .collect(Collectors.toSet());
 
     return bound.expressions().stream()
         .filter(e -> anticipatedInOppositeBounds.contains(e))
@@ -213,8 +172,7 @@ public class FunArrayUnification {
       Bound uniqueToB,
       Bound intersection,
       Interval neutralElementA,
-      Interval neutralElementB
-  ) {
+      Interval neutralElementB) {
     var anticipatedFromA = filterAnticipatedInOppositeBounds(uniqueToA, boundsB);
     var anticipatedFromB = filterAnticipatedInOppositeBounds(uniqueToB, boundsA);
 
@@ -244,32 +202,22 @@ public class FunArrayUnification {
     dropBound(boundsA, valuesA, emptinessA, currentIndex);
     dropBound(boundsB, valuesB, emptinessB, currentIndex);
 
-    //TODO Hofstetter: Does the current index need to be modified?
+    // TODO Hofstetter: Does the current index need to be modified?
   }
 
   private void dropBound(
-      List<Bound> bounds,
-      List<Interval> values,
-      List<Boolean> emptiness,
-      int index
-  ) {
+      List<Bound> bounds, List<Interval> values, List<Boolean> emptiness, int index) {
     bounds.remove(index);
-    joinElementWithPredecessor(values, index, (a,b) -> a.union(b));
+    joinElementWithPredecessor(values, index, (a, b) -> a.union(b));
     joinElementWithPredecessor(emptiness, index, FunArrayUnification::joinEmptiness);
   }
 
   private static <T> void joinElementWithPredecessor(
-      List<T> list,
-      int index,
-      BinaryOperator<T> join
-  ) {
+      List<T> list, int index, BinaryOperator<T> join) {
     assert index < list.size();
     assert index > 0;
 
-    var union = join.apply(
-        list.get(index - 1),
-        list.get(index)
-    );
+    var union = join.apply(list.get(index - 1), list.get(index));
     list.set(index, union);
     list.remove(index - 1);
   }
@@ -280,11 +228,11 @@ public class FunArrayUnification {
     return a || b;
   }
 
-  private void handleLastInA(){
+  private void handleLastInA() {
     handleLast(boundsA, boundsB, valuesB, emptinessB, currentIndex);
   }
 
-  private void handleLastInB(){
+  private void handleLastInB() {
     handleLast(boundsB, boundsA, valuesA, emptinessA, currentIndex);
   }
 
@@ -293,8 +241,7 @@ public class FunArrayUnification {
       List<Bound> ongoingBounds,
       List<Interval> ongoingValues,
       List<Boolean> ongoingEmptiness,
-      int currentIndex
-  ){
+      int currentIndex) {
     assert ongoingBounds.size() > currentIndex;
 
     var currentBoundA = exhaustedBounds.get(currentIndex);
