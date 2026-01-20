@@ -58,13 +58,13 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
         }
       }
 
-      return renameIdentifiersState(new CompositeState(states.build()));
+      return new CompositeState(states.build());
     } finally {
       stats.getDeserializationTime().stop();
     }
   }
 
-  public CompositeState renameIdentifiersState(CompositeState pState) {
+  /*public CompositeState renameIdentifiersState(CompositeState pState) {
 
     ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
     SymbolicIdentifierRenamer visitor = new SymbolicIdentifierRenamer(new HashMap<>());
@@ -80,5 +80,5 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
     }
 
     return new CompositeState(states.build());
-  }
+  }*/
 }

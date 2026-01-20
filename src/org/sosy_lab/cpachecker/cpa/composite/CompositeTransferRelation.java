@@ -23,9 +23,11 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.util.SymbolicIdentifierRenamer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
@@ -49,13 +52,20 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 final class CompositeTransferRelation implements WrapperTransferRelation {
 
@@ -317,29 +327,102 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
 
   // This method combines the value state of this composite state with the value state
   // of the block state's violation condition. The result is a constraint state that can be used in
-  // strengthening.
+  // strengthening. Before the new constraint state is created, we need to ensure that the identifiers between
+  // the state and violation condition do not clash.
 
-  private Optional<ConstraintsState> combineValueStates(final List<AbstractState> reachedState) {
+  private List<? extends AbstractState> combineValueStates(final List<AbstractState> pReachedState) {
     BlockState blockState = null;
+    int constraintIndex = 0;
+
     ValueAnalysisState valueState = null;
+    ConstraintsState constraintsState = null;
+
     for (int i = 0; i < size; i++) {
-      if (transferRelations.get(i) instanceof BlockTransferRelation)
-        blockState = (BlockState) reachedState.get(i);
-      if (transferRelations.get(i) instanceof ValueAnalysisTransferRelation)
-        valueState = (ValueAnalysisState) reachedState.get(i);
+      if (transferRelations.get(i) instanceof BlockTransferRelation) {
+        blockState = (BlockState) pReachedState.get(i);
+      } if (transferRelations.get(i) instanceof ConstraintsTransferRelation) {
+        constraintsState = (ConstraintsState) pReachedState.get(i);
+        constraintIndex = i;
+      } if (transferRelations.get(i) instanceof ValueAnalysisTransferRelation)
+        valueState = (ValueAnalysisState) pReachedState.get(i);
     }
-    if (blockState == null || valueState == null || !blockState.isTarget()) return Optional.empty();
-    AbstractState violation = blockState.getViolationConditions().getFirst();
+    if (blockState == null || valueState == null || constraintsState == null ||
+        !blockState.isTarget()) return blockState.getViolationConditions();
+
+    Optional<CompositeState> optViolation = renameViolationCondition(blockState, constraintsState, valueState);
+    if (optViolation.isEmpty())
+      return blockState.getViolationConditions();
+    CompositeState violation = optViolation.get();
+
+    ConstraintsState cstate = AbstractStates.extractStateByType(violation, ConstraintsState.class);
+    List<Constraint> newConstraints = new ArrayList<>();
+
+    for (AbstractState state : violation.getWrappedStates()) {
+      if (state instanceof ValueAnalysisState valueState2) {
+          newConstraints.addAll(ValueAnalysisState.compareInConstraint(valueState, valueState2));
+      }
+    }
+    List<AbstractState> newViolation = new ArrayList<AbstractState>(violation.getWrappedStates());
+    assert cstate != null;
+    if (!newConstraints.isEmpty())
+      newViolation.set(constraintIndex,
+        cstate.copyWithNew(newConstraints));
+
+    ARGState newARGViolation = new ARGState(new CompositeState(newViolation), null);
+    ((ARGState) blockState.getViolationConditions().getFirst()).replaceInARGWith(newARGViolation);
+    List<ARGState> newViolationsList = new ArrayList<>();
+    newViolationsList.add(newARGViolation);
+    return newViolationsList;
+  }
+
+  private Optional<CompositeState> renameViolationCondition(final BlockState pBlockState,
+                                              final ConstraintsState pConstraintsState,
+                                              final ValueAnalysisState pValueState) {
+
+    Set<SymbolicIdentifier> usedIdentifiers = new HashSet<>();
+    for (Constraint constraint : pConstraintsState) {
+      assert constraint != null;
+      usedIdentifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(constraint));
+    }
+    for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
+      if (constant.getValue().getValue() instanceof SymbolicValue symVal)
+        usedIdentifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
+      if (constant.getValue().getValue() instanceof SymbolicIdentifier symID)
+        usedIdentifiers.add(symID);
+    }
+    AbstractState violation = pBlockState.getViolationConditions().getFirst();
+    SymbolicIdentifierRenamer visitor = new SymbolicIdentifierRenamer(new HashMap<>(), usedIdentifiers);
+    List<AbstractState> newViolation = new ArrayList<>();
+
     if (!(violation instanceof ARGState argState)
         || !(argState.getWrappedState() instanceof CompositeState cS)) return Optional.empty();
 
-    for (AbstractState state : cS.getWrappedStates())
-      if (state instanceof ValueAnalysisState valueState2) {
-        return Optional.of(
-            new ConstraintsState(ValueAnalysisState.compareInConstraint(valueState, valueState2)));
-      }
+    for (AbstractState state : cS.getWrappedStates()) {
+      AbstractState newState = state;
 
-    return Optional.empty();
+      if (state instanceof ConstraintsState constraintsState2) {
+        newState = new ConstraintsState();
+        for (Constraint constraint : constraintsState2) {
+          assert constraint != null;
+          newState =
+              ((ConstraintsState) newState).copyWithNew((Constraint) constraint.accept(visitor));
+        }
+      }
+      if (state instanceof ValueAnalysisState valueState2) {
+        newState = new ValueAnalysisState(valueState2.getMachineModel());
+        for (Entry<MemoryLocation, ValueAndType> constant : valueState2.getConstants()) {
+          if (constant.getValue().getValue() instanceof SymbolicValue symValue) {
+            ((ValueAnalysisState) newState).assignConstant(
+                constant.getKey(), symValue.accept(visitor), constant.getValue().getType());
+          } else {
+            ((ValueAnalysisState) newState).assignConstant(
+                constant.getKey(), constant.getValue().getValue(), constant.getValue().getType());
+          }
+        }
+      }
+      newViolation.add(newState);
+    }
+    return Optional.of(new CompositeState(newViolation));
   }
 
   private Collection<List<AbstractState>> callStrengthen(
@@ -350,14 +433,14 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
     int resultCount = 1;
 
-    Optional<ConstraintsState> addedConstraint = combineValueStates(reachedState);
-    addedConstraint.ifPresent(reachedState::add);
-
     for (int i = 0; i < size; i++) {
 
       TransferRelation lCurrentTransfer = transferRelations.get(i);
       AbstractState lCurrentElement = reachedState.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
+
+      if (lCurrentElement instanceof BlockState bS)
+        bS.setViolationConditions(combineValueStates(reachedState));
 
       Collection<? extends AbstractState> lResultsList =
           lCurrentTransfer.strengthen(lCurrentElement, reachedState, cfaEdge, lCurrentPrecision);
