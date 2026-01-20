@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -31,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @RunWith(Parameterized.class)
@@ -39,15 +42,20 @@ public class AcslMetadataParsingTest {
   private final String programName;
   private final int expectedNumComments;
   private final ImmutableList<String> expectedComments;
+  private final CodeLoctation expectedLoc;
   private final CFACreator cfaCreator;
   private final LogManager logManager;
 
   public AcslMetadataParsingTest(
-      String pProgramName, int pExpectedNumComments, ImmutableList<String> pAnnotations)
+      String pProgramName,
+      int pExpectedNumComments,
+      ImmutableList<String> pAnnotations,
+      CodeLoctation pExpectedLoc)
       throws InvalidConfigurationException {
     programName = pProgramName;
     expectedNumComments = pExpectedNumComments;
     expectedComments = pAnnotations;
+    expectedLoc = pExpectedLoc;
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
@@ -59,22 +67,52 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    b.add(task("after_else.c", 1, ImmutableList.of("assert a == 10 || a == 20;")));
-    b.add(task("after_for_loop2.c", 1, ImmutableList.of("assert b == 20;")));
-    b.add(task("after_if.c", 1, ImmutableList.of("assert a != 20;")));
-    b.add(task("after_loop.c", 1, ImmutableList.of("assert a == 20;")));
-    b.add(task("after_loop2.c", 1, ImmutableList.of("assert  a == 20;")));
-    b.add(task("at_end.c", 1, ImmutableList.of("assert a != 20;")));
-    b.add(task("badVariable.c", -1, ImmutableList.of()));
-    b.add(task("empty.c", 1, ImmutableList.of("assert \true")));
-    b.add(task("end_of_do_while.c", 1, ImmutableList.of("assert a <= 20")));
-    b.add(task("even.c", 1, ImmutableList.of("loop invariant x % 2 == 0;")));
-    b.add(task("even2.c", 1, ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;")));
-    b.add(task("in_middle.c", 1, ImmutableList.of("assert a == 19;")));
-    b.add(task("inv_for.c", 1, ImmutableList.of("loop invariant x + y == 20;")));
-    b.add(task("inv_short-for.c", 1, ImmutableList.of("loop invariant x + y == 20;")));
-    b.add(task("minimal_example.c", 1, ImmutableList.of("ensures x == 10;")));
-    b.add(task("no_annotations.c", 0, ImmutableList.of()));
+    b.add(
+        task(
+            "after_else.c",
+            1,
+            ImmutableList.of("assert a == 10 || a == 20;"),
+            new CodeLoctation(17, 7)));
+    b.add(
+        task(
+            "after_for_loop2.c", 1, ImmutableList.of("assert b == 20;"), new CodeLoctation(16, 7)));
+    b.add(task("after_if.c", 1, ImmutableList.of("assert a != 20;"), new CodeLoctation(15, 7)));
+    b.add(task("after_loop.c", 1, ImmutableList.of("assert a == 20;"), new CodeLoctation(15, 7)));
+    b.add(task("after_loop2.c", 1, ImmutableList.of("assert  a == 20;"), new CodeLoctation(15, 7)));
+    b.add(task("at_end.c", 1, ImmutableList.of("assert a != 20;"), new CodeLoctation(15, 7)));
+    b.add(task("badVariable.c", -1, ImmutableList.of(), new CodeLoctation(12, 2)));
+    b.add(task("empty.c", 1, ImmutableList.of("assert \true"), new CodeLoctation(20, 5)));
+    b.add(
+        task("end_of_do_while.c", 1, ImmutableList.of("assert a <= 20"), new CodeLoctation(15, 7)));
+    b.add(
+        task(
+            "even.c", 1, ImmutableList.of("loop invariant x % 2 == 0;"), new CodeLoctation(21, 3)));
+    b.add(
+        task(
+            "even2.c",
+            1,
+            ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;"),
+            new CodeLoctation(21, 3)));
+    b.add(task("in_middle.c", 1, ImmutableList.of("assert a == 19;"), new CodeLoctation(16, 5)));
+    b.add(
+        task(
+            "inv_for.c",
+            1,
+            ImmutableList.of("loop invariant x + y == 20;"),
+            new CodeLoctation(13, 2)));
+    b.add(
+        task(
+            "inv_short-for.c",
+            1,
+            ImmutableList.of("loop invariant x + y == 20;"),
+            new CodeLoctation(13, 2)));
+    b.add(
+        task(
+            "minimal_example.c",
+            1,
+            ImmutableList.of("ensures x == 10;"),
+            new CodeLoctation(12, 5)));
+    b.add(task("no_annotations.c", 0, ImmutableList.of(), new CodeLoctation(0, 0)));
     b.add(
         task(
             "statements.c",
@@ -83,14 +121,23 @@ public class AcslMetadataParsingTest {
                 "ensures x == 0;",
                 "ensures y == 0;",
                 "ensures x == i;",
-                "requires x == i; ensures y == i;")));
-    b.add(task("traps.c", 2, ImmutableList.of("assert \false;", "ensures y > 0")));
+                "requires x == i; ensures y == i;"),
+            new CodeLoctation(11, 5)));
+    b.add(
+        task(
+            "traps.c",
+            2,
+            ImmutableList.of("assert \false;", "ensures y > 0"),
+            new CodeLoctation(26, 3)));
     return b.build();
   }
 
   private static Object[] task(
-      String program, int expectedNumComments, ImmutableList<String> annotations) {
-    return new Object[] {program, expectedNumComments, annotations};
+      String program,
+      int expectedNumComments,
+      ImmutableList<String> annotations,
+      CodeLoctation expectedLoc) {
+    return new Object[] {program, expectedNumComments, annotations, expectedLoc};
   }
 
   @Test
@@ -136,6 +183,47 @@ public class AcslMetadataParsingTest {
       assert e.getMessage()
           .equals("Variable y is not declared in neither the C program nor the ACSL scope.");
     }
+  }
+
+  @Test
+  public void updateCfaNodesCorrectlyTest()
+      throws ParserException, IOException, InterruptedException, InvalidConfigurationException {
+    List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
+    try {
+      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+      if (cfa.getMetadata().getAcslMetadata() != null
+          && !cfa.getMetadata().getAcslMetadata().pAcslComments().isEmpty()) {
+        AcslComment comment = cfa.getMetadata().getAcslMetadata().pAcslComments().getFirst();
+        if (comment.hasCfaNode()) {
+          FileLocation nodeLoc = describeFileLocation(comment.getCfaNode());
+          assert nodeLoc.getStartingLineNumber() == expectedLoc.expectedLine;
+          assert nodeLoc.getStartColumnInLine() == expectedLoc.expectedCol;
+        }
+      }
+    } catch (RuntimeException e) {
+      assert programName.equals("badVariable.c");
+      assert e.getMessage()
+          .equals("Variable y is not declared in neither the C program nor the ACSL scope.");
+    }
+  }
+
+  public FileLocation describeFileLocation(CFANode node) {
+    if (node instanceof FunctionEntryNode functionEntryNode) {
+      return functionEntryNode.getFileLocation();
+    }
+    if (node.getNumLeavingEdges() > 0) {
+      FileLocation loc = node.getLeavingEdge(0).getFileLocation();
+      if (loc.isRealLocation()) {
+        return loc;
+      }
+    }
+    if (node.getNumEnteringEdges() > 0) {
+      FileLocation loc = node.getEnteringEdge(0).getFileLocation();
+      if (loc.isRealLocation()) {
+        return loc;
+      }
+    }
+    throw new RuntimeException("Node has no location");
   }
 
   public record CodeLoctation(int expectedLine, int expectedCol) {}
