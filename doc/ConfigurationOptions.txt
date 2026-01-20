@@ -3753,6 +3753,12 @@ cpa.smg2.minimalSatCheck = true
 # one.
 cpa.smg2.optimizeBooleanVariables = true
 
+# Overapproximates all C pointers that point out of bounds to their
+# originating memory to also point towards all other pointers when comparing
+# pointers using (in)equality operators (== and !=). No effect on other
+# relational operators (i.e. <,>,<=,>=) or pointer arithmetics.
+cpa.smg2.overapproximatePointerArithmeticsOutOfBoundsEquality = true
+
 # If this Option is enabled, all values of a memory region that is written or
 # read with a symbolic offset are overapproximated. I.e. when writing to a
 # memory region, all previous values are deleted and the memory region is
