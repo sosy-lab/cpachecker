@@ -4159,8 +4159,10 @@ public class SMGCPAValueVisitor
               cfaEdge);
         }
         // "Pseudo" pointer arithmetics; i.e. something like: ((unsigned long) pointer) == pointer
-        // We still want to solve this using pointer arithmetics, as it uses memory layout information that is more accurate!
-        return false;
+        // We still want to solve this using pointer arithmetics, as it uses memory layout
+        // information that is more accurate!
+        // TODO: check that there is 2 pointers underneath?
+        return true;
       }
       if (!leftPtrType
           .getType()
