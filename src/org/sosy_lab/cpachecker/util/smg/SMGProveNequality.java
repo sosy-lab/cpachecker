@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -76,15 +77,20 @@ public class SMGProveNequality {
     if (targetEdge1.pointsTo().equals(targetEdge2.pointsTo())) {
       return checkEdgeLabelsForEqualTargets(targetEdge1, targetEdge2);
     }
+
     // OutOfBounds check
-    if (checkIfEdgePointsOutOfBoundsAndMayOverlap(
-            targetEdge1,
-            targetEdge2,
-            options.isOverapproximatePointerArithmeticsOutOfBoundsEquality())
-        || checkIfEdgePointsOutOfBoundsAndMayOverlap(
-            targetEdge2,
-            targetEdge1,
-            options.isOverapproximatePointerArithmeticsOutOfBoundsEquality())) {
+    if (checkPointsToEdgeOutOfBounds(targetEdge1) || checkPointsToEdgeOutOfBounds(targetEdge2)) {
+      if (targetEdge1.pointsTo().isZero() || targetEdge2.pointsTo().isZero()) {
+        // Out-of-bounds and a null pointer, may be equal
+        // TODO: add case where we are only 1 object beyond the size, as that's defined and can not
+        // be equal null!
+        return false;
+      }
+      if (options.isOverapproximatePointerArithmeticsOutOfBoundsEquality()) {
+        // TODO: make the result of this method a status style system like in merge! We can't
+        // discern between "can be both" and not equal currently.
+        return !checkPointsToEdgesOutOfBoundsEquality(targetEdge1, targetEdge2);
+      }
       return false;
     }
     // 0 and a valid address of an object
@@ -97,76 +103,99 @@ public class SMGProveNequality {
   }
 
   /**
-   * Checks whether pteToCheck is out of bounds. A more advanced checked against the otherEdge and
-   * the memory layout of its target can be performed depending on the option
-   * overapproximatePointerArithmeticsOutOfBoundsEquality.
+   * Checks whether the {@link SMGPointsToEdge}s, with at least one being out-of-bounds, for their
+   * (possibly distinct targeting objects) equality. This checks whether there is enough space
+   * after/before the pointer and its memory for the other memory, for example:
    *
-   * @param pteToCheck the {@link SMGPointsToEdge} to check whether it is pointing out of bounds,
-   *     and whether it can overlap with the otherEdge.
-   * @param otherEdge reference edge that is checked against if pteToCheck is out of bounds. This
-   *     edge is not checked for out of bounds and only used if overapproximateOutOfBoundsEquality
-   *     is false!
+   * <p>int * ptr1 = malloc(2*sizeof(int));
+   *
+   * <p>int * ptr2 = malloc(2*sizeof(int));
+   *
+   * <p>assert((ptr1 + 2) == (ptr2 + 1)); // Always false
+   *
+   * <p>assert((ptr1 + 2) == ptr2); // Can be true or false
+   *
+   * <p>Since we may cast the addresses to numbers and then do the checks above, we can even do
+   * things like:
+   *
+   * <p>assert((((unsigned long) ptr1) - 1) == (unsigned long) ptr2); // Always false, as the memory
+   * of ptr2 is too large!
+   *
+   * <p>assert((((unsigned long) ptr1) - 2) == (unsigned long) ptr2); // Can be true or false
+   *
+   * @return {@code true} if the 2 {@link SMGPointsToEdge}s CAN be equal (but may also be inequal),
+   *     {@code false} if they are guaranteed to be not equal.
    */
-  protected boolean checkIfEdgePointsOutOfBoundsAndMayOverlap(
-      SMGPointsToEdge pteToCheck,
-      SMGPointsToEdge otherEdge,
-      boolean overapproximateOutOfBoundsEquality)
-      throws SMGSolverException {
-    SMGObject targetObj = pteToCheck.pointsTo();
+  protected boolean checkPointsToEdgesOutOfBoundsEquality(
+      SMGPointsToEdge pte1, SMGPointsToEdge pte2) throws SMGSolverException {
+    SMGObject targetObj1 = pte1.pointsTo();
+    SMGObject targetObj2 = pte2.pointsTo();
+    Value targetObjSize1 = pte1.pointsTo().getSize();
+    Value targetObjSize2 = pte2.pointsTo().getSize();
+    Value pointerOffset1 = pte1.getOffset();
+    Value pointerOffset2 = pte2.getOffset();
 
-    if (pteToCheck.pointsTo().getSize().isUnknown() || pteToCheck.getOffset().isUnknown()) {
-      // Unknown -> Overapproximate
-      return true;
-    } else if (targetObj.getSize() instanceof NumericValue targetObjSize
-        && pteToCheck.getOffset() instanceof NumericValue pToEdgeOffset) {
+    checkArgument(targetObj1 != targetObj2); // Should be handled already
+    checkArgument(!targetObj1.isZero() && !targetObj2.isZero());
+    if (!targetObjSize1.isUnknown()
+        && !targetObjSize2.isUnknown()
+        && !pointerOffset1.isUnknown()
+        && !pointerOffset2.isUnknown()) {
+      if (targetObjSize1 instanceof NumericValue numObjSize1
+          && pointerOffset1 instanceof NumericValue numPointerOffset1
+          && pointerOffset2 instanceof NumericValue numPointerOffset2
+          && targetObjSize2 instanceof NumericValue numObjSize2) {
 
-      if (!overapproximateOutOfBoundsEquality) {
-        // TODO: solve symbolics with a solver
-        if (otherEdge.pointsTo().getSize() instanceof NumericValue otherTargetObjSize
-            && otherEdge.getOffset() instanceof NumericValue otherPTEOffset) {
-          // First make sure the other is within its bounds, as otherwise anything is fair game
-          BigInteger otherSizeMinusOffset =
-              otherTargetObjSize.bigIntegerValue().subtract(otherPTEOffset.bigIntegerValue());
-          if (otherPTEOffset.bigIntegerValue().signum() >= 0 && otherSizeMinusOffset.signum() > 0) {
-            // We can determine whether an out-of-bounds pointer can really point towards another
-            // object by the size (and offset of the addresses) towards the other object; for
-            // example:
-            // int * ptr1 = malloc(2*sizeof(int));
-            // int * ptr2 = malloc(2*sizeof(int));
-            // assert((ptr1 - 1) == ptr2); // ALWAYS false!
-            // int * ptr3 = malloc(sizeof(int));
-            // assert((ptr1 - 1) == ptr3); // Can be true or false
-            // assert((ptr1 + 2) == (ptr2 + 1)); // Also always false
-            // assert((ptr1 + 2) == ptr2); // Can be true or false
-            if (pToEdgeOffset.bigIntegerValue().signum() < 0) {
-              // The offset to check is negative -> use addition
-              return otherSizeMinusOffset.add(pToEdgeOffset.bigIntegerValue()).signum() > 0;
-            } else if (pToEdgeOffset.bigIntegerValue().compareTo(targetObjSize.bigIntegerValue())
-                > 0) {
-              // The offset to check exceeds the bounds of the memory region in the positive
-              // direction
-              BigInteger positiveOffsetOverSize =
-                  pToEdgeOffset.bigIntegerValue().subtract(targetObjSize.bigIntegerValue());
-              // The offset of the other edge needs to be less or equal to positiveOffsetOverSize
-              // for
-              // them to have a chance of overlapping
-              return otherPTEOffset.bigIntegerValue().compareTo(positiveOffsetOverSize) > 0;
-            }
-          }
+        BigInteger bigIntObjSize1 = numObjSize1.bigIntegerValue();
+        BigInteger bigIntObjSize2 = numObjSize2.bigIntegerValue();
+        BigInteger bigIntPointerOffset1 = numPointerOffset1.bigIntegerValue();
+        BigInteger bigIntPointerOffset2 = numPointerOffset2.bigIntegerValue();
+        BigInteger offsetMinusSize1 = bigIntPointerOffset1.subtract(bigIntObjSize1);
+        BigInteger offsetMinusSize2 = bigIntPointerOffset2.subtract(bigIntObjSize2);
+
+        if (offsetMinusSize1.compareTo(bigIntPointerOffset2) >= 0
+            || offsetMinusSize2.compareTo(bigIntPointerOffset1) >= 0) {
+          // TODO: use enum instead of bool
+          return true; // Can be equal or not equal
         }
-      }
+        return false; // Guaranteed to be not-equal!
 
-      // Just "out of bounds" -> overapproximate
-      return pToEdgeOffset.bigIntegerValue().compareTo(targetObjSize.bigIntegerValue()) >= 0
-          || pToEdgeOffset.bigIntegerValue().signum() < 0;
-    } else {
-      // Use SMT solver
-      // TODO: memory layout check (as with the numerics above)
-      return state
-          .checkBoundariesOfMemoryAccessWithSolver(
-              targetObj, pteToCheck.getOffset(), new NumericValue(BigInteger.ZERO), null)
-          .isSAT();
+      } else if (options.trackPredicates()) {
+        // Use SMT solver
+        // TODO: memory layout check (as with the numerics above)
+        throw new UnsupportedOperationException(
+            "Precise solver based pointer equality is not yet implemented");
+      }
     }
+
+    // Unknown -> Overapproximate, may be equal or inequal
+    return true;
+  }
+
+  protected boolean checkPointsToEdgeOutOfBounds(SMGPointsToEdge pte) throws SMGSolverException {
+    SMGObject targetObj = pte.pointsTo();
+
+    if (targetObj.isZero()) {
+      return false; // The null pointer is not out of bounds
+    }
+
+    // Unknown -> Overapproximate
+    if (!pte.pointsTo().getSize().isUnknown() && !pte.getOffset().isUnknown()) {
+      if (targetObj.getSize() instanceof NumericValue targetObjSize
+          && pte.getOffset() instanceof NumericValue pToEdgeOffset) {
+
+        // Just "out of bounds" -> overapproximate
+        return pToEdgeOffset.bigIntegerValue().compareTo(targetObjSize.bigIntegerValue()) >= 0
+            || pToEdgeOffset.bigIntegerValue().signum() < 0;
+      } else if (options.trackPredicates()) {
+        // At least one symbolic, use SMT solver if possible
+        return state
+            .checkBoundariesOfMemoryAccessWithSolver(
+                targetObj, pte.getOffset(), new NumericValue(BigInteger.ZERO), null)
+            .isSAT();
+      }
+    }
+    return true;
   }
 
   private boolean checkEdgeLabelsForEqualTargets(
