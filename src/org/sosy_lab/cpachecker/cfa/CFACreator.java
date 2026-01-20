@@ -16,6 +16,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -231,6 +232,19 @@ public class CFACreator {
   @Option(secure = true, name = "cfa.exportToC.file", description = "export CFA as C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaToCFile = Path.of("cfa.c");
+
+  @Option(
+      secure = true,
+      name = "cfa.exportLines",
+      description = "whether to export a list of lines in loops")
+  private boolean exportLinesInLoop = false;
+
+  @Option(
+      secure = true,
+      name = "cfa.exportLinesTo",
+      description = "destination of a list of lines in loops")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportLinesInLoopTo = Path.of("lines.txt");
 
   @Option(secure = true, name = "cfa.callgraph.export", description = "dump a simple call graph")
   private boolean exportFunctionCalls = true;
@@ -765,6 +779,7 @@ public class CFACreator {
         || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
         || (exportCfaPixelFile != null)
         || (exportCfaToCFile != null && exportCfaToC)
+        || (exportLinesInLoop && exportLinesInLoopTo != null)
         || (pathForExportingVariablesInScopeWithTheirType != null)) {
       exportCFAAsync(immutableCFA);
     }
@@ -1328,6 +1343,17 @@ public class CFACreator {
 
   private void exportCFA(final CFA cfa) {
     stats.exportTime.start();
+
+    if (exportLinesInLoop) {
+      Set<Integer> lines = CFAUtils.getLineNumbersInsideSCCs(cfa);
+      try {
+        IO.writeFile(exportLinesInLoopTo, Charset.defaultCharset(), Joiner.on("\n").join(lines));
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not write lines in loops to file " + exportLinesInLoopTo);
+        // continue with analysis
+      }
+    }
 
     // write CFA to file
     if (exportCfa && exportCfaFile != null) {

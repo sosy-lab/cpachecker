@@ -17,6 +17,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -27,6 +28,9 @@ import com.google.errorprone.annotations.InlineMe;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +38,10 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
@@ -423,6 +429,415 @@ public class CFAUtils {
     }
 
     return idsToNode.keySet().size() == 1;
+  }
+
+  /**
+   * Computes all s-t bridges in a CFA between a source and target node.
+   *
+   * <p>An s-t bridge is an edge that must be traversed by every path from the source node to the
+   * target node. This implementation is based on the algorithm described in "A simplified algorithm
+   * computing all bridges and articulation points" by Cairo et al. (2021).
+   *
+   * <p>The algorithm works by:
+   *
+   * <ol>
+   *   <li>Finding any path P from source to target
+   *   <li>Iteratively identifying bridge edges by performing BFS on G \ P (graph with P edges
+   *       reversed)
+   *   <li>Computing connected components between bridges
+   * </ol>
+   *
+   * @param pSource the source node
+   * @param pTarget the target node
+   * @param pNodes all nodes to consider in the search (usually all reachable nodes)
+   * @return a set of edges that are s-t bridges between source and target
+   */
+  public static ImmutableSet<CFAEdge> computeSTBridges(
+      CFANode pSource, CFANode pTarget, Set<CFANode> pNodes) {
+
+    // Find an arbitrary path from source to target
+    List<CFAEdge> path = findPath(pSource, pTarget, pNodes);
+    if (path.isEmpty()) {
+      // No path exists, no bridges
+      return ImmutableSet.of();
+    }
+
+    // Initialize component assignment for each node (0 = unvisited)
+    Map<CFANode, Integer> componentAssignment = new HashMap<>();
+    for (CFANode node : pNodes) {
+      componentAssignment.put(node, 0);
+    }
+
+    Set<CFAEdge> pathEdges = new HashSet<>(path);
+    List<CFAEdge> bridges = new ArrayList<>();
+    Queue<CFANode> nodeQueue = new ArrayDeque<>();
+    int currentComponent = 1;
+
+    // Main loop: continue until target is assigned a component
+    while (componentAssignment.get(pTarget) == 0) {
+      if (currentComponent == 1) {
+        // Initialize with source node
+        nodeQueue.add(pSource);
+        componentAssignment.put(pSource, currentComponent);
+      } else {
+        // Find the next bridge edge on the path
+        for (int i = path.size() - 1; i >= 0; i--) {
+          CFAEdge edge = path.get(i);
+          if (componentAssignment.get(edge.getPredecessor()) != 0
+              && componentAssignment.get(edge.getSuccessor()) == 0) {
+            bridges.add(edge);
+            nodeQueue.add(edge.getSuccessor());
+            componentAssignment.put(edge.getSuccessor(), currentComponent);
+            break;
+          }
+        }
+      }
+
+      // BFS to assign all reachable nodes to current component
+      // (using flipped path edges)
+      while (!nodeQueue.isEmpty()) {
+        CFANode current = nodeQueue.poll();
+        for (CFANode successor : getSuccessorsWithFlippedPath(current, pathEdges, pNodes)) {
+          if (componentAssignment.get(successor) == 0) {
+            nodeQueue.add(successor);
+            componentAssignment.put(successor, currentComponent);
+          }
+        }
+      }
+
+      currentComponent++;
+    }
+
+    return ImmutableSet.copyOf(bridges);
+  }
+
+  /**
+   * Finds an arbitrary path from source to target using BFS.
+   *
+   * @param pSource the source node
+   * @param pTarget the target node
+   * @param pNodes the set of nodes to consider
+   * @return a list of edges forming a path from source to target, or empty list if no path exists
+   */
+  private static List<CFAEdge> findPath(CFANode pSource, CFANode pTarget, Set<CFANode> pNodes) {
+    Map<CFANode, CFAEdge> parentEdge = new HashMap<>();
+    Set<CFANode> visited = new HashSet<>();
+    Queue<CFANode> queue = new ArrayDeque<>();
+
+    queue.add(pSource);
+    visited.add(pSource);
+
+    while (!queue.isEmpty()) {
+      CFANode current = queue.poll();
+
+      if (current.equals(pTarget)) {
+        // Reconstruct path
+        List<CFAEdge> path = new ArrayList<>();
+        CFANode node = pTarget;
+        while (parentEdge.containsKey(node)) {
+          CFAEdge edge = parentEdge.get(node);
+          path.add(0, edge);
+          node = edge.getPredecessor();
+        }
+        return path;
+      }
+
+      for (CFAEdge edge : current.getLeavingEdges()) {
+        CFANode successor = edge.getSuccessor();
+        if (pNodes.contains(successor) && visited.add(successor)) {
+          parentEdge.put(successor, edge);
+          queue.add(successor);
+        }
+      }
+    }
+
+    return ImmutableList.of();
+  }
+
+  /**
+   * Gets successors of a node with path edges flipped (reversed).
+   *
+   * <p>For normal edges not in the path, return normal successors. For edges in the path, treat
+   * them as reversed.
+   *
+   * @param pNode the current node
+   * @param pPathEdges edges that should be treated as flipped
+   * @param pNodes the set of valid nodes
+   * @return successors considering flipped path edges
+   */
+  private static Iterable<CFANode> getSuccessorsWithFlippedPath(
+      CFANode pNode, Set<CFAEdge> pPathEdges, Set<CFANode> pNodes) {
+    ImmutableSet.Builder<CFANode> successors = ImmutableSet.builder();
+
+    // Normal successors (edges not in path)
+    for (CFAEdge edge : pNode.getLeavingEdges()) {
+      if (!pPathEdges.contains(edge) && pNodes.contains(edge.getSuccessor())) {
+        successors.add(edge.getSuccessor());
+      }
+    }
+
+    // Flipped successors (edges in path where current node is successor)
+    for (CFAEdge edge : pPathEdges) {
+      if (edge.getSuccessor().equals(pNode) && pNodes.contains(edge.getPredecessor())) {
+        successors.add(edge.getPredecessor());
+      }
+    }
+
+    return successors.build();
+  }
+
+  /**
+   * Result class for Tarjan's SCC algorithm containing strongly connected components and utilities
+   * for analyzing inter-SCC edges.
+   */
+  public static final class StronglyConnectedComponents {
+    private final ImmutableList<ImmutableSet<CFANode>> components;
+    private final ImmutableMap<CFANode, Integer> nodeToComponentId;
+    private final ImmutableSet<CFAEdge> interComponentEdges;
+
+    private StronglyConnectedComponents(
+        List<Set<CFANode>> pComponents,
+        Map<CFANode, Integer> pNodeToComponentId,
+        Set<CFAEdge> pInterComponentEdges) {
+
+      components =
+          pComponents.stream().map(ImmutableSet::copyOf).collect(ImmutableList.toImmutableList());
+      nodeToComponentId = ImmutableMap.copyOf(pNodeToComponentId);
+      interComponentEdges = ImmutableSet.copyOf(pInterComponentEdges);
+    }
+
+    /**
+     * Returns all strongly connected components found in the graph.
+     *
+     * @return list of SCCs, where each SCC is a set of nodes
+     */
+    public ImmutableList<ImmutableSet<CFANode>> getComponents() {
+      return components;
+    }
+
+    /**
+     * Returns the number of strongly connected components.
+     *
+     * @return number of SCCs
+     */
+    public int getNumberOfComponents() {
+      return components.size();
+    }
+
+    /**
+     * Returns the component ID for a given node.
+     *
+     * @param pNode the node to query
+     * @return component ID (0-indexed), or -1 if node not found
+     */
+    public int getComponentId(CFANode pNode) {
+      return nodeToComponentId.getOrDefault(pNode, -1);
+    }
+
+    /**
+     * Checks if two nodes are in the same strongly connected component.
+     *
+     * @param pNode1 first node
+     * @param pNode2 second node
+     * @return true if both nodes are in the same SCC
+     */
+    public boolean areInSameComponent(CFANode pNode1, CFANode pNode2) {
+      int id1 = getComponentId(pNode1);
+      int id2 = getComponentId(pNode2);
+      return id1 >= 0 && id1 == id2;
+    }
+
+    /**
+     * Returns all edges that cross between different strongly connected components. These are edges
+     * (u, v) where u and v belong to different SCCs.
+     *
+     * @return set of inter-component edges
+     */
+    public ImmutableSet<CFAEdge> getInterComponentEdges() {
+      return interComponentEdges;
+    }
+
+    /**
+     * Returns all edges within strongly connected components (i.e., edges that don't cross
+     * component boundaries).
+     *
+     * @param pAllEdges all edges in the graph
+     * @return set of intra-component edges
+     */
+    public ImmutableSet<CFAEdge> getIntraComponentEdges(Collection<CFAEdge> pAllEdges) {
+      return pAllEdges.stream()
+          .filter(edge -> !interComponentEdges.contains(edge))
+          .collect(ImmutableSet.toImmutableSet());
+    }
+
+    /**
+     * Checks if an edge crosses between different strongly connected components.
+     *
+     * @param pEdge the edge to check
+     * @return true if the edge connects nodes in different SCCs
+     */
+    public boolean isInterComponentEdge(CFAEdge pEdge) {
+      return interComponentEdges.contains(pEdge);
+    }
+
+    /**
+     * Returns the component containing the given node.
+     *
+     * @param pNode the node to query
+     * @return the SCC containing the node, or empty if not found
+     */
+    public Optional<ImmutableSet<CFANode>> getComponentContaining(CFANode pNode) {
+      int id = getComponentId(pNode);
+      if (id >= 0 && id < components.size()) {
+        return Optional.of(components.get(id));
+      }
+      return Optional.empty();
+    }
+
+    @Override
+    public String toString() {
+      return String.format(
+          "SCCs[components=%d, interComponentEdges=%d]",
+          components.size(), interComponentEdges.size());
+    }
+  }
+
+  /**
+   * Computes strongly connected components using Tarjan's algorithm.
+   *
+   * <p>Tarjan's algorithm is a DFS-based algorithm that finds all strongly connected components in
+   * O(V + E) time. An SCC is a maximal set of nodes where every node is reachable from every other
+   * node in the set.
+   *
+   * <p>This implementation:
+   *
+   * <ul>
+   *   <li>Finds all SCCs in the subgraph defined by pNodes
+   *   <li>Assigns a unique ID to each SCC
+   *   <li>Identifies edges that cross between different SCCs
+   * </ul>
+   *
+   * <p>Use cases:
+   *
+   * <ul>
+   *   <li>Loop detection (SCCs with size > 1 contain cycles)
+   *   <li>Finding back edges (inter-component edges going to earlier components)
+   *   <li>Graph condensation (creating a DAG of SCCs)
+   *   <li>Detecting irreducible control flow
+   * </ul>
+   *
+   * @param pNodes all nodes to consider in the analysis
+   * @return StronglyConnectedComponents containing SCCs and inter-component edges
+   */
+  public static StronglyConnectedComponents computeStronglyConnectedComponents(
+      Set<CFANode> pNodes) {
+
+    TarjanSCCFinder finder = new TarjanSCCFinder(pNodes);
+    return finder.findSCCs();
+  }
+
+  public static SortedSet<Integer> getLineNumbersInsideSCCs(CFA pCFA) {
+    StronglyConnectedComponents components = computeStronglyConnectedComponents(pCFA.nodes());
+    return FluentIterable.from(components.getIntraComponentEdges(pCFA.edges()))
+        .transformAndConcat(
+            e ->
+                ImmutableList.copyOf(
+                    IntStream.range(
+                            e.getFileLocation().getStartingLineNumber(),
+                            e.getFileLocation().getEndingLineNumber() + 1)
+                        .iterator()))
+        .toSortedSet(Comparator.naturalOrder());
+  }
+
+  /** Helper class implementing Tarjan's SCC algorithm. */
+  private static class TarjanSCCFinder {
+    private final Set<CFANode> nodes;
+    private final Map<CFANode, Integer> indices = new HashMap<>();
+    private final Map<CFANode, Integer> lowLinks = new HashMap<>();
+    private final Set<CFANode> onStack = new HashSet<>();
+    private final Deque<CFANode> stack = new ArrayDeque<>();
+    private final List<Set<CFANode>> components = new ArrayList<>();
+    private int index = 0;
+
+    TarjanSCCFinder(Set<CFANode> pNodes) {
+      nodes = pNodes;
+    }
+
+    StronglyConnectedComponents findSCCs() {
+      // Run Tarjan's algorithm on all unvisited nodes
+      for (CFANode node : nodes) {
+        if (!indices.containsKey(node)) {
+          strongConnect(node);
+        }
+      }
+
+      // Build component ID mapping
+      Map<CFANode, Integer> nodeToComponentId = new HashMap<>();
+      for (int i = 0; i < components.size(); i++) {
+        for (CFANode node : components.get(i)) {
+          nodeToComponentId.put(node, i);
+        }
+      }
+
+      // Find inter-component edges
+      Set<CFAEdge> interComponentEdges = new HashSet<>();
+      for (CFANode node : nodes) {
+        int sourceComponentId = nodeToComponentId.get(node);
+        for (CFAEdge edge : node.getLeavingEdges()) {
+          CFANode successor = edge.getSuccessor();
+          if (nodes.contains(successor)) {
+            int targetComponentId = nodeToComponentId.get(successor);
+            if (sourceComponentId != targetComponentId) {
+              interComponentEdges.add(edge);
+            }
+          }
+        }
+      }
+
+      return new StronglyConnectedComponents(components, nodeToComponentId, interComponentEdges);
+    }
+
+    /** Tarjan's algorithm core recursive function. */
+    private void strongConnect(CFANode v) {
+      // Set the depth index for v
+      indices.put(v, index);
+      lowLinks.put(v, index);
+      index++;
+      stack.push(v);
+      onStack.add(v);
+
+      // Consider successors of v
+      for (CFAEdge edge : v.getLeavingEdges()) {
+        CFANode w = edge.getSuccessor();
+
+        if (!nodes.contains(w)) {
+          // Skip nodes not in our analysis set
+          continue;
+        }
+
+        if (!indices.containsKey(w)) {
+          // Successor w has not yet been visited; recurse on it
+          strongConnect(w);
+          lowLinks.put(v, Math.min(lowLinks.get(v), lowLinks.get(w)));
+        } else if (onStack.contains(w)) {
+          // Successor w is in stack and hence in the current SCC
+          lowLinks.put(v, Math.min(lowLinks.get(v), indices.get(w)));
+        }
+      }
+
+      // If v is a root node, pop the stack and create an SCC
+      if (lowLinks.get(v).equals(indices.get(v))) {
+        Set<CFANode> component = new HashSet<>();
+        CFANode w;
+        do {
+          w = stack.pop();
+          onStack.remove(w);
+          component.add(w);
+        } while (!w.equals(v));
+
+        components.add(component);
+      }
+    }
   }
 
   /**
