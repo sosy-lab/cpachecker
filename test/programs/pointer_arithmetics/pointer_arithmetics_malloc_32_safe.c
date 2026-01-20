@@ -88,39 +88,10 @@ int main() {
   if (otherPtr == ptrPlusNine) {
     goto ERROR;
   }
+  
   // Note: the check below MIGHT actually succeed if they are (by luck) directly adjacent in memory!
-  // if (otherPtr == ptrPlusTen) {
-
-  if ((otherPtr + 1) == ptrPlusTen) {
-    goto ERROR; // Unreachable, as we know that ptrPlusTen exceeds only by 1 integer size, and (otherPtr + 1) has a buffer of that size
-  }
-
-
-  if ((otherPtr - 1) == ptr) {
-    goto ERROR;
-  }
-  if ((otherPtr - 1) == ptrPlusOne) {
-    goto ERROR;
-  }
-  if ((otherPtr - 1) == ptrPlusNine) {
-    goto ERROR;
-  }
-  if ((otherPtr - 1) == ptrPlusTen) {
-    goto ERROR;
-  }
-
-  if ((otherPtr + 10) == ptr) {
-    goto ERROR;
-  }
-  if ((otherPtr + 10) == ptrPlusOne) {
-    goto ERROR;
-  }
-  if ((otherPtr + 10) == ptrPlusNine) {
-    goto ERROR;
-  }
-  if ((otherPtr + 10) == ptrPlusTen) {
-    goto ERROR;
-  }
+  // if (otherPtr == ptrPlusTen) ...
+  // We test this in another test program!
 
 
   // Equality to others with calculations
