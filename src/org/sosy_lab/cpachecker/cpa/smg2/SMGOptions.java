@@ -28,8 +28,9 @@ public class SMGOptions {
       secure = true,
       description =
           "Overapproximates all C pointers that point out of bounds to their originating memory to"
-              + " also point towards all other pointers when comparing pointers using pointer"
-              + " arithmetics.")
+              + " also point towards all other pointers when comparing pointers using (in)equality"
+              + " operators (== and !=). No effect on other relational operators (i.e. <,>,<=,>=)"
+              + " or pointer arithmetics.")
   private boolean overapproximatePointerArithmeticsOutOfBoundsEquality = true;
 
   private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
