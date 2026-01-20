@@ -646,7 +646,7 @@ public class SMGCPAValueVisitor
     }
 
     ValueAndSMGState leftValueAndState =
-        evaluator.unpackAddressExpression(nonConstLeftValue, state);
+        evaluator.unpackAddressExpression(nonConstLeftValue, currentState);
     nonConstLeftValue = leftValueAndState.getValue();
     ValueAndSMGState rightValueAndState =
         evaluator.unpackAddressExpression(nonConstRightValue, leftValueAndState.getState());
@@ -4158,6 +4158,8 @@ public class SMGCPAValueVisitor
               rightType,
               cfaEdge);
         }
+        // "Pseudo" pointer arithmetics; i.e. something like: ((unsigned long) pointer) == pointer
+        // We still want to solve this using pointer arithmetics, as it uses memory layout information that is more accurate!
         return false;
       }
       if (!leftPtrType
