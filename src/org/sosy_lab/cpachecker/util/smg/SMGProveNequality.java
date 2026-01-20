@@ -86,7 +86,7 @@ public class SMGProveNequality {
         // be equal null!
         return false;
       }
-      if (options.isOverapproximatePointerArithmeticsOutOfBoundsEquality()) {
+      if (!options.isOverapproximatePointerArithmeticsOutOfBoundsEquality()) {
         // TODO: make the result of this method a status style system like in merge! We can't
         // discern between "can be both" and not equal currently.
         return !checkPointsToEdgesOutOfBoundsEquality(targetEdge1, targetEdge2);
