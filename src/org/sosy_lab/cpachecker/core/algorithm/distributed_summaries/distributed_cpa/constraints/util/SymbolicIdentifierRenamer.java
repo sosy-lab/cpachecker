@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.util;
 
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -46,10 +47,13 @@ public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicV
 
   Map<Long, Long> identifierMap;
   SymbolicValueFactory svf;
+  Set<SymbolicIdentifier> rename;
 
-  public SymbolicIdentifierRenamer(Map<Long, Long> pIdentifierMap) {
+  public SymbolicIdentifierRenamer(Map<Long, Long> pIdentifierMap, Set<SymbolicIdentifier> pRenameSymbols) {
     identifierMap = pIdentifierMap;
     svf = SymbolicValueFactory.getInstance();
+    rename = pRenameSymbols;
+
   }
 
   @Override
@@ -57,6 +61,8 @@ public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicV
     if (identifierMap.containsKey(pValue.getId()))
       return new SymbolicIdentifier(
           identifierMap.get(pValue.getId()), pValue.getRepresentedLocation().orElse(null));
+    if (!rename.contains(pValue))
+      return pValue;
     SymbolicIdentifier newId = svf.newIdentifier(pValue.getRepresentedLocation().orElse(null));
     identifierMap.put(pValue.getId(), newId.getId());
     return newId;
