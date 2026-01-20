@@ -155,14 +155,14 @@ public class InstrumentationPattern {
             return ImmutableList.of(
                 removeIndicesOfVariablesWithSameName(operand, pCFAEdge),
                 condition,
-                "TRANS_LONG_LONG_MAX",
-                "TRANS_LONG_LONG_MIN");
+                "__INSTR_LONG_LONG_MAX",
+                "__INSTR_LONG_LONG_MIN");
           }
           return ImmutableList.of(
               removeIndicesOfVariablesWithSameName(operand, pCFAEdge),
               condition,
-              "TRANS_INT_MAX",
-              "TRANS_INT_MIN");
+              "__INSTR_INT_MAX",
+              "__INSTR_INT_MIN");
         } else {
           return ImmutableList.of();
         }
@@ -194,15 +194,15 @@ public class InstrumentationPattern {
                 removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
                 removeIndicesOfVariablesWithSameName(operand2, pCFAEdge),
                 condition,
-                "TRANS_LONG_LONG_MAX",
-                "TRANS_LONG_LONG_MIN");
+                "__INSTR_LONG_LONG_MAX",
+                "__INSTR_LONG_LONG_MIN");
           }
           return ImmutableList.of(
               removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
               removeIndicesOfVariablesWithSameName(operand2, pCFAEdge),
               condition,
-              "TRANS_INT_MAX",
-              "TRANS_INT_MIN");
+              "__INSTR_INT_MAX",
+              "__INSTR_INT_MIN");
         } else {
           return ImmutableList.of();
         }
