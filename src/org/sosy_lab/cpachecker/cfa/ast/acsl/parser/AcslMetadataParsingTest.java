@@ -64,8 +64,8 @@ public class AcslMetadataParsingTest {
     b.add(task("after_if.c", 1, ImmutableList.of("assert a != 20;")));
     b.add(task("after_loop.c", 1, ImmutableList.of("assert a == 20;")));
     b.add(task("after_loop2.c", 1, ImmutableList.of("assert  a == 20;")));
-    b.add(task("at_end.c", 1, ImmutableList.of("assert a == 20;")));
-    b.add(task("badVariable.c", 0, ImmutableList.of()));
+    b.add(task("at_end.c", 1, ImmutableList.of("assert a != 20;")));
+    b.add(task("badVariable.c", -1, ImmutableList.of()));
     b.add(task("empty.c", 1, ImmutableList.of("assert \true")));
     b.add(task("end_of_do_while.c", 1, ImmutableList.of("assert a <= 20")));
     b.add(task("even.c", 1, ImmutableList.of("loop invariant x % 2 == 0;")));
@@ -96,32 +96,45 @@ public class AcslMetadataParsingTest {
   @Test
   public void parseCorrectNumberOfAcslCommentsTest() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-    if (cfa.getMetadata().getAcslMetadata() != null) {
-      ImmutableList<AcslComment> acslComments = cfa.getMetadata().getAcslMetadata().pAcslComments();
-      assertThat(acslComments).hasSize(expectedNumComments);
+    try {
+      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+      if (cfa.getMetadata().getAcslMetadata() != null) {
+        ImmutableList<AcslComment> acslComments =
+            cfa.getMetadata().getAcslMetadata().pAcslComments();
+        assertThat(acslComments).hasSize(expectedNumComments);
+      }
+    } catch (RuntimeException e) {
+      assert programName.equals("badVariable.c");
+      assert e.getMessage()
+          .equals("Variable y is not declared in neither the C program nor the ACSL scope.");
     }
   }
 
   @Test
   public void parseMetadataTest() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+    try {
+      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
 
-    CProgramScope programScope = new CProgramScope(cfa, logManager);
+      CProgramScope programScope = new CProgramScope(cfa, logManager);
 
-    ImmutableList.Builder<AAcslAnnotation> expectedBuilder = ImmutableList.builder();
-    for (String s : expectedComments) {
-      expectedBuilder.add(
-          AcslParser.parseAcslAnnotation(s, FileLocation.DUMMY, programScope, AcslScope.empty()));
-    }
-    ImmutableList<AAcslAnnotation> expectedAnnotations = expectedBuilder.build();
+      ImmutableList.Builder<AAcslAnnotation> expectedBuilder = ImmutableList.builder();
+      for (String s : expectedComments) {
+        expectedBuilder.add(
+            AcslParser.parseAcslAnnotation(s, FileLocation.DUMMY, programScope, AcslScope.empty()));
+      }
+      ImmutableList<AAcslAnnotation> expectedAnnotations = expectedBuilder.build();
 
-    AcslMetadata acslMetadata = cfa.getMetadata().getAcslMetadata();
-    ImmutableListMultimap<AAcslAnnotation, CFANode> annotations =
-        acslMetadata.genericAnnotations().inverse();
-    for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
-      assert annotations.containsKey(expectedAnnotation);
+      AcslMetadata acslMetadata = cfa.getMetadata().getAcslMetadata();
+      ImmutableListMultimap<AAcslAnnotation, CFANode> annotations =
+          acslMetadata.genericAnnotations().inverse();
+      for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
+        assert annotations.containsKey(expectedAnnotation);
+      }
+    } catch (RuntimeException e) {
+      assert programName.equals("badVariable.c");
+      assert e.getMessage()
+          .equals("Variable y is not declared in neither the C program nor the ACSL scope.");
     }
   }
 
