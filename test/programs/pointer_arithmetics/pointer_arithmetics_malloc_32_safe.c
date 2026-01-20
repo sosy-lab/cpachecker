@@ -10,6 +10,11 @@
 #include <stdlib.h>
 
 // Safe for reach- and memsafety
+// This tests address comparison using ==, !=, as well as <, >, <=, >=, and pointer arithmetics.
+// Notes:
+// == and != is basically valid on all memory addresses (pointers).
+// +- is valid only inside of the memory allocated and at max 1 positive increment beyond (otherwise undef. beh.)!
+// <, >, <=, >= is only valid for valid addresses (resulting from pointer arithmetics or allocation/addressOf operator &) and null.
 int main() {
   int *ptr = malloc(10*sizeof(int));
   int *otherPtr = malloc(10*sizeof(int));
@@ -36,15 +41,12 @@ int main() {
   }
 
   int * ptrPlusOne = 1 + ptr;
-  int * ptrMinusOne = ptr - 1;
+  // int * ptrMinusOne = ptr - 1; // Would be undef. beh.!
   int * ptrPlusNine = ptr + 9;
-  int * ptrPlusTen = ptr + 10;
+  int * ptrPlusTen = ptr + 10; // Defined and valid according to C11 standard §6.5.6.8 
 
   // None of the ptr originating pointers that have been inc/dec are equal to any other than themselves
   if ((ptr + 1) != ptrPlusOne) {
-    goto ERROR;
-  }
-  if ((ptr - 1) != ptrMinusOne) {
     goto ERROR;
   }
   if ((ptr + 9) != ptrPlusNine) {
@@ -57,9 +59,6 @@ int main() {
   if (ptr == ptrPlusOne) {
     goto ERROR;
   }
-  if (ptr == ptrMinusOne) {
-    goto ERROR;
-  }
   if (ptr == ptrPlusNine) {
     goto ERROR;
   }
@@ -67,9 +66,6 @@ int main() {
     goto ERROR;
   }
 
-  if (ptrPlusOne == ptrMinusOne) {
-    goto ERROR;
-  }
   if (ptrPlusOne == ptrPlusNine) {
     goto ERROR;
   }
@@ -77,17 +73,7 @@ int main() {
     goto ERROR;
   }
 
-  if (ptrMinusOne == ptrPlusNine) {
-    goto ERROR;
-  }
-  if (ptrMinusOne == ptrPlusTen) {
-    goto ERROR;
-  }
-
   if (ptrPlusNine == ptrPlusTen) {
-    goto ERROR;
-  }
-  if (ptrMinusOne == ptrPlusTen) {
     goto ERROR;
   }
 
@@ -99,13 +85,10 @@ int main() {
   if (otherPtr == ptrPlusOne) {
     goto ERROR;
   }
-  if (otherPtr == ptrMinusOne) { // This can never work, as otherPtr is 10 integers big and we have the initial pointer here
-    goto ERROR;
-  }
   if (otherPtr == ptrPlusNine) {
     goto ERROR;
   }
-  // Note: the check below MIGHT actually succeed!
+  // Note: the check below MIGHT actually succeed if they are (by luck) directly adjacent in memory!
   // if (otherPtr == ptrPlusTen) {
 
   if ((otherPtr + 1) == ptrPlusTen) {
@@ -119,9 +102,6 @@ int main() {
   if ((otherPtr - 1) == ptrPlusOne) {
     goto ERROR;
   }
-  if ((otherPtr - 1) == ptrMinusOne) {
-    goto ERROR;
-  }
   if ((otherPtr - 1) == ptrPlusNine) {
     goto ERROR;
   }
@@ -133,9 +113,6 @@ int main() {
     goto ERROR;
   }
   if ((otherPtr + 10) == ptrPlusOne) {
-    goto ERROR;
-  }
-  if ((otherPtr + 10) == ptrMinusOne) {
     goto ERROR;
   }
   if ((otherPtr + 10) == ptrPlusNine) {
@@ -153,9 +130,6 @@ int main() {
   if (((ptrPlusOne + 1) - 1) != ptrPlusOne) {
     goto ERROR;
   }
-  if ((ptrPlusOne - 2) != ptrMinusOne) {
-    goto ERROR;
-  }
   if ((ptrPlusOne + 8) != ptrPlusNine) {
     goto ERROR;
   }
@@ -163,29 +137,10 @@ int main() {
     goto ERROR;
   }
 
-  if ((ptrMinusOne + 1) != ptr) {
-    goto ERROR;
-  }
-  if (((ptrMinusOne + 1) - 1) != ptrMinusOne) {
-    goto ERROR;
-  }
-  if ((ptrMinusOne + 2) != ptrPlusOne) {
-    goto ERROR;
-  }
-  if ((ptrMinusOne + 10) != ptrPlusNine) {
-    goto ERROR;
-  }
-  if ((ptrMinusOne + 11) != ptrPlusTen) {
-    goto ERROR;
-  }
-
   if ((ptrPlusNine - 9) != ptr) {
     goto ERROR;
   }
   if (((ptrPlusNine + 9) - 9) != ptrPlusNine) {
-    goto ERROR;
-  }
-  if ((ptrPlusNine - 10) != ptrMinusOne) {
     goto ERROR;
   }
   if ((ptrPlusNine - 8) != ptrPlusOne) {
@@ -201,9 +156,6 @@ int main() {
   if (((ptrPlusTen - 10) + 10) != ptrPlusTen) {
     goto ERROR;
   }
-  if ((ptrPlusTen - 11) != ptrMinusOne) {
-    goto ERROR;
-  }
   if ((ptrPlusTen - 1) != ptrPlusNine) {
     goto ERROR;
   }
@@ -214,9 +166,6 @@ int main() {
 
   // More than 1 calculation
   if (((ptr + 3) - 4) != (ptrPlusOne - 2)) {
-    goto ERROR;
-  }
-  if (((ptr + 3) - 6) != (ptrMinusOne - 2)) {
     goto ERROR;
   }
   if (((ptr + 11) - 4) != (ptrPlusNine - 2)) {
@@ -236,9 +185,6 @@ int main() {
   if (((ptr + 6) - 3) < (ptrPlusOne + 2)) {
     goto ERROR;
   }
-  if (((ptr + 5) - 3) < (ptrMinusOne + 3)) {
-    goto ERROR;
-  }
   if (((ptr + 11) - 4) < (ptrPlusNine - 2)) {
     goto ERROR;
   }
@@ -248,9 +194,6 @@ int main() {
 
   // < true (check as negated)
   if (!(((ptr + 6) - 4) < (ptrPlusOne + 2))) { // 0 + 6 - 4 = 2 < 3 = 1 + 2
-    goto ERROR;
-  }
-  if (!(((ptr + 5) - 4) < (ptrMinusOne + 3))) { // 0 + 5 - 4 = 1 < 2 = -1 + 3
     goto ERROR;
   }
   if (!(((ptr + 11) - 5) < (ptrPlusNine - 2))) { // 11 - 5 = 6 < 7 = 9 - 2
@@ -267,9 +210,6 @@ int main() {
   if (((ptr + 6) - 3) > (ptrPlusOne + 2)) {
     goto ERROR;
   }
-  if (((ptr + 5) - 3) > (ptrMinusOne + 3)) {
-    goto ERROR;
-  }
   if (((ptr + 11) - 4) > (ptrPlusNine - 2)) {
     goto ERROR;
   }
@@ -281,9 +221,6 @@ int main() {
   if (!(((ptr + 6) - 2) > (ptrPlusOne + 2))) { // 0 + 6 - 2 = 4 > 3 = 1 + 2
     goto ERROR;
   }
-  if (!(((ptr + 5) - 2) > (ptrMinusOne + 3))) { // 0 + 5 - 2 = 3 > 2 = -1 + 3
-    goto ERROR;
-  }
   if (!(((ptr + 11) - 3) > (ptrPlusNine - 2))) { // 11 - 3 = 8 > 7 = 9 - 2
     goto ERROR;
   }
@@ -293,9 +230,6 @@ int main() {
 
   // <= false
   if (((ptr + 6) - 2) <= (ptrPlusOne + 2)) {
-    goto ERROR;
-  }
-  if (((ptr + 5) - 2) <= (ptrMinusOne + 3)) {
     goto ERROR;
   }
   if (((ptr + 11) - 3) <= (ptrPlusNine - 2)) {
@@ -313,9 +247,6 @@ int main() {
   if (!(((ptr + 6) - 3) <= (ptrPlusOne + 2))) { // 0 + 6 - 3 = 3 = 3 = 1 + 2
     goto ERROR;
   }
-  if (!(((ptr + 5) - 3) <= (ptrMinusOne + 3))) { // 0 + 5 - 3 = 2 = 2 = -1 + 3
-    goto ERROR;
-  }
   if (!(((ptr + 11) - 4) <= (ptrPlusNine - 2))) { // 11 - 4 = 7 = 7 = 9 - 2
     goto ERROR;
   }
@@ -324,9 +255,6 @@ int main() {
   }
 
   if (!(((ptr + 6) - 4) <= (ptrPlusOne + 2))) { // 0 + 6 - 4 = 2 <= 3 = 1 + 2
-    goto ERROR;
-  }
-  if (!(((ptr + 5) - 4) <= (ptrMinusOne + 3))) { // 0 + 5 - 4 = 1 <= 2 = -1 + 3
     goto ERROR;
   }
   if (!(((ptr + 11) - 5) <= (ptrPlusNine - 2))) { // 11 - 5 = 6 <= 7 = 9 - 2
@@ -338,9 +266,6 @@ int main() {
 
   // >= false
   if (((ptr + 6) - 4) >= (ptrPlusOne + 2)) {
-    goto ERROR;
-  }
-  if (((ptr + 5) - 4) >= (ptrMinusOne + 3)) {
     goto ERROR;
   }
   if (((ptr + 11) - 5) >= (ptrPlusNine - 2)) {
@@ -358,9 +283,6 @@ int main() {
   if (!(((ptr + 6) - 3) >= (ptrPlusOne + 2))) { // 0 + 6 - 3 = 3 >= 3 = 1 + 2
     goto ERROR;
   }
-  if (!(((ptr + 5) - 3) >= (ptrMinusOne + 3))) { // 0 + 5 - 3 = 2 >= 2 = -1 + 3
-    goto ERROR;
-  }
   if (!(((ptr + 11) - 4) >= (ptrPlusNine - 2))) { // 11 - 4 = 7 >= 7 = 9 - 2
     goto ERROR;
   }
@@ -369,9 +291,6 @@ int main() {
   }
 
   if (!(((ptr + 6) - 2) >= (ptrPlusOne + 2))) { // 0 + 6 - 2 = 4 >= 3 = 1 + 2
-    goto ERROR;
-  }
-  if (!(((ptr + 5) - 2) >= (ptrMinusOne + 3))) { // 0 + 5 - 2 = 3 >= 2 = -1 + 3
     goto ERROR;
   }
   if (!(((ptr + 11) - 3) >= (ptrPlusNine - 2))) { // 11 - 3 = 8 >= 7 = 9 - 2
@@ -383,13 +302,6 @@ int main() {
 
   // Distance
   if (ptr - ptr != 0) {
-    goto ERROR;
-  }
-
-  if (ptr - ptrMinusOne != 1) {
-    goto ERROR;
-  }
-  if (ptrMinusOne - ptr != -1) {
     goto ERROR;
   }
 
@@ -428,14 +340,8 @@ int main() {
   if ((ullPtr + 4) != (unsigned long long) ptrPlusOne) {
     goto ERROR;
   }
-  if ((ullPtr - 4) != (unsigned long long) ptrMinusOne) {
-    goto ERROR;
-  }
 
   if ((ullPtr + 1) == (unsigned long long) ptrPlusOne) {
-    goto ERROR;
-  }
-  if ((ullPtr - 1) == (unsigned long long) ptrMinusOne) {
     goto ERROR;
   }
 
@@ -449,9 +355,6 @@ int main() {
   if ((ullPtr + 2) == (unsigned long long) ptrPlusOne) {
     goto ERROR;
   }
-  if ((ullPtr - 2) == (unsigned long long) ptrMinusOne) {
-    goto ERROR;
-  }
 
   if ((ullPtr + 2) == (unsigned long long) ptr) {
     goto ERROR;
@@ -461,9 +364,6 @@ int main() {
   }
 
   if ((ullPtr + 3) == (unsigned long long) ptrPlusOne) {
-    goto ERROR;
-  }
-  if ((ullPtr - 3) == (unsigned long long) ptrMinusOne) {
     goto ERROR;
   }
 
@@ -479,9 +379,6 @@ int main() {
   if (ptrPlusOneIntButByHand != ptrPlusOne) {
     goto ERROR;
   }
-  if (((int *)(((unsigned long long) ptrPlusOneIntButByHand) - 8)) != ptrMinusOne) {
-    goto ERROR;
-  }
 
   int * ptrPlusOneByteButByHand = (int *) (ullPtr + 1);
   if (ptrPlusOneByteButByHand == ptr) {
@@ -494,9 +391,6 @@ int main() {
     goto ERROR;
   }
   if (ptrPlusOneByteButByHand == (ptr + 3)) {
-    goto ERROR;
-  }
-  if (ptrPlusOneByteButByHand == ptrMinusOne) {
     goto ERROR;
   }
 
@@ -514,9 +408,6 @@ int main() {
   if (ptrPlusTwoByteButByHand == (ptr + 3)) {
     goto ERROR;
   }
-  if (ptrPlusTwoByteButByHand == ptrMinusOne) {
-    goto ERROR;
-  }
 
   int * ptrPlusThreeByteButByHand = (int *) (ullPtr + 3);
   if (ptrPlusThreeByteButByHand == ptr) {
@@ -529,9 +420,6 @@ int main() {
     goto ERROR;
   }
   if (ptrPlusThreeByteButByHand == (ptr + 3)) {
-    goto ERROR;
-  }
-  if (ptrPlusThreeByteButByHand == ptrMinusOne) {
     goto ERROR;
   }
 
@@ -547,9 +435,6 @@ int main() {
     goto ERROR;
   }
   if (ptrMinusOneByteButByHand == (ptr + 3)) {
-    goto ERROR;
-  }
-  if (ptrMinusOneByteButByHand == ptrMinusOne) {
     goto ERROR;
   }
   
