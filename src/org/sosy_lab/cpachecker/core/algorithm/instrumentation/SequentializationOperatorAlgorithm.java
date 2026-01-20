@@ -190,9 +190,12 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                           .insertVariablesInsideOperation(
                               matchedVariables, transition.getPattern());
               if (newEdge.contains("__CPAchecker_TMP")) {
-                throw new CPAException("Matching for line with function calls is unsupported.");
+                if (instrumentationProperty == InstrumentationProperty.NOOVERFLOW) {
+                  throw new CPAException("Matching for line with function calls is unsupported.");
+                }
+              } else {
+                newEdges.add(newEdge);
               }
-              newEdges.add(newEdge);
             }
           }
         }
