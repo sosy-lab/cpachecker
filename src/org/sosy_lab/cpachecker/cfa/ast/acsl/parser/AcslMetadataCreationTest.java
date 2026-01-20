@@ -36,19 +36,14 @@ public class AcslMetadataCreationTest {
   private static final String TEST_DIR = "test/programs/acsl/";
 
   private final String programName;
-  private final int expectedAnnotations;
   private final CFACreator cfaCreator;
   private final Optional<Integer> expectedLine;
   private final Optional<Integer> expectedCol;
 
   public AcslMetadataCreationTest(
-      String pProgramName,
-      int pExpetedAnnotions,
-      Optional<Integer> pExpectedLine,
-      Optional<Integer> pExpectedCol)
+      String pProgramName, Optional<Integer> pExpectedLine, Optional<Integer> pExpectedCol)
       throws InvalidConfigurationException {
     programName = pProgramName;
-    expectedAnnotations = pExpetedAnnotions;
     expectedLine = pExpectedLine;
     expectedCol = pExpectedCol;
     Configuration config =
@@ -66,55 +61,44 @@ public class AcslMetadataCreationTest {
     /*
     Regular ACSL statement annotation
      */
-    b.add(task("even.c", 1, 21, 3));
-    b.add(task("inv_for.c", 1, 13, 3));
-    b.add(task("inv_short-for.c", 1, 13, 3));
-    b.add(task("minimal_example.c", 1, 12, 5));
-    b.add(task("traps.c", 2, 26, 11));
-    b.add(task("statements.c", 4, 11, 5));
+    b.add(task("even.c", 21, 3));
+    b.add(task("inv_for.c", 13, 3));
+    b.add(task("inv_short-for.c", 13, 3));
+    b.add(task("minimal_example.c", 12, 5));
+    b.add(task("traps.c", 26, 11));
+    b.add(task("statements.c", 11, 5));
 
     /*
     Function contracts
      */
-    b.add(task("abs2.c", 1, 21, 1));
-    b.add(task("abs.c", 1, 21, 1));
-    b.add(task("simple.c", 3, 18, 1));
+    b.add(task("abs2.c", 21, 1));
+    b.add(task("abs.c", 21, 1));
+    b.add(task("simple.c", 18, 1));
 
     /*
     Behaviors
      */
-    b.add(task("nested.c", 2, 19, 5));
+    b.add(task("nested.c", 19, 5));
 
     /*
     Special cases
      */
-    b.add(task("no_annotations.c", 0));
-    b.add(task("empty.c", 1));
+    b.add(task("no_annotations.c"));
+    b.add(task("empty.c"));
 
     return b.build();
   }
 
-  private static Object[] task(
-      String program, int expectedAnnotations, int pExpectedLine, int pExpextedCol) {
+  private static Object[] task(String program, int pExpectedLine, int pExpextedCol) {
     return new Object[] {
-      program, expectedAnnotations, Optional.of(pExpectedLine), Optional.of(pExpextedCol),
+      program, Optional.of(pExpectedLine), Optional.of(pExpextedCol),
     };
   }
 
-  private static Object[] task(String program, int expectedAnnotations) {
+  private static Object[] task(String program) {
     return new Object[] {
-      program, expectedAnnotations, Optional.empty(), Optional.empty(),
+      program, Optional.empty(), Optional.empty(),
     };
-  }
-
-  @Test
-  public void parseCorrectNumberOfAcslCommentsTest() throws Exception {
-    List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-    if (cfa.getMetadata().getAcslMetadata() != null) {
-      ImmutableList<AcslComment> acslComments = cfa.getMetadata().getAcslMetadata().pAcslComments();
-      assertThat(acslComments).hasSize(expectedAnnotations);
-    }
   }
 
   @Test

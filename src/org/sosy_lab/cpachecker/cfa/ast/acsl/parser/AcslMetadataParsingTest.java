@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import java.nio.file.Path;
@@ -35,13 +37,16 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class AcslMetadataParsingTest {
   private static final String TEST_DIR = "test/programs/acsl/";
   private final String programName;
+  private final int expectedNumComments;
   private final ImmutableList<String> expectedComments;
   private final CFACreator cfaCreator;
   private final LogManager logManager;
 
-  public AcslMetadataParsingTest(String pProgramName, ImmutableList<String> pAnnotations)
+  public AcslMetadataParsingTest(
+      String pProgramName, int pExpectedNumComments, ImmutableList<String> pAnnotations)
       throws InvalidConfigurationException {
     programName = pProgramName;
+    expectedNumComments = pExpectedNumComments;
     expectedComments = pAnnotations;
     Configuration config =
         TestDataTools.configurationForTest()
@@ -54,36 +59,48 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    b.add(task("minimal_example.c", ImmutableList.of("ensures x == 10;")));
-    b.add(task("after_else.c", ImmutableList.of("assert a == 10 || a == 20;")));
-    b.add(task("after_for_loop2.c", ImmutableList.of("assert b == 20;")));
-    b.add(task("after_if.c", ImmutableList.of("assert a != 20;")));
-    b.add(task("after_loop.c", ImmutableList.of("assert a == 20;")));
-    b.add(task("after_loop2.c", ImmutableList.of("assert  a == 20;")));
-    b.add(task("at_end.c", ImmutableList.of("assert a == 20;")));
-    b.add(task("badVariable.c", ImmutableList.of()));
-    b.add(task("empty.c", ImmutableList.of("assert \true")));
-    b.add(task("end_of_do_while.c", ImmutableList.of("assert a <= 20")));
-    b.add(task("even.c", ImmutableList.of("loop invariant x % 2 == 0;")));
-    b.add(task("even2.c", ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;")));
-    b.add(task("in_middle.c", ImmutableList.of("assert a == 19;")));
-    b.add(task("inv_for.c", ImmutableList.of("loop invariant x + y == 20;")));
-    b.add(task("inv_short-for.c", ImmutableList.of("loop invariant x + y == 20;")));
-    b.add(task("no_annotations.c", ImmutableList.of()));
+    b.add(task("after_else.c", 1, ImmutableList.of("assert a == 10 || a == 20;")));
+    b.add(task("after_for_loop2.c", 1, ImmutableList.of("assert b == 20;")));
+    b.add(task("after_if.c", 1, ImmutableList.of("assert a != 20;")));
+    b.add(task("after_loop.c", 1, ImmutableList.of("assert a == 20;")));
+    b.add(task("after_loop2.c", 1, ImmutableList.of("assert  a == 20;")));
+    b.add(task("at_end.c", 1, ImmutableList.of("assert a == 20;")));
+    b.add(task("badVariable.c", 0, ImmutableList.of()));
+    b.add(task("empty.c", 1, ImmutableList.of("assert \true")));
+    b.add(task("end_of_do_while.c", 1, ImmutableList.of("assert a <= 20")));
+    b.add(task("even.c", 1, ImmutableList.of("loop invariant x % 2 == 0;")));
+    b.add(task("even2.c", 1, ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;")));
+    b.add(task("in_middle.c", 1, ImmutableList.of("assert a == 19;")));
+    b.add(task("inv_for.c", 1, ImmutableList.of("loop invariant x + y == 20;")));
+    b.add(task("inv_short-for.c", 1, ImmutableList.of("loop invariant x + y == 20;")));
+    b.add(task("minimal_example.c", 1, ImmutableList.of("ensures x == 10;")));
+    b.add(task("no_annotations.c", 0, ImmutableList.of()));
     b.add(
         task(
             "statements.c",
+            4,
             ImmutableList.of(
                 "ensures x == 0;",
                 "ensures y == 0;",
                 "ensures x == i;",
                 "requires x == i; ensures y == i;")));
-    b.add(task("traps.c", ImmutableList.of("assert \false;", "ensures y > 0")));
+    b.add(task("traps.c", 2, ImmutableList.of("assert \false;", "ensures y > 0")));
     return b.build();
   }
 
-  private static Object[] task(String program, ImmutableList<String> annotations) {
-    return new Object[] {program, annotations};
+  private static Object[] task(
+      String program, int expectedNumComments, ImmutableList<String> annotations) {
+    return new Object[] {program, expectedNumComments, annotations};
+  }
+
+  @Test
+  public void parseCorrectNumberOfAcslCommentsTest() throws Exception {
+    List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+    if (cfa.getMetadata().getAcslMetadata() != null) {
+      ImmutableList<AcslComment> acslComments = cfa.getMetadata().getAcslMetadata().pAcslComments();
+      assertThat(acslComments).hasSize(expectedNumComments);
+    }
   }
 
   @Test
@@ -108,5 +125,5 @@ public class AcslMetadataParsingTest {
     }
   }
 
-  public record CodeLoctation(int line, int column) {}
+  public record CodeLoctation(int expectedLine, int expectedCol) {}
 }
