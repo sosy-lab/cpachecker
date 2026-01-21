@@ -6,8 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <assert.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 // Safe for reach- and memsafety
 // This tests address comparison using ==, !=, as well as <, >, <=, >=, and pointer arithmetics.
@@ -16,8 +16,9 @@
 // +- is valid only inside of the memory allocated and at max 1 positive increment beyond (otherwise undef. beh.)!
 // <, >, <=, >= is only valid for valid addresses (resulting from pointer arithmetics or allocation/addressOf operator &) and null.
 int main() {
-  int *ptr = malloc(10*sizeof(int));
-  int *otherPtr = malloc(10*sizeof(int));
+  int memory_size = 10;
+  int *ptr = malloc(memory_size*sizeof(int));
+  int *otherPtr = malloc(memory_size*sizeof(int));
 
   if (ptr == 0) {
     return 0;
@@ -26,8 +27,38 @@ int main() {
     return 0;
   }
 
-  if (ptr != ptr) {
-    goto ERROR;
+  for (int i = 0; i < memory_size; i++) {
+    *ptr = i;
+    ptr++;
+    *otherPtr = i + 1;
+    otherPtr++;
+  }
+
+  for (int i = 0; i < memory_size; i++) {
+    if (ptr != ptr) {
+      goto ERROR;
+    }
+
+    if (otherPtr != otherPtr) {
+      goto ERROR;
+    }
+
+    // Decrement first to not generate a invalid deref!
+    ptr--;
+    otherPtr--;
+
+    // Check that the values are consistent after inc/dec
+    if (*ptr != *ptr) {
+      goto ERROR;
+    }
+
+    if (*otherPtr != *otherPtr) {
+      goto ERROR;
+    }
+
+    if (*ptr + 1 != *otherPtr) {
+      goto ERROR;
+    }
   }
 
   if ((1 + ptr) != (ptr + 1)) {
@@ -306,52 +337,56 @@ int main() {
 
 
   // Transform to unsigned long, increment by hand (size is depending on 32/64 bit!) and back
-  unsigned long long ullPtr = (unsigned long long) ptr;
-
-  if ((ullPtr + 4) != (unsigned long long) ptrPlusOne) {
+  unsigned long ulPtr = (unsigned long) ptr;
+  // Sanity check that we use the correct byte sizes (int in 32bits is 4 bytes)
+  if (sizeof(ptr) != 4) {
     goto ERROR;
   }
 
-  if ((ullPtr + 1) == (unsigned long long) ptrPlusOne) {
+  if ((ulPtr + 4) != (unsigned long) ptrPlusOne) {
     goto ERROR;
   }
 
-  if ((ullPtr + 1) == (unsigned long long) ptr) {
-    goto ERROR;
-  }
-  if ((ullPtr - 1) == (unsigned long long) ptr) {
+  if ((ulPtr + 1) == (unsigned long) ptrPlusOne) {
     goto ERROR;
   }
 
-  if ((ullPtr + 2) == (unsigned long long) ptrPlusOne) {
+  if ((ulPtr + 1) == (unsigned long) ptr) {
+    goto ERROR;
+  }
+  if ((ulPtr - 1) == (unsigned long) ptr) {
     goto ERROR;
   }
 
-  if ((ullPtr + 2) == (unsigned long long) ptr) {
-    goto ERROR;
-  }
-  if ((ullPtr - 2) == (unsigned long long) ptr) {
+  if ((ulPtr + 2) == (unsigned long) ptrPlusOne) {
     goto ERROR;
   }
 
-  if ((ullPtr + 3) == (unsigned long long) ptrPlusOne) {
+  if ((ulPtr + 2) == (unsigned long) ptr) {
+    goto ERROR;
+  }
+  if ((ulPtr - 2) == (unsigned long) ptr) {
     goto ERROR;
   }
 
-  if ((ullPtr + 3) == (unsigned long long) ptr) {
+  if ((ulPtr + 3) == (unsigned long) ptrPlusOne) {
     goto ERROR;
   }
-  if ((ullPtr - 3) == (unsigned long long) ptr) {
+
+  if ((ulPtr + 3) == (unsigned long) ptr) {
+    goto ERROR;
+  }
+  if ((ulPtr - 3) == (unsigned long) ptr) {
     goto ERROR;
   }
 
 
-  int * ptrPlusOneIntButByHand = (int *) (ullPtr + 4);
+  int * ptrPlusOneIntButByHand = (int *) (ulPtr + 4);
   if (ptrPlusOneIntButByHand != ptrPlusOne) {
     goto ERROR;
   }
 
-  int * ptrPlusOneByteButByHand = (int *) (ullPtr + 1);
+  int * ptrPlusOneByteButByHand = (int *) (ulPtr + 1);
   if (ptrPlusOneByteButByHand == ptr) {
     goto ERROR;
   }
@@ -366,7 +401,7 @@ int main() {
   }
 
 
-  int * ptrPlusTwoByteButByHand = (int *) (ullPtr + 2);
+  int * ptrPlusTwoByteButByHand = (int *) (ulPtr + 2);
   if (ptrPlusTwoByteButByHand == ptr) {
     goto ERROR;
   }
@@ -380,7 +415,7 @@ int main() {
     goto ERROR;
   }
 
-  int * ptrPlusThreeByteButByHand = (int *) (ullPtr + 3);
+  int * ptrPlusThreeByteButByHand = (int *) (ulPtr + 3);
   if (ptrPlusThreeByteButByHand == ptr) {
     goto ERROR;
   }
@@ -395,7 +430,7 @@ int main() {
   }
 
 
-  int * ptrMinusOneByteButByHand = (int *) (ullPtr - 1);
+  int * ptrMinusOneByteButByHand = (int *) (ulPtr - 1);
   if (ptrMinusOneByteButByHand == ptr) {
     goto ERROR;
   }
@@ -408,6 +443,82 @@ int main() {
   if (ptrMinusOneByteButByHand == (ptr + 3)) {
     goto ERROR;
   }
+
+  if (ulPtr == 0) {
+    goto ERROR; // We know this is impossible due to ptr not being null
+  }
+
+  if ((ulPtr + 4) == 1) {
+    goto ERROR; // impossible to reach as ptr can not be 0
+  }
+
+  if ((ulPtr + 4) == 4) {
+    goto ERROR; // impossible to reach as ptr can not be 0 (ptr can theoretically start 1 byte in, so at "4", so the minimum value of ulPtr + 4 is 8)
+  }
+
+  // Test the same with types guaranteed to hold all (void) pointers
+  intptr_t intPtr = (intptr_t) ptr;
+
+  if ((intPtr + 4) != (intptr_t) ptrPlusOne) {
+    goto ERROR;
+  }
+  if ((int *)(intPtr + 4) != ptrPlusOne) {
+    goto ERROR;
+  }
+
+  if ((intPtr + (9*4)) != (intptr_t) ptrPlusNine) {
+    goto ERROR;
+  }
+  if ((int *)(intPtr + (9*4)) != ptrPlusNine) {
+    goto ERROR;
+  }
+
+  if ((intPtr + (10*4)) != (intptr_t) ptrPlusTen) {
+    goto ERROR;
+  }
+  if ((int *)(intPtr + (10*4)) != ptrPlusTen) {
+    goto ERROR;
+  }
+
+  uintptr_t uintPtr = (uintptr_t) ptr;
+
+  if ((uintPtr + 4) != (uintptr_t) ptrPlusOne) {
+    goto ERROR;
+  }
+  if ((int *)(uintPtr + 4) != ptrPlusOne) {
+    goto ERROR;
+  }
+
+  if ((uintPtr + (9*4)) != (uintptr_t) ptrPlusNine) {
+    goto ERROR;
+  }
+  if ((int *)(uintPtr + (9*4)) != ptrPlusNine) {
+    goto ERROR;
+  }
+
+  if ((uintPtr + (10*4)) != (uintptr_t) ptrPlusTen) {
+    goto ERROR;
+  }
+  if ((int *)(uintPtr + (10*4)) != ptrPlusTen) {
+    goto ERROR;
+  }
+
+  if ((int *)(uintPtr + 8) != (int *)(intPtr + 8)) {
+    goto ERROR;
+  }
+
+
+  // Check some pointers (generated out of the 2 originals) for value consistency
+  if (*(int *)(uintPtr + 8) != *(int *)(intPtr + 8) || *(int *)(uintPtr + 8) != 2 || *(int *)(uintPtr + 8) != *otherPtr + 1 || *(int *)(ulPtr + 4) != 1) {
+    goto ERROR;
+  }
+
+  // TODO: out-of-bounds tests that check == != with other pointers (with memory layout taken into account)
+  // TODO: test more casting to numbers, manipulating, casting back, also out of bounds cases, especially unsoundness resulting from it!
+  // TODO: this and all with arrays
+  // TODO: 64 bit tests with all
+  // TODO: violations with all
+  // TODO: other memory generating API
   
 
   free(ptr);
