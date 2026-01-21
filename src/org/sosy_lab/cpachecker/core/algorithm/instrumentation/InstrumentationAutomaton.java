@@ -1038,14 +1038,14 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q1,
             new InstrumentationPattern("true"),
-            new InstrumentationOperation("int first_INSTR_" + pIndex + " = 0;"),
+            new InstrumentationOperation("int __INSTR_first_" + pIndex + " = 0;"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("[cond]"),
-            new InstrumentationOperation("first_INSTR_" + pIndex + " = 1;"),
+            new InstrumentationOperation("__INSTR_first_" + pIndex + " = 1;"),
             InstrumentationOrder.AFTER,
             q3);
     InstrumentationTransition t3 =
