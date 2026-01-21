@@ -18,11 +18,13 @@ public class DssActors {
   private final ImmutableList<DssAnalysisWorker> analysisWorkers;
   private final ImmutableList<Statistics> workersWithStats;
   private final ImmutableList<DssActor> actors;
+  private final ImmutableList<DssActor> remainingActors;
 
   public DssActors(ImmutableList<DssActor> pActors) {
     ImmutableList.Builder<DssObserverWorker> observerBuilder = ImmutableList.builder();
     ImmutableList.Builder<DssAnalysisWorker> analysisWorkerBuilder = ImmutableList.builder();
     ImmutableList.Builder<Statistics> statsBuilder = ImmutableList.builder();
+    ImmutableList.Builder<DssActor> remainingBuilder = ImmutableList.builder();
 
     for (DssActor actor : pActors) {
       if (actor instanceof DssObserverWorker observer) {
@@ -33,6 +35,8 @@ public class DssActors {
         if (analysisWorker instanceof Statistics statistics) {
           statsBuilder.add(statistics);
         }
+      } else {
+        remainingBuilder.add(actor);
       }
     }
 
@@ -40,10 +44,15 @@ public class DssActors {
     analysisWorkers = analysisWorkerBuilder.build();
     workersWithStats = statsBuilder.build();
     actors = ImmutableList.copyOf(pActors);
+    remainingActors = remainingBuilder.build();
   }
 
   public ImmutableList<DssObserverWorker> getObservers() {
     return observers;
+  }
+
+  public ImmutableList<DssActor> getRemainingActors() {
+    return remainingActors;
   }
 
   public ImmutableList<DssAnalysisWorker> getAnalysisWorkers() {

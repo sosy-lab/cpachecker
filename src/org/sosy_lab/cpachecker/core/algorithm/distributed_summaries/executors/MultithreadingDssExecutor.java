@@ -96,7 +96,8 @@ public class MultithreadingDssExecutor implements DssExecutor {
         observer.getId());
     // run workers
     List<Thread> threads = new ArrayList<>(actors.getActors().size());
-    for (DssActor worker : actors.getAnalysisWorkers()) {
+    for (DssActor worker :
+        Iterables.concat(actors.getAnalysisWorkers(), actors.getRemainingActors())) {
       Thread thread = new Thread(worker, worker.getId());
       threads.add(thread);
       thread.setDaemon(true);
