@@ -67,7 +67,6 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    /*
     b.add(
         task(
             "after_else.c",
@@ -87,35 +86,33 @@ public class AcslMetadataParsingTest {
         task("end_of_do_while.c", 1, ImmutableList.of("assert a <= 20"), new CodeLoctation(15, 7)));
     b.add(
         task(
-            "even.c", 1, ImmutableList.of("loop invariant x % 2 == 0;"), new CodeLoctation(21, 3)));
+            "even.c", 1, ImmutableList.of("loop invariant x % 2 == 0;"), new CodeLoctation(19, 3)));
     b.add(
         task(
             "even2.c",
             1,
             ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;"),
-            new CodeLoctation(21, 3)));
-    b.add(task("in_middle.c", 1, ImmutableList.of("assert a == 19;"), new CodeLoctation(16, 5)));
+            new CodeLoctation(19, 3)));
+    b.add(task("in_middle.c", 1, ImmutableList.of("assert a == 19;"), new CodeLoctation(14, 5)));
     b.add(
         task(
             "inv_for.c",
             1,
             ImmutableList.of("loop invariant x + y == 20;"),
-            new CodeLoctation(13, 3)));
+            new CodeLoctation(11, 3)));
     b.add(
         task(
             "inv_short-for.c",
             1,
             ImmutableList.of("loop invariant x + y == 20;"),
-            new CodeLoctation(13, 3)));
+            new CodeLoctation(11, 3)));
     b.add(
         task(
             "minimal_example.c",
             1,
             ImmutableList.of("ensures x == 10;"),
-            new CodeLoctation(12, 5)));
+            new CodeLoctation(10, 5)));
     b.add(task("no_annotations.c", 0, ImmutableList.of(), new CodeLoctation(0, 0)));
-
-     */
     b.add(
         task(
             "statements.c",
@@ -126,15 +123,12 @@ public class AcslMetadataParsingTest {
                 "ensures x == i;",
                 "requires x == i; ensures y == i;"),
             new CodeLoctation(11, 5)));
-    /*
     b.add(
         task(
             "traps.c",
             2,
             ImmutableList.of("assert \false;", "ensures y > 0"),
             new CodeLoctation(26, 3)));
-
-     */
     return b.build();
   }
 
