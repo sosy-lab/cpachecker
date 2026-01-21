@@ -457,15 +457,15 @@ public class ExpressionToFormulaVisitor
           compoundIntervalFormulaManager.fromBoolean(
               typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
 
-      case BOOLEAN_LOGICAL_BITWISE_AND ->
+      case LOGICAL_AND ->
           compoundIntervalFormulaManager.fromBoolean(
               typeInfo, compoundIntervalFormulaManager.logicalAnd(logicalLeft, logicalRight));
 
-      case BOOLEAN_LOGICAL_BITWISE_OR ->
+      case LOGICAL_OR ->
           compoundIntervalFormulaManager.fromBoolean(
               typeInfo, compoundIntervalFormulaManager.logicalOr(logicalLeft, logicalRight));
 
-      case BOOLEAN_LOGICAL_BITWISE_XOR ->
+      case LOGICAL_XOR ->
           compoundIntervalFormulaManager.fromBoolean(
               typeInfo,
               compoundIntervalFormulaManager.logicalOr(

@@ -2402,11 +2402,11 @@ class ASTConverter {
 
   private BinaryOperator convertBooleanOperator(Assignment.Operator op) {
     if (op.equals(Assignment.Operator.BIT_AND_ASSIGN)) {
-      return BinaryOperator.BOOLEAN_LOGICAL_BITWISE_AND;
+      return BinaryOperator.LOGICAL_AND;
     } else if (op.equals(Assignment.Operator.BIT_OR_ASSIGN)) {
-      return BinaryOperator.BOOLEAN_LOGICAL_BITWISE_OR;
+      return BinaryOperator.LOGICAL_OR;
     } else if (op.equals(Assignment.Operator.BIT_XOR_ASSIGN)) {
-      return BinaryOperator.BOOLEAN_LOGICAL_BITWISE_XOR;
+      return BinaryOperator.LOGICAL_XOR;
 
     } else {
       throw new CFAGenerationRuntimeException("Invalid operator " + op + " for boolean assignment");
@@ -2692,11 +2692,11 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.EQUALS)) {
       return BinaryOperator.EQUALS;
     } else if (op.equals(InfixExpression.Operator.AND)) {
-      return BinaryOperator.BOOLEAN_LOGICAL_BITWISE_AND;
+      return BinaryOperator.LOGICAL_AND;
     } else if (op.equals(InfixExpression.Operator.OR)) {
-      return BinaryOperator.BOOLEAN_LOGICAL_BITWISE_OR;
+      return BinaryOperator.LOGICAL_OR;
     } else if (op.equals(InfixExpression.Operator.XOR)) {
-      return BinaryOperator.BOOLEAN_LOGICAL_BITWISE_XOR;
+      return BinaryOperator.LOGICAL_XOR;
     } else {
       throw new CFAGenerationRuntimeException("Could not proccess Operator: " + op);
     }
@@ -2923,8 +2923,8 @@ class ASTConverter {
           BinaryOperator.GREATER_THAN,
           BinaryOperator.LESS_EQUAL,
           BinaryOperator.LESS_THAN,
-          BinaryOperator.BOOLEAN_LOGICAL_BITWISE_AND,
-          BinaryOperator.BOOLEAN_LOGICAL_BITWISE_OR,
+          BinaryOperator.LOGICAL_AND,
+          BinaryOperator.LOGICAL_OR,
           BinaryOperator.CONDITIONAL_AND,
           BinaryOperator.CONDITIONAL_OR);
 
