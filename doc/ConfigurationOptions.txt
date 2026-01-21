@@ -1095,6 +1095,12 @@ cfa.expandFunctionPointerArrayAssignments = false
 # export CFA as .dot file
 cfa.export = true
 
+# whether to export a list of lines in loops
+cfa.exportLines = false
+
+# destination of a list of lines in loops
+cfa.exportLinesTo = "lines.txt"
+
 # export individual CFAs for function as .dot files
 cfa.exportPerFunction = true
 
