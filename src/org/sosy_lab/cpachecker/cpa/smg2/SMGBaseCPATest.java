@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
 
 import java.io.IOException;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -19,11 +18,16 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
+/**
+ * Base class to execute the SMG2 CPA with test programs. Override to execute with a specific {@link
+ * MachineModel}.
+ */
 @RunWith(Parameterized.class)
-public class SMGCPATest {
+public class SMGBaseCPATest {
 
   /**
    * The default configuration files to use for running SMG2 as Symbolic Execution and Value
@@ -58,13 +62,9 @@ public class SMGCPATest {
 
   @Parameter public Configuration configuration;
 
-  @Test
-  public void pointerArithmeticsMalloc32BitTrueTest() throws Exception {
-    String testProgram = "test/programs/pointer_arithmetics/pointer_arithmetics_malloc_32_safe.c";
-    runAndAssertSafe(testProgram);
-  }
+  private static final MachineModel machineModel = getMachineModel();
 
-  private void runAndAssertSafe(String testProgram) throws Exception {
+  void runAndAssertSafe(String testProgram) throws Exception {
     TestResults results = CPATestRunner.run(configuration, testProgram);
     results.assertIsSafe();
   }
@@ -107,6 +107,11 @@ public class SMGCPATest {
       throws InvalidConfigurationException, IOException {
 
     Configuration configForFiles = Configuration.defaultConfiguration();
-    return setUpConfiguration(configurationFile, inputLanguage, specificationFile, configForFiles);
+    return setUpConfiguration(
+        configurationFile, inputLanguage, specificationFile, configForFiles, machineModel);
+  }
+
+  protected static MachineModel getMachineModel() {
+    return MachineModel.LINUX32;
   }
 }

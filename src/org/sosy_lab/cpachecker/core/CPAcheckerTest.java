@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
@@ -282,20 +283,23 @@ public class CPAcheckerTest {
         Configuration.builder()
             .setOption("output.path", tempFolder.getRoot().getAbsolutePath())
             .build();
-    return setUpConfiguration(configurationFile, inputLanguage, specificationFile, configForFiles);
+    return setUpConfiguration(
+        configurationFile, inputLanguage, specificationFile, configForFiles, MachineModel.LINUX32);
   }
 
   public static Configuration setUpConfiguration(
       String configurationFile,
       Language inputLanguage,
       String specificationFile,
-      Configuration pConfigForFiles)
+      Configuration pConfigForFiles,
+      MachineModel machineModel)
       throws InvalidConfigurationException, IOException {
     FileTypeConverter fileTypeConverter = FileTypeConverter.create(pConfigForFiles);
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder
         .loadFromFile(configurationFile)
+        .setOption("analysis.machineModel", machineModel.toString())
         .setOption("language", inputLanguage.name())
         .setOption("specification", specificationFile)
         .setOption("java.classpath", JAVA_CLASSPATH)
