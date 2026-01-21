@@ -214,9 +214,9 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
             NOT_EQUALS,
             CONDITIONAL_AND,
             CONDITIONAL_OR,
-             LOGICAL_XOR,
-             LOGICAL_OR,
-             LOGICAL_AND ->
+            LOGICAL_XOR,
+            LOGICAL_OR,
+            LOGICAL_AND ->
             true;
       };
     }
