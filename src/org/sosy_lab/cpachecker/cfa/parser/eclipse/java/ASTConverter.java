@@ -2415,11 +2415,11 @@ class ASTConverter {
 
   private BinaryOperator convertNumberOperator(Assignment.Operator op) {
     if (op.equals(Assignment.Operator.BIT_AND_ASSIGN)) {
-      return BinaryOperator.INTEGER_BITWISE_AND;
+      return BinaryOperator.BITWISE_AND;
     } else if (op.equals(Assignment.Operator.BIT_OR_ASSIGN)) {
-      return BinaryOperator.INTEGER_BITWISE_OR;
+      return BinaryOperator.BITWISE_OR;
     } else if (op.equals(Assignment.Operator.BIT_XOR_ASSIGN)) {
-      return BinaryOperator.INTEGER_BITWISE_XOR;
+      return BinaryOperator.BITWISE_XOR;
     } else if (op.equals(Assignment.Operator.DIVIDE_ASSIGN)) {
       return BinaryOperator.DIVIDE;
     } else if (op.equals(Assignment.Operator.LEFT_SHIFT_ASSIGN)) {
@@ -2668,11 +2668,11 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.EQUALS)) {
       return BinaryOperator.EQUALS;
     } else if (op.equals(InfixExpression.Operator.AND)) {
-      return BinaryOperator.INTEGER_BITWISE_AND;
+      return BinaryOperator.BITWISE_AND;
     } else if (op.equals(InfixExpression.Operator.OR)) {
-      return BinaryOperator.INTEGER_BITWISE_OR;
+      return BinaryOperator.BITWISE_OR;
     } else if (op.equals(InfixExpression.Operator.XOR)) {
-      return BinaryOperator.INTEGER_BITWISE_XOR;
+      return BinaryOperator.BITWISE_XOR;
     } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
       return BinaryOperator.CONDITIONAL_OR;
     } else if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {

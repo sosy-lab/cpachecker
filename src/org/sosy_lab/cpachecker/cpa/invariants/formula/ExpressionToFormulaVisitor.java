@@ -425,11 +425,11 @@ public class ExpressionToFormulaVisitor
         compoundIntervalFormulaManager.fromNumeral(right);
     TypeInfo typeInfo = TypeInfo.from(machineModel, pBinaryExpression.getExpressionType());
     return switch (pBinaryExpression.getOperator()) {
-      case INTEGER_BITWISE_AND -> allPossibleValues(pBinaryExpression);
+      case BITWISE_AND -> allPossibleValues(pBinaryExpression);
 
-      case INTEGER_BITWISE_OR -> allPossibleValues(pBinaryExpression);
+      case BITWISE_OR -> allPossibleValues(pBinaryExpression);
 
-      case INTEGER_BITWISE_XOR -> allPossibleValues(pBinaryExpression);
+      case BITWISE_XOR -> allPossibleValues(pBinaryExpression);
 
       case CONDITIONAL_AND -> allPossibleValues(pBinaryExpression);
 

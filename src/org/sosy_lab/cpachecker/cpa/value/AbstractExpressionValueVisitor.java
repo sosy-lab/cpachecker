@@ -1379,15 +1379,15 @@ public abstract class AbstractExpressionValueVisitor
           factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT_UNSIGNED ->
           factory.shiftRightUnsigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case INTEGER_BITWISE_AND ->
+      case BITWISE_AND ->
           factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LOGICAL_AND ->
           factory.logicalAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case INTEGER_BITWISE_OR ->
+      case BITWISE_OR ->
           factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LOGICAL_OR ->
           factory.logicalOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case INTEGER_BITWISE_XOR, LOGICAL_XOR ->
+      case BITWISE_XOR, LOGICAL_XOR ->
           factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case NOT_EQUALS ->
@@ -1428,9 +1428,9 @@ public abstract class AbstractExpressionValueVisitor
           DIVIDE,
           MULTIPLY,
           SHIFT_LEFT_SIGNED,
-          INTEGER_BITWISE_AND,
-          INTEGER_BITWISE_OR,
-          INTEGER_BITWISE_XOR,
+          BITWISE_AND,
+          BITWISE_OR,
+          BITWISE_XOR,
           REMAINDER,
           SHIFT_RIGHT_SIGNED,
           SHIFT_RIGHT_UNSIGNED -> {
@@ -1449,11 +1449,11 @@ public abstract class AbstractExpressionValueVisitor
               }
               case MULTIPLY -> lVal * rVal;
 
-              case INTEGER_BITWISE_AND -> lVal & rVal;
+              case BITWISE_AND -> lVal & rVal;
 
-              case INTEGER_BITWISE_OR -> lVal | rVal;
+              case BITWISE_OR -> lVal | rVal;
 
-              case INTEGER_BITWISE_XOR -> lVal ^ rVal;
+              case BITWISE_XOR -> lVal ^ rVal;
 
               case REMAINDER -> lVal % rVal;
 

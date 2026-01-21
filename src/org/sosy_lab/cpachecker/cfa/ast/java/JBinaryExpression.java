@@ -113,17 +113,17 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
      */
     GREATER_EQUAL(">="),
     /** Java & (integer bitwise AND) operator, defined in §15.22.1 of the Java specification. */
-    INTEGER_BITWISE_AND("&"),
+    BITWISE_AND("&"),
     /**
      * Java ^ (integer bitwise exclusive OR) operator, defined in §15.22.1 of the Java
      * specification.
      */
-    INTEGER_BITWISE_XOR("^"),
+    BITWISE_XOR("^"),
     /**
      * Java | (integer bitwise inclusive OR) operator, defined in §15.22.1 of the Java
      * specification.
      */
-    INTEGER_BITWISE_OR("|"),
+    BITWISE_OR("|"),
     /**
      * Java & (boolean logical bitwise AND) operator, defined in §15.22.2 of the Java specification.
      */
@@ -202,9 +202,9 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
             SHIFT_LEFT_SIGNED,
             SHIFT_RIGHT_SIGNED,
             SHIFT_RIGHT_UNSIGNED,
-            INTEGER_BITWISE_AND,
-            INTEGER_BITWISE_OR,
-            INTEGER_BITWISE_XOR ->
+            BITWISE_AND,
+            BITWISE_OR,
+            BITWISE_XOR ->
             false;
         case LESS_EQUAL,
             LESS_THAN,

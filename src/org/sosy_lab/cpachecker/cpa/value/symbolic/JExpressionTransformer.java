@@ -98,11 +98,11 @@ public class JExpressionTransformer extends ExpressionTransformer
       case SHIFT_RIGHT_UNSIGNED ->
           factory.shiftRightUnsigned(
               operand1Expression, operand2Expression, expressionType, expressionType);
-      case INTEGER_BITWISE_AND ->
+      case BITWISE_AND ->
           factory.binaryAnd(operand1Expression, operand2Expression, expressionType, expressionType);
-      case INTEGER_BITWISE_OR ->
+      case BITWISE_OR ->
           factory.binaryOr(operand1Expression, operand2Expression, expressionType, expressionType);
-      case INTEGER_BITWISE_XOR ->
+      case BITWISE_XOR ->
           factory.binaryXor(operand1Expression, operand2Expression, expressionType, expressionType);
       case EQUALS ->
           factory.equal(operand1Expression, operand2Expression, expressionType, expressionType);
