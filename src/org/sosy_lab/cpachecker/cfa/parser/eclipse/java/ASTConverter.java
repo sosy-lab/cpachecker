@@ -2423,7 +2423,7 @@ class ASTConverter {
     } else if (op.equals(Assignment.Operator.DIVIDE_ASSIGN)) {
       return BinaryOperator.DIVIDE;
     } else if (op.equals(Assignment.Operator.LEFT_SHIFT_ASSIGN)) {
-      return BinaryOperator.SHIFT_LEFT_SIGNED;
+      return BinaryOperator.SHIFT_LEFT;
     } else if (op.equals(Assignment.Operator.RIGHT_SHIFT_SIGNED_ASSIGN)) {
       return BinaryOperator.SHIFT_RIGHT_SIGNED;
     } else if (op.equals(Assignment.Operator.RIGHT_SHIFT_UNSIGNED_ASSIGN)) {
@@ -2658,7 +2658,7 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.LESS_EQUALS)) {
       return BinaryOperator.LESS_EQUAL;
     } else if (op.equals(InfixExpression.Operator.LEFT_SHIFT)) {
-      return BinaryOperator.SHIFT_LEFT_SIGNED;
+      return BinaryOperator.SHIFT_LEFT;
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_SIGNED)) {
       return BinaryOperator.SHIFT_RIGHT_SIGNED;
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)) {

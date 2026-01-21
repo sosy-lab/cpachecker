@@ -83,11 +83,11 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     /** Java - (subtraction) operator. Defined in the Java specification §15.18.2. */
     MINUS("-"),
     /**
-     * Java << (signed left shift) operator. Defined in the Java specification §15.19, shifts a bit
-     * pattern to the left. The bit pattern is given by the left-hand operand, and the number of
-     * positions to shift by the right-hand operand.
+     * Java << (left shift) operator. Defined in the Java specification §15.19, shifts a bit pattern
+     * to the left. The bit pattern is given by the left-hand operand, and the number of positions
+     * to shift by the right-hand operand.
      */
-    SHIFT_LEFT_SIGNED("<<"),
+    SHIFT_LEFT("<<"),
     /**
      * Java >> (signed right shift) operator. Defined in the Java specification §15.19, shifts a bit
      * pattern to the right. The bit pattern is given by the left-hand operand, and the number of
@@ -199,7 +199,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
             REMAINDER,
             PLUS,
             MINUS,
-            SHIFT_LEFT_SIGNED,
+            SHIFT_LEFT,
             SHIFT_RIGHT_SIGNED,
             SHIFT_RIGHT_UNSIGNED,
             BITWISE_AND,
