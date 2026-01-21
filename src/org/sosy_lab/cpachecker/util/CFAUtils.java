@@ -28,7 +28,6 @@ import com.google.errorprone.annotations.InlineMe;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,7 +37,6 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -519,7 +517,8 @@ public class CFAUtils {
    * @param pNodes the set of nodes to consider
    * @return a list of edges forming a path from source to target, or empty list if no path exists
    */
-  private static List<CFAEdge> findPath(CFANode pSource, CFANode pTarget, Set<CFANode> pNodes) {
+  private static ImmutableList<CFAEdge> findPath(
+      CFANode pSource, CFANode pTarget, Set<CFANode> pNodes) {
     Map<CFANode, CFAEdge> parentEdge = new HashMap<>();
     Set<CFANode> visited = new HashSet<>();
     Queue<CFANode> queue = new ArrayDeque<>();
@@ -532,14 +531,14 @@ public class CFAUtils {
 
       if (current.equals(pTarget)) {
         // Reconstruct path
-        List<CFAEdge> path = new ArrayList<>();
+        ImmutableList.Builder<CFAEdge> path = ImmutableList.builder();
         CFANode node = pTarget;
         while (parentEdge.containsKey(node)) {
           CFAEdge edge = parentEdge.get(node);
-          path.add(0, edge);
+          path.add(edge);
           node = edge.getPredecessor();
         }
-        return path;
+        return path.build().reverse();
       }
 
       for (CFAEdge edge : current.getLeavingEdges()) {
@@ -736,17 +735,18 @@ public class CFAUtils {
     return finder.findSCCs();
   }
 
-  public static SortedSet<Integer> getLineNumbersInsideSCCs(CFA pCFA) {
+  public static ImmutableList<Integer> getLineNumbersInsideSCCs(CFA pCFA) {
     StronglyConnectedComponents components = computeStronglyConnectedComponents(pCFA.nodes());
-    return FluentIterable.from(components.getIntraComponentEdges(pCFA.edges()))
-        .transformAndConcat(
-            e ->
-                ImmutableList.copyOf(
-                    IntStream.range(
-                            e.getFileLocation().getStartingLineNumber(),
-                            e.getFileLocation().getEndingLineNumber() + 1)
-                        .iterator()))
-        .toSortedSet(Comparator.naturalOrder());
+    return ImmutableList.sortedCopyOf(
+        FluentIterable.from(components.getIntraComponentEdges(pCFA.edges()))
+            .transformAndConcat(
+                e ->
+                    ImmutableList.copyOf(
+                        IntStream.range(
+                                e.getFileLocation().getStartingLineNumber(),
+                                e.getFileLocation().getEndingLineNumber() + 1)
+                            .iterator()))
+            .toSet());
   }
 
   /** Helper class implementing Tarjan's SCC algorithm. */

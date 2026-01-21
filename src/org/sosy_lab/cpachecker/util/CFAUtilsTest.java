@@ -426,7 +426,7 @@ public class CFAUtilsTest {
     CFAUtils.StronglyConnectedComponents sccs = CFAUtils.computeStronglyConnectedComponents(nodes);
 
     assertThat(sccs.getNumberOfComponents()).isEqualTo(1);
-    assertThat(sccs.getComponents().get(0)).containsExactly(node);
+    assertThat(sccs.getComponents().getFirst()).containsExactly(node);
     assertThat(sccs.getInterComponentEdges()).isEmpty();
   }
 
@@ -471,7 +471,7 @@ public class CFAUtilsTest {
 
     // One SCC containing the node
     assertThat(sccs.getNumberOfComponents()).isEqualTo(1);
-    assertThat(sccs.getComponents().get(0)).containsExactly(node);
+    assertThat(sccs.getComponents().getFirst()).containsExactly(node);
 
     // Self-loop is not inter-component
     assertThat(sccs.getInterComponentEdges()).isEmpty();
@@ -498,7 +498,7 @@ public class CFAUtilsTest {
 
     // One SCC containing all nodes
     assertThat(sccs.getNumberOfComponents()).isEqualTo(1);
-    assertThat(sccs.getComponents().get(0)).containsExactly(nodeA, nodeB, nodeC);
+    assertThat(sccs.getComponents().getFirst()).containsExactly(nodeA, nodeB, nodeC);
 
     // All nodes in same component
     assertThat(sccs.areInSameComponent(nodeA, nodeB)).isTrue();
@@ -601,7 +601,7 @@ public class CFAUtilsTest {
 
     // Verify SCC3: {F}
     assertThat(sccs.getComponentContaining(nodeF)).isPresent();
-    assertThat(sccs.getComponentContaining(nodeF).get()).containsExactly(nodeF);
+    assertThat(sccs.getComponentContaining(nodeF).orElseThrow()).containsExactly(nodeF);
 
     // Inter-component edges
     assertThat(sccs.getInterComponentEdges()).containsExactly(edgeAC, edgeEF);
@@ -660,7 +660,7 @@ public class CFAUtilsTest {
     // Component containing A and B
     Optional<ImmutableSet<CFANode>> compAB = sccs.getComponentContaining(nodeA);
     assertThat(compAB).isPresent();
-    assertThat(compAB.get()).containsExactly(nodeA, nodeB);
+    assertThat(compAB.orElseThrow()).containsExactly(nodeA, nodeB);
 
     // Same component for B
     assertThat(sccs.getComponentContaining(nodeB)).isEqualTo(compAB);
@@ -668,7 +668,7 @@ public class CFAUtilsTest {
     // Different component for C
     Optional<ImmutableSet<CFANode>> compC = sccs.getComponentContaining(nodeC);
     assertThat(compC).isPresent();
-    assertThat(compC.get()).containsExactly(nodeC);
+    assertThat(compC.orElseThrow()).containsExactly(nodeC);
 
     // Component for non-existent node
     CFANode nodeX = CFANode.newDummyCFANode();

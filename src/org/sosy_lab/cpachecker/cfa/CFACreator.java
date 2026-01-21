@@ -1345,7 +1345,7 @@ public class CFACreator {
     stats.exportTime.start();
 
     if (exportLinesInLoop) {
-      Set<Integer> lines = CFAUtils.getLineNumbersInsideSCCs(cfa);
+      List<Integer> lines = CFAUtils.getLineNumbersInsideSCCs(cfa);
       try {
         IO.writeFile(exportLinesInLoopTo, Charset.defaultCharset(), Joiner.on("\n").join(lines));
       } catch (IOException e) {
