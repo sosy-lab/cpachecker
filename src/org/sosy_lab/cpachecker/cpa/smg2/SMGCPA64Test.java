@@ -15,9 +15,16 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 public class SMGCPA64Test extends SMGBaseCPATest {
 
   @Test
-  public void pointerArithmeticsIntegerPointerViaMalloc64BitTrueTest() throws Exception {
+  public void pointerArithmeticsAndComparisonsIntPtrViaMallocProof() throws Exception {
     String testProgram =
         "test/programs/pointer_arithmetics/pointer_arithmetics_int_malloc_64_safe.c";
+    runAndAssertSafe(testProgram);
+  }
+
+  @Test
+  public void pointerArithmeticsAndComparisonsIntPtrCastNumericViaMallocProof() throws Exception {
+    String testProgram =
+        "test/programs/pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_64_safe.c";
     runAndAssertSafe(testProgram);
   }
 
