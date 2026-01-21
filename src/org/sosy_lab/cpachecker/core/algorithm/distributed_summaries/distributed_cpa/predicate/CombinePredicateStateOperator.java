@@ -91,7 +91,7 @@ public class CombinePredicateStateOperator implements CombineOperator {
                     .getSolver()
                     .getFormulaManager()
                     .getBooleanFormulaManager()
-                    .or(booleanFormulas)),
+                    .and(booleanFormulas)),
         (PredicateAbstractState) Objects.requireNonNull(Iterables.get(states, 0)));
   }
 }

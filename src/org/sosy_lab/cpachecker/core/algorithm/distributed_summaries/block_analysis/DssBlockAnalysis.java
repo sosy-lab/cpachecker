@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -663,11 +664,16 @@ public class DssBlockAnalysis {
       if (block.isAbstractionPossible()) {
         if (!result.getSummaries().isEmpty()) {
           ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
-          for (AbstractState summary : result.getSummaries()) {
-            summaryWithPrecision.add(
-                new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
-          }
-          summaries.addAll(summaryWithPrecision.build());
+          AbstractState combinedState =
+              dcpa.getCombineOperator()
+                  .combine(
+                      FluentIterable.from(result.getSummaries())
+                          .filter(AbstractState.class)
+                          .toList());
+          Precision combined =
+              dcpa.getCombinePrecisionOperator()
+                  .combine(result.getSummaries().stream().map(reachedSet::getPrecision).toList());
+          summaries.add(new StateAndPrecision(combinedState, combined));
         }
         if (!prepped.containsTopState() || i == 1) {
           if (!result.getAllViolations().isEmpty()) {
