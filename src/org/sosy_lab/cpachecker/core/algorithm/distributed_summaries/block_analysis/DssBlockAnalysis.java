@@ -364,7 +364,7 @@ public class DssBlockAnalysis {
     return uniqueSummaries;
   }
 
-  private Collection<DssMessage> reportPreconditions(
+  private Collection<DssMessage> reportPostconditions(
       Collection<@NonNull StateAndPrecision> summaries, boolean isSound)
       throws CPAException, InterruptedException {
     isSound &= soundPredecessors.containsAll(block.getPredecessorIds());
@@ -433,7 +433,7 @@ public class DssBlockAnalysis {
         summariesWithPrecision.add(
             new StateAndPrecision(finalState, reachedSet.getPrecision(finalState)));
       }
-      return reportPreconditions(summariesWithPrecision.build(), true);
+      return reportPostconditions(summariesWithPrecision.build(), true);
     }
 
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
@@ -590,11 +590,11 @@ public class DssBlockAnalysis {
     }
     ImmutableList<StateAndPrecision> states = soundSummaries.build();
     if (!states.isEmpty()) {
-      messages.addAll(reportPreconditions(states, true));
+      messages.addAll(reportPostconditions(states, true));
     }
     ImmutableList<StateAndPrecision> unsoundStates = unsoundSummaries.build();
     if (!unsoundStates.isEmpty()) {
-      messages.addAll(reportPreconditions(unsoundStates, false));
+      messages.addAll(reportPostconditions(unsoundStates, false));
     }
     return messages.build();
   }
@@ -620,7 +620,7 @@ public class DssBlockAnalysis {
             transformedImmutableListCopy(violations, v -> (ARGState) v.state()));
     if (!result.summaries().isEmpty()) {
       messages.addAll(
-          reportPreconditions(
+          reportPostconditions(
               result.summaries(), result.isSound() && result.violationConditions().isEmpty()));
     }
     if (!result.violationConditions().isEmpty()) {
