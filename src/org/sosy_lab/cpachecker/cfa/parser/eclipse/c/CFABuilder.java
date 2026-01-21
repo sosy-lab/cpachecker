@@ -568,12 +568,12 @@ class CFABuilder extends ASTVisitor {
           FluentIterable.from(tightestStatement.orElseThrow().edges())
               .transform(e -> e.getSuccessor());
       List<CFANode> nodesForComment =
-          successors
-              .filter(n -> !predecessors.contains(n) && !(n instanceof FunctionExitNode))
+          predecessors
+              .filter(n -> !successors.contains(n) && !(n instanceof FunctionExitNode))
               .toList();
 
       // An AcslComment should belong to exactly one CfaNode
-      if (nodesForComment.size() == 1) {
+      if (!nodesForComment.isEmpty()) {
         return Optional.of(nodesForComment.getFirst());
       }
     }
