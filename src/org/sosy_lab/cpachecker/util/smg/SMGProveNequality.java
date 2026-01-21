@@ -127,7 +127,7 @@ public class SMGProveNequality {
    *     {@code false} if they are guaranteed to be not equal.
    */
   protected boolean checkPointsToEdgesOutOfBoundsEquality(
-      SMGPointsToEdge pte1, SMGPointsToEdge pte2) throws SMGSolverException {
+      SMGPointsToEdge pte1, SMGPointsToEdge pte2) {
     SMGObject targetObj1 = pte1.pointsTo();
     SMGObject targetObj2 = pte2.pointsTo();
     Value targetObjSize1 = pte1.pointsTo().getSize();

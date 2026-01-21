@@ -129,8 +129,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
   }
 
   @Test
-  public void pointsToEdgeNotOutOfBoundsTest()
-      throws InvalidConfigurationException, SMGSolverException {
+  public void pointsToEdgeNotOutOfBoundsTest() throws InvalidConfigurationException {
     SMGObject reg1 = createRegion(32);
     SMGObject reg2 = createRegion(64);
     SMGPointsToEdge pt1 = createPTEdge(0, SMGTargetSpecifier.IS_REGION, reg1);
@@ -221,7 +220,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
 
   @Test
   public void pointsToEdgeOutOfBoundsWithMemoryLayoutCheckTest()
-      throws InvalidConfigurationException, SMGSolverException {
+      throws InvalidConfigurationException {
     SMGObject reg1 = createRegion(32);
     SMGObject reg2 = createRegion(64);
     SMGObject reg3 = createRegion(128);
@@ -344,7 +343,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
    */
   @Test
   public void twoPointsToEdgesOutOfBoundsWithEqualSignumWithMemoryLayoutCheckTest()
-      throws InvalidConfigurationException, SMGSolverException {
+      throws InvalidConfigurationException {
     SMGObject reg1 = createRegion(32);
     SMGObject reg2 = createRegion(64);
 
