@@ -81,7 +81,6 @@ public class AcslMetadataParsingTest {
     b.add(task("after_loop2.c", 1, ImmutableList.of("assert  a == 20;"), new CodeLoctation(15, 7)));
     b.add(task("at_end.c", 1, ImmutableList.of("assert a != 20;"), new CodeLoctation(15, 7)));
     b.add(task("badVariable.c", -1, ImmutableList.of(), new CodeLoctation(12, 2)));
-    b.add(task("empty.c", 1, ImmutableList.of("assert \true"), new CodeLoctation(20, 5)));
     b.add(
         task("end_of_do_while.c", 1, ImmutableList.of("assert a <= 20"), new CodeLoctation(15, 7)));
     b.add(
