@@ -11,11 +11,13 @@ format_version: '2.0'
 input_files: 'pointer_arithmetics_numeric_cast_int_malloc_64_safe.c'
 
 properties:
-  - property_file: ../../../config/Assertion.spc
+  - property_file: ../../../config/specification/Assertion.spc
     expected_verdict: true
   - property_file: ../../../config/properties/valid-memsafety.prp
+    expected_verdict: true
+  - property_file: ../../../config/properties/valid-memcleanup.prp
     expected_verdict: true
 
 options:
   language: C
-  data_model: LP32
+  data_model: LP64
