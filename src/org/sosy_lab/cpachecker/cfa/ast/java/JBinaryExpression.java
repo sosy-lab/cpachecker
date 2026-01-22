@@ -65,7 +65,6 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     return (BinaryOperator) super.getOperator();
   }
 
-  // TODO: Java instanceof (type comparison) operator, defined in §15.20.2 of the Java specification
   public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
     /**
      * Java * (multiplication) operator. Defined in the Java specification <a
