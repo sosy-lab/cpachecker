@@ -11,9 +11,11 @@ format_version: '2.0'
 input_files: 'pointer_arithmetics_int_malloc_64_safe.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-label.prp
+  - property_file: ../../../config/specification/Assertion.spc
     expected_verdict: true
   - property_file: ../../../config/properties/valid-memsafety.prp
+    expected_verdict: true
+  - property_file: ../../../config/properties/valid-memcleanup.prp
     expected_verdict: true
 
 options:
