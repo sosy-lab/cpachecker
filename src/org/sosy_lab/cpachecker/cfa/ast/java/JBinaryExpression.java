@@ -67,93 +67,136 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
 
   // TODO: Java instanceof (type comparison) operator, defined in §15.20.2 of the Java specification
   public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
-    /** Java * (multiplication) operator. Defined in the Java specification §15.17.1. */
+    /**
+     * Java * (multiplication) operator. Defined in the Java specification <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.17.1">§15.17.1</a>.
+     */
     MULTIPLY("*"),
-    /** Java / (division) operator. Defined in the Java specification §15.17.2. */
+    /**
+     * Java / (division) operator. Defined in the Java specification <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.17.2">§15.17.2</a>.
+     */
     DIVIDE("/"),
-    /** Java % (remainder) operator. Defined in the Java specification §15.17.3. */
+    /**
+     * Java % (remainder) operator. Defined in the Java specification <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.17.3">§15.17.3</a>.
+     */
     REMAINDER("%"),
-    /** Java + (string concatenation) operator. Defined in the Java specification §15.18.1. */
+    /**
+     * Java + (string concatenation) operator. Defined in the Java specification <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.18.1">§15.18.1</a>.
+     */
     STRING_CONCATENATION("+"),
     /**
      * Java + (additive) operator, but exclusively for arithmetic addition. Defined in the Java
-     * specification §15.18.2.
+     * specification <a *
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.18.2">§15.18.2</a>.
      */
     PLUS("+"),
-    /** Java - (subtraction) operator. Defined in the Java specification §15.18.2. */
+    /**
+     * Java - (subtraction) operator. Defined in the Java specification <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.18.2">§15.18.2</a>.
+     */
     MINUS("-"),
     /**
-     * Java << (left shift) operator. Defined in the Java specification §15.19, shifts a bit pattern
-     * to the left. The bit pattern is given by the left-hand operand, and the number of positions
-     * to shift by the right-hand operand.
+     * Java << (left shift) operator. Defined in the Java specification <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.19">§15.19</a>,
+     * shifts a bit pattern to the left. The bit pattern is given by the left-hand operand, and the
+     * number of positions to shift by the right-hand operand.
      */
     SHIFT_LEFT("<<"),
     /**
-     * Java >> (signed right shift) operator. Defined in the Java specification §15.19, shifts a bit
-     * pattern to the right. The bit pattern is given by the left-hand operand, and the number of
-     * positions to shift by the right-hand operand. The leftmost position after shifting depends on
-     * sign extension.
+     * Java >> (signed right shift) operator. Defined in the Java specification <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.19">§15.19</a>,
+     * shifts a bit pattern to the right. The bit pattern is given by the left-hand operand, and the
+     * number of positions to shift by the right-hand operand. The leftmost position after shifting
+     * depends on sign extension.
      */
     SHIFT_RIGHT_SIGNED(">>"),
     /**
-     * Java >>> (unsigned right shift) operator. Defined in the Java specification §15.19, shifts a
-     * bit pattern to the right. The bit pattern is given by the left-hand operand, and the number
-     * of positions to shift by the right-hand operand. The left-hand operand is treated as
+     * Java >>> (unsigned right shift) operator. Defined in the Java specification <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.19">§15.19</a>,
+     * shifts a bit pattern to the right. The bit pattern is given by the left-hand operand, and the
+     * number of positions to shift by the right-hand operand. The left-hand operand is treated as
      * unsigned. A zero is shifted into the leftmost position.
      */
     SHIFT_RIGHT_UNSIGNED(">>>"),
-    /** Java < (less than) operator, defined in §15.20.1 of the Java specification. */
+    /**
+     * Java < (less than) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.20.1">§15.20.1</a>
+     * of the Java specification.
+     */
     LESS_THAN("<"),
-    /** Java > (greater than) operator, defined in §15.20.1 of the Java specification. */
+    /**
+     * Java > (greater than) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.20.1">§15.20.1</a>
+     * of the Java specification.
+     */
     GREATER_THAN(">"),
-    /** Java <= (less than or equal to) operator, defined in §15.20.1 of the Java specification. */
+    /**
+     * Java <= (less than or equal to) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.20.1">§15.20.1</a>
+     * of the Java specification.
+     */
     LESS_EQUAL("<="),
     /**
-     * Java >= (greater than or equal to) operator, defined in §15.20.1 of the Java specification.
+     * Java >= (greater than or equal to) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.20.1">§15.20.1</a>
+     * of the Java specification.
      */
     GREATER_EQUAL(">="),
-    /** Java & (integer bitwise AND) operator, defined in §15.22.1 of the Java specification. */
+    /**
+     * Java & (integer bitwise AND) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.22.1">§15.22.1</a>
+     * of the Java specification.
+     */
     BITWISE_AND("&"),
     /**
-     * Java ^ (integer bitwise exclusive OR) operator, defined in §15.22.1 of the Java
-     * specification.
+     * Java ^ (integer bitwise exclusive OR) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.22.1">§15.22.1</a>
+     * of the Java specification.
      */
     BITWISE_XOR("^"),
     /**
-     * Java | (integer bitwise inclusive OR) operator, defined in §15.22.1 of the Java
-     * specification.
+     * Java | (integer bitwise inclusive OR) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.22.1">§15.22.1</a>
+     * of the Java specification.
      */
     BITWISE_OR("|"),
     /**
-     * Java & (boolean logical bitwise AND) operator, defined in §15.22.2 of the Java specification.
+     * Java & (boolean logical AND) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.22.2">§15.22.2</a>
+     * of the Java specification.
      */
     LOGICAL_AND("&"),
     /**
-     * Java | (boolean logical bitwise inclusive OR) operator, defined in §15.22.2 of the Java
-     * specification.
+     * Java | (boolean logical inclusive OR) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.22.2">§15.22.2</a>
+     * of the Java specification.
      */
     LOGICAL_OR("|"),
     /**
-     * Java ^ (boolean logical bitwise exclusive OR) operator, defined in §15.22.2 of the Java
-     * specification.
+     * Java ^ (boolean logical exclusive OR) operator, defined in <a
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.22.2">§15.22.2</a>
+     * of the Java specification.
      */
     LOGICAL_XOR("^"),
     /**
      * Java && (conditional AND) operator, defined in <a
-     * href="https://docs.oracle.com/javase/specs/jls/se25/jls25.pdf#%5B%7B%22num%22%3A7590%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C72%2C361%2Cnull%5D">§15.23
-     * of the Java specification</a>.
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.23">§15.23 of the
+     * Java specification</a>.
      */
     CONDITIONAL_AND("&&"),
     /**
      * Java || (conditional OR) operator, defined in <a
-     * href="https://docs.oracle.com/javase/specs/jls/se25/jls25.pdf#%5B%7B%22num%22%3A7628%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C72%2C455%2Cnull%5D">§15.24
-     * of the Java specification</a>.
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.24">§15.24 of the
+     * Java specification</a>.
      */
     CONDITIONAL_OR("||"),
     /**
      * Java == (equal to) operator, defined in <a
-     * href="https://docs.oracle.com/javase/specs/jls/se25/jls25.pdf#%5B%7B%22num%22%3A7515%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C72%2C179%2Cnull%5D">§15.21
-     * of the Java specification</a>. The equal to operator is split into:
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.21">§15.21 of the
+     * Java specification</a>. The equal to operator is split into:
      *
      * <ul>
      *   <li>numerical equality, if both operands are of numeric type, or one is of numeric type and
@@ -165,8 +208,8 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     EQUALS("=="),
     /**
      * Java != (not equal to) operator, defined in <a
-     * href="https://docs.oracle.com/javase/specs/jls/se25/jls25.pdf#%5B%7B%22num%22%3A7515%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C72%2C179%2Cnull%5D">§15.21
-     * of the Java specification</a>. The not equal to operator is split into:
+     * href="https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.21">§15.21 of the
+     * Java specification</a>. The not equal to operator is split into:
      *
      * <ul>
      *   <li>numerical equality, if both operands are of numeric type, or one is of numeric type and
