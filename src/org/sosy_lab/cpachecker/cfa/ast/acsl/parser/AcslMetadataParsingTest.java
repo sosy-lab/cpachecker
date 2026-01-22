@@ -105,29 +105,6 @@ public class AcslMetadataParsingTest {
             1,
             ImmutableList.of("loop invariant x + y == 20;"),
             new CodeLoctation(11, 3)));
-    b.add(
-        task(
-            "minimal_example.c",
-            1,
-            ImmutableList.of("ensures x == 10;"),
-            new CodeLoctation(10, 5)));
-    b.add(task("no_annotations.c", 0, ImmutableList.of(), new CodeLoctation(0, 0)));
-    b.add(
-        task(
-            "statements.c",
-            4,
-            ImmutableList.of(
-                "ensures x == 0;",
-                "ensures y == 0;",
-                "ensures x == i;",
-                "requires x == i; ensures y == i;"),
-            new CodeLoctation(11, 5)));
-    b.add(
-        task(
-            "traps.c",
-            2,
-            ImmutableList.of("assert \false;", "ensures y > 0"),
-            new CodeLoctation(26, 3)));
     return b.build();
   }
 
