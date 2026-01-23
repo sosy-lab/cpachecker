@@ -15,6 +15,9 @@ spec:
       description: "Run the auto-update-dependencies job instead of the normal CI pipeline"
       type: boolean
       default: false
+    git_push_remote:
+      description: 'Whether and where to push if a job wants to commit changes (e.g., "origin", leave empty for no push)'
+      default:
     expensive_tests:
       description: "Run expensive tests as part of unit tests"
       type: boolean
@@ -49,6 +52,8 @@ auto-update-dependencies:
   script:
     - build/auto-update-dependencies.sh
   environment: repo/auto-update-dependencies
+  variables:
+    PUSH: "$[[ inputs.git_push_remote ]]"
   rules:
     - if: $[[ inputs.auto_update_dependencies ]] == true
   cache:
