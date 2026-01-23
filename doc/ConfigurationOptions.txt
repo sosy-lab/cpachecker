@@ -5652,10 +5652,6 @@ testcase.mutationSeed = 0
 # Number of random test cases that should be generated
 testcase.numRandomTests = 1
 
-# List of files with configurations to run in parallel for test-case
-# generation.
-testcase.parallel.configFiles = no default value
-
 # Only convert literal value and do not add suffix, e.g., for unsigned, etc.
 testcase.plainLiteralValue = false
 
