@@ -6,12 +6,21 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This file contains only some global CI config.
-# Most jobs are included here:
+# This file contains only some global CI config the auto-update-dependencies job.
+# Either the latter is executed or the regular jobs are included depending on input.
+
+spec:
+  inputs:
+    auto_update_dependencies:
+      description: "Run the auto-update-dependencies job instead of the normal CI pipeline"
+      type: boolean
+      default: false
+---
+
 include:
   - local: build/gitlab-ci.local.yml
     rules:
-      - if: $AUTO_UPDATE_DEPENDENCIES != "true"
+      - if: $[[ inputs.auto_update_dependencies ]] != true
 
 # Run either MR pipelines or regular pipelines, but never both at the same time.
 # Cf. https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
@@ -35,7 +44,7 @@ auto-update-dependencies:
     - build/auto-update-dependencies.sh
   environment: repo/auto-update-dependencies
   rules:
-    - if: $AUTO_UPDATE_DEPENDENCIES == "true"
+    - if: $[[ inputs.auto_update_dependencies ]] == true
   cache:
     key: "$CI_JOB_NAME"
     paths:
