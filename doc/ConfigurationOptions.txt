@@ -226,6 +226,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -778,6 +779,10 @@ analysis.useLoopStructure = true
 # Use analyses parallely. The resulting reachedset is the one of the first
 # analysis finishing in time. All other analyses are terminated.
 analysis.useParallelAnalyses = false
+
+# generate test cases for covered test targets thereby let different
+# instances cover subsets of test targets in parallel
+analysis.useParallelTestCaseGeneratorAlgorithmWithTargetSplitting = false
 
 # generate random test cases
 analysis.useRandomTestCaseGeneratorAlgorithm = false
@@ -4263,24 +4268,24 @@ cpa.value.refinement.writePathConstraints = true
 
 # Overall timelimit for computing initial value precision from given
 # predicate precision(use seconds or specify a unit; 0 for infinite)
-cpa.value.reuse.precision.predicate.adaptionLimit = 0ns
+cpa.value.reuse.precision.converter.adaptionLimit = 0ns
 
 # also consider other binary operators then ==, !== when considering control
 # dependencies while adapting predicate precision
-cpa.value.reuse.precision.predicate.includeControlNonEquiv = false
+cpa.value.reuse.precision.converter.includeControlNonEquiv = false
 
 # comma-separated list of files with property specifications that should be
 # considered when determining the relevant edges for predicate precision
 # adaption
-cpa.value.reuse.precision.predicate.relevantProperties = []
+cpa.value.reuse.precision.converter.relevantProperties = []
 
 # which strategy to use to convert predicate to value precision
-cpa.value.reuse.precision.predicate.strategy = CONVERT_ONLY
+cpa.value.reuse.precision.converter.strategy = CONVERT_ONLY
   enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
              CONVERT_AND_ADD_FLOW_BIDIRECTED]
 
 # also consider control dependencies during adaption of predicate precision
-cpa.value.reuse.precision.predicate.useControl = false
+cpa.value.reuse.precision.converter.useControl = false
 
 # configure whether to export all loop invariants into one file or to split
 # the export into one file per type
@@ -4324,6 +4329,9 @@ cpa.value.trackJavaArrayValues = true
 # Tells the value analysis how to handle unknown values.
 cpa.value.unknownValueHandling = DISCARD
   enum:     [DISCARD, INTRODUCE_SYMBOLIC]
+
+# get an initial precision from a correctness witness file
+cpa.value.witnessFileForInitialPrecision = no default value
 
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
@@ -5647,6 +5655,10 @@ testcase.mutationSeed = 0
 
 # Number of random test cases that should be generated
 testcase.numRandomTests = 1
+
+# List of files with configurations to run in parallel for test-case
+# generation.
+testcase.parallel.configFiles = no default value
 
 # Only convert literal value and do not add suffix, e.g., for unsigned, etc.
 testcase.plainLiteralValue = false
