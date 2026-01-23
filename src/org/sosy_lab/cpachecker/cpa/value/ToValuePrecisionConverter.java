@@ -13,9 +13,11 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -36,6 +38,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -62,6 +65,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper.InitialPredicatesOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
@@ -69,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUti
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.Node;
@@ -186,9 +191,29 @@ public class ToValuePrecisionConverter implements Statistics {
     return ImmutableListMultimap.copyOf(result);
   }
 
-  private Multimap<CFANode, MemoryLocation> witnesssToVariableTrackingPrec(
-      final Path pWitnessFile) {
-    return null; // TODO
+  private Multimap<CFANode, MemoryLocation> witnesssToVariableTrackingPrec(final Path pWitnessFile)
+      throws InvalidConfigurationException, InterruptedException {
+    try {
+      IO.checkReadableFile(pWitnessFile);
+
+      if (AutomatonWitnessV2ParserUtils.isYAMLWitness(pWitnessFile)) {
+        if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(pWitnessFile)
+            .orElseThrow()
+            .equals(WitnessType.CORRECTNESS_WITNESS)) {
+          // TODO
+        } else {
+          logger.log(
+              Level.WARNING,
+              "File " + pWitnessFile + " does not represent a YAML correctness witness.");
+        }
+      } else {
+        logger.log(Level.WARNING, "File " + pWitnessFile + " does not represent a YAML witness.");
+      }
+    } catch (FileNotFoundException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not read witness from file named " + pWitnessFile);
+    }
+    return ImmutableMultimap.of();
   }
 
   public Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
@@ -197,7 +222,7 @@ public class ToValuePrecisionConverter implements Statistics {
         getNotifierAndLimitsCheckerIfEnabled();
     ShutdownNotifier conversionShutdownNotifier =
         notifierPlusLimitsChecker.isPresent()
-            ? notifierPlusLimitsChecker.get().getFirst()
+            ? notifierPlusLimitsChecker.orElseThrow().getFirst()
             : shutdownNotifier;
     Multimap<CFANode, MemoryLocation> result = null;
 
@@ -233,7 +258,7 @@ public class ToValuePrecisionConverter implements Statistics {
     }
 
     if (notifierPlusLimitsChecker.isPresent()) {
-      notifierPlusLimitsChecker.get().getSecond().cancel();
+      notifierPlusLimitsChecker.orElseThrow().getSecond().cancel();
     }
 
     if (result == null) {
@@ -306,7 +331,7 @@ public class ToValuePrecisionConverter implements Statistics {
       final ShutdownNotifier conversionShutdownNotifier)
       throws InterruptedException, InvalidConfigurationException {
 
-    if (converterStrategy != ConverterStrategy.CONVERT_ONLY) {
+    if (!result.isEmpty() && converterStrategy != ConverterStrategy.CONVERT_ONLY) {
       try {
         logger.log(
             Level.FINE,
