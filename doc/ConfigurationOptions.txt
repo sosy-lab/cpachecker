@@ -780,10 +780,6 @@ analysis.useLoopStructure = true
 # analysis finishing in time. All other analyses are terminated.
 analysis.useParallelAnalyses = false
 
-# generate test cases for covered test targets thereby let different
-# instances cover subsets of test targets in parallel
-analysis.useParallelTestCaseGeneratorAlgorithmWithTargetSplitting = false
-
 # generate random test cases
 analysis.useRandomTestCaseGeneratorAlgorithm = false
 

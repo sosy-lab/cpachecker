@@ -13,7 +13,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -213,7 +212,7 @@ public class ToValuePrecisionConverter implements Statistics {
       logger.logUserException(
           Level.WARNING, e, "Could not read witness from file named " + pWitnessFile);
     }
-    return ImmutableMultimap.of();
+    return ImmutableListMultimap.of();
   }
 
   public Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
