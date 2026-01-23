@@ -15,6 +15,10 @@ spec:
       description: "Run the auto-update-dependencies job instead of the normal CI pipeline"
       type: boolean
       default: false
+    expensive_tests:
+      description: "Run expensive tests as part of unit tests"
+      type: boolean
+      default: false
 ---
 
 include:
@@ -36,6 +40,8 @@ variables:
   REFASTER_REPO_REVISION: d0df2ab5b02285f95bef9d3c6263f2ecdb3752ad
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.46.0
+  ANT_PROPS_CHECKS: "-Divy.disable=true -DskipBuild=true -Djunit.enableExpensiveTests=$[[ inputs.expensive_tests ]]"
+
 
 auto-update-dependencies:
   stage: deploy
