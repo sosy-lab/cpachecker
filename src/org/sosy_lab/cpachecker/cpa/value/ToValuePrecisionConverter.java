@@ -167,7 +167,7 @@ public class ToValuePrecisionConverter implements Statistics {
         getNotifierAndLimitsCheckerIfEnabled();
     ShutdownNotifier conversionShutdownNotifier =
         notifierPlusLimitsChecker.isPresent()
-            ? notifierPlusLimitsChecker.get().getFirst()
+            ? notifierPlusLimitsChecker.orElseThrow().getFirst()
             : shutdownNotifier;
     Multimap<CFANode, MemoryLocation> result = null;
     conversionTime.start();
@@ -180,7 +180,7 @@ public class ToValuePrecisionConverter implements Statistics {
       conversionTime.stopIfRunning();
     }
     if (notifierPlusLimitsChecker.isPresent()) {
-      notifierPlusLimitsChecker.get().getSecond().cancel();
+      notifierPlusLimitsChecker.orElseThrow().getSecond().cancel();
     }
 
     if (result == null) {
