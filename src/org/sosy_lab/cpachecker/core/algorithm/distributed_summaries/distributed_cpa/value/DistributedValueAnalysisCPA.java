@@ -8,16 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
-import com.google.common.collect.ImmutableSet;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DeserializeValueAnalysisStateOperator.havocVariables;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -31,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.termination.ClassVariables;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -56,7 +54,6 @@ public class DistributedValueAnalysisCPA
   private final ValueStateCoverageOperator coverageOperator;
   private final FormulaManagerView formulaManager;
   static Map<String, ValueAnalysisState> initialState = new HashMap<>();
-  static Optional<Map<String, Type>> globals = Optional.empty();
 
   public DistributedValueAnalysisCPA(
       ValueAnalysisCPA pValueCPA,
@@ -82,21 +79,6 @@ public class DistributedValueAnalysisCPA
     combinePrecisionOperator = new CombineValuePrecisionOperator();
     coverageOperator = new ValueStateCoverageOperator(solver);
     blockNode = pBlockNode;
-
-    if (globals.isEmpty()) {
-      initializeGlobals(pCFA);
-    }
-  }
-
-  private void initializeGlobals(CFA pCFA) {
-    Map<String, Type> newGlobals = new HashMap<>();
-    ImmutableSet<CVariableDeclaration> declarations =
-        ClassVariables.collectDeclarations(pCFA).getGlobalDeclarations();
-
-    for (CVariableDeclaration decl : declarations) {
-      newGlobals.put(decl.getQualifiedName(), decl.getType());
-    }
-    globals = Optional.of(newGlobals);
   }
 
   @Override
@@ -171,8 +153,7 @@ public class DistributedValueAnalysisCPA
     if (initialState.containsKey(blockNode.getId())) return initialState.get(blockNode.getId());
     ValueAnalysisState init = new ValueAnalysisState(cfa.getMachineModel());
     Map<String, Type> accessedVars = deserializeOperator.getAccessedVariables(blockNode);
-    // DeserializeValueAnalysisStateOperator.havocVariables(init, globals.get());
-    DeserializeValueAnalysisStateOperator.havocVariables(init, accessedVars);
+    havocVariables(init, accessedVars);
     initialState.put(blockNode.getId(), init);
     return init;
   }
