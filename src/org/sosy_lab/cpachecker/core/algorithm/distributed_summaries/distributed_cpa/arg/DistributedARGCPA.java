@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -145,13 +146,17 @@ public class DistributedARGCPA
     }
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public @Nullable <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
-    return argcpa.retrieveWrappedCpa(type);
+    if (type.isInstance(wrappedCPA)) {
+      return (T) wrappedCPA;
+    }
+    return null;
   }
 
   @Override
   public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
-    return argcpa.getWrappedCPAs();
+    return ImmutableList.of(wrappedCPA);
   }
 }

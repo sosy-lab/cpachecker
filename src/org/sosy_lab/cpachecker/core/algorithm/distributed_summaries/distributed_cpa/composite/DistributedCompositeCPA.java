@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -27,15 +28,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.*;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 
-public class DistributedCompositeCPA implements ForwardingDistributedConfigurableProgramAnalysis {
+public class DistributedCompositeCPA
+    implements ForwardingDistributedConfigurableProgramAnalysis, WrapperCPA {
 
   private final CompositeCPA compositeCPA;
   private final SerializeOperator serialize;
@@ -221,5 +220,21 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
       }
     }
     return cpasAndStates.build();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public @Nullable <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
+    for (var c : wrappedCpas) {
+      if (type.isInstance(c)) {
+        return (T) c;
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return wrappedCpas;
   }
 }

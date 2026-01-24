@@ -35,7 +35,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
-public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
+public class DistributedPredicateCPA
+    implements ForwardingDistributedConfigurableProgramAnalysis, AutoCloseable {
 
   private final PredicateCPA predicateCPA;
 
@@ -162,5 +163,10 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   @Override
   public CombineOperator getCombineOperator() {
     return combineOperator;
+  }
+
+  @Override
+  public void close() {
+    predicateCPA.close();
   }
 }
