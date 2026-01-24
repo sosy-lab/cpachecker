@@ -49,11 +49,11 @@ public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicV
   SymbolicValueFactory svf;
   Set<SymbolicIdentifier> rename;
 
-  public SymbolicIdentifierRenamer(Map<Long, Long> pIdentifierMap, Set<SymbolicIdentifier> pRenameSymbols) {
+  public SymbolicIdentifierRenamer(
+      Map<Long, Long> pIdentifierMap, Set<SymbolicIdentifier> pRenameSymbols) {
     identifierMap = pIdentifierMap;
     svf = SymbolicValueFactory.getInstance();
     rename = pRenameSymbols;
-
   }
 
   @Override
@@ -61,8 +61,7 @@ public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicV
     if (identifierMap.containsKey(pValue.getId()))
       return new SymbolicIdentifier(
           identifierMap.get(pValue.getId()), pValue.getRepresentedLocation().orElse(null));
-    if (!rename.contains(pValue))
-      return pValue;
+    if (!rename.contains(pValue)) return pValue;
     SymbolicIdentifier newId = svf.newIdentifier(pValue.getRepresentedLocation().orElse(null));
     identifierMap.put(pValue.getId(), newId.getId());
     return newId;
