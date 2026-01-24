@@ -49,7 +49,11 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
     if (!(entry instanceof CompositeState compositeEntry))
       return Optional.of(new ValueAnalysisState(machineModel));
     for (AbstractState state : compositeEntry.getWrappedStates()) {
-      if (state instanceof ValueAnalysisState valueState) violationCondition = valueState;
+      if (state instanceof ValueAnalysisState valueState)
+        for (Map.Entry<MemoryLocation, ValueAndType> variable : valueState.getConstants()) {
+          violationCondition.assignConstant(
+              variable.getKey(), variable.getValue().getValue(), variable.getValue().getType());
+        }
     }
     Set<String> declared = new HashSet<>();
     for (CFAEdge edge : pARGPath.getFullPath()) {
@@ -57,6 +61,7 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
         declared.add(aDeclarationEdge.getDeclaration().getQualifiedName());
       }
     }
+
     ValueAnalysisState violationValue = getViolationValueState(states.getLast(), machineModel);
     for (Map.Entry<MemoryLocation, ValueAndType> variable : violationValue.getConstants()) {
       if (!violationCondition.contains(variable.getKey())
