@@ -65,7 +65,7 @@ import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
  * #createNewVar()} method (assuming the BDDFactory is thread-safe).
  */
 @Options(prefix = "bdd.javabdd")
-class JavaBDDRegionManager implements RegionManager {
+class JavaBDDRegionManager implements RegionManager, AutoCloseable {
   private static final Level LOG_LEVEL = Level.FINE;
 
   // Statistics
@@ -490,6 +490,11 @@ class JavaBDDRegionManager implements RegionManager {
         pNewPredicates.stream().map(JavaBDDRegionManager::unwrap),
         (r1, r2) -> pairing.set(r1.var(), r2.var()));
     return wrap(unwrap(pRegion).replace(pairing));
+  }
+
+  @Override
+  public void close() {
+    factory.done();
   }
 
   private class BDDRegionBuilder implements RegionBuilder {

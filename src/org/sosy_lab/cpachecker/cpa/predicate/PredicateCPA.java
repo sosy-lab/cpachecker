@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -329,6 +330,7 @@ public class PredicateCPA
 
   @Override
   public void close() {
+    CPAs.closeIfPossible(abstractionManager.getRegionCreator(), logger);
     solver.close();
   }
 
