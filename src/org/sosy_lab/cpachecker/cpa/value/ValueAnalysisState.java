@@ -20,7 +20,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -1012,10 +1011,10 @@ public final class ValueAnalysisState
     return result;
   }
 
-  public static Set<Constraint> compareInConstraint(
+  public static List<Constraint> compareInConstraint(
       ValueAnalysisState pState1, ValueAnalysisState pState2) {
-    HashSet<Constraint> constraints = new HashSet<Constraint>();
-    for (Map.Entry<MemoryLocation, ValueAndType> entry : pState1.constantsMap.entrySet()) {
+    List<Constraint> constraints = new ArrayList<Constraint>();
+    for (Entry<MemoryLocation, ValueAndType> entry : pState1.constantsMap.entrySet()) {
       MemoryLocation mL = entry.getKey();
       if (!pState2.constantsMap.containsKey(mL)) continue;
       ValueAndType value2 = pState2.constantsMap.get(mL);

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.util;
+package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
 import java.util.Map;
 import java.util.Set;
