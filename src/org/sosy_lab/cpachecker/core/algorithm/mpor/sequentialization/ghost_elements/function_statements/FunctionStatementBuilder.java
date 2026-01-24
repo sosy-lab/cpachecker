@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -29,10 +28,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -83,35 +84,41 @@ public record FunctionStatementBuilder(
 
     ImmutableListMultimap.Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments =
         ImmutableListMultimap.builder();
-
     // for each function call edge (= calling context)
     for (CFAEdgeForThread callContext : pSubstitution.parameterSubstitutes.rowKeySet()) {
-      assert callContext.cfaEdge instanceof CFunctionCallEdge;
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) callContext.cfaEdge;
-      List<CParameterDeclaration> parameterDeclarations =
-          functionCallEdge.getSuccessor().getFunctionDefinition().getParameters();
+      rAssignments.putAll(
+          callContext,
+          buildFunctionParameterAssignments(functionCallEdge, callContext, pSubstitution));
+    }
+    return rAssignments.build();
+  }
 
-      // for each parameter, assign the param substitute to the param expression in funcCall
-      for (int i = 0; i < parameterDeclarations.size(); i++) {
-        CParameterDeclaration parameterDeclaration = parameterDeclarations.get(i);
-        CExpression rightHandSide =
-            functionCallEdge.getFunctionCallExpression().getParameterExpressions().get(i);
-        CIdExpression parameterSubstitute =
-            pSubstitution.getParameterDeclarationSubstituteByCallContext(
-                callContext, parameterDeclaration);
-        FunctionParameterAssignment parameterAssignment =
-            new FunctionParameterAssignment(
-                callContext,
-                parameterSubstitute,
-                pSubstitution.substitute(
-                    rightHandSide,
-                    callContext.callContext,
-                    false,
-                    false,
-                    false,
-                    false,
-                    Optional.empty()));
-        rAssignments.put(callContext, parameterAssignment);
+  private ImmutableList<FunctionParameterAssignment> buildFunctionParameterAssignments(
+      CFunctionCallEdge pFunctionCallEdge,
+      CFAEdgeForThread pCallContext,
+      MPORSubstitution pSubstitution)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<FunctionParameterAssignment> rAssignments = ImmutableList.builder();
+    CFunctionDeclaration functionDeclaration =
+        pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
+    for (int i = 0; i < functionDeclaration.getParameters().size(); i++) {
+      CParameterDeclaration parameterDeclaration =
+          MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
+      ImmutableList<CIdExpression> parameterSubstitutes =
+          pSubstitution.getParameterDeclarationSubstitute(pCallContext, parameterDeclaration);
+      // go through all parameter substitutes. if there is more than one, the function is variadic
+      for (int j = 0; j < parameterSubstitutes.size(); j++) {
+        CExpression argument = pFunctionCallEdge.getArguments().get(i + j);
+        MPORSubstitutionTracker dummyTracker = new MPORSubstitutionTracker();
+        CExpression argumentSubstitute =
+            pSubstitution.substitute(
+                // use "outer" call context, since pCallContext is the given pFunctionCallEdge
+                argument, pCallContext.callContext, false, false, false, false, dummyTracker);
+        CIdExpression parameterSubstitute = parameterSubstitutes.get(j);
+        rAssignments.add(
+            new FunctionParameterAssignment(pCallContext, parameterSubstitute, argumentSubstitute));
       }
     }
     return rAssignments.build();
@@ -136,6 +143,7 @@ public record FunctionStatementBuilder(
           if (functionCall.isPresent()) {
             CExpression rightHandSide =
                 PthreadUtil.extractStartRoutineArg(functionCall.orElseThrow());
+            MPORSubstitutionTracker dummyTracker = new MPORSubstitutionTracker();
             FunctionParameterAssignment startRoutineArgAssignment =
                 new FunctionParameterAssignment(
                     callContext,
@@ -148,7 +156,7 @@ public record FunctionStatementBuilder(
                         false,
                         false,
                         false,
-                        Optional.empty()));
+                        dummyTracker));
             rAssignments.put(callContext, startRoutineArgAssignment);
           }
         }

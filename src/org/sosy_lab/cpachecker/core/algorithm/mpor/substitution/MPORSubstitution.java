@@ -42,10 +42,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitution {
 
@@ -73,17 +75,19 @@ public class MPORSubstitution {
    * The map of parameter to variable declaration substitutes. The {@link CFAEdgeForThread}s allow
    * call-context sensitive parameter substitutes.
    */
-  public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
+  public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
       parameterSubstitutes;
 
+  /** Note that main functions cannot take variadic arguments. */
   public final ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes;
 
+  /** Note that main functions cannot take variadic arguments. */
   public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
       startRoutineArgSubstitutes;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  public MPORSubstitution(
+  MPORSubstitution(
       boolean pIsDummy,
       MPOROptions pOptions,
       MPORThread pThread,
@@ -91,7 +95,8 @@ public class MPORSubstitution {
       ImmutableTable<
               Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           pLocalVariableDeclarationSubstitutes,
-      ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression> pParameterSubstitutes,
+      ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
+          pParameterSubstitutes,
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
       ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
           pStartRoutineArgSubstitutes,
@@ -111,18 +116,26 @@ public class MPORSubstitution {
   // Substitute Functions ==========================================================================
 
   /**
-   * Substitutes the given expression, and tracks if any global variable was substituted alongside
-   * in {@code pAccessedGlobalVariables}. {@code pIsWrite} is used to determine whether the
-   * expression to substitute * is written, i.e. a LHS in an assignment.
+   * Substitutes the {@code pExpression}, and tracks if any {@link CVariableDeclaration}s that were
+   * substituted alongside in {@code pTracker}. Furthermore:
+   *
+   * <ul>
+   *   <li>{@code pIsDeclaration}: if the expression used in a declaration
+   *   <li>{@code pIsWrite}: if the expression is written (i.e. LHS in an assignment)
+   *   <li>{@code pIsPointerDereference}: if the expression is used as part of a pointer
+   *       dereference, e.g. {@code (*ptr)} then for the expression {@code ptr} this value is true.
+   *   <li>{@code pIsFieldReference}: if the expression is used as part of a field reference, e.g.
+   *       {@code owner->member} then for the expression {@code owner} this value is true
+   * </ul>
    */
   public CExpression substitute(
-      final CExpression pExpression,
-      final Optional<CFAEdgeForThread> pCallContext,
+      CExpression pExpression,
+      Optional<CFAEdgeForThread> pCallContext,
       boolean pIsDeclaration,
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsFieldReference,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
     FileLocation fileLocation = pExpression.getFileLocation();
@@ -137,8 +150,7 @@ public class MPORSubstitution {
         return pExpression;
       }
       case CIdExpression idExpression -> {
-        CSimpleDeclaration declaration = idExpression.getDeclaration();
-        if (SubstituteUtil.isSubstitutable(declaration)) {
+        if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
           MPORSubstitutionTrackerUtil.trackDeclarationAccess(
               options, idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
           return getSimpleDeclarationSubstitute(
@@ -265,60 +277,41 @@ public class MPORSubstitution {
   CStatement substitute(
       CStatement pStatement,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
     FileLocation fileLocation = pStatement.getFileLocation();
 
-    // e.g. n = fib(42); or arr[n] = fib(42);
     switch (pStatement) {
+      // e.g. n = fib(42); or arr[n] = fib(42);
       case CFunctionCallAssignmentStatement functionCallAssignment -> {
         CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
-        CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
-        // TODO need CFieldReference, CPointerExpression, ... here too
-        if (leftHandSide instanceof CIdExpression idExpression) {
-          CExpression substitute =
-              substitute(idExpression, pCallContext, false, true, false, false, pTracker);
-          if (substitute instanceof CIdExpression idExpressionSubstitute) {
-            return new CFunctionCallAssignmentStatement(
-                fileLocation,
-                idExpressionSubstitute,
-                substitute(rightHandSide, pCallContext, pTracker));
-          }
-        } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
-          CExpression substitute =
-              substitute(
-                  arraySubscriptExpression, pCallContext, false, true, false, false, pTracker);
-          if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
-            return new CFunctionCallAssignmentStatement(
-                fileLocation,
-                arraySubscriptExpressionSubstitute,
-                substitute(rightHandSide, pCallContext, pTracker));
-          }
-        }
-
-        // e.g. fib(42);
+        CExpression leftHandSideSubstitute =
+            substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
+        return new CFunctionCallAssignmentStatement(
+            fileLocation,
+            (CLeftHandSide) leftHandSideSubstitute,
+            substitute(functionCallAssignment.getRightHandSide(), pCallContext, pTracker));
       }
+      // e.g. fib(42);
       case CFunctionCallStatement functionCall -> {
+        InputRejection.checkFunctionPointerParameter(functionCall.getFunctionCallExpression());
         return new CFunctionCallStatement(
-            functionCall.getFileLocation(),
+            fileLocation,
             substitute(functionCall.getFunctionCallExpression(), pCallContext, pTracker));
       }
-
       // e.g. int x = 42;
       case CExpressionAssignmentStatement assignment -> {
         MPORSubstitutionTrackerUtil.trackPointerAssignment(assignment, pTracker);
         CLeftHandSide leftHandSide = assignment.getLeftHandSide();
         CExpression rightHandSide = assignment.getRightHandSide();
-        CExpression substitute =
+        CExpression leftHandSideSubstitute =
             substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
-        if (substitute instanceof CLeftHandSide leftHandSideSubstitute) {
-          return new CExpressionAssignmentStatement(
-              fileLocation,
-              leftHandSideSubstitute,
-              // for the RHS, it's not a left hand side of an assignment
-              substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
-        }
+        return new CExpressionAssignmentStatement(
+            fileLocation,
+            (CLeftHandSide) leftHandSideSubstitute,
+            // for the RHS, it's not a left hand side of an assignment
+            substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
       }
       case CExpressionStatement expression -> {
         return new CExpressionStatement(
@@ -331,10 +324,10 @@ public class MPORSubstitution {
     return pStatement;
   }
 
-  CFunctionCallExpression substitute(
+  private CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
     // substitute all parameters in the function call expression
@@ -365,7 +358,7 @@ public class MPORSubstitution {
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
@@ -382,14 +375,16 @@ public class MPORSubstitution {
     }
   }
 
-  //
-
-  /** Returns the global, local or param {@link CIdExpression} substitute of pSimpleDeclaration. */
+  /**
+   * Returns the global, local or parameter {@link CIdExpression} substitute for {@code
+   * pSimpleDeclaration}.
+   */
   private CIdExpression getSimpleDeclarationSubstitute(
       CSimpleDeclaration pSimpleDeclaration,
       boolean pIsDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      MPORSubstitutionTracker pTracker)
+      throws UnsupportedCodeException {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localVariableSubstitutes.contains(pCallContext, variableDeclaration)) {
@@ -410,13 +405,17 @@ public class MPORSubstitution {
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       if (pCallContext.isEmpty()) {
         // no call context -> main function argument
-        MPORSubstitutionTrackerUtil.trackMainFunctionArg(parameterDeclaration, pTracker);
+        pTracker.addAccessedMainFunctionArg(parameterDeclaration.asVariableDeclaration());
         return Objects.requireNonNull(mainFunctionArgSubstitutes.get(parameterDeclaration));
       }
       // normal function called within thread, including start_routines, always have call context
       CFAEdgeForThread callContext = pCallContext.orElseThrow();
       if (parameterSubstitutes.containsRow(callContext)) {
-        return getParameterDeclarationSubstituteByCallContext(callContext, parameterDeclaration);
+        ImmutableList<CIdExpression> parameterDeclarationSubstitutes =
+            getParameterDeclarationSubstitute(callContext, parameterDeclaration);
+        // this means we only support substituting parameters that are not variadic.
+        // i.e. a variadic function can be called, but its body not handled (at the moment)
+        return Objects.requireNonNull(parameterDeclarationSubstitutes).getFirst();
 
       } else if (startRoutineArgSubstitutes.containsRow(callContext)) {
         return Objects.requireNonNull(
@@ -430,7 +429,9 @@ public class MPORSubstitution {
             + pSimpleDeclaration.toASTString());
   }
 
-  public CIdExpression getParameterDeclarationSubstituteByCallContext(
+  // CParameterDeclaration substitutes =============================================================
+
+  public ImmutableList<CIdExpression> getParameterDeclarationSubstitute(
       CFAEdgeForThread pCallContext, CParameterDeclaration pParameterDeclaration) {
 
     if (parameterSubstitutes.containsColumn(pParameterDeclaration)) {
@@ -459,7 +460,8 @@ public class MPORSubstitution {
   public CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      MPORSubstitutionTracker pTracker)
+      throws UnsupportedCodeException {
 
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
         pVariableDeclaration, pTracker);
@@ -488,22 +490,24 @@ public class MPORSubstitution {
   }
 
   /**
-   * Note that these are not {@link CParameterDeclaration} but {@link CVariableDeclaration} because
-   * they are treated as variables in the sequentialization (cf. inlining functions).
+   * Note that these are not {@link CParameterDeclaration} but {@link CSimpleDeclaration} because
+   * they are treated as variables in the sequentialization (inlining functions).
    */
-  public ImmutableList<CParameterDeclaration> getParameterDeclarationSubstitutes() {
-    ImmutableList.Builder<CParameterDeclaration> rParameterDeclarations = ImmutableList.builder();
+  public ImmutableList<CVariableDeclaration> getParameterDeclarationSubstitutes() {
+    ImmutableList.Builder<CVariableDeclaration> rParameterDeclarations = ImmutableList.builder();
     for (var cell : parameterSubstitutes.cellSet()) {
-      rParameterDeclarations.add((CParameterDeclaration) cell.getValue().getDeclaration());
+      for (CIdExpression idExpression : cell.getValue()) {
+        rParameterDeclarations.add((CVariableDeclaration) idExpression.getDeclaration());
+      }
     }
     return rParameterDeclarations.build();
   }
 
-  public ImmutableList<CParameterDeclaration> getStartRoutineArgDeclarationSubstitutes() {
-    ImmutableList.Builder<CParameterDeclaration> rStartRoutineArgDeclarations =
+  public ImmutableList<CVariableDeclaration> getStartRoutineArgDeclarationSubstitutes() {
+    ImmutableList.Builder<CVariableDeclaration> rStartRoutineArgDeclarations =
         ImmutableList.builder();
     for (var cell : startRoutineArgSubstitutes.cellSet()) {
-      rStartRoutineArgDeclarations.add((CParameterDeclaration) cell.getValue().getDeclaration());
+      rStartRoutineArgDeclarations.add((CVariableDeclaration) cell.getValue().getDeclaration());
     }
     return rStartRoutineArgDeclarations.build();
   }

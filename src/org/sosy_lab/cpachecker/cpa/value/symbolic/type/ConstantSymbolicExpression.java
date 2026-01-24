@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -54,6 +56,17 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
     super(pCurrentState);
     value = pValue;
     type = pType;
+  }
+
+  public static SymbolicExpression of(Value pValue, Type pType) {
+    checkNotNull(pValue);
+    assert !pValue.isUnknown();
+    if (pValue instanceof SymbolicExpression symbolicExpression) {
+      return symbolicExpression;
+
+    } else {
+      return new ConstantSymbolicExpression(pValue, getCanonicalType(pType));
+    }
   }
 
   @Override

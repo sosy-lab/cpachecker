@@ -10,6 +10,9 @@
 int x;
 int x = 1;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
+int printk(const char *arg0, ...) {
+  return __VERIFIER_nondet_int();
+}
 void *task1(void *arg) {
     int hello = 42;
     if (hello == 21 + 21) {
@@ -19,6 +22,8 @@ void *task1(void *arg) {
     }
     x = 0;
     x++;
+    printk("hello!");
+    printk("hello", "my", "friend", ":)");
 }
 void *task2(void *arg) {
     x++;
@@ -61,5 +66,6 @@ int main() {
       __VERIFIER_atomic_end();
     }
     top = 42;
-    return 0;
+    pthread_t id3;
+    pthread_create(&id3, (void *) 0, task1, (void *) 0);
 }

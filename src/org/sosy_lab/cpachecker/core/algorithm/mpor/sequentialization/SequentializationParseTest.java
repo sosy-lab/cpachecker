@@ -397,6 +397,8 @@ public class SequentializationParseTest {
 
   private static final String ANON_TYPE_KEYWORD = "__anon_type_";
 
+  private static final int FIRST_LINE = 1;
+
   /**
    * Checks whether two sequentializations with the exact same input result in the exact same
    * output, i.e. the same {@link String} output and the same {@link SequentializationFields}
@@ -410,8 +412,7 @@ public class SequentializationParseTest {
       String lineB = linesB.get(i);
       // ignore __anon_type_{count} since the static counter is not reset between CFA creation runs
       if (!lineA.contains(ANON_TYPE_KEYWORD) && !lineB.contains(ANON_TYPE_KEYWORD)) {
-        assertWithMessage(
-                "lineA, lineB with number %s are not equal: ", (i + Sequentialization.FIRST_LINE))
+        assertWithMessage("lineA, lineB with number %s are not equal: ", (i + FIRST_LINE))
             .that(lineA)
             .isEqualTo(lineB);
       }

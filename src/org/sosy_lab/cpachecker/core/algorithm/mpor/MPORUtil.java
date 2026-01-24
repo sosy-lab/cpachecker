@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -20,27 +22,25 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -116,6 +116,29 @@ public final class MPORUtil {
     return foundPath;
   }
 
+  // Functions =====================================================================================
+
+  /**
+   * Returns the {@link CParameterDeclaration} at {@code pIndex}, or the last {@link
+   * CParameterDeclaration} if the index is out of bounds. Then {@code pFunctionDeclaration} must be
+   * a variadic function, where the last {@link CParameterDeclaration} is always the variadic one.
+   */
+  public static CParameterDeclaration getParameterDeclarationByIndex(
+      int pIndex, CFunctionDeclaration pFunctionDeclaration) {
+
+    checkArgument(pIndex >= 0, "pIndex must be at least 0");
+    List<CParameterDeclaration> parameterDeclarations = pFunctionDeclaration.getParameters();
+    if (pIndex < parameterDeclarations.size()) {
+      return parameterDeclarations.get(pIndex);
+    } else {
+      // handle variadic function (more arguments than parameter declarations)
+      checkArgument(
+          pFunctionDeclaration.getType().takesVarArgs(),
+          "If pIndex >= parameters.size(), then pFunctionDeclaration must be variadic.");
+      return parameterDeclarations.getLast();
+    }
+  }
+
   // const CPAchecker_TMP ==========================================================================
 
   public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVariableDeclaration) {
@@ -165,40 +188,12 @@ public final class MPORUtil {
   }
 
   /**
-   * Extracts the {@link CSimpleDeclaration} of {@code pExpression}, if it is a pointer, or returns
-   * {@link Optional#empty()} otherwise.
-   */
-  public static Optional<CSimpleDeclaration> tryGetPointerDeclaration(CExpression pExpression) {
-    // unary expression i.e. 'ptr = &var;'
-    if (pExpression instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-        if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-          return Optional.of(idExpression.getDeclaration());
-        }
-      }
-      // id expression i.e. another pointer assigned to the pointer 'ptr_a = ptr_b;'
-    } else if (pExpression instanceof CIdExpression idExpression) {
-      if (idExpression.getDeclaration().getType() instanceof CPointerType) {
-        return Optional.of(idExpression.getDeclaration());
-      }
-      // cast expression e.g. 'ptr = (int *) arg;'
-    } else if (pExpression instanceof CCastExpression castExpression) {
-      if (castExpression.getCastType() instanceof CPointerType) {
-        if (castExpression.getOperand() instanceof CIdExpression idExpression) {
-          return Optional.of(idExpression.getDeclaration());
-        }
-      }
-    }
-    return Optional.empty();
-  }
-
-  /**
    * Returns an {@link Entry} that maps the {@link CSimpleDeclaration} of the outermost field owner
    * to the {@link CCompositeTypeMemberDeclaration} of the innermost field member accessed in {@code
    * pExpression} and {@link Optional#empty()} if it can't be found.
    */
   public static Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-      tryGetFieldMemberPointer(CExpression pExpression) {
+      tryGetFieldMemberPointer(CExpression pExpression) throws UnsupportedCodeException {
 
     // e.g. 'ptr = &field.member;'
     if (pExpression instanceof CUnaryExpression unaryExpression) {
@@ -214,7 +209,7 @@ public final class MPORUtil {
   }
 
   private static Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> getFieldMemberPointer(
-      CFieldReference pFieldReference) {
+      CFieldReference pFieldReference) throws UnsupportedCodeException {
 
     CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
     CType type = getTypeByIdExpression(idExpression);
@@ -255,31 +250,25 @@ public final class MPORUtil {
    * pFieldReference}, e.g. {@code member} in {@code owner->member}.
    */
   public static CCompositeTypeMemberDeclaration recursivelyFindFieldMemberByFieldOwner(
-      final CFieldReference pFieldReference, CType pType) {
+      CFieldReference pFieldReference, CType pType) throws UnsupportedCodeException {
 
-    if (pType instanceof CPointerType pointerType) {
+    // use getType() on CPointerType/CArrayType since getCanonicalType() returns the
+    // CPointerType/CArrayType itself
+    if (pType.getCanonicalType() instanceof CPointerType pointerType) {
       return recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
     }
-    if (pType instanceof CElaboratedType elaboratedType) {
-      // composite type contains the composite type members, e.g. 'amount'
-      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
-        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-            return memberDeclaration;
-          }
+    if (pType.getCanonicalType() instanceof CArrayType arrayType) {
+      return recursivelyFindFieldMemberByFieldOwner(pFieldReference, arrayType.getType());
+    }
+    if (pType.getCanonicalType() instanceof CCompositeType compositeType) {
+      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
+          return memberDeclaration;
         }
       }
     }
-    if (pType instanceof CTypedefType typedefType) {
-      // elaborated type is e.g. struct __anon_type_QType
-      if (typedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-        return recursivelyFindFieldMemberByFieldOwner(pFieldReference, elaboratedType);
-      }
-      if (typedefType.getRealType() instanceof CTypedefType innerTypedefType) {
-        return recursivelyFindFieldMemberByFieldOwner(pFieldReference, innerTypedefType);
-      }
-    }
-    throw new IllegalArgumentException("field owner type must be CTypedefType");
+    throw new UnsupportedCodeException(
+        "could not extract field member from the given CType: " + pType.toASTString(""), null);
   }
 
   // Collections ===================================================================================

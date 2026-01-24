@@ -45,7 +45,7 @@ public final class SvLibAssignmentStatement extends SvLibStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(assign "
         + ("("
             + Joiner.on(") (")

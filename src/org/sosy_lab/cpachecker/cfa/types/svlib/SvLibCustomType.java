@@ -53,7 +53,7 @@ public final class SvLibCustomType implements SvLibSmtLibType {
 
   @Override
   public String toASTString() {
-    return type + (arity >= 0 ? "<" + arity + ">" : "");
+    return type;
   }
 
   @Override

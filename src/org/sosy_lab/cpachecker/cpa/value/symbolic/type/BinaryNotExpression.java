@@ -34,6 +34,16 @@ public final class BinaryNotExpression extends UnarySymbolicExpression {
     super(pOperand, pType, pAbstractState);
   }
 
+  public static SymbolicExpression of(SymbolicExpression pOperand, Type pType) {
+
+    if (pOperand instanceof BinaryNotExpression binaryNotExpression) {
+      return binaryNotExpression.getOperand();
+
+    } else {
+      return new BinaryNotExpression(pOperand, getCanonicalType(pType));
+    }
+  }
+
   @Override
   public BinaryNotExpression copyForLocation(MemoryLocation pRepresentedLocation) {
     return new BinaryNotExpression(getOperand(), getType(), pRepresentedLocation);

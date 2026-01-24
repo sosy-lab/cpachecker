@@ -193,6 +193,12 @@ build-docker:test:node:
     DOCKERFILE: build/gitlab-ci.Dockerfile.node
     IMAGE: /test:node
 
+build-docker:dev-base:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/Dockerfile.dev-base
+    IMAGE: ":dev-base"
+
 # Build Docker images and push to Docker Hub
 # following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 .build-docker-hub:

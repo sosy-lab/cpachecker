@@ -44,7 +44,7 @@ public final class SvLibWhileStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(while " + condition.toASTString() + " " + body.toASTString() + ")";
   }
 

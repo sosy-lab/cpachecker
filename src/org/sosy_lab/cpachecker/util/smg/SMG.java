@@ -2721,7 +2721,7 @@ public class SMG {
     /*for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
       // References to invalid objects might exist, as well as references to invalid objects sizes
       Value sizeOfObj = obj.getKey().getSize();
-      if (!sizeOfObj.isNumericValue()
+      if (!(sizeOfObj instanceof NumericValue)
           && !pExistingValueMapping.containsKey(pValueWrapper.wrap(sizeOfObj))
           && obj.getValue()) {
         // If the size is in a valid object, we need a mapping!

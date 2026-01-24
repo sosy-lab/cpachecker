@@ -996,13 +996,14 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       }
       Value floatValue =
           AbstractExpressionValueVisitor.castCValue(intValue, targetType, machineModel, logger);
+
       return new CFloatLiteralExpression(
           e.getFileLocation(),
           machineModel,
           targetType,
           FloatValue.fromInteger(
               FloatValue.Format.fromCType(machineModel, targetType),
-              floatValue.asNumericValue().bigIntegerValue()));
+              ((NumericValue) floatValue).bigIntegerValue()));
     }
 
     return pExp;
