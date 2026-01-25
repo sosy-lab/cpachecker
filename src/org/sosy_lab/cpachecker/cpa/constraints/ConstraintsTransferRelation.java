@@ -88,6 +88,11 @@ public class ConstraintsTransferRelation
       description = "When to check the satisfiability of constraints")
   private CheckStrategy checkStrategy = CheckStrategy.AT_ASSUME;
 
+  @Option(
+      name = "globalsResetIdentifiers",
+      description = "Reset symbolic identifier IDs when initializing globals")
+  private boolean resetID = true;
+
   private final LogManagerWithoutDuplicates logger;
 
   private MachineModel machineModel;
@@ -150,7 +155,7 @@ public class ConstraintsTransferRelation
   @Override
   protected ConstraintsState handleBlankEdge(BlankEdge cfaEdge) {
     // FIXME: Find a better way to have consistent symbolic identifier names
-    if (cfaEdge.getDescription().equals("INIT GLOBAL VARS")) {
+    if (resetID && cfaEdge.getDescription().equals("INIT GLOBAL VARS")) {
       SymbolicValueFactory.reset();
     }
     return state;
