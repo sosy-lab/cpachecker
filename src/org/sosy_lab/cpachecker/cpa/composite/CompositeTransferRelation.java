@@ -327,10 +327,10 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
 
   // This method combines the value state of this composite state with the value state
   // of the block state's violation condition. The result is a constraint state that can be used in
-  // strengthening. Before the new constraint state is created, we need to ensure that the identifiers between
-  // the state and violation condition do not clash.
+  // strengthening. Before the new constraint state is created, we need to ensure that the
+  // identifiers between the state and violation condition do not clash.
 
-  private List<? extends AbstractState> combineValueStates(final List<AbstractState> pReachedState) {
+  private void combineValueStates(final List<AbstractState> pReachedState) {
     BlockState blockState = null;
     int constraintIndex = 0;
 
@@ -340,45 +340,51 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     for (int i = 0; i < size; i++) {
       if (transferRelations.get(i) instanceof BlockTransferRelation) {
         blockState = (BlockState) pReachedState.get(i);
-      } if (transferRelations.get(i) instanceof ConstraintsTransferRelation) {
+      }
+      if (transferRelations.get(i) instanceof ConstraintsTransferRelation) {
         constraintsState = (ConstraintsState) pReachedState.get(i);
         constraintIndex = i;
-      } if (transferRelations.get(i) instanceof ValueAnalysisTransferRelation)
+      }
+      if (transferRelations.get(i) instanceof ValueAnalysisTransferRelation)
         valueState = (ValueAnalysisState) pReachedState.get(i);
     }
-    if (blockState == null || valueState == null || constraintsState == null ||
-        !blockState.isTarget()) return blockState.getViolationConditions();
+    if (blockState == null
+        || valueState == null
+        || constraintsState == null
+        || !blockState.isTarget()) return;
 
-    Optional<CompositeState> optViolation = renameViolationCondition(blockState, constraintsState, valueState);
-    if (optViolation.isEmpty())
-      return blockState.getViolationConditions();
+    Optional<CompositeState> optViolation =
+        renameViolationCondition(blockState, constraintsState, valueState);
+    if (optViolation.isEmpty()) return;
+
     CompositeState violation = optViolation.get();
 
-    ConstraintsState cstate = AbstractStates.extractStateByType(violation, ConstraintsState.class);
+    ConstraintsState cState = AbstractStates.extractStateByType(violation, ConstraintsState.class);
     List<Constraint> newConstraints = new ArrayList<>();
 
     for (AbstractState state : violation.getWrappedStates()) {
       if (state instanceof ValueAnalysisState valueState2) {
-          newConstraints.addAll(ValueAnalysisState.compareInConstraint(valueState, valueState2));
+        newConstraints.addAll(ValueAnalysisState.compareInConstraint(valueState, valueState2));
       }
     }
     List<AbstractState> newViolation = new ArrayList<AbstractState>(violation.getWrappedStates());
-    assert cstate != null;
+    assert cState != null;
     if (!newConstraints.isEmpty())
-      newViolation.set(constraintIndex,
-        cstate.copyWithNew(newConstraints));
+      newViolation.set(constraintIndex, cState.copyWithNew(newConstraints));
 
     ARGState newARGViolation = new ARGState(new CompositeState(newViolation), null);
     ((ARGState) blockState.getViolationConditions().getFirst()).replaceInARGWith(newARGViolation);
     List<ARGState> newViolationsList = new ArrayList<>();
     newViolationsList.add(newARGViolation);
-    return newViolationsList;
+    blockState.setViolationConditions(newViolationsList);
   }
 
-  private Optional<CompositeState> renameViolationCondition(final BlockState pBlockState,
-                                              final ConstraintsState pConstraintsState,
-                                              final ValueAnalysisState pValueState) {
+  private Optional<CompositeState> renameViolationCondition(
+      final BlockState pBlockState,
+      final ConstraintsState pConstraintsState,
+      final ValueAnalysisState pValueState) {
 
+    // get all identifiers used in value analysis and constraints states
     Set<SymbolicIdentifier> usedIdentifiers = new HashSet<>();
     for (Constraint constraint : pConstraintsState) {
       assert constraint != null;
@@ -391,7 +397,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         usedIdentifiers.add(symID);
     }
     AbstractState violation = pBlockState.getViolationConditions().getFirst();
-    SymbolicIdentifierRenamer visitor = new SymbolicIdentifierRenamer(new HashMap<>(), usedIdentifiers);
+    SymbolicIdentifierRenamer visitor =
+        new SymbolicIdentifierRenamer(new HashMap<>(), usedIdentifiers);
     List<AbstractState> newViolation = new ArrayList<>();
 
     if (!(violation instanceof ARGState argState)
@@ -412,11 +419,15 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         newState = new ValueAnalysisState(valueState2.getMachineModel());
         for (Entry<MemoryLocation, ValueAndType> constant : valueState2.getConstants()) {
           if (constant.getValue().getValue() instanceof SymbolicValue symValue) {
-            ((ValueAnalysisState) newState).assignConstant(
-                constant.getKey(), symValue.accept(visitor), constant.getValue().getType());
+            ((ValueAnalysisState) newState)
+                .assignConstant(
+                    constant.getKey(), symValue.accept(visitor), constant.getValue().getType());
           } else {
-            ((ValueAnalysisState) newState).assignConstant(
-                constant.getKey(), constant.getValue().getValue(), constant.getValue().getType());
+            ((ValueAnalysisState) newState)
+                .assignConstant(
+                    constant.getKey(),
+                    constant.getValue().getValue(),
+                    constant.getValue().getType());
           }
         }
       }
