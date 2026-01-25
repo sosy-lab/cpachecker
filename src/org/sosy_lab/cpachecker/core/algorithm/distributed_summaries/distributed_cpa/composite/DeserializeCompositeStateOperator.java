@@ -51,7 +51,6 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
                   StateSpacePartition.getDefaultPartition()));
         }
       }
-
       return new CompositeState(states.build());
     } finally {
       stats.getDeserializationTime().stop();
