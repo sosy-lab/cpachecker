@@ -2399,7 +2399,7 @@ public class SMGCPAValueVisitor
             }
             return UnsignedLongs.divide(l, r);
           }
-          case MODULO -> {
+          case REMAINDER -> {
             return UnsignedLongs.remainder(l, r);
           }
           case SHIFT_RIGHT -> {
@@ -2431,7 +2431,7 @@ public class SMGCPAValueVisitor
         }
         return l / r;
       }
-      case MODULO -> {
+      case REMAINDER -> {
         return l % r;
       }
       case MULTIPLY -> {
@@ -2454,13 +2454,13 @@ public class SMGCPAValueVisitor
       case SHIFT_RIGHT -> {
         return l >> r;
       }
-      case BINARY_AND -> {
+      case BITWISE_AND -> {
         return l & r;
       }
-      case BINARY_OR -> {
+      case BITWISE_OR -> {
         return l | r;
       }
-      case BINARY_XOR -> {
+      case BITWISE_XOR -> {
         return l ^ r;
       }
       default -> throw new AssertionError("unknown binary operation: " + op);
@@ -2493,7 +2493,7 @@ public class SMGCPAValueVisitor
         }
         return l.divide(r);
       }
-      case MODULO -> {
+      case REMAINDER -> {
         return l.mod(r);
       }
       case MULTIPLY -> {
@@ -2520,13 +2520,13 @@ public class SMGCPAValueVisitor
           return BigInteger.ZERO;
         }
       }
-      case BINARY_AND -> {
+      case BITWISE_AND -> {
         return l.and(r);
       }
-      case BINARY_OR -> {
+      case BITWISE_OR -> {
         return l.or(r);
       }
-      case BINARY_XOR -> {
+      case BITWISE_XOR -> {
         return l.xor(r);
       }
       default -> throw new AssertionError("Unknown binary operation: " + op);
@@ -2548,9 +2548,9 @@ public class SMGCPAValueVisitor
       case PLUS -> pArg1.add(pArg2);
       case MINUS -> pArg1.subtract(pArg2);
       case DIVIDE -> pArg1.divide(pArg2);
-      case MODULO -> pArg1.modulo(pArg2);
+      case REMAINDER -> pArg1.modulo(pArg2);
       case MULTIPLY -> pArg1.multiply(pArg2);
-      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+      case SHIFT_LEFT, SHIFT_RIGHT, BITWISE_AND, BITWISE_OR, BITWISE_XOR ->
           throw new UnsupportedOperationException(
               "Trying to perform " + pOperation + " on floating point operands");
       default -> throw new IllegalArgumentException("Unknown binary operation: " + pOperation);
@@ -2710,13 +2710,13 @@ public class SMGCPAValueVisitor
       case PLUS,
           MINUS,
           DIVIDE,
-          MODULO,
+          REMAINDER,
           MULTIPLY,
           SHIFT_LEFT,
           SHIFT_RIGHT,
-          BINARY_AND,
-          BINARY_OR,
-          BINARY_XOR ->
+          BITWISE_AND,
+          BITWISE_OR,
+          BITWISE_XOR ->
           true;
       default -> false;
     };

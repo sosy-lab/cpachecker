@@ -4332,9 +4332,9 @@ cpa.value.witnessFileForInitialPrecision = no default value
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
 # a more complex custom instruction within code.
 custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
-  enum:     [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN,
-             GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR,
-             EQUALS, NOT_EQUALS]
+  enum:     [MULTIPLY, DIVIDE, REMAINDER, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT,
+             LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BITWISE_AND,
+             BITWISE_XOR, BITWISE_OR, EQUALS, NOT_EQUALS]
 
 # Name of function containing the custom instruction definition
 custominstructions.ciFun = no default value

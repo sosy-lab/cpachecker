@@ -117,7 +117,7 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
       case JBinaryExpression.BinaryOperator.DIVIDE ->
           DivisionExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // % (actually remainder, not modulo)
-      case JBinaryExpression.BinaryOperator.MODULO ->
+      case JBinaryExpression.BinaryOperator.REMAINDER ->
           ModuloExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // <<
       case JBinaryExpression.BinaryOperator.SHIFT_LEFT ->
@@ -125,15 +125,15 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
       // >> (Signed)
       case JBinaryExpression.BinaryOperator.SHIFT_RIGHT_SIGNED ->
           ShiftRightExpression.ofSigned(pOperand1, pOperand2, pExpressionType, pCalculationType);
-      // Binary &
-      case JBinaryExpression.BinaryOperator.BINARY_AND ->
+      // Bitwise &
+      case JBinaryExpression.BinaryOperator.BITWISE_AND ->
           BinaryAndExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
-      // Binary |
-      case JBinaryExpression.BinaryOperator.BINARY_OR ->
+      // Bitwise |
+      case JBinaryExpression.BinaryOperator.BITWISE_OR ->
           BinaryOrExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // ^
       // TODO: why is the (Java) logical XOR handled like the binary operator?
-      case JBinaryExpression.BinaryOperator.BINARY_XOR,
+      case JBinaryExpression.BinaryOperator.BITWISE_XOR,
           JBinaryExpression.BinaryOperator.LOGICAL_XOR ->
           BinaryXorExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // ==
@@ -199,7 +199,7 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
       case BinaryOperator.DIVIDE ->
           DivisionExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // % (actually remainder, not modulo)
-      case BinaryOperator.MODULO ->
+      case BinaryOperator.REMAINDER ->
           ModuloExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // <<
       case BinaryOperator.SHIFT_LEFT ->
@@ -207,14 +207,14 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
       // >> (Signed)
       case BinaryOperator.SHIFT_RIGHT ->
           ShiftRightExpression.ofSigned(pOperand1, pOperand2, pExpressionType, pCalculationType);
-      // Binary &
-      case BinaryOperator.BINARY_AND ->
+      // Bitwise &
+      case BinaryOperator.BITWISE_AND ->
           BinaryAndExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
-      // Binary |
-      case BinaryOperator.BINARY_OR ->
+      // Bitwise |
+      case BinaryOperator.BITWISE_OR ->
           BinaryOrExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // ^
-      case BinaryOperator.BINARY_XOR ->
+      case BinaryOperator.BITWISE_XOR ->
           BinaryXorExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // ==
       case BinaryOperator.EQUALS ->
