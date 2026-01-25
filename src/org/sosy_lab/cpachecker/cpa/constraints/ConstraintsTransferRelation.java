@@ -498,7 +498,7 @@ public class ConstraintsTransferRelation
       return newState;
     }
 
-    public CompositeState getRenamedViolation(BlockState pBlockState) {
+    private CompositeState getRenamedViolation(BlockState pBlockState) {
 
       visitor = new SymbolicIdentifierRenamer(new HashMap<>(), identifiers);
       AbstractState violation = pBlockState.getViolationConditions().getFirst();
@@ -519,7 +519,7 @@ public class ConstraintsTransferRelation
       return new CompositeState(newViolation);
     }
 
-    public BlockAnalysisStrengthenOperator(final Iterable<AbstractState> pStrengtheningStates) {
+    private BlockAnalysisStrengthenOperator(final Iterable<AbstractState> pStrengtheningStates) {
       for (AbstractState abstractState : pStrengtheningStates) {
         if (abstractState instanceof ConstraintsState constraintsState)
           collectIDs(constraintsState);
