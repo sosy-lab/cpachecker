@@ -6,8 +6,8 @@
     </writeAnnotations>
   </component>
   <component name="NullableNotNullManager">
-    <option name="myDefaultNullable" value="javax.annotation.Nullable" />
-    <option name="myDefaultNotNull" value="javax.annotation.Nonnull" />
+    <option name="myDefaultNullable" value="org.checkerframework.checker.nullness.qual.Nullable" />
+    <option name="myDefaultNotNull" value="org.checkerframework.checker.nullness.qual.NonNull" />
     <option name="myNullables">
       <value>
         <list size="16">
@@ -52,6 +52,9 @@
         </list>
       </value>
     </option>
+    <instrumentedNotNulls>
+      <option value="org.checkerframework.checker.nullness.qual.NonNull" />
+    </instrumentedNotNulls>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_21" project-jdk-name="21" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/classes" />

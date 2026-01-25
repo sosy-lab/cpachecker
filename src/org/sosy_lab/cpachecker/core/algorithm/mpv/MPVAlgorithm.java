@@ -476,9 +476,13 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       Configuration singleConfig = innerConfigBuilder.build();
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(
-              singleConfig, logger, shutdownManager.getNotifier(), AggregatedReachedSets.empty());
+              singleConfig,
+              logger,
+              shutdownManager.getNotifier(),
+              AggregatedReachedSets.empty(),
+              cfa);
 
-      return coreComponents.createAlgorithm(cpa, cfa, specification);
+      return coreComponents.createAlgorithm(cpa, specification);
     } catch (InvalidConfigurationException e) {
       // Should be unreachable, since configuration is already checked
       throw new CPAException("Cannot create configuration for inner algorithm", e);

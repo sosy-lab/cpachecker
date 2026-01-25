@@ -8,17 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import static org.sosy_lab.common.collect.Collections3.listAndElement;
-
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import org.jspecify.annotations.NonNull;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -29,8 +21,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -205,71 +195,5 @@ public class DssBlockAnalyses {
           + status
           + '}';
     }
-  }
-
-  record ArgPathWithEdges(List<ARGState> states, List<CFAEdge> edges) {
-
-    private ARGState getLastState() {
-      return states.getLast();
-    }
-
-    private ArgPathWithEdges copyWith(ARGState pNewParent, List<CFAEdge> pEdges) {
-      if (!edges.isEmpty()) {
-        CFAEdge lastEdge = edges.getLast();
-        if (!lastEdge.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
-          List<CFAEdge> path = new ArrayList<>();
-          path.add(lastEdge);
-          CFAEdge last = lastEdge;
-          while (!last.getSuccessor().equals(pEdges.getFirst().getPredecessor())) {
-            Iterable<CFAEdge> successors = last.getPredecessor().getAllEnteringEdges();
-            path.add(Iterables.getOnlyElement(successors));
-            last = path.getLast();
-          }
-          pEdges = ImmutableList.<CFAEdge>builder().addAll(pEdges).addAll(path).build();
-        }
-      }
-      return new ArgPathWithEdges(
-          listAndElement(states, pNewParent),
-          ImmutableList.<CFAEdge>builder().addAll(edges).addAll(pEdges).build());
-    }
-  }
-
-  private static Collection<ARGPath> allArgPathsFromState(ARGState state) {
-    List<ArgPathWithEdges> waitlist = new ArrayList<>();
-    waitlist.add(new ArgPathWithEdges(ImmutableList.of(state), ImmutableList.of()));
-    ImmutableList.Builder<ARGPath> finished = ImmutableList.builder();
-    while (!waitlist.isEmpty()) {
-      ArgPathWithEdges current = waitlist.removeLast();
-      ARGState last = current.getLastState();
-      if (last.getParents().isEmpty()) {
-        finished.add(
-            new ARGPath(
-                current.states().reversed(),
-                current.edges().reversed(),
-                current.edges().reversed()));
-        continue;
-      }
-      for (ARGState parent : last.getParents()) {
-        waitlist.add(current.copyWith(parent, parent.getEdgesToChild(last).reversed()));
-      }
-    }
-    return finished.build();
-  }
-
-  /**
-   * Collects all ARG paths from the given set of states. This is a potentially expensive operation
-   * and should only be used if absolutely necessary. The method {@link
-   * ARGUtils#getAllPaths(ReachedSet, ARGState)} should be preferred if possible, however, sometimes
-   * it tends to produce an incomplete number of paths.
-   *
-   * @param states the states to collect the paths from
-   * @return all ARG paths from the given states
-   */
-  static Collection<ARGPath> collectAllArgPaths(Iterable<@NonNull ARGState> states) {
-    ImmutableList.Builder<ARGPath> builder = ImmutableList.builder();
-    for (ARGState state : states) {
-      builder.addAll(allArgPathsFromState(state));
-    }
-    return builder.build();
   }
 }

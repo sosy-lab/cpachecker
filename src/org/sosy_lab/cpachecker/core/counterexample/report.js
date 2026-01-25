@@ -72,6 +72,9 @@ let argTabDisabled = false;
     $('[data-toggle="popover"]').popover({
       html: true,
       sanitize: false,
+      // allow popovers to escape their current scroll parent
+      // (for example value view in counterexample section)
+      boundary: "window",
     });
     // initialize all tooltips
     $("[data-toggle=tooltip]").tooltip({

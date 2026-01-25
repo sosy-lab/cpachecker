@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,9 +28,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -46,8 +45,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class SequentialDssExecutor implements DssExecutor {
 
-  private static final String OBSERVER_WORKER_ID = "__observer__";
-
   private final DssMessageFactory messageFactory;
   private final DssAnalysisOptions options;
   private final Specification specification;
@@ -61,7 +58,7 @@ public class SequentialDssExecutor implements DssExecutor {
     stats = new ArrayList<>();
   }
 
-  private List<DssActor> createDssActors(CFA cfa, BlockGraph blockGraph)
+  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
@@ -72,45 +69,24 @@ public class SequentialDssExecutor implements DssExecutor {
     if (options.isDebugModeEnabled()) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
-    builder.addObserverWorker(OBSERVER_WORKER_ID, blockGraph.getNodes().size(), options);
     return builder.build();
   }
 
   @Override
   public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    List<DssActor> actors = createDssActors(cfa, blockGraph);
-    DssObserverWorker observer = null;
-    for (DssActor worker : actors) {
-      if (worker instanceof Statistics workerStatistics) {
-        stats.add(workerStatistics);
-      }
-      if (worker.getId().equals(OBSERVER_WORKER_ID)) {
-        // the observer worker is special, it does not run in a thread
-        // but blocks the main thread until all workers are finished
-        if (worker instanceof DssObserverWorker o) {
-          observer = o;
-          continue;
-        }
-        throw new AssertionError(
-            "Observer worker must be an instance of DssObserverWorker, but is: "
-                + worker.getClass().getName());
-      }
-    }
-
-    Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
+    DssActors actors = createDssActors(cfa, blockGraph);
+    stats.addAll(actors.getWorkersWithStats());
 
     Set<String> finished = new LinkedHashSet<>();
 
     try {
-      for (DssActor actor : actors) {
-        if (actor instanceof DssAnalysisWorker analysisWorker) {
-          analysisWorker.broadcastInitialMessages();
-        }
+      for (DssAnalysisWorker actor : actors.getAnalysisWorkers()) {
+        actor.broadcastInitialMessages();
       }
 
-      while (finished.size() < actors.size()) {
-        for (DssActor actor : actors) {
+      while (finished.size() < actors.getActors().size()) {
+        for (DssActor actor : actors.getActors()) {
           if (actor.getConnection().hasPendingMessages()) {
             finished.remove(actor.getId());
             DssMessage next = actor.nextMessage();

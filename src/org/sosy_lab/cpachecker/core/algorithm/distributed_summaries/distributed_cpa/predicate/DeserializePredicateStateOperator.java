@@ -53,7 +53,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
       SSAMap map = DssSerializeObjectUtil.deserialize(serializedSsaMap, SSAMap.class);
 
       String serializedPts = predicateContent.get(SerializePredicateStateOperator.PTS_KEY);
-      Preconditions.checkNotNull(serializedPts, "PTS must be provided");
+      Preconditions.checkNotNull(serializedPts, "Pointer target set (PTS) must be provided");
       PointerTargetSet pts =
           DssSerializeObjectUtil.deserialize(serializedPts, PointerTargetSet.class);
 

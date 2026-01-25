@@ -12,8 +12,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -51,6 +54,18 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
     for (CFAEdge nextEdge : cfaEdge.getSuccessor().getLeavingEdges()) {
       Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(nextEdge);
 
+      ImmutableSet.Builder<CExpression> logicalAssumptions = ImmutableSet.builder();
+      for (CExpression assumption : assumptions) {
+        if (!(assumption instanceof CBinaryExpression binExpr)
+            || !binExpr.getOperator().isLogicalOperator()) {
+          // Transform into logical expr
+          logicalAssumptions.add(mkLogical(assumption));
+        } else {
+          logicalAssumptions.add(assumption);
+        }
+      }
+      assumptions = logicalAssumptions.build();
+
       for (CExpression assumption : assumptions) {
         outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, prev));
       }
@@ -62,7 +77,13 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
     return outStates.build();
   }
 
-  private CExpression mkNot(CExpression arg) {
+  private CBinaryExpression mkLogical(CExpression expr) throws UnrecognizedCodeException {
+    return mkNot(
+        expressionBuilder.buildBinaryExpression(
+            CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS));
+  }
+
+  private CBinaryExpression mkNot(CExpression arg) {
     try {
       return expressionBuilder.negateExpressionAndSimplify(arg);
     } catch (UnrecognizedCodeException e) {

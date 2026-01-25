@@ -37,7 +37,7 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
     try {
       stats.getSerializationCount().inc();
       stats.getSerializationTime().start();
-      ContentBuilder contentBuilder = ContentBuilder.builderWithExpectedSize(wrapped.size());
+      ContentBuilder contentBuilder = ContentBuilder.builder();
       CompositeState compositeState = ((CompositeState) pState);
       for (CpaAndState cpaAndState : zip(wrapped, compositeState)) {
         if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {

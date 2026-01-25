@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -50,7 +50,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
     return getFunctionCall().getFunctionCallExpression();
   }
 
-  public List<? extends AExpression> getArguments() {
+  public ImmutableList<? extends AExpression> getArguments() {
     return getFunctionCallExpression().getParameterExpressions();
   }
 

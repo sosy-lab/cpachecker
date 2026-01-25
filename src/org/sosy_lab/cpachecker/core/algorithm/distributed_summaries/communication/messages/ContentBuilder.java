@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-import static org.sosy_lab.common.collect.Collections3.listAndElement;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.common.collect.Collections3;
 
 public class ContentBuilder {
 
@@ -23,8 +22,8 @@ public class ContentBuilder {
 
   private final List<String> levels;
 
-  private ContentBuilder(int pExpectedSize) {
-    contentBuilder = ImmutableMap.builderWithExpectedSize(pExpectedSize);
+  private ContentBuilder() {
+    contentBuilder = ImmutableMap.builder();
     levels = new ArrayList<>();
   }
 
@@ -36,20 +35,7 @@ public class ContentBuilder {
    * @return the new builder
    */
   public static ContentBuilder builder() {
-    // 4 is the default expected size (ImmutableCollection.Builder.DEFAULT_INITIAL_CAPACITY)
-    return new ContentBuilder(4);
-  }
-
-  /**
-   * Creates a new builder for message content with the given expected size. The builder produces a
-   * flat map of key-value pairs, where keys can be hierarchical using dot notation. Levels can be
-   * pushed and popped to create a hierarchy.
-   *
-   * @param pExpectedSize the expected number of entries in the map
-   * @return the new builder
-   */
-  public static ContentBuilder builderWithExpectedSize(int pExpectedSize) {
-    return new ContentBuilder(pExpectedSize);
+    return new ContentBuilder();
   }
 
   /**
@@ -107,7 +93,7 @@ public class ContentBuilder {
    */
   @CanIgnoreReturnValue
   public ContentBuilder put(String pKey, String pValue) {
-    String fullKey = Joiner.on(".").join(listAndElement(levels, pKey));
+    String fullKey = Joiner.on(".").join(Collections3.listAndElement(levels, pKey));
     contentBuilder.put(fullKey, pValue);
     return this;
   }
