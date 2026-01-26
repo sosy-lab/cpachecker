@@ -100,10 +100,9 @@ public class DssFactory {
               pLogManager,
               pShutdownNotifier);
       case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, integerToNodeMap);
-      case ConstraintsCPA constraintsCPA -> distribute(constraintsCPA, pBlockNode);
+      case ConstraintsCPA constraintsCPA -> distribute(constraintsCPA);
       case ValueAnalysisCPA valueAnalysisCPA ->
-          distribute(
-              valueAnalysisCPA, pCFA, pConfiguration, pBlockNode, pLogManager, pShutdownNotifier);
+          distribute(valueAnalysisCPA, pCFA, pConfiguration, pBlockNode);
       case null /*TODO check if null is necessary*/, default -> null;
     };
   }
@@ -118,21 +117,14 @@ public class DssFactory {
     return new DistributedLocationCPA(pLocationCPA, pNode, pNodeMap);
   }
 
-  private static DistributedConfigurableProgramAnalysis distribute(
-      ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
-    return new DistributedConstraintsCPA(pConstraintsCPA, pBlockNode);
+  private static DistributedConfigurableProgramAnalysis distribute(ConstraintsCPA pConstraintsCPA) {
+    return new DistributedConstraintsCPA(pConstraintsCPA);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      ValueAnalysisCPA pValueCPA,
-      CFA pCFA,
-      Configuration pConfiguration,
-      BlockNode pBlockNode,
-      LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier)
+      ValueAnalysisCPA pValueCPA, CFA pCFA, Configuration pConfiguration, BlockNode pBlockNode)
       throws InvalidConfigurationException {
-    return new DistributedValueAnalysisCPA(
-        pValueCPA, pCFA, pConfiguration, pBlockNode, pLogManager, pShutdownNotifier);
+    return new DistributedValueAnalysisCPA(pValueCPA, pCFA, pConfiguration, pBlockNode);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
