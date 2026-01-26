@@ -48,5 +48,4 @@ public record AcslMetadata(
         ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of());
   }
-
 }
