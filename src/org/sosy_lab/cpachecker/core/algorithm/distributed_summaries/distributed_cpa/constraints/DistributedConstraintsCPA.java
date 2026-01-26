@@ -23,9 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DistributedConstraintsCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -112,19 +109,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     ConstraintsState constraintsState = (ConstraintsState) pAbstractState;
-    BooleanFormulaManagerView bfm =
-        constraintsCPA.getSolver().getFormulaManager().getBooleanFormulaManager();
-    try {
-      BooleanFormula stateAsFormula1 =
-          bfm.and(
-              constraintsCPA
-                  .getSolver()
-                  .getFullFormula(
-                      constraintsState, blockNode.getInitialLocation().getFunctionName()));
-      return bfm.isTrue(stateAsFormula1);
-    } catch (UnrecognizedCodeException | InterruptedException pE) {
-      throw new AssertionError("Failed creating formula from constraints", pE);
-    }
+    return constraintsState.isTop();
   }
 
   @Override

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.value.BlockStrengtheningOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
@@ -71,6 +71,12 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
         .put(PTS_KEY, pts)
         .put(FORMULA_KEY, formula)
         .popLevel()
+        .pushLevel(PredicateAbstractState.class.getName())
+        .put(
+            READABLE_KEY,
+            state.getViolationCondition() == null
+                ? state.toDOTLabel()
+                : state.getViolationCondition().getFormula().toString())
         .build();
   }
 }

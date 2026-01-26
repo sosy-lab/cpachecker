@@ -573,6 +573,18 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableList.Builder<StateAndPrecision> soundSummaries = ImmutableList.builder();
     ImmutableList.Builder<StateAndPrecision> unsoundSummaries = ImmutableList.builder();
+    if (violationConditions.isEmpty() && isOriginal) {
+      AnalysisResult result = analyzeViolationCondition(ImmutableList.of());
+      if (!result.violationConditions().isEmpty()) {
+        messages.addAll(reportViolationConditions(result.violationConditions(), false));
+      } else {
+        if (result.isSound()) {
+          soundSummaries.addAll(result.summaries());
+        } else {
+          unsoundSummaries.addAll(result.summaries());
+        }
+      }
+    }
     for (String successor : violationConditions.keySet()) {
       AnalysisResult result =
           analyzeViolationCondition(
