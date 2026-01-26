@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Comparator;
@@ -994,6 +995,7 @@ public class SymbolicProgramConfiguration {
   }
 
   // TODO: this is a dummy, lower mat to SPC level.
+
   /**
    * Materializes the input object sll behind input address v. Returns empty for 0+ materialization.
    */
@@ -4342,15 +4344,61 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Returns local and global variables as {@link MemoryLocation}s and their respective Values and
-   * type sizes (SMGs allow reads from different types, just the size has to match). This does not
-   * return any heap related memory. This does return pointers, but not the structure behind the
-   * pointers. Nor the return value in a stack frame.
-   *
-   * @return a mapping of global/local program variables to their values and sizes.
+   * Returns the memory object behind the {@link MemoryLocation} per local stack variable (i.e. the
+   * current functions variable) with its type. The type can be unknown (i.e. null). If a variable
+   * has invalid memory, it is not returned!
    */
-  public PersistentMap<MemoryLocation, ValueAndValueSize>
-      getMemoryLocationsAndValuesForSPCWithoutHeap() {
+  protected Map<MemoryLocation, Entry<CType, SMGObject>> getCurrentStackVariablesWithTypes() {
+    ImmutableMap.Builder<MemoryLocation, Entry<CType, SMGObject>> trackedLocations =
+        ImmutableMap.builder();
+
+    StackFrame stack = stackVariableMapping.peek();
+    for (Entry<String, SMGObject> localVariable : stack.getVariables().entrySet()) {
+      SMGObject memory = localVariable.getValue();
+      if (!smg.isValid(memory)) {
+        // Skip non valid memory
+        continue;
+      }
+      String qualifiedName = localVariable.getKey();
+      CType variableType = variableToTypeMap.get(qualifiedName);
+      MemoryLocation memLoc = MemoryLocation.fromQualifiedName(qualifiedName);
+      checkState(memLoc.isOnFunctionStack(stack.getFunctionDefinition().getQualifiedName()));
+      trackedLocations.put(memLoc, new SimpleEntry<>(variableType, memory));
+    }
+
+    return trackedLocations.build();
+  }
+
+  /**
+   * Returns the memory object behind the {@link MemoryLocation} per global variable with its type.
+   * The type can be unknown (i.e. null). If a variable has invalid memory, it is not returned!
+   */
+  protected Map<MemoryLocation, Entry<CType, SMGObject>> getGlobalVariablesWithTypes() {
+    ImmutableMap.Builder<MemoryLocation, Entry<CType, SMGObject>> trackedLocations =
+        ImmutableMap.builder();
+    for (Entry<String, SMGObject> globalEntry : globalVariableMapping.entrySet()) {
+      SMGObject memory = globalEntry.getValue();
+      checkArgument(smg.isValid(memory));
+      String qualifiedName = globalEntry.getKey();
+      CType variableType = variableToTypeMap.get(qualifiedName);
+      MemoryLocation memLoc = MemoryLocation.fromQualifiedName(qualifiedName, 0);
+      checkState(!memLoc.isOnFunctionStack());
+      trackedLocations.put(memLoc, new SimpleEntry<>(variableType, memory));
+    }
+    return trackedLocations.build();
+  }
+
+  /**
+   * Returns {@link MemoryLocation}s for all local and global variables split by edges and their
+   * respective values and type sizes (SMGs allow reads from different types, just the size has to
+   * match). By edges means that for a variable of size 32 bits that consists of 2 {@link
+   * SMGHasValueEdge}s of size 16, it returns 2 {@link MemoryLocation}s. This does not return any
+   * heap related memory. This does return pointers, but not the structure behind the pointers. Nor
+   * the return value in a stack frame.
+   *
+   * @return a mapping of global/local program variables to their values and sizes by edges.
+   */
+  PersistentMap<MemoryLocation, ValueAndValueSize> getMemoryLocationsAndValuesForSPCWithoutHeap() {
 
     PersistentMap<MemoryLocation, ValueAndValueSize> map = PathCopyingPersistentTreeMap.of();
 

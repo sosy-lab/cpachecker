@@ -6818,6 +6818,260 @@ public class SMGState
     return false;
   }
 
+  /**
+   * Tries to read global and local (current function) variables and return the concrete values of
+   * them from the SMG (memory-model), as long as the types are known (might be lost in the SMG). If
+   * the type is not available, or the object is invalid, the variable is skipped and nothing is
+   * returned for it. Only returns values for simple types (int, long etc.) or null for pointers
+   * currently.
+   */
+  public Map<MemoryLocation, BigInteger> getVariablesWithConcreteValues() {
+    Map<SymbolicIdentifier, Value> solverAssignments = getSolverAssignments();
+
+    ImmutableMap.Builder<MemoryLocation, BigInteger> memLocAndValueBuilder = ImmutableMap.builder();
+
+    Map<MemoryLocation, Entry<CType, SMGObject>> globalVars =
+        memoryModel.getGlobalVariablesWithTypes();
+    memLocAndValueBuilder.putAll(getConcreteValuesFor(globalVars, solverAssignments));
+    // Local vars are only the vars of the current function
+    Map<MemoryLocation, Entry<CType, SMGObject>> localVars =
+        memoryModel.getCurrentStackVariablesWithTypes();
+    memLocAndValueBuilder.putAll(getConcreteValuesFor(localVars, solverAssignments));
+
+    return memLocAndValueBuilder.buildOrThrow();
+  }
+
+  /**
+   * Tries to read the values from the SMG (memory-model) with the types provided, from the provided
+   * object. If the type is not available, or the object is invalid, the entry is skipped and
+   * nothing is returned for it. Only returns values for simple types (int, long etc.) or references
+   * to numeric values in struct fields of depth 1 (due to how the concrete error path states and
+   * {@link MemoryLocation} work).
+   */
+  public Map<MemoryLocation, BigInteger> getConcreteValuesFor(
+      Map<MemoryLocation, Entry<CType, SMGObject>> variablesToRead,
+      Map<SymbolicIdentifier, Value> solverAssignmentsToApply) {
+    ImmutableMap.Builder<MemoryLocation, BigInteger> memLocAndValueBuilder = ImmutableMap.builder();
+
+    for (Entry<MemoryLocation, Entry<CType, SMGObject>> variableToRead :
+        variablesToRead.entrySet()) {
+      MemoryLocation baseMemoryLoc = variableToRead.getKey();
+      @Nullable CType variableType = variableToRead.getValue().getKey();
+      SMGObject object = variableToRead.getValue().getValue();
+
+      if (variableType == null) {
+        // TODO: just get all edges from the object and check if its filling the entire object?
+        continue;
+      }
+
+      try {
+        switch (variableType) {
+          case CSimpleType simpleVariableType -> {
+            // Simple types like int, etc., that return only 1 memory-location
+            BigInteger typeSize = machineModel.getSizeofInBits(variableType);
+            // Don't materialize abstracted memory, as we are reading a variable here, it is
+            // impossible to hit anything abstracted.
+            List<ValueAndSMGState> possibleValue =
+                readValue(object, BigInteger.ZERO, typeSize, simpleVariableType, true, false);
+            checkState(possibleValue.size() == 1);
+
+            Value readValue = possibleValue.getFirst().getValue();
+            readValue = applySolverAssignment(readValue, solverAssignmentsToApply);
+
+            if (readValue instanceof NumericValue numValue) {
+              // The offset NEEDS to be NULL! Anything else is interpreted as reference!
+              checkArgument(!baseMemoryLoc.isReference());
+              memLocAndValueBuilder.put(baseMemoryLoc, numValue.bigIntegerValue());
+            }
+          }
+
+          case CPointerType pointerVariableType -> {
+            // First, check for 0 at offset 0
+            if (!object.isZero() && memoryModel.isObjectValid(object)) {
+              BigInteger typeSize = machineModel.getSizeofInBits(variableType);
+              // Don't materialize abstracted memory, as we are reading a variable here, it is
+              // impossible to hit anything abstracted.
+              List<ValueAndSMGState> possibleValue =
+                  readValue(object, BigInteger.ZERO, typeSize, pointerVariableType, true, false);
+              checkState(possibleValue.size() == 1);
+              Value readValue = possibleValue.getFirst().getValue();
+
+              if (readValue instanceof NumericValue numValue
+                  && numValue.bigIntegerValue().equals(BigInteger.ZERO)) {
+                // The offset NEEDS to be NULL! Anything else is interpreted as reference!
+                checkArgument(!baseMemoryLoc.isReference());
+                memLocAndValueBuilder.put(baseMemoryLoc, numValue.bigIntegerValue());
+                continue;
+              }
+
+              // TODO: problematic, fix
+              // Pointers to structs (or better to one field of these) can be represented
+              // in the current CEX/witness system, but can be expensive!
+              /*
+                if (pointerVariableType.getType().getCanonicalType()
+                    instanceof CCompositeType compositePointerTargetType) {
+                  BigInteger pointerSize = machineModel.getSizeofInBits(pointerVariableType);
+                  // Don't materialize abstracted memory, we detect it below and ignore it for now
+                  List<ValueAndSMGState> possiblePointerValue =
+                      readValue(object, BigInteger.ZERO, pointerSize, pointerVariableType, true, false);
+                  checkState(possiblePointerValue.size() == 1);
+
+                  Value pointer = possiblePointerValue.getFirst().getValue();
+                  SMGState currentState = possiblePointerValue.getFirst().getState(); // Should be this
+                  verify(currentState.isPointer(pointer));
+                  SMGPointsToEdge pte =
+                      currentState
+                          .getMemoryModel()
+                          .getSmg()
+                          .getPTEdge(
+                              currentState.getMemoryModel().getSMGValueFromValue(pointer).orElseThrow())
+                          .orElseThrow();
+
+                  // Ignore abstracted memory for now
+                  if (pte.getOffset() instanceof NumericValue numericOffsetInBits
+                      && pte.targetSpecifier().isRegion()) {
+
+                    BigInteger referenceOffsetInBytes =
+                        numericOffsetInBits.bigIntegerValue().divide(BigInteger.valueOf(8));
+                    Optional<CCompositeTypeMemberDeclaration> fieldToRead = Optional.empty();
+                    for (Entry<CCompositeTypeMemberDeclaration, BigInteger> field :
+                        machineModel.getAllFieldOffsetsInBits(compositePointerTargetType).entrySet()) {
+                      if (field.getValue().equals(numericOffsetInBits.bigIntegerValue())) {
+                        fieldToRead = Optional.of(field.getKey());
+                        break;
+                      }
+                    }
+
+                    SMGObject pointerTarget = pte.pointsTo();
+                    checkState(pointerTarget.getOffset().equals(BigInteger.ZERO));
+                    if (fieldToRead.isPresent()
+                        && !pointerTarget.isZero()
+                        && currentState.getMemoryModel().isObjectValid(pointerTarget)) {
+                      CType fieldType = fieldToRead.orElseThrow().getType().getCanonicalType();
+                      // TODO: pipe into nested evaluation from here
+                      BigInteger typeSize = machineModel.getSizeofInBits(fieldType);
+                      // Don't materialize abstracted memory, as we are reading a variable here, it is
+                      // impossible to hit anything abstracted.
+                      List<ValueAndSMGState> possibleValue =
+                          readValue(
+                              pointerTarget,
+                              numericOffsetInBits.bigIntegerValue(),
+                              typeSize,
+                              fieldType,
+                              true,
+                              false);
+                      checkState(possibleValue.size() == 1);
+
+                      Value readValue = possibleValue.getFirst().getValue();
+                      readValue = applySolverAssignment(readValue, solverAssignmentsToApply);
+
+                      if (readValue instanceof NumericValue numValue) {
+                        // The offset needs to be non-null and the offset of the field
+                        memLocAndValueBuilder.put(
+                            baseMemoryLoc.withAddedOffset(referenceOffsetInBytes.longValueExact()),
+                            numValue.bigIntegerValue());
+                      }
+                    }
+                  }
+              */
+            }
+          }
+          // TODO: case variableType instanceof CArrayType
+
+          // TODO: case variableType instanceof CBitFieldType
+
+          // TODO: Structs are delayed, as i don't want to search for the field 3 times just because
+          // the interface of the CEX/Witness layer does not use ANY of the strcutures used by the
+          // rest of CPAchecker.
+          /*
+          case CCompositeType compositeType
+              when compositeType.getKind() == ComplexTypeKind.STRUCT -> {
+            // Local structs. Can be represented using class FieldReference (with all fields). We need the fields accessed, e.g. a.b.c
+            Map<CCompositeTypeMemberDeclaration, BigInteger> memberTypesAndOffset =
+                machineModel.getAllFieldOffsetsInBits(compositeType.getCanonicalType());
+
+            CCompositeTypeMemberDeclaration fieldMember = null;
+            for (Entry<CCompositeTypeMemberDeclaration, BigInteger> field :
+                memberTypesAndOffset.entrySet()) {
+              if (field.getValue().equals(BigInteger.ZERO)) {
+                fieldMember = field.getKey();
+                break;
+              }
+            }
+            checkNotNull(fieldMember);
+            CType fieldType = fieldMember.getType();
+            // TODO: pipe into nested evaluation from here
+
+            BigInteger typeSize = machineModel.getSizeofInBits(fieldType);
+            // Don't materialize abstracted memory, as we are reading a variable here, it is
+            // impossible to hit anything abstracted, but we may hit a pointer towards something
+            // abstracted (which we don't follow).
+            List<ValueAndSMGState> possibleValue =
+                readValue(object, BigInteger.ZERO, typeSize, fieldType, true, false);
+            checkState(possibleValue.size() == 1);
+
+            Value readValue = possibleValue.getFirst().getValue();
+            readValue = applySolverAssignment(readValue, solverAssignmentsToApply);
+
+            if (readValue instanceof NumericValue numValue) {
+              checkArgument(!baseMemoryLoc.isReference());
+              memLocAndValueBuilder.put(baseMemoryLoc.withAddedOffset(offsetInBits), numValue.bigIntegerValue());
+            }
+          }
+          */
+          //  } else if (variableType instanceof CElaboratedType elabType) {
+
+          // } else if (variableType instanceof CEnumType enumType) {
+
+          default -> {}
+        }
+        // Fallthrough for:
+        // CProblemType, CVoidType, CFunctionType, CTypedefType etc.
+        // Skip for now (what would we even return here?)
+
+      } catch (SMGException smgEx) {
+        // Just skip for now
+      }
+    }
+    return memLocAndValueBuilder.buildOrThrow();
+  }
+
+  private Map<SymbolicIdentifier, Value> getSolverAssignments() {
+    ImmutableMap.Builder<SymbolicIdentifier, Value> assignmentBuilder = ImmutableMap.builder();
+    for (ValueAssignment va : getModel()) {
+      if (SymbolicValues.isSymbolicTerm(va.getName())) {
+        SymbolicIdentifier identifier =
+            SymbolicValues.convertTermToSymbolicIdentifier(va.getName());
+        Value value = SymbolicValues.convertToValue(va);
+        assignmentBuilder.put((SymbolicIdentifier) identifier.copyForLocation(null), value);
+      }
+    }
+    return assignmentBuilder.buildOrThrow();
+  }
+
+  private Value applySolverAssignment(
+      Value readValue, Map<SymbolicIdentifier, Value> solverAssignments) {
+    if (readValue instanceof SymbolicValue symValue && !isPointer(readValue)) {
+      // TODO: get all symIdents in symbolic expr, if at least one in assignments, use value
+      //  visitor and substitute the symIdents with the assignments to get a full evaluation
+      if (symValue instanceof ConstantSymbolicExpression constSymExpr
+          && constSymExpr.getValue() instanceof SymbolicValue nestedSymValue) {
+        symValue = nestedSymValue;
+        checkState(
+            !isPointer(symValue) || symValue.isNumericValue(),
+            "Error: assigned a concrete value to a non-null address");
+      }
+      if (symValue instanceof SymbolicIdentifier symIdent
+          && solverAssignments.containsKey(symIdent)) {
+        Value assignedValue = solverAssignments.get(symIdent);
+        if (assignedValue != null && assignedValue.isNumericValue()) {
+          readValue = assignedValue;
+        }
+      }
+    }
+    return readValue;
+  }
+
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
