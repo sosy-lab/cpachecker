@@ -35,7 +35,6 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   private final ProceedConstraintsStateOperator proceedOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final ConstraintsStateCoverageOperator coverageOperator;
-  private final BlockNode blockNode;
 
   public DistributedConstraintsCPA(ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
     constraintsCPA = pConstraintsCPA;
@@ -48,7 +47,6 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
     combinePrecisionOperator = new CombineConstraintsPrecisionOperator();
     coverageOperator =
         new ConstraintsStateCoverageOperator(constraintsCPA, pBlockNode.getInitialLocation());
-    blockNode = pBlockNode;
   }
 
   @Override
