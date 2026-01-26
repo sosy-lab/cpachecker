@@ -48,4 +48,11 @@ public record AcslMetadata(
         ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of());
   }
+  public int size() {
+    return genericAnnotations.size()
+        + assertions.size()
+        + invariants.size()
+        + functionContracts.size()
+        + modifiedMemoryLocations.size();
+  }
 }
