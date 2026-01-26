@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.HashSet;
@@ -58,7 +57,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   @Override
   protected ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, List<CFAEdge>>> pPath) {
-    Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
 
     for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pPath) {
       SMGState state = checkNotNull(edgeStatePair.getFirst());
@@ -78,8 +77,10 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   }
 
   private void handleMultiEdge(
-      SMGState pState, List<CFAEdge> edges, Builder<ConcreteStatePathNode> pathBuilder) {
-    Builder<SingleConcreteState> intermediateStatesBuilder = ImmutableList.builder();
+      SMGState pState,
+      List<CFAEdge> edges,
+      ImmutableList.Builder<ConcreteStatePathNode> pathBuilder) {
+    ImmutableList.Builder<SingleConcreteState> intermediateStatesBuilder = ImmutableList.builder();
     Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
     boolean isFirstIteration = true;
     for (CFAEdge innerEdge : edges.reversed()) {
