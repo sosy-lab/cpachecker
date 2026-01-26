@@ -32,7 +32,7 @@ public sealed interface AcslType extends Type
     return pCType.getType() instanceof CSimpleType pSimpleType
         && !pSimpleType.hasComplexSpecifier()
         && !pSimpleType.hasImaginarySpecifier()
-        && (pSimpleType.getType().isFloatingPointType() || pSimpleType.getType().isIntegerType());
+        && pSimpleType.getType().isFloatingPointType();
   }
 
   static AcslType mostGeneralType(AcslType pType1, AcslType pType2) {
