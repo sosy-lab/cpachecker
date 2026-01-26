@@ -35,6 +35,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   private final ProceedConstraintsStateOperator proceedOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final ConstraintsStateCoverageOperator coverageOperator;
+  private final BlockNode blockNode;
 
   public DistributedConstraintsCPA(ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
     constraintsCPA = pConstraintsCPA;
@@ -47,6 +48,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
     combinePrecisionOperator = new CombineConstraintsPrecisionOperator();
     coverageOperator =
         new ConstraintsStateCoverageOperator(constraintsCPA, pBlockNode.getInitialLocation());
+    blockNode = pBlockNode;
   }
 
   @Override
@@ -107,10 +109,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     ConstraintsState constraintsState = (ConstraintsState) pAbstractState;
-    // What if we have "assume x == x"?
-    // create new "true" state, ask is it is subsumed?
-    return constraintsState.getDefiniteAssignment().isEmpty()
-        && constraintsState.getConstraints().isEmpty();
+    return constraintsState.isTop();
   }
 
   @Override

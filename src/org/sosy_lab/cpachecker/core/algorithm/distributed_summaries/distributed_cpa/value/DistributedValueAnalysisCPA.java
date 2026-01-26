@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "dss.cpa.value")
 public class DistributedValueAnalysisCPA
@@ -60,7 +59,8 @@ public class DistributedValueAnalysisCPA
 
   @Option(
       description =
-          "Whether to run symbolic execution to compute the violation condition for value analysis.")
+          "Whether to run symbolic execution to compute the violation condition for value"
+              + " analysis.")
   private boolean runSymExec = true;
 
   public DistributedValueAnalysisCPA(
@@ -151,9 +151,7 @@ public class DistributedValueAnalysisCPA
 
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
-    BooleanFormula formula =
-        ((ValueAnalysisState) pAbstractState).getFormulaApproximation(formulaManager);
-    return formulaManager.getBooleanFormulaManager().isTrue(formula);
+    return ((ValueAnalysisState) pAbstractState).isTop();
   }
 
   @Override

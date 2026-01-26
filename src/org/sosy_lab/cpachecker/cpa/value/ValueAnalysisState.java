@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
@@ -163,6 +164,10 @@ public final class ValueAnalysisState
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
     assert hashCode == constantsMap.hashCode();
+  }
+
+  public boolean isTop() {
+    return constantsMap.isEmpty();
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
@@ -676,6 +681,9 @@ public final class ValueAnalysisState
 
         if (num != null) {
           Type type = entry.getValue().getType();
+          while (type instanceof CTypedefType pCTypedefType) {
+            type = pCTypedefType.getRealType();
+          }
           if (!memoryLocation.isReference() && type instanceof CSimpleType simpleType) {
             if (simpleType.getType().isIntegerType()) {
               int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
