@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -30,6 +29,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -130,15 +132,23 @@ public class AcslMetadataParsingTest {
       ImmutableList<AAcslAnnotation> expectedAnnotations = expectedBuilder.build();
 
       AcslMetadata acslMetadata = cfa.getMetadata().getAcslMetadata();
-      ImmutableListMultimap<AAcslAnnotation, CFANode> genericAnnotations =
-          acslMetadata.genericAnnotations().inverse();
       ImmutableSetMultimap<AcslAssertion, CFANode> actualAssertions =
           acslMetadata.assertions().inverse();
+      ImmutableSetMultimap<AcslLoopInvariant, CFANode> actualLoopInvariants =
+          acslMetadata.invariants().inverse();
+      ImmutableSetMultimap<AcslFunctionContract, CFANode> actualFunctionContracts =
+          acslMetadata.functionContracts().inverse();
+      ImmutableSetMultimap<AcslAssigns, CFANode> actualAssigns =
+          acslMetadata.modifiedMemoryLocations().inverse();
       for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
         if (expectedAnnotation instanceof AcslAssertion) {
           assert actualAssertions.containsKey(expectedAnnotation);
-        } else {
-          assert genericAnnotations.containsKey(expectedAnnotation);
+        } else if (expectedAnnotation instanceof AcslLoopInvariant) {
+          assert actualLoopInvariants.containsKey(expectedAnnotation);
+        } else if (expectedAnnotation instanceof AcslFunctionContract) {
+          assert actualFunctionContracts.containsKey(expectedAnnotation);
+        } else if (expectedAnnotation instanceof AcslAssigns) {
+          assert actualAssigns.containsKey(expectedAnnotation);
         }
       }
     } catch (RuntimeException e) {

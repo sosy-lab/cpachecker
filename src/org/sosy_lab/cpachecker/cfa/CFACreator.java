@@ -21,7 +21,6 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -67,6 +66,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
@@ -801,32 +803,52 @@ public class CFACreator {
       throws AcslParseException {
     Verify.verify(pParseResult.acslComments().isPresent());
 
-    ImmutableListMultimap.Builder<CFANode, AAcslAnnotation> genericAnnotationBuilder =
-        ImmutableListMultimap.builder();
     ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
         ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<CFANode, AcslLoopInvariant> loopInvariantBuilder =
+        ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<CFANode, AcslFunctionContract> functionContractBuilder =
+        ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<CFANode, AcslAssigns> assignsBuilder = ImmutableSetMultimap.builder();
+
     for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
       FluentIterable<AAcslAnnotation> allAnnotations =
           FluentIterable.from(
               AcslParser.parseAcslComment(
                   comment.getComment(), comment.getFileLocation(), pScope, AcslScope.empty()));
-      genericAnnotationBuilder.putAll(
-          comment.getCfaNode(), allAnnotations.filter(a -> !(a instanceof AcslAssertion)));
+
       assertionBuilder.putAll(
           comment.getCfaNode(),
           allAnnotations.filter(a -> a instanceof AcslAssertion).transform(a -> (AcslAssertion) a));
+
+      loopInvariantBuilder.putAll(
+          comment.getCfaNode(),
+          allAnnotations
+              .filter(a -> a instanceof AcslLoopInvariant)
+              .transform(a -> (AcslLoopInvariant) a));
+
+      functionContractBuilder.putAll(
+          comment.getCfaNode(),
+          allAnnotations
+              .filter(a -> a instanceof AcslFunctionContract)
+              .transform(a -> (AcslFunctionContract) a));
+
+      assignsBuilder.putAll(comment.getCfaNode(), allAnnotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a));
     }
-    ImmutableListMultimap<CFANode, AAcslAnnotation> genericAnnotations =
-        genericAnnotationBuilder.build();
+
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions = assertionBuilder.build();
+    ImmutableSetMultimap<CFANode, AcslLoopInvariant> loopInvariants = loopInvariantBuilder.build();
+    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts =
+        functionContractBuilder.build();
+    ImmutableSetMultimap<CFANode, AcslAssigns> assigns = assignsBuilder.build();
+
     return new AcslMetadata(
         ImmutableList.copyOf(pParseResult.acslComments().orElseThrow()),
-        genericAnnotations,
         ImmutableSet.of(),
         assertions,
-        ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of());
+        loopInvariants,
+        functionContracts,
+        assigns);
   }
 
   /**

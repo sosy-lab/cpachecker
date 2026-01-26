@@ -9,11 +9,9 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
@@ -31,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public record AcslMetadata(
     ImmutableList<AcslComment> pAcslComments,
-    ImmutableListMultimap<CFANode, AAcslAnnotation> genericAnnotations,
     ImmutableSet<AcslDeclaration> globalAcslDeclarations,
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions,
     ImmutableSetMultimap<CFANode, AcslLoopInvariant> invariants,
@@ -41,7 +38,6 @@ public record AcslMetadata(
   public static AcslMetadata empty() {
     return new AcslMetadata(
         ImmutableList.of(),
-        ImmutableListMultimap.of(),
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of(),
@@ -50,8 +46,7 @@ public record AcslMetadata(
   }
 
   public int size() {
-    return genericAnnotations.size()
-        + assertions.size()
+    return assertions.size()
         + invariants.size()
         + functionContracts.size()
         + modifiedMemoryLocations.size();
