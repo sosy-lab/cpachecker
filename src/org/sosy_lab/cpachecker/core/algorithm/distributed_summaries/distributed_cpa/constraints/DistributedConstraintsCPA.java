@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
@@ -36,7 +35,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final ConstraintsStateCoverageOperator coverageOperator;
 
-  public DistributedConstraintsCPA(ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
+  public DistributedConstraintsCPA(ConstraintsCPA pConstraintsCPA) {
     constraintsCPA = pConstraintsCPA;
     serializeOperator = new SerializeConstraintsStateOperator();
     deserializeOperator = new DeserializeConstraintsStateOperator();
@@ -45,8 +44,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
     deserializePrecisionOperator = new DeserializeConstraintsPrecisionOperator();
     proceedOperator = new ProceedConstraintsStateOperator();
     combinePrecisionOperator = new CombineConstraintsPrecisionOperator();
-    coverageOperator =
-        new ConstraintsStateCoverageOperator(constraintsCPA, pBlockNode.getInitialLocation());
+    coverageOperator = new ConstraintsStateCoverageOperator(constraintsCPA);
   }
 
   @Override

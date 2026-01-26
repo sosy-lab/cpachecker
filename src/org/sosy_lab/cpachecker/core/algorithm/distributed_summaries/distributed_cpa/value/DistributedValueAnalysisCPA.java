@@ -12,12 +12,10 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 
 import java.util.HashMap;
 import java.util.Map;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -37,8 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "dss.cpa.value")
 public class DistributedValueAnalysisCPA
@@ -54,7 +50,6 @@ public class DistributedValueAnalysisCPA
   private final ProceedValueStateOperator proceedOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final ValueStateCoverageOperator coverageOperator;
-  private final FormulaManagerView formulaManager;
   static Map<String, ValueAnalysisState> initialState = new HashMap<>();
 
   @Option(
@@ -64,18 +59,11 @@ public class DistributedValueAnalysisCPA
   private boolean runSymExec = true;
 
   public DistributedValueAnalysisCPA(
-      ValueAnalysisCPA pValueCPA,
-      CFA pCFA,
-      Configuration pConfiguration,
-      BlockNode pBlockNode,
-      LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier)
+      ValueAnalysisCPA pValueCPA, CFA pCFA, Configuration pConfiguration, BlockNode pBlockNode)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     valueCPA = pValueCPA;
     cfa = pCFA;
-    Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier);
-    formulaManager = solver.getFormulaManager();
     serializeOperator = new SerializeValueAnalysisStateOperator(pValueCPA, pCFA);
     deserializeOperator = new DeserializeValueAnalysisStateOperator(pBlockNode, pValueCPA, pCFA);
     violationConditionOperator =
@@ -90,7 +78,7 @@ public class DistributedValueAnalysisCPA
         new DeserializeValuePrecisionOperator(pConfiguration, pCFA.getVarClassification());
     proceedOperator = new ProceedValueStateOperator();
     combinePrecisionOperator = new CombineValuePrecisionOperator();
-    coverageOperator = new ValueStateCoverageOperator(solver);
+    coverageOperator = new ValueStateCoverageOperator();
     blockNode = pBlockNode;
   }
 
