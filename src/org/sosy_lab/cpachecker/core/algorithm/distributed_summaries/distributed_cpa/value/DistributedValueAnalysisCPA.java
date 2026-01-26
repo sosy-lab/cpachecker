@@ -15,6 +15,8 @@ import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,6 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+@Options(prefix = "dss.cpa.value")
 public class DistributedValueAnalysisCPA
     implements ForwardingDistributedConfigurableProgramAnalysis {
   private final ValueAnalysisCPA valueCPA;
@@ -55,6 +58,11 @@ public class DistributedValueAnalysisCPA
   private final FormulaManagerView formulaManager;
   static Map<String, ValueAnalysisState> initialState = new HashMap<>();
 
+  @Option(
+      description =
+          "Whether to run symbolic execution to compute the violation condition for value analysis.")
+  private boolean runSymExec = true;
+
   public DistributedValueAnalysisCPA(
       ValueAnalysisCPA pValueCPA,
       CFA pCFA,
@@ -63,14 +71,19 @@ public class DistributedValueAnalysisCPA
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     valueCPA = pValueCPA;
     cfa = pCFA;
     Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
-    serializeOperator = new SerializeValueAnalysisStateOperator();
-    deserializeOperator = new DeserializeValueAnalysisStateOperator(pBlockNode, pCFA);
+    serializeOperator = new SerializeValueAnalysisStateOperator(pValueCPA, pCFA);
+    deserializeOperator = new DeserializeValueAnalysisStateOperator(pBlockNode, pValueCPA, pCFA);
     violationConditionOperator =
-        new ValueViolationConditionOperator(cfa.getMachineModel(), pBlockNode);
+        new ValueViolationConditionOperator(
+            cfa.getMachineModel(),
+            runSymExec,
+            pBlockNode,
+            pValueCPA.getBlockStrengtheningOperator().getPfmgr());
 
     serializePrecisionOperator = new SerializeValuePrecisionOperator();
     deserializePrecisionOperator =

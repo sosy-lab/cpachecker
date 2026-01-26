@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -92,6 +93,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -133,9 +135,13 @@ import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.xml.sax.SAXException;
 
 public class ValueAnalysisTransferRelation
@@ -311,6 +317,8 @@ public class ValueAnalysisTransferRelation
   private Map<Integer, String> valuesFromFile;
   @LazyInit private Random randomSampler = null;
 
+  private transient BlockStrengtheningOperator blockStrengtheningOperator;
+
   // Functions that we know are safe to ignore
   private static final Set<String> IGNORED_UNSUPPORTED_FUNCTIONS =
       ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable");
@@ -343,6 +351,11 @@ public class ValueAnalysisTransferRelation
         && options.getFunctionValuesForRandom() != null) {
       setupFunctionValuesForRandom();
     }
+  }
+
+  public void setBlockStrengtheningOperator(
+      BlockStrengtheningOperator pBlockStrengtheningOperator) {
+    blockStrengtheningOperator = pBlockStrengtheningOperator;
   }
 
   @Override
@@ -1187,7 +1200,7 @@ public class ValueAnalysisTransferRelation
       throws UnrecognizedCodeException {
 
     long offset = 0L;
-    for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
+    for (CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
       MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
 
       CExpression owner = pExp;
@@ -1339,7 +1352,7 @@ public class ValueAnalysisTransferRelation
       if (readableState.contains(varName)) {
         return readableState.getValueFor(varName);
       } else {
-        return Value.UnknownValue.getInstance();
+        return UnknownValue.getInstance();
       }
     }
   }
@@ -1357,7 +1370,7 @@ public class ValueAnalysisTransferRelation
 
       if (evv.hasMissingFieldAccessInformation()) {
         missingInformationRightJExpression = jRightHandSide;
-        return Value.UnknownValue.getInstance();
+        return UnknownValue.getInstance();
       } else {
         return value;
       }
@@ -1464,6 +1477,21 @@ public class ValueAnalysisTransferRelation
         case BlockState blockState -> {
           if (!blockState.isTarget()) continue;
 
+          if (blockStrengtheningOperator != null) {
+            try {
+              Collection<ValueAnalysisState> strengthened =
+                  blockStrengtheningOperator.strengthen(
+                      ((ValueAnalysisState) pElement), blockState);
+              if (strengthened.isEmpty()) {
+                return strengthened;
+              }
+            } catch (SolverException e) {
+              throw new CPATransferException("Solver failure during block strengthening", e);
+            } catch (InterruptedException e) {
+              throw new CPATransferException("Interrupted during block strengthening", e);
+            }
+          }
+
           for (ValueAnalysisState stateToStrengthen : toStrengthen) {
             super.setInfo(pElement, pPrecision, pCfaEdge);
             AbstractState wrappedState = blockState.getViolationConditions().getFirst();
@@ -1472,7 +1500,7 @@ public class ValueAnalysisTransferRelation
 
             for (AbstractState violationState : cS.getWrappedStates())
               if (violationState instanceof ValueAnalysisState valueAnalysisState) {
-                for (Map.Entry<MemoryLocation, ValueAndType> entry :
+                for (Entry<MemoryLocation, ValueAndType> entry :
                     valueAnalysisState.getConstants()) {
                   if (!stateToStrengthen.contains(entry.getKey()))
                     stateToStrengthen.assignConstant(
@@ -1544,7 +1572,7 @@ public class ValueAnalysisTransferRelation
               CSimpleType paramType =
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
               if (paramType.getType().isFloatingPointType()) {
-                FloatValue.Format format = FloatValue.Format.fromCType(machineModel, paramType);
+                Format format = Format.fromCType(machineModel, paramType);
                 FloatValue integralPartValue =
                     numericValue.floatingPointValue(format).round(RoundingMode.TRUNCATE);
                 CFloatLiteralExpression integralPart =
