@@ -20,8 +20,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.FileNotFoundException;
@@ -64,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
@@ -800,16 +803,33 @@ public class CFACreator {
 
     AcslMetadata metadata =
         AcslMetadata.withComments(AcslMetadata.empty(), pParseResult.acslComments().orElseThrow());
-    ImmutableListMultimap.Builder<CFANode, AAcslAnnotation> annotationBuilder =
+    ImmutableListMultimap.Builder<CFANode, AAcslAnnotation> genericAnnotationBuilder =
         ImmutableListMultimap.builder();
+    ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
+        ImmutableSetMultimap.builder();
     for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
-      annotationBuilder.putAll(
+      FluentIterable<AAcslAnnotation> allAnnotations =
+          FluentIterable.from(
+              AcslParser.parseAcslComment(
+                  comment.getComment(), comment.getFileLocation(), pScope, AcslScope.empty()));
+      genericAnnotationBuilder.putAll(
+          comment.getCfaNode(), allAnnotations.filter(a -> !(a instanceof AcslAssertion)));
+      assertionBuilder.putAll(
           comment.getCfaNode(),
-          AcslParser.parseAcslComment(
-              comment.getComment(), comment.getFileLocation(), pScope, AcslScope.empty()));
+          allAnnotations.filter(a -> a instanceof AcslAssertion).transform(a -> (AcslAssertion) a));
     }
-    ImmutableListMultimap<CFANode, AAcslAnnotation> annotations = annotationBuilder.build();
-    return AcslMetadata.withGenericAnnotations(metadata, annotations);
+    ImmutableListMultimap<CFANode, AAcslAnnotation> genericAnnotations =
+        genericAnnotationBuilder.build();
+    ImmutableSetMultimap<CFANode, AcslAssertion> assertions = assertionBuilder.build();
+    // return AcslMetadata.withGenericAnnotations(metadata, genericAnnotations);
+    return new AcslMetadata(
+        ImmutableList.copyOf(pParseResult.acslComments().orElseThrow()),
+        genericAnnotations,
+        ImmutableSet.of(),
+        assertions,
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of());
   }
 
   /**

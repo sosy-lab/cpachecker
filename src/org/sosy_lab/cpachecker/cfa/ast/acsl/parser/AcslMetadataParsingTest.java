@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -149,10 +151,16 @@ public class AcslMetadataParsingTest {
       ImmutableList<AAcslAnnotation> expectedAnnotations = expectedBuilder.build();
 
       AcslMetadata acslMetadata = cfa.getMetadata().getAcslMetadata();
-      ImmutableListMultimap<AAcslAnnotation, CFANode> annotations =
+      ImmutableListMultimap<AAcslAnnotation, CFANode> genericAnnotations =
           acslMetadata.genericAnnotations().inverse();
+      ImmutableSetMultimap<AcslAssertion, CFANode> actualAssertions =
+          acslMetadata.assertions().inverse();
       for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
-        assert annotations.containsKey(expectedAnnotation);
+        if (expectedAnnotation instanceof AcslAssertion) {
+          assert actualAssertions.containsKey(expectedAnnotation);
+        } else {
+          assert genericAnnotations.containsKey(expectedAnnotation);
+        }
       }
     } catch (RuntimeException e) {
       assert programName.equals("badVariable.c");
