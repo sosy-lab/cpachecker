@@ -141,14 +141,19 @@ public class AcslMetadataParsingTest {
       ImmutableSetMultimap<AcslAssigns, CFANode> actualAssigns =
           acslMetadata.modifiedMemoryLocations().inverse();
       for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
-        if (expectedAnnotation instanceof AcslAssertion) {
-          assert actualAssertions.containsKey(expectedAnnotation);
-        } else if (expectedAnnotation instanceof AcslLoopInvariant) {
-          assert actualLoopInvariants.containsKey(expectedAnnotation);
-        } else if (expectedAnnotation instanceof AcslFunctionContract) {
-          assert actualFunctionContracts.containsKey(expectedAnnotation);
-        } else if (expectedAnnotation instanceof AcslAssigns) {
-          assert actualAssigns.containsKey(expectedAnnotation);
+        switch (expectedAnnotation) {
+          case AcslAssertion assertion -> {
+            assert actualAssertions.containsKey(assertion);
+          }
+          case AcslLoopInvariant loopInvariant -> {
+            assert actualLoopInvariants.containsKey(loopInvariant);
+          }
+          case AcslFunctionContract contract -> {
+            assert actualFunctionContracts.containsKey(contract);
+          }
+          case null, default -> {
+            assert actualAssigns.containsKey(expectedAnnotation);
+          }
         }
       }
     } catch (RuntimeException e) {
