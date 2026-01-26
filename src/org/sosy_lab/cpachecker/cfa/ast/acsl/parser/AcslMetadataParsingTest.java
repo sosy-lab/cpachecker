@@ -93,6 +93,11 @@ public class AcslMetadataParsingTest {
             "inv_short-for.c",
             ImmutableList.of("loop invariant x + y == 20;"),
             new CodeLoctation(11, 3)));
+    b.add(
+        task(
+            "same_annotation_twice.c",
+            ImmutableList.of("assert x == 10;", "assert x == 10;"),
+            new CodeLoctation(10, 5)));
     return b.build();
   }
 

@@ -8,8 +8,9 @@
 
 int main(void) {
     int x = 10;
-    //@ ensures x == 10;
+    //@ assert x == 10;
     int z = x * x;
+    //@ assert x == 10;
     if (x != 10) {
         ERROR: return 1;
     }
