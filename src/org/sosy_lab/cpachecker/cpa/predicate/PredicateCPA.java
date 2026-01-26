@@ -123,6 +123,7 @@ public class PredicateCPA
   private final Solver solver;
   private final PredicateCPAStatistics stats;
   private final CFA cfa;
+  private final RegionManager regionManager;
   private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predAbsManager;
   private final PredicateCPAInvariantsManager invariantsManager;
@@ -167,7 +168,6 @@ public class PredicateCPA
     }
     pathFormulaManager = pfMgr;
 
-    RegionManager regionManager;
     if (abstractionType.equals("FORMULA") || blk.alwaysReturnsFalse()) {
       // No need to load BDD library if we never abstract (might use lots of memory)
       regionManager = new SymbolicRegionManager(solver);
@@ -330,7 +330,7 @@ public class PredicateCPA
 
   @Override
   public void close() {
-    CPAs.closeIfPossible(abstractionManager.getRegionCreator(), logger);
+    CPAs.closeIfPossible(regionManager, logger);
     solver.close();
   }
 
