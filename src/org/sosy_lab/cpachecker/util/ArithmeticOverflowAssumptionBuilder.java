@@ -290,7 +290,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
       throws UnrecognizedCodeException {
     if (useLiveness) {
       Set<CSimpleDeclaration> referencedDeclarations =
-          CFAUtils.getIdExpressionsOfExpression(exp)
+          CFAUtils.getCIdExpressionsOfExpression(exp)
               .transform(CIdExpression::getDeclaration)
               .toSet();
 
@@ -322,7 +322,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
                   op1, op2, lowerBounds.get(calculationType), upperBounds.get(calculationType)));
         }
       } else if (trackDivisions
-          && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {
+          && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.REMAINDER))) {
         if (lowerBounds.get(calculationType) != null) {
           ofmgr.addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
         }
@@ -528,12 +528,12 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
             GREATER_THAN,
             LESS_EQUAL,
             GREATER_EQUAL,
-            BINARY_AND,
-            BINARY_XOR,
-            BINARY_OR,
+            BITWISE_AND,
+            BITWISE_XOR,
+            BITWISE_OR,
             EQUALS,
             NOT_EQUALS,
-            MODULO ->
+            REMAINDER ->
             false;
       };
     } else if (expr instanceof CUnaryExpression cUnaryExpression) {

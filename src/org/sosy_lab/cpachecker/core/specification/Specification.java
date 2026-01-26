@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
@@ -42,8 +43,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2Parser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2d0Parser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
@@ -74,6 +75,7 @@ public final class Specification {
           .put(CommonVerificationProperty.DATA_RACE, "sv-comp-datarace")
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
+          .put(CommonVerificationProperty.CORRECT_TAGS, "correct-tags")
           // .put(CommonPropertyType.TERMINATION, "none needed")
           .buildOrThrow();
 
@@ -146,24 +148,40 @@ public final class Specification {
           throw new InvalidConfigurationException(
               String.format("Cannot parse property file %s: %s", specFile, e.getMessage()), e);
         }
-        @SuppressWarnings("deprecation") // just a sanity check, not real option usage
-        String configuredEntryFunction = config.getProperty("analysis.entryFunction");
-        if (!parser.getEntryFunction().equals(configuredEntryFunction)) {
-          // Will happen only if "specification=foo.prp" is used in config file or if CPAchecker
-          // is used as library instead of from CPAMain.
-          throw new InvalidConfigurationException(
-              String.format(
-                  "Entry function %s specified in %s is not consistent with configured entry"
-                      + " function %s. Please set 'analysis.entryFunction=%s' or pass property file"
-                      + " on command line with '--spec %s'.",
-                  parser.getEntryFunction(),
-                  specFile,
-                  configuredEntryFunction,
-                  parser.getEntryFunction(),
-                  specFile));
+
+        // For SV-LIB tasks, we do not care about the entry function specified in the property file,
+        // since it is given by the program.
+        if (cfa.getLanguage() != Language.SVLIB) {
+          @SuppressWarnings("deprecation") // just a sanity check, not real option usage
+          String configuredEntryFunction = config.getProperty("analysis.entryFunction");
+          if (parser.getEntryFunction().isPresent()
+              && !parser.getEntryFunction().orElseThrow().equals(configuredEntryFunction)) {
+            // Will happen only if "specification=foo.prp" is used in config file or if CPAchecker
+            // is used as library instead of from CPAMain.
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Entry function %s specified in %s is not consistent with configured entry"
+                        + " function %s. Please set 'analysis.entryFunction=%s' or pass property"
+                        + " file on command line with '--spec %s'.",
+                    parser.getEntryFunction(),
+                    specFile,
+                    configuredEntryFunction,
+                    parser.getEntryFunction(),
+                    specFile));
+          }
         }
 
-        for (Property prop : parser.getProperties()) {
+        ImmutableSet<Property> props = parser.getProperties();
+        if (cfa.getLanguage() == Language.SVLIB && props.isEmpty()) {
+          // We are inside of an SV-LIB verification task but no property was specified.
+          // Default to checking the correctness of SV-LIB tags.
+          props = ImmutableSet.of(CommonVerificationProperty.CORRECT_TAGS);
+        } else if (props.isEmpty()) {
+          throw new InvalidConfigurationException(
+              String.format("No properties specified in property file %s", specFile));
+        }
+
+        for (Property prop : props) {
           properties.add(prop);
 
           if (prop instanceof Property.OtherLtlProperty) {
@@ -232,8 +250,8 @@ public final class Specification {
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
     } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(specFile)) {
-      AutomatonWitnessV2Parser yamlParser =
-          new AutomatonWitnessV2Parser(config, logger, pShutdownNotifier, cfa);
+      AutomatonWitnessV2d0Parser yamlParser =
+          new AutomatonWitnessV2d0Parser(config, logger, pShutdownNotifier, cfa);
       automata = ImmutableList.of(yamlParser.parseAutomatonFile(specFile));
     } else {
       automata =

@@ -1160,6 +1160,13 @@ public class SMG {
     return smgObjects.keySet();
   }
 
+  public Set<SMGObject> getValidObjects() {
+    return smgObjects.entrySet().stream()
+        .filter(e -> e.getValue())
+        .map(e -> e.getKey())
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
   /**
    * Returns all SMGValues associated with this SMG and their current nesting levels.
    *
@@ -2742,7 +2749,7 @@ public class SMG {
     /*for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
       // References to invalid objects might exist, as well as references to invalid objects sizes
       Value sizeOfObj = obj.getKey().getSize();
-      if (!sizeOfObj.isNumericValue()
+      if (!(sizeOfObj instanceof NumericValue)
           && !pExistingValueMapping.containsKey(pValueWrapper.wrap(sizeOfObj))
           && obj.getValue()) {
         // If the size is in a valid object, we need a mapping!

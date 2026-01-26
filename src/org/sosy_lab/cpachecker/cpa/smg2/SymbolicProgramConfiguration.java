@@ -2610,7 +2610,7 @@ public class SymbolicProgramConfiguration {
     // For unknown values we use a new symbolic value without memory location as this is
     // handled by the SMGs
     SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.asConstant(factory.newIdentifier(null), valueType);
+    return ConstantSymbolicExpression.of(factory.newIdentifier(null), valueType);
   }
 
   /**
@@ -5082,7 +5082,7 @@ public class SymbolicProgramConfiguration {
       //   (they don't do harm and having a mapping is quicker later)
       if (!value.isZero()
           && !valuesToRegionsTheyAreSavedIn.containsKey(value)
-          && (maybeMapping.isEmpty() || !maybeMapping.orElseThrow().isNumericValue())) {
+          && (maybeMapping.isEmpty() || !(maybeMapping.orElseThrow() instanceof NumericValue))) {
         // Check if the value is referenced by the atexit stack
         if (maybeMapping.isPresent()) {
           for (Value atExitAddressValue : atExitStack) {

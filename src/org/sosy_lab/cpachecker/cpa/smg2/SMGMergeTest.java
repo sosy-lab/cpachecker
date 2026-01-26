@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -1086,6 +1087,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
   // TODO: add ability to define where to point to inside the nested list
   // TODO: add machine model based sizes (so that we can test 64 bits)
+
   /**
    * Uses the currentState SMGState initially and returns the modified state with the list inside.
    * Guarantees that the currentState in the end is equal to the initial. Always writes all values
@@ -1615,7 +1617,8 @@ public class SMGMergeTest extends SMGCPATest0 {
       if (sharedValuesInListSpec.isEmpty()) {
         ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
         SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        Value nondetValue =
+            ConstantSymbolicExpression.of(factory.newIdentifier(null), CNumericTypes.INT);
         // This is called with the smallest list, length 1, first. So we need to pad this
         for (int i = 0; i < length + 5; i++) {
           nondetValues.add(ImmutableList.of(nondetValue));
@@ -1645,7 +1648,8 @@ public class SMGMergeTest extends SMGCPATest0 {
       if (sharedValuesInListSpec.isEmpty()) {
         ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
         SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        Value nondetValue =
+            ConstantSymbolicExpression.of(factory.newIdentifier(null), CNumericTypes.INT);
         // This is called with the smallest list, length 1, first. So we need to pad this
         for (int i = 0; i < length + 5; i++) {
           nondetValues.add(ImmutableList.of(nondetValue));
@@ -1670,7 +1674,8 @@ public class SMGMergeTest extends SMGCPATest0 {
       if (sharedValuesInListSpec.isEmpty()) {
         ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
         SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        Value nondetValue =
+            ConstantSymbolicExpression.of(factory.newIdentifier(null), CNumericTypes.INT);
         // This is called with the smallest list, length 1, first. So we need to pad this
         for (int i = 0; i < length + 5; i++) {
           nondetValues.add(ImmutableList.of(nondetValue));
@@ -1695,7 +1700,8 @@ public class SMGMergeTest extends SMGCPATest0 {
       if (sharedValuesInListSpec.isEmpty()) {
         ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
         SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        Value nondetValue =
+            ConstantSymbolicExpression.of(factory.newIdentifier(null), CNumericTypes.INT);
         // This is called with the smallest list, length 1, first. So we need to pad this
         for (int i = 0; i < length + 5; i++) {
           nondetValues.add(ImmutableList.of(nondetValue));
@@ -1720,7 +1726,8 @@ public class SMGMergeTest extends SMGCPATest0 {
       if (sharedValuesInListSpec.isEmpty()) {
         ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
         SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        Value nondetValue =
+            ConstantSymbolicExpression.of(factory.newIdentifier(null), CNumericTypes.INT);
         // This is called with the smallest list, length 1, first. So we need to pad this
         for (int i = 0; i < length + 5; i++) {
           nondetValues.add(ImmutableList.of(nondetValue));
@@ -1745,7 +1752,8 @@ public class SMGMergeTest extends SMGCPATest0 {
       if (sharedValuesInListSpec.isEmpty()) {
         ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
         SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        Value nondetValue =
+            ConstantSymbolicExpression.of(factory.newIdentifier(null), CNumericTypes.INT);
         // This is called with the smallest list, length 1, first. So we need to pad this
         for (int i = 0; i < length + 5; i++) {
           nondetValues.add(ImmutableList.of(nondetValue));
@@ -1771,7 +1779,8 @@ public class SMGMergeTest extends SMGCPATest0 {
       SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
       for (int i = 0; i < length; i++) {
         nondetValues.add(
-            ImmutableList.of(factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT)));
+            ImmutableList.of(
+                ConstantSymbolicExpression.of(factory.newIdentifier(null), CNumericTypes.INT)));
       }
       return new ListSpec(
           stackVariableForPtrToListAndLocation,
@@ -1792,7 +1801,8 @@ public class SMGMergeTest extends SMGCPATest0 {
       SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
       for (int i = 0; i < length; i++) {
         nondetValues.add(
-            ImmutableList.of(factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT)));
+            ImmutableList.of(
+                ConstantSymbolicExpression.of(factory.newIdentifier(null), CNumericTypes.INT)));
       }
       return new ListSpec(
           stackVariableForPtrToListAndLocation,

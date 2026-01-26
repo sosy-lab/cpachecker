@@ -124,7 +124,7 @@ class AssignmentFormulaHandler {
     }
   }
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final BitvectorFormulaManagerView bvmgr;
@@ -689,9 +689,9 @@ class AssignmentFormulaHandler {
 
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
-      final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
+      final int oldIndex = conv.getExistingOrNewIndex(ufName, region.getType(), ssa);
       final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
+      final FormulaType<?> targetType = conv.getFormulaTypeFromType(region.getType());
 
       // forall counter : !condition => retentionConstraint
       // is equivalent to:
@@ -775,9 +775,9 @@ class AssignmentFormulaHandler {
 
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
-      final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
+      final int oldIndex = conv.getExistingOrNewIndex(ufName, region.getType(), ssa);
       final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
+      final FormulaType<?> targetType = conv.getFormulaTypeFromType(region.getType());
 
       for (final PointerTarget target : targetLookup.apply(region)) {
         regionMgr.addTargetToStats(ufName);
@@ -902,7 +902,7 @@ class AssignmentFormulaHandler {
     checkArgument(isSimpleType(rvalueType));
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
+    final FormulaType<?> targetType = conv.getFormulaTypeFromType(lvalueType);
     BooleanFormula result;
 
     Formula rhs;
@@ -936,7 +936,7 @@ class AssignmentFormulaHandler {
         // add the condition
         // either the condition holds and the assignment should be done,
         // or the condition does not hold and the previous value should be copied
-        final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+        final int oldIndex = conv.getExistingOrNewIndex(targetName, lvalueType, ssa);
         Formula oldVariable = fmgr.makeVariable(targetType, targetName, oldIndex);
 
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
@@ -952,7 +952,7 @@ class AssignmentFormulaHandler {
       }
       final String targetName = regionMgr.getPointerAccessName(region);
 
-      final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+      final int oldIndex = conv.getExistingOrNewIndex(targetName, lvalueType, ssa);
       final int newIndex;
       if (useOldSSAIndices) {
         assert updatedRegions == null : "Returning updated regions is only for new indices";

@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -93,7 +93,7 @@ public class AssignmentToPathAllocator {
     machineModel = pMachineModel;
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(
-            pLogger, pMachineModel, new FormulaEncodingWithPointerAliasingOptions(pConfig));
+            pLogger, pMachineModel, new CFormulaEncodingWithPointerAliasingOptions(pConfig));
     memoryName = exp -> typeHandler.getPointerAccessNameForType(typeHandler.getSimplifiedType(exp));
   }
 
@@ -208,28 +208,30 @@ public class AssignmentToPathAllocator {
 
       String typeName = getTypeString(pCExp.getExpressionType());
 
-      return switch (pCExp) {
-        case CBinaryExpression binExp -> {
-          String opString = binExp.getOperator().getOperator();
-          switch (binExp.getOperator()) {
-            case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
-            default -> {
-              // default
-            }
+      if (pCExp instanceof CBinaryExpression binExp) {
+
+        String opString = binExp.getOperator().getOperator();
+
+        switch (binExp.getOperator()) {
+          case MULTIPLY, REMAINDER, DIVIDE -> opString = "_" + opString;
+          default -> {
+            // default
           }
-          yield typeName + "_" + opString + "_";
         }
-        case CUnaryExpression unExp -> {
-          String op = unExp.getOperator().getOperator();
-          yield typeName + "_" + op + "_";
-        }
-        case CCastExpression castExp -> {
-          CType type2 = castExp.getOperand().getExpressionType();
-          String typeName2 = getTypeString(type2);
-          yield "__cast_" + typeName2 + "_to_" + typeName + "__";
-        }
-        default -> "";
-      };
+
+        return typeName + "_" + opString + "_";
+
+      } else if (pCExp instanceof CUnaryExpression unExp) {
+        String op = unExp.getOperator().getOperator();
+
+        return typeName + "_" + op + "_";
+      } else if (pCExp instanceof CCastExpression castExp) {
+        CType type2 = castExp.getOperand().getExpressionType();
+        String typeName2 = getTypeString(type2);
+        return "__cast_" + typeName2 + "_to_" + typeName + "__";
+      }
+
+      return "";
     }
 
     private String getTypeString(CType pExpressionType) {
@@ -299,7 +301,7 @@ public class AssignmentToPathAllocator {
     @Override
     public Value evaluate(AUnaryExpression pUnaryExpression, Value pOperand) {
 
-      if (!pOperand.isNumericValue()) {
+      if (!(pOperand instanceof NumericValue)) {
         return UnknownValue.getInstance();
       }
 
@@ -319,7 +321,7 @@ public class AssignmentToPathAllocator {
     @Override
     public Value evaluate(ACastExpression pCastExpression, Value pOperand) {
 
-      if (!pOperand.isNumericValue()) {
+      if (!(pOperand instanceof NumericValue)) {
         return UnknownValue.getInstance();
       }
 

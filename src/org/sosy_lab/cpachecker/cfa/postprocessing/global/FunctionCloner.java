@@ -113,12 +113,12 @@ class FunctionCloner implements CFAVisitor {
 
   /** FunctionCloner clones a function of the CFA and uses a new functionName. */
   public FunctionCloner(
-      final String oldFunctionName,
-      final String newFunctionName,
-      final boolean replaceFunctionOnly) {
-    this.oldFunctionName = oldFunctionName;
-    this.newFunctionName = newFunctionName;
-    this.replaceFunctionOnly = replaceFunctionOnly;
+      final String pOldFunctionName,
+      final String pNewFunctionName,
+      final boolean pReplaceFunctionOnly) {
+    this.oldFunctionName = pOldFunctionName;
+    this.newFunctionName = pNewFunctionName;
+    this.replaceFunctionOnly = pReplaceFunctionOnly;
   }
 
   /**

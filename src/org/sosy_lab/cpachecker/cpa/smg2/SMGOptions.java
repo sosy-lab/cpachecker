@@ -149,14 +149,25 @@ public class SMGOptions {
     private boolean overapproximateSymbolicOffsetsAsFallback = false;
   */
 
+  /*
   @Option(
       secure = true,
-      name = "overapproximateValuesForSymbolicSize",
       description =
-          "If this Option is enabled, all values of a memory region that is written to with a"
-              + " symbolic and non-unique offset in symbolically sized memory are deleted and the"
-              + " value itself is overapproximated to unknown in the memory region.")
-  private boolean overapproximateValuesForSymbolicSize = false;
+          "If this Option is enabled, all symbolic type sizes used when writing to memory (i.e. the"
+              + " bit size of the type of the value written) are evaluated into all possible"
+              + " concrete values by an SMT solver. This might be very expensive, as all possible"
+              + " combinations of values for the symbolic values are concretely evaluated. May not"
+              + " be used together with option overapproximateValuesForSymbolicTypeSize.")
+  private boolean findConcreteValuesForSymbolicTypeSize = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Maximum amount of concrete assignments before the assigning is aborted. The last offset"
+              + " is then once treated as option overapproximateValuesForSymbolicTypeSize"
+              + " specifies.")
+  private int findConcreteValuesForSymbolicTypeSizeAssignmentMaximum = 30;
+   */
 
   @Option(
       secure = true,
@@ -164,8 +175,17 @@ public class SMGOptions {
       description = "If this Option is enabled, variable array length may be symbolic.")
   private boolean allowSymbolicVariableArrayLength = false;
 
-  public boolean isOverapproximateValuesForSymbolicSize() {
-    return overapproximateValuesForSymbolicSize;
+  // TODO: add findConcreteValuesForSymbolicTypeSize to text!
+  @Option(
+      secure = true,
+      description =
+          "If this Option is enabled, writing with symbolic sized value types are overapproximated."
+              + " I.e. the memory region affected is overapproximated, including the"
+              + " value itself, to unknown.")
+  private boolean overapproximateValuesForSymbolicTypeSize = false;
+
+  public boolean isOverapproximateValuesForSymbolicTypeSize() {
+    return overapproximateValuesForSymbolicTypeSize;
   }
 
   public boolean isOverapproximateSymbolicOffsets() {
@@ -264,6 +284,14 @@ public class SMGOptions {
       name = "zeroingMemoryAllocation",
       description = "Allocation functions which set memory to zero")
   private ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of("calloc", "kzalloc");
+
+  @Option(
+      secure = true,
+      name = "enableZeroingOfSymbolicMemorySize",
+      description =
+          "If true, memory with symbolic size can be zeroed, which allows usage of zeroing"
+              + " allocation functions like calloc().")
+  private boolean enableZeroingOfSymbolicMemorySize = false;
 
   @Option(secure = true, name = "deallocationFunctions", description = "Deallocation functions")
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of("free");
@@ -572,6 +600,10 @@ public class SMGOptions {
 
   public ImmutableSet<String> getZeroingMemoryAllocation() {
     return zeroingMemoryAllocation;
+  }
+
+  public boolean isEnableZeroingOfSymbolicMemorySize() {
+    return enableZeroingOfSymbolicMemorySize;
   }
 
   public ImmutableSet<String> getDeallocationFunctions() {

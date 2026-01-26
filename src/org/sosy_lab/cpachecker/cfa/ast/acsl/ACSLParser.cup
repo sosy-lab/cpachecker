@@ -72,7 +72,7 @@ parser code {:
       orderedCFALocs = pOrderedCFALocs;
     }
 
-    public static CFA parseACSLAnnotations(
+    public static ImmutableCFA parseACSLAnnotations(
         List<String> files,
         CFA pCfa,
         LogManager logger,

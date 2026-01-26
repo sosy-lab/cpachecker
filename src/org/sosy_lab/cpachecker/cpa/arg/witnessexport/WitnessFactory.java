@@ -642,7 +642,7 @@ class WitnessFactory implements EdgeAppender {
     ImmutableList.Builder<AExpressionStatement> assignments = ImmutableList.builder();
     for (AExpressionStatement s : cfaEdgeWithAssignments.getExpStmts()) {
       if (s.getExpression() instanceof CExpression cExpression
-          && CFAUtils.getIdExpressionsOfExpression(cExpression).allMatch(isGoodVariable)) {
+          && CFAUtils.getCIdExpressionsOfExpression(cExpression).allMatch(isGoodVariable)) {
         assignments.add(s);
       }
     }
@@ -656,7 +656,7 @@ class WitnessFactory implements EdgeAppender {
       if (functionValidAssignment instanceof CExpressionStatement) {
         CExpression expression = (CExpression) functionValidAssignment.getExpression();
         for (CIdExpression idExpression :
-            CFAUtils.getIdExpressionsOfExpression(expression).toSet()) {
+            CFAUtils.getCIdExpressionsOfExpression(expression).toSet()) {
           final CSimpleDeclaration declaration = idExpression.getDeclaration();
           final String qualified = declaration.getQualifiedName();
           if (declaration.getName().contains("static")
@@ -1148,6 +1148,12 @@ class WitnessFactory implements EdgeAppender {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is irrelevant, remove it
       if (leavingEdges.get(edge.getSource()).contains(edge) && isIrrelevant.test(edge)) {
+        if (edge.getTarget().equals(SINK_NODE_ID)
+            && leavingEdges.get(edge.getSource()).size() > 1) {
+          // We cannot remove sink edges if there are other siblings, as this would change the
+          // semantics.
+          continue;
+        }
         Iterables.addAll(waitlist, mergeNodes(edge, mergeMetaInformation));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }

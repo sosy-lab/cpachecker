@@ -11,22 +11,19 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph.GHOST_EDGE_DESCRIPTION;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.SequencedSet;
-import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -35,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -57,7 +53,7 @@ public class BlockGraphModification {
   public record Modification(CFA cfa, BlockGraph blockGraph, ModificationMetadata metadata) {}
 
   /**
-   * Metadata about a modification of a CFA and its block graph.
+   * DssMetadata about a modification of a CFA and its block graph.
    *
    * @param originalCfa CFA that was modified
    * @param originalBlockGraph block graph that was used as reference for modification
@@ -77,24 +73,6 @@ public class BlockGraphModification {
       Map<CFANode, CFANode> originalToInstrumentedNodes,
       Map<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
 
-  private static MutableCFA createMutableCfaCopy(
-      CFA pCfa, Configuration pConfig, LogManager pLogger) {
-    // create a clone of the specified CFA (clones all CFA nodes and edges)
-    CFA clone =
-        CCfaTransformer.substituteAstNodes(pConfig, pLogger, pCfa, (cfaEdge, astNode) -> astNode);
-    // create a `MutableCFA` for the clone (contains the same CFA nodes and edges as `clone`)
-    NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
-    TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
-    for (CFANode node : clone.nodes()) {
-      String functionName = node.getFunction().getQualifiedName();
-      allNodes.put(functionName, node);
-      if (node instanceof FunctionEntryNode functionEntryNode) {
-        functionEntryNodes.put(functionName, functionEntryNode);
-      }
-    }
-    return new MutableCFA(functionEntryNodes, allNodes, clone.getMetadata());
-  }
-
   public static Modification instrumentCFA(
       CFA pCFA, BlockGraph pBlockGraph, Configuration pConfig, LogManager pLogger) {
     // If the block graph consists of a single block that is the full CFA,
@@ -103,7 +81,7 @@ public class BlockGraphModification {
       return getUnchanged(pCFA, pBlockGraph);
     }
 
-    MutableCFA mutableCfa = createMutableCfaCopy(pCFA, pConfig, pLogger);
+    MutableCFA mutableCfa = MutableCFA.copyOf(pCFA, pConfig, pLogger);
     ModificationMetadata modificationMetadata =
         addBlankEdgesAtBlockEnds(mutableCfa, pCFA, pBlockGraph);
     Map<CFANode, CFANode> originalInstrumentedMapping =
@@ -111,10 +89,7 @@ public class BlockGraphModification {
     // Adjust the block graph to the modified CFA
     BlockGraph adjustedBlockGraph =
         adaptBlockGraph(
-            pBlockGraph,
-            mutableCfa.getMainFunction(),
-            modificationMetadata.mappingInfo(),
-            modificationMetadata.abstractions());
+            pBlockGraph, modificationMetadata.mappingInfo(), modificationMetadata.abstractions());
 
     // Adjust metadata to the modified CFA
     setReversePostorderForInstrumentedNodes(originalInstrumentedMapping);
@@ -268,7 +243,6 @@ public class BlockGraphModification {
 
   private static BlockGraph adaptBlockGraph(
       BlockGraph pBlockGraph,
-      CFANode pNewMainFunctionNode,
       MappingInformation pMappingInformation,
       Map<CFANode, CFAEdge> blockAbstractionEnds) {
     Map<CFANode, CFANode> originalInstrumentedNodes =
@@ -311,17 +285,7 @@ public class BlockGraphModification {
               block.getSuccessorIds(),
               abstraction));
     }
-    BlockNode root =
-        new BlockNode(
-            BlockGraph.ROOT_ID,
-            pNewMainFunctionNode,
-            pNewMainFunctionNode,
-            ImmutableSet.of(pNewMainFunctionNode),
-            ImmutableSet.of(),
-            ImmutableSet.of(),
-            pBlockGraph.getRoot().getLoopPredecessorIds(),
-            pBlockGraph.getRoot().getSuccessorIds());
-    return new BlockGraph(root, instrumentedBlocks.build());
+    return new BlockGraph(instrumentedBlocks.build());
   }
 
   private static MappingInformation createMappingBetweenOriginalAndInstrumentedCFA(
@@ -348,8 +312,10 @@ public class BlockGraphModification {
       SequencedSet<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
       for (CFAEdge cfaEdge : originalOutgoing) {
         CFAEdge corresponding = findCorrespondingEdge(cfaEdge, instrumentedOutgoing);
-        assertOrFail(
-            !foundCorrespondingEdges.contains(corresponding), "Corresponding edge already covered");
+        Preconditions.checkState(
+            !foundCorrespondingEdges.contains(corresponding),
+            "Corresponding edge already found: %s",
+            corresponding);
         originalToInstrumentedNodes.put(cfaEdge.getSuccessor(), corresponding.getSuccessor());
         originalToInstrumentedEdges.put(cfaEdge, corresponding);
         waitlist.add(new NodePair(cfaEdge.getSuccessor(), corresponding.getSuccessor()));
@@ -367,12 +333,6 @@ public class BlockGraphModification {
       }
     }
     throw new AssertionError("No matching edge found");
-  }
-
-  private static void assertOrFail(boolean condition, String message) {
-    if (!condition) {
-      throw new AssertionError(message);
-    }
   }
 
   private static boolean virtuallyEqual(CFAEdge pCFAEdge, CFAEdge pCFAEdge2) {

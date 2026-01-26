@@ -112,7 +112,7 @@ public class SMGPointsToEdge {
     return " -> ("
         + targetSpecifier
         + ") ["
-        + (offset.isNumericValue() ? offset.asNumericValue().bigIntegerValue() : offset)
+        + (offset instanceof NumericValue numOffset ? numOffset.bigIntegerValue() : offset)
         + "] "
         + pointsToObject;
   }

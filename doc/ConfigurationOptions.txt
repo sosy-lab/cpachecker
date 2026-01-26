@@ -264,6 +264,147 @@ analysis.algorithm.IMC = false
 # will get aborted.
 analysis.algorithm.MPI = false
 
+# allow input programs that write pointer variables?
+analysis.algorithm.MPOR.allowPointerWrites = true
+
+# merge statements between __VERIFIER_atomic_begin() and
+# __VERIFIER_atomic_end() via goto? setting this to false does not model the
+# input programs behavior correctly.
+analysis.algorithm.MPOR.atomicBlockMerge = true
+
+# the encoding of the partial order reduction bit vectors.
+analysis.algorithm.MPOR.bitVectorEncoding = NONE
+  enum:     [NONE, BINARY, DECIMAL, HEXADECIMAL, SPARSE]
+
+# the style preset used by clang-format to format the output program. use
+# NONE to disable formatting.
+analysis.algorithm.MPOR.clangFormatStyle = WEBKIT
+  enum:     [NONE, CHROMIUM, GNU, GOOGLE, LLVM, MICROSOFT, MOZILLA, WEBKIT]
+
+# include comments with trivia explaining the sequentialization?
+analysis.algorithm.MPOR.comments = false
+
+# make labels for thread statements consecutive? i.e. 0 to n - 1 where n is
+# the number of statements. disabling may result in the first statement being
+# unreachable, but can be useful for debugging.
+analysis.algorithm.MPOR.consecutiveLabels = true
+
+# defines the syntax in which the next statement of a thread simulation is
+# chosen.
+analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
+  enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
+
+# defines the syntax in which the next thread executing a statement is
+# chosen.
+analysis.algorithm.MPOR.controlEncodingThread = NONE
+  enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
+
+# include original function declarations from input file? including them may
+# result in unsound analysis (e.g. false alarms for CBMC + ignored function
+# calls through function pointers for CPAchecker)
+analysis.algorithm.MPOR.inputFunctionDeclarations = false
+
+# include original type declarations from input file? disabling may result in
+# parse errors for the output program.
+analysis.algorithm.MPOR.inputTypeDeclarations = true
+
+# link commuting statements via goto to reduce the state space?
+analysis.algorithm.MPOR.linkReduction = true
+
+# the number of loop iterations to perform thread simulations. use 0 for an
+# infinite loop (while (1)). any number other than 0 is unsound, because the
+# entire state space is not searched.
+analysis.algorithm.MPOR.loopIterations = 0
+
+# unroll the loop used for thread simulation? not unrolling loops can be
+# unsound, e.g. for CBMC. only use with loopIterations > 0.
+analysis.algorithm.MPOR.loopUnrolling = false
+
+# removes backward goto, i.e. jumping to a line higher up in the program, by
+# reordering statements. only works for if-else constructs, not loops. use
+# noBackwardLoopGoto to ensure that backward loop goto are removed.
+analysis.algorithm.MPOR.noBackwardGoto = true
+
+# removes backward goto from loops. this option is independent from
+# noBackwardGoto.
+analysis.algorithm.MPOR.noBackwardLoopGoto = true
+
+# use signed __VERIFIER_nondet_int() instead of unsigned
+# __VERIFIER_nondet_uint()?
+analysis.algorithm.MPOR.nondeterminismSigned = false
+
+# the source(s) of nondeterminism in the sequentialization.
+analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
+  enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
+
+# prune and simplify bit vector evaluation expressions based on perfect
+# knowledge? e.g. if it is known that the left hand side in an & expression
+# is 0, then the entire evaluation can be pruned.
+analysis.algorithm.MPOR.pruneBitVectorEvaluations = false
+
+# prune empty statements (with only pc writes) from the sequentialization?
+analysis.algorithm.MPOR.pruneEmptyStatements = true
+
+# bit vectors are only written to 0 if the corresponding memory location is
+# not reachable anymore, removing all unnecessary writes to 1 in the output
+# program.
+analysis.algorithm.MPOR.pruneSparseBitVectorWrites = false
+
+# only bit vectors for memory locations that are reachable for a thread are
+# included, reducing the amount of variables, evaluations, and writes in the
+# output program.
+analysis.algorithm.MPOR.pruneSparseBitVectors = false
+
+# ignore that the current thread should not execute if it is not in conflict
+# with any other thread? only works when nondeterminismSource contains
+# NUM_STATEMENTS.
+analysis.algorithm.MPOR.reduceIgnoreSleep = false
+
+# enforce an execution order when the current and previous thread commute?
+analysis.algorithm.MPOR.reduceLastThreadOrder = false
+
+# Continue executing the current thread if it is the only active thread. This
+# option utilizes a thread_count ghost variable which is incremented for each
+# created thread and decremented for each terminated thread. These increments
+# and decrement are placed inside a possibly infinite loop, so when analyzing
+# for overflows, it may be more efficient to disable this option.
+analysis.algorithm.MPOR.reduceSingleActiveThread = true
+
+# continue executing the current thread until it is in conflict with at least
+# another thread?
+analysis.algorithm.MPOR.reduceUntilConflict = false
+
+# how to determine if two threads commute from a location. READ_AND_WRITE
+# reduces the state space more than ACCESS_ONLY, but introduces additional
+# overhead (i.e. number of variables, assignments, and expression
+# evaluations)
+analysis.algorithm.MPOR.reductionMode = NONE
+  enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
+
+# if both reduceLastThreadOrder and reduceUntilConflict are enabled, define
+# the order in which their statements are placed in the output program.
+analysis.algorithm.MPOR.reductionOrder = NONE
+  enum:     [NONE, CONFLICT_THEN_LAST_THREAD, LAST_THREAD_THEN_CONFLICT]
+
+# use separate int values (scalars) for tracking thread pcs instead of int
+# arrays?
+analysis.algorithm.MPOR.scalarPc = true
+
+# use shortened variable names, e.g. THREAD0 -> T0
+analysis.algorithm.MPOR.shortVariableNames = true
+
+# check if all goto statements jump forward, i.e. to a higher line of code in
+# the program?
+analysis.algorithm.MPOR.validateNoBackwardGoto = true
+
+# check if CPAchecker can parse sequentialization? note that it may take
+# several seconds to parse a program
+analysis.algorithm.MPOR.validateParse = true
+
+# check if all label pc (except initial) are target pc and all target pc
+# (except  termination) are label pc within a thread simulation?
+analysis.algorithm.MPOR.validatePc = true
+
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
@@ -273,6 +414,15 @@ analysis.algorithm.analysisWithEnabler = false
 
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
+
+# Everything constructed in the CoreComponentsFactory is done on a copy of
+# the original CFA, if the option is set to true. One of the possible
+# use-cases are modifications of the CFA by the algorithm. For example, if we
+# run algorithms in parallel or in sequence, they are expected to get the CFA
+# corresponding to the original program. Hence, to prevent these
+# modifications from influencing other algorithms, each algorithm can claim 
+# a copy of the original CFA to modify.
+analysis.algorithm.copyCFA = false
 
 # Use distributed summary synthesis. This decomposes the input program into
 # smaller units that are analyzed concurrently. See
@@ -325,6 +475,15 @@ analysis.algorithm.propertyCheck = false
 # TerminationCPA as root CPA and an automaton CPA with
 # termination_as_reach.spc in the tree of CPAs.
 analysis.algorithm.termination = false
+
+# Use termination-to-safety algorithm to prove (non-)termination. This needs
+# the TerminationToReachCPA,PredicateCPA, LocationCPA and CallStackCPA in the
+# CompositeCPA.
+analysis.algorithm.terminationToSafety = false
+
+# use termination witness validator to check a correctness witness for
+# termination
+analysis.algorithm.terminationWitnessCheck = false
 
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
@@ -431,6 +590,42 @@ analysis.name = no default value
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
+
+# Use Modular Partial Order Reduction (MPOR) algorithm to sequentialize a
+# concurrent C program. This algorithm transforms the input program into a
+# sequential program that preserves the properties of the original concurrent
+# program.
+# If the sequentialized program should be analyzed inside CPAchecker
+# directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.
+analysis.preprocessing.MPOR = false
+
+# The file name for the exported sequentialization metadata that contains
+# e.g. the input file name(s).
+analysis.preprocessing.MPOR.metadataPath = no default value
+
+# The file name for the exported sequentialized program.
+analysis.preprocessing.MPOR.programPath = no default value
+
+# If the sequentialization should be performed as a preprocessing step before
+# the main analysis begins, set to true. The sequentialized program is then
+# analyzed by the CPAchecker analysis given. Note that the CFA is transformed
+# at the beginning of the analysis, so all (sub-)analyses will also operate
+# on the sequentialized CFA. In particular this means that if you use a
+# parallel or sequential composition of analyses, all of them will analyze
+# the sequentialized CFA.
+# If the sequentialization should just be exported and analyzed externally,
+# set to false.
+analysis.preprocessing.MPOR.runAnalysis = true
+
+# In case the CFA was modified in a pre-processing step (e.g., by
+# sequentialization), if this option is set to true the original CFA is used
+# instead of the modified one for the analysis. This is useful when the
+# pre-processing should be done for multiple algorithms in a parallel
+# portfolio, but some of them should analyze the original CFA. For example,
+# when using some analyses which support concurrency natively alongside
+# analyses which need sequentialization in a parallel portfolio we want the
+# analyses which natively support concurrency to use the original CFA.
+analysis.preprocessing.preferOriginalCfaOverSequentialized = false
 
 # A String, denoting the programs to be analyzed
 analysis.programNames = []
@@ -744,9 +939,6 @@ bdd.sylvan.threads = 0
 # sequentialize all accesses to the BDD library.
 bdd.synchronizeLibraryAccess = false
 
-# output file for visualizing the block graph
-blockCFAFile = "block_analysis/blocks.json"
-
 # Allow reduction of function entries; calculate abstractions always at
 # function entries?
 blockreducer.allowReduceFunctionEntries = true
@@ -836,6 +1028,10 @@ bmc.simplifyBooleanFormula = false
 
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
+
+# When checking C programs use this configuration file instead of the current
+# one.
+c.config = no default value
 
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
@@ -1006,6 +1202,10 @@ cinvariants.prefix = no default value
 
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
+
+# define the clang-format command to use, e.g. "clang-format-18" or
+# "clang-format"
+clangFormatter.clangFormatCommand = "clang-format-18"
 
 # If adaptTimeLimits is set and all configurations support progress reports,
 # in each cycle the time limits per configuration are newly calculated based
@@ -1198,6 +1398,9 @@ counterexample.export.exportTestCase = false
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
 
+# export counterexample as witness/YML file
+counterexample.export.exportWitnessV2 = true
+
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1240,6 +1443,10 @@ counterexample.export.report = "Counterexample.%d.html"
 
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
+
+# The file into which to write the violation witness for SV-LIB programs. In
+# case no output files are requested 
+counterexample.export.svlib = "Counterexample.%d.svlib"
 
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
@@ -1423,6 +1630,9 @@ cpa.arg.errorPath.exportTestCase = false
 # deprecated name for counterexample.export.exportWitness
 cpa.arg.errorPath.exportWitness = true
 
+# deprecated name for counterexample.export.exportWitnessV2
+cpa.arg.errorPath.exportWitnessV2 = true
+
 # deprecated name for counterexample.export.extendedWitnessFile
 cpa.arg.errorPath.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1446,6 +1656,9 @@ cpa.arg.errorPath.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-inf
 
 # deprecated name for counterexample.export.source
 cpa.arg.errorPath.source = "Counterexample.%d.c"
+
+# deprecated name for counterexample.export.svlib
+cpa.arg.errorPath.svlib = "Counterexample.%d.svlib"
 
 # deprecated name for counterexample.export.witnessGraph
 cpa.arg.errorPath.witnessGraph = "Counterexample.%d.witness.dot"
@@ -1537,6 +1750,10 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # export final ARG as .dot file, showing only loop heads and function
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
+
+# The file into which to write the correctness witness for SV-LIB programs.
+# If not set no witness will be exported.
+cpa.arg.svLibCorrectnessWitness = "witness.svlib"
 
 # translate final ARG into C program
 cpa.arg.translateToC = false
@@ -1765,6 +1982,9 @@ cpa.callstack.depth = 0
 # faster since it uses only object equivalence
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
+
+# ignore the callstack and do not track it this heavily over-approximates.
+cpa.callstack.ignoreTransfer = false
 
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
@@ -2469,9 +2689,6 @@ cpa.predicate.enableBlockreducer = false
 # Enable handling of functions memset, memcopy, memmove. If disabled, using
 # these functions will result in an error.
 cpa.predicate.enableMemoryAssignmentFunctions = false
-
-# Enable to share the information via serialization storage.
-cpa.predicate.enableSharedInformation = false
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
@@ -3411,6 +3628,10 @@ cpa.smg2.enableHeapAbstraction = false
 # If this Option is enabled, failure of malloc is simulated
 cpa.smg2.enableMallocFail = true
 
+# If true, memory with symbolic size can be zeroed, which allows usage of
+# zeroing allocation functions like calloc().
+cpa.smg2.enableZeroingOfSymbolicMemorySize = false
+
 # Filename format for SMG graph dumps
 cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 
@@ -3541,11 +3762,10 @@ cpa.smg2.optimizeBooleanVariables = true
 # at the same time as option findConcreteValuesForSymbolicOffsets.
 cpa.smg2.overapproximateSymbolicOffsets = false
 
-# If this Option is enabled, all values of a memory region that is written to
-# with a symbolic and non-unique offset in symbolically sized memory are
-# deleted and the value itself is overapproximated to unknown in the memory
-# region.
-cpa.smg2.overapproximateValuesForSymbolicSize = false
+# If this Option is enabled, writing with symbolic sized value types are
+# overapproximated. I.e. the memory region affected is overapproximated,
+# including the value itself, to unknown.
+cpa.smg2.overapproximateValuesForSymbolicTypeSize = false
 
 # with this option enabled, we try to gather information on memory reads from
 # values that are overlapping but not exactly fitting to the read parameters.
@@ -3859,9 +4079,9 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
-# Allow the given extern functions and interpret them as pure functions
-# although the value analysis does not support their semantics and this can
-# produce wrong results.
+# If given functions are not handled by the analysis, they are interpret as
+# functions without side-effects and return a new nondeterministic value
+# every time they are called. This can be unsound!
 cpa.value.allowedUnsupportedFunctions = {}
 
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
@@ -3874,6 +4094,13 @@ cpa.value.exportLoopInvariants = IF_TRUE
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
+
+# In case the value analysis encounters a unhandled or unknown function, and
+# this is set to true, a warning is logged and the function call is ignored.
+# Ignoring function calls is unsound! If this is set to false, a exception is
+# raised. Functions listed in option allowedUnsupportedFunctions are
+# considered pure and are exempt from this.
+cpa.value.ignoreCallsToUnknownFunctions = true
 
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
@@ -4046,24 +4273,24 @@ cpa.value.refinement.writePathConstraints = true
 
 # Overall timelimit for computing initial value precision from given
 # predicate precision(use seconds or specify a unit; 0 for infinite)
-cpa.value.reuse.precision.predicate.adaptionLimit = 0ns
+cpa.value.reuse.precision.converter.adaptionLimit = 0ns
 
 # also consider other binary operators then ==, !== when considering control
 # dependencies while adapting predicate precision
-cpa.value.reuse.precision.predicate.includeControlNonEquiv = false
+cpa.value.reuse.precision.converter.includeControlNonEquiv = false
 
 # comma-separated list of files with property specifications that should be
 # considered when determining the relevant edges for predicate precision
 # adaption
-cpa.value.reuse.precision.predicate.relevantProperties = []
+cpa.value.reuse.precision.converter.relevantProperties = []
 
 # which strategy to use to convert predicate to value precision
-cpa.value.reuse.precision.predicate.strategy = CONVERT_ONLY
+cpa.value.reuse.precision.converter.strategy = CONVERT_ONLY
   enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
              CONVERT_AND_ADD_FLOW_BIDIRECTED]
 
 # also consider control dependencies during adaption of predicate precision
-cpa.value.reuse.precision.predicate.useControl = false
+cpa.value.reuse.precision.converter.useControl = false
 
 # configure whether to export all loop invariants into one file or to split
 # the export into one file per type
@@ -4108,13 +4335,16 @@ cpa.value.trackJavaArrayValues = true
 cpa.value.unknownValueHandling = DISCARD
   enum:     [DISCARD, INTRODUCE_SYMBOLIC]
 
+# get an initial precision from a correctness witness file
+cpa.value.witnessFileForInitialPrecision = no default value
+
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
 # a more complex custom instruction within code.
 custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
-  enum:     [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN,
-             GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR,
-             EQUALS, NOT_EQUALS]
+  enum:     [MULTIPLY, DIVIDE, REMAINDER, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT,
+             LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BITWISE_AND,
+             BITWISE_XOR, BITWISE_OR, EQUALS, NOT_EQUALS]
 
 # Name of function containing the custom instruction definition
 custominstructions.ciFun = no default value
@@ -4252,38 +4482,55 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
-# Abstraction nodes are added to each block after they are created. They are
-# needed to strengthen the preconditions of blocks. Missing blocks make the
-# analysis slower but not impossible.
-distributedSummaries.allowMissingAbstractionNodes = true
-
-# The number of blocks is dependent by the number of functions in the
-# program.A tolerance of 1 means, that we subtract 1 of the total number of
-# functions.
-distributedSummaries.allowSingleBlockDecompositionWhenMerging = false
-
-# Where to store the block graph in JSON format
-distributedSummaries.blockCFAFile = "block_analysis/blocks.json"
-
 # Whether to enable debug mode of block-summary analysis. This creates visual
 # output for debugging and exports additional metadata.Creating this
 # information consumes resources and should not be used for benchmarks.
 distributedSummaries.debug = false
+
+# Abstraction nodes are added to each block after they are created. They are
+# needed to strengthen the preconditions of blocks. Missing blocks make the
+# analysis slower but not impossible.
+distributedSummaries.decomposition.allowMissingAbstractionNodes = true
+
+# The number of blocks is dependent by the number of functions in the
+# program.A tolerance of 1 means, that we subtract 1 of the total number of
+# functions.
+distributedSummaries.decomposition.allowSingleBlockDecompositionWhenMerging = false
+
+# Where to store the block graph in JSON format
+distributedSummaries.decomposition.blockCFAFile = "block_analysis/blocks.json"
 
 # Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
 # creates blocks from each merge/branching point to the next merge/branching
 # point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
-distributedSummaries.decompositionType = MERGE_DECOMPOSITION
+distributedSummaries.decomposition.decompositionType = MERGE_DECOMPOSITION
   enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
              NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
-distributedSummaries.generateBlockGraphOnly = false
+distributedSummaries.decomposition.generateBlockGraphOnly = false
 
 # Import an existing decomposition from a file
-distributedSummaries.importDecomposition = no default value
+distributedSummaries.decomposition.importDecomposition = no default value
+
+# Decomposition type to use for the block analysis.
+distributedSummaries.executorType = DSS
+  enum:     [DSS, SINGLE_WORKER]
+
+# If this option is set to true, the analysis will try to cover all violation
+# conditions in the block, even if no valid ARG path exists. In some cases,
+# ARGUtils#getAllPaths does not compute all paths as promised. However,
+# setting this option to true may lead to a significant increase in analysis
+# time.
+distributedSummaries.forcefullyCollectAllViolationConditions = false
+
+# output file for visualizing the block graph
+distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
+
+# output file for visualizing message exchange
+distributedSummaries.logging.reportFiles = "block_analysis/messages"
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
@@ -4291,7 +4538,7 @@ distributedSummaries.importDecomposition = no default value
 # the block-summary analysis assumes these pre- and verification-conditions.
 # If no file is provided, the block-summary analysis assumes the precondition
 # 'true' and the verification condition 'false'.
-distributedSummaries.knownConditions = []
+distributedSummaries.singleWorker.knownConditions = []
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'new' by block-summary analysis. For each message
@@ -4301,19 +4548,13 @@ distributedSummaries.knownConditions = []
 # assumes these pre- and verification-conditions. If no file is provided, the
 # block-summary analysis assumes the precondition 'true' and the verification
 # condition 'false'.
-distributedSummaries.newConditions = []
+distributedSummaries.singleWorker.newConditions = []
 
 # Where to write responses
-distributedSummaries.outputMessages = "messages/"
-
-# Change the queue type. VIOLATION_CONDITION prioritizes the processing of
-# ViolationConditionMessages. DEFAULT does not differ between PostCondition
-# and ViolationCondition messages.
-distributedSummaries.queue = DEFAULT
-  enum:     [VIOLATION_CONDITION, DEFAULT]
+distributedSummaries.singleWorker.outputMessages = "messages/"
 
 # Whether to spawn a worker for only one block id
-distributedSummaries.spawnWorkerForId = ""
+distributedSummaries.singleWorker.spawnWorkerForId = ""
 
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
@@ -4321,9 +4562,6 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
-
-# output file for visualizing message exchange
-dss.logging.reportFiles = "block_analysis/messages"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -4528,6 +4766,10 @@ invariantGeneration.kInduction.terminateOnCounterexample = false
 # definitions
 java.classpath = ""
 
+# When checking Java programs use this configuration file instead of the
+# current one.
+java.config = no default value
+
 # use the following encoding for java files
 java.encoding = StandardCharsets.UTF_8
 
@@ -4548,11 +4790,11 @@ java.version = JavaCore.VERSION_1_7
 # auto-detection will occur. LLVM IR is currently unsupported as input (cf.
 # https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).
 language = C
-  enum:     [C, JAVA, LLVM]
+  enum:     [C, JAVA, LLVM, SVLIB]
 language = no default value
-  enum:     [C, JAVA, LLVM]
+  enum:     [C, JAVA, LLVM, SVLIB]
 language = C
-  enum:     [C, JAVA, LLVM]
+  enum:     [C, JAVA, LLVM, SVLIB]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
@@ -4586,6 +4828,10 @@ liveVar.overallLivenessCheckTime = 0ns
 # function wise approach will have the same time-limit afterward to compute
 # the live variables).(use seconds or specify a unit; 0 for infinite)
 liveVar.partwiseLivenessCheckTime = 20s
+
+# When checking LLVM programs use this configuration file instead of the
+# current one.
+llvm.config = no default value
 
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
@@ -4719,8 +4965,9 @@ parallelAlgorithm.configFiles = no default value
 parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 
 # The command line for calling the clang preprocessor. May contain binary
-# name and arguments, but won't be expanded by a shell. The source file name
-# will be appended to this string. Clang needs to print the output to stdout.
+# name and arguments, but won't be expanded by a shell. The argument for the
+# architecture and the source file name will be appended to this string.
+# Clang needs to print the output to stdout.
 parser.clang = "clang-" + LlvmUtils.extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout"
 
 # Whether to dump the results of the preprocessor to disk.
@@ -4734,9 +4981,9 @@ parser.dialect = GNUC
   enum:     [C99, GNUC]
 
 # The command line for calling the preprocessor. May contain binary name and
-# arguments, but won't be expanded by a shell. The source file name will be
-# appended to this string. The preprocessor needs to print the output to
-# stdout.
+# arguments, but won't be expanded by a shell. The argument for the
+# architecture and the source file name will be appended to this string. The
+# preprocessor needs to print the output to stdout.
 parser.preprocessor = "cpp"
 
 # Directory where to dump the results of the preprocessor.
@@ -4757,10 +5004,16 @@ parser.transformTokensToLines = false
 # the LLVM parser (currently unsupported).
 parser.useClang = false
 
-# For C files, run the preprocessor on them before parsing. Note that all
-# line numbers printed by CPAchecker will refer to the pre-processed file,
-# not the original input file.
-parser.usePreprocessor = false
+# For C files, run an external preprocessor on them before parsing. Note that
+# all line numbers printed by CPAchecker will refer to the pre-processed
+# file, not the original input file. In case auto detection is enabled, the
+# preprocessor will only be used in case the program contains system headers.
+# Furthermore, note that this option only enables an external pre-processor
+# for C files, whose primary responsibility is resolving system headers and
+# includes.We always make use of the built-in pre-processor of the Eclipse
+# CDT parser, which already handles macros and comments.
+parser.usePreprocessor = AUTO
+  enum:     [FALSE, TRUE, AUTO]
 
 # Specifies the mode how HW requirements are detected in the proof.
 pcc.HWrequirements.extraction.mode = OPERATOR
@@ -5253,6 +5506,10 @@ statistics.print = false
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# When checking SV-LIB programs use this configuration file instead of the
+# current one.
+svlib.config = no default value
+
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true
 
@@ -5264,6 +5521,17 @@ termination.config = no default value
 
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
+
+# export supporting invariants in the witness
+termination.exportSupportingInvariantsInWitness = true
+
+# export correctness witness in YAML format
+termination.exportYamlCorrectnessWitness = true
+
+# Consider variables with unsigned types in ranking function synthesis.This
+# can lead to unsound results as LassoRanker assumes infinite domain for
+# these variables.
+termination.ignoreOverflowsForUnsignedVariables = false
 
 # Number of generalized eigenvectors in the geometric nontermination
 # argument.
@@ -5321,11 +5589,29 @@ termination.resultFile = "terminationAnalysisResult.txt"
 # imprecise
 termination.useCexImpreciseHeuristic = false
 
-# Export termination counterexample to file as GraphML automaton 
+# This option can be set to run an analysis that supports infinite state
+# spaces of programs.The analysis will automatically run the
+# ImplicitRankingChecker to check the well-foundedness of an invariant.If the
+# option is not set, then such analysis is ran only if the infinite state
+# space is detected.
+termination.validation.checkWithInfiniteSpace = false
+
+# deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
 
 # Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
+
+# Export termination counterexample to file as GraphML automaton 
+termination.violation.witness.graphml = "nontermination_witness.graphml"
+
+# Export termination counterexample to file in YAML format 
+termination.violation.witness.yaml = "Counterexample.%s.witness-2.1.yml"
+
+# The template from which the different versions of the correctness witnesses
+# will be exported. Each version replaces the string '%s' with its version
+# number.
+termination.yamlProofWitness = "witness-%s.yml"
 
 # compress the produced violation-witness automata using GZIP compression.
 terminationtoreach.compressWitness = false
