@@ -809,7 +809,8 @@ public class CFACreator {
         ImmutableSetMultimap.builder();
     ImmutableSetMultimap.Builder<CFANode, AcslFunctionContract> functionContractBuilder =
         ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFANode, AcslAssigns> assignsBuilder = ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<CFANode, AcslAssigns> assignsBuilder =
+        ImmutableSetMultimap.builder();
 
     for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
       FluentIterable<AAcslAnnotation> allAnnotations =
@@ -833,7 +834,9 @@ public class CFACreator {
               .filter(a -> a instanceof AcslFunctionContract)
               .transform(a -> (AcslFunctionContract) a));
 
-      assignsBuilder.putAll(comment.getCfaNode(), allAnnotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a));
+      assignsBuilder.putAll(
+          comment.getCfaNode(),
+          allAnnotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a));
     }
 
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions = assertionBuilder.build();
