@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -47,9 +46,7 @@ public class AcslMetadataParsingTest {
   private final LogManager logManager;
 
   public AcslMetadataParsingTest(
-      String pProgramName,
-      ImmutableList<String> pAnnotations,
-      CodeLoctation pExpectedLoc)
+      String pProgramName, ImmutableList<String> pAnnotations, CodeLoctation pExpectedLoc)
       throws InvalidConfigurationException {
     programName = pProgramName;
     expectedComments = pAnnotations;
