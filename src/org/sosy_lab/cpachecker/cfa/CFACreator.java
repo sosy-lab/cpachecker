@@ -801,8 +801,6 @@ public class CFACreator {
       throws AcslParseException {
     Verify.verify(pParseResult.acslComments().isPresent());
 
-    AcslMetadata metadata =
-        AcslMetadata.withComments(AcslMetadata.empty(), pParseResult.acslComments().orElseThrow());
     ImmutableListMultimap.Builder<CFANode, AAcslAnnotation> genericAnnotationBuilder =
         ImmutableListMultimap.builder();
     ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
@@ -821,7 +819,6 @@ public class CFACreator {
     ImmutableListMultimap<CFANode, AAcslAnnotation> genericAnnotations =
         genericAnnotationBuilder.build();
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions = assertionBuilder.build();
-    // return AcslMetadata.withGenericAnnotations(metadata, genericAnnotations);
     return new AcslMetadata(
         ImmutableList.copyOf(pParseResult.acslComments().orElseThrow()),
         genericAnnotations,

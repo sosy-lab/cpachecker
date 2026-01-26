@@ -530,24 +530,6 @@ class CFABuilder extends ASTVisitor {
     // ToDo: Handle special cases
     Verify.verify(notFunctionContracts.isEmpty());
 
-    /*
-    ImmutableList.Builder<AAcslAnnotation> annotationBuilder = ImmutableList.builder();
-    for (AcslComment c : pResult.acslComments().orElseThrow()) {
-      try {
-        annotationBuilder.addAll(
-            AcslParser.parseAcslComment(
-                c.getComment(),
-                c.getFileLocation(),
-                (CProgramScope) artificialScope,
-                AcslScope.empty()));
-      } catch (AcslParseException e) {
-        throw new CParserException(
-            "The Acsl comment '" + c.getComment() + "' could not be parsed", e);
-      }
-    }
-    ImmutableList<AAcslAnnotation> acslAnnotations = annotationBuilder.build();
-    return AcslMetadata.withGenericAnnotations(acslAnnotations);
-     */
     return pResult.withAcslComments(acslComments, blocks);
   }
 
