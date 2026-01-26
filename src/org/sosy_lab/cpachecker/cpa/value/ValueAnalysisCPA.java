@@ -27,7 +27,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
@@ -105,10 +104,6 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
-  @Option(secure = true, description = "get an initial precision from a correctness witness file")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path witnessFileForInitialPrecision = null;
-
   @Option(
       secure = true,
       name = "unknownValueHandling",
@@ -124,7 +119,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final StateToFormulaWriter writer;
 
   private final Configuration config;
-  private final LogManagerWithoutDuplicates logger;
+  private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
@@ -133,25 +128,28 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private MemoryLocationValueHandler unknownValueHandler;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
+  private final BlockStrengtheningOperator blockStrengtheningOperator;
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
-  private final ToValuePrecisionConverter converterToValPrec;
+  private final PredicateToValuePrecisionConverter predToValPrec;
 
   private SymbolicStatistics symbolicStats;
 
   private ValueAnalysisCPA(
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA cfa)
+      Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa)
       throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
     this.config = config;
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
     this.cfa = cfa;
 
     config.inject(this, ValueAnalysisCPA.class);
 
-    converterToValPrec = new ToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+    blockStrengtheningOperator =
+        new BlockStrengtheningOperator(config, logger, pShutdownNotifier, cfa);
+    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
     statistics = new ValueAnalysisCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
@@ -177,9 +175,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException {
-    if (initialPrecisionFile == null
-        && initialPredicatePrecisionFile == null
-        && witnessFileForInitialPrecision == null) {
+    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
       return VariableTrackingPrecision.createStaticPrecision(
           pConfig, pCfa.getVarClassification(), getClass());
     }
@@ -191,12 +187,6 @@ public class ValueAnalysisCPA extends AbstractCPA
             VariableTrackingPrecision.createStaticPrecision(
                 pConfig, pCfa.getVarClassification(), getClass()));
 
-    if (witnessFileForInitialPrecision != null) {
-      initialPrecision =
-          initialPrecision.withIncrement(
-              converterToValPrec.convertWitnessToVariableTrackingPrec(
-                  witnessFileForInitialPrecision));
-    }
     if (initialPredicatePrecisionFile != null) {
 
       // convert the predicate precision to variable tracking precision and
@@ -205,8 +195,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       initialPrecision =
           initialPrecision.withIncrement(
-              converterToValPrec.convertPredPrecToVariableTrackingPrec(
-                  initialPredicatePrecisionFile));
+              predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
     }
     if (initialPrecisionFile != null) {
       // create precision with empty, refinable component precision
@@ -256,7 +245,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null
         && initialPredicatePrecisionFile == null
-        && witnessFileForInitialPrecision == null
         && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
@@ -275,13 +263,20 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public ValueAnalysisTransferRelation getTransferRelation() {
-    return new ValueAnalysisTransferRelation(
-        logger,
-        cfa,
-        transferOptions,
-        unknownValueHandler,
-        constraintsStrengthenOperator,
-        statistics);
+    ValueAnalysisTransferRelation relation =
+        new ValueAnalysisTransferRelation(
+            logger,
+            cfa,
+            transferOptions,
+            unknownValueHandler,
+            constraintsStrengthenOperator,
+            statistics);
+    relation.setBlockStrengtheningOperator(blockStrengtheningOperator);
+    return relation;
+  }
+
+  public BlockStrengtheningOperator getBlockStrengtheningOperator() {
+    return blockStrengtheningOperator;
   }
 
   @Override
@@ -314,7 +309,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     return config;
   }
 
-  public LogManagerWithoutDuplicates getLogger() {
+  public LogManager getLogger() {
     return logger;
   }
 
@@ -339,8 +334,8 @@ public class ValueAnalysisCPA extends AbstractCPA
       pStatsCollection.add(symbolicStats);
     }
     pStatsCollection.add(constraintsStrengthenOperator);
-    if (converterToValPrec.collectedStats()) {
-      pStatsCollection.add(converterToValPrec);
+    if (predToValPrec.collectedStats()) {
+      pStatsCollection.add(predToValPrec);
     }
     writer.collectStatistics(pStatsCollection);
   }

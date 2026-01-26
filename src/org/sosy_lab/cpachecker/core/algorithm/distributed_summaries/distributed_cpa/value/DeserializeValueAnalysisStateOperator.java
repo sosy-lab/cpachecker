@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.SerializePredicateStateOperator.PTS_KEY;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.SerializePredicateStateOperator.SSA_KEY;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.SerializeValueAnalysisStateOperator.FORMULA_KEY;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -39,17 +43,34 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
   static Map<String, Map<String, Type>> accessedVariables = new HashMap<>();
   private final BlockNode blockNode;
+  private final FormulaManagerView fmgr;
+  private final PathFormulaManagerImpl pfgmr;
+  private final ValueAnalysisCPA valueAnalysisCPA;
+  private final CFA cfa;
 
-  public DeserializeValueAnalysisStateOperator(BlockNode pBlockNode, CFA pCFA) {
+  public DeserializeValueAnalysisStateOperator(
+      BlockNode pBlockNode, ValueAnalysisCPA pValueAnalysisCPA, CFA pCFA) {
+    valueAnalysisCPA = pValueAnalysisCPA;
+    cfa = pCFA;
     blockNode = pBlockNode;
+    fmgr = valueAnalysisCPA.getBlockStrengtheningOperator().getSolver().getFormulaManager();
+    pfgmr = valueAnalysisCPA.getBlockStrengtheningOperator().getPfmgr();
   }
 
   @Override
@@ -58,14 +79,30 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     String serializedValue = valueContent.get(STATE_KEY);
     Preconditions.checkNotNull(serializedValue, "Value state must be provided");
 
+    String ssa = valueContent.pushLevel(STATE_KEY).get(SSA_KEY);
+    String formula = valueContent.get(FORMULA_KEY);
+    String pts = valueContent.get(PTS_KEY);
+    valueContent.popLevel();
+
+    SerializationInfoStorage.storeSerializationInformation(valueAnalysisCPA, cfa);
     ValueAnalysisState state;
     try {
       state = DssSerializeObjectUtil.deserialize(serializedValue, ValueAnalysisState.class);
+      if (!ssa.isEmpty() && !formula.isEmpty()) {
+        SSAMap ssaMap = DssSerializeObjectUtil.deserialize(ssa, SSAMap.class);
+        PointerTargetSet targetSet =
+            DssSerializeObjectUtil.deserialize(pts, PointerTargetSet.class);
+        BooleanFormula parsed = fmgr.parse(formula);
+        state.setViolationCondition(
+            pfgmr.makeEmptyPathFormulaWithContext(ssaMap, targetSet).withFormula(parsed));
+      }
       havocVariables(state, getAccessedVariables(blockNode));
       return state;
 
     } catch (ClassCastException e) {
       throw new RuntimeException("Could not deserialize constraints");
+    } finally {
+      SerializationInfoStorage.clear();
     }
   }
 
