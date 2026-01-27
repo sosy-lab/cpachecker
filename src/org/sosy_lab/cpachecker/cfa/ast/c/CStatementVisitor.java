@@ -21,4 +21,6 @@ public interface CStatementVisitor<R, X extends Exception> {
   R visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws X;
 
   R visit(CFunctionCallStatement pIastFunctionCallStatement) throws X;
+
+  R visit(CIfStatement pIastIfStatement) throws X;
 }

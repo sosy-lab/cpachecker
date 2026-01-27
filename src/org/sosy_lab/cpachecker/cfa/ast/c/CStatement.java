@@ -16,7 +16,8 @@ public sealed interface CStatement extends CAstNode, AStatement
         CExpressionStatement,
         CFunctionCall,
         CFunctionCallAssignmentStatement,
-        CFunctionCallStatement {
+        CFunctionCallStatement,
+        CIfStatement {
 
   <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X;
 }
