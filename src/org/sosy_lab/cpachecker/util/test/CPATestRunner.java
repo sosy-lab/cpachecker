@@ -40,6 +40,7 @@ public class CPATestRunner {
     return run(config, pSourceCodeFilePath, Level.INFO);
   }
 
+  @SuppressWarnings("resource")
   public static TestResults run(Configuration config, String pSourceCodeFilePath, Level logLevel)
       throws Exception {
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
