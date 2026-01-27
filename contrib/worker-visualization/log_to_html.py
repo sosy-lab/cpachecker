@@ -87,7 +87,8 @@ Examples:
     )
     parser.add_argument(
         "--block-structure-json",
-        help="Path to JSON file that contains the block structure used for distributed block analysis.",
+        help="Path to JSON file that contains the block structure used for"
+        " distributed block analysis",
         default="output/block_analysis/blocks.json",
     )
     parser.add_argument(
@@ -98,7 +99,8 @@ Examples:
     )
     parser.add_argument(
         "--export-keys",
-        help="Space separated list of keys to export from the messages. If not set, all keys are exported.",
+        help="Space separated list of keys to export from the messages. "
+        "If not set, all keys are exported.",
         nargs="+",
         action="extend",
         dest="export_keys",
@@ -296,23 +298,39 @@ def html_dict_to_html_table(
                 for key in headers:
                     table.th(_t=f"{key}")
 
-def visualize_block_graph(
-        block_structure_file: Path,
-        output_path: Path,
-        output_dot_name: str = "graph.dot",
-        output_png_name: str = "graph.png",
-) -> None:
-    """Generate block structure graph visualization."""
-    block_logs = load_json_file(block_structure_file)
-    if not block_logs:
-        print("WARNING: No block structure data found", file=sys.stderr)
-        return
+        # row values
+        type_to_klass = {
+            "POST_CONDITION": "precondition",
+            "VIOLATION_CONDITION": "postcondition",
+        }
+        for timestamp, messages in timestamp_to_message.items():
+            with table.tr():
+                table.td(_t=str(timestamp))
+                for msg in messages:
+                    if not msg:
+                        table.td()
+                    else:
+                        klass = type_to_klass.get(
+                            msg["header"]["messageType"], "normal"
+                        )
+                        table.td(
+                            klass=klass,
+                            _t=html_for_message(msg, block_logs, export_keys),
+                        )
 
-    graph = nx.DiGraph()
+    return str(table)
 
-    # Add nodes with code labels
-    for block_id, block_info in block_logs.items():
-        code_parts = [c.replace('"', "'") for c in block_info.get("code", [])]
+
+def visualize_blocks(
+    block_structure_file: Path,
+    output_path: Path,
+    output_dot_name="graph.dot",
+    output_png_name="graph.png",
+):
+    g = nx.DiGraph()
+    block_logs = parse_jsons(block_structure_file)
+    for key in block_logs:
+        code_parts = [c.replace('"', "'") for c in block_logs[key]["code"]]
         code = "\n".join(c for c in code_parts if c)
 
         # Truncate long code snippets
@@ -334,12 +352,20 @@ def visualize_block_graph(
     graph_dot_path = output_path / output_dot_name
     nx.drawing.nx_pydot.write_dot(graph, str(graph_dot_path))
 
-    try:
-        (pydot_graph,) = pydot.graph_from_dot_file(str(graph_dot_path))
-        pydot_graph.write_png(str(output_path / output_png_name))
-        print(f"Block graph visualization saved to {output_path / output_png_name}")
-    except Exception as e:
-        print(f"WARNING: Failed to generate PNG from DOT file: {e}", file=sys.stderr)
+def export_messages_table(
+    *,
+    all_messages,
+    block_logs,
+    output_path,
+    export_keys=None,
+    report_filename="report.html",
+    message_table_html_file=None,
+    message_table_css_file=None,
+):
+    if message_table_html_file is None:
+        message_table_html_file = Path(__file__).parent / "table.html"
+    if message_table_css_file is None:
+        message_table_css_file = Path(__file__).parent / "table.css"
 
 
 def generate_html_report(
@@ -479,13 +505,9 @@ def generate_html_report(
     return output_file
 
 
-def load_and_process_messages(
-        message_dir: Path,
-        block_structure_json: Path,
-        output_path: Path,
-        export_keys: Optional[List[str]] = None,
-) -> Optional[Path]:
-    """Load messages from directory and generate visualization."""
+def visualize_messages(
+    message_dir: Path, block_structure_json: Path, output_path: Path, export_keys=None
+):
     all_messages = []
     hash_code = None
 
