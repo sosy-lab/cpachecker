@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -196,7 +197,7 @@ class CFABuilder extends ASTVisitor {
       for (IASTComment comment : ast.getComments()) {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          acslComments.add(new AcslComment(astCreator.getLocation(comment), commentString));
+          acslComments.add(new AcslComment(astCreator.getLocation(comment), AcslParser.stripCommentMarker(commentString)));
         }
       }
     }
@@ -550,8 +551,8 @@ class CFABuilder extends ASTVisitor {
           FluentIterable.from(tightestStatement.orElseThrow().edges())
               .transform(e -> e.getSuccessor());
       List<CFANode> nodesForComment =
-          predecessors
-              .filter(n -> !successors.contains(n) && !(n instanceof FunctionExitNode))
+          successors
+              .filter(n -> !predecessors.contains(n) && !(n instanceof FunctionExitNode))
               .toList();
 
       // An AcslComment should belong to exactly one CfaNode
