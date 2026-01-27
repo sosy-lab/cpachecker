@@ -526,6 +526,8 @@ public class ConstraintsTransferRelation
         }
         newViolation.add(newState);
       }
+      SymbolicIdentifierRenamer.blockRenaming.put(
+          pBlockState.getBlockNode().getId(), visitor.getIdentifierMap());
       return new CompositeState(newViolation);
     }
 
@@ -569,7 +571,7 @@ public class ConstraintsTransferRelation
           ((CompositeState) cS.getWrappedStates().getLast()).getWrappedStates()) {
         StrengthenOperator strengthenOperator = null;
 
-        ConstraintsState currStateToStrengthen = newStates.getFirst();
+        ConstraintsState currStateToStrengthen = new ConstraintsState(newStates.getFirst());
 
         if (currStrengtheningState instanceof ConstraintsState constraintsState) {
           if (valueState != null) {

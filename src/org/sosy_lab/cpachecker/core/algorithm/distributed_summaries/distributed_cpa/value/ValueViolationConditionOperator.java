@@ -15,7 +15,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -107,10 +110,15 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
       if (edge instanceof ADeclarationEdge aDeclarationEdge) {
         declared.add(aDeclarationEdge.getDeclaration().getQualifiedName());
       }
+      if (edge instanceof AStatementEdge aStatementEdge
+          && aStatementEdge.getStatement() instanceof CAssignment cAssignment) {
+        if (cAssignment.getLeftHandSide() instanceof CIdExpression id)
+          declared.add(id.getDeclaration().getQualifiedName());
+      }
     }
 
     ValueAnalysisState violationValue =
-        getViolationValueState(pARGPath.getLastState(), machineModel);
+        AbstractStates.extractStateByType(pARGPath.getLastState(), ValueAnalysisState.class);
     for (Entry<MemoryLocation, ValueAndType> variable : violationValue.getConstants()) {
       if (!violationCondition.contains(variable.getKey())
           && !declared.contains(variable.getKey().getQualifiedName())

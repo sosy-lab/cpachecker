@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
@@ -62,7 +63,7 @@ public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicV
       return new SymbolicIdentifier(
           identifierMap.get(pValue.getId()), pValue.getRepresentedLocation().orElse(null));
     }
-    if (!rename.contains(pValue)) {
+    if (rename != null && !rename.contains(pValue)) {
       return pValue;
     }
     SymbolicIdentifier newId = svf.newIdentifier(pValue.getRepresentedLocation().orElse(null));
@@ -73,8 +74,10 @@ public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicV
   @Override
   public SymbolicValue visit(final ConstantSymbolicExpression pExpression) {
     final Value containedValue = pExpression.getValue();
+
     if (containedValue instanceof SymbolicValue symVal) {
       return new ConstantSymbolicExpression(symVal.accept(this), pExpression.getType());
+
     } else {
       return pExpression;
     }
