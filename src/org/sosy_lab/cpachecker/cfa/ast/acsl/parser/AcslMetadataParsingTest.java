@@ -64,7 +64,6 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    /*
     b.add(
         task(
             "after_else.c",
@@ -94,12 +93,6 @@ public class AcslMetadataParsingTest {
             "even_do_while.c",
             ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;"),
             new CodeLoctation(21, 3)));
-    b.add(
-        task(
-            "even_do_while2.c",
-            ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;"),
-            new CodeLoctation(21, 3)));
-    /*
     b.add(task("in_middle.c", ImmutableList.of("assert a == 19;"), new CodeLoctation(16, 5)));
     b.add(
         task(
@@ -116,8 +109,6 @@ public class AcslMetadataParsingTest {
             "same_annotation_twice.c",
             ImmutableList.of("assert x == 10;", "assert x == 10;"),
             new CodeLoctation(12, 5)));
-
-     */
     return b.build();
   }
 
