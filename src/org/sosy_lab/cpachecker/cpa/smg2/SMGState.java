@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.EQUAL;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT;
 
@@ -3962,20 +3963,19 @@ public class SMGState
                   + " First was from value %s with PTE %s, second read returned %s",
               readSMGValue,
               readValuePte,
-              readAfterMat.stream()
-                  .map(
-                      t ->
-                          t.getValue()
-                              + " with PTE "
-                              + t.getState()
-                                  .getMemoryModel()
-                                  .getSmg()
-                                  .getPTEdge(
-                                      t.getState()
-                                          .getMemoryModel()
-                                          .getSMGValueFromValue(t.getValue())
-                                          .orElseGet(() -> SMGValue.zeroValue())))
-                  .collect(ImmutableList.toImmutableList()));
+              transformedImmutableListCopy(
+                  readAfterMat,
+                  t ->
+                      t.getValue()
+                          + " with PTE "
+                          + t.getState()
+                              .getMemoryModel()
+                              .getSmg()
+                              .getPTEdge(
+                                  t.getState()
+                                      .getMemoryModel()
+                                      .getSMGValueFromValue(t.getValue())
+                                      .orElseGet(() -> SMGValue.zeroValue()))));
         }
 
         returnBuilder.addAll(readAfterMat);
