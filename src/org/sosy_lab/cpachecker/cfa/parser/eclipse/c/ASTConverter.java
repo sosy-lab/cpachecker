@@ -991,6 +991,36 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
+    // Casting a scalar to a union type, e.g. "uv v = (uv) 8191;"
+    // Initialize the first union member with the given scalar value.
+    // Cannot represent this as a regular cast expression because unions are non-scalar.
+    if (castType.getCanonicalType() instanceof CCompositeType compositeType
+        && compositeType.getKind() == ComplexTypeKind.UNION
+        && operand != null
+        && !(operand.getExpressionType().getCanonicalType() instanceof CCompositeType)) {
+
+      // Create a temporary union object and initialize it with a positional initializer list.
+      // A single initializer initializes the first union member.
+      CType firstMemberType =
+          compositeType.getMembers().isEmpty()
+              ? castType
+              : compositeType.getMembers().getFirst().getType();
+
+      CExpression initExpression = operand;
+      // If necessary, perform a regular scalar cast to the first member type.
+      if (!areInitializerAssignable(firstMemberType, initExpression)
+          && CTypes.isScalarType(firstMemberType)
+          && CTypes.isScalarType(initExpression.getExpressionType())) {
+        initExpression = new CCastExpression(loc, firstMemberType, initExpression);
+      }
+
+      CInitializer init =
+          new CInitializerList(
+              loc, ImmutableList.of(new CInitializerExpression(loc, initExpression)));
+
+      return createTemporaryVariable(loc, castType, init);
+    }
+
     if (options.simplifyPointerExpressions()
         && e.getOperand() instanceof IASTFieldReference iASTFieldReference
         && iASTFieldReference.isPointerDereference()) {
