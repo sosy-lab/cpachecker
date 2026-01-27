@@ -68,10 +68,7 @@ public class DistributedValueAnalysisCPA
     deserializeOperator = new DeserializeValueAnalysisStateOperator(pBlockNode, pValueCPA, pCFA);
     violationConditionOperator =
         new ValueViolationConditionOperator(
-            cfa.getMachineModel(),
-            runSymExec,
-            pBlockNode,
-            pValueCPA.getBlockStrengtheningOperator().getPfmgr());
+            cfa.getMachineModel(), runSymExec, pBlockNode, pValueCPA);
 
     serializePrecisionOperator = new SerializeValuePrecisionOperator();
     deserializePrecisionOperator =

@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -31,27 +32,29 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class ValueViolationConditionOperator implements ViolationConditionOperator {
-  public final MachineModel machineModel;
-  public final BlockNode blockNode;
-  private final PathFormulaManagerImpl pfmgr;
+  private final MachineModel machineModel;
+  private final BlockNode blockNode;
+  private final ValueAnalysisCPA valueCPA;
   private final boolean runSymExec;
 
   public ValueViolationConditionOperator(
       MachineModel pMachineModel,
       boolean pRunSymExec,
       BlockNode pBlockNode,
-      PathFormulaManagerImpl pPathFormulaManager) {
+      ValueAnalysisCPA pValueCPA) {
     machineModel = pMachineModel;
     blockNode = pBlockNode;
-    pfmgr = pPathFormulaManager;
     runSymExec = pRunSymExec;
+    valueCPA = pValueCPA;
   }
 
   public Optional<AbstractState> computeViolationConditionValueAnalysis(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
-      throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException, SolverException {
+    PathFormulaManagerImpl pfmgr = valueCPA.getBlockStrengtheningOperator().getPfmgr();
     PathFormula pathFormula;
     if (pPreviousCondition.isEmpty()) {
       pathFormula = pfmgr.makeEmptyPathFormula();
@@ -68,6 +71,10 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
     for (CFAEdge cfaEdge : pARGPath.getFullPath().reverse()) {
       pathFormula = pfmgr.makeAnd(pathFormula, cfaEdge);
     }
+    if (blockNode.isRoot()
+        && valueCPA.getBlockStrengtheningOperator().getSolver().isUnsat(pathFormula.getFormula())) {
+      return Optional.empty();
+    }
     ValueAnalysisState state = new ValueAnalysisState(machineModel);
     state.setViolationCondition(pathFormula);
     return Optional.of(state);
@@ -76,7 +83,7 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
   @Override
   public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
-      throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException, SolverException {
     if (!runSymExec) {
       return computeViolationConditionValueAnalysis(pARGPath, pPreviousCondition);
     }
