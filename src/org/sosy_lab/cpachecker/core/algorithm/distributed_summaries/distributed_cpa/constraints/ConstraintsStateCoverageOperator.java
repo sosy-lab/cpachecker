@@ -41,7 +41,9 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
 
     assert v1 != null && v2 != null && c1 != null && c2 != null;
 
-    if (c2.isEmpty() || c1.equals(c2)) return true;
+    if (c2.isEmpty() || c1.equals(c2)) {
+      return true;
+    }
     BooleanFormulaManagerView bfm =
         constraintsSolver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula stateAsFormula1 = bfm.and(constraintsSolver.getFullFormula(c1, functionName));
