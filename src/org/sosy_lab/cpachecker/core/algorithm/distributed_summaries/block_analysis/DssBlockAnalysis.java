@@ -99,6 +99,7 @@ public class DssBlockAnalysis {
 
   private AlgorithmStatus status;
   private boolean isOriginal;
+  private boolean receivedViolationCondition;
 
   private final boolean forcefullyCollectAllArgPaths;
 
@@ -479,11 +480,6 @@ public class DssBlockAnalysis {
     resetStates();
     ImmutableSet.Builder<PredecessorStateEntry> discard = ImmutableSet.builder();
     int covered = 0;
-    if (pReceived.isSound()) {
-      soundPredecessors.add(pReceived.getSenderId());
-    } else {
-      soundPredecessors.remove(pReceived.getSenderId());
-    }
     for (StateAndPrecision deserialized : deserializedStates) {
       if (dcpa.isMostGeneralBlockEntryState(deserialized.state())) {
         soundPredecessors.add(pReceived.getSenderId());
@@ -530,7 +526,16 @@ public class DssBlockAnalysis {
 
     if (covered == deserializedStates.size()) {
       // we already have a precondition equivalent to the new one
-      return DssMessageProcessing.stop();
+      if (soundPredecessors.containsAll(block.getPredecessorIds())) {
+        if (pReceived.isSound()) {
+          soundPredecessors.add(pReceived.getSenderId());
+        } else {
+          soundPredecessors.remove(pReceived.getSenderId());
+        }
+        return DssMessageProcessing.stop();
+      } else {
+        soundPredecessors.add(block.getId());
+      }
     }
     return processing;
   }
