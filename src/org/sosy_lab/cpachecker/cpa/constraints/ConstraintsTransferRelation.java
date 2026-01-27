@@ -528,6 +528,8 @@ public class ConstraintsTransferRelation
       }
       SymbolicIdentifierRenamer.blockRenaming.put(
           pBlockState.getBlockNode().getId(), visitor.getIdentifierMap());
+      SymbolicIdentifierRenamer.blockIdentifiers.put(
+          pBlockState.getBlockNode().getId(), identifiers);
       return new CompositeState(newViolation);
     }
 
