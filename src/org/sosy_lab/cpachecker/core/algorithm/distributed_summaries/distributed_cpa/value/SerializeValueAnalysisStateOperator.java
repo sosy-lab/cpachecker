@@ -66,17 +66,10 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
         .pushLevel(ValueAnalysisState.class.getName())
         .put(STATE_KEY, serializedState)
         .put(READABLE_KEY, state.getConstants().toString())
-        .pushLevel(STATE_KEY)
         .put(SSA_KEY, ssa)
         .put(PTS_KEY, pts)
         .put(FORMULA_KEY, formula)
         .popLevel()
-        .pushLevel(PredicateAbstractState.class.getName())
-        .put(
-            READABLE_KEY,
-            state.getViolationCondition() == null
-                ? state.toDOTLabel()
-                : state.getViolationCondition().getFormula().toString())
         .build();
   }
 }
