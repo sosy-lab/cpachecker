@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 
 /**
  * Builder to traverse AST.
@@ -197,7 +198,9 @@ class CFABuilder extends ASTVisitor {
       for (IASTComment comment : ast.getComments()) {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          acslComments.add(new AcslComment(astCreator.getLocation(comment), AcslParser.stripCommentMarker(commentString)));
+          acslComments.add(
+              new AcslComment(
+                  astCreator.getLocation(comment), AcslParser.stripCommentMarker(commentString)));
         }
       }
     }
@@ -537,12 +540,12 @@ class CFABuilder extends ASTVisitor {
   private Optional<CFANode> nodeForRegularAnnotation(
       AcslComment pComment, AstCfaRelation pAstCfaRelation) {
     FileLocation commentLocation = pComment.getFileLocation();
+    String commentString = pComment.getComment();
 
     Optional<ASTElement> tightestStatement =
         pAstCfaRelation.getElemForStarting(
             commentLocation.getStartingLineNumber(),
             OptionalInt.of(commentLocation.getStartColumnInLine()));
-
     if (tightestStatement.isPresent() && !tightestStatement.orElseThrow().edges().isEmpty()) {
       FluentIterable<CFANode> predecessors =
           FluentIterable.from(tightestStatement.orElseThrow().edges())
@@ -557,7 +560,17 @@ class CFABuilder extends ASTVisitor {
 
       // An AcslComment should belong to exactly one CfaNode
       if (!nodesForComment.isEmpty()) {
-        return Optional.of(nodesForComment.getFirst());
+        Optional<CFANode> node = Optional.of(nodesForComment.getFirst());
+
+        if (commentString.startsWith("loop invariant")) {
+          // Get the next loop head if we are dealing with a loop invariat
+          Optional<IterationElement> it =
+              pAstCfaRelation.getTightestIterationStructureForNode(node.orElseThrow());
+          if (it.isPresent()) {
+            node = it.orElseThrow().getLoopHead();
+          }
+        }
+        return node;
       }
     }
     return Optional.empty();
