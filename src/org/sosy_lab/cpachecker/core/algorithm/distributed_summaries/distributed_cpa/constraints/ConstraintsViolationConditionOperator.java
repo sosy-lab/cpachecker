@@ -25,9 +25,13 @@ public class ConstraintsViolationConditionOperator implements ViolationCondition
     assert !states.isEmpty();
 
     AbstractState violation = states.getLast().getWrappedState();
-    if (!(violation instanceof CompositeState cS)) return Optional.of(new ConstraintsState());
+    if (!(violation instanceof CompositeState cS)) {
+      return Optional.of(new ConstraintsState());
+    }
     for (AbstractState state : cS.getWrappedStates()) {
-      if (state instanceof ConstraintsState) return Optional.of(state);
+      if (state instanceof ConstraintsState) {
+        return Optional.of(state);
+      }
     }
     return Optional.of(new ConstraintsState());
   }

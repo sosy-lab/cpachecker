@@ -286,8 +286,9 @@ public class StateSimplifier {
     private Activity activity;
 
     private static Map<SymbolicIdentifier, ActivityInfo> getInfos() {
-      if (!threadIdMap.containsKey(Thread.currentThread().getName()))
+      if (!threadIdMap.containsKey(Thread.currentThread().getName())) {
         threadIdMap.put(Thread.currentThread().getName(), new HashMap<>());
+      }
       return threadIdMap.get(Thread.currentThread().getName());
     }
 

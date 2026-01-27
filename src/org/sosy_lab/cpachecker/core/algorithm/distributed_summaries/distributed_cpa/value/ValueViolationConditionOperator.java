@@ -116,9 +116,10 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
           && !declared.contains(variable.getKey().getQualifiedName())
           && !accessedVariables
               .get(blockNode.getId())
-              .containsKey(variable.getKey().getQualifiedName()))
+              .containsKey(variable.getKey().getQualifiedName())) {
         violationCondition.assignConstant(
             variable.getKey(), variable.getValue().getValue(), variable.getValue().getType());
+      }
     }
     return Optional.of(violationCondition);
   }
@@ -129,7 +130,9 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
     BlockState blockState = AbstractStates.extractStateByType(pState, BlockState.class);
     assert (blockState != null && blockState.isTarget());
 
-    if (blockState.getViolationConditions().isEmpty()) return new ValueAnalysisState(pMachineModel);
+    if (blockState.getViolationConditions().isEmpty()) {
+      return new ValueAnalysisState(pMachineModel);
+    }
     AbstractState violation = blockState.getViolationConditions().getFirst();
     ValueAnalysisState violationValue =
         AbstractStates.extractStateByType(violation, ValueAnalysisState.class);

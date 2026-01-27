@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 
 public class VariableClassification implements Serializable {
 
+  private static final long serialVersionUID = -2383442062382420360L;
+
   private final boolean hasRelevantNonIntAddVars;
 
   private final ImmutableSortedSet<String> intBoolVars;

@@ -57,7 +57,7 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
                 .toString();
       }
     } catch (IOException e) {
-      throw new AssertionError("Unable to serialize value analysis state " + state.toString());
+      throw new AssertionError("Unable to serialize value analysis state " + state);
     } finally {
       SerializationInfoStorage.clear();
     }

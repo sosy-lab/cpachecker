@@ -1473,7 +1473,9 @@ public class ValueAnalysisTransferRelation
           toStrengthen.addAll(result);
         }
         case BlockState blockState -> {
-          if (!blockState.isTarget()) continue;
+          if (!blockState.isTarget()) {
+            continue;
+          }
 
           if (blockStrengtheningOperator != null) {
             try {
@@ -1494,17 +1496,21 @@ public class ValueAnalysisTransferRelation
             super.setInfo(pElement, pPrecision, pCfaEdge);
             AbstractState wrappedState = blockState.getViolationConditions().getFirst();
             if (!(wrappedState instanceof ARGState argState)
-                || !(argState.getWrappedState() instanceof CompositeState cS)) continue;
+                || !(argState.getWrappedState() instanceof CompositeState cS)) {
+              continue;
+            }
 
-            for (AbstractState violationState : cS.getWrappedStates())
+            for (AbstractState violationState : cS.getWrappedStates()) {
               if (violationState instanceof ValueAnalysisState valueAnalysisState) {
                 for (Entry<MemoryLocation, ValueAndType> entry :
                     valueAnalysisState.getConstants()) {
-                  if (!stateToStrengthen.contains(entry.getKey()))
+                  if (!stateToStrengthen.contains(entry.getKey())) {
                     stateToStrengthen.assignConstant(
                         entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+                  }
                 }
               }
+            }
           }
         }
         default -> {}
