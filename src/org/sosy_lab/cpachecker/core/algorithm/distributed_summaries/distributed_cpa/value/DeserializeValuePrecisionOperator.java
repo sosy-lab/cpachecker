@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.SerializeValuePrecisionOperator.PRECISION_TYPE_KEY;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.SerializeValuePrecisionOperator.RAW_PRECISION_KEY;
+import static org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision.createStaticPrecision;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -48,14 +49,14 @@ public class DeserializeValuePrecisionOperator implements DeserializePrecisionOp
 
     VariableTrackingPrecision variableTrackingPrecision;
     try {
-      variableTrackingPrecision =
-          ConfigurablePrecision.createStaticPrecision(config, vC, ValueAnalysisCPA.class);
+      variableTrackingPrecision = createStaticPrecision(config, vC, ValueAnalysisCPA.class);
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Could not deserialize value precision");
     }
 
-    if (precisionType.equals(ConfigurablePrecision.class.getName()))
+    if (precisionType.equals(ConfigurablePrecision.class.getName())) {
       return variableTrackingPrecision;
+    }
 
     if (precisionType.equals(ScopedRefinablePrecision.class.getName())) {
       List<MemoryLocation> rawPrecision =

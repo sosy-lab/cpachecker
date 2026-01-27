@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
@@ -27,15 +28,13 @@ public class DeserializeConstraintsStateOperator implements DeserializeOperator 
         constraintContent.get(SerializeConstraintsStateOperator.CONSTRAINTS_KEY);
     Preconditions.checkNotNull(serializedConstraints, "Constraints List must be provided");
 
-    HashSet<?> deserializedObjects;
-    HashSet<Constraint> constraints = new HashSet<>();
+    ImmutableSet.Builder<Constraint> constraints = ImmutableSet.builder();
     try {
-      deserializedObjects =
-          DssSerializeObjectUtil.deserialize(serializedConstraints, HashSet.class);
-      for (Object o : deserializedObjects) {
+      for (Object o : DssSerializeObjectUtil.deserialize(serializedConstraints, HashSet.class)) {
+        assert o instanceof Constraint;
         constraints.add((Constraint) o);
       }
-      return new ConstraintsState(constraints);
+      return new ConstraintsState(constraints.build());
 
     } catch (ClassCastException e) {
       throw new AssertionError("Could not deserialize constraints", e);

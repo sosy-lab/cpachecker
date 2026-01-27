@@ -109,23 +109,28 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
 
     for (Map.Entry<String, Type> entry : pAccessedVariables.entrySet()) {
       MemoryLocation mL = MemoryLocation.fromQualifiedName(entry.getKey());
-      if (pState.contains(mL)) continue;
+      if (pState.contains(mL)) {
+        continue;
+      }
       pState.assignConstant(
           mL, SymbolicValueFactory.getInstance().newIdentifier(mL), entry.getValue());
     }
   }
 
   public Map<String, Type> getAccessedVariables(BlockNode pBlockNode) {
-    if (accessedVariables.containsKey(pBlockNode.getId()))
+    if (accessedVariables.containsKey(pBlockNode.getId())) {
       return accessedVariables.get(pBlockNode.getId());
+    }
 
-    HashMap<String, Type> accessed = new HashMap<>();
+    Map<String, Type> accessed = new HashMap<>();
     ImmutableSet<CFAEdge> edges = pBlockNode.getEdges();
     List<CExpression> expressions = new ArrayList<>();
 
     for (CFAEdge edge : edges) {
       // TODO other types of edges?
-      if (edge instanceof CAssumeEdge cAssumeEdge) expressions.add(cAssumeEdge.getExpression());
+      if (edge instanceof CAssumeEdge cAssumeEdge) {
+        expressions.add(cAssumeEdge.getExpression());
+      }
 
       if (edge instanceof CFunctionCallEdge callEdge) {
         expressions.addAll(callEdge.getArguments());
@@ -166,9 +171,11 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
         }
       }
 
-      if (edge instanceof CReturnStatementEdge returnEdge)
-        if (returnEdge.getExpression().isPresent())
-          expressions.add(returnEdge.getExpression().get());
+      if (edge instanceof CReturnStatementEdge returnEdge) {
+        if (returnEdge.getExpression().isPresent()) {
+          expressions.add(returnEdge.getExpression().orElseThrow());
+        }
+      }
     }
 
     for (CExpression expr : expressions) {

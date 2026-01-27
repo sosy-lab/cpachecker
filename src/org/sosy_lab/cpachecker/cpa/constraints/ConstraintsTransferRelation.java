@@ -495,12 +495,13 @@ public class ConstraintsTransferRelation
     private ValueAnalysisState renameIDsInValueState(ValueAnalysisState pValueState) {
       ValueAnalysisState newState = new ValueAnalysisState(pValueState.getMachineModel());
       for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
-        if (constant.getValue().getValue() instanceof SymbolicValue symValue)
+        if (constant.getValue().getValue() instanceof SymbolicValue symValue) {
           newState.assignConstant(
               constant.getKey(), symValue.accept(visitor), constant.getValue().getType());
-        else
+        } else {
           newState.assignConstant(
               constant.getKey(), constant.getValue().getValue(), constant.getValue().getType());
+        }
       }
       return newState;
     }
@@ -517,8 +518,9 @@ public class ConstraintsTransferRelation
 
       for (AbstractState abstractState : ((CompositeState) wrappedState).getWrappedStates()) {
         AbstractState newState = abstractState;
-        if (abstractState instanceof ConstraintsState constraintsState)
+        if (abstractState instanceof ConstraintsState constraintsState) {
           newState = renameIDsInConstraintsState(constraintsState);
+        }
         if (abstractState instanceof ValueAnalysisState vState) {
           newState = renameIDsInValueState(vState);
         }
@@ -548,7 +550,9 @@ public class ConstraintsTransferRelation
         throws CPATransferException, InterruptedException {
 
       assert pStrengtheningState instanceof BlockState;
-      if (!((BlockState) pStrengtheningState).isTarget()) return Optional.empty();
+      if (!((BlockState) pStrengtheningState).isTarget()) {
+        return Optional.empty();
+      }
 
       List<? extends @NonNull AbstractState> violations =
           ((BlockState) pStrengtheningState).getViolationConditions();
@@ -574,13 +578,16 @@ public class ConstraintsTransferRelation
                 ValueAnalysisState.compareInConstraint(
                     valueState,
                     AbstractStates.extractStateByType(newViolation, ValueAnalysisState.class));
-            if (!valueComparison.isEmpty())
+            if (!valueComparison.isEmpty()) {
               currStrengtheningState = constraintsState.copyWithNew(valueComparison);
+            }
           }
           strengthenOperator = new ConstraintsAnalysisStrengthenOperator();
         }
 
-        if (strengthenOperator == null) continue;
+        if (strengthenOperator == null) {
+          continue;
+        }
 
         Optional<Collection<ConstraintsState>> oNewStrengthenedStates =
             strengthenOperator.strengthen(
@@ -599,7 +606,9 @@ public class ConstraintsTransferRelation
           }
         }
       }
-      if (nothingChanged) return Optional.empty();
+      if (nothingChanged) {
+        return Optional.empty();
+      }
       return Optional.of(newStates);
     }
   }

@@ -58,10 +58,13 @@ public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicV
 
   @Override
   public SymbolicValue visit(final SymbolicIdentifier pValue) {
-    if (identifierMap.containsKey(pValue.getId()))
+    if (identifierMap.containsKey(pValue.getId())) {
       return new SymbolicIdentifier(
           identifierMap.get(pValue.getId()), pValue.getRepresentedLocation().orElse(null));
-    if (!rename.contains(pValue)) return pValue;
+    }
+    if (!rename.contains(pValue)) {
+      return pValue;
+    }
     SymbolicIdentifier newId = svf.newIdentifier(pValue.getRepresentedLocation().orElse(null));
     identifierMap.put(pValue.getId(), newId.getId());
     return newId;
@@ -70,10 +73,8 @@ public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicV
   @Override
   public SymbolicValue visit(final ConstantSymbolicExpression pExpression) {
     final Value containedValue = pExpression.getValue();
-
     if (containedValue instanceof SymbolicValue symVal) {
       return new ConstantSymbolicExpression(symVal.accept(this), pExpression.getType());
-
     } else {
       return pExpression;
     }
@@ -177,12 +178,13 @@ public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicV
   public SymbolicValue visit(final ShiftRightExpression pExpression) {
     final SymbolicValue renamedLeft = pExpression.getOperand1().accept(this);
     final SymbolicValue renamedRight = pExpression.getOperand2().accept(this);
-    if (pExpression.isSigned())
+    if (pExpression.isSigned()) {
       return svf.shiftRightSigned(
           (SymbolicExpression) renamedLeft,
           (SymbolicExpression) renamedRight,
           pExpression.getType(),
           pExpression.getCalculationType());
+    }
     return svf.shiftRightUnsigned(
         (SymbolicExpression) renamedLeft,
         (SymbolicExpression) renamedRight,

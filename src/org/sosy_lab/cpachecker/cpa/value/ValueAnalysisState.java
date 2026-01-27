@@ -1035,20 +1035,23 @@ public final class ValueAnalysisState
 
   public static List<Constraint> compareInConstraint(
       ValueAnalysisState pState1, ValueAnalysisState pState2) {
-    List<Constraint> constraints = new ArrayList<Constraint>();
+    List<Constraint> constraints = new ArrayList<>();
     for (Entry<MemoryLocation, ValueAndType> entry : pState1.constantsMap.entrySet()) {
       MemoryLocation mL = entry.getKey();
-      if (!pState2.constantsMap.containsKey(mL)) continue;
+      if (!pState2.constantsMap.containsKey(mL)) {
+        continue;
+      }
       ValueAndType value2 = pState2.constantsMap.get(mL);
       if (value2.getType().equals(entry.getValue().getType())) {
         ConstantSymbolicExpression expr1 =
             new ConstantSymbolicExpression(entry.getValue().getValue(), entry.getValue().getType());
         ConstantSymbolicExpression expr2 =
             new ConstantSymbolicExpression(value2.getValue(), value2.getType());
-        if (!expr1.equals(expr2))
+        if (!expr1.equals(expr2)) {
           constraints.add(
               SymbolicValueFactory.getInstance()
                   .equal(expr1, expr2, value2.getType(), value2.getType()));
+        }
       }
     }
     return constraints;

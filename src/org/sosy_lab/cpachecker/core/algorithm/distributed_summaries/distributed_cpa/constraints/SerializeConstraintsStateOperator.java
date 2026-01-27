@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 
 public class SerializeConstraintsStateOperator implements SerializeOperator {
@@ -27,11 +26,10 @@ public class SerializeConstraintsStateOperator implements SerializeOperator {
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pState) {
     ConstraintsState state = (ConstraintsState) pState;
-    HashSet<Constraint> constraints = new HashSet<>(state);
     String serializedConstraints;
 
     try {
-      serializedConstraints = DssSerializeObjectUtil.serialize(constraints);
+      serializedConstraints = DssSerializeObjectUtil.serialize(new HashSet<>(state));
     } catch (IOException e) {
       throw new AssertionError("Unable to serialize constraints " + state);
     }
@@ -39,7 +37,7 @@ public class SerializeConstraintsStateOperator implements SerializeOperator {
     return ContentBuilder.builder()
         .pushLevel(ConstraintsState.class.getName())
         .put(CONSTRAINTS_KEY, serializedConstraints)
-        .put(READABLE_KEY, constraints.toString())
+        .put(READABLE_KEY, new HashSet<>(state).toString())
         .build();
   }
 }
