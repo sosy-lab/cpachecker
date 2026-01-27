@@ -78,16 +78,15 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     String serializedValue = valueContent.get(STATE_KEY);
     Preconditions.checkNotNull(serializedValue, "Value state must be provided");
 
-    String ssa = valueContent.pushLevel(STATE_KEY).get(SSA_KEY);
+    String ssa = valueContent.get(SSA_KEY);
     String formula = valueContent.get(FORMULA_KEY);
     String pts = valueContent.get(PTS_KEY);
-    valueContent.popLevel();
 
     SerializationInfoStorage.storeSerializationInformation(valueAnalysisCPA, cfa);
     ValueAnalysisState state;
     try {
       state = DssSerializeObjectUtil.deserialize(serializedValue, ValueAnalysisState.class);
-      if (!ssa.isEmpty() && !formula.isEmpty()) {
+      if (!ssa.isEmpty() && !formula.isEmpty() && !pts.isEmpty()) {
         SSAMap ssaMap = DssSerializeObjectUtil.deserialize(ssa, SSAMap.class);
         PointerTargetSet targetSet =
             DssSerializeObjectUtil.deserialize(pts, PointerTargetSet.class);
