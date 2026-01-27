@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicValue> {
+  public static Map<String, Map<Long, Long>> blockRenaming = new HashMap<>();
+  public static Map<String, Set<SymbolicIdentifier>> blockIdentifiers = new HashMap<>();
 
   public Map<Long, Long> getIdentifierMap() {
     return identifierMap;

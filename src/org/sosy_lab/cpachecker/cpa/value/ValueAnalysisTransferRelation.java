@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -108,9 +107,7 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -1496,13 +1493,17 @@ public class ValueAnalysisTransferRelation
             }
           }
           result.clear();
-          SymbolicIdentifierRenamer renamer = new SymbolicIdentifierRenamer(
-              SymbolicIdentifierRenamer.blockRenaming.get(blockState.getBlockNode().getId()), null);
+          SymbolicIdentifierRenamer renamer =
+              new SymbolicIdentifierRenamer(
+                  SymbolicIdentifierRenamer.blockRenaming.get(blockState.getBlockNode().getId()),
+                  SymbolicIdentifierRenamer.blockIdentifiers.get(
+                      blockState.getBlockNode().getId()));
           AbstractState wrappedState = blockState.getViolationConditions().getFirst();
-          ValueAnalysisState violationState = AbstractStates.extractStateByType(wrappedState,
-              ValueAnalysisState.class);
-          if (violationState == null)
+          ValueAnalysisState violationState =
+              AbstractStates.extractStateByType(wrappedState, ValueAnalysisState.class);
+          if (violationState == null) {
             continue;
+          }
           for (ValueAnalysisState stateToStrengthen : toStrengthen) {
             super.setInfo(pElement, pPrecision, pCfaEdge);
             ValueAnalysisState newState = new ValueAnalysisState(machineModel);
@@ -1511,7 +1512,6 @@ public class ValueAnalysisTransferRelation
                   entry.getValue().getValue(),
                   entry.getValue().getType());
             }
-
             for (Entry<MemoryLocation, ValueAndType> entry : violationState.getConstants()) {
               if (newState.contains(entry.getKey())) {
                 continue;
