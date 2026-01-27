@@ -17,4 +17,6 @@ public interface AStatementVisitor<R, X extends Exception> {
   R visit(AFunctionCallAssignmentStatement pAFunctionCallAssignmentStatement) throws X;
 
   R visit(AFunctionCallStatement pAFunctionCallStatement) throws X;
+
+  R visit(AIfStatement pAIfStatement) throws X;
 }
