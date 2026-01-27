@@ -15,11 +15,11 @@ public abstract class AIfStatement extends AbstractStatement {
 
   @Serial private static final long serialVersionUID = 4154628454325446837L;
 
-  public final AExpression condition;
+  private final AExpression condition;
 
-  public final ImmutableList<? extends AStatement> ifStatements;
+  private final ImmutableList<? extends AStatement> ifStatements;
 
-  public final ImmutableList<? extends AStatement> elseStatements;
+  private final ImmutableList<? extends AStatement> elseStatements;
 
   protected AIfStatement(
       FileLocation pFileLocation,
@@ -31,6 +31,18 @@ public abstract class AIfStatement extends AbstractStatement {
     condition = pCondition;
     ifStatements = pIfStatements;
     elseStatements = pElseStatements;
+  }
+
+  public AExpression getCondition() {
+    return condition;
+  }
+
+  public ImmutableList<? extends AStatement> getIfStatements() {
+    return ifStatements;
+  }
+
+  public ImmutableList<? extends AStatement> getElseStatements() {
+    return elseStatements;
   }
 
   @Override

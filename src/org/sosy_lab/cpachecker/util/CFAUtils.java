@@ -934,9 +934,9 @@ public class CFAUtils {
     @Override
     public Iterable<AAstNode> visit(AIfStatement pS) {
       return ImmutableList.<AAstNode>builder()
-          .add(pS.condition)
-          .addAll(pS.ifStatements)
-          .addAll(pS.elseStatements)
+          .add(pS.getCondition())
+          .addAll(pS.getIfStatements())
+          .addAll(pS.getElseStatements())
           .build();
     }
 

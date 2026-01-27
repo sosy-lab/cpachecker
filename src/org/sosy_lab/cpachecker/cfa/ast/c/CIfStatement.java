@@ -46,6 +46,23 @@ public final class CIfStatement extends AIfStatement implements CStatement {
   }
 
   @Override
+  public CExpression getCondition() {
+    return (CExpression) super.getCondition();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public ImmutableList<CStatement> getIfStatements() {
+    return (ImmutableList<CStatement>) super.getIfStatements();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public ImmutableList<CStatement> getElseStatements() {
+    return (ImmutableList<CStatement>) super.getElseStatements();
+  }
+
+  @Override
   public <R, X extends Exception> R accept(CStatementVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
@@ -61,18 +78,18 @@ public final class CIfStatement extends AIfStatement implements CStatement {
 
     ifStatement
         .append("if (")
-        .append(condition.toASTString(pAAstNodeRepresentation))
+        .append(getCondition().toASTString(pAAstNodeRepresentation))
         .append(") {\n");
 
-    for (AStatement statement : ifStatements) {
+    for (AStatement statement : getIfStatements()) {
       ifStatement.append(statement.toASTString(pAAstNodeRepresentation)).append("\n");
     }
     ifStatement.append("}");
 
     // append the else { ... } branch only if there are any else statements
-    if (!elseStatements.isEmpty()) {
+    if (!getElseStatements().isEmpty()) {
       ifStatement.append(" else {\n");
-      for (AStatement stmt : elseStatements) {
+      for (AStatement stmt : getElseStatements()) {
         ifStatement.append(stmt.toASTString(pAAstNodeRepresentation)).append("\n");
       }
       ifStatement.append("}");
