@@ -34,7 +34,7 @@ def create_arg_parser():
     parser.add_argument(
         "--block-structure-json",
         help="Path to JSON file that contains the block structure used for"
-             " distributed block analysis",
+        " distributed block analysis",
         default="output/block_analysis/blocks.json",
     )
     parser.add_argument(
@@ -46,7 +46,7 @@ def create_arg_parser():
     parser.add_argument(
         "--export-keys",
         help="Space separated list of keys to export from the messages. "
-             "If not set, all keys are exported.",
+        "If not set, all keys are exported.",
         nargs="+",
         action="extend",
         dest="export_keys",
@@ -144,7 +144,7 @@ def html_for_message(message, block_log: Dict[str, str], export_keys: list):
 
 
 def html_dict_to_html_table(
-        all_messages, block_logs: Dict[str, str], export_keys: list
+    all_messages, block_logs: Dict[str, str], export_keys: list
 ):
     first_timestamp = int(all_messages[0]["header"]["timestamp"])
     timestamp_to_message = {}
@@ -192,10 +192,10 @@ def html_dict_to_html_table(
 
 
 def visualize_blocks(
-        block_structure_file: Path,
-        output_path: Path,
-        output_dot_name="graph.dot",
-        output_png_name="graph.png",
+    block_structure_file: Path,
+    output_path: Path,
+    output_dot_name="graph.dot",
+    output_png_name="graph.png",
 ):
     g = nx.DiGraph()
     block_logs = parse_jsons(block_structure_file)
@@ -219,14 +219,14 @@ def visualize_blocks(
 
 
 def export_messages_table(
-        *,
-        all_messages,
-        block_logs,
-        output_path,
-        export_keys=None,
-        report_filename="report.html",
-        message_table_html_file=None,
-        message_table_css_file=None,
+    *,
+    all_messages,
+    block_logs,
+    output_path,
+    export_keys=None,
+    report_filename="report.html",
+    message_table_html_file=None,
+    message_table_css_file=None,
 ):
     if message_table_html_file is None:
         message_table_html_file = Path(__file__).parent / "table.html"
@@ -262,7 +262,7 @@ def export_messages_table(
 
 
 def visualize_messages(
-        message_dir: Path, block_structure_json: Path, output_path: Path, export_keys=None
+    message_dir: Path, block_structure_json: Path, output_path: Path, export_keys=None
 ):
     all_messages = []
     hash_code = None
