@@ -13,13 +13,13 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.SerializeValueAnalysisStateOperator.FORMULA_KEY;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -174,7 +174,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     for (CExpression expr : expressions) {
       CFAUtils.getIdExpressionsOfExpression(expr).stream()
           .collect(
-              Collectors.toMap(
+              ImmutableMap.toImmutableMap(
                   id -> id.getDeclaration().getQualifiedName(),
                   id -> id.getDeclaration().getType(),
                   (first, second) -> first))

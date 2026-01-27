@@ -474,10 +474,12 @@ public class ConstraintsTransferRelation
 
     private void collectIDs(ValueAnalysisState pValueState) {
       for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
-        if (constant.getValue().getValue() instanceof SymbolicValue symVal)
+        if (constant.getValue().getValue() instanceof SymbolicValue symVal) {
           identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
-        if (constant.getValue().getValue() instanceof SymbolicIdentifier symID)
+        }
+        if (constant.getValue().getValue() instanceof SymbolicIdentifier symID) {
           identifiers.add(symID);
+        }
       }
     }
 
@@ -517,8 +519,9 @@ public class ConstraintsTransferRelation
         AbstractState newState = abstractState;
         if (abstractState instanceof ConstraintsState constraintsState)
           newState = renameIDsInConstraintsState(constraintsState);
-        if (abstractState instanceof ValueAnalysisState valueState)
-          newState = renameIDsInValueState(valueState);
+        if (abstractState instanceof ValueAnalysisState vState) {
+          newState = renameIDsInValueState(vState);
+        }
         newViolation.add(newState);
       }
       return new CompositeState(newViolation);
@@ -526,8 +529,9 @@ public class ConstraintsTransferRelation
 
     private BlockAnalysisStrengthenOperator(final Iterable<AbstractState> pStrengtheningStates) {
       for (AbstractState abstractState : pStrengtheningStates) {
-        if (abstractState instanceof ConstraintsState constraintsState)
+        if (abstractState instanceof ConstraintsState constraintsState) {
           collectIDs(constraintsState);
+        }
         if (abstractState instanceof ValueAnalysisState vS) {
           valueState = vS;
           collectIDs(valueState);
@@ -611,7 +615,9 @@ public class ConstraintsTransferRelation
         throws CPATransferException, InterruptedException {
 
       assert pStrengtheningState instanceof ConstraintsState;
-      if (pStateToStrengthen.equals(pStrengtheningState)) return Optional.empty();
+      if (pStateToStrengthen.equals(pStrengtheningState)) {
+        return Optional.empty();
+      }
 
       ConstraintsState newState = pStateToStrengthen;
       for (Constraint constraint : ((ConstraintsState) pStrengtheningState)) {
@@ -620,8 +626,8 @@ public class ConstraintsTransferRelation
 
       try {
         newState = getIfSatisfiable(newState, functionName, solver);
-      } catch (SolverException pE) {
-        throw new CPATransferException("Solver failed when strengthening constraints state", pE);
+      } catch (SolverException e) {
+        throw new CPATransferException("Solver failed when strengthening constraints state", e);
       }
       if (newState != null) {
         return Optional.of(ImmutableSet.of(simplifier.removeTrivialConstraints(newState)));

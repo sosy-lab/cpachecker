@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.ScopedRefinablePrecision;
@@ -43,7 +43,7 @@ public class CombineValuePrecisionOperator implements CombinePrecisionOperator {
         precisions.stream()
             .map(e -> ((ScopedRefinablePrecision) e).getRawPrecision())
             .flatMap(Set::stream)
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
 
     return new ScopedRefinablePrecision(baselines.getFirst(), rawPrecision);
   }
