@@ -57,13 +57,29 @@ public record ReduceLastThreadOrderInjector(
 
   // Private =======================================================================================
 
+  /**
+   * Returns a {@link SeqBranchStatement} that encodes the Last Thread Order (LTO) reduction. The
+   * statement precedes a thread simulation and takes the following form:
+   *
+   * <pre>{@code
+   * if (LAST_THREAD < CURRENT_THREAD) {
+   *    assume(*conflict between LAST_THREAD and CURRENT_THREAD*);
+   * }
+   * }</pre>
+   *
+   * <p>This ensures that if {@code LAST_THREAD < CURRENT_THREAD}, the simulation performs a context
+   * switch only when a conflict exists between the two threads.
+   */
   public SeqBranchStatement buildLastThreadOrderStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     checkArgument(
         !pThread.isMain(),
-        "Cannot build a last thread order statement for the main thread because LAST_THREAD < 0"
-            + " never holds.");
+        "Cannot build a last thread order (LTO) statement when pThread is the main thread. The LTO"
+            + " statement contains a guard of the form 'if (LAST_THREAD < CURRENT_THREAD)' where"
+            + " CURRENT_THREAD = 0 for the main thread and LAST_THREAD is in the interval"
+            + " [0;NUM_THREADS]. This means that the guard always evaluates to false for the main"
+            + " thread, and the LTO statement should be pruned entirely.");
 
     SeqThreadStatementBlock firstBlock =
         Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
