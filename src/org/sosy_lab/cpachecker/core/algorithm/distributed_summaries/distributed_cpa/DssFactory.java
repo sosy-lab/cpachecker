@@ -100,7 +100,7 @@ public class DssFactory {
               pLogManager,
               pShutdownNotifier);
       case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, integerToNodeMap);
-      case ConstraintsCPA constraintsCPA -> distribute(constraintsCPA);
+      case ConstraintsCPA constraintsCPA -> distribute(constraintsCPA, pBlockNode);
       case ValueAnalysisCPA valueAnalysisCPA ->
           distribute(valueAnalysisCPA, pCFA, pConfiguration, pBlockNode);
       case null /*TODO check if null is necessary*/, default -> null;
@@ -117,8 +117,10 @@ public class DssFactory {
     return new DistributedLocationCPA(pLocationCPA, pNode, pNodeMap);
   }
 
-  private static DistributedConfigurableProgramAnalysis distribute(ConstraintsCPA pConstraintsCPA) {
-    return new DistributedConstraintsCPA(pConstraintsCPA);
+  private static DistributedConfigurableProgramAnalysis distribute(
+      ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
+    return new DistributedConstraintsCPA(
+        pConstraintsCPA, pBlockNode.getInitialLocation().getFunctionName());
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

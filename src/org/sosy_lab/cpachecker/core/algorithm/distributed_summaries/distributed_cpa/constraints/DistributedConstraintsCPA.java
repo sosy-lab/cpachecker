@@ -35,7 +35,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final ConstraintsStateCoverageOperator coverageOperator;
 
-  public DistributedConstraintsCPA(ConstraintsCPA pConstraintsCPA) {
+  public DistributedConstraintsCPA(ConstraintsCPA pConstraintsCPA, String pBlockFunctionStart) {
     constraintsCPA = pConstraintsCPA;
     serializeOperator = new SerializeConstraintsStateOperator();
     deserializeOperator = new DeserializeConstraintsStateOperator();
@@ -44,7 +44,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
     deserializePrecisionOperator = new DeserializeConstraintsPrecisionOperator();
     proceedOperator = new ProceedConstraintsStateOperator();
     combinePrecisionOperator = new CombineConstraintsPrecisionOperator();
-    coverageOperator = new ConstraintsStateCoverageOperator(constraintsCPA);
+    coverageOperator = new ConstraintsStateCoverageOperator(constraintsCPA, pBlockFunctionStart);
   }
 
   @Override
