@@ -545,4 +545,10 @@ public interface TransformingCAstNodeVisitor<X extends Exception>
       return pCReturnStatement;
     }
   }
+
+  @Override
+  default CAstNode visit(CIfStatement pCIfStatement) throws X {
+    // TODO
+    throw new UnsupportedOperationException();
+  }
 }

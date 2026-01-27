@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -321,6 +322,12 @@ class AutomatonASTComparator {
           CFunctionCallStatement.class,
           stmt,
           compareOperand(stmt, CFunctionCallStatement::getFunctionCallExpression));
+    }
+
+    @Override
+    public ASTMatcher visit(CIfStatement stmt) {
+      // TODO
+      throw new UnsupportedOperationException();
     }
 
     @SafeVarargs

@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -220,6 +221,12 @@ class CReferencedFunctionsCollector {
     public Void visit(CFunctionCallStatement pIastFunctionCallStatement) {
       pIastFunctionCallStatement.getFunctionCallExpression().accept(this);
       return null;
+    }
+
+    @Override
+    public Void visit(CIfStatement pIastIfStatement) {
+      // TODO
+      throw new UnsupportedOperationException();
     }
   }
 }

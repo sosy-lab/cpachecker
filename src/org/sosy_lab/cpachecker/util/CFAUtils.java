@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
@@ -928,6 +929,15 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(AReturnStatement pNode) {
       return Optionals.asSet(pNode.getReturnValue());
+    }
+
+    @Override
+    public Iterable<AAstNode> visit(AIfStatement pS) {
+      return ImmutableList.<AAstNode>builder()
+          .add(pS.condition)
+          .addAll(pS.ifStatements)
+          .addAll(pS.elseStatements)
+          .build();
     }
 
     @Override

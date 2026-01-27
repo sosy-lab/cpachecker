@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -123,6 +124,13 @@ public abstract class AAstNodeVisitor<R, X extends Exception> extends AExpressio
   }
 
   protected abstract R visit(AReturnStatement stmt) throws X;
+
+  @Override
+  public R visit(CIfStatement stmt) throws X {
+    return visit((AIfStatement) stmt);
+  }
+
+  protected abstract R visit(AIfStatement stmt) throws X;
 
   @Override
   public R visit(CFunctionDeclaration decl) throws X {

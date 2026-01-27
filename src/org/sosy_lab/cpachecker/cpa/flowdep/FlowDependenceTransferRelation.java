@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -802,6 +803,12 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       } else {
         return ImmutableSet.of();
       }
+    }
+
+    @Override
+    public Set<MemoryLocation> visit(CIfStatement pNode) throws CPATransferException {
+      // TODO
+      throw new UnsupportedOperationException();
     }
   }
 }

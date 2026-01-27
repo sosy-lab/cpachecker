@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -237,6 +238,12 @@ class CheckBindingVisitor
   public Void visit(CFunctionCallStatement e) {
     e.getFunctionCallExpression().accept(this);
     return null;
+  }
+
+  @Override
+  public Void visit(CIfStatement e) {
+    // TODO
+    throw new UnsupportedOperationException();
   }
 
   @Override

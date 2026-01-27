@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
@@ -71,6 +72,12 @@ enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, NoExce
   public String visit(CFunctionCallStatement pIastFunctionCallStatement) {
     return handleFunctionCallExpression(pIastFunctionCallStatement.getFunctionCallExpression())
         + ";";
+  }
+
+  @Override
+  public String visit(CIfStatement pIastIfStatement) {
+    // TODO
+    throw new UnsupportedOperationException();
   }
 
   private static String handleFunctionCallExpression(
