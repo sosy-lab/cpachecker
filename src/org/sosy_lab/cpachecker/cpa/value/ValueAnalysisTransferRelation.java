@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -120,6 +121,8 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -129,6 +132,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
@@ -1491,27 +1495,39 @@ public class ValueAnalysisTransferRelation
               throw new CPATransferException("Interrupted during block strengthening", e);
             }
           }
-
+          result.clear();
+          SymbolicIdentifierRenamer renamer = new SymbolicIdentifierRenamer(
+              SymbolicIdentifierRenamer.blockRenaming.get(blockState.getBlockNode().getId()), null);
+          AbstractState wrappedState = blockState.getViolationConditions().getFirst();
+          ValueAnalysisState violationState = AbstractStates.extractStateByType(wrappedState,
+              ValueAnalysisState.class);
+          if (violationState == null)
+            continue;
           for (ValueAnalysisState stateToStrengthen : toStrengthen) {
             super.setInfo(pElement, pPrecision, pCfaEdge);
-            AbstractState wrappedState = blockState.getViolationConditions().getFirst();
-            if (!(wrappedState instanceof ARGState argState)
-                || !(argState.getWrappedState() instanceof CompositeState cS)) {
-              continue;
+            ValueAnalysisState newState = new ValueAnalysisState(machineModel);
+            for (Entry<MemoryLocation, ValueAndType> entry : stateToStrengthen.getConstants()) {
+              newState.assignConstant(entry.getKey(),
+                  entry.getValue().getValue(),
+                  entry.getValue().getType());
             }
 
-            for (AbstractState violationState : cS.getWrappedStates()) {
-              if (violationState instanceof ValueAnalysisState valueAnalysisState) {
-                for (Entry<MemoryLocation, ValueAndType> entry :
-                    valueAnalysisState.getConstants()) {
-                  if (!stateToStrengthen.contains(entry.getKey())) {
-                    stateToStrengthen.assignConstant(
-                        entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
-                  }
-                }
+            for (Entry<MemoryLocation, ValueAndType> entry : violationState.getConstants()) {
+              if (newState.contains(entry.getKey())) {
+                continue;
+              }
+              if (entry.getValue().getValue() instanceof SymbolicValue sV) {
+                newState.assignConstant(
+                    entry.getKey(), sV.accept(renamer), entry.getValue().getType());
+              } else {
+                newState.assignConstant(
+                    entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
               }
             }
+            result.add(newState);
           }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
         }
         default -> {}
       }
