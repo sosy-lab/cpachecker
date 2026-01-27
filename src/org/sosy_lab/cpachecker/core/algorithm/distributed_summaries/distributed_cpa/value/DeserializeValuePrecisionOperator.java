@@ -12,7 +12,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.SerializeValuePrecisionOperator.RAW_PRECISION_KEY;
 
 import com.google.common.base.Preconditions;
-import java.util.Arrays;
+import com.google.common.base.Splitter;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,7 +59,8 @@ public class DeserializeValuePrecisionOperator implements DeserializePrecisionOp
 
     if (precisionType.equals(ScopedRefinablePrecision.class.getName())) {
       List<MemoryLocation> rawPrecision =
-          Arrays.stream(serializedPrecision.split(","))
+          Splitter.on(",")
+              .splitToStream(serializedPrecision)
               .map(e -> MemoryLocation.fromQualifiedName(e))
               .toList();
       return new ScopedRefinablePrecision(variableTrackingPrecision, rawPrecision);

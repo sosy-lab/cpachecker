@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,10 +30,15 @@ public class BlockStrengtheningOperator {
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    Configuration strengtheningConfig =
+        Configuration.builder()
+            .copyFrom(pConfig)
+            .setOption("cpa.predicate.handlePointerAliasing", "false")
+            .build();
     pfmgr =
         new PathFormulaManagerImpl(
             solver.getFormulaManager(),
-            pConfig,
+            strengtheningConfig,
             pLogger,
             pShutdownNotifier,
             pCfa,
@@ -59,7 +63,7 @@ public class BlockStrengtheningOperator {
             .and(
                 pValueAnalysisState.getFormulaApproximation(solver.getFormulaManager()),
                 pBlockState.getFormulaApproximation(solver.getFormulaManager())))) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return ImmutableSet.of(pValueAnalysisState);
   }
