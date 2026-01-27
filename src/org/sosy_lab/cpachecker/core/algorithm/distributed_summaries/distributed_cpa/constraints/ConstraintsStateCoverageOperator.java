@@ -48,15 +48,18 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
         constraintsSolver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula stateAsFormula1 = bfm.and(constraintsSolver.getFullFormula(c1, functionName));
     BooleanFormula stateAsFormula2 = bfm.and(constraintsSolver.getFullFormula(c2, functionName));
-    BooleanFormula compareValues =
-        bfm.and(
-            constraintsSolver.getFullFormula(
-                ValueAnalysisState.compareInConstraint(v1, v2), functionName));
+
+    // This is unnecessary with the underaproximating ValueCoverageOperator
+    // BooleanFormula compareValues =
+    //    bfm.and(
+    //        constraintsSolver.getFullFormula(
+    //            ValueAnalysisState.compareInConstraint(v1, v2), functionName));
 
     try {
-      return constraintsSolver
-          .getSolver()
-          .implies(bfm.and(stateAsFormula1, compareValues), stateAsFormula2);
+      //  return constraintsSolver
+      //      .getSolver()
+      //      .implies(bfm.and(stateAsFormula1, compareValues), stateAsFormula2);
+      return constraintsSolver.getSolver().implies(stateAsFormula1, stateAsFormula2);
     } catch (SolverException e) {
       throw new CPAException("Solver encountered an issue when calculating implication.", e);
     }
