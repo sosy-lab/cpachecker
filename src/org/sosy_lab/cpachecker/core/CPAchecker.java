@@ -22,6 +22,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -71,7 +72,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 
 @Options
-public class CPAchecker {
+public class CPAchecker implements AutoCloseable {
 
   public interface CPAcheckerMXBean {
     int getReachedSetSize();
@@ -179,6 +180,8 @@ public class CPAchecker {
   private final Configuration config;
   private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
+
+  private final List<ConfigurableProgramAnalysis> completedRuns = new ArrayList<>();
 
   // The content of this String is read from a file that is created by the
   // ant task "init".
@@ -306,7 +309,7 @@ public class CPAchecker {
         | IOException
         | InterruptedException e) {
       logErrorMessage(e, logger);
-      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, null, logger, stats);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
@@ -415,7 +418,16 @@ public class CPAchecker {
     } finally {
       CPAs.closeIfPossible(algorithm, logger);
     }
-    return new CPAcheckerResult(result, targetDescription, reached, cfa, cpa, logger, stats);
+    completedRuns.add(cpa);
+
+    return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
+  }
+
+  @Override
+  public void close() {
+    for (var cpa : completedRuns) {
+      CPAs.closeCpaIfPossible(cpa, logger);
+    }
   }
 
   private static void handleParserException(ParserException e, LogManager pLogger) {
