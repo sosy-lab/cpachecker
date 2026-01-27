@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -95,7 +96,9 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
         state.setViolationCondition(
             pfgmr.makeEmptyPathFormulaWithContext(ssaMap, targetSet).withFormula(parsed));
       }
-      havocVariables(state, getAccessedVariables(blockNode));
+      if (pMessage.getType().equals(DssMessageType.POST_CONDITION))
+        havocVariables(state, getAccessedVariables(blockNode));
+
       return state;
 
     } catch (ClassCastException e) {
