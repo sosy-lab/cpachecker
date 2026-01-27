@@ -82,6 +82,8 @@ public class AcslMetadataParsingTest {
             "even2.c",
             ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;"),
             new CodeLoctation(21, 3)));
+    b.add(
+        task("even3.c", ImmutableList.of("loop invariant x % 2 == 0;"), new CodeLoctation(21, 10)));
     b.add(task("in_middle.c", ImmutableList.of("assert a == 19;"), new CodeLoctation(16, 5)));
     b.add(
         task(
