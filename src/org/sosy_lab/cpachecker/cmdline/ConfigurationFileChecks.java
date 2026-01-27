@@ -560,7 +560,9 @@ public class ConfigurationFileChecks {
 
       assert_()
           .withMessage(
-              "Failure in CPAchecker run with following log\n%s\n\nlog with level WARNING or higher",
+              "Failure in CPAchecker run with following log\n"
+                  + "%s\n\n"
+                  + "log with level WARNING or higher",
               formatLogRecords(logHandler.getStoredLogRecords()))
           .that(getSevereMessages(options, logHandler))
           .isEmpty();
