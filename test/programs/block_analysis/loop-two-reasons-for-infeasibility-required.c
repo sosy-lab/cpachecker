@@ -6,8 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-void reach_error() {}
-
 int main() {
   int i = 1;
   int p = 1;
@@ -16,6 +14,5 @@ int main() {
       if (p != 1) goto ERROR;
       return 0;
       ERROR:
-        reach_error();
         return 1;
 }
