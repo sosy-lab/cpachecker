@@ -86,8 +86,7 @@ public record StatementInjector(
               memoryModel,
               utils);
       pStatement =
-          reduceLastThreadOrderInjector.injectLastThreadOrderReductionIntoStatement(
-              pStatement, labelClauseMap);
+          reduceLastThreadOrderInjector.injectLastUpdatesIntoStatement(pStatement, labelClauseMap);
     }
     if (options.reduceIgnoreSleep()) {
       // this needs to be last, it collects the prior injections

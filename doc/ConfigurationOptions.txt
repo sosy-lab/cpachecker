@@ -381,11 +381,6 @@ analysis.algorithm.MPOR.reduceUntilConflict = false
 analysis.algorithm.MPOR.reductionMode = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
-# if both reduceLastThreadOrder and reduceUntilConflict are enabled, define
-# the order in which their statements are placed in the output program.
-analysis.algorithm.MPOR.reductionOrder = NONE
-  enum:     [NONE, CONFLICT_THEN_LAST_THREAD, LAST_THREAD_THEN_CONFLICT]
-
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays?
 analysis.algorithm.MPOR.scalarPc = true
