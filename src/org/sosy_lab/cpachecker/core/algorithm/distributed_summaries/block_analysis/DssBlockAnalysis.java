@@ -101,7 +101,6 @@ public class DssBlockAnalysis {
 
   private AlgorithmStatus status;
   private boolean isOriginal;
-  private boolean receivedViolationCondition;
 
   private final boolean forcefullyCollectAllArgPaths;
 
