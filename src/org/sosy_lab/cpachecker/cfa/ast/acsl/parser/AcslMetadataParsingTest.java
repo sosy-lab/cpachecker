@@ -76,28 +76,28 @@ public class AcslMetadataParsingTest {
     b.add(task("at_end.c", ImmutableList.of("assert a != 20;"), new CodeLoctation(15, 7)));
     b.add(task("badVariable.c", ImmutableList.of(), new CodeLoctation(12, 2)));
     b.add(task("end_of_do_while.c", ImmutableList.of("assert a <= 20"), new CodeLoctation(15, 7)));
-    b.add(task("even.c", ImmutableList.of("loop invariant x % 2 == 0;"), new CodeLoctation(19, 3)));
+    b.add(task("even.c", ImmutableList.of("loop invariant x % 2 == 0;"), new CodeLoctation(21, 3)));
     b.add(
         task(
             "even2.c",
             ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;"),
-            new CodeLoctation(19, 3)));
-    b.add(task("in_middle.c", ImmutableList.of("assert a == 19;"), new CodeLoctation(14, 5)));
+            new CodeLoctation(21, 3)));
+    b.add(task("in_middle.c", ImmutableList.of("assert a == 19;"), new CodeLoctation(16, 5)));
     b.add(
         task(
             "inv_for.c",
             ImmutableList.of("loop invariant x + y == 20;"),
-            new CodeLoctation(11, 3)));
+            new CodeLoctation(13, 19)));
     b.add(
         task(
             "inv_short-for.c",
             ImmutableList.of("loop invariant x + y == 20;"),
-            new CodeLoctation(11, 3)));
+            new CodeLoctation(13, 10)));
     b.add(
         task(
             "same_annotation_twice.c",
             ImmutableList.of("assert x == 10;", "assert x == 10;"),
-            new CodeLoctation(10, 5)));
+            new CodeLoctation(12, 5)));
     return b.build();
   }
 
