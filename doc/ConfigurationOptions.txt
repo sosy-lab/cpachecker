@@ -3747,6 +3747,10 @@ cpa.smg2.merge.overapproximateConcreteValues = false
 # merging.
 cpa.smg2.merge.overapproximateSymbolicConstraints = false
 
+# Apply merge operator to determine subsumtion of abstracted lists in the
+# stop operator.
+cpa.smg2.merge.useMergeForAbstractionDetectionInStopOperator = false
+
 # Whether to perform SAT checks only for the last added constraint
 cpa.smg2.minimalSatCheck = true
 

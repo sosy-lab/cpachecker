@@ -2403,18 +2403,21 @@ public class SMGState
           treatSymbolicsAsEqualWEqualConstrains,
           allowAbstractedSelfPointers,
           trueEqualityCheck);
-    } else {
-      Optional<MergedSPCAndMergeStatus> mergeRes;
+    } else if (options.getMergeOptions().useMergeInStop()) {
+      // Merge can accuratly determine whether 2 states subsume, but using it with merge disabled
+      // may be problematic
       try {
-        mergeRes = this.memoryModel.merge(otherState.memoryModel, machineModel);
+        Optional<MergedSPCAndMergeStatus> mergeRes =
+            this.memoryModel.merge(otherState.memoryModel, machineModel);
+        return mergeRes.isPresent()
+            && (mergeRes.orElseThrow().getMergeStatus() == EQUAL
+                || (!trueEqualityCheck
+                    && mergeRes.orElseThrow().getMergeStatus() == LEFT_ENTAILED_IN_RIGHT));
       } catch (SMGException e) {
-        return false;
+        // Fallthrough
       }
-      return mergeRes.isPresent()
-          && (mergeRes.orElseThrow().getMergeStatus() == EQUAL
-              || (!trueEqualityCheck
-                  && mergeRes.orElseThrow().getMergeStatus() == LEFT_ENTAILED_IN_RIGHT));
     }
+    return false;
   }
 
   private boolean checkTwoAbstractedListsEquality(

@@ -703,6 +703,13 @@ public class SMGOptions {
 
     @Option(
         secure = true,
+        description =
+            "Apply merge operator to determine subsumtion of abstracted lists in the stop"
+                + " operator.")
+    private boolean useMergeForAbstractionDetectionInStopOperator = false;
+
+    @Option(
+        secure = true,
         name = "exclusivelyBlockEnds",
         description = "Apply merge operator only on ends of code blocks.")
     private boolean mergeOnlyOnBlockEnd = false;
@@ -758,6 +765,10 @@ public class SMGOptions {
 
     public boolean isOverapproximateSymbolicConstraints() {
       return overapproximateSymbolicConstraints;
+    }
+
+    public boolean useMergeInStop() {
+      return useMergeForAbstractionDetectionInStopOperator;
     }
 
     public boolean isOverapproximateConcreteValues() {
