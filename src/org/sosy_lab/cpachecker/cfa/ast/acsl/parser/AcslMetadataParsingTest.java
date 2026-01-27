@@ -86,8 +86,6 @@ public class AcslMetadataParsingTest {
             "even_while_nondet.c",
             ImmutableList.of("loop invariant x % 2 == 0;"),
             new CodeLoctation(21, 3)));
-
-     */
     b.add(
         task(
             "even_do_while.c",
