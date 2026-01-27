@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -148,7 +149,9 @@ public class ValueAnalysisCPA extends AbstractCPA
     config.inject(this, ValueAnalysisCPA.class);
 
     blockStrengtheningOperator =
-        new BlockStrengtheningOperator(config, logger, pShutdownNotifier, cfa);
+        cfa.getLanguage() == Language.C
+            ? new BlockStrengtheningOperator(config, logger, pShutdownNotifier, cfa)
+            : null;
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
