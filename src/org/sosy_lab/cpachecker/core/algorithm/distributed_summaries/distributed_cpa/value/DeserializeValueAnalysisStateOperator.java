@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
@@ -113,7 +114,10 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
         continue;
       }
       pState.assignConstant(
-          mL, SymbolicValueFactory.getInstance().newIdentifier(mL), entry.getValue());
+          mL,
+          new ConstantSymbolicExpression(
+              SymbolicValueFactory.getInstance().newIdentifier(mL), entry.getValue()),
+          entry.getValue());
     }
   }
 
