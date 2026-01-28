@@ -19,8 +19,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public abstract sealed class SeqFunction
     permits SeqAssumeFunction, SeqMainFunction, SeqThreadSimulationFunction {
@@ -33,10 +35,9 @@ public abstract sealed class SeqFunction
 
   public final CFunctionDeclaration declaration;
 
-  // TODO this should ideally be a CAstStatement
-  final String body;
+  final ImmutableList<CExportStatement> body;
 
-  SeqFunction(CFunctionDeclaration pDeclaration, String pBody) {
+  SeqFunction(CFunctionDeclaration pDeclaration, ImmutableList<CExportStatement> pBody) {
     name = new CIdExpression(FileLocation.DUMMY, pDeclaration);
     declaration = pDeclaration;
     body = pBody;
@@ -65,10 +66,12 @@ public abstract sealed class SeqFunction
   }
 
   /** Returns a {@link String} of the entire function, including signature and body. */
-  public final String buildDefinition() {
+  public final String buildDefinition() throws UnrecognizedCodeException {
     StringJoiner rDefinition = new StringJoiner(SeqSyntax.NEWLINE);
     rDefinition.add(SeqStringUtil.appendCurlyBracketLeft(buildSignature()));
-    rDefinition.add(body);
+    for (CExportStatement statement : body) {
+      rDefinition.add(statement.toASTString());
+    }
     rDefinition.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return rDefinition.toString();
   }

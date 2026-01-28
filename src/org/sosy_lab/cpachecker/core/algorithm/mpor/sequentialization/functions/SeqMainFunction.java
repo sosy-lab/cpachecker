@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -32,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CForLoopStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CLoopStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CWhileLoopStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -73,21 +72,21 @@ public final class SeqMainFunction extends SeqFunction {
     super(MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils));
   }
 
-  private static String buildBody(
+  private static ImmutableList<CExportStatement> buildBody(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    StringBuilder rBody = new StringBuilder();
+    ImmutableList.Builder<CExportStatement> rBody = ImmutableList.builder();
 
     // add main function argument non-deterministic assignments
-    rBody.append(buildMainFunctionArgNondetAssignments(pFields, pUtils.logger()));
+    rBody.addAll(buildMainFunctionArgNondetAssignments(pFields, pUtils.logger()));
 
     if (pOptions.loopUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
       ImmutableList<CFunctionCallStatement> functionCallStatements =
           NondeterministicSimulationBuilder.buildThreadSimulationFunctionCallStatements(
               pOptions, pFields.threadSimulationFunctions.orElseThrow());
-      functionCallStatements.forEach(statement -> rBody.append(statement.toASTString()));
+      functionCallStatements.forEach(statement -> rBody.add(new CStatementWrapper(statement)));
 
     } else {
       // otherwise include the thread simulations in the main function directly
@@ -99,7 +98,7 @@ public final class SeqMainFunction extends SeqFunction {
           CExpressionAssignmentStatement assignment =
               new CExpressionAssignmentStatement(
                   FileLocation.DUMMY, SeqIdExpressions.LAST_THREAD, SeqIdExpressions.NEXT_THREAD);
-          loopBlock.add(assignment.toASTString());
+          loopBlock.add(new CStatementWrapper(assignment));
         }
       }
 
@@ -112,7 +111,7 @@ public final class SeqMainFunction extends SeqFunction {
         CFunctionCallAssignmentStatement nextThreadAssignment =
             VerifierNondetFunctionType.buildNondetIntegerAssignment(
                 pOptions, SeqIdExpressions.NEXT_THREAD);
-        loopBlock.add(nextThreadAssignment.toASTString());
+        loopBlock.add(new CStatementWrapper(nextThreadAssignment));
 
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
         CExportStatement nextThreadAssumption =
@@ -120,7 +119,7 @@ public final class SeqMainFunction extends SeqFunction {
                 pOptions.nondeterminismSigned(),
                 pFields.numThreads,
                 pUtils.binaryExpressionBuilder());
-        loopBlock.add(nextThreadAssumption.toASTString());
+        loopBlock.add(nextThreadAssumption);
 
         // for scalar pc, this is done separately at the start of the respective thread
         if (!pOptions.scalarPc()) {
@@ -130,7 +129,7 @@ public final class SeqMainFunction extends SeqFunction {
           }
           CFunctionCallStatement nextThreadActiveAssumption =
               pFields.ghostElements.programCounterVariables().buildArrayPcUnequalExitPcAssumption();
-          loopBlock.add(nextThreadActiveAssumption.toASTString());
+          loopBlock.add(new CStatementWrapper(nextThreadActiveAssumption));
         }
       }
 
@@ -148,30 +147,31 @@ public final class SeqMainFunction extends SeqFunction {
                   BinaryOperator.GREATER_THAN);
       CFunctionCallStatement countAssumption =
           SeqAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
-      loopBlock.add(countAssumption.toASTString());
+      loopBlock.add(new CStatementWrapper(countAssumption));
 
       // add all thread simulation control flow statements
       if (pOptions.comments()) {
         loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
       }
-      loopBlock.add(
+      loopBlock.addAll(
           NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
                   pOptions, pFields.memoryModel, pFields.ghostElements, pFields.clauses, pUtils)
               .buildAllThreadSimulations());
 
       // build the loop depending on settings, and include all statements in it
+      CCompoundStatement compoundStatement = new CCompoundStatement(loopBlock.build());
       CLoopStatement loopStatement =
-          buildLoopStatement(pOptions, loopBlock.build(), pUtils.binaryExpressionBuilder());
-      rBody.append(loopStatement.toASTString());
+          buildLoopStatement(pOptions, compoundStatement, pUtils.binaryExpressionBuilder());
+      rBody.add(loopStatement);
     }
-    return rBody.toString();
+    return rBody.build();
   }
 
   /**
    * Adds the non-deterministic initializations of {@code main} function arguments, e.g. {@code arg
    * = __VERIFIER_nondet_int;}
    */
-  private static String buildMainFunctionArgNondetAssignments(
+  private static ImmutableList<CExportStatement> buildMainFunctionArgNondetAssignments(
       SequentializationFields pFields, LogManager pLogger) {
 
     // first extract all accesses to main function arguments
@@ -181,7 +181,8 @@ public final class SeqMainFunction extends SeqFunction {
         SubstituteUtil.findAllMainFunctionArgs(allSubstituteEdges);
 
     // then add main function arg nondet assignments, if necessary
-    StringJoiner rAssignments = new StringJoiner(SeqSyntax.NEWLINE);
+    ImmutableList.Builder<CExportStatement> rAssignments = ImmutableList.builder();
+
     for (var entry : pFields.mainSubstitution.mainFunctionArgSubstitutes.entrySet()) {
       // add assignment only if necessary, i.e. if it is accessed later (nondet is expensive)
       if (accessedMainFunctionArgs.contains(entry.getKey().asVariableDeclaration())) {
@@ -193,7 +194,7 @@ public final class SeqMainFunction extends SeqFunction {
           CFunctionCallAssignmentStatement assignment =
               new CFunctionCallAssignmentStatement(
                   FileLocation.DUMMY, mainArgSubstitute, verifierNondet.orElseThrow());
-          rAssignments.add(assignment.toASTString());
+          rAssignments.add(new CStatementWrapper(assignment));
         } else {
           pLogger.log(
               Level.WARNING,
@@ -203,7 +204,7 @@ public final class SeqMainFunction extends SeqFunction {
         }
       }
     }
-    return rAssignments.toString();
+    return rAssignments.build();
   }
 
   private static CLoopStatement buildLoopStatement(

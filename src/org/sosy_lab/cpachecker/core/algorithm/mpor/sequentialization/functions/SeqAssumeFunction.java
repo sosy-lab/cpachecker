@@ -113,14 +113,16 @@ public final class SeqAssumeFunction extends SeqFunction {
   public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression)
       throws UnrecognizedCodeException {
 
-    super(ASSUME_FUNCTION_DECLARATION, buildBody(pCondEqualsZeroExpression).toASTString());
+    super(ASSUME_FUNCTION_DECLARATION, buildBody(pCondEqualsZeroExpression));
   }
 
-  private static CIfStatement buildBody(CBinaryExpression pCondEqualsZeroExpression) {
+  private static ImmutableList<CExportStatement> buildBody(
+      CBinaryExpression pCondEqualsZeroExpression) {
+
     CExpressionWrapper ifCondition = new CExpressionWrapper(pCondEqualsZeroExpression);
     ImmutableList<CExportStatement> ifBlock =
         ImmutableList.of(new CStatementWrapper(ABORT_FUNCTION_CALL_STATEMENT));
-    return new CIfStatement(ifCondition, ifBlock);
+    return ImmutableList.of(new CIfStatement(ifCondition, ifBlock));
   }
 
   /**

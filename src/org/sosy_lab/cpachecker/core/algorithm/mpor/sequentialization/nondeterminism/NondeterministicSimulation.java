@@ -192,14 +192,16 @@ public abstract class NondeterministicSimulation {
    * soundly prune the exploration of a thread simulation without underapproximating the state
    * space.
    */
-  abstract String buildSingleThreadSimulation(MPORThread pThread) throws UnrecognizedCodeException;
+  abstract ImmutableList<CExportStatement> buildSingleThreadSimulation(MPORThread pThread)
+      throws UnrecognizedCodeException;
 
   /**
    * Builds the {@link String} code of all thread simulations, including wrapper statements such as
    * {@code if} guards. This is used only when {@link MPOROptions#loopUnrolling()} is disabled,
    * since then all thread simulations are placed as one code block in the {@code main()} function.
    */
-  public abstract String buildAllThreadSimulations() throws UnrecognizedCodeException;
+  public abstract ImmutableList<CExportStatement> buildAllThreadSimulations()
+      throws UnrecognizedCodeException;
 
   /**
    * Builds the list of statements, e.g. assumptions or assignments, that are placed directly before

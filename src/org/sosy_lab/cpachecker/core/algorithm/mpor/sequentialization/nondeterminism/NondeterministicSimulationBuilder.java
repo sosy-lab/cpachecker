@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -84,7 +85,7 @@ public class NondeterministicSimulationBuilder {
 
     ImmutableList.Builder<SeqThreadSimulationFunction> rFunctions = ImmutableList.builder();
     for (MPORThread thread : pClauses.keySet()) {
-      String threadSimulation =
+      ImmutableList<CExportStatement> threadSimulation =
           buildNondeterministicSimulationBySource(
                   pOptions, pMemoryModel, pGhostElements, pClauses, pUtils)
               .buildSingleThreadSimulation(thread);

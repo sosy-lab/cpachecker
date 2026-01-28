@@ -56,15 +56,15 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   }
 
   @Override
-  public String buildSingleThreadSimulation(MPORThread pThread) throws UnrecognizedCodeException {
-
-    StringBuilder rLines = new StringBuilder();
+  public ImmutableList<CExportStatement> buildSingleThreadSimulation(MPORThread pThread)
+      throws UnrecognizedCodeException {
+    ImmutableList.Builder<CExportStatement> rSimulation = ImmutableList.builder();
 
     // add "T{thread_id}: label", if present
     Optional<CLabelStatement> threadLabel =
         Optional.ofNullable(ghostElements.threadLabels().get(pThread));
     if (threadLabel.isPresent()) {
-      rLines.append(threadLabel.orElseThrow().toASTString());
+      rSimulation.add(threadLabel.orElseThrow());
     }
 
     // add "if (pc != 0 ...)" condition
@@ -91,16 +91,17 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
         new CIfStatement(new CExpressionWrapper(ifCondition), ifBlock.build());
 
     // add all and return
-    return rLines.append(ifStatement.toASTString()).toString();
+    return rSimulation.add(ifStatement).build();
   }
 
   @Override
-  public String buildAllThreadSimulations() throws UnrecognizedCodeException {
-    StringBuilder rLines = new StringBuilder();
+  public ImmutableList<CExportStatement> buildAllThreadSimulations()
+      throws UnrecognizedCodeException {
+    ImmutableList.Builder<CExportStatement> rThreadSimulations = ImmutableList.builder();
     for (MPORThread thread : clauses.keySet()) {
-      rLines.append(buildSingleThreadSimulation(thread));
+      rThreadSimulations.addAll(buildSingleThreadSimulation(thread));
     }
-    return rLines.toString();
+    return rThreadSimulations.build();
   }
 
   @Override

@@ -50,13 +50,16 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   }
 
   @Override
-  public String buildSingleThreadSimulation(MPORThread pThread) throws UnrecognizedCodeException {
+  public ImmutableList<CExportStatement> buildSingleThreadSimulation(MPORThread pThread)
+      throws UnrecognizedCodeException {
     // return the multi control statement, no adjustments needed for this type of nondeterminism
-    return buildSingleThreadMultiControlStatement(pThread).toASTString();
+    return ImmutableList.of(buildSingleThreadMultiControlStatement(pThread));
   }
 
   @Override
-  public String buildAllThreadSimulations() throws UnrecognizedCodeException {
+  public ImmutableList<CExportStatement> buildAllThreadSimulations()
+      throws UnrecognizedCodeException {
+
     // the inner multi control statements choose the next statement, e.g. "pc == 1"
     ImmutableMap<CExportExpression, SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements();
@@ -69,7 +72,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
             ImmutableList.of(),
             innerMultiControlStatements,
             utils.binaryExpressionBuilder());
-    return outerMultiControlStatement.toASTString();
+    return ImmutableList.of(outerMultiControlStatement);
   }
 
   private ImmutableMap<CExportExpression, SeqMultiControlStatement>

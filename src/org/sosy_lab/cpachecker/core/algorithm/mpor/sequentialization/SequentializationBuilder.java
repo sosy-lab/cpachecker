@@ -66,11 +66,11 @@ public class SequentializationBuilder {
   }
 
   public static String buildInputFunctionAndTypeDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
+      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.UNCHANGED_DECLARATIONS);
+      rDeclarations.add(SeqComment.UNCHANGED_DECLARATIONS.toASTString());
     }
     // add all original program declarations that are not substituted
     for (MPORThread thread : pThreads) {
@@ -92,11 +92,12 @@ public class SequentializationBuilder {
   // Input Variable Declarations ===================================================================
 
   public static String buildInputGlobalVariableDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.GLOBAL_VAR_DECLARATIONS);
+      rDeclarations.add(SeqComment.GLOBAL_VAR_DECLARATIONS.toASTString());
     }
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalVariableDeclarationSubstitutes();
@@ -109,11 +110,12 @@ public class SequentializationBuilder {
   }
 
   public static String buildInputLocalVariableDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.LOCAL_VAR_DECLARATIONS);
+      rDeclarations.add(SeqComment.LOCAL_VAR_DECLARATIONS.toASTString());
     }
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> localDeclarations =
@@ -187,11 +189,12 @@ public class SequentializationBuilder {
   // Input Parameter Declarations ==================================================================
 
   public static String buildInputParameterDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES);
+      rDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES.toASTString());
     }
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
@@ -213,11 +216,12 @@ public class SequentializationBuilder {
    * non-deterministically initialized in {@code main()} later in the sequentialization.
    */
   public static String buildMainFunctionArgDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES);
+      rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES.toASTString());
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
       rDeclarations.add(mainArg.getDeclaration().toASTString());
@@ -226,11 +230,12 @@ public class SequentializationBuilder {
   }
 
   public static String buildStartRoutineArgDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES);
+      rDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES.toASTString());
     }
     ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
@@ -246,11 +251,11 @@ public class SequentializationBuilder {
   }
 
   public static String buildStartRoutineExitDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
+      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.START_ROUTINE_EXIT_VARIABLES);
+      rDeclarations.add(SeqComment.START_ROUTINE_EXIT_VARIABLES.toASTString());
     }
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable();
@@ -264,11 +269,11 @@ public class SequentializationBuilder {
   // Function Declarations and Definitions =========================================================
 
   public static String buildFunctionDeclarations(
-      MPOROptions pOptions, SequentializationFields pFields) {
+      MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS);
+      rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS.toASTString());
     }
 
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
@@ -303,7 +308,7 @@ public class SequentializationBuilder {
 
     StringJoiner rDefinitions = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
-      rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS);
+      rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS.toASTString());
     }
     // custom function definitions: assume(), main()
     CBinaryExpression condEqualsZeroExpression =
@@ -370,7 +375,7 @@ public class SequentializationBuilder {
 
     // pc variable(s)
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.PC_DECLARATION);
+      rDeclarations.add(SeqComment.PC_DECLARATION.toASTString());
     }
     ImmutableList<CVariableDeclaration> pcDeclarations =
         pFields.ghostElements.getPcVariables().pcDeclarations();
@@ -412,7 +417,7 @@ public class SequentializationBuilder {
 
     // thread synchronization variables (e.g. mutex_locked)
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.THREAD_SIMULATION_VARIABLES);
+      rDeclarations.add(SeqComment.THREAD_SIMULATION_VARIABLES.toASTString());
     }
     for (CSimpleDeclaration declaration :
         pFields.ghostElements.threadSyncFlags().getDeclarations(pOptions)) {
