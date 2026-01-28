@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
-import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CGotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
@@ -45,7 +45,8 @@ public record SeqBitVectorEvaluationStatement(
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
       CNegatedExpression ifExpression = evaluationExpression.orElseThrow().negate();
       CGotoStatement gotoStatement = new CGotoStatement(targetGoto.toCLabelStatement());
-      CIfStatement ifStatement = new CIfStatement(ifExpression, ImmutableList.of(gotoStatement));
+      CCompoundStatement compoundStatement = new CCompoundStatement(gotoStatement);
+      CIfStatement ifStatement = new CIfStatement(ifExpression, compoundStatement);
       return ifStatement.toASTString(pAAstNodeRepresentation);
 
     } else {

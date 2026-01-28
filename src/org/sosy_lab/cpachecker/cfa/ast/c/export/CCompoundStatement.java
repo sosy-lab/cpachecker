@@ -27,6 +27,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public record CCompoundStatement(ImmutableList<CExportStatement> statements)
     implements CExportStatement {
 
+  public CCompoundStatement(CExportStatement... pStatements) {
+    this(ImmutableList.copyOf(pStatements));
+  }
+
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {

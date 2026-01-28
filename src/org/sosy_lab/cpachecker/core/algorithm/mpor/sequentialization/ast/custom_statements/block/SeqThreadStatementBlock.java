@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
@@ -82,8 +83,8 @@ public class SeqThreadStatementBlock implements CExportStatement {
       CIfStatement branchStatement =
           new CIfStatement(
               new CExpressionWrapper(firstAssume.ifExpression.orElseThrow()),
-              ImmutableList.of(firstAssume),
-              ImmutableList.of(secondAssume));
+              new CCompoundStatement(firstAssume),
+              new CCompoundStatement(secondAssume));
       joiner.add(branchStatement.toASTString(pAAstNodeRepresentation));
     }
 

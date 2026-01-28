@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CGotoStatement;
@@ -46,7 +47,9 @@ public record SeqGuardedGotoStatement(
             .addAll(precedingStatements.stream().map(s -> new CStatementWrapper(s)).iterator())
             .add(new CGotoStatement(targetLabel.toCLabelStatement()))
             .build();
-    CIfStatement ifStatement = new CIfStatement(new CExpressionWrapper(condition), ifStatements);
+    CCompoundStatement compoundStatement = new CCompoundStatement(ifStatements);
+    CIfStatement ifStatement =
+        new CIfStatement(new CExpressionWrapper(condition), compoundStatement);
     return ifStatement.toASTString(pAAstNodeRepresentation);
   }
 

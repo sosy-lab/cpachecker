@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
+import java.util.Optional;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -31,9 +32,9 @@ public final class CIfStatement implements CExportStatement {
 
   private final CExportExpression condition;
 
-  private final ImmutableList<CExportStatement> ifStatements;
+  private final CCompoundStatement ifStatement;
 
-  private final ImmutableList<CExportStatement> elseStatements;
+  private final Optional<CCompoundStatement> elseStatement;
 
   /**
    * Use this constructor to create an {@code if} statement without any {@code else} branch:
@@ -46,16 +47,16 @@ public final class CIfStatement implements CExportStatement {
    * }</pre>
    *
    * @param pCondition the {@code if} condition
-   * @param pIfStatements the non-empty list of statements in the {@code if} branch
+   * @param pIfStatement the non-empty {@link CCompoundStatement} in the {@code if} branch
    */
-  public CIfStatement(CExportExpression pCondition, ImmutableList<CExportStatement> pIfStatements) {
+  public CIfStatement(CExportExpression pCondition, CCompoundStatement pIfStatement) {
     checkArgument(
-        !pIfStatements.isEmpty(),
-        "pIfStatements needs at least one element, otherwise the if branch is empty.");
+        !pIfStatement.statements().isEmpty(),
+        "pIfStatement needs at least one element, otherwise the if branch is empty.");
 
     condition = pCondition;
-    ifStatements = pIfStatements;
-    elseStatements = ImmutableList.of();
+    ifStatement = pIfStatement;
+    elseStatement = Optional.empty();
   }
 
   /**
@@ -72,51 +73,38 @@ public final class CIfStatement implements CExportStatement {
    * }</pre>
    *
    * @param pCondition the {@code if} condition
-   * @param pIfStatements the non-empty list of statements in the {@code if} branch
-   * @param pElseStatements the non-empty list of statements in the {@code else} branch
+   * @param pIfStatement the non-empty {@link CCompoundStatement} in the {@code if} branch
+   * @param pElseStatement the non-empty {@link CCompoundStatement} in the {@code else} branch
    */
   public CIfStatement(
       CExportExpression pCondition,
-      ImmutableList<CExportStatement> pIfStatements,
-      ImmutableList<CExportStatement> pElseStatements) {
+      CCompoundStatement pIfStatement,
+      CCompoundStatement pElseStatement) {
 
     checkArgument(
-        !pIfStatements.isEmpty(),
-        "pIfStatements needs at least one element, otherwise the if branch is empty.");
+        !pIfStatement.statements().isEmpty(),
+        "pIfStatement needs at least one element, otherwise the if branch is empty.");
     checkArgument(
-        !pElseStatements.isEmpty(),
-        "pElseStatements needs at least one element, otherwise the else branch is empty.");
+        !pElseStatement.statements().isEmpty(),
+        "pElseStatement needs at least one element, otherwise the else branch is empty.");
 
     condition = pCondition;
-    ifStatements = pIfStatements;
-    elseStatements = pElseStatements;
+    ifStatement = pIfStatement;
+    elseStatement = Optional.of(pElseStatement);
   }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    StringBuilder ifStatement = new StringBuilder();
-
-    ifStatement
-        .append("if (")
-        .append(condition.toASTString(pAAstNodeRepresentation))
-        .append(") {\n");
-
-    for (CExportStatement statement : ifStatements) {
-      ifStatement.append(statement.toASTString(pAAstNodeRepresentation)).append("\n");
-    }
-    ifStatement.append("}");
-
+    StringJoiner joiner = new StringJoiner(System.lineSeparator());
+    joiner.add("if (" + condition.toASTString(pAAstNodeRepresentation) + ")");
+    joiner.add(ifStatement.toASTString(pAAstNodeRepresentation));
     // append the else { ... } branch only if there are any else statements
-    if (!elseStatements.isEmpty()) {
-      ifStatement.append(" else {\n");
-      for (CExportStatement stmt : elseStatements) {
-        ifStatement.append(stmt.toASTString(pAAstNodeRepresentation)).append("\n");
-      }
-      ifStatement.append("}");
+    if (elseStatement.isPresent()) {
+      joiner.add("else");
+      joiner.add(elseStatement.orElseThrow().toASTString(pAAstNodeRepresentation));
     }
-
-    return ifStatement.toString();
+    return joiner.toString();
   }
 }

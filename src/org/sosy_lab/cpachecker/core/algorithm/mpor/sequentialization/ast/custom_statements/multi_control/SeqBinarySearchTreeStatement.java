@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
@@ -74,7 +75,9 @@ public record SeqBinarySearchTreeStatement(
       Entry<CExportExpression, ? extends CExportStatement> ifEntry = pCurrentStatements.getFirst();
       CExportStatement elseStatement = pCurrentStatements.getLast().getValue();
       return new CIfStatement(
-          ifEntry.getKey(), ImmutableList.of(ifEntry.getValue()), ImmutableList.of(elseStatement));
+          ifEntry.getKey(),
+          new CCompoundStatement(ifEntry.getValue()),
+          new CCompoundStatement(elseStatement));
 
     } else {
       // more than two elements -> create if and else subtrees with <
@@ -101,8 +104,8 @@ public record SeqBinarySearchTreeStatement(
 
       return new CIfStatement(
           new CExpressionWrapper(ifExpression),
-          ImmutableList.of(ifBranchStatement),
-          ImmutableList.of(elseBranchStatement));
+          new CCompoundStatement(ifBranchStatement),
+          new CCompoundStatement(elseBranchStatement));
     }
   }
 }

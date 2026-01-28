@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
@@ -46,13 +47,13 @@ public record SeqIfElseChainStatement(
       if (i == statementList.size() - 1) {
         currentBranch =
             new CIfStatement(
-                currentStatement.getKey(), ImmutableList.of(currentStatement.getValue()));
+                currentStatement.getKey(), new CCompoundStatement(currentStatement.getValue()));
       } else {
         currentBranch =
             new CIfStatement(
                 currentStatement.getKey(),
-                ImmutableList.of(currentStatement.getValue()),
-                ImmutableList.of(Objects.requireNonNull(currentBranch)));
+                new CCompoundStatement(currentStatement.getValue()),
+                new CCompoundStatement(Objects.requireNonNull(currentBranch)));
       }
     }
     ifElseChain.add(Objects.requireNonNull(currentBranch).toASTString(pAAstNodeRepresentation));

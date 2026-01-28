@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
@@ -44,14 +45,15 @@ public record SeqIgnoreSleepReductionStatement(
     // negate the evaluation expression
     CNegatedExpression ifExpression = bitVectorEvaluationExpression.negate();
     CGotoStatement gotoNext = new CGotoStatement(targetGoto.toCLabelStatement());
-    CIfStatement innerIfStatement = new CIfStatement(ifExpression, ImmutableList.of(gotoNext));
+    CCompoundStatement compoundStatement = new CCompoundStatement(gotoNext);
+    CIfStatement innerIfStatement = new CIfStatement(ifExpression, compoundStatement);
 
     if (reductionAssumptions.isEmpty()) {
       // no reduction assumptions -> just return outer if statement
       CIfStatement outerIfStatement =
           new CIfStatement(
               new CExpressionWrapper(roundMaxEqualsZeroExpression),
-              ImmutableList.of(innerIfStatement));
+              new CCompoundStatement(innerIfStatement));
       return outerIfStatement.toASTString();
     }
 
@@ -63,8 +65,8 @@ public record SeqIgnoreSleepReductionStatement(
     CIfStatement outerIfStatement =
         new CIfStatement(
             new CExpressionWrapper(roundMaxEqualsZeroExpression),
-            ImmutableList.of(innerIfStatement),
-            elseStatements.build());
+            new CCompoundStatement(innerIfStatement),
+            new CCompoundStatement(elseStatements.build()));
     return outerIfStatement.toASTString(pAAstNodeRepresentation);
   }
 

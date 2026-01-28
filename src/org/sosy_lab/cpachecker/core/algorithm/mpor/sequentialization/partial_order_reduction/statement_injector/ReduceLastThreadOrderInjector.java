@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
@@ -110,12 +111,13 @@ public record ReduceLastThreadOrderInjector(
       return new CIfStatement(
           ifCondition,
           // if the evaluation is empty, it results in assume(0) i.e. abort()
-          ImmutableList.of(new CStatementWrapper(SeqAssumeFunction.ABORT_FUNCTION_CALL_STATEMENT)));
+          new CCompoundStatement(
+              new CStatementWrapper(SeqAssumeFunction.ABORT_FUNCTION_CALL_STATEMENT)));
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is in conflict with LAST_THREAD
       return new CIfStatement(
           ifCondition,
-          ImmutableList.of(
+          new CCompoundStatement(
               SeqAssumeFunction.buildAssumeFunctionCallStatement(
                   lastBitVectorEvaluation.orElseThrow().expressionTree())));
     }

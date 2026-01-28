@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
@@ -85,10 +86,12 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
 
     // add the thread simulation statements
     innerIfBlock.add(buildSingleThreadMultiControlStatement(pThread));
-    CIfStatement innerIfStatement = new CIfStatement(innerIfCondition, innerIfBlock.build());
+    CIfStatement innerIfStatement =
+        new CIfStatement(innerIfCondition, new CCompoundStatement(innerIfBlock.build()));
     ifBlock.add(innerIfStatement);
     CIfStatement ifStatement =
-        new CIfStatement(new CExpressionWrapper(ifCondition), ifBlock.build());
+        new CIfStatement(
+            new CExpressionWrapper(ifCondition), new CCompoundStatement(ifBlock.build()));
 
     // add all and return
     return rSimulation.add(ifStatement).build();
