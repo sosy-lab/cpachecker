@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -20,11 +21,13 @@ public record SeqLastBitVectorUpdateStatement(
     implements SeqInjectedStatement {
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    joiner.add(lastThreadUpdate.toASTString());
+    joiner.add(lastThreadUpdate.toASTString(pAAstNodeRepresentation));
     for (CExpressionAssignmentStatement lastBitVectorUpdate : lastBitVectorUpdates) {
-      joiner.add(lastBitVectorUpdate.toASTString());
+      joiner.add(lastBitVectorUpdate.toASTString(pAAstNodeRepresentation));
     }
     return joiner.toString();
   }

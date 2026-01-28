@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
@@ -21,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  * necessary interface to adjust the label number.
  */
 // we store the thread prefix so that cloning does not require the options (shortVariables)
-public record SeqBlockLabelStatement(String threadPrefix, int number) implements SeqStatement {
+public record SeqBlockLabelStatement(String threadPrefix, int number) implements CExportStatement {
 
   public SeqBlockLabelStatement withLabelNumber(int pLabelNumber) {
     return new SeqBlockLabelStatement(threadPrefix, pLabelNumber);
@@ -32,7 +33,7 @@ public record SeqBlockLabelStatement(String threadPrefix, int number) implements
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return threadPrefix + SeqSyntax.UNDERSCORE + number + SeqSyntax.COLON;
   }
 }

@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -54,7 +56,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   @Override
   public String buildAllThreadSimulations() throws UnrecognizedCodeException {
     // the inner multi control statements choose the next statement, e.g. "pc == 1"
-    ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
+    ImmutableMap<CExportExpression, SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements();
     // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
     SeqMultiControlStatement outerMultiControlStatement =
@@ -68,10 +70,10 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     return outerMultiControlStatement.toASTString();
   }
 
-  private ImmutableMap<CExpression, SeqMultiControlStatement> buildInnerMultiControlStatements()
-      throws UnrecognizedCodeException {
+  private ImmutableMap<CExportExpression, SeqMultiControlStatement>
+      buildInnerMultiControlStatements() throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
+    ImmutableMap.Builder<CExportExpression, SeqMultiControlStatement> rStatements =
         ImmutableMap.builder();
     for (MPORThread thread : clauses.keySet()) {
       CExpression clauseExpression =
@@ -80,7 +82,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
               SeqIdExpressions.NEXT_THREAD,
               thread.id(),
               utils.binaryExpressionBuilder());
-      rStatements.put(clauseExpression, buildSingleThreadMultiControlStatement(thread));
+      rStatements.put(
+          new CExpressionWrapper(clauseExpression), buildSingleThreadMultiControlStatement(thread));
     }
     return rStatements.buildOrThrow();
   }

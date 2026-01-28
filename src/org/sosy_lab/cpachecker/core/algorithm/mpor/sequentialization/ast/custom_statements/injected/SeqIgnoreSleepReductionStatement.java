@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CGotoStatement;
@@ -20,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CNegatedExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record SeqIgnoreSleepReductionStatement(
@@ -32,7 +33,9 @@ public record SeqIgnoreSleepReductionStatement(
     implements SeqInjectedStatementWithTargetGoto {
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     // create necessary expressions and statements
     CBinaryExpression roundMaxEqualsZeroExpression =
         binaryExpressionBuilder.buildBinaryExpression(
@@ -53,16 +56,16 @@ public record SeqIgnoreSleepReductionStatement(
     }
 
     // reduction assumptions are present -> build else branch with assumptions
-    ImmutableList.Builder<String> elseStatements = ImmutableList.builder();
+    ImmutableList.Builder<CExportStatement> elseStatements = ImmutableList.builder();
     for (SeqInjectedStatement reductionAssumption : reductionAssumptions) {
-      elseStatements.add(reductionAssumption.toASTString());
+      elseStatements.add(reductionAssumption);
     }
-    SeqBranchStatement outerIfStatement =
-        new SeqBranchStatement(
-            roundMaxEqualsZeroExpression.toASTString(),
-            ImmutableList.of(innerIfStatement.toASTString()),
+    CIfStatement outerIfStatement =
+        new CIfStatement(
+            new CExpressionWrapper(roundMaxEqualsZeroExpression),
+            ImmutableList.of(innerIfStatement),
             elseStatements.build());
-    return outerIfStatement.toASTString();
+    return outerIfStatement.toASTString(pAAstNodeRepresentation);
   }
 
   @Override

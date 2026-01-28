@@ -15,14 +15,14 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
@@ -126,7 +126,7 @@ public abstract class NondeterministicSimulation {
             options, syncFlag, clauses.get(pThread), utils.binaryExpressionBuilder());
 
     CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
-    ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
+    ImmutableMap<CExportExpression, ? extends CExportStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
 

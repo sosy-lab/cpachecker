@@ -13,11 +13,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicBeginStatement;
@@ -30,7 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * A block features a {@code goto} label and a list of {@link CSeqThreadStatement}. An inner block
  * is only reachable from inside a thread simulation via its {@code goto} label.
  */
-public class SeqThreadStatementBlock implements SeqStatement {
+public class SeqThreadStatementBlock implements CExportStatement {
 
   private final MPOROptions options;
 
@@ -63,34 +65,35 @@ public class SeqThreadStatementBlock implements SeqStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    joiner.add(label.toASTString() + SeqSyntax.SPACE);
-    joiner.add(buildStatementsString());
+    joiner.add(label.toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE);
+
+    if (statements.size() == 1) {
+      // 1 statement: just return toASTString
+      joiner.add(statements.getFirst().toASTString(pAAstNodeRepresentation));
+
+    } else {
+      // 2 statements (= assume statements): create if-else statement
+      SeqAssumeStatement firstAssume = (SeqAssumeStatement) statements.getFirst();
+      SeqAssumeStatement secondAssume = (SeqAssumeStatement) statements.getLast();
+      CIfStatement branchStatement =
+          new CIfStatement(
+              new CExpressionWrapper(firstAssume.ifExpression.orElseThrow()),
+              ImmutableList.of(firstAssume),
+              ImmutableList.of(secondAssume));
+      joiner.add(branchStatement.toASTString(pAAstNodeRepresentation));
+    }
+
     Optional<String> suffix =
         SeqStringUtil.tryBuildBlockSuffix(options, nextThreadLabel, statements);
     if (suffix.isPresent()) {
       joiner.add(suffix.orElseThrow());
     }
+
     return joiner.toString();
-  }
-
-  private String buildStatementsString() throws UnrecognizedCodeException {
-    if (statements.size() == 1) {
-      // 1 statement: just return toASTString
-      return statements.getFirst().toASTString();
-
-    } else {
-      // 2 statements (= assume statements): create if-else statement
-      SeqAssumeStatement ifStatement = (SeqAssumeStatement) statements.getFirst();
-      SeqAssumeStatement elseStatement = (SeqAssumeStatement) statements.getLast();
-      SeqBranchStatement branchStatement =
-          new SeqBranchStatement(
-              ifStatement.ifExpression.orElseThrow().toASTString(),
-              ImmutableList.of(ifStatement.toASTString()),
-              ImmutableList.of(elseStatement.toASTString()));
-      return branchStatement.toASTString();
-    }
   }
 
   public SeqBlockLabelStatement getLabel() {

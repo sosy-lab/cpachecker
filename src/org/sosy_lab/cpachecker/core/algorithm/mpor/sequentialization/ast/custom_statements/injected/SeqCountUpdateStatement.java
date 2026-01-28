@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -15,8 +16,10 @@ public record SeqCountUpdateStatement(CExpressionAssignmentStatement countUpdate
     implements SeqInjectedStatement {
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
-    return countUpdate.toASTString();
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
+    return countUpdate.toASTString(pAAstNodeRepresentation);
   }
 
   @Override

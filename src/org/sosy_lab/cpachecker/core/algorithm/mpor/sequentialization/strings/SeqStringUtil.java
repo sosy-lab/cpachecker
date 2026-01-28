@@ -45,6 +45,7 @@ public class SeqStringUtil {
 
   // Multi Control Statement Suffix ================================================================
 
+  // TODO use AAstNodeRepresentation here
   public static Optional<String> tryBuildBlockSuffix(
       MPOROptions pOptions,
       Optional<CLabelStatement> pNextThreadLabel,

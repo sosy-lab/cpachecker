@@ -11,8 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -23,7 +24,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>e.g. {@code case 42: fib(42); break;} when using switch cases.
  */
-public class SeqThreadStatementClause implements SeqStatement {
+public class SeqThreadStatementClause implements CExportStatement {
 
   private static int currentId = 0;
 
@@ -128,10 +129,12 @@ public class SeqThreadStatementClause implements SeqStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     StringBuilder rString = new StringBuilder();
     for (SeqThreadStatementBlock block : blocks) {
-      rString.append(block.toASTString());
+      rString.append(block.toASTString(pAAstNodeRepresentation));
     }
     return rString.toString();
   }

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -18,9 +20,12 @@ public record SeqSyncUpdateStatement(
     implements SeqInjectedStatement {
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
-    return SeqStatementBuilder.buildExpressionAssignmentStatement(syncVariable, newSyncValue)
-        .toASTString();
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
+    CExpressionAssignmentStatement syncUpdate =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(syncVariable, newSyncValue);
+    return syncUpdate.toASTString(pAAstNodeRepresentation);
   }
 
   @Override

@@ -13,45 +13,47 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record SeqIfElseChainStatement(
     ImmutableList<String> precedingStatements,
-    ImmutableMap<CExpression, ? extends SeqStatement> statements)
+    ImmutableMap<CExportExpression, ? extends CExportStatement> statements)
     implements SeqMultiControlStatement {
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     StringJoiner ifElseChain = new StringJoiner(SeqSyntax.NEWLINE);
 
     // first add preceding statements
     precedingStatements.forEach(statement -> ifElseChain.add(statement));
 
     // then add all statements via if ... else { if ... } from the bottom up
-    ImmutableList<Entry<CExpression, ? extends SeqStatement>> statementList =
+    ImmutableList<Entry<CExportExpression, ? extends CExportStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
-    SeqBranchStatement currentBranch = null;
+    CIfStatement currentBranch = null;
     for (int i = statementList.size() - 1; i >= 0; i--) {
-      Entry<CExpression, ? extends SeqStatement> currentStatement = statementList.get(i);
+      Entry<CExportExpression, ? extends CExportStatement> currentStatement = statementList.get(i);
       // on last statement: no else branch
       if (i == statementList.size() - 1) {
         currentBranch =
-            new SeqBranchStatement(
-                currentStatement.getKey().toASTString(),
-                ImmutableList.of(currentStatement.getValue().toASTString()));
+            new CIfStatement(
+                currentStatement.getKey(), ImmutableList.of(currentStatement.getValue()));
       } else {
         currentBranch =
-            new SeqBranchStatement(
-                currentStatement.getKey().toASTString(),
-                ImmutableList.of(currentStatement.getValue().toASTString()),
-                Objects.requireNonNull(currentBranch));
+            new CIfStatement(
+                currentStatement.getKey(),
+                ImmutableList.of(currentStatement.getValue()),
+                ImmutableList.of(Objects.requireNonNull(currentBranch)));
       }
     }
-    ifElseChain.add(Objects.requireNonNull(currentBranch).toASTString());
+    ifElseChain.add(Objects.requireNonNull(currentBranch).toASTString(pAAstNodeRepresentation));
     return ifElseChain.toString();
   }
 

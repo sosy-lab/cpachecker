@@ -12,9 +12,11 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -31,13 +33,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public record SeqSwitchStatement(
     CExpression switchExpression,
     ImmutableList<String> precedingStatements,
-    ImmutableMap<CExpression, ? extends SeqStatement> statements)
+    ImmutableMap<CExportExpression, ? extends CExportStatement> statements)
     implements SeqMultiControlStatement {
 
   private static final String SWITCH_KEYWORD = "switch";
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     StringJoiner switchCase = new StringJoiner(SeqSyntax.NEWLINE);
     // first build preceding statements
     precedingStatements.forEach(statement -> switchCase.add(statement));
@@ -50,7 +54,7 @@ public record SeqSwitchStatement(
                 SeqSyntax.CURLY_BRACKET_LEFT));
     // add all cases
     for (var entry : statements.entrySet()) {
-      SeqStatement statement = entry.getValue();
+      CExportStatement statement = entry.getValue();
       String casePrefix = buildCasePrefix(entry.getKey());
       String suffix = "";
       if (statement instanceof SeqMultiControlStatement) {
@@ -69,7 +73,9 @@ public record SeqSwitchStatement(
     return MultiControlStatementEncoding.SWITCH_CASE;
   }
 
-  private static String buildCasePrefix(CExpression pExpression) {
+  private static String buildCasePrefix(CExportExpression pExpression)
+      throws UnrecognizedCodeException {
+
     return "case" + SeqSyntax.SPACE + pExpression.toASTString() + SeqSyntax.COLON;
   }
 }

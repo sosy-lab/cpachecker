@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 
-public sealed interface SeqMultiControlStatement extends SeqStatement
+public sealed interface SeqMultiControlStatement extends CExportStatement
     permits SeqBinarySearchTreeStatement, SeqIfElseChainStatement, SeqSwitchStatement {
 
   MultiControlStatementEncoding getEncoding();
@@ -29,7 +29,7 @@ public sealed interface SeqMultiControlStatement extends SeqStatement
       CLeftHandSide pExpression,
       ImmutableList<String> pPrecedingStatements,
       // ImmutableMap retains insertion order when using ImmutableMap.Builder
-      ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
+      ImmutableMap<CExportExpression, ? extends CExportStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     return switch (pMultiControlStatementEncoding) {

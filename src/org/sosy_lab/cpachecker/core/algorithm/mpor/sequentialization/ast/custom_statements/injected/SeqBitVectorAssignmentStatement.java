@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -17,8 +18,10 @@ public record SeqBitVectorAssignmentStatement(
     CIdExpression variable, BitVectorValueExpression value) implements SeqInjectedStatement {
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
-    return variable.toASTString()
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
+    return variable.toASTString(pAAstNodeRepresentation)
         + SeqSyntax.SPACE
         + SeqSyntax.EQUALS
         + SeqSyntax.SPACE
