@@ -20,10 +20,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CGotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.gotos.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqIgnoreSleepReductionStatement;
@@ -234,7 +234,7 @@ public final class SeqThreadStatementUtil {
       throws UnrecognizedCodeException {
 
     StringJoiner statements = new StringJoiner(SeqSyntax.SPACE);
-    SeqGotoStatement gotoStatement = new SeqGotoStatement(pTargetGoto.toCLabelStatement());
+    CGotoStatement gotoStatement = new CGotoStatement(pTargetGoto.toCLabelStatement());
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       // add all statements that are not pruned, even when there is a target goto
       if (!injectedStatement.isPrunedWithTargetGoto()) {

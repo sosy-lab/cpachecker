@@ -15,11 +15,11 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CGotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.gotos.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -76,7 +76,7 @@ public class SeqStringUtil {
         }
         // if this is not the last thread, add "goto T{next_thread_ID};"
         if (pNextThreadLabel.isPresent()) {
-          yield new SeqGotoStatement(pNextThreadLabel.orElseThrow()).toASTString();
+          yield new CGotoStatement(pNextThreadLabel.orElseThrow()).toASTString();
         }
         // otherwise, continue i.e. go to next loop iteration
         yield "continue" + SeqSyntax.SEMICOLON;
