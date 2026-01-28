@@ -14,11 +14,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 public record CGotoStatement(CLabelStatement label) implements CExportStatement {
 
   @Override
-  public String toASTString() {
-    return toASTString(AAstNodeRepresentation.DEFAULT);
-  }
-
-  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "goto " + label.name() + ";";
   }

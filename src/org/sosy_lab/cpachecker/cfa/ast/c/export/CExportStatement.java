@@ -20,15 +20,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
  * require adjustments to {@link CFA} handling (where a {@link CStatement} is linked to a single
  * edge whereas a {@link CIfStatement} represents multiple edges) and all visitors that handle
  * {@link CStatement}.
+ *
+ * <p>Note that this interface is not {@code sealed} because its implementing classes may be
+ * distributed in other packages.
  */
-public sealed interface CExportStatement
-    permits CGotoStatement,
-        CIfStatement,
-        CLabelStatement,
-        CFunctionCallStatementWrapper,
-        CStatementWrapper {
+public interface CExportStatement {
 
-  String toASTString();
+  default String toASTString() {
+    return toASTString(AAstNodeRepresentation.DEFAULT);
+  }
 
   String toASTString(AAstNodeRepresentation pAAstNodeRepresentation);
 }

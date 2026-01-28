@@ -14,11 +14,6 @@ public record CNegatedExpression(CExportExpression expressionToNegate)
     implements CExportExpression {
 
   @Override
-  public String toASTString() {
-    return toASTString(AAstNodeRepresentation.DEFAULT);
-  }
-
-  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "!(" + expressionToNegate.toASTString() + ")";
   }

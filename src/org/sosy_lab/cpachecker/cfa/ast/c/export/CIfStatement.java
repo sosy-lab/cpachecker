@@ -92,11 +92,6 @@ public final class CIfStatement implements CExportStatement {
   }
 
   @Override
-  public String toASTString() {
-    return toASTString(AAstNodeRepresentation.DEFAULT);
-  }
-
-  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder ifStatement = new StringBuilder();
 

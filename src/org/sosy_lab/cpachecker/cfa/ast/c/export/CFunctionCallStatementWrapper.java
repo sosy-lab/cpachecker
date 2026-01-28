@@ -34,18 +34,16 @@ public record CFunctionCallStatementWrapper(
   }
 
   @Override
-  public String toASTString() {
-    return toASTString(AAstNodeRepresentation.DEFAULT);
-  }
-
-  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     // take the name of the function from the CFunctionCallStatement
     String functionName =
-        functionCallStatement.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+        functionCallStatement
+            .getFunctionCallExpression()
+            .getFunctionNameExpression()
+            .toASTString(pAAstNodeRepresentation);
     // replace the parameters of the CFunctionCallStatement, separated by ', '
     StringJoiner parameterList = new StringJoiner(", ");
-    parameters.forEach(p -> parameterList.add(p.toASTString()));
+    parameters.forEach(p -> parameterList.add(p.toASTString(pAAstNodeRepresentation)));
     return functionName + "(" + parameterList + ");";
   }
 }

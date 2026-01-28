@@ -21,11 +21,6 @@ public record CExpressionTree(ExpressionTree<CExportExpression> expressionTree)
   }
 
   @Override
-  public String toASTString() {
-    return toASTString(AAstNodeRepresentation.DEFAULT);
-  }
-
-  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return expressionTree.toString();
   }

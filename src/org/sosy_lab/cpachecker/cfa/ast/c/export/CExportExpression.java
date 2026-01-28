@@ -22,7 +22,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 public sealed interface CExportExpression
     permits CExpressionTree, CNegatedExpression, CExpressionWrapper {
 
-  String toASTString();
+  default String toASTString() {
+    return toASTString(AAstNodeRepresentation.DEFAULT);
+  }
 
   String toASTString(AAstNodeRepresentation pAAstNodeRepresentation);
 }
