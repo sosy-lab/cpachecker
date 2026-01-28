@@ -17,7 +17,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * statements that do not appear in the {@link CFAEdge}s of a {@link CFA}, but may e.g. be exported
  * in actual C programs like a {@link CIfStatement}.
  */
-public sealed interface CAstStatement permits CStatementWrapper, CIfStatement {
+public sealed interface CAstStatement
+    permits CGotoStatement, CIfStatement, CLabelStatement, CStatementWrapper {
 
   String toASTString();
 
