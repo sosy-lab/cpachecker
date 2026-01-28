@@ -48,6 +48,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -64,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -461,6 +465,9 @@ public class DssBlockAnalysis {
     if (!pReceived.isReachable()) {
       soundPredecessors.add(pReceived.getSenderId());
       preconditions.removeAll(pReceived.getSenderId());
+      if (block.getPredecessorIds().size() == 1) {
+        return DssMessageProcessing.stopWith(reportUnreachableBlockEnd());
+      }
       return DssMessageProcessing.stop();
     }
     List<StateAndPrecision> deserializedStates = deserialize(pReceived);
@@ -523,6 +530,33 @@ public class DssBlockAnalysis {
     preconditions.putAll(pReceived.getSenderId(), deserializedStates);
     discarded.forEach(pse -> preconditions.remove(pse.predecessorId(), pse.stateAndPrecision()));
 
+    int coveredByOther = 0;
+    for (StateAndPrecision deserializedState : deserializedStates) {
+      for (String predecessor : preconditions.keySet()) {
+        if (predecessor.equals(pReceived.getSenderId())) {
+          continue;
+        }
+        boolean isCovered = false;
+        for (StateAndPrecision stateAndPrecision : preconditions.get(predecessor)) {
+          isCovered =
+              dcpa.getCoverageOperator()
+                  .isSubsumed(stateAndPrecision.state(), dcpa.reset(deserializedState.state()));
+          if (isCovered) {
+            break;
+          }
+        }
+        if (isCovered) {
+          coveredByOther++;
+          break;
+        }
+      }
+    }
+    if (coveredByOther == deserializedStates.size()) {
+      // we reached a fixpoint where all predecessors agree.
+      soundPredecessors.add(pReceived.getSenderId());
+      return DssMessageProcessing.stop();
+    }
+
     if (covered == deserializedStates.size()) {
       // we already have a precondition equivalent to the new one
       if (soundPredecessors.containsAll(block.getPredecessorIds())) {
@@ -577,23 +611,12 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableList.Builder<StateAndPrecision> soundSummaries = ImmutableList.builder();
     ImmutableList.Builder<StateAndPrecision> unsoundSummaries = ImmutableList.builder();
-    if (violationConditions.isEmpty() && isOriginal) {
-      AnalysisResult result = analyzeViolationCondition(ImmutableList.of());
-      if (!result.violationConditions().isEmpty()) {
-        messages.addAll(reportViolationConditions(result.violationConditions(), false));
-      } else {
-        if (result.isSound()) {
-          soundSummaries.addAll(result.summaries());
-        } else {
-          unsoundSummaries.addAll(result.summaries());
-        }
-      }
-    }
-    for (String successor : violationConditions.keySet()) {
+    if (isOriginal || !violationConditions.isEmpty()) {
       AnalysisResult result =
           analyzeViolationCondition(
               transformedImmutableListCopy(
-                  violationConditions.get(successor), v -> (ARGState) v.state()));
+                  isOriginal ? ImmutableSet.of() : violationConditions.values(),
+                  v -> (ARGState) v.state()));
       if (!result.violationConditions().isEmpty()) {
         messages.addAll(reportViolationConditions(result.violationConditions(), false));
       } else {
@@ -642,6 +665,9 @@ public class DssBlockAnalysis {
     if (!result.violationConditions().isEmpty()) {
       messages.addAll(reportViolationConditions(result.violationConditions(), false));
     }
+    if (result.summaries().isEmpty() && result.violationConditions().isEmpty()) {
+      messages.addAll(reportUnreachableBlockEnd());
+    }
     return messages.build();
   }
 
@@ -658,6 +684,9 @@ public class DssBlockAnalysis {
    */
   private AnalysisResult analyzeViolationCondition(List<ARGState> violations)
       throws CPAException, InterruptedException, SolverException {
+    if (preconditions.isEmpty() && !block.isRoot()) {
+      return new AnalysisResult(true, ImmutableList.of(), ImmutableList.of());
+    }
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     ImmutableList.Builder<AbstractState> vcs = ImmutableList.builder();
     SoundOrUnsoundPreconditions prepped = prepareReachedSet();
