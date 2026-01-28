@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 
-public record CLabelStatement(CIdExpression name) implements CAstStatement {
+/** Represents a label in C. Example: {@code label:}. */
+public record CLabelStatement(String name) implements CAstStatement {
 
   @Override
   public String toASTString() {
@@ -19,6 +20,6 @@ public record CLabelStatement(CIdExpression name) implements CAstStatement {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return name.toASTString() + ":";
+    return name + ":";
   }
 }

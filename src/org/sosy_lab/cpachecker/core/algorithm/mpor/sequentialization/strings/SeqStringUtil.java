@@ -76,7 +76,8 @@ public class SeqStringUtil {
         }
         // if this is not the last thread, add "goto T{next_thread_ID};"
         if (pNextThreadLabel.isPresent()) {
-          yield new SeqGotoStatement(pNextThreadLabel.orElseThrow()).toASTString();
+          yield new SeqGotoStatement(pNextThreadLabel.orElseThrow().toCLabelStatement())
+              .toASTString();
         }
         // otherwise, continue i.e. go to next loop iteration
         yield "continue" + SeqSyntax.SEMICOLON;

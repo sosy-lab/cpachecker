@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -21,5 +22,10 @@ public record SeqThreadLabelStatement(String name) implements SeqLabelStatement 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     return toASTStringWithoutColon() + SeqSyntax.COLON;
+  }
+
+  @Override
+  public CLabelStatement toCLabelStatement() {
+    return new CLabelStatement(name);
   }
 }

@@ -38,7 +38,7 @@ public record SeqGuardedGotoStatement(
     ImmutableList<String> ifStatements =
         ImmutableList.<String>builder()
             .addAll(precedingStatements.stream().map(CStatement::toASTString).iterator())
-            .add(new SeqGotoStatement(targetLabel).toASTString())
+            .add(new SeqGotoStatement(targetLabel.toCLabelStatement()).toASTString())
             .build();
     SeqBranchStatement ifStatement = new SeqBranchStatement(condition.toASTString(), ifStatements);
     return ifStatement.toASTString();

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 
+/** Represents a goto statement in C. Example: {@code goto label;}. */
 public record CGotoStatement(CLabelStatement label) implements CAstStatement {
 
   @Override

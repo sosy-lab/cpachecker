@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 
 public sealed interface SeqLabelStatement extends SeqStatement
     permits SeqBlockLabelStatement, SeqThreadLabelStatement {
 
   String toASTStringWithoutColon();
+
+  CLabelStatement toCLabelStatement();
 }

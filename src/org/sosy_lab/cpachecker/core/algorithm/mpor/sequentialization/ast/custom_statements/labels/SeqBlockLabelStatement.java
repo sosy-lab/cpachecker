@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 /** The label of a block of {@link CSeqThreadStatement}s. */
+// we store the thread prefix so that cloning does not require the options (shortVariables)
 public record SeqBlockLabelStatement(String threadPrefix, int number) implements SeqLabelStatement {
-
-  // we store the thread prefix so that cloning does not require the options (shortVariables)
 
   @Override
   public String toASTString() {
@@ -28,5 +28,10 @@ public record SeqBlockLabelStatement(String threadPrefix, int number) implements
 
   public SeqBlockLabelStatement withLabelNumber(int pLabelNumber) {
     return new SeqBlockLabelStatement(threadPrefix, pLabelNumber);
+  }
+
+  @Override
+  public CLabelStatement toCLabelStatement() {
+    return new CLabelStatement(toASTStringWithoutColon());
   }
 }

@@ -34,13 +34,13 @@ public record SeqBitVectorEvaluationStatement(
   public String toASTString() throws UnrecognizedCodeException {
     if (evaluationExpression.isEmpty()) {
       // no evaluation due to no global accesses -> just goto
-      SeqGotoStatement gotoStatement = new SeqGotoStatement(targetGoto);
+      SeqGotoStatement gotoStatement = new SeqGotoStatement(targetGoto.toCLabelStatement());
       return gotoStatement.toASTString();
 
     } else if (options.nondeterminismSource().equals(NondeterminismSource.NEXT_THREAD)) {
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
       String ifExpression = evaluationExpression.orElseThrow().toNegatedASTString();
-      SeqGotoStatement gotoStatement = new SeqGotoStatement(targetGoto);
+      SeqGotoStatement gotoStatement = new SeqGotoStatement(targetGoto.toCLabelStatement());
       SeqBranchStatement ifStatement =
           new SeqBranchStatement(ifExpression, ImmutableList.of(gotoStatement.toASTString()));
       return ifStatement.toASTString();

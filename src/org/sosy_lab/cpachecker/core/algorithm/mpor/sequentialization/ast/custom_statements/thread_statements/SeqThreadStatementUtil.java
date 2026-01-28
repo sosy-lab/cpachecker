@@ -234,7 +234,7 @@ public final class SeqThreadStatementUtil {
       throws UnrecognizedCodeException {
 
     StringJoiner statements = new StringJoiner(SeqSyntax.SPACE);
-    SeqGotoStatement gotoStatement = new SeqGotoStatement(pTargetGoto);
+    SeqGotoStatement gotoStatement = new SeqGotoStatement(pTargetGoto.toCLabelStatement());
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       // add all statements that are not pruned, even when there is a target goto
       if (!injectedStatement.isPrunedWithTargetGoto()) {

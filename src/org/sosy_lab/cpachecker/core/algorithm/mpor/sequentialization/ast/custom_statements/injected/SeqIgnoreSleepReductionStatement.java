@@ -37,7 +37,7 @@ public record SeqIgnoreSleepReductionStatement(
 
     // negate the evaluation expression
     String ifExpression = bitVectorEvaluationExpression.toNegatedASTString();
-    SeqGotoStatement gotoNext = new SeqGotoStatement(targetGoto);
+    SeqGotoStatement gotoNext = new SeqGotoStatement(targetGoto.toCLabelStatement());
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(ifExpression, ImmutableList.of(gotoNext.toASTString()));
 
