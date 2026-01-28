@@ -111,6 +111,11 @@ public class AcslMetadataParsingTest {
     // function contracts
     b.add(
         task(
+            "square.c",
+            ImmutableList.of("ensures b >= 0; ensures b == a * a;"),
+            new CodeLoctation(15, 1)));
+    b.add(
+        task(
             "power.c",
             ImmutableList.of("requires a > 0; requires b>= 0; ensures c > 0;"),
             new CodeLoctation(16, 1)));

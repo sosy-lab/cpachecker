@@ -9,9 +9,12 @@
 
 extern int __VERIFIER_nondet_int(void);
 
-//@ ensures \result >= 0; ensures \result == a*a;
-int square(int a){
-  return a * a;
+/*@ ensures b >= 0;
+    ensures b == a * a;
+*/
+int square (int a){
+  int b = a * a;
+  return b;
 }
 
 int main() {
