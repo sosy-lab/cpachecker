@@ -20,13 +20,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
@@ -94,7 +92,6 @@ public class DssBlockAnalysis {
   private final DssMessageFactory messageFactory;
   private final Multimap<String, @NonNull StateAndPrecision> preconditions;
   private final Multimap<String, @NonNull StateAndPrecision> violationConditions;
-  private final SequencedSet<String> soundPredecessors;
 
   private final ConfigurableProgramAnalysis cpa;
   private final BlockNode block;
@@ -147,7 +144,6 @@ public class DssBlockAnalysis {
     preconditions = ArrayListMultimap.create();
     violationConditions = ArrayListMultimap.create();
     forcefullyCollectAllArgPaths = pOptions.forcefullyCollectAllViolationConditions();
-    soundPredecessors = new LinkedHashSet<>();
 
     isOriginal = false;
   }
@@ -373,7 +369,6 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportPreconditions(
       Collection<@NonNull StateAndPrecision> summaries, boolean isSound)
       throws CPAException, InterruptedException {
-    isSound &= soundPredecessors.containsAll(block.getPredecessorIds());
 
     // reset all summaries and run cpa algorithm on them to remove redundant ones
     ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
@@ -465,7 +460,6 @@ public class DssBlockAnalysis {
       throws InterruptedException, SolverException, CPAException {
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     if (!pReceived.isReachable()) {
-      soundPredecessors.add(pReceived.getSenderId());
       preconditions.removeAll(pReceived.getSenderId());
       if (block.getPredecessorIds().size() == 1) {
         return DssMessageProcessing.stopWith(reportUnreachableBlockEnd());
@@ -833,9 +827,7 @@ public class DssBlockAnalysis {
           ImmutableList.of(new StateAndPrecision(makeStartState(), makeStartPrecision())));
     }
     ImmutableList.Builder<StateAndPrecision> toProcess = ImmutableList.builder();
-    boolean containsTopState =
-        (!isSound || block.allPredecessorsAreLoopPredecessors())
-            && !soundPredecessors.containsAll(block.getPredecessorIds());
+    boolean containsTopState = (!isSound || block.allPredecessorsAreLoopPredecessors());
     if (containsTopState) {
       toProcess.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     }
