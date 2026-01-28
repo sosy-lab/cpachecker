@@ -13,10 +13,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAssumeStatement;
@@ -34,7 +34,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   private final MPOROptions options;
 
-  private final Optional<SeqThreadLabelStatement> nextThreadLabel;
+  private final Optional<CLabelStatement> nextThreadLabel;
 
   /**
    * The goto label for the block, e.g. {@code T0_42;}. It is mandatory for all blocks, but may not
@@ -48,7 +48,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   public SeqThreadStatementBlock(
       MPOROptions pOptions,
-      Optional<SeqThreadLabelStatement> pNextThreadLabel,
+      Optional<CLabelStatement> pNextThreadLabel,
       SeqBlockLabelStatement pLabel,
       ImmutableList<CSeqThreadStatement> pStatements) {
 

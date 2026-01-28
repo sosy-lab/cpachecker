@@ -12,8 +12,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatementBuilder;
@@ -71,14 +71,14 @@ public record GhostElementBuilder(
         threadSyncFlags);
   }
 
-  private ImmutableMap<MPORThread, SeqThreadLabelStatement> buildThreadLabels() {
+  private ImmutableMap<MPORThread, CLabelStatement> buildThreadLabels() {
     if (!options.isThreadLabelRequired()) {
       return ImmutableMap.of();
     }
-    ImmutableMap.Builder<MPORThread, SeqThreadLabelStatement> rLabels = ImmutableMap.builder();
+    ImmutableMap.Builder<MPORThread, CLabelStatement> rLabels = ImmutableMap.builder();
     for (MPORThread thread : threads) {
       String name = SeqNameUtil.buildThreadPrefix(options, thread.id());
-      rLabels.put(thread, new SeqThreadLabelStatement(name));
+      rLabels.put(thread, new CLabelStatement(name));
     }
     return rLabels.buildOrThrow();
   }

@@ -15,11 +15,11 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.gotos.SeqGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -47,7 +47,7 @@ public class SeqStringUtil {
 
   public static Optional<String> tryBuildBlockSuffix(
       MPOROptions pOptions,
-      Optional<SeqThreadLabelStatement> pNextThreadLabel,
+      Optional<CLabelStatement> pNextThreadLabel,
       ImmutableList<CSeqThreadStatement> pStatements)
       throws UnrecognizedCodeException {
 
@@ -61,7 +61,7 @@ public class SeqStringUtil {
   }
 
   private static String buildBlockSuffixByControlStatementEncoding(
-      MPOROptions pOptions, Optional<SeqThreadLabelStatement> pNextThreadLabel)
+      MPOROptions pOptions, Optional<CLabelStatement> pNextThreadLabel)
       throws UnrecognizedCodeException {
 
     // use control encoding of the statement since we append the suffix to the statement
@@ -76,8 +76,7 @@ public class SeqStringUtil {
         }
         // if this is not the last thread, add "goto T{next_thread_ID};"
         if (pNextThreadLabel.isPresent()) {
-          yield new SeqGotoStatement(pNextThreadLabel.orElseThrow().toCLabelStatement())
-              .toASTString();
+          yield new SeqGotoStatement(pNextThreadLabel.orElseThrow()).toASTString();
         }
         // otherwise, continue i.e. go to next loop iteration
         yield "continue" + SeqSyntax.SEMICOLON;

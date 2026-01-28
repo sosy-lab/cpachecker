@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -26,7 +26,7 @@ public record GhostElements(
     Optional<BitVectorVariables> bitVectorVariables,
     ImmutableMap<MPORThread, FunctionStatements> functionStatements,
     ProgramCounterVariables programCounterVariables,
-    ImmutableMap<MPORThread, SeqThreadLabelStatement> threadLabels,
+    ImmutableMap<MPORThread, CLabelStatement> threadLabels,
     ThreadSyncFlags threadSyncFlags) {
 
   public FunctionStatements getFunctionStatementsByThread(MPORThread pThread) {
@@ -38,11 +38,11 @@ public record GhostElements(
   }
 
   /**
-   * Returns the {@link SeqThreadLabelStatement} of the next thread relative to {@code pThread},
-   * i.e. the one with ID {@code pThread.id() + 1}. Returns {@link Optional#empty()} if {@code
-   * pThread} is the last thread, or if there are no {@link SeqThreadLabelStatement}s at all.
+   * Returns the {@link CLabelStatement} of the next thread relative to {@code pThread}, i.e. the
+   * one with ID {@code pThread.id() + 1}. Returns {@link Optional#empty()} if {@code pThread} is
+   * the last thread, or if there are no {@link CLabelStatement}s at all.
    */
-  public Optional<SeqThreadLabelStatement> tryGetNextThreadLabel(MPORThread pThread) {
+  public Optional<CLabelStatement> tryGetNextThreadLabel(MPORThread pThread) {
     // shortcut if there are no thread labels (because they are unnecessary due to the options)
     if (threadLabels.isEmpty()) {
       return Optional.empty();

@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -29,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqCondWaitStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqGhostOnlyStatement;
@@ -195,8 +195,7 @@ public record SeqThreadStatementClauseBuilder(
       return ImmutableList.of();
     }
 
-    Optional<SeqThreadLabelStatement> nextThreadLabel =
-        ghostElements.tryGetNextThreadLabel(pThread);
+    Optional<CLabelStatement> nextThreadLabel = ghostElements.tryGetNextThreadLabel(pThread);
     CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
     int labelPc = pThreadNode.pc;
     int targetPc = firstThreadEdge.getSuccessor().pc;
@@ -250,7 +249,7 @@ public record SeqThreadStatementClauseBuilder(
 
   private ImmutableList<SeqThreadStatementClause> handleMultipleClauseEdge(
       MPORThread pThread,
-      Optional<SeqThreadLabelStatement> pNextThreadLabel,
+      Optional<CLabelStatement> pNextThreadLabel,
       CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
@@ -285,7 +284,7 @@ public record SeqThreadStatementClauseBuilder(
    */
   private ImmutableList<SeqThreadStatementClause> buildCondWaitClauses(
       MPORThread pThread,
-      Optional<SeqThreadLabelStatement> pNextThreadLabel,
+      Optional<CLabelStatement> pNextThreadLabel,
       CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
@@ -313,7 +312,7 @@ public record SeqThreadStatementClauseBuilder(
 
   private SeqThreadStatementClause buildClause(
       MPORThread pThread,
-      Optional<SeqThreadLabelStatement> pNextThreadLabel,
+      Optional<CLabelStatement> pNextThreadLabel,
       int pLabelPc,
       ImmutableList<CSeqThreadStatement> pStatements) {
 
