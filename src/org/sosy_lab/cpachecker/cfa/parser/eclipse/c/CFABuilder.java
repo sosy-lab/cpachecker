@@ -503,17 +503,17 @@ class CFABuilder extends ASTVisitor {
     we can get the Cfa Node from the tightest statement for the comment location.
     If "getTightestStatementForStarting()" fails, the comment is not a regular statement annotation.
      */
-    ImmutableSet.Builder<AcslComment> notAStatementAnnotationBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<AcslComment> notARegularAnnotationBuilder = ImmutableSet.builder();
 
     for (AcslComment comment : pResult.acslComments().orElseThrow()) {
       Optional<CFANode> nodeForComment = nodeForRegularAnnotation(comment, pAstCfaRelation);
       if (nodeForComment.isPresent()) {
         comment.updateCfaNode(nodeForComment.orElseThrow());
       } else {
-        notAStatementAnnotationBuilder.add(comment);
+        notARegularAnnotationBuilder.add(comment);
       }
     }
-    ImmutableSet<AcslComment> notStatementAnnotations = notAStatementAnnotationBuilder.build();
+    ImmutableSet<AcslComment> notRegularAnnotations = notARegularAnnotationBuilder.build();
 
     /*
     Step 2: Search the reamining Acsl Commnets, that are not statement annotations for function contracts
@@ -521,7 +521,7 @@ class CFABuilder extends ASTVisitor {
      */
     ImmutableSet.Builder<AcslComment> notAFunctionContractBuilder = ImmutableSet.builder();
 
-    for (AcslComment comment : notStatementAnnotations) {
+    for (AcslComment comment : notRegularAnnotations) {
       Optional<FunctionEntryNode> functionEntryNode =
           nodeForFunctionContract(comment, pAstCfaRelation, pResult.acslComments().orElseThrow());
       if (functionEntryNode.isPresent()) {
