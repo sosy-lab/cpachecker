@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
-import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -29,9 +28,9 @@ public final class CForLoopStatement extends CLoopStatement {
       CVariableDeclaration pCounterDeclaration,
       CExportExpression pCondition,
       CExpressionAssignmentStatement pIterationUpdate,
-      ImmutableList<CExportStatement> pLoopStatements) {
+      CCompoundStatement pCompoundStatement) {
 
-    super(pCondition, pLoopStatements);
+    super(pCondition, pCompoundStatement);
     counterDeclaration = pCounterDeclaration;
     iterationUpdate = pIterationUpdate;
   }
@@ -40,10 +39,7 @@ public final class CForLoopStatement extends CLoopStatement {
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    StringJoiner joiner = new StringJoiner("\n");
-
-    StringJoiner forLoopHeader = new StringJoiner(" ");
-    forLoopHeader.add("for");
+    StringJoiner joiner = new StringJoiner(System.lineSeparator());
 
     StringJoiner innerJoiner = new StringJoiner(" ");
     // build the variable declaration, it already contains a ';' suffix
@@ -52,9 +48,8 @@ public final class CForLoopStatement extends CLoopStatement {
     // exclude the semicolon in the assignment statement
     innerJoiner.add(iterationUpdate.toASTString(pAAstNodeRepresentation).replace(";", ""));
 
-    forLoopHeader.add("(" + innerJoiner + ")");
-    joiner.add(forLoopHeader.toString());
-    joiner.add(buildLoopStatements(pAAstNodeRepresentation));
+    joiner.add("for (" + innerJoiner + ")");
+    joiner.add(compoundStatement.toASTString(pAAstNodeRepresentation));
 
     return joiner.toString();
   }

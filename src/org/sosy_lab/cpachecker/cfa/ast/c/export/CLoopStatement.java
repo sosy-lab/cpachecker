@@ -8,11 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
-import com.google.common.collect.ImmutableList;
-import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
 public abstract sealed class CLoopStatement implements CExportStatement
     permits CForLoopStatement, CWhileLoopStatement {
 
@@ -26,20 +21,10 @@ public abstract sealed class CLoopStatement implements CExportStatement
    * The list of statements inside the loop. Can be empty, e.g., to simulate an infinite loop that
    * does nothing.
    */
-  final ImmutableList<CExportStatement> loopStatements;
+  final CCompoundStatement compoundStatement;
 
-  CLoopStatement(CExportExpression pCondition, ImmutableList<CExportStatement> pLoopStatements) {
+  CLoopStatement(CExportExpression pCondition, CCompoundStatement pCompoundStatement) {
     condition = pCondition;
-    loopStatements = pLoopStatements;
-  }
-
-  String buildLoopStatements(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
-    StringJoiner joiner = new StringJoiner("\n");
-    for (CExportStatement loopStatement : loopStatements) {
-      joiner.add(loopStatement.toASTString(pAAstNodeRepresentation));
-    }
-    return joiner.toString();
+    compoundStatement = pCompoundStatement;
   }
 }
