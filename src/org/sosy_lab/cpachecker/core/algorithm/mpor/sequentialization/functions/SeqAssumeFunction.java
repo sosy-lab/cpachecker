@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
@@ -36,8 +38,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -94,10 +94,21 @@ public final class SeqAssumeFunction extends SeqFunction {
           ImmutableList.of(),
           ABORT_FUNCTION_DECLARATION);
 
+  private static final CFunctionCallExpression ASSUME_FUNCTION_CALL_EXPRESSION_DUMMY =
+      new CFunctionCallExpression(
+          FileLocation.DUMMY,
+          CVoidType.VOID,
+          ASSUME_ID_EXPRESSION,
+          ImmutableList.of(COND_ID_EXPRESSION),
+          ASSUME_FUNCTION_DECLARATION);
+
   // CFunctionCallStatement
 
   public static final CFunctionCallStatement ABORT_FUNCTION_CALL_STATEMENT =
       new CFunctionCallStatement(FileLocation.DUMMY, ABORT_FUNCTION_CALL_EXPRESSION);
+
+  private static final CFunctionCallStatement ASSUME_FUNCTION_CALL_STATEMENT_DUMMY =
+      new CFunctionCallStatement(FileLocation.DUMMY, ASSUME_FUNCTION_CALL_EXPRESSION_DUMMY);
 
   public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression)
       throws UnrecognizedCodeException {
@@ -128,13 +139,14 @@ public final class SeqAssumeFunction extends SeqFunction {
   }
 
   /**
-   * Returns a {@link String} representation of an assume function call i.e. {@code
-   * assume(pCondition);}.
+   * Returns a {@link CWrapperFunctionCallStatement} representation of an assume function call i.e.
+   * {@code assume(pCondition);}.
    */
-  public static String buildAssumeFunctionCallStatement(ExpressionTree<CAstExpression> pCondition) {
-    return ASSUME_ID_EXPRESSION.getName()
-        + SeqStringUtil.wrapInBrackets(pCondition.toString())
-        + SeqSyntax.SEMICOLON;
+  public static CWrapperFunctionCallStatement buildAssumeFunctionCallStatement(
+      ExpressionTree<CAstExpression> pCondition) {
+
+    return new CWrapperFunctionCallStatement(
+        ASSUME_FUNCTION_CALL_STATEMENT_DUMMY, ImmutableList.of(new CExpressionTree(pCondition)));
   }
 
   /**

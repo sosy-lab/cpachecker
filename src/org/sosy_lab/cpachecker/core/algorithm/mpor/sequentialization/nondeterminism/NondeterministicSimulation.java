@@ -17,6 +17,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -26,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceLastThreadOrderInjector;
@@ -160,7 +160,7 @@ public abstract class NondeterministicSimulation {
             SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));
         ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
             SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses.get(pThread));
-        SeqBranchStatement lastThreadOrderStatement =
+        CIfStatement lastThreadOrderStatement =
             new ReduceLastThreadOrderInjector(
                     options,
                     clauses.size(),

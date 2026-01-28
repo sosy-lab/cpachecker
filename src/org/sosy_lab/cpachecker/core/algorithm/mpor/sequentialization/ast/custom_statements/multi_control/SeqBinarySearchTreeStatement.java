@@ -51,8 +51,8 @@ public record SeqBinarySearchTreeStatement(
   }
 
   /**
-   * Recursively builds a binary if-else search tree for {@code pAllStatements} and returns the
-   * resulting root statement (SeqStatement).
+   * Recursively builds a binary search tree via {@code if-else} statements for {@code
+   * pAllStatements} and returns the resulting root statement.
    */
   private SeqStatement recursivelyBuildTree(
       final ImmutableList<Entry<CExpression, ? extends SeqStatement>> pAllStatements,

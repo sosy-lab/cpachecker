@@ -20,6 +20,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -70,7 +73,7 @@ public record ReduceLastThreadOrderInjector(
    * <p>This ensures that if {@code LAST_THREAD < CURRENT_THREAD}, the simulation performs a context
    * switch only when a conflict exists between the two threads.
    */
-  public SeqBranchStatement buildLastThreadOrderStatement(MPORThread pThread)
+  public CIfStatement buildLastThreadOrderStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     checkArgument(
@@ -102,19 +105,21 @@ public record ReduceLastThreadOrderInjector(
                 SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
                 BinaryOperator.LESS_THAN);
 
-    // if (LAST_THREAD < n)
-    final String ifBlock;
+    // if (LAST_THREAD < n) ...
+    CWrapperExpression ifCondition = new CWrapperExpression(lastThreadLessThanThreadId);
     if (lastBitVectorEvaluation.isEmpty()) {
-      // if the evaluation is empty, it results in assume(0) i.e. abort()
-      ifBlock = SeqAssumeFunction.ABORT_FUNCTION_CALL_STATEMENT.toASTString();
+      return new CIfStatement(
+          ifCondition,
+          // if the evaluation is empty, it results in assume(0) i.e. abort()
+          ImmutableList.of(new CWrapperStatement(SeqAssumeFunction.ABORT_FUNCTION_CALL_STATEMENT)));
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is in conflict with LAST_THREAD
-      ifBlock =
-          SeqAssumeFunction.buildAssumeFunctionCallStatement(
-              lastBitVectorEvaluation.orElseThrow().expressionTree());
+      return new CIfStatement(
+          ifCondition,
+          ImmutableList.of(
+              SeqAssumeFunction.buildAssumeFunctionCallStatement(
+                  lastBitVectorEvaluation.orElseThrow().expressionTree())));
     }
-    return new SeqBranchStatement(
-        lastThreadLessThanThreadId.toASTString(), ImmutableList.of(ifBlock));
   }
 
   // Last Updates ==================================================================================

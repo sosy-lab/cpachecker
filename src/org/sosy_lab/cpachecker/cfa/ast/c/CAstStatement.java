@@ -21,7 +21,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
  * {@link CStatement}.
  */
 public sealed interface CAstStatement
-    permits CGotoStatement, CIfStatement, CLabelStatement, CWrapperStatement {
+    permits CGotoStatement,
+        CIfStatement,
+        CLabelStatement,
+        CWrapperFunctionCallStatement,
+        CWrapperStatement {
 
   String toASTString();
 
