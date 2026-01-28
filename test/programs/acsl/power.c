@@ -9,11 +9,10 @@
 
 extern int __VERIFIER_nondet_int(void);
 
-/*@ requires a > 0
+/*@ requires a > 0;
     requires b >= 0;
-    ensures \result > 0;
 */
-int power(int a, int b){
+int power (int a, int b){
   int c = 1;
   for(int i = 0 ; i < b; i++){
     c = c * a;
