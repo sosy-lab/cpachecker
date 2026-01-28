@@ -9,16 +9,19 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
-public record CStatementWrapper(CStatement statement) implements CAstStatement {
+// TODO maybe this should be more restricted to And, Or instead of ExpressionTree
+public record CExpressionTree(ExpressionTree<CExpression> expressionTree)
+    implements CAstExpression {
 
   @Override
   public String toASTString() {
-    return statement.toASTString();
+    return toASTString(AAstNodeRepresentation.DEFAULT);
   }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return statement().toASTString(pAAstNodeRepresentation);
+    return expressionTree.toString();
   }
 }

@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 
 /**
- * Provides a common interface for {@link CStatement} (via {@link CStatementWrapper}) and statements
+ * Provides a common interface for {@link CStatement} (via {@link CWrapperStatement}) and statements
  * that are exported in actual C programs like a {@link CIfStatement}.
  *
  * <p>This an extra interface is added because using {@link CStatement} as the common base would
@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
  * {@link CStatement}.
  */
 public sealed interface CAstStatement
-    permits CGotoStatement, CIfStatement, CLabelStatement, CStatementWrapper {
+    permits CGotoStatement, CIfStatement, CLabelStatement, CWrapperStatement {
 
   String toASTString();
 
