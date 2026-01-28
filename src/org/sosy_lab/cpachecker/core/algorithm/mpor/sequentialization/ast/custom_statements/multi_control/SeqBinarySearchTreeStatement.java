@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /** Represents a binary search tree with {@code if-else} branches. */
 public record SeqBinarySearchTreeStatement(
     CLeftHandSide expression,
-    ImmutableList<String> precedingStatements,
+    ImmutableList<CExportStatement> precedingStatements,
     ImmutableMap<CExportExpression, ? extends CExportStatement> statements,
     CBinaryExpressionBuilder binaryExpressionBuilder)
     implements SeqMultiControlStatement {
@@ -40,12 +40,16 @@ public record SeqBinarySearchTreeStatement(
       throws UnrecognizedCodeException {
 
     StringJoiner tree = new StringJoiner(SeqSyntax.NEWLINE);
-    precedingStatements.forEach(statement -> tree.add(statement));
+    for (CExportStatement precedingStatement : precedingStatements) {
+      tree.add(precedingStatement.toASTString(pAAstNodeRepresentation));
+    }
+
     // use list<entry<,>> instead of map so that we can split it in the middle for the bin tree
     ImmutableList<Entry<CExportExpression, ? extends CExportStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     CExportStatement treeStatement = recursivelyBuildTree(statementList, statementList, expression);
     tree.add(treeStatement.toASTString(pAAstNodeRepresentation));
+
     return tree.toString();
   }
 

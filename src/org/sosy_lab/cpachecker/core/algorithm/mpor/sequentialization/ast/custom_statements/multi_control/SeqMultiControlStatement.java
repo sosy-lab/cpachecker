@@ -27,7 +27,7 @@ public sealed interface SeqMultiControlStatement extends CExportStatement
   static SeqMultiControlStatement buildMultiControlStatementByEncoding(
       MultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
-      ImmutableList<String> pPrecedingStatements,
+      ImmutableList<CExportStatement> pPrecedingStatements,
       // ImmutableMap retains insertion order when using ImmutableMap.Builder
       ImmutableMap<CExportExpression, ? extends CExportStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {

@@ -19,7 +19,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -89,7 +91,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   }
 
   @Override
-  public ImmutableList<String> buildPrecedingStatements(MPORThread pThread)
+  public ImmutableList<CExportStatement> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
@@ -97,9 +99,9 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     Optional<ImmutableList<CStatement>> nextThreadStatements =
         tryBuildNextThreadStatements(pThread);
 
-    ImmutableList.Builder<String> rStatements = ImmutableList.builder();
-    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(s.toASTString()));
-    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(s.toASTString())));
+    ImmutableList.Builder<CExportStatement> rStatements = ImmutableList.builder();
+    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
+    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(new CStatementWrapper(s))));
     return rStatements.build();
   }
 

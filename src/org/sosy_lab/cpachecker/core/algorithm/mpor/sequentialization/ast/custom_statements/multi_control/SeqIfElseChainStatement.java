@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record SeqIfElseChainStatement(
-    ImmutableList<String> precedingStatements,
+    ImmutableList<CExportStatement> precedingStatements,
     ImmutableMap<CExportExpression, ? extends CExportStatement> statements)
     implements SeqMultiControlStatement {
 
@@ -32,7 +32,9 @@ public record SeqIfElseChainStatement(
     StringJoiner ifElseChain = new StringJoiner(SeqSyntax.NEWLINE);
 
     // first add preceding statements
-    precedingStatements.forEach(statement -> ifElseChain.add(statement));
+    for (CExportStatement precedingStatement : precedingStatements) {
+      ifElseChain.add(precedingStatement.toASTString(pAAstNodeRepresentation));
+    }
 
     // then add all statements via if ... else { if ... } from the bottom up
     ImmutableList<Entry<CExportExpression, ? extends CExportStatement>> statementList =

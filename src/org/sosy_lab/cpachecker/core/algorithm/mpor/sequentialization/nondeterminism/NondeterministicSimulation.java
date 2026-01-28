@@ -14,10 +14,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
@@ -130,8 +128,8 @@ public abstract class NondeterministicSimulation {
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
 
-    ImmutableList<String> precedingStatements =
-        ImmutableList.<String>builder()
+    ImmutableList<CExportStatement> precedingStatements =
+        ImmutableList.<CExportStatement>builder()
             .addAll(buildPrecedingReductionStatements(pThread))
             .addAll(buildPrecedingStatements(pThread))
             .build();
@@ -148,10 +146,10 @@ public abstract class NondeterministicSimulation {
    * Builds the core reduction instrumentation of {@link MPOROptions#reduceLastThreadOrder()} that
    * precedes all thread simulations, if enabled.
    */
-  private ImmutableList<String> buildPrecedingReductionStatements(MPORThread pThread)
+  private ImmutableList<CExportStatement> buildPrecedingReductionStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<String> rStatements = ImmutableList.builder();
+    ImmutableList.Builder<CExportStatement> rStatements = ImmutableList.builder();
 
     if (options.reduceLastThreadOrder()) {
       // do not create the statement for the main thread, since LAST_THREAD < 0 never holds
@@ -171,7 +169,7 @@ public abstract class NondeterministicSimulation {
                     memoryModel.orElseThrow(),
                     utils)
                 .buildLastThreadOrderStatement(pThread);
-        rStatements.add(lastThreadOrderStatement.toASTString());
+        rStatements.add(lastThreadOrderStatement);
       }
     }
 
@@ -206,15 +204,7 @@ public abstract class NondeterministicSimulation {
   /**
    * Builds the list of statements, e.g. assumptions or assignments, that are placed directly before
    * the {@link SeqMultiControlStatement} of a single {@code pThread}.
-   *
-   * <p>Given that we are working with {@link CStatement}, the preceding statements can only contain
-   * e.g. calls to {@code assume} or {@link CAssignment}s, not {@code if} guards that must be
-   * handled by {@link NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}.
-   *
-   * <p>Nonetheless, everything that can be expressed using {@link CStatement}s must be included
-   * here to combine the common functionality for use in {@link
-   * NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}.
    */
-  abstract ImmutableList<String> buildPrecedingStatements(MPORThread pThread)
+  abstract ImmutableList<CExportStatement> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException;
 }

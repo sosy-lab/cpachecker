@@ -16,6 +16,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
@@ -42,7 +44,7 @@ class NextThreadAndNumStatementsNondeterministicSimulation
   }
 
   @Override
-  public ImmutableList<String> buildPrecedingStatements(MPORThread pThread)
+  public ImmutableList<CExportStatement> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
@@ -63,12 +65,12 @@ class NextThreadAndNumStatementsNondeterministicSimulation
                     BinaryOperator.GREATER_THAN));
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
 
-    ImmutableList.Builder<String> rStatements = ImmutableList.builder();
-    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(s.toASTString()));
-    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(s.toASTString())));
-    rStatements.add(roundMaxNondetAssignment.toASTString());
-    rStatements.add(roundMaxGreaterZeroAssumption.toASTString());
-    rStatements.add(roundReset.toASTString());
+    ImmutableList.Builder<CExportStatement> rStatements = ImmutableList.builder();
+    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
+    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(new CStatementWrapper(s))));
+    rStatements.add(new CStatementWrapper(roundMaxNondetAssignment));
+    rStatements.add(new CStatementWrapper(roundMaxGreaterZeroAssumption));
+    rStatements.add(new CStatementWrapper(roundReset));
     return rStatements.build();
   }
 }

@@ -104,10 +104,10 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   }
 
   @Override
-  public ImmutableList<String> buildPrecedingStatements(MPORThread pThread) {
+  public ImmutableList<CExportStatement> buildPrecedingStatements(MPORThread pThread) {
     // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
-    return ImmutableList.<String>builder().add(roundReset.toASTString()).build();
+    return ImmutableList.<CExportStatement>builder().add(new CStatementWrapper(roundReset)).build();
   }
 
   private CExportExpression buildRoundMaxGreaterZeroExpression(

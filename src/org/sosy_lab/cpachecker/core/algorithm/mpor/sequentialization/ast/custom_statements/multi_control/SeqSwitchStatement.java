@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public record SeqSwitchStatement(
     CExpression switchExpression,
-    ImmutableList<String> precedingStatements,
+    ImmutableList<CExportStatement> precedingStatements,
     ImmutableMap<CExportExpression, ? extends CExportStatement> statements)
     implements SeqMultiControlStatement {
 
@@ -44,7 +44,10 @@ public record SeqSwitchStatement(
 
     StringJoiner switchCase = new StringJoiner(SeqSyntax.NEWLINE);
     // first build preceding statements
-    precedingStatements.forEach(statement -> switchCase.add(statement));
+    for (CExportStatement precedingStatement : precedingStatements) {
+      switchCase.add(precedingStatement.toASTString(pAAstNodeRepresentation));
+    }
+
     // add switch (expression) ...
     switchCase.add(
         Joiner.on(SeqSyntax.SPACE)
@@ -52,6 +55,7 @@ public record SeqSwitchStatement(
                 SWITCH_KEYWORD,
                 SeqStringUtil.wrapInBrackets(switchExpression.toASTString()),
                 SeqSyntax.CURLY_BRACKET_LEFT));
+
     // add all cases
     for (var entry : statements.entrySet()) {
       CExportStatement statement = entry.getValue();
