@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CFunctionDefinitionStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -24,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
  * {@code main()} function, but can also be placed in a separate function, e.g. when {@link
  * MPOROptions#loopUnrolling()} is enabled.
  */
-public final class SeqThreadSimulationFunction extends SeqFunction {
+public final class SeqThreadSimulationFunction extends CFunctionDefinitionStatement {
 
   public final MPORThread thread;
 

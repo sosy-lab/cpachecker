@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CForLoopStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CFunctionDefinitionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CLoopStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CWhileLoopStatement;
@@ -52,7 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** A class to represent the {@code main()} function in the sequentialization. */
-public final class SeqMainFunction extends SeqFunction {
+public final class SeqMainFunction extends CFunctionDefinitionStatement {
 
   // CFunctionType
 

@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CFunctionCallStatementWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CFunctionDefinitionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -44,7 +45,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
-public final class SeqAssumeFunction extends SeqFunction {
+public class SeqAssumeFunction extends CFunctionDefinitionStatement {
 
   // CParameterDeclaration
 
@@ -116,7 +117,6 @@ public final class SeqAssumeFunction extends SeqFunction {
   }
 
   private static CCompoundStatement buildBody(CBinaryExpression pCondEqualsZeroExpression) {
-
     CExpressionWrapper ifCondition = new CExpressionWrapper(pCondEqualsZeroExpression);
     ImmutableList<CExportStatement> ifBlock =
         ImmutableList.of(new CStatementWrapper(ABORT_FUNCTION_CALL_STATEMENT));
