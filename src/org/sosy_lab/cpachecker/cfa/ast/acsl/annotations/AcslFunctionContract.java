@@ -19,7 +19,7 @@ public final class AcslFunctionContract extends AAcslAnnotation {
   private final @Nullable ImmutableSet<AcslEnsures> ensuresClauses;
   private final @Nullable ImmutableSet<AcslRequires> requiresClauses;
 
-  AcslFunctionContract(
+  public AcslFunctionContract(
       FileLocation pFileLocation,
       @Nullable ImmutableSet<AcslEnsures> pEnsuresClauses,
       @Nullable ImmutableSet<AcslRequires> pRequiresClauses1) {

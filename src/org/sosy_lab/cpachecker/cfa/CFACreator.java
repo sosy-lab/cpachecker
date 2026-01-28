@@ -67,8 +67,10 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
@@ -813,6 +815,7 @@ public class CFACreator {
         ImmutableSetMultimap.builder();
 
     for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
+
       FluentIterable<AAcslAnnotation> allAnnotations =
           FluentIterable.from(
               AcslParser.parseAcslComment(
@@ -828,15 +831,25 @@ public class CFACreator {
               .filter(a -> a instanceof AcslLoopInvariant)
               .transform(a -> (AcslLoopInvariant) a));
 
-      functionContractBuilder.putAll(
-          comment.getCfaNode(),
-          allAnnotations
-              .filter(a -> a instanceof AcslFunctionContract)
-              .transform(a -> (AcslFunctionContract) a));
-
       assignsBuilder.putAll(
           comment.getCfaNode(),
           allAnnotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a));
+
+      if (comment.getCfaNode() instanceof FunctionEntryNode) {
+        ImmutableSet.Builder<AcslEnsures> ensuresBuilder = ImmutableSet.builder();
+        ImmutableSet.Builder<AcslRequires> requiresBuilder = ImmutableSet.builder();
+
+        ensuresBuilder.addAll(
+            allAnnotations.filter(a -> a instanceof AcslEnsures).transform(a -> (AcslEnsures) a));
+        requiresBuilder.addAll(
+            allAnnotations.filter(a -> a instanceof AcslRequires).transform(a -> (AcslRequires) a));
+
+        ImmutableSet<AcslEnsures> ensures = ensuresBuilder.build();
+        ImmutableSet<AcslRequires> requires = requiresBuilder.build();
+        AcslFunctionContract contract =
+            new AcslFunctionContract(comment.getFileLocation(), ensures, requires);
+        functionContractBuilder.put(comment.getCfaNode(), contract);
+      }
     }
 
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions = assertionBuilder.build();
