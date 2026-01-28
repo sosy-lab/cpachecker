@@ -19,8 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -31,13 +30,13 @@ public abstract sealed class SeqFunction
    * The {@link CFunctionDeclaration} only contains a {@link String} representation of the name, but
    * a {@link CFunctionCallExpression} requires a {@link CIdExpression}, so we keep this separate.
    */
-  final CIdExpression name;
+  private final CIdExpression name;
 
-  public final CFunctionDeclaration declaration;
+  private final CFunctionDeclaration declaration;
 
-  final ImmutableList<CExportStatement> body;
+  private final CCompoundStatement body;
 
-  SeqFunction(CFunctionDeclaration pDeclaration, ImmutableList<CExportStatement> pBody) {
+  SeqFunction(CFunctionDeclaration pDeclaration, CCompoundStatement pBody) {
     name = new CIdExpression(FileLocation.DUMMY, pDeclaration);
     declaration = pDeclaration;
     body = pBody;
@@ -67,12 +66,9 @@ public abstract sealed class SeqFunction
 
   /** Returns a {@link String} of the entire function, including signature and body. */
   public final String buildDefinition() throws UnrecognizedCodeException {
-    StringJoiner rDefinition = new StringJoiner(SeqSyntax.NEWLINE);
-    rDefinition.add(SeqStringUtil.appendCurlyBracketLeft(buildSignature()));
-    for (CExportStatement statement : body) {
-      rDefinition.add(statement.toASTString());
-    }
-    rDefinition.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+    StringJoiner rDefinition = new StringJoiner(System.lineSeparator());
+    rDefinition.add(buildSignature());
+    rDefinition.add(body.toASTString());
     return rDefinition.toString();
   }
 
@@ -86,5 +82,17 @@ public abstract sealed class SeqFunction
         new CFunctionCallExpression(
             FileLocation.DUMMY, declaration.getType(), name, pParameters, declaration);
     return new CFunctionCallStatement(FileLocation.DUMMY, functionCallExpression);
+  }
+
+  public CIdExpression getName() {
+    return name;
+  }
+
+  public CFunctionDeclaration getDeclaration() {
+    return declaration;
+  }
+
+  public CCompoundStatement getBody() {
+    return body;
   }
 }

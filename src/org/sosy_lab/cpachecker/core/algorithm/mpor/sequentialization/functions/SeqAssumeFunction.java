@@ -115,13 +115,12 @@ public final class SeqAssumeFunction extends SeqFunction {
     super(ASSUME_FUNCTION_DECLARATION, buildBody(pCondEqualsZeroExpression));
   }
 
-  private static ImmutableList<CExportStatement> buildBody(
-      CBinaryExpression pCondEqualsZeroExpression) {
+  private static CCompoundStatement buildBody(CBinaryExpression pCondEqualsZeroExpression) {
 
     CExpressionWrapper ifCondition = new CExpressionWrapper(pCondEqualsZeroExpression);
     ImmutableList<CExportStatement> ifBlock =
         ImmutableList.of(new CStatementWrapper(ABORT_FUNCTION_CALL_STATEMENT));
-    return ImmutableList.of(new CIfStatement(ifCondition, new CCompoundStatement(ifBlock)));
+    return new CCompoundStatement(new CIfStatement(ifCondition, new CCompoundStatement(ifBlock)));
   }
 
   /**

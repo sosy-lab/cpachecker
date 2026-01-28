@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -29,7 +29,7 @@ public final class SeqThreadSimulationFunction extends SeqFunction {
   public final MPORThread thread;
 
   public SeqThreadSimulationFunction(
-      MPOROptions pOptions, ImmutableList<CExportStatement> pFunctionBody, MPORThread pThread) {
+      MPOROptions pOptions, CCompoundStatement pFunctionBody, MPORThread pThread) {
 
     super(buildDeclaration(pOptions, pThread.id()), pFunctionBody);
     thread = pThread;

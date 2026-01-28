@@ -72,7 +72,7 @@ public final class SeqMainFunction extends SeqFunction {
     super(MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils));
   }
 
-  private static ImmutableList<CExportStatement> buildBody(
+  private static CCompoundStatement buildBody(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -164,7 +164,7 @@ public final class SeqMainFunction extends SeqFunction {
           buildLoopStatement(pOptions, compoundStatement, pUtils.binaryExpressionBuilder());
       rBody.add(loopStatement);
     }
-    return rBody.build();
+    return new CCompoundStatement(rBody.build());
   }
 
   /**
