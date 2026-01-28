@@ -28,6 +28,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CForLoopStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CLoopStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CWhileLoopStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -40,9 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.CSeqLoopStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqForLoopStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqWhileLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -89,7 +90,7 @@ public final class SeqMainFunction extends SeqFunction {
 
     } else {
       // otherwise include the thread simulations in the main function directly
-      ImmutableList.Builder<String> loopBlock = ImmutableList.builder();
+      ImmutableList.Builder<CExportStatement> loopBlock = ImmutableList.builder();
 
       if (pOptions.reduceLastThreadOrder()) {
         // add LAST_THREAD = next_thread assignment (before setting next_thread)
@@ -158,7 +159,7 @@ public final class SeqMainFunction extends SeqFunction {
               .buildAllThreadSimulations());
 
       // build the loop depending on settings, and include all statements in it
-      CSeqLoopStatement loopStatement =
+      CLoopStatement loopStatement =
           buildLoopStatement(pOptions, loopBlock.build(), pUtils.binaryExpressionBuilder());
       rBody.append(loopStatement.toASTString());
     }
@@ -204,9 +205,9 @@ public final class SeqMainFunction extends SeqFunction {
     return rAssignments.toString();
   }
 
-  private static CSeqLoopStatement buildLoopStatement(
+  private static CLoopStatement buildLoopStatement(
       MPOROptions pOptions,
-      ImmutableList<String> pLoopBody,
+      ImmutableList<CExportStatement> pLoopBody,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -214,7 +215,8 @@ public final class SeqMainFunction extends SeqFunction {
 
     if (pOptions.loopIterations() == 0) {
       // infinite while (1) loop
-      return new SeqWhileLoopStatement(SeqIntegerLiteralExpressions.INT_1, pLoopBody);
+      return new CWhileLoopStatement(
+          new CExpressionWrapper(SeqIntegerLiteralExpressions.INT_1), pLoopBody);
 
     } else {
       // bounded for (...) loop
@@ -226,8 +228,11 @@ public final class SeqMainFunction extends SeqFunction {
       CExpressionAssignmentStatement forIterationUpdate =
           SeqStatementBuilder.buildIncrementStatement(
               SeqIdExpressions.ITERATION, pBinaryExpressionBuilder);
-      return new SeqForLoopStatement(
-          SeqVariableDeclarations.ITERATION, forExpression, forIterationUpdate, pLoopBody);
+      return new CForLoopStatement(
+          SeqVariableDeclarations.ITERATION,
+          new CExpressionWrapper(forExpression),
+          forIterationUpdate,
+          pLoopBody);
     }
   }
 }

@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.LoopType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
@@ -85,8 +84,7 @@ public class SeqThreadStatementBlockUtil {
     if (pCfaNode.isLoopStart()) {
       for (CFAEdge enteringEdge : pCfaNode.getEnteringEdges()) {
         if (enteringEdge instanceof BlankEdge blankEdge) {
-          String whileKeyword = LoopType.WHILE.getKeyword();
-          if (blankEdge.getDescription().equals(whileKeyword)) {
+          if (blankEdge.getDescription().equals("while")) {
             return true;
           }
         }
