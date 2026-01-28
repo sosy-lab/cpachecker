@@ -564,20 +564,18 @@ public class ConstraintsTransferRelation
       if (!(violations.getFirst() instanceof ARGState cS)) {
         return Optional.empty();
       }
+      CompositeState newViolation = getRenamedViolation((BlockState) pStrengtheningState);
 
       List<ConstraintsState> newStates = new ArrayList<>();
       newStates.add(pStateToStrengthen);
       boolean nothingChanged = true;
 
-      for (AbstractState currStrengtheningState :
-          ((CompositeState) cS.getWrappedStates().getLast()).getWrappedStates()) {
+      for (AbstractState currStrengtheningState : newViolation.getWrappedStates()) {
         StrengthenOperator strengthenOperator = null;
 
         ConstraintsState currStateToStrengthen = new ConstraintsState(newStates.getFirst());
-
         if (currStrengtheningState instanceof ConstraintsState constraintsState) {
           if (valueState != null) {
-            CompositeState newViolation = getRenamedViolation((BlockState) pStrengtheningState);
             List<Constraint> valueComparison =
                 ValueAnalysisState.compareInConstraint(
                     valueState,
