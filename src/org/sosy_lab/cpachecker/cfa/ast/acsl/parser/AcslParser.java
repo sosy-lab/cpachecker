@@ -160,7 +160,7 @@ public class AcslParser {
 
   private static ImmutableList<String> splitAnnotation(String pInput) {
     ImmutableList.Builder<String> statements = ImmutableList.builder();
-    Pattern pattern = Pattern.compile("(?<statement>.*;)");
+    Pattern pattern = Pattern.compile("(\\s*)(?<statement>\\S+.*;)");
     Matcher matcher = pattern.matcher(pInput);
     while (matcher.find()) {
       statements.add(matcher.group("statement"));
