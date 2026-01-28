@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -57,7 +58,9 @@ public final class SeqMutexLockStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     CFunctionCallStatement assumeCall =
         SeqAssumeFunction.buildAssumeFunctionCallStatement(mutexLockedFlag.notLockedExpression());
     CExpressionAssignmentStatement setMutexLockedTrue =
@@ -69,7 +72,10 @@ public final class SeqMutexLockStatement extends CSeqThreadStatement {
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return Joiner.on(SeqSyntax.SPACE)
-        .join(assumeCall.toASTString(), setMutexLockedTrue.toASTString(), injected);
+        .join(
+            assumeCall.toASTString(pAAstNodeRepresentation),
+            setMutexLockedTrue.toASTString(pAAstNodeRepresentation),
+            injected);
   }
 
   @Override

@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorAssignmentStatement;
@@ -71,7 +72,9 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     CExpressionAssignmentStatement createdThreadPcAssignmentStatement =
         ProgramCounterVariables.buildPcAssignmentStatement(
             createdThreadPc, ProgramCounterVariables.INIT_PC);
@@ -85,27 +88,21 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
     String injectedStatementsString =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+
     String startRoutineArgAssignmentString =
-        buildStartRoutineArgAssignmentString(startRoutineArgAssignment)
-            .orElse(SeqSyntax.EMPTY_STRING);
+        startRoutineArgAssignment.isPresent()
+            ? startRoutineArgAssignment
+                .orElseThrow()
+                .toExpressionAssignmentStatement()
+                .toASTString(pAAstNodeRepresentation)
+            : SeqSyntax.EMPTY_STRING;
 
     return Joiner.on(SeqSyntax.SPACE)
         .join(
             startRoutineArgAssignmentString,
             bitVectorInitializationString,
-            createdThreadPcAssignmentStatement.toASTString(),
+            createdThreadPcAssignmentStatement.toASTString(pAAstNodeRepresentation),
             injectedStatementsString);
-  }
-
-  private static Optional<String> buildStartRoutineArgAssignmentString(
-      Optional<FunctionParameterAssignment> pStartRoutineArgAssignment) {
-
-    if (pStartRoutineArgAssignment.isPresent()) {
-      CExpressionAssignmentStatement assignment =
-          pStartRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement();
-      return Optional.of(assignment.toASTString());
-    }
-    return Optional.empty();
   }
 
   @Override

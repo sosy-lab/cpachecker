@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
@@ -18,7 +19,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Represents a thread simulation statement that contains only a {@code pc} update, and optionally
- * its injected statements.
+ * its injected statements, i.e., only ghost code that was not present in the input program.
  *
  * <p>E.g. {@code case m: pc[thread_id] = n; continue;}
  */
@@ -38,7 +39,9 @@ public final class SeqGhostOnlyStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     return SeqThreadStatementUtil.buildInjectedStatementsString(
         pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
   }

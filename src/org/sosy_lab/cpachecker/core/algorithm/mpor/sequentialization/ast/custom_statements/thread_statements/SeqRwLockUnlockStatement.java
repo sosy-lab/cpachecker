@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
@@ -51,7 +52,9 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     CExpressionAssignmentStatement setNumWritersToZero =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             rwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_0);
@@ -64,7 +67,8 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return ifStatement.toASTString() + injected;
+
+    return ifStatement.toASTString(pAAstNodeRepresentation) + injected;
   }
 
   @Override

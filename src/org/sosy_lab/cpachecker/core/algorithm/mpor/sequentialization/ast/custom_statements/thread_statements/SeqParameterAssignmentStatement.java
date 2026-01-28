@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -97,14 +98,17 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     StringJoiner rString = new StringJoiner(SeqSyntax.SPACE);
     if (functionName.equals(REACH_ERROR_FUNCTION_NAME)) {
       // if the function name is "reach_error", inject a "reach_error()" call for reachability
-      rString.add(REACH_ERROR_FUNCTION_CALL_STATEMENT.toASTString());
+      rString.add(REACH_ERROR_FUNCTION_CALL_STATEMENT.toASTString(pAAstNodeRepresentation));
     }
     for (FunctionParameterAssignment assignment : assignments) {
-      rString.add(assignment.toExpressionAssignmentStatement().toASTString());
+      rString.add(
+          assignment.toExpressionAssignmentStatement().toASTString(pAAstNodeRepresentation));
     }
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

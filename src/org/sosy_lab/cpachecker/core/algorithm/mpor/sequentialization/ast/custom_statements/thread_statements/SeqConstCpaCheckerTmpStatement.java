@@ -14,6 +14,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -158,7 +159,9 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     String substituteEdgeBString =
         secondSuccessorEdge
             .map(substituteEdge -> substituteEdge.cfaEdge.getCode())
@@ -170,7 +173,7 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
 
     return Joiner.on(SeqSyntax.SPACE)
         .join(
-            constCpaCheckerTmpDeclaration.toASTString(),
+            constCpaCheckerTmpDeclaration.toASTString(pAAstNodeRepresentation),
             firstSuccessorEdge.cfaEdge.getCode(),
             substituteEdgeBString,
             targetStatements);

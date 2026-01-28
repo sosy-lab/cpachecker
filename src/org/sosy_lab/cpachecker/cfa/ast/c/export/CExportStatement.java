@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c.export;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Provides a common interface for {@link CStatement} (via {@link CStatementWrapper}) and statements
@@ -26,9 +27,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
  */
 public interface CExportStatement {
 
-  default String toASTString() {
+  default String toASTString() throws UnrecognizedCodeException {
     return toASTString(AAstNodeRepresentation.DEFAULT);
   }
 
-  String toASTString(AAstNodeRepresentation pAAstNodeRepresentation);
+  String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException;
 }

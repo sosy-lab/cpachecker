@@ -110,7 +110,9 @@ public final class SeqAssumeFunction extends SeqFunction {
   private static final CFunctionCallStatement ASSUME_FUNCTION_CALL_STATEMENT_DUMMY =
       new CFunctionCallStatement(FileLocation.DUMMY, ASSUME_FUNCTION_CALL_EXPRESSION_DUMMY);
 
-  public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression) {
+  public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression)
+      throws UnrecognizedCodeException {
+
     super(ASSUME_FUNCTION_DECLARATION, buildBody(pCondEqualsZeroExpression).toASTString());
   }
 

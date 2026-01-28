@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -54,14 +55,16 @@ public final class SeqMutexUnlockStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     CExpressionAssignmentStatement lockedFalseAssignment =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return lockedFalseAssignment.toASTString() + SeqSyntax.SPACE + injected;
+    return lockedFalseAssignment.toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE + injected;
   }
 
   @Override

@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record CFunctionCallStatementWrapper(
     CFunctionCallStatement functionCallStatement, ImmutableList<CExportExpression> parameters)
@@ -34,16 +35,20 @@ public record CFunctionCallStatementWrapper(
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
     // take the name of the function from the CFunctionCallStatement
     String functionName =
         functionCallStatement
             .getFunctionCallExpression()
             .getFunctionNameExpression()
             .toASTString(pAAstNodeRepresentation);
+
     // replace the parameters of the CFunctionCallStatement, separated by ', '
     StringJoiner parameterList = new StringJoiner(", ");
-    parameters.forEach(p -> parameterList.add(p.toASTString(pAAstNodeRepresentation)));
+    for (CExportExpression parameter : parameters) {
+      parameterList.add(parameter.toASTString(pAAstNodeRepresentation));
+    }
     return functionName + "(" + parameterList + ");";
   }
 }

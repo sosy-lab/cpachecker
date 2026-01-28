@@ -9,12 +9,15 @@
 package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record CNegatedExpression(CExportExpression expressionToNegate)
     implements CExportExpression {
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     return "!(" + expressionToNegate.toASTString() + ")";
   }
 }

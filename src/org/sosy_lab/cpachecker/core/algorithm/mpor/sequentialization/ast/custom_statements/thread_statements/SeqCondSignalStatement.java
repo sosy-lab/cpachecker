@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -49,7 +50,9 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     CExpressionAssignmentStatement setCondSignaledTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
@@ -58,7 +61,7 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
         SeqThreadStatementUtil.buildInjectedStatementsString(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
-    return setCondSignaledTrue.toASTString() + SeqSyntax.SPACE + injected;
+    return setCondSignaledTrue.toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE + injected;
   }
 
   @Override

@@ -65,12 +65,14 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return SeqStringUtil.getVariableDeclarationASTStringWithoutStorageClassAndType(
-            variableDeclaration, AAstNodeRepresentation.DEFAULT)
+            variableDeclaration, pAAstNodeRepresentation)
         + SeqSyntax.SPACE
         + injected;
   }

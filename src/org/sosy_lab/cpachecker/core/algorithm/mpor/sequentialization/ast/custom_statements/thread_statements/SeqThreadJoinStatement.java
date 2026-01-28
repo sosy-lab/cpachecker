@@ -12,13 +12,14 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -67,50 +68,48 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     CFunctionCallStatement assumeCall =
         SeqAssumeFunction.buildAssumeFunctionCallStatement(joinedThreadNotActive);
     String returnValueRead =
-        buildReturnValueRead(joinedThreadExitVariable, substituteEdges)
-            .orElse(SeqSyntax.EMPTY_STRING);
+        joinedThreadExitVariable.isPresent()
+            ? buildReturnValueRead(joinedThreadExitVariable.orElseThrow(), substituteEdges)
+                .toASTString(pAAstNodeRepresentation)
+            : SeqSyntax.EMPTY_STRING;
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
-    return Joiner.on(SeqSyntax.SPACE).join(assumeCall.toASTString(), returnValueRead, injected);
+    return Joiner.on(SeqSyntax.SPACE)
+        .join(assumeCall.toASTString(pAAstNodeRepresentation), returnValueRead, injected);
   }
 
-  private static Optional<String> buildReturnValueRead(
-      Optional<CIdExpression> pJoinedThreadExitVariable,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges)
+  private static CStatement buildReturnValueRead(
+      CIdExpression pJoinedThreadExitVariable, ImmutableSet<SubstituteEdge> pSubstituteEdges)
       throws UnsupportedCodeException {
 
-    if (pJoinedThreadExitVariable.isPresent()) {
-      SubstituteEdge substituteEdge = pSubstituteEdges.iterator().next();
-      int returnValueIndex =
-          PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
-      CFunctionCall functionCall =
-          PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
-      CExpression returnValueParameter =
-          functionCall.getFunctionCallExpression().getParameterExpressions().get(returnValueIndex);
-      if (returnValueParameter instanceof CUnaryExpression unaryExpression) {
-        // extract retval from unary expression &retval
-        if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-          if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-            CExpressionAssignmentStatement assignment =
-                SeqStatementBuilder.buildExpressionAssignmentStatement(
-                    idExpression, pJoinedThreadExitVariable.orElseThrow());
-            return Optional.of(assignment.toASTString());
-          } else {
-            // just in case
-            throw new UnsupportedCodeException(
-                "pthread_join retval must be CIdExpression, got " + unaryExpression.toASTString(),
-                null);
-          }
+    SubstituteEdge substituteEdge = pSubstituteEdges.iterator().next();
+    int returnValueIndex =
+        PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
+    CFunctionCall functionCall =
+        PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
+    CExpression returnValueParameter =
+        functionCall.getFunctionCallExpression().getParameterExpressions().get(returnValueIndex);
+    if (returnValueParameter instanceof CUnaryExpression unaryExpression) {
+      // extract retval from unary expression &retval
+      if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+        if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
+          return SeqStatementBuilder.buildExpressionAssignmentStatement(
+              idExpression, pJoinedThreadExitVariable);
         }
       }
     }
-    return Optional.empty();
+    throw new UnsupportedCodeException(
+        "pthread_join retval could not be extracted from the following expression: "
+            + returnValueParameter,
+        null);
   }
 
   @Override

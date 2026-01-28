@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -59,7 +60,9 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString() throws UnrecognizedCodeException {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
     // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
     CFunctionCallStatement assumeSignaled =
@@ -78,9 +81,9 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
 
     return Joiner.on(SeqSyntax.SPACE)
         .join(
-            assumeSignaled.toASTString(),
-            setSignaledFalse.toASTString(),
-            setMutexLockedTrue.toASTString(),
+            assumeSignaled.toASTString(pAAstNodeRepresentation),
+            setSignaledFalse.toASTString(pAAstNodeRepresentation),
+            setMutexLockedTrue.toASTString(pAAstNodeRepresentation),
             injected);
   }
 

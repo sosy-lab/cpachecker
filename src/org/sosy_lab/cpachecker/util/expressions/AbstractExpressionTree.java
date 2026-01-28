@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOriginalCodeVisitor;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 abstract class AbstractExpressionTree<LeafType> implements ExpressionTree<LeafType> {
 
@@ -30,7 +31,13 @@ abstract class AbstractExpressionTree<LeafType> implements ExpressionTree<LeafTy
         return cExpression.accept(CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER);
       } else {
         // for all other CExportExpression, just call toASTString
-        return cExportExpression.toASTString();
+        try {
+          return cExportExpression.toASTString();
+        } catch (UnrecognizedCodeException e) {
+          // TODO this is not ideal, likely we can get rid of UnrecognizedCodeException later in
+          //  toASTString
+          throw new AssertionError(e);
+        }
       }
     }
     if (pLeafExpression == null) {
