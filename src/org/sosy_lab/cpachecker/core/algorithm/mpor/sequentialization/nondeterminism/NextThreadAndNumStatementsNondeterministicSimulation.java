@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -32,15 +33,16 @@ class NextThreadAndNumStatementsNondeterministicSimulation
 
   NextThreadAndNumStatementsNondeterministicSimulation(
       MPOROptions pOptions,
+      Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
-    super(pOptions, pGhostElements, pClauses, pUtils);
+    super(pOptions, pMemoryModel, pGhostElements, pClauses, pUtils);
   }
 
   @Override
-  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pThread)
+  public ImmutableList<String> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
@@ -61,11 +63,12 @@ class NextThreadAndNumStatementsNondeterministicSimulation
                     BinaryOperator.GREATER_THAN));
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
 
-    ImmutableList.Builder<CStatement> rStatements = ImmutableList.builder();
-    pcUnequalExitAssumption.ifPresent(rStatements::add);
-    nextThreadStatements.ifPresent(rStatements::addAll);
-    return rStatements
-        .add(roundMaxNondetAssignment, roundMaxGreaterZeroAssumption, roundReset)
-        .build();
+    ImmutableList.Builder<String> rStatements = ImmutableList.builder();
+    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(s.toASTString()));
+    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(s.toASTString())));
+    rStatements.add(roundMaxNondetAssignment.toASTString());
+    rStatements.add(roundMaxGreaterZeroAssumption.toASTString());
+    rStatements.add(roundReset.toASTString());
+    return rStatements.build();
   }
 }

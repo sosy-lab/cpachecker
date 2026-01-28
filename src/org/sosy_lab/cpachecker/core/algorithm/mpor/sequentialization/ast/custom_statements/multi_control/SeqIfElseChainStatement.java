@@ -14,14 +14,13 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record SeqIfElseChainStatement(
-    ImmutableList<CStatement> precedingStatements,
+    ImmutableList<String> precedingStatements,
     ImmutableMap<CExpression, ? extends SeqStatement> statements)
     implements SeqMultiControlStatement {
 
@@ -30,7 +29,7 @@ public record SeqIfElseChainStatement(
     StringJoiner ifElseChain = new StringJoiner(SeqSyntax.NEWLINE);
 
     // first add preceding statements
-    precedingStatements.forEach(statement -> ifElseChain.add(statement.toASTString()));
+    precedingStatements.forEach(statement -> ifElseChain.add(statement));
 
     // then add all statements via if ... else { if ... } from the bottom up
     ImmutableList<Entry<CExpression, ? extends SeqStatement>> statementList =

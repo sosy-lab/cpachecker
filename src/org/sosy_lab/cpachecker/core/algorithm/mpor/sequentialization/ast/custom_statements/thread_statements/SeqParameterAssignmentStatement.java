@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -69,14 +68,13 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
   private final ImmutableList<FunctionParameterAssignment> assignments;
 
   SeqParameterAssignmentStatement(
-      ReductionOrder pReductionOrder,
       String pFunctionName,
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     checkArgument(
         !pAssignments.isEmpty() || pFunctionName.equals(REACH_ERROR_FUNCTION_NAME),
         "If pAssignments is empty, then the function name must be reach_error.");
@@ -85,7 +83,6 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
   }
 
   private SeqParameterAssignmentStatement(
-      ReductionOrder pReductionOrder,
       String pFunctionName,
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
@@ -94,13 +91,7 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(
-        pReductionOrder,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        pTargetPc,
-        pTargetGoto,
-        pInjectedStatements);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     functionName = pFunctionName;
     assignments = pAssignments;
   }
@@ -117,14 +108,13 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
     }
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return rString.add(injected).toString();
   }
 
   @Override
   public SeqParameterAssignmentStatement withTargetPc(int pTargetPc) {
     return new SeqParameterAssignmentStatement(
-        reductionOrder,
         functionName,
         assignments,
         pcLeftHandSide,
@@ -137,7 +127,6 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqParameterAssignmentStatement(
-        reductionOrder,
         functionName,
         assignments,
         pcLeftHandSide,
@@ -152,7 +141,6 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqParameterAssignmentStatement(
-        reductionOrder,
         functionName,
         assignments,
         pcLeftHandSide,

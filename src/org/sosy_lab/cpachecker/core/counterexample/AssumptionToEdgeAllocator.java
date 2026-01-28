@@ -1121,7 +1121,7 @@ public class AssumptionToEdgeAllocator {
                 }
                 yield Value.UnknownValue.getInstance();
               }
-              case DIVIDE, MODULO -> {
+              case DIVIDE, REMAINDER -> {
                 // Division and modulo with constants are sometimes supported
                 if (allowDivisionAndModuloByConstants
                     && rVarInBinaryExp instanceof ALiteralExpression) {
@@ -1129,7 +1129,7 @@ public class AssumptionToEdgeAllocator {
                 }
                 yield Value.UnknownValue.getInstance();
               }
-              case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT ->
+              case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT ->
                   Value.UnknownValue.getInstance();
               default -> super.visit(binaryExp);
             };

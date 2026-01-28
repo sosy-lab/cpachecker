@@ -91,7 +91,7 @@ public final class SeqMainFunction extends SeqFunction {
       ImmutableList.Builder<String> loopBlock = ImmutableList.builder();
 
       if (pOptions.reduceLastThreadOrder()) {
-        // add last_thread = next_thread assignment (before setting next_thread)
+        // add LAST_THREAD = next_thread assignment (before setting next_thread)
         if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
           CExpressionAssignmentStatement assignment =
               new CExpressionAssignmentStatement(
@@ -153,7 +153,7 @@ public final class SeqMainFunction extends SeqFunction {
       }
       loopBlock.add(
           NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
-                  pOptions, pFields.ghostElements, pFields.clauses, pUtils)
+                  pOptions, pFields.memoryModel, pFields.ghostElements, pFields.clauses, pUtils)
               .buildAllThreadSimulations());
 
       // build the loop depending on settings, and include all statements in it

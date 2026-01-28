@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -36,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -62,12 +64,15 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper.InitialPredicatesOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.Node;
@@ -86,10 +91,10 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-@Options(prefix = "cpa.value.reuse.precision.predicate")
-public class PredicateToValuePrecisionConverter implements Statistics {
+@Options(prefix = "cpa.value.reuse.precision.converter")
+public class ToValuePrecisionConverter implements Statistics {
 
-  public enum PredicateConverterStrategy {
+  public enum ConverterStrategy {
     CONVERT_ONLY,
     CONVERT_AND_ADD_FLOW_BACKWARD,
     CONVERT_AND_ADD_FLOW_BIDIRECTED,
@@ -106,7 +111,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       secure = true,
       name = "strategy",
       description = "which strategy to use to convert predicate to value precision")
-  private PredicateConverterStrategy converterStrategy = PredicateConverterStrategy.CONVERT_ONLY;
+  private ConverterStrategy converterStrategy = ConverterStrategy.CONVERT_ONLY;
 
   @Option(
       secure = true,
@@ -142,7 +147,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
   private final Timer conversionTime = new Timer();
   private int numVarsAddedToPrecision = 0;
 
-  public PredicateToValuePrecisionConverter(
+  public ToValuePrecisionConverter(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -156,21 +161,68 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     config.inject(this);
   }
 
-  public Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
-      final Path pPredPrecFile) throws InvalidConfigurationException {
-    ResourceLimitChecker limitChecker = null;
-    ShutdownNotifier conversionShutdownNotifier;
-    if (!adaptionLimit.isEmpty()) {
-      ShutdownManager conversionShutdownManager =
-          ShutdownManager.createWithParent(shutdownNotifier);
-      conversionShutdownNotifier = conversionShutdownManager.getNotifier();
-      ResourceLimit limit = WalltimeLimit.create(adaptionLimit);
-      limitChecker = new ResourceLimitChecker(conversionShutdownManager, ImmutableList.of(limit));
-      limitChecker.start();
-    } else {
-      conversionShutdownNotifier = shutdownNotifier;
+  public Multimap<CFANode, MemoryLocation> convertWitnessToVariableTrackingPrec(
+      final Path pWitnessFile) throws InvalidConfigurationException {
+    Optional<Pair<ShutdownNotifier, ResourceLimitChecker>> notifierPlusLimitsChecker =
+        getNotifierAndLimitsCheckerIfEnabled();
+    ShutdownNotifier conversionShutdownNotifier =
+        notifierPlusLimitsChecker.isPresent()
+            ? notifierPlusLimitsChecker.orElseThrow().getFirst()
+            : shutdownNotifier;
+    Multimap<CFANode, MemoryLocation> result = null;
+    conversionTime.start();
+    try {
+      result = witnesssToVariableTrackingPrec(pWitnessFile);
+      addAdditionalVariables(result, conversionShutdownNotifier);
+    } catch (InterruptedException e) {
+      logger.logException(Level.INFO, e, "Precision adaption was interrupted.");
+    } finally {
+      conversionTime.stopIfRunning();
+    }
+    if (notifierPlusLimitsChecker.isPresent()) {
+      notifierPlusLimitsChecker.orElseThrow().getSecond().cancel();
     }
 
+    if (result == null) {
+      return ImmutableListMultimap.of();
+    }
+    numVarsAddedToPrecision += result.size();
+    return ImmutableListMultimap.copyOf(result);
+  }
+
+  private Multimap<CFANode, MemoryLocation> witnesssToVariableTrackingPrec(final Path pWitnessFile)
+      throws InvalidConfigurationException, InterruptedException {
+    try {
+      IO.checkReadableFile(pWitnessFile);
+
+      if (AutomatonWitnessV2ParserUtils.isYAMLWitness(pWitnessFile)) {
+        if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(pWitnessFile)
+            .orElseThrow()
+            .equals(WitnessType.CORRECTNESS_WITNESS)) {
+          // TODO
+        } else {
+          logger.log(
+              Level.WARNING,
+              "File " + pWitnessFile + " does not represent a YAML correctness witness.");
+        }
+      } else {
+        logger.log(Level.WARNING, "File " + pWitnessFile + " does not represent a YAML witness.");
+      }
+    } catch (FileNotFoundException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not read witness from file named " + pWitnessFile);
+    }
+    return ImmutableListMultimap.of();
+  }
+
+  public Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
+      final Path pPredPrecFile) throws InvalidConfigurationException {
+    Optional<Pair<ShutdownNotifier, ResourceLimitChecker>> notifierPlusLimitsChecker =
+        getNotifierAndLimitsCheckerIfEnabled();
+    ShutdownNotifier conversionShutdownNotifier =
+        notifierPlusLimitsChecker.isPresent()
+            ? notifierPlusLimitsChecker.orElseThrow().getFirst()
+            : shutdownNotifier;
     Multimap<CFANode, MemoryLocation> result = null;
 
     conversionTime.start();
@@ -192,95 +244,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
         conversionShutdownNotifier.shutdownIfNecessary();
 
-        if (converterStrategy != PredicateConverterStrategy.CONVERT_ONLY) {
-          try {
-            logger.log(
-                Level.FINE,
-                "Enhance value precision converted from predicate precision with additional"
-                    + " relevant variables");
-            // TODO disable option dependencegraph.controldeps.considerPointees?
-            Configuration depGraphConfig =
-                Configuration.builder()
-                    .copyFrom(config)
-                    .setOption("dependencegraph.flowdeps.use", "true")
-                    .setOption(
-                        "dependencegraph.controldeps.use",
-                        considerControlDependence ? "true" : "false")
-                    .build();
-            CSystemDependenceGraph depGraph =
-                new CSystemDependenceGraphBuilder(
-                        cfa, depGraphConfig, logger, conversionShutdownNotifier)
-                    .build();
-
-            conversionShutdownNotifier.shutdownIfNecessary();
-
-            Collection<CFAEdge> relevantEdges =
-                determineEdgesRelevantForProperty(conversionShutdownNotifier);
-
-            conversionShutdownNotifier.shutdownIfNecessary();
-
-            Deque<MemoryLocation> toProcess = new ArrayDeque<>(result.values());
-            Collection<MemoryLocation> inspectedVars = new HashSet<>(toProcess);
-            BackwardsVisitOnceVisitor<Node> cdVisit =
-                depGraph.createVisitOnceVisitor(
-                    new ControlDependenceVisitor(inspectedVars, toProcess, result));
-            MemoryLocation var;
-            Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
-            ImmutableSet<MemoryLocation> defs;
-            while (!toProcess.isEmpty()) {
-              conversionShutdownNotifier.shutdownIfNecessary();
-              var = toProcess.pop();
-
-              relevantGraphNodes = getRelevantGraphDefining(var, depGraph, relevantEdges);
-              for (CSystemDependenceGraph.Node relVarDef : relevantGraphNodes) {
-                conversionShutdownNotifier.shutdownIfNecessary();
-
-                for (MemoryLocation varDep : depGraph.getUses(relVarDef)) {
-                  registerRelevantVar(varDep, inspectedVars, toProcess, result);
-                }
-              }
-
-              conversionShutdownNotifier.shutdownIfNecessary();
-
-              if (considerControlDependence) {
-                cdVisit.reset();
-                depGraph.traverse(relevantGraphNodes, cdVisit);
-              }
-
-              conversionShutdownNotifier.shutdownIfNecessary();
-
-              if (converterStrategy == PredicateConverterStrategy.CONVERT_AND_ADD_FLOW_BIDIRECTED) {
-                relevantGraphNodes = getRelevantGraphUsing(var, depGraph, relevantEdges);
-                for (CSystemDependenceGraph.Node relVarUse : relevantGraphNodes) {
-                  defs = depGraph.getDefs(relVarUse);
-                  if (!defs.isEmpty()) {
-                    boolean allUsesTracked = true;
-                    boolean oneUseTracked = false;
-
-                    for (MemoryLocation varDep : depGraph.getUses(relVarUse)) {
-                      if (inspectedVars.contains(varDep)) {
-                        oneUseTracked = true;
-                      } else if (!defs.contains(varDep)) {
-                        allUsesTracked = false;
-                        break;
-                      }
-                    }
-
-                    conversionShutdownNotifier.shutdownIfNecessary();
-
-                    if (oneUseTracked && allUsesTracked) {
-                      for (MemoryLocation varDef : defs) {
-                        registerRelevantVar(varDef, inspectedVars, toProcess, result);
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          } catch (CPAException e) {
-            logger.logException(Level.WARNING, e, "Failed to add additional relevant variables");
-          }
-        }
+        addAdditionalVariables(result, conversionShutdownNotifier);
       } else {
         logger.log(
             Level.WARNING,
@@ -292,8 +256,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       conversionTime.stopIfRunning();
     }
 
-    if (limitChecker != null) {
-      limitChecker.cancel();
+    if (notifierPlusLimitsChecker.isPresent()) {
+      notifierPlusLimitsChecker.orElseThrow().getSecond().cancel();
     }
 
     if (result == null) {
@@ -344,6 +308,116 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     }
 
     return trackedVariables;
+  }
+
+  private Optional<Pair<ShutdownNotifier, ResourceLimitChecker>>
+      getNotifierAndLimitsCheckerIfEnabled() {
+    if (!adaptionLimit.isEmpty()) {
+      ShutdownManager conversionShutdownManager =
+          ShutdownManager.createWithParent(shutdownNotifier);
+      ShutdownNotifier conversionShutdownNotifier = conversionShutdownManager.getNotifier();
+      ResourceLimit limit = WalltimeLimit.create(adaptionLimit);
+      ResourceLimitChecker limitChecker =
+          new ResourceLimitChecker(conversionShutdownManager, ImmutableList.of(limit));
+      limitChecker.start();
+      return Optional.of(Pair.of(conversionShutdownNotifier, limitChecker));
+    }
+    return Optional.empty();
+  }
+
+  private void addAdditionalVariables(
+      final Multimap<CFANode, MemoryLocation> result,
+      final ShutdownNotifier conversionShutdownNotifier)
+      throws InterruptedException, InvalidConfigurationException {
+
+    if (!result.isEmpty() && converterStrategy != ConverterStrategy.CONVERT_ONLY) {
+      try {
+        logger.log(
+            Level.FINE,
+            "Enhance value precision converted from predicate precision with additional"
+                + " relevant variables");
+        // TODO disable option dependencegraph.controldeps.considerPointees?
+        Configuration depGraphConfig =
+            Configuration.builder()
+                .copyFrom(config)
+                .setOption("dependencegraph.flowdeps.use", "true")
+                .setOption(
+                    "dependencegraph.controldeps.use", considerControlDependence ? "true" : "false")
+                .build();
+        CSystemDependenceGraph depGraph =
+            new CSystemDependenceGraphBuilder(
+                    cfa, depGraphConfig, logger, conversionShutdownNotifier)
+                .build();
+
+        conversionShutdownNotifier.shutdownIfNecessary();
+
+        Collection<CFAEdge> relevantEdges =
+            determineEdgesRelevantForProperty(conversionShutdownNotifier);
+
+        conversionShutdownNotifier.shutdownIfNecessary();
+
+        Deque<MemoryLocation> toProcess = new ArrayDeque<>(result.values());
+        Collection<MemoryLocation> inspectedVars = new HashSet<>(toProcess);
+        BackwardsVisitOnceVisitor<Node> cdVisit =
+            depGraph.createVisitOnceVisitor(
+                new ControlDependenceVisitor(inspectedVars, toProcess, result));
+        MemoryLocation var;
+        Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
+        ImmutableSet<MemoryLocation> defs;
+        while (!toProcess.isEmpty()) {
+          conversionShutdownNotifier.shutdownIfNecessary();
+          var = toProcess.pop();
+
+          relevantGraphNodes = getRelevantGraphDefining(var, depGraph, relevantEdges);
+          for (CSystemDependenceGraph.Node relVarDef : relevantGraphNodes) {
+            conversionShutdownNotifier.shutdownIfNecessary();
+
+            for (MemoryLocation varDep : depGraph.getUses(relVarDef)) {
+              registerRelevantVar(varDep, inspectedVars, toProcess, result);
+            }
+          }
+
+          conversionShutdownNotifier.shutdownIfNecessary();
+
+          if (considerControlDependence) {
+            cdVisit.reset();
+            depGraph.traverse(relevantGraphNodes, cdVisit);
+          }
+
+          conversionShutdownNotifier.shutdownIfNecessary();
+
+          if (converterStrategy == ConverterStrategy.CONVERT_AND_ADD_FLOW_BIDIRECTED) {
+            relevantGraphNodes = getRelevantGraphUsing(var, depGraph, relevantEdges);
+            for (CSystemDependenceGraph.Node relVarUse : relevantGraphNodes) {
+              defs = depGraph.getDefs(relVarUse);
+              if (!defs.isEmpty()) {
+                boolean allUsesTracked = true;
+                boolean oneUseTracked = false;
+
+                for (MemoryLocation varDep : depGraph.getUses(relVarUse)) {
+                  if (inspectedVars.contains(varDep)) {
+                    oneUseTracked = true;
+                  } else if (!defs.contains(varDep)) {
+                    allUsesTracked = false;
+                    break;
+                  }
+                }
+
+                conversionShutdownNotifier.shutdownIfNecessary();
+
+                if (oneUseTracked && allUsesTracked) {
+                  for (MemoryLocation varDef : defs) {
+                    registerRelevantVar(varDef, inspectedVars, toProcess, result);
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (CPAException e) {
+        logger.logException(Level.WARNING, e, "Failed to add additional relevant variables");
+      }
+    }
   }
 
   private Collection<CFAEdge> determineEdgesRelevantForProperty(

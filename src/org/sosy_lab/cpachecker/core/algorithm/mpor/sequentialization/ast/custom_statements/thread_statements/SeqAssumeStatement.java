@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -26,29 +25,24 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
 
   /** Use this constructor for the {@code if (expression)} statement. */
   SeqAssumeStatement(
-      ReductionOrder pReductionOrder,
       CExpression pIfExpression,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     ifExpression = Optional.of(pIfExpression);
   }
 
   /** Use this constructor for the {@code else} statement without any expression. */
   SeqAssumeStatement(
-      ReductionOrder pReductionOrder,
-      CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pTargetPc) {
+      CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
 
-    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     ifExpression = Optional.empty();
   }
 
   private SeqAssumeStatement(
-      ReductionOrder pReductionOrder,
       Optional<CExpression> pIfExpression,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -56,13 +50,7 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(
-        pReductionOrder,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        pTargetPc,
-        pTargetGoto,
-        pInjectedStatements);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     ifExpression = pIfExpression;
   }
 
@@ -70,13 +58,12 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     // just return the injected statements, the block handles the if-else branch
     return SeqThreadStatementUtil.buildInjectedStatementsString(
-        reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+        pcLeftHandSide, targetPc, targetGoto, injectedStatements);
   }
 
   @Override
   public SeqAssumeStatement withTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(
-        reductionOrder,
         ifExpression,
         pcLeftHandSide,
         substituteEdges,
@@ -88,7 +75,6 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
-        reductionOrder,
         ifExpression,
         pcLeftHandSide,
         substituteEdges,
@@ -102,13 +88,7 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqAssumeStatement(
-        reductionOrder,
-        ifExpression,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        pInjectedStatements);
+        ifExpression, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
   }
 
   @Override

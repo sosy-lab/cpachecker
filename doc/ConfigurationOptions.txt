@@ -381,11 +381,6 @@ analysis.algorithm.MPOR.reduceUntilConflict = false
 analysis.algorithm.MPOR.reductionMode = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
-# if both reduceLastThreadOrder and reduceUntilConflict are enabled, define
-# the order in which their statements are placed in the output program.
-analysis.algorithm.MPOR.reductionOrder = NONE
-  enum:     [NONE, CONFLICT_THEN_LAST_THREAD, LAST_THREAD_THEN_CONFLICT]
-
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays?
 analysis.algorithm.MPOR.scalarPc = true
@@ -4269,24 +4264,24 @@ cpa.value.refinement.writePathConstraints = true
 
 # Overall timelimit for computing initial value precision from given
 # predicate precision(use seconds or specify a unit; 0 for infinite)
-cpa.value.reuse.precision.predicate.adaptionLimit = 0ns
+cpa.value.reuse.precision.converter.adaptionLimit = 0ns
 
 # also consider other binary operators then ==, !== when considering control
 # dependencies while adapting predicate precision
-cpa.value.reuse.precision.predicate.includeControlNonEquiv = false
+cpa.value.reuse.precision.converter.includeControlNonEquiv = false
 
 # comma-separated list of files with property specifications that should be
 # considered when determining the relevant edges for predicate precision
 # adaption
-cpa.value.reuse.precision.predicate.relevantProperties = []
+cpa.value.reuse.precision.converter.relevantProperties = []
 
 # which strategy to use to convert predicate to value precision
-cpa.value.reuse.precision.predicate.strategy = CONVERT_ONLY
+cpa.value.reuse.precision.converter.strategy = CONVERT_ONLY
   enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
              CONVERT_AND_ADD_FLOW_BIDIRECTED]
 
 # also consider control dependencies during adaption of predicate precision
-cpa.value.reuse.precision.predicate.useControl = false
+cpa.value.reuse.precision.converter.useControl = false
 
 # configure whether to export all loop invariants into one file or to split
 # the export into one file per type
@@ -4331,13 +4326,16 @@ cpa.value.trackJavaArrayValues = true
 cpa.value.unknownValueHandling = DISCARD
   enum:     [DISCARD, INTRODUCE_SYMBOLIC]
 
+# get an initial precision from a correctness witness file
+cpa.value.witnessFileForInitialPrecision = no default value
+
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
 # a more complex custom instruction within code.
 custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
-  enum:     [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN,
-             GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR,
-             EQUALS, NOT_EQUALS]
+  enum:     [MULTIPLY, DIVIDE, REMAINDER, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT,
+             LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BITWISE_AND,
+             BITWISE_XOR, BITWISE_OR, EQUALS, NOT_EQUALS]
 
 # Name of function containing the custom instruction definition
 custominstructions.ciFun = no default value
