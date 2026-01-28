@@ -17,6 +17,7 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -112,12 +113,12 @@ public final class SeqMainFunction extends SeqFunction {
         loopBlock.add(nextThreadAssignment.toASTString());
 
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
-        String nextThreadAssumption =
+        CAstStatement nextThreadAssumption =
             SeqAssumeFunction.buildNextThreadAssumeCallFunctionCallStatement(
                 pOptions.nondeterminismSigned(),
                 pFields.numThreads,
                 pUtils.binaryExpressionBuilder());
-        loopBlock.add(nextThreadAssumption);
+        loopBlock.add(nextThreadAssumption.toASTString());
 
         // for scalar pc, this is done separately at the start of the respective thread
         if (!pOptions.scalarPc()) {

@@ -47,7 +47,8 @@ public record SeqBitVectorEvaluationStatement(
 
     } else {
       return SeqAssumeFunction.buildAssumeFunctionCallStatement(
-          evaluationExpression.orElseThrow().expressionTree());
+              evaluationExpression.orElseThrow().expressionTree())
+          .toASTString();
     }
   }
 

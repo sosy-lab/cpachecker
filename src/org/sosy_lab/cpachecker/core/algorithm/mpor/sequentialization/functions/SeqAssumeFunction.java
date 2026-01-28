@@ -155,7 +155,7 @@ public final class SeqAssumeFunction extends SeqFunction {
    * next_thread < NUM_THREADS)} for a signed variable, {@code assume(next_thread < NUM_THREADS)}
    * for an unsigned variable.
    */
-  public static String buildNextThreadAssumeCallFunctionCallStatement(
+  public static CAstStatement buildNextThreadAssumeCallFunctionCallStatement(
       boolean pIsSigned, int pNumThreads, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -180,6 +180,6 @@ public final class SeqAssumeFunction extends SeqFunction {
       return buildAssumeFunctionCallStatement(
           And.of(transformedImmutableListCopy(expressions, LeafExpression::of)));
     }
-    return buildAssumeFunctionCallStatement(nextThreadLessThanNumThreads).toASTString();
+    return new CWrapperStatement(buildAssumeFunctionCallStatement(nextThreadLessThanNumThreads));
   }
 }

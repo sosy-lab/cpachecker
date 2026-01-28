@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -60,7 +61,7 @@ public class BitVectorEvaluationUtil {
    * Optional#empty()} if {@code pTerms} is empty.
    */
   static Optional<CExpressionTree> tryBuildSparseLogicalDisjunction(
-      ImmutableList<ExpressionTree<CExpression>> pTerms) {
+      ImmutableList<ExpressionTree<CAstExpression>> pTerms) {
 
     if (pTerms.isEmpty()) {
       return Optional.empty();
