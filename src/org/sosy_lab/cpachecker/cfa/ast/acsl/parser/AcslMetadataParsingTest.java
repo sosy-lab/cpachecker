@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -64,6 +65,7 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
+    // Regular Annotations (assertions and loop invariants)
     b.add(
         task(
             "after_else.c",
@@ -107,6 +109,13 @@ public class AcslMetadataParsingTest {
             "same_annotation_twice.c",
             ImmutableList.of("assert x == 10;", "assert x == 10;"),
             new CodeLoctation(12, 5)));
+
+    // function contracts
+    b.add(
+        task(
+            "power.c",
+            ImmutableList.of("requires a > 0;", "requires b>= 0;"),
+            new CodeLoctation(15, 1)));
     return b.build();
   }
 
@@ -162,8 +171,8 @@ public class AcslMetadataParsingTest {
           case AcslLoopInvariant loopInvariant -> {
             assert actualLoopInvariants.containsKey(loopInvariant);
           }
-          case AcslFunctionContract contract -> {
-            assert actualFunctionContracts.containsKey(contract);
+          case AcslRequires requires -> {
+            assert actualFunctionContracts.containsKey(requires);
           }
           case null, default -> {
             assert actualAssigns.containsKey(expectedAnnotation);
