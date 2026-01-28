@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -114,7 +112,7 @@ public class AcslMetadataParsingTest {
     b.add(
         task(
             "power.c",
-            ImmutableList.of("requires a > 0;", "requires b>= 0;"),
+            ImmutableList.of("requires a > 0; requires b>= 0;"),
             new CodeLoctation(15, 1)));
     return b.build();
   }
@@ -159,8 +157,6 @@ public class AcslMetadataParsingTest {
           acslMetadata.assertions().inverse();
       ImmutableSetMultimap<AcslLoopInvariant, CFANode> actualLoopInvariants =
           acslMetadata.invariants().inverse();
-      ImmutableSetMultimap<AcslFunctionContract, CFANode> actualFunctionContracts =
-          acslMetadata.functionContracts().inverse();
       ImmutableSetMultimap<AcslAssigns, CFANode> actualAssigns =
           acslMetadata.modifiedMemoryLocations().inverse();
       for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
@@ -170,9 +166,6 @@ public class AcslMetadataParsingTest {
           }
           case AcslLoopInvariant loopInvariant -> {
             assert actualLoopInvariants.containsKey(loopInvariant);
-          }
-          case AcslRequires requires -> {
-            assert actualFunctionContracts.containsKey(requires);
           }
           case null, default -> {
             assert actualAssigns.containsKey(expectedAnnotation);
