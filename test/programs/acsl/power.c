@@ -11,6 +11,7 @@ extern int __VERIFIER_nondet_int(void);
 
 /*@ requires a > 0;
     requires b >= 0;
+    ensures c > 0;
 */
 int power (int a, int b){
   int c = 1;

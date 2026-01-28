@@ -112,8 +112,8 @@ public class AcslMetadataParsingTest {
     b.add(
         task(
             "power.c",
-            ImmutableList.of("requires a > 0; requires b>= 0;"),
-            new CodeLoctation(15, 1)));
+            ImmutableList.of("requires a > 0; requires b>= 0; ensures c > 0;"),
+            new CodeLoctation(16, 1)));
     return b.build();
   }
 
