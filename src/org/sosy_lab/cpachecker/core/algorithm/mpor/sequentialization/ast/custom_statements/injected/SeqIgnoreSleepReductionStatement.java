@@ -41,16 +41,14 @@ public record SeqIgnoreSleepReductionStatement(
     // negate the evaluation expression
     CNegatedExpression ifExpression = bitVectorEvaluationExpression.negate();
     CGotoStatement gotoNext = new CGotoStatement(targetGoto.toCLabelStatement());
-    CIfStatement innerIfStatement =
-        new CIfStatement(ifExpression, ImmutableList.of(gotoNext), ImmutableList.of());
+    CIfStatement innerIfStatement = new CIfStatement(ifExpression, ImmutableList.of(gotoNext));
 
     if (reductionAssumptions.isEmpty()) {
       // no reduction assumptions -> just return outer if statement
       CIfStatement outerIfStatement =
           new CIfStatement(
               new CWrapperExpression(roundMaxEqualsZeroExpression),
-              ImmutableList.of(innerIfStatement),
-              ImmutableList.of());
+              ImmutableList.of(innerIfStatement));
       return outerIfStatement.toASTString();
     }
 

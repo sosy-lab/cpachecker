@@ -42,8 +42,7 @@ public record SeqBitVectorEvaluationStatement(
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
       CNegatedExpression ifExpression = evaluationExpression.orElseThrow().negate();
       CGotoStatement gotoStatement = new CGotoStatement(targetGoto.toCLabelStatement());
-      CIfStatement ifStatement =
-          new CIfStatement(ifExpression, ImmutableList.of(gotoStatement), ImmutableList.of());
+      CIfStatement ifStatement = new CIfStatement(ifExpression, ImmutableList.of(gotoStatement));
       return ifStatement.toASTString();
 
     } else {

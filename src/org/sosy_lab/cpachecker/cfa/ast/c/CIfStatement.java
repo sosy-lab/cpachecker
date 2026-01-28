@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 
@@ -24,11 +26,70 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
  * }
  * }</pre>
  */
-public record CIfStatement(
-    CAstExpression condition,
-    ImmutableList<CAstStatement> ifStatements,
-    ImmutableList<CAstStatement> elseStatements)
-    implements CAstStatement {
+public final class CIfStatement implements CAstStatement {
+
+  private final CAstExpression condition;
+
+  private final ImmutableList<CAstStatement> ifStatements;
+
+  private final ImmutableList<CAstStatement> elseStatements;
+
+  /**
+   * Use this constructor to create an {@code if} statement without any {@code else} branch:
+   *
+   * <pre>{@code
+   * if (condition) {
+   *    ifStatement;
+   *    ...
+   * }
+   * }</pre>
+   *
+   * @param pCondition the {@code if} condition
+   * @param pIfStatements the non-empty list of statements in the {@code if} branch
+   */
+  public CIfStatement(CAstExpression pCondition, ImmutableList<CAstStatement> pIfStatements) {
+    checkArgument(
+        !pIfStatements.isEmpty(),
+        "pIfStatements needs at least one element, otherwise the if branch is empty.");
+
+    condition = pCondition;
+    ifStatements = pIfStatements;
+    elseStatements = ImmutableList.of();
+  }
+
+  /**
+   * Use this constructor to create an {@code if} statement with an {@code else} branch:
+   *
+   * <pre>{@code
+   * if (condition) {
+   *    ifStatement;
+   *    ...
+   * } else {
+   *   elseStatement;
+   *   ...
+   * }
+   * }</pre>
+   *
+   * @param pCondition the {@code if} condition
+   * @param pIfStatements the non-empty list of statements in the {@code if} branch
+   * @param pElseStatements the non-empty list of statements in the {@code else} branch
+   */
+  public CIfStatement(
+      CAstExpression pCondition,
+      ImmutableList<CAstStatement> pIfStatements,
+      ImmutableList<CAstStatement> pElseStatements) {
+
+    checkArgument(
+        !pIfStatements.isEmpty(),
+        "pIfStatements needs at least one element, otherwise the if branch is empty.");
+    checkArgument(
+        !pElseStatements.isEmpty(),
+        "pElseStatements needs at least one element, otherwise the else branch is empty.");
+
+    condition = pCondition;
+    ifStatements = pIfStatements;
+    elseStatements = pElseStatements;
+  }
 
   @Override
   public String toASTString() {

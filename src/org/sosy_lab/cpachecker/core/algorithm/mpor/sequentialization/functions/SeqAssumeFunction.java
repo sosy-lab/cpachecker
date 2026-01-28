@@ -109,7 +109,7 @@ public final class SeqAssumeFunction extends SeqFunction {
     CWrapperExpression ifCondition = new CWrapperExpression(pCondEqualsZeroExpression);
     ImmutableList<CAstStatement> ifBlock =
         ImmutableList.of(new CWrapperStatement(ABORT_FUNCTION_CALL_STATEMENT));
-    return new CIfStatement(ifCondition, ifBlock, ImmutableList.of());
+    return new CIfStatement(ifCondition, ifBlock);
   }
 
   /**

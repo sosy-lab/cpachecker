@@ -43,8 +43,7 @@ public record SeqGuardedGotoStatement(
             .addAll(precedingStatements.stream().map(s -> new CWrapperStatement(s)).iterator())
             .add(new CGotoStatement(targetLabel.toCLabelStatement()))
             .build();
-    CIfStatement ifStatement =
-        new CIfStatement(new CWrapperExpression(condition), ifStatements, ImmutableList.of());
+    CIfStatement ifStatement = new CIfStatement(new CWrapperExpression(condition), ifStatements);
     return ifStatement.toASTString();
   }
 
