@@ -9,16 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
-// TODO maybe this should be more restricted to And, Or instead of ExpressionTree
-public record CExpressionTree(ExpressionTree<CExpression> expressionTree)
-    implements CAstExpression {
-
-  // TODO this could be moved into CAstExpression, but at the moment we only need it here
-  public CNegatedExpression negate() {
-    return new CNegatedExpression(this);
-  }
+public record CNegatedExpression(CAstExpression expressionToNegate) implements CAstExpression {
 
   @Override
   public String toASTString() {
@@ -27,6 +19,6 @@ public record CExpressionTree(ExpressionTree<CExpression> expressionTree)
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return expressionTree.toString();
+    return "!(" + expressionToNegate + ")";
   }
 }

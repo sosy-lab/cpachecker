@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
  * <p>This an extra interface is added because using {@link CExpression} as the common base would
  * require adjustments to {@link CFA} handling and all visitors that handle {@link CExpression}.
  */
-public sealed interface CAstExpression permits CExpressionTree, CWrapperExpression {
+public sealed interface CAstExpression
+    permits CExpressionTree, CNegatedExpression, CWrapperExpression {
 
   String toASTString();
 

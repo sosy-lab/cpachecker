@@ -39,7 +39,7 @@ public record SeqBitVectorEvaluationStatement(
 
     } else if (options.nondeterminismSource().equals(NondeterminismSource.NEXT_THREAD)) {
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
-      String ifExpression = evaluationExpression.orElseThrow().toNegatedASTString();
+      String ifExpression = evaluationExpression.orElseThrow().negate().toASTString();
       CGotoStatement gotoStatement = new CGotoStatement(targetGoto.toCLabelStatement());
       SeqBranchStatement ifStatement =
           new SeqBranchStatement(ifExpression, ImmutableList.of(gotoStatement.toASTString()));

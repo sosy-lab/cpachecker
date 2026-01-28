@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStringUtil {
 
@@ -48,8 +47,7 @@ public class SeqStringUtil {
   public static Optional<String> tryBuildBlockSuffix(
       MPOROptions pOptions,
       Optional<CLabelStatement> pNextThreadLabel,
-      ImmutableList<CSeqThreadStatement> pStatements)
-      throws UnrecognizedCodeException {
+      ImmutableList<CSeqThreadStatement> pStatements) {
 
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
       return Optional.empty();
@@ -61,8 +59,7 @@ public class SeqStringUtil {
   }
 
   private static String buildBlockSuffixByControlStatementEncoding(
-      MPOROptions pOptions, Optional<CLabelStatement> pNextThreadLabel)
-      throws UnrecognizedCodeException {
+      MPOROptions pOptions, Optional<CLabelStatement> pNextThreadLabel) {
 
     // use control encoding of the statement since we append the suffix to the statement
     return switch (pOptions.controlEncodingStatement()) {

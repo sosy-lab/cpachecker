@@ -36,7 +36,7 @@ public record SeqIgnoreSleepReductionStatement(
             roundMaxVariable, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
 
     // negate the evaluation expression
-    String ifExpression = bitVectorEvaluationExpression.toNegatedASTString();
+    String ifExpression = bitVectorEvaluationExpression.negate().toASTString();
     CGotoStatement gotoNext = new CGotoStatement(targetGoto.toCLabelStatement());
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(ifExpression, ImmutableList.of(gotoNext.toASTString()));

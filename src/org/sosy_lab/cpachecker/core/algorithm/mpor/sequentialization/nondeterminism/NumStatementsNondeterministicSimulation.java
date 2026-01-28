@@ -137,7 +137,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     ImmutableList<String> stringList =
         ImmutableList.of(
             notSync.toASTString(),
-            bitVectorEvaluationExpression.orElseThrow().toNegatedASTString());
+            bitVectorEvaluationExpression.orElseThrow().negate().toASTString());
     ExpressionTree<String> notSyncAndNotConflict =
         And.of(transformedImmutableListCopy(stringList, LeafExpression::of));
     // the usual bit vector expression is true if there is a conflict

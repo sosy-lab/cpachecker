@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
  * }</pre>
  */
 public record CIfStatement(
-    CExpression condition,
+    CAstExpression condition,
     ImmutableList<CAstStatement> ifStatements,
     ImmutableList<CAstStatement> elseStatements)
     implements CAstStatement {
