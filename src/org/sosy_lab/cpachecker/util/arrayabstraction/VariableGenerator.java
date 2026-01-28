@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-class VariableGenerator {
+public class VariableGenerator {
 
   private final String prefix;
   private int counter;
@@ -85,7 +85,8 @@ class VariableGenerator {
     return functionCallExpression;
   }
 
-  static CIdExpression createVariableNameExpression(CType pType, MemoryLocation pMemoryLocation) {
+  public static CIdExpression createVariableNameExpression(
+      CType pType, MemoryLocation pMemoryLocation) {
 
     checkNotNull(pType);
     checkNotNull(pMemoryLocation);

@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.arrayabstraction.VariableGenerator.createVariableNameExpression;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -31,8 +33,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
@@ -56,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -95,7 +100,8 @@ public final class ValueAnalysisState
         Serializable,
         Graphable,
         LatticeAbstractState<ValueAnalysisState>,
-        PseudoPartitionable {
+        PseudoPartitionable,
+        AbstractStateWithAssumptions {
 
   @Serial private static final long serialVersionUID = -3152134511524554358L;
 
@@ -1003,6 +1009,29 @@ public final class ValueAnalysisState
     }
 
     return result;
+  }
+
+  @Override
+  public List<? extends AExpression> getAssumptions() {
+    ImmutableList.Builder<AExpression> assumptions = ImmutableList.builder();
+    for (Entry<MemoryLocation, ValueAndType> locationAndValue : constantsMap.entrySet()) {
+      if (!(locationAndValue.getValue().getValue() instanceof NumericValue numericValue)) {
+        continue;
+      }
+      CType cType = (CType) locationAndValue.getValue().getType();
+      CIntegerLiteralExpression rightHandSide =
+          new CIntegerLiteralExpression(FileLocation.DUMMY, cType, numericValue.bigIntegerValue());
+      CIdExpression leftHandSide = createVariableNameExpression(cType, locationAndValue.getKey());
+      assumptions.add(
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              cType,
+              cType,
+              leftHandSide,
+              rightHandSide,
+              BinaryOperator.EQUALS));
+    }
+    return assumptions.build();
   }
 
   public static class ValueAndType implements Serializable {
