@@ -18,8 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 public sealed interface SeqMultiControlStatement extends CExportStatement
     permits SeqBinarySearchTreeStatement, SeqIfElseChainStatement, SeqSwitchStatement {
 
-  MultiControlStatementEncoding getEncoding();
-
   /**
    * Creates the {@link SeqMultiControlStatement} for {@code pThread} based on the specified {@link
    * MultiControlStatementEncoding}.

@@ -53,11 +53,6 @@ public record SeqBinarySearchTreeStatement(
     return tree.toString();
   }
 
-  @Override
-  public MultiControlStatementEncoding getEncoding() {
-    return MultiControlStatementEncoding.BINARY_SEARCH_TREE;
-  }
-
   /**
    * Recursively builds a binary search tree via {@code if-else} statements for {@code
    * pAllStatements} and returns the resulting root statement.
@@ -86,9 +81,17 @@ public record SeqBinarySearchTreeStatement(
       int middleIndex = size / 2;
       Entry<CExportExpression, ? extends CExportStatement> midEntry =
           pCurrentStatements.get(middleIndex);
-      CExportStatement midStatement = midEntry.getValue();
-      int labelIndex = getLabelNumberOrIndex(midStatement, pAllStatements.indexOf(midEntry)) - 1;
-      CBinaryExpression ifExpression = buildIfSmallerExpression(labelIndex, pPc);
+      int midIndex =
+          midEntry.getValue() instanceof SeqThreadStatementClause clause
+              ? clause.labelNumber
+              : pAllStatements.indexOf(midEntry) - 1;
+
+      // if (pc < midIndex) ...
+      CBinaryExpression ifExpression =
+          binaryExpressionBuilder.buildBinaryExpression(
+              pPc,
+              SeqExpressionBuilder.buildIntegerLiteralExpression(midIndex + 1),
+              BinaryOperator.LESS_THAN);
 
       // recursively build if < ...  and else ... subtrees
       CExportStatement ifBranchStatement =
@@ -101,23 +104,5 @@ public record SeqBinarySearchTreeStatement(
           ImmutableList.of(ifBranchStatement),
           ImmutableList.of(elseBranchStatement));
     }
-  }
-
-  private CBinaryExpression buildIfSmallerExpression(int pMiddleIndex, CLeftHandSide pPc)
-      throws UnrecognizedCodeException {
-
-    return binaryExpressionBuilder.buildBinaryExpression(
-        pPc,
-        SeqExpressionBuilder.buildIntegerLiteralExpression(pMiddleIndex + 1),
-        BinaryOperator.LESS_THAN);
-  }
-
-  // Helpers =======================================================================================
-
-  /**
-   * Extracts the label number of {@code pStatement}, or returns {@code pIndex} if not applicable.
-   */
-  private static int getLabelNumberOrIndex(CExportStatement pStatement, int pIndex) {
-    return pStatement instanceof SeqThreadStatementClause clause ? clause.labelNumber : pIndex;
   }
 }

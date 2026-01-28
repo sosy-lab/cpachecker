@@ -58,9 +58,4 @@ public record SeqIfElseChainStatement(
     ifElseChain.add(Objects.requireNonNull(currentBranch).toASTString(pAAstNodeRepresentation));
     return ifElseChain.toString();
   }
-
-  @Override
-  public MultiControlStatementEncoding getEncoding() {
-    return MultiControlStatementEncoding.IF_ELSE_CHAIN;
-  }
 }

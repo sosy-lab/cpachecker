@@ -36,8 +36,6 @@ public record SeqSwitchStatement(
     ImmutableMap<CExportExpression, ? extends CExportStatement> statements)
     implements SeqMultiControlStatement {
 
-  private static final String SWITCH_KEYWORD = "switch";
-
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
@@ -52,14 +50,14 @@ public record SeqSwitchStatement(
     switchCase.add(
         Joiner.on(SeqSyntax.SPACE)
             .join(
-                SWITCH_KEYWORD,
+                "switch",
                 SeqStringUtil.wrapInBrackets(switchExpression.toASTString()),
                 SeqSyntax.CURLY_BRACKET_LEFT));
 
     // add all cases
     for (var entry : statements.entrySet()) {
       CExportStatement statement = entry.getValue();
-      String casePrefix = buildCasePrefix(entry.getKey());
+      String casePrefix = "case " + entry.getKey().toASTString(pAAstNodeRepresentation) + ":";
       String suffix = "";
       if (statement instanceof SeqMultiControlStatement) {
         // for inner multi control statements, add "break;" suffix. for clauses this is not
@@ -70,16 +68,5 @@ public record SeqSwitchStatement(
     }
     switchCase.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return switchCase.toString();
-  }
-
-  @Override
-  public MultiControlStatementEncoding getEncoding() {
-    return MultiControlStatementEncoding.SWITCH_CASE;
-  }
-
-  private static String buildCasePrefix(CExportExpression pExpression)
-      throws UnrecognizedCodeException {
-
-    return "case" + SeqSyntax.SPACE + pExpression.toASTString() + SeqSyntax.COLON;
   }
 }
