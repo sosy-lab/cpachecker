@@ -9,10 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -64,11 +68,24 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
           PredicateOperatorUtil.getPathFormula(
               serializedState, pathFormulaManager, formulaManagerView, pts, map);
 
-      return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-          abstraction,
-          (PredicateAbstractState)
-              predicateCPA.getInitialState(
-                  blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition()));
+      if (pMessage.getType() == DssMessageType.VIOLATION_CONDITION) {
+        return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+            abstraction,
+            (PredicateAbstractState)
+                predicateCPA.getInitialState(
+                    blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition()));
+      } else {
+        return PredicateAbstractState.mkAbstractionState(
+            abstraction,
+            predicateCPA
+                .getPredicateManager()
+                .asAbstraction(
+                    formulaManagerView.uninstantiate(abstraction.getFormula()), abstraction),
+            PathCopyingPersistentTreeMap.copyOf(
+                ImmutableMap.<CFANode, Integer>builder()
+                    .put(blockNode.getInitialLocation(), 1)
+                    .buildOrThrow()));
+      }
     } finally {
       SerializationInfoStorage.clear();
     }

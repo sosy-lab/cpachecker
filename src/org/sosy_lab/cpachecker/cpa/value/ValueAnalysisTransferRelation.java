@@ -1508,9 +1508,8 @@ public class ValueAnalysisTransferRelation
             super.setInfo(pElement, pPrecision, pCfaEdge);
             ValueAnalysisState newState = new ValueAnalysisState(machineModel);
             for (Entry<MemoryLocation, ValueAndType> entry : stateToStrengthen.getConstants()) {
-              newState.assignConstant(entry.getKey(),
-                  entry.getValue().getValue(),
-                  entry.getValue().getType());
+              newState.assignConstant(
+                  entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
             }
             for (Entry<MemoryLocation, ValueAndType> entry : violationState.getConstants()) {
               if (newState.contains(entry.getKey())) {
