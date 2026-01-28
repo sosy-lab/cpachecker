@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
-
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
