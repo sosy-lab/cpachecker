@@ -19,4 +19,7 @@
  *
  * <p>{@code CExportStatement} handles the export of statements similarly.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.cfa.ast.c.export;
