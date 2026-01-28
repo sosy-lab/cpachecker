@@ -8,10 +8,16 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 public record CExpressionWrapper(CExpression expression) implements CExportExpression {
+
+  public CExpressionWrapper {
+    checkNotNull(expression);
+  }
 
   @Override
   public String toASTString() {

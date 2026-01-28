@@ -367,9 +367,8 @@ class BitVectorReadWriteEvaluationBuilder {
     }
     return Optional.of(
         Or.of(
-            pOtherWriteVariables.stream()
-                .map(e -> LeafExpression.of((CExportExpression) new CExpressionWrapper(e)))
-                .collect(ImmutableList.toImmutableList())));
+            transformedImmutableListCopy(
+                pOtherWriteVariables, e -> LeafExpression.of(new CExpressionWrapper(e)))));
   }
 
   /** Builds the logical RHS i.e. {@code (W && (A' || A'' || ...))}. */
@@ -389,9 +388,8 @@ class BitVectorReadWriteEvaluationBuilder {
     }
     return Optional.of(
         Or.of(
-            pOtherAccessVariables.stream()
-                .map(e -> LeafExpression.of((CExportExpression) new CExpressionWrapper(e)))
-                .collect(ImmutableList.toImmutableList())));
+            transformedImmutableListCopy(
+                pOtherAccessVariables, e -> LeafExpression.of(new CExpressionWrapper(e)))));
   }
 
   // Pruned Sparse Single Variable Evaluation ======================================================
@@ -482,9 +480,8 @@ class BitVectorReadWriteEvaluationBuilder {
     return And.of(
         LeafExpression.of(new CExpressionWrapper(pActiveReadValue)),
         Or.of(
-            pOtherWriteVariables.stream()
-                .map(e -> LeafExpression.of((CExportExpression) new CExpressionWrapper(e)))
-                .collect(ImmutableList.toImmutableList())));
+            transformedImmutableListCopy(
+                pOtherWriteVariables, e -> LeafExpression.of(new CExpressionWrapper(e)))));
   }
 
   private static ExpressionTree<CExportExpression> buildFullSparseSingleVariableRightHandSide(
@@ -504,9 +501,8 @@ class BitVectorReadWriteEvaluationBuilder {
     return And.of(
         LeafExpression.of(new CExpressionWrapper(pActiveWriteValue)),
         Or.of(
-            pOtherAccessVariables.stream()
-                .map(e -> LeafExpression.of((CExportExpression) new CExpressionWrapper(e)))
-                .collect(ImmutableList.toImmutableList())));
+            transformedImmutableListCopy(
+                pOtherAccessVariables, e -> LeafExpression.of(new CExpressionWrapper(e)))));
   }
 
   private static ExpressionTree<CExportExpression> buildFullSparseSingleVariableEvaluation(

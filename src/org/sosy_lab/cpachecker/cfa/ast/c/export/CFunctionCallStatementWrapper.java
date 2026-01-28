@@ -21,7 +21,7 @@ public record CFunctionCallStatementWrapper(
 
   public CFunctionCallStatementWrapper {
     checkArgument(
-        !parameters().isEmpty(),
+        !parameters.isEmpty(),
         "The parameters list cannot be empty, because constructing a CWrapperFunctionCallStatement"
             + " only makes sense if at least one of the parameters can only be expressed using a"
             + " CAstExpression (e.g., logical &&). If there are now parameters, use"

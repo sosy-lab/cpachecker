@@ -143,8 +143,8 @@ public final class SeqAssumeFunction extends SeqFunction {
   public static CFunctionCallStatementWrapper buildAssumeFunctionCallStatement(
       ExpressionTree<CExportExpression> pCondition) {
 
-    return new CFunctionCallStatementWrapper(
-        ASSUME_FUNCTION_CALL_STATEMENT_DUMMY, ImmutableList.of(new CExpressionTree(pCondition)));
+    ImmutableList<CExportExpression> parameter = ImmutableList.of(new CExpressionTree(pCondition));
+    return new CFunctionCallStatementWrapper(ASSUME_FUNCTION_CALL_STATEMENT_DUMMY, parameter);
   }
 
   /**
