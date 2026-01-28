@@ -6,19 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 
-public record CWrapperFunctionCallStatement(
-    CFunctionCallStatement functionCallStatement, ImmutableList<CAstExpression> parameters)
-    implements CAstStatement {
+public record CFunctionCallStatementWrapper(
+    CFunctionCallStatement functionCallStatement, ImmutableList<CExportExpression> parameters)
+    implements CExportStatement {
 
-  public CWrapperFunctionCallStatement {
+  public CFunctionCallStatementWrapper {
     checkArgument(
         !parameters().isEmpty(),
         "The parameters list cannot be empty, because constructing a CWrapperFunctionCallStatement"

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -26,13 +26,13 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
  * }
  * }</pre>
  */
-public final class CIfStatement implements CAstStatement {
+public final class CIfStatement implements CExportStatement {
 
-  private final CAstExpression condition;
+  private final CExportExpression condition;
 
-  private final ImmutableList<CAstStatement> ifStatements;
+  private final ImmutableList<CExportStatement> ifStatements;
 
-  private final ImmutableList<CAstStatement> elseStatements;
+  private final ImmutableList<CExportStatement> elseStatements;
 
   /**
    * Use this constructor to create an {@code if} statement without any {@code else} branch:
@@ -47,7 +47,7 @@ public final class CIfStatement implements CAstStatement {
    * @param pCondition the {@code if} condition
    * @param pIfStatements the non-empty list of statements in the {@code if} branch
    */
-  public CIfStatement(CAstExpression pCondition, ImmutableList<CAstStatement> pIfStatements) {
+  public CIfStatement(CExportExpression pCondition, ImmutableList<CExportStatement> pIfStatements) {
     checkArgument(
         !pIfStatements.isEmpty(),
         "pIfStatements needs at least one element, otherwise the if branch is empty.");
@@ -75,9 +75,9 @@ public final class CIfStatement implements CAstStatement {
    * @param pElseStatements the non-empty list of statements in the {@code else} branch
    */
   public CIfStatement(
-      CAstExpression pCondition,
-      ImmutableList<CAstStatement> pIfStatements,
-      ImmutableList<CAstStatement> pElseStatements) {
+      CExportExpression pCondition,
+      ImmutableList<CExportStatement> pIfStatements,
+      ImmutableList<CExportStatement> pElseStatements) {
 
     checkArgument(
         !pIfStatements.isEmpty(),
@@ -105,7 +105,7 @@ public final class CIfStatement implements CAstStatement {
         .append(condition.toASTString(pAAstNodeRepresentation))
         .append(") {\n");
 
-    for (CAstStatement statement : ifStatements) {
+    for (CExportStatement statement : ifStatements) {
       ifStatement.append(statement.toASTString(pAAstNodeRepresentation)).append("\n");
     }
     ifStatement.append("}");
@@ -113,7 +113,7 @@ public final class CIfStatement implements CAstStatement {
     // append the else { ... } branch only if there are any else statements
     if (!elseStatements.isEmpty()) {
       ifStatement.append(" else {\n");
-      for (CAstStatement stmt : elseStatements) {
+      for (CExportStatement stmt : elseStatements) {
         ifStatement.append(stmt.toASTString(pAAstNodeRepresentation)).append("\n");
       }
       ifStatement.append("}");

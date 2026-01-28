@@ -18,11 +18,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -106,12 +106,12 @@ public record ReduceLastThreadOrderInjector(
                 BinaryOperator.LESS_THAN);
 
     // if (LAST_THREAD < n) ...
-    CWrapperExpression ifCondition = new CWrapperExpression(lastThreadLessThanThreadId);
+    CExpressionWrapper ifCondition = new CExpressionWrapper(lastThreadLessThanThreadId);
     if (lastBitVectorEvaluation.isEmpty()) {
       return new CIfStatement(
           ifCondition,
           // if the evaluation is empty, it results in assume(0) i.e. abort()
-          ImmutableList.of(new CWrapperStatement(SeqAssumeFunction.ABORT_FUNCTION_CALL_STATEMENT)));
+          ImmutableList.of(new CStatementWrapper(SeqAssumeFunction.ABORT_FUNCTION_CALL_STATEMENT)));
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is in conflict with LAST_THREAD
       return new CIfStatement(

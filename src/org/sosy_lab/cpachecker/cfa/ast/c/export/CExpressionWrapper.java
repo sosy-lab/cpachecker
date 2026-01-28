@@ -6,20 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
-/** Represents a label in C. Example: {@code label:}. */
-public record CLabelStatement(String name) implements CAstStatement {
+public record CExpressionWrapper(CExpression expression) implements CExportExpression {
 
   @Override
   public String toASTString() {
-    return toASTString(AAstNodeRepresentation.DEFAULT);
+    return expression.toASTString();
   }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return name + ":";
+    return expression.toASTString(pAAstNodeRepresentation);
   }
 }

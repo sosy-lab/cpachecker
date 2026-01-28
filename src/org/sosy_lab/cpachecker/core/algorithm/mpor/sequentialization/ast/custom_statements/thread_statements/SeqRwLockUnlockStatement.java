@@ -12,10 +12,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
@@ -58,9 +58,9 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
 
     CIfStatement ifStatement =
         new CIfStatement(
-            new CWrapperExpression(rwLockFlags.writerEqualsZero()),
-            ImmutableList.of(new CWrapperStatement(rwLockFlags.readersDecrement())),
-            ImmutableList.of(new CWrapperStatement(setNumWritersToZero)));
+            new CExpressionWrapper(rwLockFlags.writerEqualsZero()),
+            ImmutableList.of(new CStatementWrapper(rwLockFlags.readersDecrement())),
+            ImmutableList.of(new CStatementWrapper(setNumWritersToZero)));
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);

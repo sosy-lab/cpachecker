@@ -15,14 +15,14 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
@@ -150,20 +150,20 @@ class BitVectorReadWriteEvaluationBuilder {
 
     if (leftHandSide.isPresent() && rightHandSide.isPresent()) {
       // both LHS and RHS present: create or expression: ||
-      ImmutableList<CAstExpression> expressionList =
+      ImmutableList<CExportExpression> expressionList =
           ImmutableList.of(
-              new CWrapperExpression(leftHandSide.orElseThrow()),
-              new CWrapperExpression(rightHandSide.orElseThrow()));
-      ExpressionTree<CAstExpression> logicalOr =
+              new CExpressionWrapper(leftHandSide.orElseThrow()),
+              new CExpressionWrapper(rightHandSide.orElseThrow()));
+      ExpressionTree<CExportExpression> logicalOr =
           Or.of(transformedImmutableListCopy(expressionList, LeafExpression::of));
       return Optional.of(new CExpressionTree(logicalOr));
     } else if (leftHandSide.isPresent()) {
-      ExpressionTree<CAstExpression> binaryLhs =
-          LeafExpression.of(new CWrapperExpression(leftHandSide.orElseThrow()));
+      ExpressionTree<CExportExpression> binaryLhs =
+          LeafExpression.of(new CExpressionWrapper(leftHandSide.orElseThrow()));
       return Optional.of(new CExpressionTree(binaryLhs));
     } else if (rightHandSide.isPresent()) {
-      ExpressionTree<CAstExpression> binaryRhs =
-          LeafExpression.of(new CWrapperExpression(rightHandSide.orElseThrow()));
+      ExpressionTree<CExportExpression> binaryRhs =
+          LeafExpression.of(new CExpressionWrapper(rightHandSide.orElseThrow()));
       return Optional.of(new CExpressionTree(binaryRhs));
     }
     return Optional.empty();
@@ -275,10 +275,10 @@ class BitVectorReadWriteEvaluationBuilder {
         buildGeneralDenseRightHandSide(
             pDirectWriteBitVector, pOtherAccessBitVectors, pUtils.binaryExpressionBuilder());
     // (R & (W' | W'' | ...)) || (W & (A' | A'' | ...))
-    ImmutableList<CAstExpression> expressionList =
+    ImmutableList<CExportExpression> expressionList =
         ImmutableList.of(
-            new CWrapperExpression(leftHandSide), new CWrapperExpression(rightHandSide));
-    ExpressionTree<CAstExpression> logicalOr =
+            new CExpressionWrapper(leftHandSide), new CExpressionWrapper(rightHandSide));
+    ExpressionTree<CExportExpression> logicalOr =
         Or.of(transformedImmutableListCopy(expressionList, LeafExpression::of));
     return new CExpressionTree(logicalOr);
   }
@@ -324,7 +324,7 @@ class BitVectorReadWriteEvaluationBuilder {
       // no bit vectors (e.g. no global variables) -> no evaluation
       return Optional.empty();
     }
-    ImmutableList.Builder<ExpressionTree<CAstExpression>> sparseExpressions =
+    ImmutableList.Builder<ExpressionTree<CExportExpression>> sparseExpressions =
         ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       SeqMemoryLocation memoryLocation = entry.getKey();
@@ -334,10 +334,10 @@ class BitVectorReadWriteEvaluationBuilder {
       // handle access variables
       ImmutableList<CExpression> otherAccessVariables = pSparseAccessMap.get(memoryLocation);
 
-      Optional<ExpressionTree<CAstExpression>> leftHandSide =
+      Optional<ExpressionTree<CExportExpression>> leftHandSide =
           buildPrunedSparseLeftHandSide(
               pDirectReadMemoryLocations, memoryLocation, otherWriteVariables);
-      Optional<ExpressionTree<CAstExpression>> rightHandSide =
+      Optional<ExpressionTree<CExportExpression>> rightHandSide =
           buildPrunedSparseRightHandSide(
               pDirectWriteMemoryLocations, memoryLocation, otherAccessVariables);
 
@@ -351,7 +351,7 @@ class BitVectorReadWriteEvaluationBuilder {
   }
 
   /** Builds the logical LHS i.e. {@code (R && (W' || W'' || ...))}. */
-  private static Optional<ExpressionTree<CAstExpression>> buildPrunedSparseLeftHandSide(
+  private static Optional<ExpressionTree<CExportExpression>> buildPrunedSparseLeftHandSide(
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       SeqMemoryLocation pMemoryLocation,
       ImmutableList<CExpression> pOtherWriteVariables) {
@@ -368,12 +368,12 @@ class BitVectorReadWriteEvaluationBuilder {
     return Optional.of(
         Or.of(
             pOtherWriteVariables.stream()
-                .map(e -> LeafExpression.of((CAstExpression) new CWrapperExpression(e)))
+                .map(e -> LeafExpression.of((CExportExpression) new CExpressionWrapper(e)))
                 .collect(ImmutableList.toImmutableList())));
   }
 
   /** Builds the logical RHS i.e. {@code (W && (A' || A'' || ...))}. */
-  private static Optional<ExpressionTree<CAstExpression>> buildPrunedSparseRightHandSide(
+  private static Optional<ExpressionTree<CExportExpression>> buildPrunedSparseRightHandSide(
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
       SeqMemoryLocation pMemoryLocation,
       ImmutableList<CExpression> pOtherAccessVariables) {
@@ -390,15 +390,15 @@ class BitVectorReadWriteEvaluationBuilder {
     return Optional.of(
         Or.of(
             pOtherAccessVariables.stream()
-                .map(e -> LeafExpression.of((CAstExpression) new CWrapperExpression(e)))
+                .map(e -> LeafExpression.of((CExportExpression) new CExpressionWrapper(e)))
                 .collect(ImmutableList.toImmutableList())));
   }
 
   // Pruned Sparse Single Variable Evaluation ======================================================
 
-  private static ExpressionTree<CAstExpression> buildPrunedSparseSingleVariableEvaluation(
-      Optional<ExpressionTree<CAstExpression>> pLeftHandSide,
-      Optional<ExpressionTree<CAstExpression>> pRightHandSide) {
+  private static ExpressionTree<CExportExpression> buildPrunedSparseSingleVariableEvaluation(
+      Optional<ExpressionTree<CExportExpression>> pLeftHandSide,
+      Optional<ExpressionTree<CExportExpression>> pRightHandSide) {
 
     if (pLeftHandSide.isPresent() && pRightHandSide.isEmpty()) {
       return pLeftHandSide.orElseThrow(); // only LHS
@@ -421,7 +421,7 @@ class BitVectorReadWriteEvaluationBuilder {
     if (pBitVectorVariables.areSparseBitVectorsEmpty()) {
       return Optional.empty();
     }
-    ImmutableList.Builder<ExpressionTree<CAstExpression>> sparseExpressions =
+    ImmutableList.Builder<ExpressionTree<CExportExpression>> sparseExpressions =
         ImmutableList.builder();
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         pBitVectorVariables.getSparseAccessBitVectors().keySet();
@@ -445,7 +445,7 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseAccessMap,
       BitVectorVariables pBitVectorVariables) {
 
-    ImmutableList.Builder<ExpressionTree<CAstExpression>> sparseExpressions =
+    ImmutableList.Builder<ExpressionTree<CExportExpression>> sparseExpressions =
         ImmutableList.builder();
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         pBitVectorVariables.getSparseAccessBitVectors().keySet();
@@ -465,7 +465,7 @@ class BitVectorReadWriteEvaluationBuilder {
 
   // Full Sparse Single Variable Evaluation ========================================================
 
-  private static ExpressionTree<CAstExpression> buildFullSparseSingleVariableLeftHandSide(
+  private static ExpressionTree<CExportExpression> buildFullSparseSingleVariableLeftHandSide(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableList<CExpression> pOtherWriteVariables) {
@@ -476,18 +476,18 @@ class BitVectorReadWriteEvaluationBuilder {
     return buildFullSparseSingleVariableLeftHandSide(activeReadValue, pOtherWriteVariables);
   }
 
-  private static ExpressionTree<CAstExpression> buildFullSparseSingleVariableLeftHandSide(
+  private static ExpressionTree<CExportExpression> buildFullSparseSingleVariableLeftHandSide(
       CExpression pActiveReadValue, ImmutableList<CExpression> pOtherWriteVariables) {
 
     return And.of(
-        LeafExpression.of(new CWrapperExpression(pActiveReadValue)),
+        LeafExpression.of(new CExpressionWrapper(pActiveReadValue)),
         Or.of(
             pOtherWriteVariables.stream()
-                .map(e -> LeafExpression.of((CAstExpression) new CWrapperExpression(e)))
+                .map(e -> LeafExpression.of((CExportExpression) new CExpressionWrapper(e)))
                 .collect(ImmutableList.toImmutableList())));
   }
 
-  private static ExpressionTree<CAstExpression> buildFullSparseSingleVariableRightHandSide(
+  private static ExpressionTree<CExportExpression> buildFullSparseSingleVariableRightHandSide(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
       ImmutableList<CExpression> pOtherAccessVariables) {
@@ -498,45 +498,46 @@ class BitVectorReadWriteEvaluationBuilder {
     return buildFullSparseSingleVariableRightHandSide(activeWriteValue, pOtherAccessVariables);
   }
 
-  private static ExpressionTree<CAstExpression> buildFullSparseSingleVariableRightHandSide(
+  private static ExpressionTree<CExportExpression> buildFullSparseSingleVariableRightHandSide(
       CExpression pActiveWriteValue, ImmutableList<CExpression> pOtherAccessVariables) {
 
     return And.of(
-        LeafExpression.of(new CWrapperExpression(pActiveWriteValue)),
+        LeafExpression.of(new CExpressionWrapper(pActiveWriteValue)),
         Or.of(
             pOtherAccessVariables.stream()
-                .map(e -> LeafExpression.of((CAstExpression) new CWrapperExpression(e)))
+                .map(e -> LeafExpression.of((CExportExpression) new CExpressionWrapper(e)))
                 .collect(ImmutableList.toImmutableList())));
   }
 
-  private static ExpressionTree<CAstExpression> buildFullSparseSingleVariableEvaluation(
+  private static ExpressionTree<CExportExpression> buildFullSparseSingleVariableEvaluation(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
       ImmutableList<CExpression> pOtherWriteVariables,
       ImmutableList<CExpression> pOtherAccessVariables) {
 
-    ExpressionTree<CAstExpression> leftHandSide =
+    ExpressionTree<CExportExpression> leftHandSide =
         buildFullSparseSingleVariableLeftHandSide(
             pMemoryLocation, pDirectReadMemoryLocations, pOtherWriteVariables);
-    ExpressionTree<CAstExpression> rightHandSide =
+    ExpressionTree<CExportExpression> rightHandSide =
         buildFullSparseSingleVariableRightHandSide(
             pMemoryLocation, pDirectWriteMemoryLocations, pOtherAccessVariables);
     return Or.of(leftHandSide, rightHandSide);
   }
 
-  private static ExpressionTree<CAstExpression> buildSingleVariableFullSparseVariableOnlyEvaluation(
-      MPORThread pActiveThread,
-      SeqMemoryLocation pMemoryLocation,
-      ImmutableList<CExpression> pOtherWriteVariables,
-      ImmutableList<CExpression> pOtherAccessVariables,
-      BitVectorVariables pBitVectorVariables) {
+  private static ExpressionTree<CExportExpression>
+      buildSingleVariableFullSparseVariableOnlyEvaluation(
+          MPORThread pActiveThread,
+          SeqMemoryLocation pMemoryLocation,
+          ImmutableList<CExpression> pOtherWriteVariables,
+          ImmutableList<CExpression> pOtherAccessVariables,
+          BitVectorVariables pBitVectorVariables) {
 
     SparseBitVector sparseReadBitVector =
         Objects.requireNonNull(pBitVectorVariables.getSparseReadBitVectors().get(pMemoryLocation));
     CExpression activeReadVariable =
         sparseReadBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
-    ExpressionTree<CAstExpression> leftHandSide =
+    ExpressionTree<CExportExpression> leftHandSide =
         buildFullSparseSingleVariableLeftHandSide(
             Objects.requireNonNull(activeReadVariable), pOtherWriteVariables);
 
@@ -544,7 +545,7 @@ class BitVectorReadWriteEvaluationBuilder {
         Objects.requireNonNull(pBitVectorVariables.getSparseWriteBitVectors().get(pMemoryLocation));
     CExpression activeWriteVariable =
         sparseWriteBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
-    ExpressionTree<CAstExpression> rightHandSide =
+    ExpressionTree<CExportExpression> rightHandSide =
         buildFullSparseSingleVariableRightHandSide(
             Objects.requireNonNull(activeWriteVariable), pOtherAccessVariables);
 

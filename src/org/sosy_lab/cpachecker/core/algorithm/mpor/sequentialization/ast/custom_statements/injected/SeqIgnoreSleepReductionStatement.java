@@ -12,12 +12,12 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
-import org.sosy_lab.cpachecker.cfa.ast.c.CGotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CNegatedExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CGotoStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CNegatedExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
@@ -47,7 +47,7 @@ public record SeqIgnoreSleepReductionStatement(
       // no reduction assumptions -> just return outer if statement
       CIfStatement outerIfStatement =
           new CIfStatement(
-              new CWrapperExpression(roundMaxEqualsZeroExpression),
+              new CExpressionWrapper(roundMaxEqualsZeroExpression),
               ImmutableList.of(innerIfStatement));
       return outerIfStatement.toASTString();
     }

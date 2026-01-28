@@ -17,7 +17,6 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -28,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -113,7 +113,7 @@ public final class SeqMainFunction extends SeqFunction {
         loopBlock.add(nextThreadAssignment.toASTString());
 
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
-        CAstStatement nextThreadAssumption =
+        CExportStatement nextThreadAssumption =
             SeqAssumeFunction.buildNextThreadAssumeCallFunctionCallStatement(
                 pOptions.nondeterminismSigned(),
                 pFields.numThreads,

@@ -9,13 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CGotoStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CGotoStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -38,12 +38,12 @@ public record SeqGuardedGotoStatement(
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList<CAstStatement> ifStatements =
-        ImmutableList.<CAstStatement>builder()
-            .addAll(precedingStatements.stream().map(s -> new CWrapperStatement(s)).iterator())
+    ImmutableList<CExportStatement> ifStatements =
+        ImmutableList.<CExportStatement>builder()
+            .addAll(precedingStatements.stream().map(s -> new CStatementWrapper(s)).iterator())
             .add(new CGotoStatement(targetLabel.toCLabelStatement()))
             .build();
-    CIfStatement ifStatement = new CIfStatement(new CWrapperExpression(condition), ifStatements);
+    CIfStatement ifStatement = new CIfStatement(new CExpressionWrapper(condition), ifStatements);
     return ifStatement.toASTString();
   }
 

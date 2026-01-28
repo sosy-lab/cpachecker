@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
-import org.sosy_lab.cpachecker.cfa.ast.c.CGotoStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CNegatedExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CGotoStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CNegatedExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;

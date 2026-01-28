@@ -13,24 +13,24 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CFunctionCallStatementWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -117,9 +117,9 @@ public final class SeqAssumeFunction extends SeqFunction {
   }
 
   private static CIfStatement buildBody(CBinaryExpression pCondEqualsZeroExpression) {
-    CWrapperExpression ifCondition = new CWrapperExpression(pCondEqualsZeroExpression);
-    ImmutableList<CAstStatement> ifBlock =
-        ImmutableList.of(new CWrapperStatement(ABORT_FUNCTION_CALL_STATEMENT));
+    CExpressionWrapper ifCondition = new CExpressionWrapper(pCondEqualsZeroExpression);
+    ImmutableList<CExportStatement> ifBlock =
+        ImmutableList.of(new CStatementWrapper(ABORT_FUNCTION_CALL_STATEMENT));
     return new CIfStatement(ifCondition, ifBlock);
   }
 
@@ -139,13 +139,13 @@ public final class SeqAssumeFunction extends SeqFunction {
   }
 
   /**
-   * Returns a {@link CWrapperFunctionCallStatement} representation of an assume function call i.e.
+   * Returns a {@link CFunctionCallStatementWrapper} representation of an assume function call i.e.
    * {@code assume(pCondition);}.
    */
-  public static CWrapperFunctionCallStatement buildAssumeFunctionCallStatement(
-      ExpressionTree<CAstExpression> pCondition) {
+  public static CFunctionCallStatementWrapper buildAssumeFunctionCallStatement(
+      ExpressionTree<CExportExpression> pCondition) {
 
-    return new CWrapperFunctionCallStatement(
+    return new CFunctionCallStatementWrapper(
         ASSUME_FUNCTION_CALL_STATEMENT_DUMMY, ImmutableList.of(new CExpressionTree(pCondition)));
   }
 
@@ -155,7 +155,7 @@ public final class SeqAssumeFunction extends SeqFunction {
    * next_thread < NUM_THREADS)} for a signed variable, {@code assume(next_thread < NUM_THREADS)}
    * for an unsigned variable.
    */
-  public static CAstStatement buildNextThreadAssumeCallFunctionCallStatement(
+  public static CExportStatement buildNextThreadAssumeCallFunctionCallStatement(
       boolean pIsSigned, int pNumThreads, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -173,13 +173,13 @@ public final class SeqAssumeFunction extends SeqFunction {
               SeqIntegerLiteralExpressions.INT_0,
               SeqIdExpressions.NEXT_THREAD,
               BinaryOperator.LESS_EQUAL);
-      ImmutableList<CAstExpression> expressions =
+      ImmutableList<CExportExpression> expressions =
           ImmutableList.of(
-              new CWrapperExpression(nextThreadLessThanNumThreads),
-              new CWrapperExpression(nextThreadGreaterOrEqualZero));
+              new CExpressionWrapper(nextThreadLessThanNumThreads),
+              new CExpressionWrapper(nextThreadGreaterOrEqualZero));
       return buildAssumeFunctionCallStatement(
           And.of(transformedImmutableListCopy(expressions, LeafExpression::of)));
     }
-    return new CWrapperStatement(buildAssumeFunctionCallStatement(nextThreadLessThanNumThreads));
+    return new CStatementWrapper(buildAssumeFunctionCallStatement(nextThreadLessThanNumThreads));
   }
 }

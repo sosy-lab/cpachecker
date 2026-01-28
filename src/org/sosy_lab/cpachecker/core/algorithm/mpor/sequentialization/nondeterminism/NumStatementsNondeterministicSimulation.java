@@ -14,15 +14,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLabelStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -77,7 +77,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
 
     // if (round_max > 0) ...
     ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
-    CAstExpression innerIfCondition = buildRoundMaxGreaterZeroExpression(pThread, otherThreads);
+    CExportExpression innerIfCondition = buildRoundMaxGreaterZeroExpression(pThread, otherThreads);
     ImmutableList.Builder<String> innerIfBlock = ImmutableList.builder();
 
     // add the thread simulation statements
@@ -108,7 +108,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     return ImmutableList.<String>builder().add(roundReset.toASTString()).build();
   }
 
-  private CAstExpression buildRoundMaxGreaterZeroExpression(
+  private CExportExpression buildRoundMaxGreaterZeroExpression(
       MPORThread pActiveThread, ImmutableSet<MPORThread> pOtherThreads)
       throws UnrecognizedCodeException {
 
@@ -122,7 +122,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
                 BinaryOperator.GREATER_THAN);
 
     if (!options.reduceIgnoreSleep()) {
-      return new CWrapperExpression(roundMaxGreaterZero);
+      return new CExpressionWrapper(roundMaxGreaterZero);
     }
     // if enabled, add bit vector evaluation: "round_max > 0 || {bitvector_evaluation}"
     Optional<CExpressionTree> bitVectorEvaluationExpression =
@@ -136,15 +136,15 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(pActiveThread);
     CBinaryExpression notSync =
         utils.binaryExpressionBuilder().negateExpressionAndSimplify(syncFlag);
-    ImmutableList<CAstExpression> expressionList =
+    ImmutableList<CExportExpression> expressionList =
         ImmutableList.of(
-            new CWrapperExpression(notSync), bitVectorEvaluationExpression.orElseThrow().negate());
-    ExpressionTree<CAstExpression> notSyncAndNotConflict =
+            new CExpressionWrapper(notSync), bitVectorEvaluationExpression.orElseThrow().negate());
+    ExpressionTree<CExportExpression> notSyncAndNotConflict =
         And.of(transformedImmutableListCopy(expressionList, LeafExpression::of));
     // the usual bit vector expression is true if there is a conflict
     //  -> negate (we want no conflict if we ignore round_max == 0)
     return new CExpressionTree(
         Or.of(
-            LeafExpression.of(new CWrapperExpression(roundMaxGreaterZero)), notSyncAndNotConflict));
+            LeafExpression.of(new CExpressionWrapper(roundMaxGreaterZero)), notSyncAndNotConflict));
   }
 }

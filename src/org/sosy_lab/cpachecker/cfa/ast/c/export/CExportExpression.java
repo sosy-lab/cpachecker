@@ -6,20 +6,21 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 /**
- * Provides a common interface for {@link CExpression} (via {@link CWrapperExpression}) and
+ * Provides a common interface for {@link CExpression} (via {@link CExpressionWrapper}) and
  * expressions that are exported in actual C programs like a {@link CExpressionTree}.
  *
  * <p>This an extra interface is added because using {@link CExpression} as the common base would
  * require adjustments to {@link CFA} handling and all visitors that handle {@link CExpression}.
  */
-public sealed interface CAstExpression
-    permits CExpressionTree, CNegatedExpression, CWrapperExpression {
+public sealed interface CExportExpression
+    permits CExpressionTree, CNegatedExpression, CExpressionWrapper {
 
   String toASTString();
 

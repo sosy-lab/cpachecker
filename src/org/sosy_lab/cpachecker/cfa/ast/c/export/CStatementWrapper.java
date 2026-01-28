@@ -6,19 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 
-public record CNegatedExpression(CAstExpression expressionToNegate) implements CAstExpression {
+public record CStatementWrapper(CStatement statement) implements CExportStatement {
 
   @Override
   public String toASTString() {
-    return toASTString(AAstNodeRepresentation.DEFAULT);
+    return statement.toASTString();
   }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "!(" + expressionToNegate + ")";
+    return statement.toASTString(pAAstNodeRepresentation);
   }
 }

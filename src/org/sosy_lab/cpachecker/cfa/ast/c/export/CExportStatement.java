@@ -6,13 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 
 /**
- * Provides a common interface for {@link CStatement} (via {@link CWrapperStatement}) and statements
+ * Provides a common interface for {@link CStatement} (via {@link CStatementWrapper}) and statements
  * that are exported in actual C programs like a {@link CIfStatement}.
  *
  * <p>This an extra interface is added because using {@link CStatement} as the common base would
@@ -20,12 +21,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
  * edge whereas a {@link CIfStatement} represents multiple edges) and all visitors that handle
  * {@link CStatement}.
  */
-public sealed interface CAstStatement
+public sealed interface CExportStatement
     permits CGotoStatement,
         CIfStatement,
         CLabelStatement,
-        CWrapperFunctionCallStatement,
-        CWrapperStatement {
+        CFunctionCallStatementWrapper,
+        CStatementWrapper {
 
   String toASTString();
 

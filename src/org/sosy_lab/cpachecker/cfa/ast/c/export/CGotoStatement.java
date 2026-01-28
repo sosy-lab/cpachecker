@@ -6,12 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.c.export;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 
 /** Represents a goto statement in C. Example: {@code goto label;}. */
-public record CGotoStatement(CLabelStatement label) implements CAstStatement {
+public record CGotoStatement(CLabelStatement label) implements CExportStatement {
 
   @Override
   public String toASTString() {
