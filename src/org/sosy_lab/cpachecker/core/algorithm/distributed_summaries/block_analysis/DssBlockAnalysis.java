@@ -12,11 +12,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -48,9 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -67,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -465,7 +463,7 @@ public class DssBlockAnalysis {
     if (!pReceived.isReachable()) {
       soundPredecessors.add(pReceived.getSenderId());
       preconditions.removeAll(pReceived.getSenderId());
-      if (block.getPredecessorIds().size() == 1) {
+      if (preconditions.keySet().isEmpty()) {
         return DssMessageProcessing.stopWith(reportUnreachableBlockEnd());
       }
       return DssMessageProcessing.stop();
@@ -481,94 +479,36 @@ public class DssBlockAnalysis {
       return processing;
     }
 
-    record PredecessorStateEntry(String predecessorId, StateAndPrecision stateAndPrecision) {}
-
-    resetStates();
-    ImmutableSet.Builder<PredecessorStateEntry> discard = ImmutableSet.builder();
-    int covered = 0;
-    for (StateAndPrecision deserialized : deserializedStates) {
-      if (dcpa.isMostGeneralBlockEntryState(deserialized.state())) {
-        soundPredecessors.add(pReceived.getSenderId());
-        preconditions.removeAll(pReceived.getSenderId());
-        preconditions.putAll(pReceived.getSenderId(), deserializedStates);
-        return DssMessageProcessing.proceed();
+    reachedSet.clear();
+    for (Entry<String, StateAndPrecision> predecessorWithStateAndPrecision :
+        preconditions.entries()) {
+      if (predecessorWithStateAndPrecision.getKey().equals(pReceived.getSenderId())) {
+        continue;
       }
-      boolean isEquivalent = false;
-      for (StateAndPrecision previous : preconditions.get(pReceived.getSenderId())) {
-        if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
-          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
-        }
-        // the reset resets the callstack state, too
-        boolean previousLessEqualDeserialized =
-            dcpa.getCoverageOperator()
-                .isSubsumed(previous.state(), dcpa.reset(deserialized.state()));
-        if (previousLessEqualDeserialized) {
-          boolean deserializedLessEqualPrevious =
-              dcpa.getCoverageOperator()
-                  .isSubsumed(dcpa.reset(deserialized.state()), previous.state());
-          if (deserializedLessEqualPrevious) {
-            if (pReceived.isSound()) {
-              soundPredecessors.add(pReceived.getSenderId());
-            }
-            isEquivalent = true;
-          }
-          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
-        }
-      }
-      if (isEquivalent) {
-        covered++;
+      reachedSet.add(
+          dcpa.reset(predecessorWithStateAndPrecision.getValue().state()),
+          predecessorWithStateAndPrecision.getValue().precision());
+    }
+    ImmutableSet<AbstractState> statesBefore = ImmutableSet.copyOf(reachedSet.asCollection());
+    ImmutableList<StateAndPrecision> statesFromSamePredecessor =
+        FluentIterable.from(preconditions.get(pReceived.getSenderId()))
+            .filter(s -> !dcpa.isMostGeneralBlockEntryState(s.state()))
+            .transform(s -> new StateAndPrecision(dcpa.reset(s.state()), s.precision()))
+            .append(deserializedStates)
+            .toList();
+    DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, statesFromSamePredecessor);
+    ImmutableSet.Builder<StateAndPrecision> recovered = ImmutableSet.builder();
+    for (AbstractState abstractState : reachedSet) {
+      if (!statesBefore.contains(abstractState)) {
+        recovered.add(new StateAndPrecision(abstractState, reachedSet.getPrecision(abstractState)));
       }
     }
-    // summaries from non-loop predecessors are by definition stronger and unique
-    if (!block.getLoopPredecessorIds().contains(pReceived.getSenderId())) {
-      for (StateAndPrecision sp : preconditions.get(pReceived.getSenderId())) {
-        discard.add(new PredecessorStateEntry(pReceived.getSenderId(), sp));
-      }
-    }
-
-    ImmutableSet<PredecessorStateEntry> discarded = discard.build();
-    preconditions.putAll(pReceived.getSenderId(), deserializedStates);
-    discarded.forEach(pse -> preconditions.remove(pse.predecessorId(), pse.stateAndPrecision()));
-
-    int coveredByOther = 0;
-    for (StateAndPrecision deserializedState : deserializedStates) {
-      for (String predecessor : preconditions.keySet()) {
-        if (predecessor.equals(pReceived.getSenderId())) {
-          continue;
-        }
-        boolean isCovered = false;
-        for (StateAndPrecision stateAndPrecision : preconditions.get(predecessor)) {
-          isCovered =
-              dcpa.getCoverageOperator()
-                  .isSubsumed(stateAndPrecision.state(), dcpa.reset(deserializedState.state()));
-          if (isCovered) {
-            break;
-          }
-        }
-        if (isCovered) {
-          coveredByOther++;
-          break;
-        }
-      }
-    }
-    if (coveredByOther == deserializedStates.size()) {
-      // we reached a fixpoint where all predecessors agree.
-      soundPredecessors.add(pReceived.getSenderId());
+    reachedSet.clear();
+    ImmutableSet<StateAndPrecision> newStates = recovered.build();
+    preconditions.removeAll(pReceived.getSenderId());
+    preconditions.putAll(pReceived.getSenderId(), newStates);
+    if (Sets.intersection(newStates, ImmutableSet.copyOf(deserializedStates)).isEmpty()) {
       return DssMessageProcessing.stop();
-    }
-
-    if (covered == deserializedStates.size()) {
-      // we already have a precondition equivalent to the new one
-      if (soundPredecessors.containsAll(block.getPredecessorIds())) {
-        if (pReceived.isSound()) {
-          soundPredecessors.add(pReceived.getSenderId());
-        } else {
-          soundPredecessors.remove(pReceived.getSenderId());
-        }
-        return DssMessageProcessing.stop();
-      } else {
-        soundPredecessors.add(block.getId());
-      }
     }
     return processing;
   }
