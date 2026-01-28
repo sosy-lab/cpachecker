@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
@@ -23,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -46,7 +46,7 @@ record ReduceIgnoreSleepInjector(
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(labelClauseMap.get(targetPc));
         if (StatementInjector.isReductionAllowed(options, newTarget)) {
-          Optional<BitVectorEvaluationExpression> evaluationExpression =
+          Optional<CExpressionTree> evaluationExpression =
               BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
                   options, activeThread, otherThreads, bitVectorVariables, utils);
           SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
@@ -64,7 +64,7 @@ record ReduceIgnoreSleepInjector(
 
   private SeqIgnoreSleepReductionStatement buildIgnoreSleepReductionStatement(
       CSeqThreadStatement pStatement,
-      BitVectorEvaluationExpression pBitVectorEvaluationExpression,
+      CExpressionTree pBitVectorEvaluationExpression,
       SeqThreadStatementClause pTargetClause) {
 
     ImmutableList.Builder<SeqInjectedStatement> reductionAssumptions = ImmutableList.builder();

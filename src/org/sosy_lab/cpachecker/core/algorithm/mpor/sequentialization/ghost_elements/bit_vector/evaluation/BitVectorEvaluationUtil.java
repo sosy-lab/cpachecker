@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
@@ -58,13 +59,13 @@ public class BitVectorEvaluationUtil {
    * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
    * Optional#empty()} if {@code pTerms} is empty.
    */
-  static Optional<BitVectorEvaluationExpression> tryBuildSparseLogicalDisjunction(
+  static Optional<CExpressionTree> tryBuildSparseLogicalDisjunction(
       ImmutableList<ExpressionTree<CExpression>> pTerms) {
 
     if (pTerms.isEmpty()) {
       return Optional.empty();
     }
-    return Optional.of(new BitVectorEvaluationExpression(Or.of(pTerms)));
+    return Optional.of(new CExpressionTree(Or.of(pTerms)));
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A | B | C | ...)}. */

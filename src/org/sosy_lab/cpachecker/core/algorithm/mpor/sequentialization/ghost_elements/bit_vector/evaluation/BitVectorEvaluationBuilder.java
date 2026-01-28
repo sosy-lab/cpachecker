@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
@@ -33,7 +34,7 @@ public class BitVectorEvaluationBuilder {
 
   // variable only i.e. no literal expressions =====================================================
 
-  public static Optional<BitVectorEvaluationExpression> buildVariableOnlyEvaluation(
+  public static Optional<CExpressionTree> buildVariableOnlyEvaluation(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
@@ -57,7 +58,7 @@ public class BitVectorEvaluationBuilder {
 
   // last bit vector evaluations (conflict reduction) ==============================================
 
-  public static Optional<BitVectorEvaluationExpression> buildLastBitVectorEvaluation(
+  public static Optional<CExpressionTree> buildLastBitVectorEvaluation(
       MPOROptions pOptions,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -103,14 +104,13 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression>
-      buildLastAccessBitVectorEvaluationByEncoding(
-          MPOROptions pOptions,
-          ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
-          BitVectorVariables pBitVectorVariables,
-          MemoryModel pMemoryModel,
-          SequentializationUtils pUtils)
-          throws UnrecognizedCodeException {
+  private static Optional<CExpressionTree> buildLastAccessBitVectorEvaluationByEncoding(
+      MPOROptions pOptions,
+      ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
+      BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel,
+      SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
 
     return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
@@ -135,15 +135,14 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression>
-      buildLastReadWriteBitVectorEvaluationByEncoding(
-          MPOROptions pOptions,
-          ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
-          ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-          BitVectorVariables pBitVectorVariables,
-          MemoryModel pMemoryModel,
-          SequentializationUtils pUtils)
-          throws UnrecognizedCodeException {
+  private static Optional<CExpressionTree> buildLastReadWriteBitVectorEvaluationByEncoding(
+      MPOROptions pOptions,
+      ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
+      BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel,
+      SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
 
     return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
@@ -199,7 +198,7 @@ public class BitVectorEvaluationBuilder {
 
   // bit vector evaluations by accessed global variables (bit vector reduction) ====================
 
-  public static Optional<BitVectorEvaluationExpression> buildEvaluationByDirectVariableAccesses(
+  public static Optional<CExpressionTree> buildEvaluationByDirectVariableAccesses(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -252,7 +251,7 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression> buildEvaluationByReduction(
+  private static Optional<CExpressionTree> buildEvaluationByReduction(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
@@ -288,7 +287,7 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression> buildAccessEvaluationByEncoding(
+  private static Optional<CExpressionTree> buildAccessEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
@@ -319,7 +318,7 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression> buildReadWriteEvaluationByEncoding(
+  private static Optional<CExpressionTree> buildReadWriteEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,

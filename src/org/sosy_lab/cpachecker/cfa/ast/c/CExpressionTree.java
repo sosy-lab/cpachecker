@@ -15,6 +15,12 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 public record CExpressionTree(ExpressionTree<CExpression> expressionTree)
     implements CAstExpression {
 
+  // TODO this could also be placed in CAstExpression? the sequentialization only requires the
+  //  ExpressionTree to be negated, nothing else
+  public String toNegatedASTString() {
+    return "!(" + toASTString() + ")";
+  }
+
   @Override
   public String toASTString() {
     return toASTString(AAstNodeRepresentation.DEFAULT);

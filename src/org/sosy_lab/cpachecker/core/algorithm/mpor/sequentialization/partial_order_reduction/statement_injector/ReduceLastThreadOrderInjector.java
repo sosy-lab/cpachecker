@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -36,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -83,7 +83,7 @@ public record ReduceLastThreadOrderInjector(
 
     SeqThreadStatementBlock firstBlock =
         Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
-    Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation =
+    Optional<CExpressionTree> lastBitVectorEvaluation =
         BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
             options,
             labelClauseMap,
@@ -111,7 +111,7 @@ public record ReduceLastThreadOrderInjector(
       // assume(*conflict*) i.e. continue in thread n only if it is in conflict with LAST_THREAD
       ifBlock =
           SeqAssumeFunction.buildAssumeFunctionCallStatement(
-              lastBitVectorEvaluation.orElseThrow().expression());
+              lastBitVectorEvaluation.orElseThrow().expressionTree());
     }
     return new SeqBranchStatement(
         lastThreadLessThanThreadId.toASTString(), ImmutableList.of(ifBlock));

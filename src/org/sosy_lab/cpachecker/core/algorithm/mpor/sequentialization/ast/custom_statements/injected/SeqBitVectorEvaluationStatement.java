@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public record SeqBitVectorEvaluationStatement(
     MPOROptions options,
-    Optional<BitVectorEvaluationExpression> evaluationExpression,
+    Optional<CExpressionTree> evaluationExpression,
     SeqBlockLabelStatement targetGoto)
     implements SeqInjectedStatementWithTargetGoto {
 
@@ -47,7 +47,7 @@ public record SeqBitVectorEvaluationStatement(
 
     } else {
       return SeqAssumeFunction.buildAssumeFunctionCallStatement(
-          evaluationExpression.orElseThrow().expression());
+          evaluationExpression.orElseThrow().expressionTree());
     }
   }
 
