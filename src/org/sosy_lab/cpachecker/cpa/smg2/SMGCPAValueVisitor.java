@@ -3120,6 +3120,7 @@ public class SMGCPAValueVisitor
       CBinaryExpression expression)
       throws UnsupportedCodeException {
 
+    // TODO: // x & x == x
     // TODO: more simplifications possible?
     // If one operand is 0, all bits are 0, hence the other does not matter, the result is 0!
     if (rightValue instanceof NumericValue numRight
@@ -3213,6 +3214,7 @@ public class SMGCPAValueVisitor
       CBinaryExpression expression)
       throws UnsupportedCodeException {
 
+    // TODO: x ^ x == 0 ?
     // TODO: more simplifications possible?
     // If one operand is 0, all bits of the other are taken
     // x ^ 0 = x
@@ -3308,6 +3310,7 @@ public class SMGCPAValueVisitor
       CBinaryExpression expression)
       throws UnsupportedCodeException {
 
+    // TODO: x | x == x
     // TODO: max value (in the current type) -> max value returned
 
     // TODO: more simplifications (e.g. based on types) possible?
