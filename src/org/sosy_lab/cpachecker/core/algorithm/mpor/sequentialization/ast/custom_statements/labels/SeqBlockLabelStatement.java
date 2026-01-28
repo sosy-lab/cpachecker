@@ -14,9 +14,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 /**
- * The label before a block of {@link CSeqThreadStatement}s, e.g. {@code T0_0:}. This cannot be
- * replaced with a {@link CLabelStatement} directly because the name of the label includes a number
- * which is adjusted during the sequentialization process.
+ * The label before a block of {@link CSeqThreadStatement}s, e.g. {@code T0_0: stmt1; stmt2; ...}.
+ *
+ * <p>This cannot be replaced with a {@link CLabelStatement} directly because the name of the label
+ * includes a number which is adjusted during the sequentialization process. This class provides the
+ * necessary interface to adjust the label number.
  */
 // we store the thread prefix so that cloning does not require the options (shortVariables)
 public record SeqBlockLabelStatement(String threadPrefix, int number) implements SeqStatement {

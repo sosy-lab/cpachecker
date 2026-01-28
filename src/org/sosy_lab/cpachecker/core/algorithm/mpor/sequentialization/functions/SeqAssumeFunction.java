@@ -13,6 +13,8 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -22,8 +24,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -31,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -98,16 +102,14 @@ public final class SeqAssumeFunction extends SeqFunction {
   public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression)
       throws UnrecognizedCodeException {
 
-    super(ASSUME_FUNCTION_DECLARATION, buildBody(pCondEqualsZeroExpression));
+    super(ASSUME_FUNCTION_DECLARATION, buildBody(pCondEqualsZeroExpression).toASTString());
   }
 
-  private static String buildBody(CBinaryExpression pCondEqualsZeroExpression)
-      throws UnrecognizedCodeException {
-
-    ImmutableList<String> ifBlock = ImmutableList.of(ABORT_FUNCTION_CALL_STATEMENT.toASTString());
-    SeqBranchStatement ifStatement =
-        new SeqBranchStatement(pCondEqualsZeroExpression.toASTString(), ifBlock);
-    return ifStatement.toASTString();
+  private static CIfStatement buildBody(CBinaryExpression pCondEqualsZeroExpression) {
+    CWrapperExpression ifCondition = new CWrapperExpression(pCondEqualsZeroExpression);
+    ImmutableList<CAstStatement> ifBlock =
+        ImmutableList.of(new CWrapperStatement(ABORT_FUNCTION_CALL_STATEMENT));
+    return new CIfStatement(ifCondition, ifBlock, ImmutableList.of());
   }
 
   /**
@@ -129,7 +131,7 @@ public final class SeqAssumeFunction extends SeqFunction {
    * Returns a {@link String} representation of an assume function call i.e. {@code
    * assume(pCondition);}.
    */
-  public static String buildAssumeFunctionCallStatement(ExpressionTree<CExpression> pCondition) {
+  public static String buildAssumeFunctionCallStatement(ExpressionTree<CAstExpression> pCondition) {
     return ASSUME_ID_EXPRESSION.getName()
         + SeqStringUtil.wrapInBrackets(pCondition.toString())
         + SeqSyntax.SEMICOLON;
@@ -159,8 +161,10 @@ public final class SeqAssumeFunction extends SeqFunction {
               SeqIntegerLiteralExpressions.INT_0,
               SeqIdExpressions.NEXT_THREAD,
               BinaryOperator.LESS_EQUAL);
-      ImmutableList<CBinaryExpression> expressions =
-          ImmutableList.of(nextThreadLessThanNumThreads, nextThreadGreaterOrEqualZero);
+      ImmutableList<CAstExpression> expressions =
+          ImmutableList.of(
+              new CWrapperExpression(nextThreadLessThanNumThreads),
+              new CWrapperExpression(nextThreadGreaterOrEqualZero));
       return buildAssumeFunctionCallStatement(
           And.of(transformedImmutableListCopy(expressions, LeafExpression::of)));
     }

@@ -12,9 +12,10 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CGotoStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CNegatedExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
@@ -39,10 +40,10 @@ public record SeqBitVectorEvaluationStatement(
 
     } else if (options.nondeterminismSource().equals(NondeterminismSource.NEXT_THREAD)) {
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
-      String ifExpression = evaluationExpression.orElseThrow().negate().toASTString();
+      CNegatedExpression ifExpression = evaluationExpression.orElseThrow().negate();
       CGotoStatement gotoStatement = new CGotoStatement(targetGoto.toCLabelStatement());
-      SeqBranchStatement ifStatement =
-          new SeqBranchStatement(ifExpression, ImmutableList.of(gotoStatement.toASTString()));
+      CIfStatement ifStatement =
+          new CIfStatement(ifExpression, ImmutableList.of(gotoStatement), ImmutableList.of());
       return ifStatement.toASTString();
 
     } else {

@@ -15,6 +15,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.CGotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CNegatedExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CWrapperExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
@@ -36,17 +39,18 @@ public record SeqIgnoreSleepReductionStatement(
             roundMaxVariable, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
 
     // negate the evaluation expression
-    String ifExpression = bitVectorEvaluationExpression.negate().toASTString();
+    CNegatedExpression ifExpression = bitVectorEvaluationExpression.negate();
     CGotoStatement gotoNext = new CGotoStatement(targetGoto.toCLabelStatement());
-    SeqBranchStatement innerIfStatement =
-        new SeqBranchStatement(ifExpression, ImmutableList.of(gotoNext.toASTString()));
+    CIfStatement innerIfStatement =
+        new CIfStatement(ifExpression, ImmutableList.of(gotoNext), ImmutableList.of());
 
     if (reductionAssumptions.isEmpty()) {
       // no reduction assumptions -> just return outer if statement
-      SeqBranchStatement outerIfStatement =
-          new SeqBranchStatement(
-              roundMaxEqualsZeroExpression.toASTString(),
-              ImmutableList.of(innerIfStatement.toASTString()));
+      CIfStatement outerIfStatement =
+          new CIfStatement(
+              new CWrapperExpression(roundMaxEqualsZeroExpression),
+              ImmutableList.of(innerIfStatement),
+              ImmutableList.of());
       return outerIfStatement.toASTString();
     }
 

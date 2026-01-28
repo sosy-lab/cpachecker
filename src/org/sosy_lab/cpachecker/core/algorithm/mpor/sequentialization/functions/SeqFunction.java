@@ -33,6 +33,7 @@ public abstract sealed class SeqFunction
 
   public final CFunctionDeclaration declaration;
 
+  // TODO this should ideally be a CAstStatement
   final String body;
 
   SeqFunction(CFunctionDeclaration pDeclaration, String pBody) {
