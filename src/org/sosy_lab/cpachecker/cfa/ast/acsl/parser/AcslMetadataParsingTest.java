@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.io.IOException;
@@ -133,12 +135,12 @@ public class AcslMetadataParsingTest {
     try {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       if (cfa.getMetadata().getAcslMetadata() != null) {
-        assert cfa.getMetadata().getAcslMetadata().size() == expectedComments.size();
+        assertThat(cfa.getMetadata().getAcslMetadata().size()).isEqualTo(expectedComments.size());
       }
     } catch (RuntimeException e) {
-      assert programName.equals("badVariable.c");
-      assert e.getMessage()
-          .equals("Variable y is not declared in neither the C program nor the ACSL scope.");
+      assertThat(programName).isEqualTo("badVariable.c");
+      assertThat(e.getMessage())
+          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
     }
   }
 
@@ -178,9 +180,9 @@ public class AcslMetadataParsingTest {
         }
       }
     } catch (RuntimeException e) {
-      assert programName.equals("badVariable.c");
-      assert e.getMessage()
-          .equals("Variable y is not declared in neither the C program nor the ACSL scope.");
+      assertThat(programName).isEqualTo("badVariable.c");
+      assertThat(e.getMessage())
+          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
     }
   }
 
@@ -195,14 +197,14 @@ public class AcslMetadataParsingTest {
         AcslComment comment = cfa.getMetadata().getAcslMetadata().pAcslComments().getFirst();
         if (comment.hasCfaNode()) {
           FileLocation nodeLoc = describeFileLocation(comment.getCfaNode());
-          assert nodeLoc.getStartingLineNumber() == expectedLoc.expectedLine;
-          assert nodeLoc.getStartColumnInLine() == expectedLoc.expectedCol;
+          assertThat(nodeLoc.getStartingLineNumber()).isEqualTo(expectedLoc.expectedLine);
+          assertThat(nodeLoc.getStartColumnInLine()).isEqualTo(expectedLoc.expectedCol);
         }
       }
     } catch (RuntimeException e) {
-      assert programName.equals("badVariable.c");
-      assert e.getMessage()
-          .equals("Variable y is not declared in neither the C program nor the ACSL scope.");
+      assertThat(programName).isEqualTo("badVariable.c");
+      assertThat(e.getMessage())
+          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
     }
   }
 
