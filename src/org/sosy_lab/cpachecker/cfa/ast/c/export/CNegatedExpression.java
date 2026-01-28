@@ -20,6 +20,6 @@ public record CNegatedExpression(CExportExpression expressionToNegate)
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "!(" + expressionToNegate + ")";
+    return "!(" + expressionToNegate.toASTString() + ")";
   }
 }
