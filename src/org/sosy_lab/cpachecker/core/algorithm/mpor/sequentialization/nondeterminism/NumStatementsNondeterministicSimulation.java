@@ -20,16 +20,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CLabelStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
@@ -68,25 +70,25 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
         ghostElements.getPcVariables().getThreadActiveExpression(pThread.id());
-    ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
+    ImmutableList.Builder<CExportStatement> ifBlock = ImmutableList.builder();
 
     // add the round_max = nondet assignment for this thread
     ifBlock.add(
-        VerifierNondetFunctionType.buildNondetIntegerAssignment(options, SeqIdExpressions.ROUND_MAX)
-            .toASTString());
+        new CStatementWrapper(
+            VerifierNondetFunctionType.buildNondetIntegerAssignment(
+                options, SeqIdExpressions.ROUND_MAX)));
 
     // if (round_max > 0) ...
     ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
     CExportExpression innerIfCondition = buildRoundMaxGreaterZeroExpression(pThread, otherThreads);
-    ImmutableList.Builder<String> innerIfBlock = ImmutableList.builder();
+    ImmutableList.Builder<CExportStatement> innerIfBlock = ImmutableList.builder();
 
     // add the thread simulation statements
-    innerIfBlock.add(buildSingleThreadMultiControlStatement(pThread).toASTString());
-    SeqBranchStatement innerIfStatement =
-        new SeqBranchStatement(innerIfCondition.toASTString(), innerIfBlock.build());
-    ifBlock.add(innerIfStatement.toASTString());
-    SeqBranchStatement ifStatement =
-        new SeqBranchStatement(ifCondition.toASTString(), ifBlock.build());
+    innerIfBlock.add(buildSingleThreadMultiControlStatement(pThread));
+    CIfStatement innerIfStatement = new CIfStatement(innerIfCondition, innerIfBlock.build());
+    ifBlock.add(innerIfStatement);
+    CIfStatement ifStatement =
+        new CIfStatement(new CExpressionWrapper(ifCondition), ifBlock.build());
 
     // add all and return
     return rLines.append(ifStatement.toASTString()).toString();

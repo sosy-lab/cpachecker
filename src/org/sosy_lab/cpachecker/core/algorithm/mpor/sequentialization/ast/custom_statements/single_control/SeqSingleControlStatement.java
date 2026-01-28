@@ -11,4 +11,4 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 
 public sealed interface SeqSingleControlStatement extends SeqStatement
-    permits CSeqLoopStatement, SeqBranchStatement, SeqCompoundStatement {}
+    permits CSeqLoopStatement, SeqCompoundStatement {}
