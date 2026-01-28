@@ -14,11 +14,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 public record CStatementWrapper(CStatement statement) implements CExportStatement {
 
   @Override
-  public String toASTString() {
-    return statement.toASTString();
-  }
-
-  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return statement.toASTString(pAAstNodeRepresentation);
   }
