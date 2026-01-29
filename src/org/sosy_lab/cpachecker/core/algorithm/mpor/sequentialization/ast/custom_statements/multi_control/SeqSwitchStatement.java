@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
@@ -32,7 +31,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
  */
 public record SeqSwitchStatement(
     CExpression switchExpression,
-    ImmutableList<CExportStatement> precedingStatements,
     ImmutableMap<CExportExpression, ? extends CExportStatement> statements)
     implements SeqMultiControlStatement {
 
@@ -41,10 +39,6 @@ public record SeqSwitchStatement(
       throws UnrecognizedCodeException {
 
     StringJoiner switchCase = new StringJoiner(SeqSyntax.NEWLINE);
-    // first build preceding statements
-    for (CExportStatement precedingStatement : precedingStatements) {
-      switchCase.add(precedingStatement.toASTString(pAAstNodeRepresentation));
-    }
 
     // add switch (expression) ...
     switchCase.add(

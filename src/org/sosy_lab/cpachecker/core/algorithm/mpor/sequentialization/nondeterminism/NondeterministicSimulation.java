@@ -128,18 +128,20 @@ public abstract class NondeterministicSimulation {
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
 
-    ImmutableList<CExportStatement> precedingStatements =
-        ImmutableList.<CExportStatement>builder()
-            .addAll(buildPrecedingReductionStatements(pThread))
-            .addAll(buildPrecedingStatements(pThread))
-            .build();
-
     return SeqMultiControlStatement.buildMultiControlStatementByEncoding(
         options.controlEncodingStatement(),
         pcLeftHandSide,
-        precedingStatements,
         expressionClauseMap,
         utils.binaryExpressionBuilder());
+  }
+
+  ImmutableList<CExportStatement> buildAllPrecedingStatements(MPORThread pThread)
+      throws UnrecognizedCodeException {
+
+    return ImmutableList.<CExportStatement>builder()
+        .addAll(buildPrecedingReductionStatements(pThread))
+        .addAll(buildPrecedingStatements(pThread))
+        .build();
   }
 
   /**

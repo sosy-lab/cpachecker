@@ -52,8 +52,11 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   @Override
   public ImmutableList<CExportStatement> buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException {
-    // return the multi control statement, no adjustments needed for this type of nondeterminism
-    return ImmutableList.of(buildSingleThreadMultiControlStatement(pThread));
+
+    return ImmutableList.<CExportStatement>builder()
+        .addAll(buildAllPrecedingStatements(pThread))
+        .add(buildSingleThreadMultiControlStatement(pThread))
+        .build();
   }
 
   @Override
@@ -68,18 +71,16 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
         SeqMultiControlStatement.buildMultiControlStatementByEncoding(
             options.controlEncodingThread(),
             SeqIdExpressions.NEXT_THREAD,
-            // the outer multi control statement never has an assumption
-            ImmutableList.of(),
             innerMultiControlStatements,
             utils.binaryExpressionBuilder());
     return ImmutableList.of(outerMultiControlStatement);
   }
 
-  private ImmutableMap<CExportExpression, SeqMultiControlStatement>
+  private ImmutableListMultimap<CExportExpression, CExportStatement>
       buildInnerMultiControlStatements() throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<CExportExpression, SeqMultiControlStatement> rStatements =
-        ImmutableMap.builder();
+    ImmutableListMultimap.Builder<CExportExpression, CExportStatement> rStatements =
+        ImmutableListMultimap.builder();
     for (MPORThread thread : clauses.keySet()) {
       CExpression clauseExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
@@ -87,10 +88,15 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
               SeqIdExpressions.NEXT_THREAD,
               thread.id(),
               utils.binaryExpressionBuilder());
-      rStatements.put(
-          new CExpressionWrapper(clauseExpression), buildSingleThreadMultiControlStatement(thread));
+
+      ImmutableList<CExportStatement> statements =
+          ImmutableList.<CExportStatement>builder()
+              .addAll(buildAllPrecedingStatements(thread))
+              .add(buildSingleThreadMultiControlStatement(thread))
+              .build();
+      rStatements.putAll(new CExpressionWrapper(clauseExpression), statements);
     }
-    return rStatements.buildOrThrow();
+    return rStatements.build();
   }
 
   @Override

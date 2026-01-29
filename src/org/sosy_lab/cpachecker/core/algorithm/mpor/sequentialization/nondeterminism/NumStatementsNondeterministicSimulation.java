@@ -80,6 +80,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     ImmutableList.Builder<CExportStatement> innerIfBlock = ImmutableList.builder();
 
     // add the thread simulation statements
+    innerIfBlock.addAll(buildAllPrecedingStatements(pThread));
     innerIfBlock.add(buildSingleThreadMultiControlStatement(pThread));
     CIfStatement innerIfStatement =
         new CIfStatement(innerIfCondition, new CCompoundStatement(innerIfBlock.build()));

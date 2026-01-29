@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqAstNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqASTNode;
 
-public abstract class BitVectorValueExpression implements SeqAstNode {
+public abstract class BitVectorValueExpression implements SeqASTNode {
 
   static final String ZERO_BIT = "0";
 

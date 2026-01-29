@@ -8,6 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqAstNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqASTNode;
 
-public interface SeqDeclaration extends SeqAstNode {}
+public interface SeqDeclaration extends SeqASTNode {}

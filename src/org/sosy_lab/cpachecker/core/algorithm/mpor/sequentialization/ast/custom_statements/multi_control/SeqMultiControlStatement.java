@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -25,7 +24,6 @@ public sealed interface SeqMultiControlStatement extends CExportStatement
   static SeqMultiControlStatement buildMultiControlStatementByEncoding(
       MultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
-      ImmutableList<CExportStatement> pPrecedingStatements,
       // ImmutableMap retains insertion order when using ImmutableMap.Builder
       ImmutableMap<CExportExpression, ? extends CExportStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -35,10 +33,9 @@ public sealed interface SeqMultiControlStatement extends CExportStatement
           throw new IllegalArgumentException(
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
       case BINARY_SEARCH_TREE ->
-          new SeqBinarySearchTreeStatement(
-              pExpression, pPrecedingStatements, pStatements, pBinaryExpressionBuilder);
-      case IF_ELSE_CHAIN -> new SeqIfElseChainStatement(pPrecedingStatements, pStatements);
-      case SWITCH_CASE -> new SeqSwitchStatement(pExpression, pPrecedingStatements, pStatements);
+          new SeqBinarySearchTreeStatement(pExpression, pStatements, pBinaryExpressionBuilder);
+      case IF_ELSE_CHAIN -> new SeqIfElseChainStatement(pStatements);
+      case SWITCH_CASE -> new SeqSwitchStatement(pExpression, pStatements);
     };
   }
 }
