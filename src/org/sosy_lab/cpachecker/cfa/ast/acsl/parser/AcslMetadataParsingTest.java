@@ -131,6 +131,7 @@ public class AcslMetadataParsingTest {
   @Test
   public void parseCorrectNumberOfAcslCommentsTest() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
+
     if (programName.equals("badVariable.c")) {
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
@@ -139,8 +140,8 @@ public class AcslMetadataParsingTest {
           .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-      assertThat(cfa.getMetadata().getAcslMetadata()).isNotNull();
-      assertThat(cfa.getMetadata().getAcslMetadata().size()).isEqualTo(expectedComments.size());
+      assertThat(cfa.getAcslMetadata()).isNotNull();
+      assertThat(cfa.getAcslMetadata().size()).isEqualTo(expectedComments.size());
     }
   }
 
@@ -166,7 +167,7 @@ public class AcslMetadataParsingTest {
       }
       ImmutableList<AAcslAnnotation> expectedAnnotations = expectedBuilder.build();
 
-      AcslMetadata acslMetadata = cfa.getMetadata().getAcslMetadata();
+      AcslMetadata acslMetadata = cfa.getAcslMetadata();
       assertThat(acslMetadata).isNotNull();
 
       ImmutableSetMultimap<AcslAssertion, CFANode> actualAssertions =
@@ -199,10 +200,10 @@ public class AcslMetadataParsingTest {
           .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-      assertThat(cfa.getMetadata().getAcslMetadata()).isNotNull();
-      assertThat(cfa.getMetadata().getAcslMetadata().pAcslComments()).isNotEmpty();
+      assertThat(cfa.getAcslMetadata()).isNotNull();
+      assertThat(cfa.getAcslMetadata().pAcslComments()).isNotEmpty();
 
-      AcslComment comment = cfa.getMetadata().getAcslMetadata().pAcslComments().getFirst();
+      AcslComment comment = cfa.getAcslMetadata().pAcslComments().getFirst();
       assertThat(comment.getCfaNode()).isNotNull();
 
       FileLocation nodeLoc = describeFileLocation(comment.getCfaNode());

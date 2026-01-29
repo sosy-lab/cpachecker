@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -93,4 +94,8 @@ public interface CFA extends CfaNetwork {
    * @return the metadata associated with this CFA
    */
   CfaMetadata getMetadata();
+
+   default AcslMetadata getAcslMetadata(){
+    return getMetadata().getAcslMetadata();
+  }
 }
