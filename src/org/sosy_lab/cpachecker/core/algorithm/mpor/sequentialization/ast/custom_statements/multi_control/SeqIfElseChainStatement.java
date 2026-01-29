@@ -36,21 +36,23 @@ public final class SeqIfElseChainStatement extends SeqMultiControlStatement {
     StringJoiner ifElseChain = new StringJoiner(SeqSyntax.NEWLINE);
 
     // then add all statements via if ... else { if ... } from the bottom up
-    ImmutableList<Entry<CExportExpression, ? extends CExportStatement>> statementList =
-        ImmutableList.copyOf(statements.entrySet());
+    ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
+        statementList = transformStatements();
     CIfStatement currentBranch = null;
     for (int i = statementList.size() - 1; i >= 0; i--) {
-      Entry<CExportExpression, ? extends CExportStatement> currentStatement = statementList.get(i);
+      Entry<CExportExpression, ImmutableList<? extends CExportStatement>> currentStatement =
+          statementList.get(i);
       // on last statement: no else branch
       if (i == statementList.size() - 1) {
         currentBranch =
             new CIfStatement(
-                currentStatement.getKey(), new CCompoundStatement(currentStatement.getValue()));
+                currentStatement.getKey(),
+                new CCompoundStatement(ImmutableList.copyOf(currentStatement.getValue())));
       } else {
         currentBranch =
             new CIfStatement(
                 currentStatement.getKey(),
-                new CCompoundStatement(currentStatement.getValue()),
+                new CCompoundStatement(ImmutableList.copyOf(currentStatement.getValue())),
                 new CCompoundStatement(Objects.requireNonNull(currentBranch)));
       }
     }

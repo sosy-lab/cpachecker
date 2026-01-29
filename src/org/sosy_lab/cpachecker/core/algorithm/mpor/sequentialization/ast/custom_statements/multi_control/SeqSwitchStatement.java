@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableListMultimap;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -23,9 +22,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
  * break;} so that no fall through happens.
  *
  * <p>Example: {@code switch(a) { case b: ...; break; case c: ...; break; } }
- *
- * @param statements No restriction to literal expressions as keys because e.g. {@code case 1 + 2:}
- *     i.e. a {@link CBinaryExpression} is allowed in C.
  */
 public final class SeqSwitchStatement extends SeqMultiControlStatement {
 

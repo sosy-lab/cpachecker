@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Maps;
+import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
@@ -25,11 +28,26 @@ public abstract sealed class SeqMultiControlStatement implements CExportStatemen
     statements = pStatements;
   }
 
+  ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
+      transformStatements() {
+    return statements.asMap().entrySet().stream()
+        .map(
+            entry -> {
+              ImmutableList<? extends CExportStatement> values =
+                  ImmutableList.copyOf(entry.getValue());
+              // explicitly define the types for the Entry to avoid capture errors
+              return Maps
+                  .<CExportExpression, ImmutableList<? extends CExportStatement>>immutableEntry(
+                      entry.getKey(), values);
+            })
+        .collect(ImmutableList.toImmutableList());
+  }
+
   /**
    * Creates the {@link SeqMultiControlStatement} for {@code pThread} based on the specified {@link
    * MultiControlStatementEncoding}.
    */
-  static SeqMultiControlStatement buildMultiControlStatementByEncoding(
+  public static SeqMultiControlStatement buildMultiControlStatementByEncoding(
       MultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
       ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements,

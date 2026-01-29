@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -51,8 +50,8 @@ public final class SeqBinarySearchTreeStatement extends SeqMultiControlStatement
 
     StringJoiner tree = new StringJoiner(SeqSyntax.NEWLINE);
     // use list<entry<,>> instead of map so that we can split it in the middle for the bin tree
-    ImmutableList<Entry<CExportExpression, ? extends CExportStatement>> statementList =
-        ImmutableList.copyOf(statements.entrySet());
+    ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
+        statementList = transformStatements();
     CExportStatement treeStatement = recursivelyBuildTree(statementList, statementList, expression);
     tree.add(treeStatement.toASTString(pAAstNodeRepresentation));
 
@@ -64,8 +63,9 @@ public final class SeqBinarySearchTreeStatement extends SeqMultiControlStatement
    * pAllStatements} and returns the resulting root statement.
    */
   private CExportStatement recursivelyBuildTree(
-      final ImmutableList<Entry<CExportExpression, ? extends CExportStatement>> pAllStatements,
-      List<Entry<CExportExpression, ? extends CExportStatement>> pCurrentStatements,
+      final ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
+          pAllStatements,
+      List<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>> pCurrentStatements,
       CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
@@ -73,26 +73,25 @@ public final class SeqBinarySearchTreeStatement extends SeqMultiControlStatement
 
     if (size == 1) {
       // single element -> return the statement directly (this is the leaf)
-      return pCurrentStatements.getFirst().getValue();
+      return new CCompoundStatement(ImmutableList.copyOf(pCurrentStatements.getFirst().getValue()));
 
     } else if (size == 2) {
       // only two elements -> create the final if-else leaf statement
-      Entry<CExportExpression, ? extends CExportStatement> ifEntry = pCurrentStatements.getFirst();
-      CExportStatement elseStatement = pCurrentStatements.getLast().getValue();
+      Entry<CExportExpression, ImmutableList<? extends CExportStatement>> ifEntry =
+          pCurrentStatements.getFirst();
+      ImmutableList<? extends CExportStatement> elseStatements =
+          pCurrentStatements.getLast().getValue();
       return new CIfStatement(
           ifEntry.getKey(),
-          new CCompoundStatement(ifEntry.getValue()),
-          new CCompoundStatement(elseStatement));
+          new CCompoundStatement(ImmutableList.copyOf(ifEntry.getValue())),
+          new CCompoundStatement(ImmutableList.copyOf(elseStatements)));
 
     } else {
       // more than two elements -> create if and else subtrees with <
       int middleIndex = size / 2;
-      Entry<CExportExpression, ? extends CExportStatement> midEntry =
+      Entry<CExportExpression, ImmutableList<? extends CExportStatement>> midEntry =
           pCurrentStatements.get(middleIndex);
-      int midIndex =
-          midEntry.getValue() instanceof SeqThreadStatementClause clause
-              ? clause.labelNumber
-              : pAllStatements.indexOf(midEntry) - 1;
+      int midIndex = pAllStatements.indexOf(midEntry) - 1;
 
       // if (pc < midIndex) ...
       CBinaryExpression ifExpression =
