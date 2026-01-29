@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -123,7 +122,6 @@ public class PredicateCPA
   private final Solver solver;
   private final PredicateCPAStatistics stats;
   private final CFA cfa;
-  private final RegionManager regionManager;
   private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predAbsManager;
   private final PredicateCPAInvariantsManager invariantsManager;
@@ -168,6 +166,7 @@ public class PredicateCPA
     }
     pathFormulaManager = pfMgr;
 
+    RegionManager regionManager;
     if (abstractionType.equals("FORMULA") || blk.alwaysReturnsFalse()) {
       // No need to load BDD library if we never abstract (might use lots of memory)
       regionManager = new SymbolicRegionManager(solver);
@@ -330,7 +329,6 @@ public class PredicateCPA
 
   @Override
   public void close() {
-    CPAs.closeIfPossible(regionManager, logger);
     solver.close();
   }
 
