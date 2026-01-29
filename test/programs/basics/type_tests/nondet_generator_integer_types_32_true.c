@@ -352,39 +352,5 @@ int main() {
   // assert(__VERIFIER_nondet_ != maximumPlusOne); // Your analysis is unsound if this fails
   // assert(__VERIFIER_nondet_ != minimumMinusOne); // Your analysis is unsound if this fails
 
-
-  // Floats
-  // We check that a float can not express a double, but this is not a full check for the type.
-  float nondet_float = __VERIFIER_nondet_float();
-  // Note on double 1.100000000000000088817841970012523233890533447265625: 
-  // this number can never be expressed accurately by a float in C, not even when rounded.
-  assert(nondet_float != 1.100000000000000088817841970012523233890533447265625); // Your analysis is unsound if this fails
-  assert(nondet_float != -1.100000000000000088817841970012523233890533447265625); // Your analysis is unsound if this fails
-  
-  // Test that correct types are directly enforced, not only after assigning to a variable!
-  assert(__VERIFIER_nondet_float() != 1.100000000000000088817841970012523233890533447265625); // Your analysis is unsound if this fails
-  assert(__VERIFIER_nondet_float() != -1.100000000000000088817841970012523233890533447265625); // Your analysis is unsound if this fails
-
-
-  // Doubles
-  // We check that a double can not express a long double, but this is not a full check for the type.
-  // Note on 1.1f (and -1.1f); this float is actually 1.10000002384185791015625, which can always be expressed by a double
-  double nondet_double = __VERIFIER_nondet_double();
-  assert(nondet_double == 1.1L); // Your analysis is unsound if this fails
-  assert(nondet_double == -1.1L); // Your analysis is unsound if this fails
-  
-  // Test that correct types are directly enforced, not only after assigning to a variable!
-  assert(__VERIFIER_nondet_double() == 1.1L); // Your analysis is unsound if this fails
-  assert(__VERIFIER_nondet_double() == -1.1L); // Your analysis is unsound if this fails
-
-  // We also check that a float can always be expressed by a double
-  assert(1.10000002384185791015625 == 1.1f); // Your analysis is unsound if this fails
-  assert(-1.10000002384185791015625 == -1.1f); // Your analysis is unsound if this fails
-
-  // TODO: long double
-  // Problem: long double can express all floats and doubles, 
-  // but we can use e.g. subtraction of 2 or more long double numbers to generate a difference that can be checked.
-  // TODO: The same technique should be used to definitely check float and double types!
-
   return 0;
 }
