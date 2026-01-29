@@ -8,13 +8,32 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record CLogicalAndExpression(ImmutableList<CExportExpression> operands)
     implements CLogicalExpression {
+
+  public CLogicalAndExpression {
+    checkArgument(
+        !operands.isEmpty() && operands.size() >= 2,
+        "A CLogicalAndExpression must contain at least 2 elements (operand1 && operand2)");
+  }
+
+  public CLogicalAndExpression(CExportExpression... pOperands) {
+    this(ImmutableList.copyOf(pOperands));
+  }
+
+  public CLogicalAndExpression(CExpression... pOperands) {
+    this(transformedImmutableListCopy(pOperands, o -> new CExpressionWrapper(checkNotNull(o))));
+  }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
