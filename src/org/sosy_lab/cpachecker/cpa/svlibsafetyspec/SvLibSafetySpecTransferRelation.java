@@ -76,13 +76,13 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
             }
             case SvLibEnsuresTag pSvLibEnsuresTag ->
                 throw new UnsupportedCodeException(
-                    "Ensures tags are not supported in safety specifications.", cfaEdge);
+                    "Tag 'ensures' not supported in safety specifications.", cfaEdge);
             case SvLibInvariantTag pSvLibInvariantTag ->
                 throw new UnsupportedCodeException(
-                    "Invariant tags are not supported in safety specifications.", cfaEdge);
+                    "Tag 'invariant' not supported in safety specifications.", cfaEdge);
             case SvLibRequiresTag pSvLibRequiresTag ->
                 throw new UnsupportedCodeException(
-                    "Requires tags are not supported in safety specifications.", cfaEdge);
+                    "Tag 'requires' not supported in safety specifications.", cfaEdge);
           };
       outStates.add(successorState);
     }
