@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c.export;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -23,9 +23,9 @@ public record CFunctionCallStatementWrapper(
   public CFunctionCallStatementWrapper {
     checkArgument(
         !parameters.isEmpty(),
-        "The parameters list cannot be empty, because constructing a CWrapperFunctionCallStatement"
-            + " only makes sense if at least one of the parameters can only be expressed using a"
-            + " CAstExpression (e.g., logical &&). If there are now parameters, use"
+        "The parameters list cannot be empty, because a CFunctionCallStatementWrapper should only"
+            + " be created if at least one of the parameters can only be expressed using a"
+            + " CExportExpression (e.g., logical &&). If there are no parameters, use"
             + " CFunctionCallStatement instead.");
     // this is not necessary because the parameters are replaced anyway, but still good practice
     checkArgument(

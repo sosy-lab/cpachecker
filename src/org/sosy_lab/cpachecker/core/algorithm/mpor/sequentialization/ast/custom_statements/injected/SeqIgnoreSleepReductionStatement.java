@@ -14,16 +14,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionTree;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CGotoStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CNegatedExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CNegatedExpression;
 
 public record SeqIgnoreSleepReductionStatement(
     CIdExpression roundMaxVariable,

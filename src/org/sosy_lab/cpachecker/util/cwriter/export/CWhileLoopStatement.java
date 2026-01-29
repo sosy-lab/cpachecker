@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c.export;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
@@ -28,8 +28,8 @@ public final class CWhileLoopStatement extends CLoopStatement {
       throws UnrecognizedCodeException {
 
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    joiner.add("while (" + condition.toASTString(pAAstNodeRepresentation) + ")");
-    joiner.add(compoundStatement.toASTString(pAAstNodeRepresentation));
+    joiner.add("while (" + getCondition().toASTString(pAAstNodeRepresentation) + ")");
+    joiner.add(getBody().toASTString(pAAstNodeRepresentation));
     return joiner.toString();
   }
 }

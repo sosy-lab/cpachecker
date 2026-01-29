@@ -26,14 +26,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CExportStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CForLoopStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CFunctionDefinitionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CLoopStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
-import org.sosy_lab.cpachecker.cfa.ast.c.export.CWhileLoopStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -51,6 +43,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CForLoopStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CFunctionDefinitionStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLoopStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CWhileLoopStatement;
 
 /** A class to represent the {@code main()} function in the sequentialization. */
 public final class SeqMainFunction extends CFunctionDefinitionStatement {

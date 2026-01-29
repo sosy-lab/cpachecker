@@ -6,18 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c.export;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/** Represents a single-line C comment, e.g., {@code // this is a comment} */
-public record CCommentStatement(String comment) implements CExportStatement {
+public record CNegatedExpression(CExportExpression expressionToNegate)
+    implements CExportExpression {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    return "// " + comment;
+    return "!(" + expressionToNegate.toASTString() + ")";
   }
 }

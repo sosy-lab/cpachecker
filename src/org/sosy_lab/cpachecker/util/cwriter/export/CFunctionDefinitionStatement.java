@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c.export;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -19,8 +19,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/**
+ * A {@link CExportStatement} to represent an entire C function, including return {@link CType},
+ * function name as {@link CIdExpression}, {@link CFunctionDeclaration} with parameters and a {@link
+ * CCompoundStatement} to represent the body of the function. Example:
+ *
+ * <pre>{@code
+ * int main(int arg) {
+ *     int x = 1;
+ * }
+ * }</pre>
+ */
 public abstract class CFunctionDefinitionStatement implements CExportStatement {
 
   /**
@@ -52,16 +64,6 @@ public abstract class CFunctionDefinitionStatement implements CExportStatement {
     return returnType + " " + declaration.getName() + "(" + parameters + ")";
   }
 
-  @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
-    StringJoiner rDefinition = new StringJoiner(System.lineSeparator());
-    rDefinition.add(buildSignature(pAAstNodeRepresentation));
-    rDefinition.add(body.toASTString(pAAstNodeRepresentation));
-    return rDefinition.toString();
-  }
-
   public final CFunctionCallStatement buildFunctionCallStatement(
       ImmutableList<CExpression> pParameters) {
 
@@ -72,6 +74,20 @@ public abstract class CFunctionDefinitionStatement implements CExportStatement {
         new CFunctionCallExpression(
             FileLocation.DUMMY, declaration.getType(), name, pParameters, declaration);
     return new CFunctionCallStatement(FileLocation.DUMMY, functionCallExpression);
+  }
+
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
+    StringJoiner rDefinition = new StringJoiner(System.lineSeparator());
+    rDefinition.add(buildSignature(pAAstNodeRepresentation));
+    rDefinition.add(body.toASTString(pAAstNodeRepresentation));
+    return rDefinition.toString();
+  }
+
+  public CType getReturnType() {
+    return declaration.getType().getReturnType();
   }
 
   public CIdExpression getName() {

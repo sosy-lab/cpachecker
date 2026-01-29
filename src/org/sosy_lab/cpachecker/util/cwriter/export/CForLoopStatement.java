@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c.export;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
@@ -44,12 +44,12 @@ public final class CForLoopStatement extends CLoopStatement {
     StringJoiner innerJoiner = new StringJoiner(" ");
     // build the variable declaration, it already contains a ';' suffix
     innerJoiner.add(counterDeclaration.toASTString(pAAstNodeRepresentation));
-    innerJoiner.add(condition.toASTString(pAAstNodeRepresentation) + ";");
+    innerJoiner.add(getCondition().toASTString(pAAstNodeRepresentation) + ";");
     // exclude the semicolon in the assignment statement
     innerJoiner.add(iterationUpdate.toASTString(pAAstNodeRepresentation).replace(";", ""));
 
     joiner.add("for (" + innerJoiner + ")");
-    joiner.add(compoundStatement.toASTString(pAAstNodeRepresentation));
+    joiner.add(getBody().toASTString(pAAstNodeRepresentation));
 
     return joiner.toString();
   }
