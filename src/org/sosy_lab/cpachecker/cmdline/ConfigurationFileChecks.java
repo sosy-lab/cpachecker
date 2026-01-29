@@ -528,84 +528,83 @@ public class ConfigurationFileChecks {
     logHandler.setLevel(Level.ALL);
     final LogManager logger = BasicLogManager.createWithHandler(logHandler);
 
-    try (CPAchecker cpachecker = new CPAchecker(config, logger, ShutdownManager.create())) {
-      // exclude files not meant to be run
-      if (configFile instanceof Path) {
-        assume()
-            .that((Iterable<?>) configFile)
-            .containsNoneOf(
-                // Configs containing this name randomly sample paths from the program
-                // by default they do not terminate, which makes this test fail due to
-                // a timeout. If the analysis is improved such that already
-                // seen paths are not considered twice, this test can be re-enabled.
-                Path.of("describerr-portfolio.properties"),
-                Path.of("parallel-randomSampling.properties"),
-                Path.of("randomSampling.properties"),
-                Path.of("randomTesting.properties"),
-                // All configurations based on sequentialization reject the default empty
-                // program used in this test, they requires a
-                Path.of("sequentializeProgram.properties"),
-                Path.of("sequentialization-concurrency--memorysafety.properties"),
-                Path.of("sequentialization-concurrency--overflow.properties"),
-                Path.of("sequentialization-concurrency.properties"));
-      }
-
-      CPAcheckerResult result;
-      try {
-        result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
-      } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
-        assumeNoException(e);
-        throw new AssertionError(e);
-      }
-
-      assert_()
-          .withMessage(
-              """
-              Failure in CPAchecker run with following log
-              %s
-
-              log with level WARNING or higher\
-              """,
-              formatLogRecords(logHandler.getStoredLogRecords()))
-          .that(getSevereMessages(options, logHandler))
-          .isEmpty();
-
-      assume()
-          .withMessage("messages indicating missing input files")
-          .that(
-              logHandler.getStoredLogRecords().stream()
-                  .map(LogRecord::getMessage)
-                  .filter(s -> INDICATES_MISSING_FILES.matcher(s).matches()))
-          .isEmpty();
-
-      if (!(isOptionEnabled(config, "analysis.disable") || options.useMPIProcessAlgorithm)) {
-        // The MPI algorithm requires a mpiexec-bin on PATH and intentionally throws an exception
-        // if it cannot be found. As this is the usual case, the algorithm will not pass the initial
-        // setup and hence leaves the result object in its 'NOT_YET_STARTED' state.
-
-        assert_()
-            .withMessage(
-                "Failure in CPAchecker run with following log\n%s\n",
-                formatLogRecords(logHandler.getStoredLogRecords()))
-            .that(result.getResult())
-            .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
-      }
-
-      if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)
-          || options.useCompositionAlgorithm) {
-        // TODO find a solution how to check for unused properties correctly even with
-        // RestartAlgorithm
-        assert_()
-            .withMessage(
-                "Failure in CPAchecker run with following log\n%s\n\nlist of unused options",
-                formatLogRecords(logHandler.getStoredLogRecords()))
-            .that(Sets.difference(config.getUnusedProperties(), UNUSED_OPTIONS))
-            .isEmpty();
-      }
+    final CPAchecker cpachecker;
+    try {
+      cpachecker = new CPAchecker(config, logger, ShutdownManager.create());
     } catch (InvalidConfigurationException e) {
       assertWithMessage(
               "Invalid configuration in configuration file %s : %s", configFile, e.getMessage())
           .fail();
+      return;
+    }
+
+    // exclude files not meant to be run
+    if (configFile instanceof Path) {
+      assume()
+          .that((Iterable<?>) configFile)
+          .containsNoneOf(
+              // Configs containing this name randomly sample paths from the program
+              // by default they do not terminate, which makes this test fail due to
+              // a timeout. If the analysis is improved such that already
+              // seen paths are not considered twice, this test can be re-enabled.
+              Path.of("describerr-portfolio.properties"),
+              Path.of("parallel-randomSampling.properties"),
+              Path.of("randomSampling.properties"),
+              Path.of("randomTesting.properties"),
+              // All configurations based on sequentialization reject the default empty
+              // program used in this test, they requires a
+              Path.of("sequentializeProgram.properties"),
+              Path.of("sequentialization-concurrency--memorysafety.properties"),
+              Path.of("sequentialization-concurrency--overflow.properties"),
+              Path.of("sequentialization-concurrency.properties"));
+    }
+
+    CPAcheckerResult result;
+    try {
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
+    } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
+      assumeNoException(e);
+      throw new AssertionError(e);
+    }
+
+    assert_()
+        .withMessage(
+            "Failure in CPAchecker run with following log\n%s\n\nlog with level WARNING or higher",
+            formatLogRecords(logHandler.getStoredLogRecords()))
+        .that(getSevereMessages(options, logHandler))
+        .isEmpty();
+
+    assume()
+        .withMessage("messages indicating missing input files")
+        .that(
+            logHandler.getStoredLogRecords().stream()
+                .map(LogRecord::getMessage)
+                .filter(s -> INDICATES_MISSING_FILES.matcher(s).matches()))
+        .isEmpty();
+
+    if (!(isOptionEnabled(config, "analysis.disable") || options.useMPIProcessAlgorithm)) {
+      // The MPI algorithm requires a mpiexec-bin on PATH and intentionally throws an exception
+      // if it cannot be found. As this is the usual case, the algorithm will not pass the initial
+      // setup and hence leaves the result object in its 'NOT_YET_STARTED' state.
+
+      assert_()
+          .withMessage(
+              "Failure in CPAchecker run with following log\n%s\n",
+              formatLogRecords(logHandler.getStoredLogRecords()))
+          .that(result.getResult())
+          .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
+    }
+
+    if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)
+        || options.useCompositionAlgorithm) {
+      // TODO find a solution how to check for unused properties correctly even with
+      // RestartAlgorithm
+      assert_()
+          .withMessage(
+              "Failure in CPAchecker run with following log\n%s\n\nlist of unused options",
+              formatLogRecords(logHandler.getStoredLogRecords()))
+          .that(Sets.difference(config.getUnusedProperties(), UNUSED_OPTIONS))
+          .isEmpty();
     }
   }
 
