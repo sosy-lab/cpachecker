@@ -15,11 +15,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 public record CExpressionTree(ExpressionTree<CExportExpression> expressionTree)
     implements CExportExpression {
 
-  // TODO this could be moved into CAstExpression, but at the moment we only need it here
-  public CLogicalNotExpression negate() {
-    return new CLogicalNotExpression(this);
-  }
-
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return expressionTree.toString();

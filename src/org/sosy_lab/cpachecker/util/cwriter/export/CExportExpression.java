@@ -23,6 +23,14 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public sealed interface CExportExpression
     permits CExpressionTree, CExpressionWrapper, CLogicalExpression {
 
+  /**
+   * Returns a negation of this expression without any further simplification of the expression,
+   * e.g., for {@code i < N} it returns {@code !(i < N)} instead of {@code i >= N}.
+   */
+  default CLogicalNotExpression negate() {
+    return new CLogicalNotExpression(this);
+  }
+
   default String toASTString() throws UnrecognizedCodeException {
     return toASTString(AAstNodeRepresentation.DEFAULT);
   }
