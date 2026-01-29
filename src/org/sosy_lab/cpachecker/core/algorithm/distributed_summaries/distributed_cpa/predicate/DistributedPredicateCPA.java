@@ -8,64 +8,103 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
-public class DistributedPredicateCPA implements DistributedConfigurableProgramAnalysis {
+public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
   private final PredicateCPA predicateCPA;
 
   private final SerializeOperator serialize;
-  private final DeserializeOperator deserialize;
-  private final ProceedOperator proceed;
-  private final CombineOperator combine;
+
+  private final SerializePrecisionOperator serializePrecisionOperator;
+  private final DeserializePredicateStateOperator deserialize;
+
+  private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final ProceedOperator proceedOperator;
+  private final ViolationConditionOperator verificationConditionOperator;
+  private final CoverageOperator stateCoverageOperator;
+  private final CombineOperator combineOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
       BlockNode pNode,
       CFA pCFA,
-      AnalysisDirection pDirection,
-      BlockSummaryAnalysisOptions pOptions) {
+      Configuration pConfiguration,
+      DssAnalysisOptions pOptions,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      ImmutableMap<Integer, CFANode> pIdToNodeMap)
+      throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
-    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA);
+    final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
+    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
-    proceed =
-        new ProceedPredicateStateOperator(
-            pOptions, pDirection, pNode, predicateCPA.getSolver(), deserialize);
-    combine =
-        new CombinePredicateStateOperator(
-            predicateCPA.getPathFormulaManager(), predicateCPA.getSolver().getFormulaManager());
+    serializePrecisionOperator =
+        new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
+    deserializePrecisionOperator =
+        new DeserializePredicatePrecisionOperator(
+            predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), pIdToNodeMap::get);
+    proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
+    stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
+    verificationConditionOperator =
+        new PredicateViolationConditionOperator(
+            new PathFormulaManagerImpl(
+                pPredicateCPA.getSolver().getFormulaManager(),
+                pConfiguration,
+                pLogManager,
+                pShutdownNotifier,
+                pCFA,
+                AnalysisDirection.BACKWARD),
+            predicateCPA,
+            pNode.getPredecessorIds().isEmpty());
+    combineOperator = new CombinePredicateStateOperator(predicateCPA);
+    combinePrecisionOperator = new CombinePredicatePrecisionOperator();
   }
 
-  public Solver getSolver() {
-    return predicateCPA.getSolver();
+  @Override
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return serializePrecisionOperator;
+  }
+
+  @Override
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
   }
 
   @Override
   public SerializeOperator getSerializeOperator() {
     return serialize;
-  }
-
-  @Override
-  public CombineOperator getCombineOperator() {
-    return combine;
   }
 
   @Override
@@ -75,7 +114,7 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
 
   @Override
   public ProceedOperator getProceedOperator() {
-    return proceed;
+    return proceedOperator;
   }
 
   @Override
@@ -84,28 +123,44 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return predicateCPA.getAbstractDomain();
+  public ConfigurableProgramAnalysis getCPA() {
+    return predicateCPA;
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return predicateCPA.getTransferRelation();
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
+    PredicateAbstractState predicateAbstractState = (PredicateAbstractState) pAbstractState;
+    if (predicateAbstractState.isAbstractionState()) {
+      return predicateAbstractState.getAbstractionFormula().isTrue();
+    }
+    return predicateCPA
+        .getSolver()
+        .getFormulaManager()
+        .getBooleanFormulaManager()
+        .isTrue(predicateAbstractState.getPathFormula().getFormula());
   }
 
   @Override
-  public MergeOperator getMergeOperator() {
-    return predicateCPA.getMergeOperator();
+  public AbstractState reset(AbstractState pAbstractState) {
+    Preconditions.checkArgument(
+        pAbstractState instanceof PredicateAbstractState,
+        "Expected PredicateAbstractState, but got %s",
+        pAbstractState.getClass().getSimpleName());
+    return pAbstractState;
   }
 
   @Override
-  public StopOperator getStopOperator() {
-    return predicateCPA.getStopOperator();
+  public ViolationConditionOperator getViolationConditionOperator() {
+    return verificationConditionOperator;
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
-      throws InterruptedException {
-    return predicateCPA.getInitialState(node, partition);
+  public CoverageOperator getCoverageOperator() {
+    return stateCoverageOperator;
+  }
+
+  @Override
+  public CombineOperator getCombineOperator() {
+    return combineOperator;
   }
 }

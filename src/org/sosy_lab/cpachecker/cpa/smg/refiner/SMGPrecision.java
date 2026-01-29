@@ -208,8 +208,7 @@ public abstract class SMGPrecision implements Precision {
       super(pAllowsHeapAbstraction);
     }
 
-    public SMGStaticPrecision(
-        SMGPrecisionAbstractionOptions pAllowsHeapAbstraction, int pMaxLength) {
+    SMGStaticPrecision(SMGPrecisionAbstractionOptions pAllowsHeapAbstraction, int pMaxLength) {
       super(pAllowsHeapAbstraction, pMaxLength);
     }
 

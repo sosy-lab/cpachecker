@@ -62,7 +62,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * of the section contain SMTLIB2 statements of the form "(assert ...)". Each asserted term will be
  * used as one predicate.
  */
-public class PredicateMapParser {
+public final class PredicateMapParser {
 
   private static final String FUNCTION_NAME_REGEX = "([_a-zA-Z][_a-zA-Z0-9]*)";
   private static final String CFA_NODE_REGEX = "N([0-9][0-9]*)";

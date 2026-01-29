@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file is part of CPAchecker,
 # a tool for configurable software verification:
@@ -45,7 +45,7 @@ BUILD_DIR="$TEMP_DEB/build"
 mkdir "$BUILD_DIR"
 cp -a "$(dirname "$0")/debian" "$BUILD_DIR"
 
-podman run --rm -w "$BUILD_DIR" -v "$TEMP_DEB:$TEMP_DEB:rw" -v "$(realpath "$ARCHIVE"):/$CPACHECKER.zip:ro" -e CPACHECKER -e "DEB*" -e VERSION ubuntu:20.04 bash -c '
+podman run --rm -w "$BUILD_DIR" -v "$TEMP_DEB:$TEMP_DEB:rw" -v "$(realpath "$ARCHIVE"):/$CPACHECKER.zip:ro" -e CPACHECKER -e "DEB*" -e VERSION ubuntu:22.04 bash -c '
   set -euo pipefail
 
   apt-get update

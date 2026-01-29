@@ -36,18 +36,14 @@ public class NameProvider {
       return null;
     }
 
-    if (notScopedField instanceof JFieldAccess) {
-      if (((JFieldAccess) notScopedField).getDeclaration().isStatic()
-          && ((JFieldAccess) notScopedField)
-              .getDeclaration()
-              .getVisibility()
-              .equals(VisibilityModifier.PUBLIC)
-          && ((JFieldAccess) notScopedField).getReferencedVariable().getDeclaration() == null) {
+    if (notScopedField instanceof JFieldAccess jFieldAccess) {
+      if (jFieldAccess.getDeclaration().isStatic()
+          && jFieldAccess.getDeclaration().getVisibility().equals(VisibilityModifier.PUBLIC)
+          && jFieldAccess.getReferencedVariable().getDeclaration() == null) {
         return null;
       }
 
-      String scopedFieldName =
-          getScopedFieldName((JFieldAccess) notScopedField, methodName, rttState);
+      String scopedFieldName = getScopedFieldName(jFieldAccess, methodName, rttState);
 
       if (rttState.contains(scopedFieldName)) {
         return rttState.getUniqueObjectFor(scopedFieldName);
@@ -96,8 +92,8 @@ public class NameProvider {
 
     String variableName = pDeclaration.getName();
 
-    if (pDeclaration instanceof JFieldDeclaration
-        && ((JFieldDeclaration) pDeclaration).isStatic()) {
+    if (pDeclaration instanceof JFieldDeclaration jFieldDeclaration
+        && jFieldDeclaration.isStatic()) {
       return variableName;
 
     } else if (pDeclaration instanceof JFieldDeclaration) {

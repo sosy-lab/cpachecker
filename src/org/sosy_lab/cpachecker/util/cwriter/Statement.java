@@ -103,7 +103,7 @@ public abstract class Statement {
     }
 
     public Statement getLast() {
-      return statements.get(statements.size() - 1);
+      return statements.getLast();
     }
   }
 

@@ -78,15 +78,15 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   public static UsageInfo createUsageInfo(
       @NonNull Access atype, @NonNull AbstractState state, AbstractIdentifier ident) {
-    if (ident instanceof SingleIdentifier) {
+    if (ident instanceof SingleIdentifier singleIdentifier) {
       FluentIterable<CompatibleState> states =
           AbstractStates.asIterable(state).filter(CompatibleState.class);
-      if (states.allMatch(s -> s.isRelevantFor((SingleIdentifier) ident))) {
+      if (states.allMatch(s -> s.isRelevantFor(singleIdentifier))) {
         UsageInfo result =
             new UsageInfo(
                 atype,
                 AbstractStates.extractLocation(state),
-                (SingleIdentifier) ident,
+                singleIdentifier,
                 states.transform(CompatibleState::prepareToStore).toList());
         return result;
       }
@@ -229,8 +229,8 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   public AbstractLockState getLockState() {
     for (CompatibleState state : compatibleStates) {
-      if (state instanceof AbstractLockState) {
-        return (AbstractLockState) state;
+      if (state instanceof AbstractLockState abstractLockState) {
+        return abstractLockState;
       }
     }
     return null;

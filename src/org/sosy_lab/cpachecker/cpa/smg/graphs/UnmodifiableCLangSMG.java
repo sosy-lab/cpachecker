@@ -36,7 +36,7 @@ public sealed interface UnmodifiableCLangSMG extends UnmodifiableSMG permits CLa
    */
   PersistentStack<CLangStackFrame> getStackFrames();
 
-  /** return a unmodifiable view on all SMG-objects on the heap. */
+  /** return an unmodifiable view on all SMG-objects on the heap. */
   PersistentSet<SMGObject> getHeapObjects();
 
   /** check whether an object is part of the heap. */

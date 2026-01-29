@@ -88,15 +88,15 @@ public class ProofSlicer {
   public UnmodifiableReachedSet sliceProof(
       final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa) {
     AbstractState first = pReached.getFirstState();
-    if (first instanceof ARGState
+    if (first instanceof ARGState aRGState
         && AbstractStates.extractLocation(first) != null
         && AbstractStates.extractStateByType(first, ValueAnalysisState.class) != null
         && AbstractStates.extractStateByType(first, CallstackState.class) != null
-        && ((ARGState) first).getWrappedState() instanceof CompositeState) {
+        && aRGState.getWrappedState() instanceof CompositeState) {
       numNotCovered = 0;
       Map<ARGState, Set<String>> varMap = Maps.newHashMapWithExpectedSize(pReached.size());
 
-      computeRelevantVariablesPerState((ARGState) first, varMap);
+      computeRelevantVariablesPerState(aRGState, varMap);
 
       assert (numNotCovered == pReached.size());
       return buildSlicedARG(varMap, pReached, pCpa);
@@ -120,7 +120,7 @@ public class ProofSlicer {
 
         for (ARGState p : succ.getParents()) {
           if (p.getEdgeToChild(succ) == null) {
-            if (computeTransferTo(p, succ, varMap.get(succ), varMap)) {
+            if (computeTransferTo(p, succ, varMap)) {
               waitlist.push(p);
             }
           } else {
@@ -152,14 +152,11 @@ public class ProofSlicer {
   }
 
   private boolean computeTransferTo(
-      final ARGState pred,
-      final ARGState succ,
-      final Set<String> succVars,
-      final Map<ARGState, Set<String>> varMap) {
+      final ARGState pred, final ARGState succ, final Map<ARGState, Set<String>> varMap) {
     assert varMap.containsKey(pred);
     Set<String> updatedVars = new HashSet<>(varMap.get(pred));
 
-    Set<String> sSet = new HashSet<>(succVars);
+    Set<String> sSet = new HashSet<>(varMap.get(succ));
     Set<String> pSet = new HashSet<>();
 
     List<CFAEdge> edges = pred.getEdgesToChild(succ);
@@ -203,21 +200,18 @@ public class ProofSlicer {
   private void addTransferSet(
       final CFAEdge edge, Set<String> succVars, final Set<String> updatedVars) {
     switch (edge.getEdgeType()) {
-      case StatementEdge:
+      case StatementEdge -> {
         CStatement stm = ((CStatementEdge) edge).getStatement();
         if (stm instanceof CExpressionStatement || stm instanceof CFunctionCallStatement) {
           updatedVars.addAll(succVars);
         } else {
           String varNameAssigned;
-          if (stm instanceof CFunctionCallAssignmentStatement) {
+          if (stm instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
             varNameAssigned =
-                VarNameRetriever.getVarName(
-                    ((CFunctionCallAssignmentStatement) stm).getLeftHandSide());
+                VarNameRetriever.getVarName(cFunctionCallAssignmentStatement.getLeftHandSide());
             if (succVars.contains(varNameAssigned)) {
               for (CExpression expr :
-                  ((CFunctionCallAssignmentStatement) stm)
-                      .getRightHandSide()
-                      .getParameterExpressions()) {
+                  cFunctionCallAssignmentStatement.getRightHandSide().getParameterExpressions()) {
                 CFAUtils.getVariableNamesOfExpression(expr).copyInto(updatedVars);
               }
             }
@@ -237,8 +231,8 @@ public class ProofSlicer {
             updatedVars.addAll(succVars);
           }
         }
-        return;
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         if (((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration) {
           CVariableDeclaration varDec =
               (CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration();
@@ -257,8 +251,8 @@ public class ProofSlicer {
         } else {
           updatedVars.addAll(succVars);
         }
-        return;
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         CReturnStatementEdge retStm = ((CReturnStatementEdge) edge);
         if (retStm.getExpression().isPresent()
             && !retStm.getSuccessor().getEntryNode().getReturnVariable().isPresent()) {
@@ -277,8 +271,8 @@ public class ProofSlicer {
         } else {
           updatedVars.addAll(succVars);
         }
-        return;
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         CFunctionCallEdge funCall = ((CFunctionCallEdge) edge);
         Collection<String> paramNames = new HashSet<>();
 
@@ -299,14 +293,13 @@ public class ProofSlicer {
             updatedVars.add(var);
           }
         }
-        return;
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         CFunctionReturnEdge funRet = ((CFunctionReturnEdge) edge);
         String varName;
-        if (funRet.getFunctionCall() instanceof CFunctionCallAssignmentStatement) {
-          varName =
-              VarNameRetriever.getVarName(
-                  ((CFunctionCallAssignmentStatement) funRet.getFunctionCall()).getLeftHandSide());
+        if (funRet.getFunctionCall()
+            instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
+          varName = VarNameRetriever.getVarName(cFunctionCallAssignmentStatement.getLeftHandSide());
           addAllExceptVar(varName, succVars, updatedVars);
           if (!funRet.getFunctionEntry().getReturnVariable().isPresent()) {
             throw new AssertionError("No return variable provided for non-void function.");
@@ -316,10 +309,9 @@ public class ProofSlicer {
         } else {
           updatedVars.addAll(succVars);
         }
-        return;
-      case CallToReturnEdge:
-        throw new AssertionError();
-      case AssumeEdge:
+      }
+      case CallToReturnEdge -> throw new AssertionError();
+      case AssumeEdge -> {
         Set<String> assumeVars =
             CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) edge).getExpression()).toSet();
         for (String var : assumeVars) {
@@ -328,12 +320,11 @@ public class ProofSlicer {
             break;
           }
         }
-      // $FALL-THROUGH$
-      case BlankEdge:
         updatedVars.addAll(succVars);
-        return;
-      default:
-        throw new AssertionError();
+      }
+      case BlankEdge -> {
+        updatedVars.addAll(succVars);
+      }
     }
   }
 
@@ -341,10 +332,8 @@ public class ProofSlicer {
     if (pInitializer instanceof CDesignatedInitializer) {
       throw new AssertionError(
           "CDesignatedInitializer unsupported in slicing"); // currently not supported
-    } else if (pInitializer instanceof CInitializerExpression) {
-      return CFAUtils.getVariableNamesOfExpression(
-              ((CInitializerExpression) pInitializer).getExpression())
-          .toSet();
+    } else if (pInitializer instanceof CInitializerExpression cInitializerExpression) {
+      return CFAUtils.getVariableNamesOfExpression(cInitializerExpression.getExpression()).toSet();
     } else { // CInitializerList
       Collection<String> result = new HashSet<>();
 
@@ -400,16 +389,21 @@ public class ProofSlicer {
 
   private Set<String> initState(final ARGState parent) {
     assert !parent.isCovered();
-    for (CFAEdge edge : CFAUtils.leavingEdges(AbstractStates.extractLocation(parent))) {
+    for (CFAEdge edge : AbstractStates.extractLocation(parent).getLeavingEdges()) {
 
       if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+        boolean found = false;
         for (ARGState child : parent.getChildren()) {
           if (parent.getEdgeToChild(child) == edge) {
-            continue;
+            found = true;
+            break;
           }
         }
-        // assume edge not present
-        return CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) edge).getExpression()).toSet();
+        if (!found) {
+          // assume edge not present
+          return CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) edge).getExpression())
+              .toSet();
+        }
       }
     }
 
@@ -470,8 +464,8 @@ public class ProofSlicer {
 
     for (AbstractState state : compOldStates) {
       newStates.add(
-          state instanceof ValueAnalysisState
-              ? sliceState((ValueAnalysisState) state, necessaryVars)
+          state instanceof ValueAnalysisState valueAnalysisState
+              ? sliceState(valueAnalysisState, necessaryVars)
               : state);
     }
 
@@ -500,7 +494,7 @@ public class ProofSlicer {
 
     private static VarNameRetriever retriever = new VarNameRetriever();
 
-    public static String getVarName(final CLeftHandSide lhsAssign) {
+    static String getVarName(final CLeftHandSide lhsAssign) {
       return lhsAssign.accept(retriever);
     }
 

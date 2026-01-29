@@ -76,7 +76,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /*
    * 2 lists with different lengths X, with a pointer somewhere,  -> X+ -> 0, should be equal only if the pointer is at a comparable location (examples are last and first)
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void SLLDifferentLengthSomePointerLessOrEqualTest()
@@ -141,7 +141,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /*
    * 2 lists with different lengths X, with a pointer somewhere,  -> X+ -> 0, should be equal only if the pointer is at a comparable location (examples are last and first)
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void DLLDifferentLengthSomePointerLessOrEqualTest()
@@ -206,7 +206,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /*
    * 2 lists with different lengths X, with a first and last pointer,  -> X+ -> 0, should be equal
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void SLLDifferentLengthFstAndLstPointerLessOrEqualTest()
@@ -247,7 +247,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /*
    * 2 lists with different lengths X, with a first and last pointer,  -> X+ -> 0, should be equal
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void DLLDifferentLengthFstAndLstPointerLessOrEqualTest()
@@ -290,7 +290,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    *
    * @throws SMGException never thrown
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void concreteAndAbstractedListLessOrEqualTest() throws SMGException, SMGSolverException {
@@ -392,7 +392,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    *
    * @throws SMGException never thrown.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void concreteAndAbstractedListWSublistLessOrEqualTest()
@@ -516,7 +516,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, offsetsForPointers.get(0));
+              currentState.searchOrCreateAddress(obj, offsetsForPointers.getFirst());
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -691,7 +691,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, offsetsForPointers.get(0));
+              currentState.searchOrCreateAddress(obj, offsetsForPointers.getFirst());
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -815,7 +815,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    *
    * @throws SMGException never thrown
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void abstractedListWSublistLessOrEqualTest() throws SMGException, SMGSolverException {
@@ -1052,7 +1052,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               new NumericValue(pointerSizeInBits),
               new NumericValue(-1),
               null,
-              dummyCDAEdge);
+              dummyCFAEdge);
 
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
@@ -1151,7 +1151,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * We have a list, we check the next components' existence, then we move the current pointer to
    * the next and free the prev segment. The resulting list should be covered by the previous.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void testSLLNextPointerFreeLoopEquality() throws CPAException, InterruptedException {
@@ -1172,9 +1172,9 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       }
       // Should only be 1 list element
       assertThat(deref).hasSize(1);
-      currentState = deref.get(0).getSMGState();
-      assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
-      assertThat(deref.get(0).getOffsetForObject().asNumericValue().bigIntegerValue())
+      currentState = deref.getFirst().getSMGState();
+      assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
+      assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       List<ValueAndSMGState> readNexts;
       if (i == listLength - 1) {
@@ -1195,7 +1195,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       if (i < listLength - 1) {
         // Should only be 1 list element
         assertThat(readNexts).hasSize(1);
-        readNext = readNexts.get(0);
+        readNext = readNexts.getFirst();
       } else {
         assertThat(readNexts).hasSize(2);
         readNext = readNexts.get(1);
@@ -1279,7 +1279,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       // Free current list segment
       List<SMGState> newStatesAfterFree = currentState.free(prevPtr, null, null);
       assertThat(newStatesAfterFree).hasSize(1);
-      currentState = newStatesAfterFree.get(0);
+      currentState = newStatesAfterFree.getFirst();
       notAbstractedListObj =
           currentState
               .dereferencePointerWithoutMaterilization(readPointer)
@@ -1303,9 +1303,9 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         currentState.dereferencePointer(lastNextPointer);
     // Should only be 1 list element
     assertThat(deref).hasSize(1);
-    currentState = deref.get(0).getSMGState();
-    assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.get(0).getOffsetForObject().asNumericValue().bigIntegerValue())
+    currentState = deref.getFirst().getSMGState();
+    assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
+    assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     List<ValueAndSMGState> readNextsInLast =
         evaluator.readValueWithPointerDereference(
@@ -1313,8 +1313,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Should only be 1 list element
     assertThat(readNextsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readNextsInLast.get(0).getValue().isNumericValue()).isTrue();
-    assertThat(readNextsInLast.get(0).getValue().asNumericValue().bigIntegerValue())
+    assertThat(readNextsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) readNextsInLast.getFirst().getValue()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Confirm that the other is materialized correctly
     currentState = readNextsInLast.get(1).getState();
@@ -1333,7 +1333,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Now we free the list element from before
     List<SMGState> freeList = currentState.free(lastNextPointer, null, null);
     assertThat(freeList).hasSize(1);
-    currentState = freeList.get(0);
+    currentState = freeList.getFirst();
     // Compare the 2 states from before and now
     assertThat(currentState.isLessOrEqual(stateW1Left)).isTrue();
   }
@@ -1342,7 +1342,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * We have a list, we check the next components' existence, then we move the current pointer to
    * the next and free the prev segment. The resulting list should be covered by the previous.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void testDLLNextPointerFreeLoopEquality() throws CPAException, InterruptedException {
@@ -1363,9 +1363,9 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       }
       // Should only be 1 list element
       assertThat(deref).hasSize(1);
-      currentState = deref.get(0).getSMGState();
-      assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
-      assertThat(deref.get(0).getOffsetForObject().asNumericValue().bigIntegerValue())
+      currentState = deref.getFirst().getSMGState();
+      assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
+      assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       List<ValueAndSMGState> readNexts;
       if (i == listLength - 1) {
@@ -1386,7 +1386,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       if (i < listLength - 1) {
         // Should only be 1 list element
         assertThat(readNexts).hasSize(1);
-        readNext = readNexts.get(0);
+        readNext = readNexts.getFirst();
       } else {
         assertThat(readNexts).hasSize(2);
         readNext = readNexts.get(1);
@@ -1460,7 +1460,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       // Free current list segment
       List<SMGState> newStatesAfterFree = currentState.free(prevPtr, null, null);
       assertThat(newStatesAfterFree).hasSize(1);
-      currentState = newStatesAfterFree.get(0);
+      currentState = newStatesAfterFree.getFirst();
       notAbstractedListObj =
           currentState
               .dereferencePointerWithoutMaterilization(readPointer)
@@ -1484,9 +1484,9 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         currentState.dereferencePointer(lastNextPointer);
     // Should only be 1 list element
     assertThat(deref).hasSize(1);
-    currentState = deref.get(0).getSMGState();
-    assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.get(0).getOffsetForObject().asNumericValue().bigIntegerValue())
+    currentState = deref.getFirst().getSMGState();
+    assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
+    assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     List<ValueAndSMGState> readNextsInLast =
         evaluator.readValueWithPointerDereference(
@@ -1494,8 +1494,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Should only be 1 list element
     assertThat(readNextsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readNextsInLast.get(0).getValue().isNumericValue()).isTrue();
-    assertThat(readNextsInLast.get(0).getValue().asNumericValue().bigIntegerValue())
+    assertThat(readNextsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) readNextsInLast.getFirst().getValue()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Confirm that the other is materialized correctly
     currentState = readNextsInLast.get(1).getState();
@@ -1514,7 +1514,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Now we free the list element from before
     List<SMGState> freeList = currentState.free(lastNextPointer, null, null);
     assertThat(freeList).hasSize(1);
-    currentState = freeList.get(0);
+    currentState = freeList.getFirst();
     // Compare the 2 states from before and now
     assertThat(currentState.isLessOrEqual(stateW1Left)).isTrue();
   }
@@ -1523,7 +1523,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * We have a list, we check the next components' existence, then we move the current pointer to
    * the next and free the prev segment. The resulting list should be covered by the previous.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void testDLLPrevPointerFreeLoopEquality() throws CPAException, InterruptedException {
@@ -1548,9 +1548,9 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
           .isEqualTo(0);
       // Should only be 1 list element
       assertThat(currentDeref).hasSize(1);
-      currentState = currentDeref.get(0).getSMGState();
-      assertThat(currentDeref.get(0).hasSMGObjectAndOffset()).isTrue();
-      assertThat(currentDeref.get(0).getOffsetForObject().asNumericValue().bigIntegerValue())
+      currentState = currentDeref.getFirst().getSMGState();
+      assertThat(currentDeref.getFirst().hasSMGObjectAndOffset()).isTrue();
+      assertThat(((NumericValue) currentDeref.getFirst().getOffsetForObject()).bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       // currentDeref is based on prev pointers, check that its equal to a deref of the external
       // pointer at that location (except the first case)
@@ -1568,17 +1568,14 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         assertThat(currentState.getMemoryModel().getNestingLevel(pointersConcreteDifferentList[i]))
             .isEqualTo(0);
         assertThat(currentDerefFromExternal).hasSize(1);
-        currentState = currentDerefFromExternal.get(0).getSMGState();
-        assertThat(currentDerefFromExternal.get(0).hasSMGObjectAndOffset()).isTrue();
+        currentState = currentDerefFromExternal.getFirst().getSMGState();
+        assertThat(currentDerefFromExternal.getFirst().hasSMGObjectAndOffset()).isTrue();
         assertThat(
-                currentDerefFromExternal
-                    .get(0)
-                    .getOffsetForObject()
-                    .asNumericValue()
+                ((NumericValue) currentDerefFromExternal.getFirst().getOffsetForObject())
                     .bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
-        assertThat(currentDerefFromExternal.get(0).getSMGObject())
-            .isEqualTo(currentDeref.get(0).getSMGObject());
+        assertThat(currentDerefFromExternal.getFirst().getSMGObject())
+            .isEqualTo(currentDeref.getFirst().getSMGObject());
         assertThat(
                 currentState
                     .getMemoryModel()
@@ -1601,7 +1598,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       if (i != 0) {
         // Should only be 1 list element
         assertThat(readPrevsOfCurrent).hasSize(1);
-        readPrevPointerAndState = readPrevsOfCurrent.get(0);
+        readPrevPointerAndState = readPrevsOfCurrent.getFirst();
       } else {
         assertThat(readPrevsOfCurrent).hasSize(2);
         readPrevPointerAndState = readPrevsOfCurrent.get(1);
@@ -1678,7 +1675,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       // Free current list segment
       List<SMGState> newStatesAfterFree = currentState.free(previousListElementPtr, null, null);
       assertThat(newStatesAfterFree).hasSize(1);
-      currentState = newStatesAfterFree.get(0);
+      currentState = newStatesAfterFree.getFirst();
       // check that the prev from the just freed is still valid
       notAbstractedPrevListObj =
           currentState
@@ -1701,9 +1698,9 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         currentState.dereferencePointer(runningListElementPointer);
     // Should only be 1 list element
     assertThat(deref).hasSize(1);
-    currentState = deref.get(0).getSMGState();
-    assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.get(0).getOffsetForObject().asNumericValue().bigIntegerValue())
+    currentState = deref.getFirst().getSMGState();
+    assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
+    assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Read prev of current list segment (reads into 0+, causes materialization)
     List<ValueAndSMGState> readPrevsInLast =
@@ -1716,8 +1713,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Should only be 1 list element
     assertThat(readPrevsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readPrevsInLast.get(0).getValue().isNumericValue()).isTrue();
-    assertThat(readPrevsInLast.get(0).getValue().asNumericValue().bigIntegerValue())
+    assertThat(readPrevsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) readPrevsInLast.getFirst().getValue()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Confirm that the other is materialized correctly
     currentState = readPrevsInLast.get(1).getState();
@@ -1736,7 +1733,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Now we free the list element from before
     List<SMGState> freeList = currentState.free(runningListElementPointer, null, null);
     assertThat(freeList).hasSize(1);
-    currentState = freeList.get(0);
+    currentState = freeList.getFirst();
     // Compare the 2 states from before and now
     assertThat(currentState.isLessOrEqual(stateW1Left)).isTrue();
   }

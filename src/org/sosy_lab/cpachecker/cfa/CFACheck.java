@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Verify.verify;
-import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.Iterables;
@@ -51,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -64,7 +63,7 @@ public class CFACheck {
    * @param cfa Node to start traversal from
    * @param nodes Optional set of all nodes in the CFA (may be null)
    * @param machineModel model to get the size of types
-   * @return true if all checks succeed
+   * @return whether all checks succeed
    * @throws VerifyException if not all checks succeed
    */
   public static boolean check(
@@ -90,8 +89,8 @@ public class CFACheck {
         // If the function entry node has a function exit node, the exit node must be part of the
         // CFA, so we check it here. This check detects function exit nodes that are unreachable but
         // have not been removed.
-        if (node instanceof FunctionEntryNode) {
-          ((FunctionEntryNode) node).getExitNode().ifPresent(CFACheck::checkEdgeCount);
+        if (node instanceof FunctionEntryNode functionEntryNode) {
+          functionEntryNode.getExitNode().ifPresent(CFACheck::checkEdgeCount);
         }
       }
     }
@@ -101,7 +100,8 @@ public class CFACheck {
           visitedNodes.equals(nodes),
           """
           Nodes in CFA but not reachable through traversal: %s
-          Nodes reached that are not in CFA: %s""",
+          Nodes reached that are not in CFA: %s
+          """,
           Iterables.transform(Sets.difference(nodes, visitedNodes), CFACheck::debugFormat),
           Iterables.transform(Sets.difference(visitedNodes, nodes), CFACheck::debugFormat));
     }
@@ -148,23 +148,20 @@ public class CFACheck {
     // check leaving edges
     if (!(pNode instanceof FunctionExitNode)) {
       switch (pNode.getNumLeavingEdges()) {
-        case 0:
-          verify(pNode instanceof CFATerminationNode, "Dead end at node %s", debugFormat(pNode));
-          break;
-
-        case 1:
+        case 0 ->
+            verify(pNode instanceof CFATerminationNode, "Dead end at node %s", debugFormat(pNode));
+        case 1 -> {
           CFAEdge edge = pNode.getLeavingEdge(0);
           verify(
-              !(edge instanceof AssumeEdge),
+              !(edge instanceof AssumeEdge) || edge instanceof SvLibAssumeEdge,
               "AssumeEdge does not appear in pair at node %s",
               debugFormat(pNode));
           verify(
               !(edge instanceof CFunctionSummaryStatementEdge),
               "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node %s",
               debugFormat(pNode));
-          break;
-
-        case 2:
+        }
+        case 2 -> {
           CFAEdge edge1 = pNode.getLeavingEdge(0);
           CFAEdge edge2 = pNode.getLeavingEdge(1);
           // relax this assumption for summary edges
@@ -191,10 +188,8 @@ public class CFACheck {
                 "Inconsistent branching at node %s",
                 debugFormat(pNode));
           }
-          break;
-
-        default:
-          throw new VerifyException("Too much branching at node " + debugFormat(pNode));
+        }
+        default -> throw new VerifyException("Too much branching at node " + debugFormat(pNode));
       }
     }
   }
@@ -209,7 +204,7 @@ public class CFACheck {
     Set<CFAEdge> seenEdges = new HashSet<>();
     Set<CFANode> seenNodes = new HashSet<>();
 
-    for (CFAEdge edge : leavingEdges(pNode)) {
+    for (CFAEdge edge : pNode.getLeavingEdges()) {
       verify(seenEdges.add(edge), "Duplicate leaving edge %s on node %s", edge, debugFormat(pNode));
       checkEdge(edge, machineModel);
 
@@ -221,7 +216,7 @@ public class CFACheck {
           debugFormat(pNode));
 
       verify(
-          enteringEdges(successor).contains(edge),
+          successor.getEnteringEdges().contains(edge),
           "Node %s has leaving edge %s, but node %s does not have this edge as entering edge!",
           debugFormat(pNode),
           edge,
@@ -231,7 +226,7 @@ public class CFACheck {
     seenEdges.clear();
     seenNodes.clear();
 
-    for (CFAEdge edge : enteringEdges(pNode)) {
+    for (CFAEdge edge : pNode.getEnteringEdges()) {
       verify(
           seenEdges.add(edge), "Duplicate entering edge %s on node %s", edge, debugFormat(pNode));
 
@@ -243,7 +238,7 @@ public class CFACheck {
           debugFormat(pNode));
 
       verify(
-          leavingEdges(predecessor).contains(edge),
+          predecessor.getLeavingEdges().contains(edge),
           "Node %s has entering edge %s, but node %s does not have this edge as leaving edge!",
           debugFormat(pNode),
           edge,
@@ -254,29 +249,30 @@ public class CFACheck {
   // simple check for valid contents of an edge
   private static void checkEdge(CFAEdge edge, MachineModel machineModel) {
     switch (edge.getEdgeType()) {
-      case AssumeEdge:
-        if (edge instanceof CAssumeEdge) {
-          checkTypes(((CAssumeEdge) edge).getExpression(), machineModel);
+      case AssumeEdge -> {
+        if (edge instanceof CAssumeEdge cAssumeEdge) {
+          checkTypes(cAssumeEdge.getExpression(), machineModel);
         }
-        break;
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         ADeclaration decl = ((ADeclarationEdge) edge).getDeclaration();
-        if (decl instanceof CVariableDeclaration) {
-          CInitializer init = ((CVariableDeclaration) decl).getInitializer();
-          if (init instanceof CInitializerExpression) {
-            checkTypes(((CInitializerExpression) init).getExpression(), machineModel);
+        if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+          CInitializer init = cVariableDeclaration.getInitializer();
+          if (init instanceof CInitializerExpression cInitializerExpression) {
+            checkTypes(cInitializerExpression.getExpression(), machineModel);
           }
         }
-        break;
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         AStatement stat = ((AStatementEdge) edge).getStatement();
-        if (stat instanceof CExpressionStatement) {
-          checkTypes(((CExpressionStatement) stat).getExpression(), machineModel);
+        if (stat instanceof CExpressionStatement cExpressionStatement) {
+          checkTypes(cExpressionStatement.getExpression(), machineModel);
         }
-        break;
-      default:
+      }
+      default -> {
         // TODO add more checks
         // ignore
+      }
     }
   }
 
@@ -290,7 +286,7 @@ public class CFACheck {
     private final MachineModel machineModel;
     private final CExpression expressionForLogging;
 
-    public ExpressionValidator(MachineModel pMachineModel, CExpression pExp) {
+    ExpressionValidator(MachineModel pMachineModel, CExpression pExp) {
       machineModel = pMachineModel;
       expressionForLogging = pExp;
     }

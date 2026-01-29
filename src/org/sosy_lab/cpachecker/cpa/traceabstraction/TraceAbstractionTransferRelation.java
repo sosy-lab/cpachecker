@@ -41,7 +41,7 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
 
     // The TraceAbstraction needs more information from other CPA-states before
     // it can compute the correct successor state.
-    // Until then we let the delegate compute its successor and return it with the predicates
+    // Until then, we let the delegate compute its successor and return it with the predicates
     // from the previous TAState (the PredicateTR is expected to only return a single successor
     // state)
     return ImmutableList.of(

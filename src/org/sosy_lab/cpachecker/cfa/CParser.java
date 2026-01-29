@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
  *
  * <p>A C parser should be state-less and therefore thread-safe as well as reusable.
  *
- * <p>It may offer timing of it's operations. If present, this is not expected to be thread-safe.
+ * <p>It may offer timing of its operations. If present, this is not expected to be thread-safe.
  */
 public interface CParser extends Parser {
 

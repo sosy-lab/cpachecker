@@ -119,19 +119,19 @@ class Scope {
   }
 
   /**
-   * Returns true, iff Scope is not within a Class or method. In all other cases, returns false.
+   * Returns true iff Scope is not within a Class or method. In all other cases, returns false.
    *
-   * @return true, iff Scope is not within method or Class.
+   * @return whether the Scope is not within a method or Class.
    */
   public boolean isProgramScope() {
     return varsStack.size() == 1 && classStack.isEmpty();
   }
 
   /**
-   * Returns true, if Scope is in the top-Level class and not within a method. In all other cases
+   * Returns true if Scope is in the top-Level class and not within a method. In all other cases
    * false.
    *
-   * @return true, iff Scope is within top-level class.
+   * @return whether the Scope is within top-level class.
    */
   public boolean isTopClassScope() {
     return varsStack.size() == 1 && classStack.size() == 1;
@@ -154,7 +154,7 @@ class Scope {
     JType returnType = pMethod.getType().getReturnType();
     String qualifiedReturnVarName = createQualifiedName(RETURN_VAR_NAME);
 
-    if (JSimpleType.getVoid().equals(returnType)) {
+    if (JSimpleType.VOID.equals(returnType)) {
       return null;
     }
 
@@ -257,7 +257,7 @@ class Scope {
    * @param name Given name to be checked.
    * @param origName If the name has another Identification, it can also be given with this
    *     parameter.
-   * @return Returns true, if the name is already in use, else false.
+   * @return whether the name is already in use.
    */
   public boolean variableNameInUse(String name, String origName) {
     checkNotNull(name);
@@ -315,7 +315,7 @@ class Scope {
    * Checks if the method declaration with the name given as parameter is already in use.
    *
    * @param name name of the method.
-   * @return true, if found, else false.
+   * @return whether found.
    */
   public boolean isMethodRegistered(String name) {
     return methods.containsKey(checkNotNull(name));
@@ -379,13 +379,13 @@ class Scope {
 
     } else {
       // If top Class already added, it is unnecessary to search for subTypes
-      // unless its the main Class
+      // unless it's the main Class
       if (!fullyQualifiedMainClassName.equals(className)) {
         return;
       }
     }
 
-    // Sub Classes need to be parsed for dynamic Binding
+    // Subclasses need to be parsed for dynamic Binding
     JClassOrInterfaceType type = typeHierarchy.getType(className);
 
     // TODO Check if there is a way to be more precise

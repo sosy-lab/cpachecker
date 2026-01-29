@@ -48,7 +48,7 @@ parser code {:
   /**
    * This method converts a formula with the given converter.
    * If the converter is NULL or the formula is a solver-specific string, it is returned unchanged.
-   * Otherwise the converter converts the formula, for example from Integer-logic to BV-logic.
+   * Otherwise, the converter converts the formula, for example from Integer-logic to BV-logic.
    * If a symbol cannot be parsed, the returned formula-string is NULL.
    */
   public static String convertFormula(@Nullable Converter converter, String line, LogManagerWithoutDuplicates pLogger) {

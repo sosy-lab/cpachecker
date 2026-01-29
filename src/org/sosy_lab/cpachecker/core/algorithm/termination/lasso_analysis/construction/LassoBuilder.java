@@ -432,17 +432,17 @@ public class LassoBuilder {
     private final ImmutableMap<RankVar, TermVariable> inVars;
     private final ImmutableMap<RankVar, TermVariable> outVars;
 
-    public InOutVariables(
+    InOutVariables(
         ImmutableMap<RankVar, TermVariable> pInVars, ImmutableMap<RankVar, TermVariable> pOutVars) {
       inVars = checkNotNull(pInVars);
       outVars = checkNotNull(pOutVars);
     }
 
-    public ImmutableMap<IProgramVar, TermVariable> getInVars() {
+    ImmutableMap<IProgramVar, TermVariable> getInVars() {
       return ImmutableMap.copyOf(inVars);
     }
 
-    public ImmutableMap<IProgramVar, TermVariable> getOutVars() {
+    ImmutableMap<IProgramVar, TermVariable> getOutVars() {
       return ImmutableMap.copyOf(outVars);
     }
   }

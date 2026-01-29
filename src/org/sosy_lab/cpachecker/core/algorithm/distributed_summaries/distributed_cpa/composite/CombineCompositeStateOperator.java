@@ -2,74 +2,62 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CombineCompositeStateOperator implements CombineOperator {
 
-  private final Map<
-          Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-      registered;
+  private final List<ConfigurableProgramAnalysis> wrapped;
 
-  public CombineCompositeStateOperator(
-      Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-          pRegistered) {
-    registered = pRegistered;
+  public CombineCompositeStateOperator(List<ConfigurableProgramAnalysis> pWrapped) {
+    wrapped = pWrapped;
   }
 
   @Override
-  public List<AbstractState> combine(
-      AbstractState pState1, AbstractState pState2, Precision pPrecision)
-      throws InterruptedException, CPAException {
-
-    CompositeState compositeState1 = (CompositeState) pState1;
-    CompositeState compositeState2 = (CompositeState) pState2;
-    if (compositeState1.getWrappedStates().size() != compositeState2.getWrappedStates().size()) {
-      throw new AssertionError("CompositeStates have to have the same size");
-    }
-    for (int i = 0; i < compositeState1.getWrappedStates().size(); i++) {
-      AbstractState state1I = compositeState1.get(i);
-      AbstractState state2I = compositeState2.get(i);
-      if (state1I.getClass() != state2I.getClass()) {
-        throw new AssertionError(
-            "All states have to work on equally structured composite states. Mismatch for classes "
-                + state1I.getClass()
-                + " and "
-                + state2I.getClass());
+  public AbstractState combine(Collection<AbstractState> states)
+      throws CPAException, InterruptedException {
+    Preconditions.checkArgument(!states.isEmpty(), "States cannot be empty");
+    Preconditions.checkArgument(
+        states.stream().allMatch(CompositeState.class::isInstance),
+        "All states must be of type CompositeState");
+    Preconditions.checkArgument(
+        states.stream()
+            .allMatch(c -> ((CompositeState) c).getWrappedStates().size() == wrapped.size()),
+        "All states must have the same number of wrapped states");
+    ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
+    for (int i = 0; i < wrapped.size(); i++) {
+      ImmutableList.Builder<AbstractState> statesToCombine =
+          ImmutableList.builderWithExpectedSize(states.size());
+      for (AbstractState state : states) {
+        CompositeState compositeState = (CompositeState) state;
+        AbstractState wrappedState = compositeState.getWrappedStates().get(i);
+        statesToCombine.add(wrappedState);
+      }
+      if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        AbstractState combinedState = dcpa.getCombineOperator().combine(statesToCombine.build());
+        wrappedStates.add(combinedState);
+      } else {
+        // Alternatively, we could think of returning the initial state.
+        throw new CPAException(
+            "Wrapped analysis "
+                + wrapped.get(i).getClass().getSimpleName()
+                + " does not implement CombineOperator.");
       }
     }
-
-    List<AbstractState> combined = new ArrayList<>();
-    for (int i = 0; i < compositeState1.getWrappedStates().size(); i++) {
-      boolean found = false;
-      AbstractState state1I = compositeState1.get(i);
-      AbstractState state2I = compositeState2.get(i);
-      for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-        if (value.doesOperateOn(state1I.getClass()) && value.doesOperateOn(state2I.getClass())) {
-          combined.addAll(value.getCombineOperator().combine(state1I, state2I, pPrecision));
-          found = true;
-        }
-      }
-      // merge sep
-      if (!found) {
-        combined.add(state2I);
-      }
-    }
-    return ImmutableList.of(new CompositeState(combined));
+    return new CompositeState(wrappedStates.build());
   }
 }

@@ -48,8 +48,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
-  ARGBasedRefiner refiner;
-  LogManager logger;
+  private final ARGBasedRefiner refiner;
+  private final LogManager logger;
 
   private final UsageStatisticsRefinementStrategy strategy;
   private ARGReachedSet ARGReached;
@@ -62,10 +62,10 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   private final Set<ImmutableSet<CFAEdge>> potentialLoopTraces = new HashSet<>();
   // Statistics
-  private StatCounter solverFailures = new StatCounter("Solver failures");
-  private StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
-  private StatCounter numberOfrefinedPaths = new StatCounter("Number of refined paths");
-  private StatCounter numberOfBAMupdates = new StatCounter("Number of BAM updates");
+  private final StatCounter solverFailures = new StatCounter("Solver failures");
+  private final StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
+  private final StatCounter numberOfrefinedPaths = new StatCounter("Number of refined paths");
+  private final StatCounter numberOfBAMupdates = new StatCounter("Number of BAM updates");
 
   public PredicateRefinerAdapter(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
@@ -74,13 +74,13 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       throws InvalidConfigurationException {
     super(wrapper);
 
-    if (!(pCpa instanceof WrapperCPA)) {
+    if (!(pCpa instanceof WrapperCPA wrapperCPA)) {
       throw new InvalidConfigurationException(
           BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
     @SuppressWarnings("resource")
-    BAMPredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
+    BAMPredicateCPA predicateCpa = wrapperCPA.retrieveWrappedCpa(BAMPredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(
           BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
@@ -197,9 +197,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   protected void handleUpdateSignal(
       Class<? extends RefinementInterface> pCallerClass, Object pData) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
-      if (pData instanceof ReachedSet) {
+      if (pData instanceof ReachedSet reachedSet) {
         // Updating new reached set
-        updateReachedSet((ReachedSet) pData);
+        updateReachedSet(reachedSet);
       }
     }
   }
@@ -230,8 +230,8 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStats) {
-    if (refiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) refiner).collectStatistics(pStats);
+    if (refiner instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStats);
     }
     super.collectStatistics(pStats);
   }

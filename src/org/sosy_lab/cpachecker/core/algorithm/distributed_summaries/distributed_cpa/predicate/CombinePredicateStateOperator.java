@@ -2,96 +2,96 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import com.google.common.collect.ImmutableList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Objects;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
 
 public class CombinePredicateStateOperator implements CombineOperator {
 
-  private final PathFormulaManager manager;
-  private final FormulaManagerView formulaManager;
+  private final PredicateCPA predicateCPA;
 
-  public CombinePredicateStateOperator(
-      PathFormulaManager pPathFormulaManager, FormulaManagerView pFormulaManagerView) {
-    manager = pPathFormulaManager;
-    formulaManager = pFormulaManagerView;
+  public CombinePredicateStateOperator(PredicateCPA pPredicateCPA) {
+    predicateCPA = pPredicateCPA;
   }
 
+  /**
+   * Combine multiple PredicateAbstractStates into one by taking the disjunction of their
+   * abstraction formulas. The resulting state is a non-abstraction state with a path formula where
+   * all SSA indices are set to 1 and the PointerTargetSet is merged accordingly (delegated to
+   * {@link PathFormulaManager#mergePts(PointerTargetSet, PointerTargetSet, SSAMapBuilder)})
+   *
+   * <p>This method assumes that all provided states are abstraction states.
+   *
+   * @param states the collection of states to combine
+   * @return the combined PredicateAbstractState
+   */
   @Override
-  public List<AbstractState> combine(
-      AbstractState pState1, AbstractState pState2, Precision pPrecision)
+  public AbstractState combine(Collection<AbstractState> states)
       throws CPAException, InterruptedException {
-    PredicateAbstractState state1 = (PredicateAbstractState) pState1;
-    PredicateAbstractState state2 = (PredicateAbstractState) pState2;
+    Preconditions.checkArgument(!states.isEmpty(), "There must be at least one state to combine.");
+    FluentIterable<@NonNull PredicateAbstractState> predicateAbstractStates =
+        FluentIterable.from(states).filter(PredicateAbstractState.class);
+    predicateAbstractStates =
+        predicateAbstractStates.filter(PredicateAbstractState::isAbstractionState);
+    Preconditions.checkArgument(
+        states.size() == predicateAbstractStates.size(),
+        "All states must be PredicateAbstractStates and abstraction states.");
+    ImmutableSet<@NonNull BooleanFormula> booleanFormulas =
+        predicateAbstractStates
+            .transform(s -> s.getAbstractionFormula().asInstantiatedFormula())
+            .toSet();
 
-    SSAMap ssa1 = state1.getPathFormula().getSsa();
-    SSAMap ssa2 = state2.getPathFormula().getSsa();
-
-    SSAMapBuilder builder1 = ssa1.builder();
-    SSAMapBuilder builder2 = ssa2.builder();
-
-    BooleanFormula formula1 = state1.getPathFormula().getFormula();
-    BooleanFormula formula2 = state2.getPathFormula().getFormula();
-
-    Map<Formula, Formula> substitution1 = new HashMap<>();
-    Map<Formula, Formula> substitution2 = new HashMap<>();
-
-    Map<String, Formula> extracted1 = formulaManager.extractVariables(formula1);
-    Map<String, Formula> extracted2 = formulaManager.extractVariables(formula2);
-
-    char sep = FormulaManagerView.INDEX_SEPARATOR;
-
-    for (String variable : ssa1.allVariables()) {
-      if (ssa2.containsVariable(variable)) {
-        int index1 = ssa1.getIndex(variable);
-        int index2 = ssa2.getIndex(variable);
-        if (index2 > index1) {
-          substitution1.put(
-              extracted1.get(variable + sep + index1), extracted2.get(variable + sep + index2));
-          builder1 = builder1.setIndex(variable, ssa1.getType(variable), index2);
-        } else {
-          substitution2.put(
-              extracted2.get(variable + sep + index2), extracted1.get(variable + sep + index1));
-          builder2 = builder2.setIndex(variable, ssa2.getType(variable), index1);
-        }
+    // Merge SSAMaps
+    SSAMapBuilder ssaMap = SSAMap.emptySSAMap().builder();
+    for (PathFormula formula : predicateAbstractStates.transform(s -> s.getPathFormula())) {
+      for (String variable : formula.getSsa().allVariables()) {
+        ssaMap.setIndex(variable, formula.getSsa().getType(variable), 1);
       }
     }
 
-    formula1 = formulaManager.substitute(formula1, substitution1);
-    formula2 = formulaManager.substitute(formula2, substitution2);
-
-    PathFormula newFormula =
-        manager.makeOr(
-            manager
-                .makeEmptyPathFormulaWithContext(
-                    builder1.build(), PointerTargetSet.emptyPointerTargetSet())
-                .withFormula(formula1),
-            manager
-                .makeEmptyPathFormulaWithContext(
-                    builder2.build(), PointerTargetSet.emptyPointerTargetSet())
-                .withFormula(formula2));
-    return ImmutableList.of(
-        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-            newFormula, state1, state2.getPreviousAbstractionState()));
+    // Merge PointerTargetSets
+    PathFormulaManager pathFormulaManager = predicateCPA.getPathFormulaManager();
+    PointerTargetSet combined = null;
+    for (PointerTargetSet pts :
+        predicateAbstractStates.transform(p -> p.getPathFormula().getPointerTargetSet())) {
+      if (combined == null) {
+        combined = pts;
+      } else {
+        combined = pathFormulaManager.mergePts(combined, pts, ssaMap);
+      }
+    }
+    Preconditions.checkNotNull(combined, "Combined PointerTargetSet should not be null.");
+    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+        pathFormulaManager
+            .makeEmptyPathFormula()
+            .withContext(ssaMap.build(), combined)
+            .withFormula(
+                predicateCPA
+                    .getSolver()
+                    .getFormulaManager()
+                    .getBooleanFormulaManager()
+                    .or(booleanFormulas)),
+        (PredicateAbstractState) Objects.requireNonNull(Iterables.get(states, 0)));
   }
 }

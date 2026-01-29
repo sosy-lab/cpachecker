@@ -66,7 +66,7 @@ public class OctagonAnalysisFeasibilityChecker {
   /**
    * This method checks if the given path is feasible, when not tracking the given set of variables.
    *
-   * @return true, if the path is feasible, else false
+   * @return whether the path is feasible
    */
   public boolean isFeasible() {
     return checkedPath.size() == foundPath.size();

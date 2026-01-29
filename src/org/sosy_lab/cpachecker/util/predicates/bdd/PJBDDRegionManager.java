@@ -234,7 +234,7 @@ public class PJBDDRegionManager implements RegionManager {
                 + " cache size).")
     private double cacheRatio = 0.1;
 
-    @Option(secure = true, description = "Use internal a int based bdd representation.")
+    @Option(secure = true, description = "Use internal an int based bdd representation.")
     private boolean useInts = false;
 
     // All usable BDD types in PJBDD. Keep synchronous with possible useBDDType parameters.
@@ -254,11 +254,11 @@ public class PJBDDRegionManager implements RegionManager {
       pConfig.inject(this);
     }
 
-    protected String getUseBDDType() {
+    String getUseBDDType() {
       return useBDDType;
     }
 
-    protected List<String> getAllValidBDDTypes() {
+    List<String> getAllValidBDDTypes() {
       return ALL_BDD_TYPES;
     }
 
@@ -339,11 +339,6 @@ public class PJBDDRegionManager implements RegionManager {
     @Override
     public DD visitConstant(boolean pB) {
       return pB ? bddCreator.makeTrue() : bddCreator.makeFalse();
-    }
-
-    @Override
-    public DD visitBoundVar(BooleanFormula pBooleanFormula, int pI) {
-      throw new UnsupportedOperationException("Not yet implemented"); // TODO
     }
 
     @Override

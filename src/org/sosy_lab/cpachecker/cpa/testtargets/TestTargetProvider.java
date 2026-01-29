@@ -167,7 +167,7 @@ public class TestTargetProvider implements Statistics {
       if (pTargetOptimizationStrategies != null
           && !pTargetOptimizationStrategies.isEmpty()
           && !(pTargetOptimizationStrategies.size() == 1
-              && pTargetOptimizationStrategies.get(0).equals(TestTargetAdaption.NONE))) {
+              && pTargetOptimizationStrategies.getFirst().equals(TestTargetAdaption.NONE))) {
         pLogger.log(
             Level.SEVERE,
             "Consider "
@@ -211,15 +211,12 @@ public class TestTargetProvider implements Statistics {
   }
 
   public static boolean isTerminatingFunctionCall(final CFAEdge pEdge) {
-    if (pEdge instanceof CStatementEdge
-        && ((CStatementEdge) pEdge).getStatement() instanceof CFunctionCall) {
+    if (pEdge instanceof CStatementEdge cStatementEdge
+        && cStatementEdge.getStatement() instanceof CFunctionCall cFunctionCall) {
       String funName = "";
-      CExpression funExpr =
-          ((CFunctionCall) ((CStatementEdge) pEdge).getStatement())
-              .getFunctionCallExpression()
-              .getFunctionNameExpression();
-      if (funExpr instanceof CIdExpression) {
-        funName = ((CIdExpression) funExpr).getName();
+      CExpression funExpr = cFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (funExpr instanceof CIdExpression cIdExpression) {
+        funName = cIdExpression.getName();
       }
       return funName.equals("abort") || funName.equals("exit") || funName.equals("__assert_fail");
     }

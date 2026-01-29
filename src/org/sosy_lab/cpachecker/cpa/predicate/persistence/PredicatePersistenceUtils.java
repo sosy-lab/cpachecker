@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.io.BufferedReader;
@@ -26,24 +25,23 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class PredicatePersistenceUtils {
+public final class PredicatePersistenceUtils {
 
-  public enum PredicateDumpFormat {
+  enum PredicateDumpFormat {
     PLAIN,
     SMTLIB2
   }
 
-  public static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
-  public static final Joiner LINE_JOINER = Joiner.on('\n');
+  private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
 
-  public static class PredicateParsingFailedException extends CPAException {
+  public static final class PredicateParsingFailedException extends CPAException {
     @Serial private static final long serialVersionUID = 5034288100943314517L;
 
-    public PredicateParsingFailedException(String msg, String source, int lineNo) {
+    PredicateParsingFailedException(String msg, String source, int lineNo) {
       super("Parsing failed in line " + lineNo + " of " + source + ": " + msg);
     }
 
-    public PredicateParsingFailedException(Throwable cause, String source, int lineNo) {
+    PredicateParsingFailedException(Throwable cause, String source, int lineNo) {
       this(cause.getMessage(), source, lineNo);
       initCause(cause);
     }

@@ -294,7 +294,7 @@ final class TypeHierarchy {
               new HashSet<>());
 
       JMethodType unresolvableMethodType =
-          new JMethodType(JSimpleType.getUnspecified(), new ArrayList<>(), false);
+          new JMethodType(JSimpleType.UNSPECIFIED, new ArrayList<>(), false);
       unresolvableMethodDeclaration =
           new JMethodDeclaration(
               FileLocation.DUMMY,
@@ -353,7 +353,7 @@ final class TypeHierarchy {
 
       checkArgument(
           objectType.equals(superClass),
-          "Class %s must be a sub-class of Object",
+          "Class %s must be a subclass of Object",
           pClassType.getName());
     }
 

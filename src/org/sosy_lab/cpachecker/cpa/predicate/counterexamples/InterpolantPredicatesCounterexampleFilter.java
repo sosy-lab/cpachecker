@@ -39,7 +39,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * interpolants can be computed). The location of the inteprolant predicates along the path is
  * ignored, all predicates are merged into a single set.
  */
-public class InterpolantPredicatesCounterexampleFilter
+public final class InterpolantPredicatesCounterexampleFilter
     extends AbstractNegatedPathCounterexampleFilter<ImmutableSet<AbstractionPredicate>> {
 
   private final LogManager logger;

@@ -18,6 +18,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.GreaterThanExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -28,17 +34,18 @@ public class ConstraintsMergeOperatorTest {
 
   private final ConstraintsMergeOperator op =
       new ConstraintsMergeOperator(new ConstraintsStatistics());
-  private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
   private final Type defType = CNumericTypes.INT;
 
   private final MemoryLocation memLoc1 = MemoryLocation.forIdentifier("id1");
   private final SymbolicExpression idExp1 =
-      factory.asConstant(factory.newIdentifier(memLoc1), defType);
-  private final SymbolicExpression numExp1 = factory.asConstant(new NumericValue(1), defType);
+      ConstantSymbolicExpression.of(
+          SymbolicValueFactory.getInstance().newIdentifier(memLoc1), defType);
+  private final SymbolicExpression numExp1 =
+      ConstantSymbolicExpression.of(new NumericValue(1), defType);
 
-  private final Constraint posConst = factory.equal(idExp1, numExp1, defType, defType);
+  private final Constraint posConst = EqualsExpression.of(idExp1, numExp1, defType, defType);
   private final Constraint negConst =
-      (Constraint) factory.notEqual(idExp1, numExp1, defType, defType);
+      (Constraint) NotEqualsExpression.of(idExp1, numExp1, defType, defType);
 
   @Test
   public void testMerge_mergePossible() {
@@ -60,14 +67,18 @@ public class ConstraintsMergeOperatorTest {
     Set<Constraint> constraints = new HashSet<>();
 
     // this results in a new symbolic identifier at every method call
-    SymbolicExpression idExp2 = factory.asConstant(factory.newIdentifier(memLoc1), defType);
+    SymbolicExpression idExp2 =
+        ConstantSymbolicExpression.of(
+            SymbolicValueFactory.getInstance().newIdentifier(memLoc1), defType);
 
-    Constraint currConstr = (Constraint) factory.greaterThan(idExp2, numExp1, defType, defType);
+    Constraint currConstr =
+        (Constraint) GreaterThanExpression.of(idExp2, numExp1, defType, defType);
     constraints.add(currConstr);
 
     currConstr =
         (Constraint)
-            factory.logicalNot(factory.lessThanOrEqual(idExp2, numExp1, defType, defType), defType);
+            LogicalNotExpression.of(
+                LessThanOrEqualExpression.of(idExp2, numExp1, defType, defType), defType);
 
     constraints.add(currConstr);
 

@@ -17,7 +17,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<?>> {
 
@@ -29,7 +29,7 @@ public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<
   /**
    * TODO write comment
    *
-   * @param pHasToBeLastInSequence used in some sub-class
+   * @param pHasToBeLastInSequence used in some subclass
    */
   public void updateProgress(
       C pPrevCandidate, C pCandidate, SMGJoinStatus pStatus, boolean pHasToBeLastInSequence) {
@@ -37,20 +37,10 @@ public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<
     Map<SMGJoinStatus, Integer> candidateLengths = candidateLength.row(pCandidate);
 
     switch (pStatus) {
-      case EQUAL:
-        updateEqualSegment(candidateLengths, pPrevCandidate);
-        break;
-      case RIGHT_ENTAIL:
-        updateREntailSegment(candidateLengths, pPrevCandidate);
-        break;
-      case LEFT_ENTAIL:
-        updateLEntailSegment(candidateLengths, pPrevCandidate);
-        break;
-      case INCOMPARABLE:
-        updateIncomparableSegment(candidateLengths, pPrevCandidate);
-        break;
-      default:
-        throw new AssertionError();
+      case EQUAL -> updateEqualSegment(candidateLengths, pPrevCandidate);
+      case RIGHT_ENTAIL -> updateREntailSegment(candidateLengths, pPrevCandidate);
+      case LEFT_ENTAIL -> updateLEntailSegment(candidateLengths, pPrevCandidate);
+      case INCOMPARABLE -> updateIncomparableSegment(candidateLengths, pPrevCandidate);
     }
   }
 

@@ -31,7 +31,7 @@ public final class JBooleanLiteralExpression extends ALiteralExpression
   private final boolean value;
 
   public JBooleanLiteralExpression(FileLocation pFileLocation, boolean pValue) {
-    super(pFileLocation, JSimpleType.getBoolean());
+    super(pFileLocation, JSimpleType.BOOLEAN);
     value = pValue;
   }
 

@@ -220,12 +220,21 @@ def getBenchmarkDataForCloud(benchmark):
     timeLimit = benchmark.rlimits.cputime_hard or DEFAULT_CLOUD_TIMELIMIT
     memLimit = bytes_to_mb(benchmark.rlimits.memory) or memRequirement
     coreLimit = benchmark.rlimits.cpu_cores
+    wallTimeLimit = benchmark.rlimits.walltime
     numberOfRuns = sum(
         len(runSet.runs) for runSet in benchmark.run_sets if runSet.should_be_executed()
     )
     limitsAndNumRuns = [numberOfRuns, timeLimit, memLimit]
     if coreLimit is not None:
         limitsAndNumRuns.append(coreLimit)
+    else:
+        limitsAndNumRuns.append("-")
+    if wallTimeLimit is not None:
+        # WallTimeLimit has to be the 5th element of limitsAndNumRuns
+        assert len(limitsAndNumRuns) == 4
+        limitsAndNumRuns.append(wallTimeLimit)
+    else:
+        limitsAndNumRuns.append("-")
 
     # get Runs with args and sourcefiles
     sourceFiles = []
@@ -305,11 +314,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
     # Write worker host informations in xml
     parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark)
 
-    if start_time and end_time:
-        usedWallTime = (end_time - start_time).total_seconds()
-    else:
-        usedWallTime = None
-
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
     runsProducedErrorOutput = False
@@ -321,6 +325,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
         output_handler.output_before_run_set(runSet, start_time=start_time)
 
         for run in runSet.runs:
+            run.cmdline()  # ignore result, but necessary, otherwise _cmdline is not set
             dataFile = run.log_file + ".data"
             if os.path.exists(dataFile) and os.path.exists(run.log_file):
                 try:
@@ -360,9 +365,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             ):
                 shutil.move(vcloudFilesDirectory, benchexecFilesDirectory)
 
-        output_handler.output_after_run_set(
-            runSet, walltime=usedWallTime, end_time=end_time
-        )
+        output_handler.output_after_run_set(runSet, end_time=end_time)
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 

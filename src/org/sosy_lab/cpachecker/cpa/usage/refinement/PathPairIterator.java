@@ -41,17 +41,17 @@ public class PathPairIterator
   private final IdentityHashMap<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
 
   // Statistics
-  private StatTimer computingPath = new StatTimer("Time for path computing");
-  private StatTimer additionTimerCheck = new StatTimer("Time for addition checks");
-  private StatCounter numberOfPathCalculated = new StatCounter("Number of path calculated");
-  private StatCounter numberOfPathFinished = new StatCounter("Number of new path calculated");
-  private StatCounter numberOfRepeatedConstructedPaths =
+  private final StatTimer computingPath = new StatTimer("Time for path computing");
+  private final StatTimer additionTimerCheck = new StatTimer("Time for addition checks");
+  private final StatCounter numberOfPathCalculated = new StatCounter("Number of path calculated");
+  private final StatCounter numberOfPathFinished = new StatCounter("Number of new path calculated");
+  private final StatCounter numberOfRepeatedConstructedPaths =
       new StatCounter("Number of repeated path computed");
   // private int numberOfrepeatedPaths = 0;
 
-  private IdentityHashMap<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage =
+  private final IdentityHashMap<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage =
       new IdentityHashMap<>();
-  private IdentityHashMap<UsageInfo, Iterator<ExtendedARGPath>> currentIterators =
+  private final IdentityHashMap<UsageInfo, Iterator<ExtendedARGPath>> currentIterators =
       new IdentityHashMap<>();
 
   private final Function<ARGState, Integer> idExtractor;

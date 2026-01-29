@@ -82,7 +82,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -98,7 +97,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
@@ -112,7 +110,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate.invariants", deprecatedPrefix = "cpa.predicate")
-class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupplier {
+final class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupplier {
 
   private enum InvariantGenerationStrategy {
     /**
@@ -234,7 +232,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final FormulaInvariantsSupplier globalInvariants;
   private final Specification specification;
 
-  public PredicateCPAInvariantsManager(
+  PredicateCPAInvariantsManager(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -329,7 +327,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
         limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {
@@ -405,8 +403,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
         argForPathFormulaBasedGeneration.add(
             Pair.of(predState.getAbstractionFormula().getBlockFormula(), node));
-      } else if (!node.equals(
-          extractLocation(abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)))) {
+      } else if (!node.equals(extractLocation(abstractionStatesTrace.getLast()))) {
         argForPathFormulaBasedGeneration.add(Pair.of(null, node));
       }
     }
@@ -424,7 +421,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
         limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {
@@ -438,7 +435,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         boolean wasSuccessful = false;
 
         switch (generation) {
-          case PF_CNF_KIND:
+          case PF_CNF_KIND -> {
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
                 wasSuccessful =
@@ -449,9 +446,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 addResultToCache(bfmgr.makeTrue(), pair.getSecond());
               }
             }
-            break;
-
-          case PF_INDUCTIVE_WEAKENING:
+          }
+          case PF_INDUCTIVE_WEAKENING -> {
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
                 wasSuccessful =
@@ -462,16 +458,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 addResultToCache(bfmgr.makeTrue(), pair.getSecond());
               }
             }
-            break;
-
-          case RF_INTERPOLANT_KIND:
-            wasSuccessful =
-                findInvariantInterpolants(
-                    allStatesTrace, abstractionStatesTrace, invariantShutdown.getNotifier());
-            break;
-
-          default:
-            throw new AssertionError("Unhandled case statement");
+          }
+          case RF_INTERPOLANT_KIND ->
+              wasSuccessful =
+                  findInvariantInterpolants(
+                      allStatesTrace, abstractionStatesTrace, invariantShutdown.getNotifier());
         }
 
         if (wasSuccessful) {
@@ -575,8 +566,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               semiCNFConverter.toLemmasInstantiated(pBlockFormula, fmgr), fmgr::uninstantiate);
 
       Set<BooleanFormula> inductiveLemmas =
-          new InductiveWeakeningManager(
-                  new WeakeningOptions(config), solver, logger, shutdownNotifier)
+          new InductiveWeakeningManager(config, solver, shutdownNotifier)
               .findInductiveWeakeningForRCNF(ssa, loopFormula, lemmas);
 
       if (lemmas.isEmpty()) {
@@ -600,9 +590,14 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     try {
       stats.pfKindTime.start();
 
-      Set<BooleanFormula> conjuncts =
-          Collections3.transformedImmutableSetCopy(
-              semiCNFConverter.toLemmasInstantiated(pPathFormula, fmgr), fmgr::uninstantiate);
+      final Set<BooleanFormula> conjuncts;
+      try {
+        conjuncts =
+            Collections3.transformedImmutableSetCopy(
+                semiCNFConverter.toLemmasInstantiated(pPathFormula, fmgr), fmgr::uninstantiate);
+      } catch (SolverException e) {
+        throw new CPAException("Solver failed with exception", e);
+      }
 
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();
       StaticCandidateProvider candidateGenerator =
@@ -716,7 +711,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       List<Pair<BooleanFormula, CFANode>> invariants = new ArrayList<>();
       for (ARGState s : abstractionStatesTrace) {
         // the last one will always be false, we don't need it here
-        if (!Objects.equals(s, abstractionStatesTrace.get(abstractionStatesTrace.size() - 1))) {
+        if (!Objects.equals(s, abstractionStatesTrace.getLast())) {
           CFANode location = extractLocation(s);
           Optional<CallstackStateEqualsWrapper> callstack = extractOptionalCallstackWraper(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
@@ -901,7 +896,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       return candidates.iterator();
     }
 
-    public boolean hasFoundInvariants() {
+    boolean hasFoundInvariants() {
       return !foundInvariants.isEmpty();
     }
 
@@ -910,13 +905,13 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       return new HashSet<>(foundInvariants);
     }
 
-    public List<Pair<BooleanFormula, CFANode>> retrieveConfirmedInvariants() {
+    List<Pair<BooleanFormula, CFANode>> retrieveConfirmedInvariants() {
       FluentIterable<CandidateInvariant> found = from(foundInvariants);
       List<Pair<BooleanFormula, CFANode>> invariants = new ArrayList<>();
       for (final CFANode node : abstractionNodes) {
         // we don't want the last node to be here, as the invariant will always
         // be FALSE
-        if (node.equals(abstractionNodes.get(abstractionNodes.size() - 1))) {
+        if (node.equals(abstractionNodes.getLast())) {
           continue;
         }
         invariants.add(
@@ -957,7 +952,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
     private final LogManager logger;
 
-    public OnlyWarningsLogmanager(LogManager pLogger) {
+    OnlyWarningsLogmanager(LogManager pLogger) {
       logger = pLogger;
     }
 

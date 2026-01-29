@@ -19,8 +19,8 @@ public sealed class LocalVariableIdentifier extends VariableIdentifier
 
   protected @NonNull String function; // function, where this variable was declared
 
-  public LocalVariableIdentifier(String nm, CType t, String func, int dereference) {
-    super(nm, t, dereference);
+  public LocalVariableIdentifier(String nm, CType t, String func, int pDereference) {
+    super(nm, t, pDereference);
     function = Strings.nullToEmpty(func);
   }
 
@@ -71,12 +71,12 @@ public sealed class LocalVariableIdentifier extends VariableIdentifier
   @Override
   public int compareTo(AbstractIdentifier pO) {
     // FIXME cf. #1110
-    if (pO instanceof LocalVariableIdentifier) {
+    if (pO instanceof LocalVariableIdentifier other) {
       int result = super.compareTo(pO);
       if (result != 0) {
         return result;
       }
-      return function.compareTo(((LocalVariableIdentifier) pO).function);
+      return function.compareTo(other.function);
     } else if (pO instanceof GlobalVariableIdentifier) {
       return -1;
     } else {

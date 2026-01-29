@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.LongAdder;
 /** Thread-safe implementation of numerical statistics. */
 public class StatCounter extends AbstractStatValue {
 
-  private LongAdder counter = new LongAdder();
+  private final LongAdder counter = new LongAdder();
 
   public StatCounter(String pTitle) {
     super(StatKind.SUM, pTitle);

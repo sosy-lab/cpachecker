@@ -171,15 +171,12 @@ public class Explainer extends NestingAlgorithm {
     } else {
       List<ARGPath> safePaths = findAllSafePaths(safeLeafNodes, rootNode);
       switch (distanceMetric) {
-        case ADM:
-          closestSuccessfulExecution = startADM(safePaths, targetPath);
-          break;
-        case CFDM:
-          closestSuccessfulExecution = startCFDM(safePaths, targetPath);
-          break;
-        default:
+        case ADM -> closestSuccessfulExecution = startADM(safePaths, targetPath);
+        case CFDM -> closestSuccessfulExecution = startCFDM(safePaths, targetPath);
+        default -> {
           logger.log(Level.WARNING, "NO DISTANCE METRIC WAS GIVEN");
           return status;
+        }
       }
     }
 
@@ -290,7 +287,7 @@ public class Explainer extends NestingAlgorithm {
     private static final int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
-    public ExplainerAlgorithmStatistics(LogManager pLogger) {
+    ExplainerAlgorithmStatistics(LogManager pLogger) {
       super(pLogger);
     }
 

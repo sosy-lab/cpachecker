@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidate<?>>
     implements SMGAbstractionCandidate {
@@ -59,17 +59,12 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
   }
 
   private int getStatusScore() {
-    switch (seqStatus) {
-      case EQUAL:
-        return 50;
-      case LEFT_ENTAIL:
-        return 31;
-      case RIGHT_ENTAIL:
-        return 30;
-      case INCOMPARABLE:
-      default:
-        return 0;
-    }
+    return switch (seqStatus) {
+      case EQUAL -> 50;
+      case LEFT_ENTAIL -> 31;
+      case RIGHT_ENTAIL -> 30;
+      case INCOMPARABLE -> 0;
+    };
   }
 
   @Override

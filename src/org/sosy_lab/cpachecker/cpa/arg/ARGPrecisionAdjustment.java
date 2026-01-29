@@ -153,7 +153,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
    * This method checks if the given element has a sibling in the ARG.
    *
    * @param element the element to check
-   * @return true, if the element has a sibling in the ARG
+   * @return whether the element has a sibling in the ARG
    */
   private boolean elementHasSiblings(ARGState element) {
     return Iterables.getOnlyElement(element.getParents()).getChildren().size() > 1;

@@ -8,7 +8,7 @@
 
 /**
  * The classes that model types of variables and expressions. Such types are attached to the classes
- * in AST. Sub-packages contain language-specific sub-classes for representation of features of
+ * in AST. Sub-packages contain language-specific subclasses for representation of features of
  * specific languages.
  */
 @javax.annotation.ParametersAreNonnullByDefault

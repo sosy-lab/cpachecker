@@ -9,13 +9,18 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,7 +30,13 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
@@ -44,6 +55,10 @@ public class InvariantExchangeFormatTransformer {
   private final ParserTools parserTools;
   private final CFA cfa;
   private final LogManager logger;
+
+  private static final Pattern AT_ANY_PREV_PATTERN =
+      Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
+  private static final int PREV_VARS_GROUP_INDEX = 1;
 
   public InvariantExchangeFormatTransformer(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
@@ -106,6 +121,12 @@ public class InvariantExchangeFormatTransformer {
     Optional<String> resultFunction =
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
     String invariantString = pInvariantEntry.getValue();
+    if (pInvariantEntry
+        .getType()
+        .equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
+      invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
+      registerThePrevVariables(pInvariantEntry);
+    }
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
@@ -117,6 +138,104 @@ public class InvariantExchangeFormatTransformer {
         };
 
     return createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope);
+  }
+
+  /**
+   * In case the witness is termination witness, it may contain \at(x, AnyPrev) keyword which is not
+   * parsed. We have to encode this keyword into the names of the variables.
+   *
+   * @param pInvariantEntry transition invariant string
+   * @return Invariant string with \at(x, AnyPrev) encoded as __PREV suffix
+   */
+  private String replacePrevKeywordWithFreshVariables(InvariantEntry pInvariantEntry) {
+    String invariantString = pInvariantEntry.getValue();
+    if (!isTransitionInvariant(pInvariantEntry)) {
+      return invariantString;
+    }
+    Matcher matcher = AT_ANY_PREV_PATTERN.matcher(invariantString);
+    StringBuilder result = new StringBuilder();
+
+    while (matcher.find()) {
+      String variable = matcher.group(PREV_VARS_GROUP_INDEX);
+      matcher.appendReplacement(result, "__CPACHECKER_" + variable + "__PREV");
+    }
+    matcher.appendTail(result);
+    invariantString = result.toString().replace("\\", "");
+
+    return invariantString;
+  }
+
+  /**
+   * In case the witness is termination witness, it may contain x__PREV variables. These variables
+   * need to be registered in the scope. We add arbitrary edges into the head of the main with the
+   * declarations of these variables in CFA.
+   *
+   * @param pInvariantEntry the invariant entry
+   */
+  public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> registerThePrevVariables(
+      InvariantEntry pInvariantEntry) {
+    String invariantString = pInvariantEntry.getValue();
+    Matcher matcher = AT_ANY_PREV_PATTERN.matcher(invariantString);
+    ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
+        ImmutableMap.builder();
+
+    Scope scope = new CProgramScope(cfa, logger);
+    Set<String> alreadyDeclaredVariables = new HashSet<>();
+
+    while (matcher.find()) {
+      String prevVariable = matcher.group(PREV_VARS_GROUP_INDEX);
+      CSimpleDeclaration currDeclaration = scope.lookupVariable(prevVariable);
+      if (currDeclaration == null) {
+        continue;
+      }
+      prevVariable = "__CPACHECKER_" + prevVariable + "__PREV";
+
+      // We want to declare each PREV variable only once
+      if (alreadyDeclaredVariables.contains(prevVariable)) {
+        continue;
+      }
+      alreadyDeclaredVariables.add(prevVariable);
+
+      CDeclaration prevDeclaration =
+          new CVariableDeclaration(
+              cfa.getMainFunction().getFileLocation(),
+              false,
+              CStorageClass.AUTO,
+              currDeclaration.getType(),
+              prevVariable,
+              prevVariable,
+              // The scope is not relevant as these variables are not in the original program
+              "main::" + prevVariable,
+              null);
+      // TODO: Add also the original variable into the scope?
+      cfa.getMainFunction().addOutOfScopeVariables(Collections.singleton(prevDeclaration));
+      cfa.getMainFunction()
+          .addLeavingEdge(
+              new CDeclarationEdge(
+                  currDeclaration.getType() + " " + prevVariable + ";",
+                  cfa.getMainFunction().getFileLocation(),
+                  cfa.getMainFunction(),
+                  CFANode.newDummyCFANode(),
+                  prevDeclaration));
+      mapPrevToCurr.put(prevDeclaration, currDeclaration);
+    }
+    return mapPrevToCurr.buildOrThrow();
+  }
+
+  private boolean isLoopInvariant(InvariantEntry pInvariantEntry) {
+    if (pInvariantEntry.getType().equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())
+        || pInvariantEntry
+            .getType()
+            .equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isTransitionInvariant(InvariantEntry pInvariantEntry) {
+    return pInvariantEntry
+        .getType()
+        .equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword());
   }
 
   /**
@@ -136,8 +255,8 @@ public class InvariantExchangeFormatTransformer {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
         for (AbstractInformationRecord entryElement : invariantSetEntry.content) {
           if (entryElement instanceof InvariantEntry invariantEntry) {
-            int line = invariantEntry.getLocation().getLine();
-            int column = invariantEntry.getLocation().getColumn();
+            Integer line = invariantEntry.getLocation().getLine();
+            Integer column = invariantEntry.getLocation().getColumn().orElseThrow();
             Pair<Integer, Integer> cacheLookupKey = Pair.of(line, column);
             String invariantString = invariantEntry.getValue();
 
@@ -148,14 +267,24 @@ public class InvariantExchangeFormatTransformer {
 
             ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
 
-            invariants.add(
-                new Invariant(
-                    invariant,
-                    line,
-                    column,
-                    invariantEntry
-                        .getType()
-                        .equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())));
+            if (isTransitionInvariant(invariantEntry)) {
+              invariants.add(
+                  new TransitionInvariant(
+                      invariant,
+                      line,
+                      column,
+                      invariantEntry.getLocation().getFunction(),
+                      isLoopInvariant(invariantEntry),
+                      registerThePrevVariables(invariantEntry)));
+            } else {
+              invariants.add(
+                  new Invariant(
+                      invariant,
+                      line,
+                      column,
+                      invariantEntry.getLocation().getFunction(),
+                      isLoopInvariant(invariantEntry)));
+            }
 
             lineToSeenInvariants.get(cacheLookupKey).add(invariantString);
           }

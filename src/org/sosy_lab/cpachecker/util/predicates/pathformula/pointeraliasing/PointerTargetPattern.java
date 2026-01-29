@@ -79,12 +79,11 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
       return false;
     }
     if (containerType != null && !containerType.equals(target.containerType)) {
-      if (!(containerType instanceof CArrayType) || !(target.containerType instanceof CArrayType)) {
+      if (!(containerType instanceof CArrayType containerArrayType)
+          || !(target.containerType instanceof CArrayType targetArrayType)) {
         return false;
       } else {
-        return ((CArrayType) containerType)
-            .getType()
-            .equals(((CArrayType) target.containerType).getType());
+        return containerArrayType.getType().equals(targetArrayType.getType());
       }
     }
     return true;

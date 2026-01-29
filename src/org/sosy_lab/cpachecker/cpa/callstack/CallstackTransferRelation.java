@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -44,7 +42,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
@@ -67,10 +64,13 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
+  public CallstackTransferRelationBackwards copyBackwards() {
+    return new CallstackTransferRelationBackwards(options, logger);
+  }
+
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pEdge) throws CPATransferException {
-
     final CallstackState e = (CallstackState) pElement;
     final CFANode pred = pEdge.getPredecessor();
     final CFANode succ = pEdge.getSuccessor();
@@ -78,104 +78,94 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     final String succFunction = succ.getFunctionName();
 
     switch (pEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          AStatementEdge edge = (AStatementEdge) pEdge;
-          if (edge.getStatement() instanceof AFunctionCall) {
-            AExpression functionNameExp =
-                ((AFunctionCall) edge.getStatement())
-                    .getFunctionCallExpression()
-                    .getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              String functionName = ((AIdExpression) functionNameExp).getName();
-              if (options.getUnsupportedFunctions().contains(functionName)) {
-                throw new UnsupportedCodeException(functionName, edge, edge.getStatement());
-              }
+      case StatementEdge -> {
+        AStatementEdge edge = (AStatementEdge) pEdge;
+        if (edge.getStatement() instanceof AFunctionCall aFunctionCall) {
+          AExpression functionNameExp =
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            String functionName = aIdExpression.getName();
+            if (options.getUnsupportedFunctions().contains(functionName)) {
+              throw new UnsupportedCodeException(functionName, edge, edge.getStatement());
             }
           }
-
-          if (pEdge instanceof CFunctionSummaryStatementEdge) {
-            if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
-              // should go by function call and skip the current edge
-              return ImmutableSet.of();
-            }
-            // otherwise use this edge just like a normal edge
-          }
-          break;
         }
 
-      case FunctionCallEdge:
-        {
-          final String calledFunction = succ.getFunctionName();
-          final CFANode callerNode = pred;
+        if (pEdge instanceof CFunctionSummaryStatementEdge cFunctionSummaryStatementEdge) {
+          if (!shouldGoByFunctionSummaryStatement(e, cFunctionSummaryStatementEdge)) {
+            // should go by function call and skip the current edge
+            return ImmutableSet.of();
+          }
+          // otherwise use this edge just like a normal edge
+        }
+      }
+      case FunctionCallEdge -> {
+        final String calledFunction = succ.getFunctionName();
+        final CFANode callerNode = pred;
 
-          if (hasRecursion(e, calledFunction)) {
-            if (skipRecursiveFunctionCall(e, (FunctionCallEdge) pEdge)) {
-              // skip recursion, don't enter function
-              logger.logOnce(
-                  Level.WARNING,
-                  "Skipping recursive function call from",
-                  pred.getFunctionName(),
-                  "to",
-                  calledFunction);
-              return ImmutableSet.of();
-            } else {
-              // recursion is unsupported
-              logger.log(
-                  Level.INFO,
-                  "Recursion detected, aborting. To ignore recursion, add --skip-recursion to the"
-                      + " command line.");
-              throw new UnsupportedCodeException("recursion", pEdge);
-            }
+        if (hasRecursion(e, calledFunction)) {
+          if (skipRecursiveFunctionCall(e, (FunctionCallEdge) pEdge)) {
+            // skip recursion, don't enter function
+            logger.logOnce(
+                Level.WARNING,
+                "Skipping recursive function call from",
+                pred.getFunctionName(),
+                "to",
+                calledFunction);
+            return ImmutableSet.of();
           } else {
-            // regular function call:
-            //    add the called function to the current stack
-
-            return ImmutableSet.of(new CallstackState(e, calledFunction, callerNode));
+            // recursion is unsupported
+            logger.log(
+                Level.INFO,
+                "Recursion detected, aborting. To ignore recursion, add --skip-recursion to the"
+                    + " command line.");
+            throw new UnsupportedCodeException("recursion", pEdge);
           }
+        } else {
+          // regular function call:
+          //    add the called function to the current stack
+
+          return ImmutableSet.of(new CallstackState(e, calledFunction, callerNode));
         }
+      }
+      case FunctionReturnEdge -> {
+        final String calledFunction = predFunction;
+        final String callerFunction = succFunction;
+        final CFANode callNode = ((FunctionReturnEdge) pEdge).getCallNode();
+        final CallstackState returnElement;
 
-      case FunctionReturnEdge:
-        {
-          final String calledFunction = predFunction;
-          final String callerFunction = succFunction;
-          final CFANode callNode = ((FunctionReturnEdge) pEdge).getCallNode();
-          final CallstackState returnElement;
+        assert calledFunction.equals(e.getCurrentFunction())
+                || isWildcardState(e, AnalysisDirection.FORWARD)
+            : String.format(
+                "not in scope of called function \"%s\" when leaving function \"%s\" in state"
+                    + " \"%s\"",
+                calledFunction, e.getCurrentFunction(), e);
 
-          assert calledFunction.equals(e.getCurrentFunction())
-                  || isWildcardState(e, AnalysisDirection.FORWARD)
+        if (isWildcardState(e, AnalysisDirection.FORWARD)) {
+          returnElement = new CallstackState(null, callerFunction, e.getCallNode());
+
+        } else {
+          if (!callNode.equals(e.getCallNode())) {
+            // this is not the right return edge
+            return ImmutableSet.of();
+          }
+
+          // we are in a function return:
+          //    remove the current function from the stack;
+          //    the new abstract state is the predecessor state in the stack
+          returnElement = e.getPreviousState();
+
+          assert callerFunction.equals(returnElement.getCurrentFunction())
+                  || isWildcardState(returnElement, AnalysisDirection.FORWARD)
               : String.format(
-                  "not in scope of called function \"%s\" when leaving function \"%s\" in state"
-                      + " \"%s\"",
-                  calledFunction, e.getCurrentFunction(), e);
-
-          if (isWildcardState(e, AnalysisDirection.FORWARD)) {
-            returnElement = new CallstackState(null, callerFunction, e.getCallNode());
-
-          } else {
-            if (!callNode.equals(e.getCallNode())) {
-              // this is not the right return edge
-              return ImmutableSet.of();
-            }
-
-            // we are in a function return:
-            //    remove the current function from the stack;
-            //    the new abstract state is the predecessor state in the stack
-            returnElement = e.getPreviousState();
-
-            assert callerFunction.equals(returnElement.getCurrentFunction())
-                    || isWildcardState(returnElement, AnalysisDirection.FORWARD)
-                : String.format(
-                    "calling function \"%s\" not available after function return into function"
-                        + " scope \"%s\" in state \"%s\"",
-                    callerFunction, returnElement.getCurrentFunction(), returnElement);
-          }
-
-          return Collections.singleton(returnElement);
+                  "calling function \"%s\" not available after function return into function"
+                      + " scope \"%s\" in state \"%s\"",
+                  callerFunction, returnElement.getCurrentFunction(), returnElement);
         }
 
-      default:
-        break;
+        return Collections.singleton(returnElement);
+      }
+      default -> {}
     }
 
     return Collections.singleton(pElement);
@@ -201,15 +191,12 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Normal function call case
-    for (FunctionEntryNode node :
-        CFAUtils.successorsOf(pState.getCallNode()).filter(FunctionEntryNode.class)) {
-      if (node.getFunctionName().equals(pState.getCurrentFunction())) {
-        return false;
-      }
+    if (pState.isNormalFunctionCall()) {
+      return false;
     }
 
     // Not a function call node -> wildcard state
-    // Info: a backward-analysis causes an callstack-state with a non-function-call-node,
+    // Info: a backward-analysis causes a callstack-state with a non-function-call-node,
     // build from the target state on getInitialState.
     return direction == AnalysisDirection.FORWARD;
   }
@@ -218,7 +205,9 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       final CallstackState element, final FunctionCallEdge callEdge) {
     // Cannot skip if there is no edge for skipping
     // (this would just terminate the path here -> unsound).
-    if (leavingEdges(callEdge.getPredecessor())
+    if (callEdge
+        .getPredecessor()
+        .getLeavingEdges()
         .filter(CFunctionSummaryStatementEdge.class)
         .isEmpty()) {
       return false;
@@ -359,7 +348,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
   }
 
   protected FunctionCallEdge findOutgoingCallEdge(CFANode predNode) {
-    for (CFAEdge edge : leavingEdges(predNode)) {
+    for (CFAEdge edge : predNode.getLeavingEdges()) {
       if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         return (FunctionCallEdge) edge;
       }

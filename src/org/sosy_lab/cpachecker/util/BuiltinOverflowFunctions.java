@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -64,10 +65,10 @@ public class BuiltinOverflowFunctions {
     UMULL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_INT, false),
     UMULLL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_LONG_INT, false);
 
-    public final BinaryOperator operator;
-    public final Optional<CSimpleType> type;
-    public final Boolean hasNoSideEffects;
-    public final String name;
+    final BinaryOperator operator;
+    final Optional<CSimpleType> type;
+    final Boolean hasNoSideEffects;
+    final String name;
 
     BuiltinOverflowFunction(
         BinaryOperator pOperator, @Nullable CSimpleType pType, Boolean pHasNoSideEffect) {
@@ -169,7 +170,7 @@ public class BuiltinOverflowFunctions {
       return ImmutableList.of(
           type.orElseThrow(),
           type.orElseThrow(),
-          new CPointerType(false, false, type.orElseThrow()));
+          new CPointerType(CTypeQualifiers.NONE, type.orElseThrow()));
     } else {
       return ImmutableList.of();
     }
@@ -256,35 +257,28 @@ public class BuiltinOverflowFunctions {
         List<CExpression> parameters = functionCallExpression.getParameterExpressions();
         if (parameters.size() == 3) {
           Value firstParameterValue =
-              evv.evaluate(parameters.get(0), parameters.get(0).getExpressionType());
+              evv.evaluate(parameters.getFirst(), parameters.getFirst().getExpressionType());
           Value secondParameterValue =
               evv.evaluate(parameters.get(1), parameters.get(1).getExpressionType());
           CSimpleType resultType = getTargetType(nameOfCalledFunc, parameters.get(2));
 
           if (resultType.getType().isIntegerType()
-              && firstParameterValue.isExplicitlyKnown()
-              && secondParameterValue.isExplicitlyKnown()) {
+              && firstParameterValue instanceof NumericValue
+              && secondParameterValue instanceof NumericValue) {
             // cast arguments to matching values
             if (!isFunctionWithArbitraryArgumentTypes(nameOfCalledFunc)) {
               firstParameterValue =
                   AbstractExpressionValueVisitor.castCValue(
-                      firstParameterValue,
-                      resultType,
-                      machineModel,
-                      logger,
-                      functionCallExpression.getFileLocation());
+                      firstParameterValue, resultType, machineModel, logger);
               secondParameterValue =
                   AbstractExpressionValueVisitor.castCValue(
-                      secondParameterValue,
-                      resultType,
-                      machineModel,
-                      logger,
-                      functionCallExpression.getFileLocation());
+                      secondParameterValue, resultType, machineModel, logger);
+              // Expected to return NumericValue, as we give it a NumericValue
             }
 
             // perform operation with infinite precision
-            BigInteger p1 = firstParameterValue.asNumericValue().bigIntegerValue();
-            BigInteger p2 = secondParameterValue.asNumericValue().bigIntegerValue();
+            BigInteger p1 = ((NumericValue) firstParameterValue).bigIntegerValue();
+            BigInteger p2 = ((NumericValue) secondParameterValue).bigIntegerValue();
 
             BigInteger resultOfComputation;
             BinaryOperator operator = getOperator(nameOfCalledFunc);
@@ -298,17 +292,13 @@ public class BuiltinOverflowFunctions {
                           "Can not determine operator of function " + nameOfCalledFunc, null, null);
                 };
 
-            // cast result type of third parameter
-            Value resultValue = new NumericValue(resultOfComputation);
-            resultValue =
+            // cast result type of third parameter (expected to return NumericValue, as we give it a
+            // NumericValue)
+            Value resultValue =
                 AbstractExpressionValueVisitor.castCValue(
-                    resultValue,
-                    resultType,
-                    machineModel,
-                    logger,
-                    functionCallExpression.getFileLocation());
+                    new NumericValue(resultOfComputation), resultType, machineModel, logger);
 
-            if (resultValue.asNumericValue().bigIntegerValue().equals(resultOfComputation)) {
+            if (((NumericValue) resultValue).bigIntegerValue().equals(resultOfComputation)) {
               return new NumericValue(0);
             } else {
               return new NumericValue(1);

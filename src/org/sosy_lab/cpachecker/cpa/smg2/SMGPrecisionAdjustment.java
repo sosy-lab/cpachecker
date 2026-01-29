@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -228,7 +229,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     /**
      * This method determines whether to abstract at each location.
      *
-     * @return true, if an abstraction should be computed at each location, else false
+     * @return whether an abstraction should be computed at each location
      */
     private boolean abstractAtEachLocation() {
       return !alwaysAtBranch && !alwaysAtJoin && !alwaysAtFunction && !alwaysAtLoop;
@@ -474,7 +475,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
    * iteration threshold is deactivated, or if the level of determinism ever gets below the
    * threshold for the level of determinism.
    *
-   * @return true, if abstractions should be computed, else false
+   * @return whether abstractions should be computed
    */
   private boolean performPrecisionBasedAbstraction() {
     // always compute abstraction if option is disabled
@@ -630,7 +631,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       for (SMGHasValueEdge hve : objAndHVEs.getValue()) {
         SMGValue smgValue = hve.hasValue();
         Wrapper<Value> wValue = mapping.get(smgValue);
-        if (wValue == null || wValue.get().isNumericValue()) {
+        if (wValue == null || wValue.get() instanceof NumericValue) {
           edgesToRemove.add(hve);
         }
       }

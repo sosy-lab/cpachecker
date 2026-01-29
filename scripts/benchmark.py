@@ -74,7 +74,7 @@ class Benchmark(VcloudBenchmarkBase):
             "--revision",
             dest="revision",
             metavar="(tags/<tag name>|branch_name)[:(HEAD|head|<revision number>)]",
-            default="trunk:HEAD",
+            default="main:HEAD",
             help="The svn revision of CPAchecker to use (if using the web interface of the VerifierCloud).",
         )
 

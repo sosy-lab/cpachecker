@@ -41,11 +41,11 @@ class AutomatonExpressionArguments {
   // Variables that are only valid for one transition ($1,$2,...)
   // these will be set in a MATCH statement, and are erased when the transitions actions are
   // executed.
-  private Map<Integer, AAstNode> transitionVariables = new HashMap<>();
-  private List<AbstractState> abstractStates;
-  private AutomatonState state;
-  private CFAEdge cfaEdge;
-  private LogManager logger;
+  private final Map<Integer, AAstNode> transitionVariables = new HashMap<>();
+  private final List<AbstractState> abstractStates;
+  private final AutomatonState state;
+  private final CFAEdge cfaEdge;
+  private final LogManager logger;
 
   /**
    * In this String all print messages of the Transition are collected. They are logged (INFO-level)
@@ -228,85 +228,91 @@ class AutomatonExpressionArguments {
   }
 
   private CAstNode findSubstitute(CAstNode pNode) {
-    if (pNode instanceof CIdExpression) {
-      // Substitute id for automata variable value or transition variable name.
-      String idName = ((CIdExpression) pNode).getName();
-      AutomatonVariable automatonVariable = getAutomatonVariable(idName);
-      if (automatonVariable != null) {
-        return new CIntegerLiteralExpression(
-            pNode.getFileLocation(),
-            CNumericTypes.INT,
-            BigInteger.valueOf(automatonVariable.getValue()));
-      } else if (idName.equals("false")) {
-        // this branch is a compromise between human-readable automata
-        // and assumptions that are valid C expressions:
-        // In automata, we use assumption 'false', which is no valid expression
-        // in the C standard. so we replace 'false' with '0' to get a valid C expression
-        // with the intended semantics.
-        // This may lead to problems if people use a variable with name 'false' and a non-zero
-        // value in their code.
-        return CIntegerLiteralExpression.ZERO;
-      } else {
-        return getTransitionVariable(idName);
-      }
-    } else if (pNode instanceof CArraySubscriptExpression expr) {
-      // Take value of automata set variables in CArraySubscriptExpression.
-      String arrayExpr = expr.getArrayExpression().toASTString();
-      String subscriptExpr = expr.getSubscriptExpression().toASTString();
-      AutomatonVariable automatonVariable = getAutomatonVariable(arrayExpr);
-      if (automatonVariable != null) {
-        if (automatonVariable instanceof AutomatonSetVariable) {
-          String name = subscriptExpr;
-          CAstNode transitionVariable = getTransitionVariable(subscriptExpr);
-          if (transitionVariable != null) {
-            name = transitionVariable.toASTString();
-          }
+    switch (pNode) {
+      case CIdExpression cIdExpression -> {
+        // Substitute id for automata variable value or transition variable name.
+        String idName = cIdExpression.getName();
+        AutomatonVariable automatonVariable = getAutomatonVariable(idName);
+        if (automatonVariable != null) {
           return new CIntegerLiteralExpression(
               pNode.getFileLocation(),
               CNumericTypes.INT,
-              BigInteger.valueOf(
-                  ((AutomatonSetVariable<?>) automatonVariable).contains(name) ? 1 : 0));
+              BigInteger.valueOf(automatonVariable.getValue()));
+        } else if (idName.equals("false")) {
+          // this branch is a compromise between human-readable automata
+          // and assumptions that are valid C expressions:
+          // In automata, we use assumption 'false', which is no valid expression
+          // in the C standard. so we replace 'false' with '0' to get a valid C expression
+          // with the intended semantics.
+          // This may lead to problems if people use a variable with name 'false' and a non-zero
+          // value in their code.
+          return CIntegerLiteralExpression.ZERO;
+        } else {
+          return getTransitionVariable(idName);
         }
       }
-    } else if (pNode instanceof CBinaryExpression expr) {
-      CExpression op1 = (CExpression) findSubstitute(expr.getOperand1());
-      CExpression op2 = (CExpression) findSubstitute(expr.getOperand2());
-      if (op1 == null) {
-        op1 = expr.getOperand1();
-      }
-      if (op2 == null) {
-        op2 = expr.getOperand2();
-      }
-      if (expr.getExpressionType() instanceof CProblemType) {
-        // Try to correct CProblemType in binary expression.
-        if (op1.getExpressionType()
-            .getCanonicalType()
-            .equals(op2.getExpressionType().getCanonicalType())) {
-          return new CBinaryExpression(
-              expr.getFileLocation(),
-              op1.getExpressionType().getCanonicalType(),
-              op1.getExpressionType().getCanonicalType(),
-              op1,
-              op2,
-              expr.getOperator());
-        }
-      }
-    } else if (pNode instanceof CFieldReference expr) {
-      // Execute operations for automata variables, which are encoded in field reference.
-      String fieldOwner = expr.getFieldOwner().toASTString();
-      String fieldName = expr.getFieldName();
-      AutomatonVariable automatonVariable = getAutomatonVariable(fieldOwner);
-      if (automatonVariable != null) {
-        if (automatonVariable instanceof AutomatonSetVariable) {
-          if (fieldName.equalsIgnoreCase("empty")) {
+      case CArraySubscriptExpression expr -> {
+        // Take value of automata set variables in CArraySubscriptExpression.
+        String arrayExpr = expr.getArrayExpression().toASTString();
+        String subscriptExpr = expr.getSubscriptExpression().toASTString();
+        AutomatonVariable automatonVariable = getAutomatonVariable(arrayExpr);
+        if (automatonVariable != null) {
+          if (automatonVariable instanceof AutomatonSetVariable) {
+            String name = subscriptExpr;
+            CAstNode transitionVariable = getTransitionVariable(subscriptExpr);
+            if (transitionVariable != null) {
+              name = transitionVariable.toASTString();
+            }
             return new CIntegerLiteralExpression(
                 pNode.getFileLocation(),
                 CNumericTypes.INT,
                 BigInteger.valueOf(
-                    ((AutomatonSetVariable<?>) automatonVariable).isEmpty() ? 1 : 0));
+                    ((AutomatonSetVariable<?>) automatonVariable).contains(name) ? 1 : 0));
           }
         }
       }
+      case CBinaryExpression expr -> {
+        CExpression op1 = (CExpression) findSubstitute(expr.getOperand1());
+        CExpression op2 = (CExpression) findSubstitute(expr.getOperand2());
+        if (op1 == null) {
+          op1 = expr.getOperand1();
+        }
+        if (op2 == null) {
+          op2 = expr.getOperand2();
+        }
+        if (expr.getExpressionType() instanceof CProblemType) {
+          // Try to correct CProblemType in binary expression.
+          if (op1.getExpressionType()
+              .getCanonicalType()
+              .equals(op2.getExpressionType().getCanonicalType())) {
+            return new CBinaryExpression(
+                expr.getFileLocation(),
+                op1.getExpressionType().getCanonicalType(),
+                op1.getExpressionType().getCanonicalType(),
+                op1,
+                op2,
+                expr.getOperator());
+          }
+        }
+      }
+      case CFieldReference expr -> {
+        // Execute operations for automata variables, which are encoded in field reference.
+        String fieldOwner = expr.getFieldOwner().toASTString();
+        String fieldName = expr.getFieldName();
+        AutomatonVariable automatonVariable = getAutomatonVariable(fieldOwner);
+        if (automatonVariable != null) {
+          if (automatonVariable instanceof AutomatonSetVariable) {
+            if (fieldName.equalsIgnoreCase("empty")) {
+              return new CIntegerLiteralExpression(
+                  pNode.getFileLocation(),
+                  CNumericTypes.INT,
+                  BigInteger.valueOf(
+                      ((AutomatonSetVariable<?>) automatonVariable).isEmpty() ? 1 : 0));
+            }
+          }
+        }
+      }
+      default -> {}
     }
     // Do not substitute pNode.
     return null;
@@ -317,8 +323,8 @@ class AutomatonExpressionArguments {
     ImmutableList.Builder<AExpression> builder = ImmutableList.builder();
     SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(this::findSubstitute);
     for (AExpression expr : pAssumptions) {
-      if ((expr instanceof CExpression)) {
-        CExpression substitutedExpr = (CExpression) ((CExpression) expr).accept(visitor);
+      if ((expr instanceof CExpression cExpression)) {
+        CExpression substitutedExpr = (CExpression) cExpression.accept(visitor);
         if (substitutedExpr.getExpressionType() instanceof CProblemType) {
           logger.log(
               Level.WARNING,

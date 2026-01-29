@@ -86,20 +86,19 @@ public class SignTransferRelation
       assert (pParameters.size() == pArguments.size());
     }
     // Collect arguments
-    ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, Sign> mapBuilder = ImmutableMap.builder();
     for (int i = 0; i < pParameters.size(); i++) {
       AExpression exp = pArguments.get(i);
-      if (!(exp instanceof CRightHandSide)) {
+      if (!(exp instanceof CRightHandSide cRightHandSide)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
       String scopedVarId =
           getScopedVariableNameForNonGlobalVariable(
               pParameters.get(i).getName(), pCalledFunctionName);
       mapBuilder.put(
-          scopedVarId,
-          ((CRightHandSide) exp).accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
+          scopedVarId, cRightHandSide.accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
     }
-    ImmutableMap<String, SIGN> argumentMap = mapBuilder.buildOrThrow();
+    ImmutableMap<String, Sign> argumentMap = mapBuilder.buildOrThrow();
     logger.log(
         Level.FINE, "Entering function " + pCalledFunctionName + " with arguments " + argumentMap);
     return state.enterFunction(argumentMap);
@@ -147,9 +146,9 @@ public class SignTransferRelation
 
   private static class IdentifierValuePair {
     CExpression identifier;
-    SIGN value;
+    Sign value;
 
-    public IdentifierValuePair(CExpression pIdentifier, SIGN pValue) {
+    IdentifierValuePair(CExpression pIdentifier, Sign pValue) {
       identifier = pIdentifier;
       value = pValue;
     }
@@ -170,7 +169,7 @@ public class SignTransferRelation
         truthAssumption
             ? pAssumeExp.getOperator()
             : pAssumeExp.getOperator().getOppositLogicalOperator();
-    SIGN resultSign;
+    Sign resultSign;
     try {
       resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
     } catch (UnrecognizedCodeException e) {
@@ -190,48 +189,46 @@ public class SignTransferRelation
   }
 
   private Optional<IdentifierValuePair> evaluateAssumption(
-      CExpression pIdExp, BinaryOperator pOp, SIGN pResultSign, boolean pIdentIsLeft) {
-    boolean equalZero = false;
+      CExpression pIdExp, BinaryOperator pOp, Sign pResultSign, boolean pIdentIsLeft) {
     switch (pOp) {
-      case GREATER_EQUAL:
-        equalZero = pResultSign.covers(SIGN.ZERO);
-      // $FALL-THROUGH$
-      case GREATER_THAN:
+      case GREATER_EQUAL, GREATER_THAN -> {
+        boolean equalZero = (pOp == BinaryOperator.GREATER_EQUAL) && pResultSign.covers(Sign.ZERO);
         if (pIdentIsLeft) {
-          if (SIGN.PLUS0.covers(pResultSign)) { // x > (0)+
-            return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
+          if (Sign.PLUS0.covers(pResultSign)) { // x > (0)+
+            return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? Sign.PLUS0 : Sign.PLUS));
           }
         } else {
-          if (SIGN.MINUS0.covers(pResultSign)) { // (0)- > x
+          if (Sign.MINUS0.covers(pResultSign)) { // (0)- > x
             return Optional.of(
-                new IdentifierValuePair(pIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
+                new IdentifierValuePair(pIdExp, equalZero ? Sign.MINUS0 : Sign.MINUS));
           }
         }
-        break;
-      case LESS_EQUAL:
-        equalZero = pResultSign.covers(SIGN.ZERO);
-      // $FALL-THROUGH$
-      case LESS_THAN:
+      }
+      case LESS_EQUAL, LESS_THAN -> {
+        boolean equalZero = (pOp == BinaryOperator.LESS_EQUAL) && pResultSign.covers(Sign.ZERO);
+
         if (pIdentIsLeft) { // x < (0)-
-          if (SIGN.MINUS0.covers(pResultSign)) {
+          if (Sign.MINUS0.covers(pResultSign)) {
             return Optional.of(
-                new IdentifierValuePair(pIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
+                new IdentifierValuePair(pIdExp, equalZero ? Sign.MINUS0 : Sign.MINUS));
           }
         } else {
-          if (SIGN.PLUS0.covers(pResultSign)) { // (0)+ < x
-            return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
+          if (Sign.PLUS0.covers(pResultSign)) { // (0)+ < x
+            return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? Sign.PLUS0 : Sign.PLUS));
           }
         }
-        break;
-      case EQUALS:
+      }
+      case EQUALS -> {
         return Optional.of(new IdentifierValuePair(pIdExp, pResultSign));
-      case NOT_EQUALS:
-        if (pResultSign == SIGN.ZERO) {
-          return Optional.of(new IdentifierValuePair(pIdExp, SIGN.PLUSMINUS));
+      }
+      case NOT_EQUALS -> {
+        if (pResultSign == Sign.ZERO) {
+          return Optional.of(new IdentifierValuePair(pIdExp, Sign.PLUSMINUS));
         }
-        break;
-      default:
+      }
+      default -> {
         // nothing to do here
+      }
     }
     return Optional.empty();
   }
@@ -266,14 +263,15 @@ public class SignTransferRelation
       return Optional.empty();
     }
     if (result.size() == 1) {
-      return Optional.of(result.get(0));
+      return Optional.of(result.getFirst());
     }
     try {
-      SIGN leftResultSign = result.get(0).accept(new SignCExpressionVisitor(pCFAEdge, state, this));
-      SIGN rightResultSign =
+      Sign leftResultSign =
+          result.getFirst().accept(new SignCExpressionVisitor(pCFAEdge, state, this));
+      Sign rightResultSign =
           result.get(1).accept(new SignCExpressionVisitor(pCFAEdge, state, this));
       if (leftResultSign.covers(rightResultSign)) {
-        return Optional.of(result.get(0));
+        return Optional.of(result.getFirst());
       } else {
         return Optional.of(result.get(1));
       }
@@ -287,11 +285,11 @@ public class SignTransferRelation
       CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
       throws CPATransferException { // TODO more complex things
     // Analyse only expressions of the form x op y
-    if (!(pExpression instanceof CBinaryExpression)) {
+    if (!(pExpression instanceof CBinaryExpression cBinaryExpression)) {
       return state;
     }
     Optional<IdentifierValuePair> result =
-        evaluateAssumption((CBinaryExpression) pExpression, pTruthAssumption, pCfaEdge);
+        evaluateAssumption(cBinaryExpression, pTruthAssumption, pCfaEdge);
     if (result.isPresent()) {
       logger.log(
           Level.FINE,
@@ -323,10 +321,10 @@ public class SignTransferRelation
   @Override
   protected SignState handleDeclarationEdge(ADeclarationEdge pCfaEdge, ADeclaration pDecl)
       throws CPATransferException {
-    if (!(pDecl instanceof AVariableDeclaration)) {
+    if (!(pDecl instanceof AVariableDeclaration decl)) {
       return state;
     }
-    AVariableDeclaration decl = (AVariableDeclaration) pDecl;
+
     String scopedId;
     if (decl.isGlobal()) {
       scopedId = decl.getName();
@@ -336,21 +334,21 @@ public class SignTransferRelation
     AInitializer init = decl.getInitializer();
     logger.log(Level.FINE, "Declaration: " + scopedId);
     // type x = expression;
-    if (init instanceof AInitializerExpression) {
+    if (init instanceof AInitializerExpression aInitializerExpression) {
       return handleAssignmentToVariable(
-          state, scopedId, ((AInitializerExpression) init).getExpression(), pCfaEdge);
+          state, scopedId, aInitializerExpression.getExpression(), pCfaEdge);
     }
     // type x;
     // since it is C, we assume it may have any value here
-    return state.assignSignToVariable(scopedId, SIGN.ALL);
+    return state.assignSignToVariable(scopedId, Sign.ALL);
   }
 
   @Override
   protected SignState handleStatementEdge(AStatementEdge pCfaEdge, AStatement pStatement)
       throws CPATransferException {
     // expression is a binary expression e.g. a = b.
-    if (pStatement instanceof AAssignment) {
-      return handleAssignment((AAssignment) pStatement, pCfaEdge);
+    if (pStatement instanceof AAssignment aAssignment) {
+      return handleAssignment(aAssignment, pCfaEdge);
     }
 
     // only expression expr; does not change state
@@ -385,12 +383,11 @@ public class SignTransferRelation
     }
 
     // x[index] = ..,
-    if (left instanceof CArraySubscriptExpression) {
+    if (left instanceof CArraySubscriptExpression cArraySubscriptExpression) {
       // currently only overapproximate soundly and assume any value
       return state.assignSignToVariable(
-          getScopedVariableName(
-              ((CArraySubscriptExpression) left).getArrayExpression(), functionName),
-          SIGN.ALL);
+          getScopedVariableName(cArraySubscriptExpression.getArrayExpression(), functionName),
+          Sign.ALL);
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }
@@ -399,7 +396,7 @@ public class SignTransferRelation
       SignState pState, String pVarIdent, ARightHandSide pRightExpr, CFAEdge edge)
       throws CPATransferException {
     if (pRightExpr instanceof CRightHandSide right) {
-      SIGN result = right.accept(new SignCExpressionVisitor(edge, pState, this));
+      Sign result = right.accept(new SignCExpressionVisitor(edge, pState, this));
       logger.log(Level.FINE, "Assignment: " + pVarIdent + " = " + result);
       return pState.assignSignToVariable(pVarIdent, result);
     }

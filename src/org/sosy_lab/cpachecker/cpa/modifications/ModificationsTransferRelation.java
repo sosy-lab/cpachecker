@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
 
@@ -57,13 +56,13 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
       CFANode nodeInGiven = locations.getLocationInGivenCfa();
       CFANode nodeInOriginal = locations.getLocationInOriginalCfa();
 
-      if (CFAUtils.leavingEdges(nodeInGiven).contains(pCfaEdge)) {
+      if (nodeInGiven.getLeavingEdges().contains(pCfaEdge)) {
         // possible successor adheres to control-flow
         CFANode succInGiven = pCfaEdge.getSuccessor();
         Collection<ModificationsState> successors = new HashSet<>();
 
         Optional<ModificationsState> potSucc;
-        for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+        for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
           potSucc = findMatchingSuccessor(pCfaEdge, edgeInOriginal);
           if (potSucc.isPresent()) {
             // We assume that the edges leaving a node are disjunct.
@@ -76,7 +75,7 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
 
         // If no outgoing edge matched, add all outgoing edges to list of modified edges
         if (successors.isEmpty()) {
-          for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+          for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
             successors.add(
                 new ModificationsState(succInGiven, edgeInOriginal.getSuccessor(), true));
           }
@@ -112,8 +111,8 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
       // only new declarations are added and existing declarations are deleted
       if (ignoreDeclarations) {
 
-        if (pEdgeInGiven instanceof CDeclarationEdge) {
-          if (!declarationNameAlreadyExistsInOtherCFA(true, (CDeclarationEdge) pEdgeInGiven)) {
+        if (pEdgeInGiven instanceof CDeclarationEdge cDeclarationEdge) {
+          if (!declarationNameAlreadyExistsInOtherCFA(true, cDeclarationEdge)) {
             return Optional.of(
                 new ModificationsState(pEdgeInGiven.getSuccessor(), originalEdge.getPredecessor()));
           }
@@ -169,9 +168,9 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
     if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       nextEdge:
       for (CFAEdge enterBeforeCall :
-          CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInGiven).getCallNode())) {
+          ((FunctionReturnEdge) pEdgeInGiven).getCallNode().getEnteringEdges()) {
         for (CFAEdge enterOriginalBeforeCAll :
-            CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInOriginal).getCallNode())) {
+            ((FunctionReturnEdge) pEdgeInOriginal).getCallNode().getEnteringEdges()) {
           if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
             continue nextEdge;
           }

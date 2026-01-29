@@ -61,14 +61,14 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
-import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
+import org.sosy_lab.cpachecker.cpa.value.ToValuePrecisionConverter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -122,7 +122,7 @@ public class SMGCPA
   private VariableTrackingPrecision precision;
   private boolean refineablePrecisionSet = false;
 
-  private final PredicateToValuePrecisionConverter predToValPrec;
+  private final ToValuePrecisionConverter predToValPrec;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
   private final SMGCPAStatistics statistics;
@@ -144,7 +144,7 @@ public class SMGCPA
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     precision = initializePrecision(config, cfa);
-    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+    predToValPrec = new ToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
 
     statistics = new SMGCPAStatistics();
@@ -164,7 +164,7 @@ public class SMGCPA
         initializeCToFormulaConverter(
             formulaManager, logger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
     constraintsSolver =
-        new ConstraintsSolver(pConfig, solver, formulaManager, converter, statistics);
+        new ConstraintsSolver(pConfig, machineModel, solver, formulaManager, converter, statistics);
     evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel, logger, exportOptions, options, constraintsSolver);
@@ -319,17 +319,14 @@ public class SMGCPA
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
-      if (currentLine.trim().isEmpty()) {
-        continue;
-
-      } else if (currentLine.endsWith(":")) {
+      if (currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
         Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
 
-      } else {
+      } else if (!currentLine.trim().isEmpty()) {
         mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
       }
     }
@@ -362,8 +359,8 @@ public class SMGCPA
       MachineModel pMachineModel)
       throws InvalidConfigurationException {
 
-    FormulaEncodingWithPointerAliasingOptions formulaOptions =
-        new FormulaEncodingWithPointerAliasingOptions(pConfig);
+    CFormulaEncodingWithPointerAliasingOptions formulaOptions =
+        new CFormulaEncodingWithPointerAliasingOptions(pConfig);
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, pMachineModel, formulaOptions);
 

@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -56,7 +55,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}, and if this
- * fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * fails, optionally delegates also to another refiner.
  */
 @Options(prefix = "cpa.octagon.refiner")
 class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
@@ -148,11 +147,11 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
   }
 
   /**
-   * This method performs an value-analysis refinement.
+   * This method performs a value-analysis refinement.
    *
    * @param reached the current reached set
    * @param errorPath the current error path
-   * @return true, if the value-analysis refinement was successful, else false
+   * @return whether the value-analysis refinement was successful
    * @throws CPAException when value-analysis interpolation fails
    */
   private boolean performValueAnalysisRefinement(
@@ -213,7 +212,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
     }
 
     reached.removeSubtree(
-        ((ARGState) reachedSet.getFirstState()).getChildren().iterator().next(),
+        ((ARGState) reachedSet.getFirstState()).getChildren().getFirst(),
         octPrecision.withIncrement(increment),
         VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
     logger.log(
@@ -276,7 +275,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
    * This method checks if the given path is feasible, when doing a full-precision check.
    *
    * @param path the path to check
-   * @return true, if the path is feasible, else false
+   * @return whether the path is feasible
    * @throws CPAException if the path check gets interrupted
    */
   boolean isPathFeasable(ARGPath path) throws CPAException, InterruptedException {
@@ -303,7 +302,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
 
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForOctagonFeasibilityCheck);
+        WalltimeLimit l = WalltimeLimit.create(timeForOctagonFeasibilityCheck);
         ResourceLimitChecker limits =
             new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
 

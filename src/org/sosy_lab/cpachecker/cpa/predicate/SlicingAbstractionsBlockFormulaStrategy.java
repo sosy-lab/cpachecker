@@ -25,17 +25,17 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * Intended for use with {@link SlicingAbstractionsStrategy}
  */
 @Options(prefix = "cpa.predicate.refinement")
-public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrategy {
+final class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrategy {
 
   @Option(
       secure = true,
       description = "Enable/Disable adding partial state invariants into the PathFormulas")
   private ImmutableSet<AbstractionPosition> includePartialInvariants = AbstractionPosition.BOTH;
 
-  private PathFormulaManager pfmgr;
-  private Solver solver;
+  private final PathFormulaManager pfmgr;
+  private final Solver solver;
 
-  public SlicingAbstractionsBlockFormulaStrategy(
+  SlicingAbstractionsBlockFormulaStrategy(
       Solver solver, Configuration pConfig, PathFormulaManager pPfmgr)
       throws InvalidConfigurationException {
     pfmgr = pPfmgr;

@@ -53,8 +53,8 @@ public final class ConcreteState {
    * @param pVariables a map that assigns variables a concrete value, without the need to assign a
    *     concrete address to a variable.
    * @param pAllocatedMemory a map that assigns the allocated memory to its name.
-   * @param pVariableAddressMap a map that assigns variables along the error path an unique address.
-   * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide}, calculate the
+   * @param pVariableAddressMap a map that assigns variables along the error path a unique address.
+   * @param pMemoryName a class that, given a CFA expression {@link CRightHandSide}, calculate the
    *     memory that contains the value.
    */
   public ConcreteState(
@@ -77,8 +77,8 @@ public final class ConcreteState {
    * @param pVariables a map that assigns variables a concrete value, without the need to assign a
    *     concrete address to a variable.
    * @param pAllocatedMemory a map that assigns the allocated memory to its name.
-   * @param pVariableAddressMap a map that assigns variables along the error path an unique address.
-   * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide}, calculate the
+   * @param pVariableAddressMap a map that assigns variables along the error path a unique address.
+   * @param pMemoryName a class that, given a CFA expression {@link CRightHandSide}, calculate the
    *     memory that contains the value.
    */
   public ConcreteState(
@@ -111,8 +111,8 @@ public final class ConcreteState {
    * @param pVariables a map that assigns variables a concrete value, without the need to assign a
    *     concrete address to a variable.
    * @param pAllocatedMemory a map that assigns the allocated memory to its name.
-   * @param pVariableAddressMap a map that assigns variables along the error path an unique address.
-   * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide}, calculate the
+   * @param pVariableAddressMap a map that assigns variables along the error path a unique address.
+   * @param pMemoryName a class that, given a CFA expression {@link CRightHandSide}, calculate the
    *     memory that contains the value.
    */
   public ConcreteState(
@@ -202,7 +202,7 @@ public final class ConcreteState {
    * that no concrete value can be calculated for this variable.
    *
    * @param variable Checks, whether this variable has a value assigned directly.
-   * @return true, if a concrete value is directly assigned to this variable, false otherwise.
+   * @return whether a concrete value is directly assigned to this variable.
    */
   public boolean hasValueForLeftHandSide(LeftHandSide variable) {
     return variables.containsKey(variable);
@@ -239,7 +239,7 @@ public final class ConcreteState {
    * address may have a value directly assigned to the variable.
    *
    * @param variable check the concrete address of this variable.
-   * @return true, if the given variable has a concrete address, false otherwise.
+   * @return whether the given variable has a concrete address.
    */
   public boolean hasAddressOfVariable(LeftHandSide variable) {
     return variableAddressMap.containsKey(variable);

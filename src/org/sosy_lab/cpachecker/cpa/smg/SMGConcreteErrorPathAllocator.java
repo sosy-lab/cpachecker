@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -68,7 +67,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       List<CFAEdge> edges = edgeStatePair.getSecond();
 
       if (edges.size() > 1) {
-        Iterator<CFAEdge> it = Lists.reverse(edges).iterator();
+        Iterator<CFAEdge> it = edges.reversed().iterator();
         List<SingleConcreteState> intermediateStates = new ArrayList<>();
         Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
         while (it.hasNext()) {
@@ -82,7 +81,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
             // last edge of (dynamic) multi edge
           } else {
-            result.addAll(Lists.reverse(intermediateStates));
+            result.addAll(intermediateStates.reversed());
             result.add(new SingleConcreteState(innerEdge, state));
           }
         }
@@ -126,8 +125,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     if (innerEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatement stmt = ((CStatementEdge) innerEdge).getStatement();
 
-      if (stmt instanceof CAssignment) {
-        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+      if (stmt instanceof CAssignment cAssignment) {
+        CLeftHandSide lhs = cAssignment.getLeftHandSide();
         alreadyAssigned.add(lhs);
       }
     }
@@ -152,8 +151,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
     CStatement stmt = pCfaEdge.getStatement();
 
-    if (stmt instanceof CAssignment) {
-      CLeftHandSide leftHandSide = ((CAssignment) stmt).getLeftHandSide();
+    if (stmt instanceof CAssignment cAssignment) {
+      CLeftHandSide leftHandSide = cAssignment.getLeftHandSide();
 
       return isLeftHandSideValueKnown(leftHandSide, pAlreadyAssigned);
     }

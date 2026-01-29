@@ -21,7 +21,7 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
 
   private abstract static class PathFormulaAndBuilder extends DefaultPathFormulaBuilder {
 
-    protected final DefaultPathFormulaBuilder previousPathFormula;
+    final DefaultPathFormulaBuilder previousPathFormula;
 
     private PathFormulaAndBuilder(DefaultPathFormulaBuilder pPathFormulaAndBuilder) {
       previousPathFormula = pPathFormulaAndBuilder;
@@ -32,8 +32,7 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
 
     private CFAEdge edge;
 
-    protected EdgePathFormulaAndBuilder(
-        DefaultPathFormulaBuilder pPathFormulaAndBuilder, CFAEdge pEdge) {
+    EdgePathFormulaAndBuilder(DefaultPathFormulaBuilder pPathFormulaAndBuilder, CFAEdge pEdge) {
       super(pPathFormulaAndBuilder);
       edge = pEdge;
     }
@@ -49,7 +48,7 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
 
     private CExpression assumption;
 
-    protected ExpressionPathFormulaAndBuilder(
+    ExpressionPathFormulaAndBuilder(
         DefaultPathFormulaBuilder pPathFormulaAndBuilder, CExpression pAssumption) {
       super(pPathFormulaAndBuilder);
       assumption = pAssumption;
@@ -67,7 +66,7 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
     private PathFormulaBuilder first;
     private PathFormulaBuilder second;
 
-    protected PathFormulaOrBuilder(PathFormulaBuilder first, PathFormulaBuilder second) {
+    PathFormulaOrBuilder(PathFormulaBuilder first, PathFormulaBuilder second) {
       this.first = first;
       this.second = second;
     }

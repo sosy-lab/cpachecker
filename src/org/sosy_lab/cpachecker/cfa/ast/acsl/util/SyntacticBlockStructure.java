@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SyntacticBlockStructure {
   private final ImmutableSet<SyntacticBlock> blocks;
@@ -49,8 +48,8 @@ public class SyntacticBlockStructure {
   public Iterable<CFAEdge> getPrevEdges(SyntacticBlock pBlock, FileLocation location) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : pBlock.getContainedNodes()) {
-      CFAUtils.enteringEdges(node).copyInto(edges);
-      CFAUtils.leavingEdges(node).copyInto(edges);
+      node.getEnteringEdges().copyInto(edges);
+      node.getLeavingEdges().copyInto(edges);
     }
     edges.removeIf(this::ignoreEdge);
     List<CFAEdge> sortedEdges = new ArrayList<>(edges);
@@ -71,7 +70,7 @@ public class SyntacticBlockStructure {
 
     SyntacticBlock innermostBlockOfPrevEdge = getInnermostBlockOf(prev.getFileLocation());
     if (innermostBlockOfPrevEdge.equals(pBlock)) {
-      return CFAUtils.enteringEdges(prev.getSuccessor());
+      return prev.getSuccessor().getEnteringEdges();
     }
 
     // There is at least one block end directly before the specified location, so return all leaving
@@ -94,8 +93,8 @@ public class SyntacticBlockStructure {
   public CFAEdge getNextEdge(SyntacticBlock block, FileLocation location) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : block.getContainedNodes()) {
-      CFAUtils.enteringEdges(node).copyInto(edges);
-      CFAUtils.leavingEdges(node).copyInto(edges);
+      node.getEnteringEdges().copyInto(edges);
+      node.getLeavingEdges().copyInto(edges);
     }
     edges.removeIf(this::ignoreEdge);
     List<CFAEdge> sortedEdges = new ArrayList<>(edges);

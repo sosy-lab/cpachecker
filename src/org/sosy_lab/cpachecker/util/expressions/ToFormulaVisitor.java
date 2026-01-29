@@ -68,23 +68,23 @@ public class ToFormulaVisitor
       throws ToFormulaException {
     AExpression expression = pLeafExpression.getExpression();
     final CFAEdge edge;
-    if (expression instanceof CExpression) {
+    if (expression instanceof CExpression cExpression) {
       edge =
           new CAssumeEdge(
               "",
               FileLocation.DUMMY,
               CFANode.newDummyCFANode(),
               CFANode.newDummyCFANode(),
-              (CExpression) expression,
+              cExpression,
               pLeafExpression.assumeTruth());
-    } else if (expression instanceof JExpression) {
+    } else if (expression instanceof JExpression jExpression) {
       edge =
           new JAssumeEdge(
               "",
               FileLocation.DUMMY,
               CFANode.newDummyCFANode(),
               CFANode.newDummyCFANode(),
-              (JExpression) expression,
+              jExpression,
               pLeafExpression.assumeTruth());
     } else {
       throw new AssertionError("Unsupported expression type.");

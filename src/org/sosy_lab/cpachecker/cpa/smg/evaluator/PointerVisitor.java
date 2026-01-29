@@ -98,48 +98,42 @@ class PointerVisitor extends ExpressionValueVisitor {
     UnaryOperator unaryOperator = unaryExpression.getOperator();
     CExpression unaryOperand = unaryExpression.getOperand();
 
-    switch (unaryOperator) {
-      case AMPER:
-        return handleAmper(unaryOperand);
-
-      case SIZEOF:
-        throw new UnrecognizedCodeException(
-            "Misinterpreted the expression type of "
-                + unaryOperand.toASTString()
-                + " as pointer type",
-            cfaEdge,
-            unaryExpression);
-
-      case MINUS:
-      case TILDE:
-      default:
-        // Can't evaluate these Addresses
-        return Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
-    }
+    return switch (unaryOperator) {
+      case AMPER -> handleAmper(unaryOperand);
+      case ALIGNOF, SIZEOF ->
+          throw new UnrecognizedCodeException(
+              "Misinterpreted the expression type of "
+                  + unaryOperand.toASTString()
+                  + " as pointer type",
+              cfaEdge,
+              unaryExpression);
+      case MINUS, TILDE ->
+          // Can't evaluate these Addresses
+          Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
+    };
   }
 
   private List<SMGAddressValueAndState> handleAmper(CRightHandSide amperOperand)
       throws CPATransferException {
 
     if (TypeUtils.getRealExpressionType(amperOperand) instanceof CFunctionType
-        && amperOperand instanceof CIdExpression) {
+        && amperOperand instanceof CIdExpression cIdExpression) {
       // function type &foo
-      return createAddressOfFunction((CIdExpression) amperOperand);
-    } else if (amperOperand instanceof CIdExpression) {
-      // &a
-      return createAddressOfVariable((CIdExpression) amperOperand);
-    } else if (amperOperand instanceof CPointerExpression) {
-      // &(*(a))
-      CExpression rValue = ((CPointerExpression) amperOperand).getOperand();
-      return smgExpressionEvaluator.evaluateAddress(getInitialSmgState(), getCfaEdge(), rValue);
-    } else if (amperOperand instanceof CFieldReference) {
-      // &(a.b)
-      return createAddressOfField((CFieldReference) amperOperand);
-    } else if (amperOperand instanceof CArraySubscriptExpression) {
-      // &(a[b])
-      return createAddressOfArraySubscript((CArraySubscriptExpression) amperOperand);
+      return createAddressOfFunction(cIdExpression);
     } else {
-      return Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
+      return switch (amperOperand) {
+        case CIdExpression cIdExpression -> /* &a */ createAddressOfVariable(cIdExpression);
+        case CPointerExpression cPointerExpression -> {
+          // &(*(a))
+          CExpression rValue = cPointerExpression.getOperand();
+          yield smgExpressionEvaluator.evaluateAddress(getInitialSmgState(), getCfaEdge(), rValue);
+        }
+        case CFieldReference cFieldReference -> /* &(a.b) */ createAddressOfField(cFieldReference);
+        case CArraySubscriptExpression cArraySubscriptExpression -> /* &(a[b]) */
+            createAddressOfArraySubscript(cArraySubscriptExpression);
+        case null /*TODO check if null is necessary*/, default ->
+            Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
+      };
     }
   }
 

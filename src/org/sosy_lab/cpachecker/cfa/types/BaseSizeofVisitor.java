@@ -81,15 +81,13 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
   @Override
   public BigInteger visit(CCompositeType pCompositeType) throws X {
 
-    switch (pCompositeType.getKind()) {
-      case STRUCT:
-        return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
-      case UNION:
-        return handleSizeOfUnion(pCompositeType);
-      case ENUM: // There is no such kind of Composit Type.
-      default:
-        throw new AssertionError();
-    }
+    return switch (pCompositeType.getKind()) {
+      case STRUCT -> getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
+      case UNION -> handleSizeOfUnion(pCompositeType);
+      case ENUM ->
+          // There is no such kind of Composit Type.
+          throw new AssertionError();
+    };
   }
 
   BigInteger calculateByteSize(BigInteger pBitFieldsSize) {
@@ -177,7 +175,7 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
    * padding into account. Both tasks share the same complex logic, so we implement them in the same
    * private method that is exposed via various public methods for individual tasks.
    *
-   * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
+   * @param pOwnerType a {@link CCompositeType} to calculate its field offset or its overall size
    * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
    *     composites size
    * @param outParameterMap a {@link Map} given as both, input and output, to store the mapping of
@@ -233,14 +231,14 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
           fieldSizeInBits = model.getSizeofInBits(type, this);
         }
 
-        if (type instanceof CBitFieldType) {
+        if (type instanceof CBitFieldType cBitFieldType) {
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
             bitOffset = bitOffset.add(sizeOfConsecutiveBitFields);
             return bitOffset;
           }
 
-          CType innerType = ((CBitFieldType) type).getType();
+          CType innerType = cBitFieldType.getType();
 
           if (fieldSizeInBits.compareTo(BigInteger.ZERO) == 0) {
             // Bitfields with length 0 guarantee that

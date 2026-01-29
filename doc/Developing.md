@@ -3,7 +3,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2024 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -20,29 +20,20 @@ the [style guide](StyleGuide.md),
 For JavaScript code read [`ReportTemplateStyleGuide.md`](ReportTemplateStyleGuide.md),
 and for Python code read [`PythonStyleGuide.md`](PythonStyleGuide.md).
 
-
-Getting the code
-----------------
-
-There are two possibilities to retrieve the source code:
-
-- The [main repository on GitLab](https://gitlab.com/sosy-lab/software/cpachecker/)
-
-- A read-only mirror at [GitHub](https://github.com/sosy-lab/cpachecker)
+How to checkout and build the source code on the command line is described in
+[the installation instructions](../INSTALL.md#install-cpachecker----source).
 
 For bug tracking, we use [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/issues).
-
-For building the code on the command line, c.f. [`../INSTALL.md`](../INSTALL.md).
 
 
 Develop CPAchecker from within Eclipse
 --------------------------------------
 
-0. Install a Java 17 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
+0. Install a Java 21 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
 
-1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.22, with JDT.
+1. Install [Eclipse](http://www.eclipse.org/) with at least version 2023-09 (4.29), with JDT.
    If you have more than one Java version installed,
-   make sure to start Eclipse with Java 17 or newer.
+   make sure to start Eclipse with Java 21 or newer.
 
 2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
@@ -65,9 +56,9 @@ Develop CPAchecker from within Eclipse
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
 4. If Eclipse complains about a missing JDK
-   (`Unbound classpath container: 'JRE System Library [JavaSE-17]'`),
+   (`Unbound classpath container: 'JRE System Library [JavaSE-21]'`),
    go to Window -> Preferences -> Java -> Installed JREs,
-   click the "Search" button and select the path where your Java 17 installation
+   click the "Search" button and select the path where your Java 21 installation
    can be found (on Ubuntu `/usr/lib/jvm` will do).
 
 5. In order to run CPAchecker, use one of the supplied launch configurations
@@ -204,7 +195,7 @@ Releasing a New Version
 
 1. Update the heading in [`NEWS.md`](../NEWS.md) and
    update the version number in all places in the following files:
-   - [`.gitlab-ci.yml`](../.gitlab-ci.yml)
+   - [`build/gitlab-ci.local.yml`](../build/gitlab-ci.local.yml)
    - [`build/Dockerfile.release`](../build/Dockerfile.release)
    - [`build/debian/rules`](../build/debian/rules)
 
@@ -226,26 +217,32 @@ Releasing a New Version
    in our [APT repository](https://apt.sosy-lab.org)
    using the [instructions](https://svn.sosy-lab.org/software/apt/README.md) there.
 
-1. Publish new CPAchecker version on Zenodo under https://doi.org/10.5281/zenodo.3816620:
+1. Publish new CPAchecker archive on [Zenodo](https://doi.org/10.5281/zenodo.3816620):
    - Assign new DOI and upload `CPAchecker-<version>-unix.zip` archive.
-   - Update title to `CPAchecker Release <version> (image)`.
+   - Update title to `CPAchecker Release <version> (unix)`.
    - Set publication date.
    - Update description with entries for new version in [`NEWS.md`](../NEWS.md).
    - Update list of contributors according to [`Authors.md`](../Authors.md).
    - Set version field to `<version> (unix)`.
 
-1. Update homepage:
-   - Add release ZIP archives to `/html` in the repository.
-   - Put changelog of newest version into `/html/NEWS-<version>.txt`.
-   - Add links to `/html/download.php`.
-   - Move the old download links to `/html/download-oldversions.php`.
-   - Update section News on `/html/index.php`.
+1. Update homepage, which is hosted in [this repository](https://gitlab.com/sosy-lab/research/web/cpachecker):
+   - Add release ZIP archives.
+   - Put changelog of newest version into `NEWS-<version>.txt`.
+   - Add links to `download.php`.
+   - Move the old download links to `download-oldversions.php`.
+   - Update section News on `index.php`.
 
 1. Publish the Docker image by either building and pushing the image manually
    as described in [`build/Dockerfile.release`](../build/Dockerfile.release)
    or triggering the scheduled GitLab CI job
    (https://gitlab.com/sosy-lab/software/cpachecker/pipeline_schedules).
    This needs to be done after updating the homepage.
+
+1. Publish new CPAchecker image on [Zenodo](https://doi.org/10.5281/zenodo.3816620):
+   - Store image in file with `podman save cpachecker:<version> | gzip -9 > cpachecker-<version>-image.tar.gz`.
+   - Add new version of the Zenodo record as described above with this TAR.
+   - All metadata are the same as for the archive,
+     except that title and version end in `(image)`.
 
 1. Send a mail with the release announcement to cpachecker-announce and
    cpachecker-users mailing lists.

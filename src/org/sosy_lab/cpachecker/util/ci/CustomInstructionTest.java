@@ -26,7 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.annotations.SuppressForbidden;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,7 +46,7 @@ public class CustomInstructionTest {
   private Map<CFANode, AppliedCustomInstruction> cis;
   private CustomInstruction ci;
   private Constructor<? extends AbstractState> locConstructor;
-  private CFA cfa;
+  private ImmutableCFA cfa;
   private CFANode startNode;
   private Set<CFANode> endNodes;
   private ARGState start;
@@ -178,7 +178,7 @@ public class CustomInstructionTest {
             null, null, inputVars, ImmutableList.of(), ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)");
+    Truth.assertThat(pair.getFirst().getFirst()).isEqualTo("(declare-fun var () Int)");
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(= var 0))");
 
     ImmutableList<String> outputVars = ImmutableList.of("var1");
@@ -187,7 +187,7 @@ public class CustomInstructionTest {
             null, null, ImmutableList.of(), outputVars, ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1@1 () Int)");
+    Truth.assertThat(pair.getFirst().getFirst()).isEqualTo("(declare-fun var1@1 () Int)");
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool (= var1@1 0))");
 
     inputVars = ImmutableList.of("var1");
@@ -195,7 +195,7 @@ public class CustomInstructionTest {
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(2);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1 () Int)");
+    Truth.assertThat(pair.getFirst().getFirst()).isEqualTo("(declare-fun var1 () Int)");
     Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun var2@1 () Int)");
     Truth.assertThat(pair.getSecond())
         .isEqualTo("(define-fun ci() Bool(and (= var1 0) (= var2@1 0)))");
@@ -205,7 +205,7 @@ public class CustomInstructionTest {
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(5);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)");
+    Truth.assertThat(pair.getFirst().getFirst()).isEqualTo("(declare-fun var () Int)");
     Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |f::var1| () Int)");
     Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun var2 () Int)");
     Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun var3@1 () Int)");
@@ -269,7 +269,7 @@ public class CustomInstructionTest {
           CFAUtils.allPredecessorsOf(node).copyInto(endNodes);
         }
       }
-      for (CFAEdge e : CFAUtils.allLeavingEdges(node)) {
+      for (CFAEdge e : node.getAllLeavingEdges()) {
         if (!visitedNodes.contains(e.getSuccessor())) {
           queue.add(e.getSuccessor());
           visitedNodes.add(e.getSuccessor());
@@ -303,7 +303,7 @@ public class CustomInstructionTest {
 
     Pair<List<String>, String> pair = aci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(3);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |main::b| () Int)");
+    Truth.assertThat(pair.getFirst().getFirst()).isEqualTo("(declare-fun |main::b| () Int)");
     Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::a@1| () Int)");
     Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::b@1| () Int)");
     Truth.assertThat(pair.getSecond())
@@ -316,7 +316,7 @@ public class CustomInstructionTest {
     variables.add("main::a");
     variables.add("main::b");
     Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-    Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+    Truth.assertThat(ssaMap.getIndex(variables.getFirst())).isEqualTo(1);
     Truth.assertThat(ssaMap.getIndex(variables.get(1))).isEqualTo(1);
 
     Collection<CFANode> aciNodes = new ArrayList<>(2);

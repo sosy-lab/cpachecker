@@ -316,9 +316,9 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
     }*/
 
   public static class StateStatistics {
-    private StatTimer joinTimer = new StatTimer("Time for joining");
-    private StatTimer lessTimer = new StatTimer("Time for cover check");
-    private StatTimer addRecentUsagesTimer = new StatTimer("Time for adding recent usages");
+    private final StatTimer joinTimer = new StatTimer("Time for joining");
+    private final StatTimer lessTimer = new StatTimer("Time for cover check");
+    private final StatTimer addRecentUsagesTimer = new StatTimer("Time for adding recent usages");
 
     private final StorageStatistics storageStats;
 

@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -63,8 +64,8 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -121,7 +122,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final CFA cfaOrig;
+  private final ImmutableCFA cfaOrig;
   private final TransferRelation transfer;
   private final DelegateAbstractDomain<ModificationsPropState> domain;
   private final Solver solver;
@@ -206,7 +207,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   @Override
   public MergeOperator getMergeOperator() {
     // check equality of location tuple and merge by joining then
-    return variableSetMerge ? new ModificationsPropMergeOperator() : new MergeSepOperator();
+    return variableSetMerge ? new ModificationsPropMergeOperator() : MergeSepOperator.getInstance();
   }
 
   @Override
@@ -237,8 +238,8 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
       MachineModel pMachineModel)
       throws InvalidConfigurationException {
 
-    FormulaEncodingWithPointerAliasingOptions options =
-        new FormulaEncodingWithPointerAliasingOptions(pConfig);
+    CFormulaEncodingWithPointerAliasingOptions options =
+        new CFormulaEncodingWithPointerAliasingOptions(pConfig);
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, pMachineModel, options);
 

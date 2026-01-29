@@ -59,12 +59,12 @@ import org.sosy_lab.java_smt.api.SolverException;
  * left to an instance of {@link GlobalRefinementStrategy}.
  */
 @Options(prefix = "cpa.predicate.refinement.global")
-public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
+final class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
   @Option(
       secure = true,
       description =
-          "Instead of updating precision and arg we say that the refinement was not successful"
+          "Instead of updating precision and ARG we say that the refinement was not successful"
               + " after N times of refining. A real error state is not necessary to be found. Use 0"
               + " for unlimited refinements (default).")
   @IntegerOption(min = 0)
@@ -81,7 +81,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
   private final BooleanFormulaManager bfmgr;
   private final ARGCPA argCPA;
 
-  public PredicateCPAGlobalRefiner(
+  PredicateCPAGlobalRefiner(
       final LogManager pLogger,
       final FormulaManagerView pFmgr,
       final GlobalRefinementStrategy pStrategy,
@@ -158,7 +158,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
       ARGState currentState = currentAbstractionState;
       do {
-        currentState = currentState.getParents().iterator().next();
+        currentState = currentState.getParents().getFirst();
       } while (!getPredicateState(currentState).isAbstractionState());
 
       if (!currentState.getParents().isEmpty() && !predecessors.containsKey(currentState)) {
@@ -280,7 +280,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
         }
 
       } finally {
-        itpStack.remove(itpStack.size() - 1);
+        itpStack.removeLast();
         itpProver.pop();
         currentPath.removeLast();
       }
@@ -330,7 +330,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
     // last interpolant will always be false and therefore it is required
     // to remove it, for having proper arguments to call performRefinement
-    interpolants.remove(interpolants.size() - 1);
+    interpolants.removeLast();
 
     // TODO repeated counterexample is always false currently, we also ignore the return value
     strategy.performRefinement(reached, pAbstractionStatesTrace, interpolants, false);

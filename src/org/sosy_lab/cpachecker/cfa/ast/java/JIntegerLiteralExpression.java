@@ -22,7 +22,7 @@ public final class JIntegerLiteralExpression extends AIntegerLiteralExpression
   @Serial private static final long serialVersionUID = 1867514989284112879L;
 
   public JIntegerLiteralExpression(FileLocation pFileLocation, BigInteger pValue) {
-    super(pFileLocation, JSimpleType.getInt(), pValue);
+    super(pFileLocation, JSimpleType.INT, pValue);
   }
 
   @Override

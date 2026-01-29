@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- * This class represents an expression unique to the java cfa. It evaluates to true, if the run time
+ * This class represents an expression unique to the java CFA. It evaluates to true, if the run time
  * type of the expression is the same as the type Definition. Otherwise, it evaluates to false.
  */
 public final class JRunTimeTypeEqualsType extends AbstractExpression implements JExpression {
@@ -32,7 +32,7 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
       FileLocation pFileLocation,
       JRunTimeTypeExpression pRunTimeTypeExpression,
       JReferenceType pTypeDef) {
-    super(pFileLocation, JSimpleType.getBoolean());
+    super(pFileLocation, JSimpleType.BOOLEAN);
 
     runTimeTypeExpression = pRunTimeTypeExpression;
     typeDef = pTypeDef;
@@ -59,8 +59,8 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
   @Override
   public String toASTString() {
     String name;
-    if (getTypeDef() instanceof JClassOrInterfaceType) {
-      name = ((JClassOrInterfaceType) getTypeDef()).getName();
+    if (getTypeDef() instanceof JClassOrInterfaceType jClassOrInterfaceType) {
+      name = jClassOrInterfaceType.getName();
     } else {
       name = ((JArrayType) getTypeDef()).getElementType().toASTString("");
     }

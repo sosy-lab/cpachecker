@@ -310,7 +310,7 @@ public class ReachingDefState
 
     @Serial private static final long serialVersionUID = 2843708585446089623L;
 
-    public SerialProxyReach() {}
+    SerialProxyReach() {}
 
     @Serial
     private Object readResolve() {

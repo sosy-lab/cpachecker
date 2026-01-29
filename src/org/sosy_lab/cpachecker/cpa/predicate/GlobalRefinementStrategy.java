@@ -10,15 +10,15 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-public abstract class GlobalRefinementStrategy extends RefinementStrategy {
+abstract class GlobalRefinementStrategy extends RefinementStrategy {
 
   protected GlobalRefinementStrategy(Solver pSolver) {
     super(pSolver);
   }
 
-  public abstract void initializeGlobalRefinement();
+  abstract void initializeGlobalRefinement();
 
-  public abstract void updatePrecisionAndARG() throws InterruptedException;
+  abstract void updatePrecisionAndARG() throws InterruptedException;
 
-  public abstract void resetGlobalRefinement();
+  abstract void resetGlobalRefinement();
 }

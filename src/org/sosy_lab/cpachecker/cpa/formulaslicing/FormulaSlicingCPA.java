@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     implements ConfigurableProgramAnalysis,
@@ -68,21 +67,18 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       throws InvalidConfigurationException {
     solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
-    PathFormulaManager origPathFormulaManager =
-        new PathFormulaManagerImpl(
-            formulaManager,
-            pConfiguration,
-            pLogger,
-            pShutdownNotifier,
-            cfa,
-            AnalysisDirection.FORWARD);
-
-    CachingPathFormulaManager pathFormulaManager =
-        new CachingPathFormulaManager(origPathFormulaManager);
+    PathFormulaManager pathFormulaManager =
+        new CachingPathFormulaManager(
+            new PathFormulaManagerImpl(
+                formulaManager,
+                pConfiguration,
+                pLogger,
+                pShutdownNotifier,
+                cfa,
+                AnalysisDirection.FORWARD));
 
     inductiveWeakeningManager =
-        new InductiveWeakeningManager(
-            new WeakeningOptions(pConfiguration), solver, pLogger, pShutdownNotifier);
+        new InductiveWeakeningManager(pConfiguration, solver, pShutdownNotifier);
     rcnfManager = new RCNFManager(pConfiguration);
     manager =
         new FormulaSlicingManager(

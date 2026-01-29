@@ -212,11 +212,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (performLocalStrengthening(dualSequence, partitionedFormulas)
           == StrengtheningStatus.FAILED) {
         switch (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)) {
-          case SUCCEEDED_AND_COMPLETE:
+          case SUCCEEDED_AND_COMPLETE -> {
             return AlgorithmStatus.SOUND_AND_PRECISE;
-          case FAILED:
+          }
+          case FAILED -> {
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          default:
+          }
+          default -> {}
         }
       }
     }
@@ -385,7 +387,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       DualReachabilitySequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
       throws CPAException, InterruptedException {
     final int lastIndexOfSequences = pDualSequence.getSize() - 1;
-    BooleanFormula transitionFormula = pPartitionedFormulas.getLoopFormulas().get(0);
+    BooleanFormula transitionFormula = pPartitionedFormulas.getLoopFormulas().getFirst();
     BooleanFormula forwardFormula = pDualSequence.getForwardImageAt(pIndex);
     BooleanFormula backwardFormula =
         pDualSequence.getBackwardImageAt(lastIndexOfSequences - pIndex);
@@ -393,7 +395,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(
             ImmutableList.of(bfmgr.and(forwardFormula, transitionFormula), backwardFormula));
-    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    BooleanFormula interpolant = interpolants.orElseThrow().getFirst();
     interpolant =
         fmgr.instantiate(fmgr.uninstantiate(interpolant), pPartitionedFormulas.getPrefixSsaMap());
     stats.numOfInterpolationCalls += 1;
@@ -412,15 +414,15 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       DualReachabilitySequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
       throws CPAException, InterruptedException {
     final int lastIndexOfSequences = pDualSequence.getSize() - 1;
-    BooleanFormula transitionFormula = pPartitionedFormulas.getLoopFormulas().get(0);
+    BooleanFormula transitionFormula = pPartitionedFormulas.getLoopFormulas().getFirst();
     BooleanFormula forwardFormula = pDualSequence.getForwardImageAt(lastIndexOfSequences - pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardImageAt(pIndex);
-    SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulaSsaMaps().get(0);
+    SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulaSsaMaps().getFirst();
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(
             ImmutableList.of(bfmgr.and(backwardFormula, transitionFormula), forwardFormula));
-    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    BooleanFormula interpolant = interpolants.orElseThrow().getFirst();
     interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), backwardSsa);
     stats.numOfInterpolationCalls += 1;
     stats.numOfInterpolants += 1;
@@ -466,7 +468,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private int findIndexOfUnsatisfiableLocalCheck(
       DualReachabilitySequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
       throws SolverException, InterruptedException {
-    BooleanFormula transitionFormula = pPartitionedFormulas.getLoopFormulas().get(0);
+    BooleanFormula transitionFormula = pPartitionedFormulas.getLoopFormulas().getFirst();
     final int sequenceSize = pDualSequence.getSize();
     for (int i = sequenceSize - 1; i >= 0; i--) {
       stats.assertionsCheck.start();
@@ -556,11 +558,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /** This method is an exact copy of {@link IMCAlgorithm#unrollProgram} */
   private void unrollProgram(ReachedSet pReachedSet) throws InterruptedException, CPAException {
-    stats.bmcPreparation.start();
+    stats.bmcUnrolling.start();
     try {
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
     } finally {
-      stats.bmcPreparation.stop();
+      stats.bmcUnrolling.stop();
     }
   }
 
@@ -619,7 +621,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
-            .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().get(0)))
+            .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().getFirst()))
             .addAll(pFormulas.getLoopFormulas().subList(1, pIndexOfGlobalUnsat))
             .add(backwardFormula)
             .build();

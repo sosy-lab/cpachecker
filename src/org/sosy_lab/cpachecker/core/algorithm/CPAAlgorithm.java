@@ -101,17 +101,19 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
           if (val == newVal) {
             // ignore, otherwise counters would double
-          } else if (newVal instanceof StatCounter) {
-            assert val instanceof StatCounter;
-            ((StatCounter) newVal).mergeWith((StatCounter) val);
-          } else if (newVal instanceof StatInt) {
-            assert val instanceof StatInt;
-            ((StatInt) newVal).add((StatInt) val);
-          } else if (newVal instanceof StatHist) {
-            assert val instanceof StatHist;
-            ((StatHist) newVal).mergeWith((StatHist) val);
           } else {
-            throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
+            switch (newVal) {
+              case StatCounter statCounter -> {
+                statCounter.mergeWith((StatCounter) val);
+              }
+              case StatInt statInt -> {
+                statInt.add((StatInt) val);
+              }
+              case StatHist statHist -> {
+                statHist.mergeWith((StatHist) val);
+              }
+              default -> throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
+            }
           }
         }
       }
@@ -436,8 +438,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             reachedSet.addAll(toAdd);
           }
 
-          if (mergeOperator instanceof ARGMergeJoinCPAEnabledAnalysis) {
-            ((ARGMergeJoinCPAEnabledAnalysis) mergeOperator).cleanUp(reachedSet);
+          if (mergeOperator
+              instanceof ARGMergeJoinCPAEnabledAnalysis aRGMergeJoinCPAEnabledAnalysis) {
+            aRGMergeJoinCPAEnabledAnalysis.cleanUp(reachedSet);
           }
 
         } finally {
@@ -471,8 +474,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (forcedCovering instanceof StatisticsProvider) {
-      ((StatisticsProvider) forcedCovering).collectStatistics(pStatsCollection);
+    if (forcedCovering instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }

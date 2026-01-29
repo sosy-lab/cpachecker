@@ -347,14 +347,14 @@ class RunResultFuture(Future):
 
 class WebInterface:
     """
-    The WebInterface is a executor like class for the submission of runs to the VerifierCloud
+    The WebInterface is an executor like class for the submission of runs to the VerifierCloud
     """
 
     def __init__(
         self,
         web_interface_url,
         user_pwd,
-        revision="trunk:HEAD",
+        revision="main:HEAD",
         thread_count=1,
         result_poll_interval=2,
         user_agent=None,
@@ -365,7 +365,7 @@ class WebInterface:
         The given svn revision is resolved (e.g. 'HEAD' -> 17495).
         @param web_interface_url: the base URL of the VerifierCloud's web interface
         @param user_pwd: user name (and password) in the format '<user_name>[:<password>]' or none if no authentification is required
-        @param revision: the svn revision string, defaults to 'trunk:HEAD'
+        @param revision: the svn revision string, defaults to 'main:HEAD'
         @param thread_count: the number of threads for fetching results in parallel
         @param result_poll_interval: the number of seconds to wait between polling results
         """
@@ -918,6 +918,16 @@ class WebInterface:
                         params.append(("option", "output.disable=true"))
                         params.append(("option", "statistics.memory=false"))
                         disableAssertions = True
+
+                    elif option in ["--witness", "-witness"]:
+                        witness_path = next(i)
+
+                        # upload witness file
+                        witness_file = self._add_file_to_params(
+                            params, "witnessText", witness_path
+                        )
+                        opened_files.append(witness_file)
+
                     elif option[0] == "-":
                         if config:
                             raise WebClientError(

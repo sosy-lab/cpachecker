@@ -86,11 +86,11 @@ public abstract class ITPStrategy {
     // (C)                          itp_{n-1} & f_n => false
 
     // Check (A)
-    if (!solver.implies(formulas.get(0), interpolants.get(0))) {
+    if (!solver.implies(formulas.getFirst(), interpolants.getFirst())) {
       throw new SolverException(
           String.format(
               "First interpolant '%s' is not implied by first formula '%s'.",
-              interpolants.get(0), formulas.get(0)));
+              interpolants.getFirst(), formulas.getFirst()));
     }
 
     // Check (B).

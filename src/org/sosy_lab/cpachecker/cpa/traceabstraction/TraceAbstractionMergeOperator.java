@@ -11,13 +11,11 @@ package org.sosy_lab.cpachecker.cpa.traceabstraction;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Merge operator of {@link TraceAbstractionCPA}. It is a wrapper MergeOperator containing the
- * {@link PredicateMergeOperator}, and its only functionality is to forward all incoming
- * method-calls to it.
+ * Merge operator of {@link TraceAbstractionCPA}. It is a wrapper MergeOperator and its only
+ * functionality is to forward all incoming method-calls to it.
  */
 class TraceAbstractionMergeOperator implements MergeOperator {
 

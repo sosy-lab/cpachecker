@@ -71,7 +71,7 @@ public class CallstackFilter extends GenericFilter<String> {
     // TODO Now I believe, it is enough to check the last function called from main - this is
     // related to the call stack
     if (callerFunctions.size() >= 1) {
-      return callerFunctions.get(callerFunctions.size() - 1);
+      return callerFunctions.getLast();
     } else {
       // Usage in main
       return null;

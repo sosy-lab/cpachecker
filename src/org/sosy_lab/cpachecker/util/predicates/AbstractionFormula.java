@@ -21,7 +21,9 @@ import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -37,7 +40,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * symbolic formula. Third, again as a symbolic formula, but this time all variables have names
  * which include their SSA index at the time of the abstraction computation.
  *
- * <p>Additionally the formula for the block immediately before the abstraction computation is
+ * <p>Additionally, the formula for the block immediately before the abstraction computation is
  * stored (this also has SSA indices as it is a path formula, even if it is not of the type
  * PathFormula).
  *
@@ -134,6 +137,11 @@ public class AbstractionFormula implements Serializable {
         asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
   }
 
+  public SvLibTerm asSvLibTerm(SvLibScope pScope) {
+    FormulaToSvLibVisitor visitor = new FormulaToSvLibVisitor(fMgr, pScope);
+    return fMgr.visit(asFormula(), visitor);
+  }
+
   /** Returns the formula representation where all variables DO have SSA indices. */
   public BooleanFormula asInstantiatedFormula() {
     return instantiatedFormula;
@@ -184,7 +192,7 @@ public class AbstractionFormula implements Serializable {
     private final String instantiatedFormulaDump;
     private final PathFormula blockFormula;
 
-    public SerializationProxy(AbstractionFormula pAbstractionFormula) {
+    SerializationProxy(AbstractionFormula pAbstractionFormula) {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       instantiatedFormulaDump =

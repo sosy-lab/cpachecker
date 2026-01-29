@@ -30,7 +30,7 @@ public class AlgorithmContext {
 
   public static final int DEFAULT_TIME_LIMIT = 10;
 
-  private enum REPETITIONMODE {
+  private enum RepetitionMode {
     CONTINUE,
     NOREUSE,
     REUSEOWNPRECISION,
@@ -43,7 +43,7 @@ public class AlgorithmContext {
 
   private final Path configFile;
   private int timeLimit;
-  private final REPETITIONMODE mode;
+  private final RepetitionMode mode;
   private final Timer timer;
   private final boolean ifRecursive;
 
@@ -85,7 +85,7 @@ public class AlgorithmContext {
     return DEFAULT_TIME_LIMIT;
   }
 
-  private REPETITIONMODE extractModeFromAnnotation(final Optional<String> annotation) {
+  private RepetitionMode extractModeFromAnnotation(final Optional<String> annotation) {
     String val = "";
     if (annotation.isPresent()) {
       val = annotation.orElseThrow();
@@ -96,22 +96,22 @@ public class AlgorithmContext {
     }
 
     return switch (val) {
-      case "continue" -> REPETITIONMODE.CONTINUE;
-      case "reuse-own-precision" -> REPETITIONMODE.REUSEOWNPRECISION;
-      case "reuse-pred-precision" -> REPETITIONMODE.REUSEPREDPRECISION;
-      case "reuse-precisions" -> REPETITIONMODE.REUSEOWNANDPREDPRECISION;
-      case "reuse-cpa-own-precision" -> REPETITIONMODE.REUSECPA_OWNPRECISION;
-      case "reuse-cpa-pred-precision" -> REPETITIONMODE.REUSECPA_PREDPRECISION;
-      case "reuse-cpa-precisions" -> REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
-      default -> REPETITIONMODE.NOREUSE;
+      case "continue" -> RepetitionMode.CONTINUE;
+      case "reuse-own-precision" -> RepetitionMode.REUSEOWNPRECISION;
+      case "reuse-pred-precision" -> RepetitionMode.REUSEPREDPRECISION;
+      case "reuse-precisions" -> RepetitionMode.REUSEOWNANDPREDPRECISION;
+      case "reuse-cpa-own-precision" -> RepetitionMode.REUSECPA_OWNPRECISION;
+      case "reuse-cpa-pred-precision" -> RepetitionMode.REUSECPA_PREDPRECISION;
+      case "reuse-cpa-precisions" -> RepetitionMode.REUSECPA_OWNANDPREDPRECISION;
+      default -> RepetitionMode.NOREUSE;
     };
   }
 
   public boolean reuseCPA() {
-    return mode == REPETITIONMODE.CONTINUE
-        || mode == REPETITIONMODE.REUSECPA_OWNPRECISION
-        || mode == REPETITIONMODE.REUSECPA_PREDPRECISION
-        || mode == REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
+    return mode == RepetitionMode.CONTINUE
+        || mode == RepetitionMode.REUSECPA_OWNPRECISION
+        || mode == RepetitionMode.REUSECPA_PREDPRECISION
+        || mode == RepetitionMode.REUSECPA_OWNANDPREDPRECISION;
   }
 
   public boolean reusePrecision() {
@@ -119,17 +119,17 @@ public class AlgorithmContext {
   }
 
   public boolean reuseOwnPrecision() {
-    return mode == REPETITIONMODE.REUSEOWNPRECISION
-        || mode == REPETITIONMODE.REUSEOWNANDPREDPRECISION
-        || mode == REPETITIONMODE.REUSECPA_OWNPRECISION
-        || mode == REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
+    return mode == RepetitionMode.REUSEOWNPRECISION
+        || mode == RepetitionMode.REUSEOWNANDPREDPRECISION
+        || mode == RepetitionMode.REUSECPA_OWNPRECISION
+        || mode == RepetitionMode.REUSECPA_OWNANDPREDPRECISION;
   }
 
   public boolean reusePredecessorPrecision() {
-    return mode == REPETITIONMODE.REUSEPREDPRECISION
-        || mode == REPETITIONMODE.REUSEOWNANDPREDPRECISION
-        || mode == REPETITIONMODE.REUSECPA_PREDPRECISION
-        || mode == REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
+    return mode == RepetitionMode.REUSEPREDPRECISION
+        || mode == RepetitionMode.REUSEOWNANDPREDPRECISION
+        || mode == RepetitionMode.REUSECPA_PREDPRECISION
+        || mode == RepetitionMode.REUSECPA_OWNANDPREDPRECISION;
   }
 
   public void resetProgress() {

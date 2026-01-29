@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionFolder.FOLDER_TYPE;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionFolder.FolderType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -151,8 +151,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       throws InvalidConfigurationException {
     this(pCfa, pConfig, pLogger, pShutdown, pSpec);
 
-    if (pInnerAlgorithm instanceof CPAAlgorithm) {
-      cpaAlgorithm = (CPAAlgorithm) pInnerAlgorithm;
+    if (pInnerAlgorithm instanceof CPAAlgorithm cPAAlgorithm) {
+      cpaAlgorithm = cPAAlgorithm;
     } else {
       throw new InvalidConfigurationException(
           "For residual program generation, only the CPAAlgorithm is required.");
@@ -295,13 +295,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty(), cfa);
 
       final Specification constrSpec =
           spec.withAdditionalSpecificationFile(
               ImmutableSet.of(conditionSpec, condition), cfa, config, logger, shutdown);
 
-      ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
+      ConfigurableProgramAnalysis cpa = coreComponents.createCPA(constrSpec);
 
       ReachedSet reached = coreComponents.createReachedSet(cpa);
       reached.add(
@@ -362,7 +362,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private boolean hasDeclarationGotoProblem() {
     return constructionStrategy != ResidualGenStrategy.CONDITION_PLUS_FOLD
-        || folder.getType() != FOLDER_TYPE.CFA;
+        || folder.getType() != FolderType.CFA;
   }
 
   protected boolean writeResidualProgram(
@@ -418,8 +418,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private void checkCPAConfiguration(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    if (pCpa instanceof ARGCPA && ((ARGCPA) pCpa).getWrappedCPAs().get(0) instanceof CompositeCPA) {
-      CompositeCPA comCpa = (CompositeCPA) ((ARGCPA) pCpa).getWrappedCPAs().get(0);
+    if (pCpa instanceof ARGCPA aRGCPA
+        && aRGCPA.getWrappedCPAs().getFirst() instanceof CompositeCPA comCpa) {
 
       boolean considersLocation = false;
       boolean considersCallstack = false;
@@ -448,13 +448,11 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       boolean considersAssumptionGuider = false;
 
       for (AbstractState component : AbstractStates.asIterable(initState)) {
-        if (component instanceof AutomatonState) {
-          if (((AutomatonState) component).getOwningAutomatonName().equals("AssumptionAutomaton")) {
+        if (component instanceof AutomatonState automatonState) {
+          if (automatonState.getOwningAutomatonName().equals("AssumptionAutomaton")) {
             considersAssumption = true;
           }
-          if (((AutomatonState) component)
-              .getOwningAutomatonName()
-              .equals("AssumptionGuidingAutomaton")) {
+          if (automatonState.getOwningAutomatonName().equals("AssumptionGuidingAutomaton")) {
             considersAssumptionGuider = true;
           }
         }

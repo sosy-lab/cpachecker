@@ -9,41 +9,52 @@
 package org.sosy_lab.cpachecker.util.resources;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 import org.sosy_lab.common.time.TimeSpan;
 
-/** A limit that measures the CPU time used by the current process (if available on this JVM). */
+/**
+ * A limit that is based on how much CPU time is spent for the whole process. This includes our
+ * code, code in native libraries, the JVM and its garbage collector, etc. (not not started
+ * subprocesses).
+ *
+ * <p>This limit might not be available on all JVMs.
+ *
+ * <p>Created instances should be passed to {@link
+ * ResourceLimitChecker#ResourceLimitChecker(org.sosy_lab.common.ShutdownManager, java.util.List)},
+ * but not used in any other way.
+ */
 public class ProcessCpuTimeLimit implements ResourceLimit {
 
   private final int processorCount = Runtime.getRuntime().availableProcessors();
 
   private final long duration;
-  private final long endTime;
+  private long endTime = -1;
 
-  private ProcessCpuTimeLimit(long pStart, long pLimit, TimeUnit pUnit) {
+  private ProcessCpuTimeLimit(long pLimit, TimeUnit pUnit) {
     checkArgument(pLimit > 0);
     duration = TimeUnit.NANOSECONDS.convert(pLimit, pUnit);
-    endTime = pStart + duration;
   }
 
-  public static ProcessCpuTimeLimit fromNowOn(TimeSpan timeSpan) throws JMException {
-    return new ProcessCpuTimeLimit(ProcessCpuTime.read(), timeSpan.asNanos(), TimeUnit.NANOSECONDS);
+  public static ProcessCpuTimeLimit create(TimeSpan timeSpan) throws JMException {
+    return create(timeSpan.asNanos(), TimeUnit.NANOSECONDS);
   }
 
-  public static ProcessCpuTimeLimit fromNowOn(long limit, TimeUnit unit) throws JMException {
-    return new ProcessCpuTimeLimit(ProcessCpuTime.read(), limit, unit);
-  }
-
-  public static ProcessCpuTimeLimit sinceProcessStart(long time, TimeUnit unit) throws JMException {
-    // Do a single read to trigger exceptions if ProcessCpuTime is not available.
-    ProcessCpuTime.read();
-    return new ProcessCpuTimeLimit(0, time, unit);
+  public static ProcessCpuTimeLimit create(long limit, TimeUnit unit) throws JMException {
+    ProcessCpuTime.read(); // do a read to detect whether it works or throws exception
+    return new ProcessCpuTimeLimit(limit, unit);
   }
 
   @Override
-  public long getCurrentValue() {
+  public void start(Thread pThread) {
+    checkState(endTime == -1);
+    endTime = getCurrentMeasurementValue() + duration;
+  }
+
+  @Override
+  public long getCurrentMeasurementValue() {
     try {
       return ProcessCpuTime.read();
     } catch (JMException e) {
@@ -53,11 +64,13 @@ public class ProcessCpuTimeLimit implements ResourceLimit {
 
   @Override
   public boolean isExceeded(long pCurrentValue) {
+    checkState(endTime != -1);
     return pCurrentValue >= endTime;
   }
 
   @Override
   public long nanoSecondsToNextCheck(long pCurrentValue) {
+    checkState(endTime != -1);
     if (pCurrentValue == 0) {
       // reading failed suddenly, we disable this limit
       return Long.MAX_VALUE;

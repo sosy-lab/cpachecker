@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.DoNotCall;
 import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -30,12 +31,12 @@ public final class CProblemType implements CType {
   }
 
   @Override
-  public boolean isConst() {
+  public CTypeQualifiers getQualifiers() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean isVolatile() {
+  public boolean isAtomic() {
     throw new UnsupportedOperationException();
   }
 
@@ -80,12 +81,46 @@ public final class CProblemType implements CType {
   }
 
   @Override
+  @DoNotCall
   public CProblemType getCanonicalType() {
     return this;
   }
 
   @Override
-  public CProblemType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+  @DoNotCall
+  public CProblemType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    checkNotNull(pQualifiersToAdd);
+    return this;
+  }
+
+  @Override
+  @DoNotCall
+  public CProblemType withConst() {
+    return this;
+  }
+
+  @Override
+  @DoNotCall
+  public CProblemType withoutConst() {
+    return this;
+  }
+
+  @Override
+  @DoNotCall
+  public CProblemType withVolatile() {
+    return this;
+  }
+
+  @Override
+  @DoNotCall
+  public CProblemType withoutVolatile() {
+    return this;
+  }
+
+  @Override
+  @DoNotCall
+  public CProblemType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    checkNotNull(pNewQualifiers);
     return this;
   }
 }

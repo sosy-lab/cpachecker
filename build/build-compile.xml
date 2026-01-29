@@ -36,9 +36,10 @@ SPDX-License-Identifier: Apache-2.0
         <exclude name="**/*.java" />
     </patternset>
 
-    <!-- error-prone config from https://errorprone.info/docs/installation#jdk-16 -->
+    <!-- error-prone config from https://errorprone.info/docs/installation#ant -->
     <property name="errorprone.options.required" value="
         -XDcompilePolicy=simple
+        --should-stop=ifError=FLOW
         -J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
         -J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
         -J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED
@@ -81,6 +82,7 @@ SPDX-License-Identifier: Apache-2.0
             <compilerarg value="-Xlint:-this-escape" if:set="java21"/> <!-- false alarm for every use of configuration injection -->
             <compilerarg value="-Werror" unless:set="compile.warn"/>
             <compilerarg line="${errorprone.options.required}" unless:set="errorprone.disable"/>
+            <compilerarg value="-XDaddTypeAnnotationsToSymbol=true" if:set="java21" unless:set="errorprone.disable"/> <!-- necessary for Error Prone on Java 21, can be removed once minimal version is Java 22 -->
             <compilerarg value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}" unless:set="errorprone.disable"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
             <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
@@ -107,6 +109,7 @@ SPDX-License-Identifier: Apache-2.0
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
             <compilerarg line="${errorprone.options.required}" unless:set="errorprone.disable"/>
+            <compilerarg value="-XDaddTypeAnnotationsToSymbol=true" if:set="java21" unless:set="errorprone.disable"/> <!-- necessary for Error Prone on Java 21, can be removed once minimal version is Java 22 -->
             <compilerarg value="-Xplugin:ErrorProne -XepPatchChecks:refaster:${refaster.rule.file} -XepPatchLocation:${basedir}" unless:set="errorprone.disable"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
             <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
@@ -131,10 +134,13 @@ SPDX-License-Identifier: Apache-2.0
         <mkdir dir="${source.generated.dir}"/>
 
         <copy file=".settings/org.eclipse.jdt.core.prefs" tofile="${ivy.lib.dir}/build/org.eclipse.jdt.core.prefs">
-            <!-- Convert all compiler warnings to errors. -->
+            <!-- Convert all compiler warnings to errors and ignore info messages to not clutter the output. -->
             <filterchain>
                 <replacetokens begintoken="=" endtoken="g">
                     <token key="warnin" value="=error"/>
+                </replacetokens>
+                <replacetokens begintoken="=" endtoken="o">
+                    <token key="inf" value="=ignore"/>
                 </replacetokens>
             </filterchain>
         </copy>

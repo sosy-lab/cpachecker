@@ -76,6 +76,7 @@ public class CParserWithLocationMapper implements CParser {
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
+  @SuppressWarnings("AssignmentExpression")
   private String processCode(
       final Path fileName, String pCode, CSourceOriginMapping sourceOriginMapping)
       throws CParserException {
@@ -113,7 +114,7 @@ public class CParserWithLocationMapper implements CParser {
 
           // Evaluate the preprocessor directive...
           if (readLineDirectives && !directiveTokens.isEmpty()) {
-            String firstTokenImage = directiveTokens.get(0).getImage().trim();
+            String firstTokenImage = directiveTokens.getFirst().getImage().trim();
 
             final int lineNumberTokenIndex;
 

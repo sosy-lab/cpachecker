@@ -8,30 +8,39 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
+import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineWithMerge;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.BackwardTransferViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
 
-public class DistributedFunctionPointerCPA implements DistributedConfigurableProgramAnalysis {
+public class DistributedFunctionPointerCPA
+    implements ForwardingDistributedConfigurableProgramAnalysis {
 
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
-  private final CombineOperator combine;
-  private final ProceedOperator proceed;
+  private final SerializePrecisionOperator serializePrecisionOperator;
+  private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final ViolationConditionOperator verificationConditionOperator;
+  private final CoverageOperator coverageOperator;
+  private final CombineOperator combineOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
 
   private final FunctionPointerCPA functionPointerCPA;
 
@@ -39,8 +48,14 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
     functionPointerCPA = pParentCPA;
     serialize = new SerializeFunctionPointerStateOperator();
     deserialize = new DeserializeFunctionPointerStateOperator(pParentCPA, pNode);
-    combine = new CombineWithMerge(getMergeOperator());
-    proceed = new AlwaysProceed();
+    serializePrecisionOperator = new NoPrecisionSerializeOperator();
+    deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
+    verificationConditionOperator =
+        new BackwardTransferViolationConditionOperator(
+            pParentCPA.getTransferRelation(), pParentCPA);
+    coverageOperator = new FunctionPointerStateCoverageOperator();
+    combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
+    combinePrecisionOperator = new CombineSingletonPrecisionOperator();
   }
 
   @Override
@@ -49,18 +64,28 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combine;
-  }
-
-  @Override
   public DeserializeOperator getDeserializeOperator() {
     return deserialize;
   }
 
   @Override
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return serializePrecisionOperator;
+  }
+
+  @Override
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
+  }
+
+  @Override
   public ProceedOperator getProceedOperator() {
-    return proceed;
+    return ProceedOperator.always();
   }
 
   @Override
@@ -69,28 +94,36 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return functionPointerCPA.getAbstractDomain();
+  public ConfigurableProgramAnalysis getCPA() {
+    return functionPointerCPA;
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return functionPointerCPA.getTransferRelation();
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
+    return true;
   }
 
   @Override
-  public MergeOperator getMergeOperator() {
-    return functionPointerCPA.getMergeOperator();
+  public AbstractState reset(AbstractState pAbstractState) {
+    Preconditions.checkArgument(
+        pAbstractState instanceof FunctionPointerState,
+        "Expected FunctionPointerState, but got %s",
+        pAbstractState.getClass().getSimpleName());
+    return pAbstractState;
   }
 
   @Override
-  public StopOperator getStopOperator() {
-    return functionPointerCPA.getStopOperator();
+  public ViolationConditionOperator getViolationConditionOperator() {
+    return verificationConditionOperator;
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
-      throws InterruptedException {
-    return functionPointerCPA.getInitialState(node, partition);
+  public CoverageOperator getCoverageOperator() {
+    return coverageOperator;
+  }
+
+  @Override
+  public CombineOperator getCombineOperator() {
+    return combineOperator;
   }
 }

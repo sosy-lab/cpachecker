@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -100,8 +101,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         writer.append("###\n");
       } else if (id instanceof GlobalVariableIdentifier) {
         writer.append("#\n");
-      } else if (id instanceof LocalVariableIdentifier) {
-        writer.append("##" + ((LocalVariableIdentifier) id).getFunction() + "\n");
+      } else if (id instanceof LocalVariableIdentifier localVariableIdentifier) {
+        writer.append("##" + localVariableIdentifier.getFunction() + "\n");
       } else {
         logger.log(Level.WARNING, "What is it? " + id);
       }
@@ -137,7 +138,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     if (usage.isLooped()) {
       writer.append("Line 0:     N0 -{/*Failure in refinement*/}-> N0\n");
     }
-    List<CFAEdge> path = getPath(usage);
+    @Nullable List<@Nullable CFAEdge> path = getPath(usage);
     if (path == null) {
       return;
     }
@@ -148,7 +149,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
      */
     Iterator<CFAEdge> iterator = path.iterator();
     while (iterator.hasNext()) {
-      CFAEdge edge = iterator.next();
+      @Nullable CFAEdge edge = iterator.next();
       if (edge == null || edge instanceof CDeclarationEdge) {
         continue;
       }

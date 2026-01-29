@@ -16,6 +16,8 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.SetMultimap;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
@@ -28,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
  * This class represents a CFA after it has been fully created (parsing, linking of functions,
  * etc.).
  */
-class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
+public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
 
   private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
@@ -38,7 +40,7 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
 
   private final CfaNetwork network;
 
-  ImmutableCFA(
+  public ImmutableCFA(
       Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
       CfaMetadata pCfaMetadata) {
@@ -49,11 +51,28 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
 
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
     checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
+    checkArgument(
+        pCfaMetadata.getLanguage() == Language.SVLIB
+            ? pCfaMetadata.getSvLibCfaMetadata().isPresent()
+            : pCfaMetadata.getSvLibCfaMetadata().isEmpty());
 
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(
             new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
     allEdges = ImmutableSet.copyOf(super.edges());
+  }
+
+  private ImmutableCFA(
+      ImmutableSortedMap<String, FunctionEntryNode> pFunctions,
+      ImmutableSortedSet<CFANode> pAllNodes,
+      ImmutableSet<CFAEdge> pAllEdges,
+      CfaNetwork pCfaNetwork,
+      CfaMetadata pCfaMetadata) {
+    functions = pFunctions;
+    allNodes = pAllNodes;
+    metadata = pCfaMetadata;
+    network = pCfaNetwork;
+    allEdges = pAllEdges;
   }
 
   @Override
@@ -66,9 +85,17 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
     return this;
   }
 
+  public static ImmutableCFA copyOf(CFA pCfa, Configuration pConfig, LogManager pLogger) {
+    return MutableCFA.copyOf(pCfa, pConfig, pLogger).immutableCopy();
+  }
+
   @Override
   protected CfaNetwork delegate() {
     return network;
+  }
+
+  public ImmutableCFA copyWithMetadata(CfaMetadata pMetadata) {
+    return new ImmutableCFA(functions, allNodes, allEdges, network, pMetadata);
   }
 
   @Override

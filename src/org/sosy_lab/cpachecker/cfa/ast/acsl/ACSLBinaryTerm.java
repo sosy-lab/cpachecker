@@ -21,38 +21,37 @@ public final class ACSLBinaryTerm implements ACSLTerm {
         : String.format(
             "ACSLTerm may only hold arithmetic, bitwise or comparison operator, %s is neither", op);
     switch (op) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case TIMES:
-      case MOD:
-      case LSHIFT:
-      case RSHIFT:
-      case BAND:
-      case BOR:
-      case BXOR:
-      case EQ:
-      case NEQ:
-      case LEQ:
-      case GEQ:
-      case LT:
-      case GT:
+      case PLUS,
+          MINUS,
+          DIVIDE,
+          TIMES,
+          MOD,
+          LSHIFT,
+          RSHIFT,
+          BAND,
+          BOR,
+          BXOR,
+          EQ,
+          NEQ,
+          LEQ,
+          GEQ,
+          LT,
+          GT -> {
         left = pLeft;
         right = pRight;
         operator = op;
-        break;
-      case BIMP:
+      }
+      case BIMP -> {
         left = new ACSLUnaryTerm(pLeft, ACSLUnaryOperator.BNEG);
         right = pRight;
         operator = ACSLBinaryOperator.BOR;
-        break;
-      case BEQV:
+      }
+      case BEQV -> {
         left = new ACSLUnaryTerm(pLeft, ACSLUnaryOperator.BNEG);
         right = pRight;
         operator = ACSLBinaryOperator.BXOR;
-        break;
-      default:
-        throw new AssertionError("Unknown operator: " + op);
+      }
+      default -> throw new AssertionError("Unknown operator: " + op);
     }
   }
 

@@ -50,7 +50,7 @@ public interface TypeInfo {
       return BitVectorInfo.from(size, signed);
 
     } else if (pType instanceof JSimpleType simpleType) {
-      return switch (simpleType.getType()) {
+      return switch (simpleType) {
         case BOOLEAN -> BitVectorInfo.from(32, false);
         case BYTE -> BitVectorInfo.from(8, true);
         case CHAR -> BitVectorInfo.from(16, false);
@@ -84,7 +84,7 @@ public interface TypeInfo {
       }
 
     } else if (pType instanceof JSimpleType simpleType) {
-      return switch (simpleType.getType()) {
+      return switch (simpleType) {
         case BOOLEAN, BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> true;
         default -> false;
       };

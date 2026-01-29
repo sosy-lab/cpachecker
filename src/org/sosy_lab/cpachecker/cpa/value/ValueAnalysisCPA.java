@@ -104,6 +104,10 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
+  @Option(secure = true, description = "get an initial precision from a correctness witness file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path witnessFileForInitialPrecision = null;
+
   @Option(
       secure = true,
       name = "unknownValueHandling",
@@ -131,7 +135,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
-  private final PredicateToValuePrecisionConverter predToValPrec;
+  private final ToValuePrecisionConverter converterToValPrec;
 
   private SymbolicStatistics symbolicStats;
 
@@ -146,7 +150,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     config.inject(this, ValueAnalysisCPA.class);
 
-    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+    converterToValPrec = new ToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
     statistics = new ValueAnalysisCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
@@ -167,13 +171,14 @@ public class ValueAnalysisCPA extends AbstractCPA
     return switch (unknownValueStrategy) {
       case DISCARD -> new UnknownValueAssigner();
       case INTRODUCE_SYMBOLIC -> new SymbolicValueAssigner(config);
-      default -> throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
     };
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException {
-    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && witnessFileForInitialPrecision == null) {
       return VariableTrackingPrecision.createStaticPrecision(
           pConfig, pCfa.getVarClassification(), getClass());
     }
@@ -185,6 +190,12 @@ public class ValueAnalysisCPA extends AbstractCPA
             VariableTrackingPrecision.createStaticPrecision(
                 pConfig, pCfa.getVarClassification(), getClass()));
 
+    if (witnessFileForInitialPrecision != null) {
+      initialPrecision =
+          initialPrecision.withIncrement(
+              converterToValPrec.convertWitnessToVariableTrackingPrec(
+                  witnessFileForInitialPrecision));
+    }
     if (initialPredicatePrecisionFile != null) {
 
       // convert the predicate precision to variable tracking precision and
@@ -193,7 +204,8 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       initialPrecision =
           initialPrecision.withIncrement(
-              predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
+              converterToValPrec.convertPredPrecToVariableTrackingPrec(
+                  initialPredicatePrecisionFile));
     }
     if (initialPrecisionFile != null) {
       // create precision with empty, refinable component precision
@@ -219,17 +231,14 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
-      if (currentLine.trim().isEmpty()) {
-        continue;
-
-      } else if (currentLine.endsWith(":")) {
+      if (currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
         Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
 
-      } else {
+      } else if (!currentLine.trim().isEmpty()) {
         mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
       }
     }
@@ -328,8 +337,8 @@ public class ValueAnalysisCPA extends AbstractCPA
       pStatsCollection.add(symbolicStats);
     }
     pStatsCollection.add(constraintsStrengthenOperator);
-    if (predToValPrec.collectedStats()) {
-      pStatsCollection.add(predToValPrec);
+    if (converterToValPrec.collectedStats()) {
+      pStatsCollection.add(converterToValPrec);
     }
     writer.collectStatistics(pStatsCollection);
   }

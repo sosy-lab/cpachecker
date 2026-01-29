@@ -27,13 +27,13 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class SymbolicLocationsUtility {
-  private CFA cfa;
-  private Solver solver;
-  private FormulaManagerView fmgr;
-  private PredicateAbstractionManager pamgr;
-  private PathFormulaManager pfmgr;
-  private ImmutableSet<CFANode> targetNodes;
+public final class SymbolicLocationsUtility {
+  private final CFA cfa;
+  private final Solver solver;
+  private final FormulaManagerView fmgr;
+  private final PredicateAbstractionManager pamgr;
+  private final PathFormulaManager pfmgr;
+  private final ImmutableSet<CFANode> targetNodes;
 
   public SymbolicLocationsUtility(PredicateCPA pPredicateCpa, Specification pSpecification) {
     cfa = pPredicateCpa.getCfa();

@@ -41,8 +41,8 @@ public class SMGEdgeHeapAbstractionInterpolator {
    * abstraction infeasible when executing heap abstraction on the given node of the path, based on
    * the given precision.
    *
-   * @param pState the smg state on the node of the given cfaNode.
-   * @param pRemainingErrorPath the remaining infeasible error path,that starts with given cfa node.
+   * @param pState the SMG state on the node of the given cfaNode.
+   * @param pRemainingErrorPath the remaining infeasible error path,that starts with given CFA node.
    * @param pPrecision the current precision of the program.
    * @param pStateLocation the location of the given smgState.
    * @param pAllTargets should we check for all errors, or only the one in the target

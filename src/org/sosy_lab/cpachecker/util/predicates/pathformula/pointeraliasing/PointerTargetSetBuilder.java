@@ -60,7 +60,7 @@ public interface PointerTargetSetBuilder {
 
   /**
    * Adds the newly allocated base of the given type for tracking along with all its tracked
-   * (sub)fields (if its a structure/union) or all its elements (if its an array).
+   * (sub)fields (if it's a structure/union) or all its elements (if it's an array).
    */
   void addBase(String name, CType type);
 
@@ -120,7 +120,7 @@ public interface PointerTargetSetBuilder {
 
     private final TypeHandlerWithPointerAliasing typeHandler;
     private final PointerTargetSetManager ptsMgr;
-    private final FormulaEncodingWithPointerAliasingOptions options;
+    private final CFormulaEncodingWithPointerAliasingOptions options;
     private final MemoryRegionManager regionMgr;
 
     // These fields all exist in PointerTargetSet and are documented there.
@@ -142,7 +142,7 @@ public interface PointerTargetSetBuilder {
         final PointerTargetSet pointerTargetSet,
         final TypeHandlerWithPointerAliasing pTypeHandler,
         final PointerTargetSetManager pPtsMgr,
-        final FormulaEncodingWithPointerAliasingOptions pOptions,
+        final CFormulaEncodingWithPointerAliasingOptions pOptions,
         final MemoryRegionManager pRegionMgr) {
       bases = pointerTargetSet.getBases();
       fields = pointerTargetSet.getFields();
@@ -218,8 +218,8 @@ public interface PointerTargetSetBuilder {
       // checkArgument(bases.containsKey(name),
       //     "The base should be prepared before with prepareBase()");
 
-      if (type instanceof CElaboratedType) {
-        assert ((CElaboratedType) type).getRealType() == null
+      if (type instanceof CElaboratedType cElaboratedType) {
+        assert cElaboratedType.getRealType() == null
             : "Elaborated type " + type + " that was not simplified but could have been.";
         // This is the declaration of a variable of an incomplete struct type.
         // We can't access the contents of this variable anyway,
@@ -471,7 +471,7 @@ public interface PointerTargetSetBuilder {
                 break;
               }
             }
-          } while (!Objects.equals(current, currentChain.get(currentChain.size() - 1)));
+          } while (!Objects.equals(current, currentChain.getLast()));
 
           boolean useful = false;
           for (int i = currentChain.size() - 1; i >= 0; i--) {
@@ -758,7 +758,8 @@ public interface PointerTargetSetBuilder {
     /** Returns a fresh ID that can be used as identifier for a heap allocation. */
     @Override
     public int getFreshAllocationId() {
-      return allocationCount = Math.incrementExact(allocationCount);
+      allocationCount = Math.incrementExact(allocationCount);
+      return allocationCount;
     }
   }
 

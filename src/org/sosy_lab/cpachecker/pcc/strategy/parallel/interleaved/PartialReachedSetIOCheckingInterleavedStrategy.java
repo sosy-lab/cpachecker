@@ -223,7 +223,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     private final Semaphore partitionsRead;
     private final Semaphore checkedPartitions;
 
-    public PartitionReader(
+    PartitionReader(
         final AtomicBoolean pCheckResult,
         final Semaphore pPartitionsRead,
         final Semaphore pCheckedPartitions) {

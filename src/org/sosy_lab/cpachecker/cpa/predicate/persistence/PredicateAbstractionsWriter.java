@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
@@ -24,6 +24,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -42,7 +44,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class PredicateAbstractionsWriter {
+public final class PredicateAbstractionsWriter {
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -70,11 +72,11 @@ public class PredicateAbstractionsWriter {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
-    Set<String> definitions = new LinkedHashSet<>();
+    SequencedSet<String> definitions = new LinkedHashSet<>();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)
-    Map<ARGState, String> stateToAssert = new LinkedHashMap<>();
+    SequencedMap<ARGState, String> stateToAssert = new LinkedHashMap<>();
 
     // Get list of all abstraction states in the set reached
     Deque<ARGState> worklist = new ArrayDeque<>();
@@ -137,7 +139,7 @@ public class PredicateAbstractionsWriter {
 
       // Write it to the file
       // -- first the definitions
-      LINE_JOINER.appendTo(writer, definitions);
+      Joiner.on('\n').appendTo(writer, definitions);
       writer.append("\n\n");
 
       // -- then the assertions

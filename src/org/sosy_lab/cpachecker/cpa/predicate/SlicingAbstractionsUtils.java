@@ -63,7 +63,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * Utility class for Slicing Abstractions like in the papers: "Slicing Abstractions"
  * (doi:10.1007/978-3-540-75698-9_2) "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
  */
-public class SlicingAbstractionsUtils {
+public final class SlicingAbstractionsUtils {
 
   private SlicingAbstractionsUtils() {}
 
@@ -369,7 +369,7 @@ public class SlicingAbstractionsUtils {
       ARGState start, ARGState stop, List<ARGState> segmentList, PathFormulaManager pPfmgr) {
     final Map<ARGState, PathFormulaBuilder> finishedBuilders = new TreeMap<>();
     List<ARGState> allList = new ArrayList<>(segmentList);
-    allList.add(0, start);
+    allList.addFirst(start);
     allList.add(stop);
 
     for (ARGState currentState : allList) {
@@ -483,7 +483,7 @@ public class SlicingAbstractionsUtils {
     PathFormula currentPathFormula =
         buildPathFormula(
             pRoot,
-            pPath.get(0),
+            pPath.getFirst(),
             pSSAMap,
             pPts,
             pSolver.getFormulaManager(),
@@ -555,9 +555,8 @@ public class SlicingAbstractionsUtils {
 
     // we need to treat the case where we have no intermediate non-abstraction states differently:
     if (oldEndState.getParents().contains(oldStartState)) {
-      if (oldStartState instanceof SLARGState) {
-        EdgeSet newEdgeSet =
-            new EdgeSet(((SLARGState) oldStartState).getEdgeSetToChild(oldEndState));
+      if (oldStartState instanceof SLARGState sLARGState) {
+        EdgeSet newEdgeSet = new EdgeSet(sLARGState.getEdgeSetToChild(oldEndState));
         ((SLARGState) newEndState).addParent((SLARGState) newStartState, newEdgeSet);
       } else {
         newEndState.addParent(newStartState);
@@ -574,10 +573,10 @@ public class SlicingAbstractionsUtils {
     List<ARGState> newSegmentStates = new ArrayList<>();
     for (ARGState existingState : pSegmentStates) {
       ARGState newState;
-      if (!(existingState instanceof SLARGState)) {
+      if (!(existingState instanceof SLARGState sLARGState)) {
         newState = new ARGState(existingState.getWrappedState(), null);
       } else {
-        newState = new SLARGState((SLARGState) existingState);
+        newState = new SLARGState(sLARGState);
       }
       newState.makeTwinOf(existingState);
       newSegmentStates.add(newState);
@@ -610,11 +609,11 @@ public class SlicingAbstractionsUtils {
 
   private static void copyParent(
       ARGState oldParent, ARGState oldState, ARGState newParent, ARGState newState) {
-    if (!(newParent instanceof SLARGState)) {
+    if (!(newParent instanceof SLARGState sLARGState)) {
       newState.addParent(newParent);
     } else {
       EdgeSet newEdgeSet = new EdgeSet(((SLARGState) oldParent).getEdgeSetToChild(oldState));
-      ((SLARGState) newState).addParent((SLARGState) newParent, newEdgeSet);
+      ((SLARGState) newState).addParent(sLARGState, newEdgeSet);
     }
   }
 
@@ -631,7 +630,7 @@ public class SlicingAbstractionsUtils {
     ARGState root = rootStates.iterator().next();
     final List<ARGState> abstractionStatesTrace =
         PredicateCPARefiner.filterAbstractionStates(pErrorPath);
-    assert abstractionStatesTrace.get(0).getStateId() != 0;
+    assert abstractionStatesTrace.getFirst().getStateId() != 0;
     for (int i = -1; i < abstractionStatesTrace.size() - 1; i++) {
       ARGState first = (i == -1) ? root : abstractionStatesTrace.get(i);
       ARGState second = abstractionStatesTrace.get(i + 1);
@@ -765,7 +764,7 @@ public class SlicingAbstractionsUtils {
     if (calculateOutgoingSegments(pState).containsKey(pState)) {
       return true;
     }
-    if (pState instanceof SLARGState) {
+    if (pState instanceof SLARGState sLARGState) {
       // if not all EdgeSets from parents to pState are singletons, return true:
       if (!pState.getParents().stream()
           .map(parent -> ((SLARGState) parent).getEdgeSetToChild(pState))
@@ -774,7 +773,7 @@ public class SlicingAbstractionsUtils {
       }
       // if not all EdgeSets from pState to children are singletons, return true:
       if (!pState.getChildren().stream()
-          .map(child -> ((SLARGState) pState).getEdgeSetToChild(child))
+          .map(child -> sLARGState.getEdgeSetToChild(child))
           .allMatch(x -> x.size() == 1)) {
         return true;
       }
@@ -802,20 +801,20 @@ public class SlicingAbstractionsUtils {
         ARGState newState = currentState.forkWithReplacements(Collections.singleton(replacement));
         currentState.replaceInARGWith(newState);
         pArgReachedSet.addForkedState(newState, (ARGState) state);
-        if (newState instanceof SLARGState) {
+        if (newState instanceof SLARGState sLARGState) {
           // check for incoming edges that do not have a suitable outgoing edge for their successor
           // location. E.g.: A-{1~>2}->B-{3~>4}->C
           // transfer from 1~>2 will be removed
-          removeIncomingEdgesWithLocationMismatch((SLARGState) newState);
+          removeIncomingEdgesWithLocationMismatch(sLARGState);
 
           // now do the same the other way around (check for outgoing edges that do not have a
-          removeOutgoingEdgesWithLocationMismatch((SLARGState) newState);
+          removeOutgoingEdgesWithLocationMismatch(sLARGState);
         }
       } else if (predState.isAbstractionState() && !((ARGState) state).getParents().isEmpty()) {
         // here it is only sound to check for outgoing edges that do not have a suitable incoming
         // edge
-        if (state instanceof SLARGState) {
-          removeOutgoingEdgesWithLocationMismatch((SLARGState) state);
+        if (state instanceof SLARGState sLARGState) {
+          removeOutgoingEdgesWithLocationMismatch(sLARGState);
         }
       }
     }

@@ -90,7 +90,7 @@ class AstLocationClassifier extends ASTVisitor {
   }
 
   public ImmutableSortedMap<Integer, FileLocation> getStatementOffsetsToLocations() {
-    // Using an ImmutableMap and then copying it into a ImmutableSortedMap is necessary,
+    // Using an ImmutableMap and then copying it into an ImmutableSortedMap is necessary,
     // since ImmutableSortedMap does not implement buildKeepingLast, which is necessary
     // when multiple statements are at the same initial offset. Currently, this is
     // necessary for: test/programs/simple/builtin_types_compatible_void.c
@@ -163,10 +163,10 @@ class AstLocationClassifier extends ASTVisitor {
                 path, iloc.getEndingLineNumber(), iloc.getNodeOffset() + iloc.getNodeLength()),
             sourceOriginMapping
                 .getOriginLineFromAnalysisCodeLine(path, iloc.getStartingLineNumber())
-                .getLineNumber(),
+                .lineNumber(),
             sourceOriginMapping
                 .getOriginLineFromAnalysisCodeLine(path, iloc.getEndingLineNumber())
-                .getLineNumber(),
+                .lineNumber(),
             sourceOriginMapping.isMappingToIdenticalLineNumbers());
     return loc;
   }
@@ -188,19 +188,22 @@ class AstLocationClassifier extends ASTVisitor {
     Optional<IASTExpression> controllingExpression = Optional.empty();
     Optional<IASTStatement> initializer = Optional.empty();
     Optional<IASTExpression> iteration = Optional.empty();
-    if (statement instanceof IASTWhileStatement whileStatement) {
-      body = whileStatement.getBody();
-      controllingExpression = Optional.of(whileStatement.getCondition());
-    } else if (statement instanceof IASTDoStatement doStatement) {
-      body = doStatement.getBody();
-      controllingExpression = Optional.of(doStatement.getCondition());
-    } else if (statement instanceof IASTForStatement forStatement) {
-      body = forStatement.getBody();
-      controllingExpression = Optional.ofNullable(forStatement.getConditionExpression());
-      initializer = Optional.ofNullable(forStatement.getInitializerStatement());
-      iteration = Optional.ofNullable(forStatement.getIterationExpression());
-    } else {
-      throw new UnsupportedOperationException("Unknown type of iteration statement");
+    switch (statement) {
+      case IASTWhileStatement whileStatement -> {
+        body = whileStatement.getBody();
+        controllingExpression = Optional.of(whileStatement.getCondition());
+      }
+      case IASTDoStatement doStatement -> {
+        body = doStatement.getBody();
+        controllingExpression = Optional.of(doStatement.getCondition());
+      }
+      case IASTForStatement forStatement -> {
+        body = forStatement.getBody();
+        controllingExpression = Optional.ofNullable(forStatement.getConditionExpression());
+        initializer = Optional.ofNullable(forStatement.getInitializerStatement());
+        iteration = Optional.ofNullable(forStatement.getIterationExpression());
+      }
+      default -> throw new UnsupportedOperationException("Unknown type of iteration statement");
     }
     // body and cond are not null at this point.
     loopBody.put(loc, getLocation(body));

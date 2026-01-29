@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultiset;
@@ -407,7 +406,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     Collection<CFANode> nodes = cfa.nodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
     for (CFANode node : nodes) {
-      for (CFAEdge edge : leavingEdges(node)) {
+      for (CFAEdge edge : node.getLeavingEdges()) {
         handleEdge(edge, cfa);
         varFieldDependencies =
             varFieldDependencies.withDependencies(
@@ -429,9 +428,9 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     Multiset<String> assumeVariables = HashMultiset.create();
 
     for (CFANode node : nodes) {
-      for (CAssumeEdge edge : Iterables.filter(leavingEdges(node), CAssumeEdge.class)) {
+      for (CAssumeEdge edge : Iterables.filter(node.getLeavingEdges(), CAssumeEdge.class)) {
         assumeVariables.addAll(
-            CFAUtils.getIdExpressionsOfExpression(edge.getExpression())
+            CFAUtils.getCIdExpressionsOfExpression(edge.getExpression())
                 .transform(id -> id.getDeclaration().getQualifiedName())
                 .toSet());
       }
@@ -448,15 +447,14 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     Multiset<String> assignedVariables = HashMultiset.create();
 
     for (CFANode node : nodes) {
-      for (CFAEdge leavingEdge : leavingEdges(node)) {
+      for (CFAEdge leavingEdge : node.getLeavingEdges()) {
         if (leavingEdge instanceof AStatementEdge edge) {
-          if (!(edge.getStatement() instanceof CAssignment)) {
+          if (!(edge.getStatement() instanceof CAssignment assignment)) {
             continue;
           }
 
-          CAssignment assignment = (CAssignment) edge.getStatement();
           assignedVariables.addAll(
-              CFAUtils.getIdExpressionsOfExpression(assignment.getLeftHandSide())
+              CFAUtils.getCIdExpressionsOfExpression(assignment.getLeftHandSide())
                   .transform(id -> id.getDeclaration().getQualifiedName())
                   .toSet());
         }
@@ -469,90 +467,59 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   /** switch to edgeType and handle all expressions, that could be part of the edge. */
   private void handleEdge(CFAEdge edge, CFA cfa) throws UnrecognizedCodeException {
     switch (edge.getEdgeType()) {
-      case AssumeEdge:
-        {
-          CExpression exp = ((CAssumeEdge) edge).getExpression();
-          CFANode pre = edge.getPredecessor();
+      case AssumeEdge -> {
+        CExpression exp = ((CAssumeEdge) edge).getExpression();
+        CFANode pre = edge.getPredecessor();
 
-          VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
-          Set<String> vars = exp.accept(dcv);
-          if (vars != null) {
-            allVars.addAll(vars);
-            dependencies.addAll(vars, dcv.getValues(), edge, 0);
-          }
-
-          exp.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
-          exp.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
-          exp.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
-          exp.accept(new IntOverflowCollectingVisitor(pre, intOverflowVars));
-
-          break;
+        VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
+        Set<String> vars = exp.accept(dcv);
+        if (vars != null) {
+          allVars.addAll(vars);
+          dependencies.addAll(vars, dcv.getValues(), edge, 0);
         }
 
-      case DeclarationEdge:
-        {
-          handleDeclarationEdge((CDeclarationEdge) edge);
-          break;
+        exp.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
+        exp.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
+        exp.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
+        exp.accept(new IntOverflowCollectingVisitor(pre, intOverflowVars));
+      }
+      case DeclarationEdge -> handleDeclarationEdge((CDeclarationEdge) edge);
+      case StatementEdge -> {
+        final CStatement statement = ((CStatementEdge) edge).getStatement();
+
+        // normal assignment of variable, rightHandSide can be expression or (external)
+        // functioncall
+        if (statement instanceof CAssignment cAssignment) {
+          handleAssignment(edge, cAssignment, cfa);
+
+          // pure external functioncall
+        } else if (statement instanceof CFunctionCallStatement cFunctionCallStatement) {
+          handleExternalFunctionCall(
+              edge, cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions());
         }
-
-      case StatementEdge:
-        {
-          final CStatement statement = ((CStatementEdge) edge).getStatement();
-
-          // normal assignment of variable, rightHandSide can be expression or (external)
-          // functioncall
-          if (statement instanceof CAssignment) {
-            handleAssignment(edge, (CAssignment) statement, cfa);
-
-            // pure external functioncall
-          } else if (statement instanceof CFunctionCallStatement) {
-            handleExternalFunctionCall(
-                edge,
-                ((CFunctionCallStatement) statement)
-                    .getFunctionCallExpression()
-                    .getParameterExpressions());
-          }
-
-          break;
+      }
+      case FunctionCallEdge -> handleFunctionCallEdge((CFunctionCallEdge) edge);
+      case FunctionReturnEdge -> {
+        Optional<CVariableDeclaration> returnVar =
+            ((CFunctionReturnEdge) edge).getFunctionEntry().getReturnVariable();
+        if (returnVar.isPresent()) {
+          String scopedVarName = returnVar.orElseThrow().getQualifiedName();
+          dependencies.addVar(scopedVarName);
+          Partition partition = dependencies.getPartitionForVar(scopedVarName);
+          partition.addEdge(edge, 0);
         }
-
-      case FunctionCallEdge:
-        {
-          handleFunctionCallEdge((CFunctionCallEdge) edge);
-          break;
+      }
+      case ReturnStatementEdge -> {
+        // this is the 'x' from 'return (x);
+        // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
+        CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
+        if (returnStatement.asAssignment().isPresent()) {
+          handleAssignment(edge, returnStatement.asAssignment().orElseThrow(), cfa);
         }
-
-      case FunctionReturnEdge:
-        {
-          Optional<CVariableDeclaration> returnVar =
-              ((CFunctionReturnEdge) edge).getFunctionEntry().getReturnVariable();
-          if (returnVar.isPresent()) {
-            String scopedVarName = returnVar.orElseThrow().getQualifiedName();
-            dependencies.addVar(scopedVarName);
-            Partition partition = dependencies.getPartitionForVar(scopedVarName);
-            partition.addEdge(edge, 0);
-          }
-          break;
-        }
-
-      case ReturnStatementEdge:
-        {
-          // this is the 'x' from 'return (x);
-          // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
-          CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
-          if (returnStatement.asAssignment().isPresent()) {
-            handleAssignment(edge, returnStatement.asAssignment().orElseThrow(), cfa);
-          }
-          break;
-        }
-
-      case BlankEdge:
-      case CallToReturnEdge:
+      }
+      case BlankEdge, CallToReturnEdge -> {
         // other cases are not interesting
-        break;
-
-      default:
-        throw new UnrecognizedCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
+      }
     }
   }
 
@@ -562,11 +529,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
    */
   private void handleDeclarationEdge(final CDeclarationEdge edge) {
     CDeclaration declaration = edge.getDeclaration();
-    if (!(declaration instanceof CVariableDeclaration)) {
+    if (!(declaration instanceof CVariableDeclaration vdecl)) {
       return;
     }
 
-    CVariableDeclaration vdecl = (CVariableDeclaration) declaration;
     String varName = vdecl.getQualifiedName();
     allVars.add(varName);
 
@@ -586,11 +552,11 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
     final CInitializer initializer = vdecl.getInitializer();
 
-    if (!(initializer instanceof CInitializerExpression)) {
+    if (!(initializer instanceof CInitializerExpression cInitializerExpression)) {
       return;
     }
 
-    CExpression exp = ((CInitializerExpression) initializer).getExpression();
+    CExpression exp = cInitializerExpression.getExpression();
     if (exp == null) {
       return;
     }
@@ -608,8 +574,9 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     // If we have a simple pointer, we handle it like a simple variable.
     // This allows us to track dependencies between simple references.
     String varName = scopeVar(function, lhs.toASTString());
-    if (lhs instanceof CPointerExpression && lhs.getExpressionType() instanceof CSimpleType) {
-      CExpression operand = ((CPointerExpression) lhs).getOperand();
+    if (lhs instanceof CPointerExpression cPointerExpression
+        && lhs.getExpressionType() instanceof CSimpleType) {
+      CExpression operand = cPointerExpression.getOperand();
       if (operand instanceof CIdExpression) {
         varName = scopeVar(function, operand.toASTString());
       }
@@ -624,8 +591,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
     dependencies.addVar(varName);
 
-    if (rhs instanceof CExpression) {
-      handleExpression(edge, ((CExpression) rhs), varName);
+    if (rhs instanceof CExpression cExpression) {
+      handleExpression(edge, cExpression, varName);
 
     } else if (rhs instanceof CFunctionCallExpression func) {
       // use FUNCTION_RETURN_VARIABLE for RIGHT SIDE
@@ -664,15 +631,15 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     for (int i = 0; i < params.size(); i++) {
       final CExpression param = params.get(i);
 
-      /* special case: external functioncall with possible side-effect!
+      /* special case: external functioncall with possible side effect!
        * this is the only statement, where a pointer-operation is allowed
        * and the var can be boolean, intEqual or intAdd,
        * because we know, the variable can have a random (unknown) value after the functioncall.
        * example: "scanf("%d", &input);" */
-      if (param instanceof CUnaryExpression
-          && UnaryOperator.AMPER == ((CUnaryExpression) param).getOperator()
-          && ((CUnaryExpression) param).getOperand() instanceof CIdExpression) {
-        final CIdExpression id = (CIdExpression) ((CUnaryExpression) param).getOperand();
+      if (param instanceof CUnaryExpression cUnaryExpression
+          && UnaryOperator.AMPER == cUnaryExpression.getOperator()
+          && cUnaryExpression.getOperand() instanceof CIdExpression id) {
+
         final String varName = id.getDeclaration().getQualifiedName();
 
         dependencies.addVar(varName);
@@ -812,8 +779,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   static boolean isGlobal(CExpression exp) {
     if (checkNotNull(exp) instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
-      if (decl instanceof CDeclaration) {
-        return ((CDeclaration) decl).isGlobal();
+      if (decl instanceof CDeclaration cDeclaration) {
+        return cDeclaration.isGlobal();
       }
     }
     return false;
@@ -821,25 +788,22 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   /** returns the value of a (nested) IntegerLiteralExpression or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {
-    checkNotNull(exp);
-    if (exp instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) exp).getValue();
+    return switch (exp) {
+      case CIntegerLiteralExpression integerLiteral -> integerLiteral.getValue();
 
-    } else if (exp instanceof CUnaryExpression unExp) {
-      BigInteger value = getNumber(unExp.getOperand());
-      if (value == null) {
-        return null;
+      case CUnaryExpression unExp -> {
+        BigInteger value = getNumber(unExp.getOperand());
+        if (value == null) {
+          yield null;
+        }
+        yield switch (unExp.getOperator()) {
+          case MINUS -> value.negate();
+          default -> null;
+        };
       }
-      return switch (unExp.getOperator()) {
-        case MINUS -> value.negate();
-        default -> null;
-      };
+      case CCastExpression cCastExpression -> getNumber(cCastExpression.getOperand());
 
-    } else if (exp instanceof CCastExpression) {
-      return getNumber(((CCastExpression) exp).getOperand());
-
-    } else {
-      return null;
-    }
+      default -> null;
+    };
   }
 }

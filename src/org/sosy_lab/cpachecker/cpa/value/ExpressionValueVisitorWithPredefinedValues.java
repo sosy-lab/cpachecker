@@ -25,9 +25,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueVisitor {
 
-  public static final String PATERN_FOR_RANDOM = "__VERIFIER_nondet_";
+  public static final String PATTERN_FOR_RANDOM = "__VERIFIER_nondet_";
   private AtomicInteger numReturnedValues;
-  private LogManagerWithoutDuplicates logger;
+  private final LogManagerWithoutDuplicates logger;
   private Map<Integer, String> valuesFromFile = new HashMap<>();
   private boolean lastRequestSuccessful = true;
 
@@ -71,10 +71,8 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
   @Override
   public Value evaluate(CRightHandSide pExp, CType pTargetType) throws UnrecognizedCodeException {
     if ((lastRequestSuccessful && pExp instanceof CFunctionCallExpression call)
-        && (call.getFunctionNameExpression() instanceof CIdExpression
-            && ((CIdExpression) call.getFunctionNameExpression())
-                .getName()
-                .startsWith(PATERN_FOR_RANDOM))) {
+        && (call.getFunctionNameExpression() instanceof CIdExpression cIdExpression
+            && cIdExpression.getName().startsWith(PATTERN_FOR_RANDOM))) {
 
       // We found a call to random. If available, return a new value from the predefined inputs.
       // Otherwise, delegate to super

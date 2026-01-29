@@ -26,7 +26,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY;
+import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WeakingingStrategy;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -37,16 +37,16 @@ public class FormulaSlicingTest {
 
   @Parameters(name = "{0}")
   public static Object[] getWeakeningStrategies() {
-    return WEAKENING_STRATEGY.values();
+    return WeakingingStrategy.values();
   }
 
-  @Parameter public WEAKENING_STRATEGY weakeningStrategy;
+  @Parameter public WeakingingStrategy weakeningStrategy;
 
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
 
   @Test
   public void expand_equality_true_assert() throws Exception {
-    assume().that(weakeningStrategy).isNotEqualTo(WEAKENING_STRATEGY.SYNTACTIC);
+    assume().that(weakeningStrategy).isNotEqualTo(WeakingingStrategy.SYNTACTIC);
     check(
         "expand_equality-1.c",
         ExpectedVerdict.TRUE,
@@ -127,7 +127,8 @@ public class FormulaSlicingTest {
             .withMessage("Z3 requires newer libc than Ubuntu 18.04 provides")
             .that(cause)
             .hasMessageThat()
-            .doesNotContain("version `GLIBCXX_3.4.26' not found");
+            .doesNotContainMatch(
+                "version `(GLIBCXX_3\\.4\\.26|GLIBC_2\\.34|GLIBC_2\\.38)' not found");
       }
       throw e;
     }

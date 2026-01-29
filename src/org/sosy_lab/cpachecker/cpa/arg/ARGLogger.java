@@ -49,7 +49,7 @@ public class ARGLogger {
   @Option(secure = true, description = "Enable logging of ARGs at various positions")
   private boolean logARGs = false;
 
-  private LogManager logger;
+  private final LogManager logger;
 
   public ARGLogger(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);

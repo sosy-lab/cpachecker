@@ -109,7 +109,7 @@ public final class TestTargetReductionUtils {
                 }
               });
         }
-        for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
+        for (CFAEdge leaving : currentNode.getLeavingEdges()) {
           requireInput = currentNodeInfo.getSecond();
           if (pTestTargets.contains(leaving)) {
             if (!predecessor.equals(leaving.getPredecessor())) {
@@ -185,7 +185,7 @@ public final class TestTargetReductionUtils {
 
     toDelete.clear();
     for (CFANode succ : visited) {
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(succ)) {
+      for (CFAEdge enteringEdge : succ.getEnteringEdges()) {
         if (!visited.contains(enteringEdge.getPredecessor())) {
           toDelete.add(enteringEdge);
         }
@@ -248,7 +248,7 @@ public final class TestTargetReductionUtils {
       if (currentNode.getNumLeavingEdges() == 0) {
         reachesEndNode = true;
       }
-      for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge leaving : currentNode.getLeavingEdges()) {
         viaInput = currentNodeInfo.getSecond() || isInputEdge(leaving);
         if (pTargetToGoalGraphNode.containsKey(leaving)) {
           pPredecessor.addOrUpdateEdgeTo(pTargetToGoalGraphNode.get(leaving), viaInput);
@@ -310,7 +310,7 @@ public final class TestTargetReductionUtils {
     CFANode currentNode;
     while (!waitlist.isEmpty()) {
       currentNode = waitlist.poll();
-      for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge leaving : currentNode.getLeavingEdges()) {
         if (pTargets.contains(leaving)) {
           seenTargets.add(leaving);
         }
@@ -331,17 +331,17 @@ public final class TestTargetReductionUtils {
   }
 
   public static boolean isInputEdge(CFAEdge pEdge) {
-    if (pEdge instanceof DummyInputCFAEdge) {
-      return ((DummyInputCFAEdge) pEdge).providesInput();
+    if (pEdge instanceof DummyInputCFAEdge dummyInputCFAEdge) {
+      return dummyInputCFAEdge.providesInput();
     }
-    if (pEdge instanceof AStatementEdge
-        && ((AStatementEdge) pEdge).getStatement() instanceof AFunctionCall functionCall) {
+    if (pEdge instanceof AStatementEdge aStatementEdge
+        && aStatementEdge.getStatement() instanceof AFunctionCall functionCall) {
       AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
       AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
 
       if (!isPredefinedFunction(functionDeclaration)
           && !(functionCallExpression.getExpressionType() instanceof CVoidType)
-          && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())) {
+          && (functionCallExpression.getExpressionType() != JSimpleType.VOID)) {
         return true;
       }
     }

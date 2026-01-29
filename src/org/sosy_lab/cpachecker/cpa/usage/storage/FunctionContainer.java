@@ -104,12 +104,12 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   public static class StorageStatistics {
-    private StatCounter hitTimes = new StatCounter("Number of hits into cache");
-    private StatCounter totalJoins = new StatCounter("Total number of joins");
-    private StatCounter numberOfFunctionContainers =
+    private final StatCounter hitTimes = new StatCounter("Number of hits into cache");
+    private final StatCounter totalJoins = new StatCounter("Total number of joins");
+    private final StatCounter numberOfFunctionContainers =
         new StatCounter("Total number of function containers");
 
-    private StatTimer copyTimer = new StatTimer("Time for coping usages");
+    private final StatTimer copyTimer = new StatTimer("Time for coping usages");
 
     public void printStatistics(StatisticsWriter out) {
       out.spacer().put(copyTimer).put(totalJoins).put(hitTimes).put(numberOfFunctionContainers);

@@ -249,87 +249,85 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final Collection<ThreadingState> results)
       throws UnrecognizedCodeException, InterruptedException {
     switch (cfaEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-          if (statement instanceof AFunctionCall) {
-            AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              final String functionName = ((AIdExpression) functionNameExp).getName();
-              if (UNSUPPORTED_THREAD_FUNCTIONS.contains(functionName)) {
-                throw new UnsupportedCodeException("pthread condition variables", cfaEdge);
+      case StatementEdge -> {
+        AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
+        if (statement instanceof AFunctionCall aFunctionCall) {
+          AExpression functionNameExp =
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            final String functionName = aIdExpression.getName();
+            if (UNSUPPORTED_THREAD_FUNCTIONS.contains(functionName)) {
+              throw new UnsupportedCodeException("pthread condition variables", cfaEdge);
+            }
+            switch (functionName) {
+              case THREAD_START -> {
+                return startNewThread(threadingState, statement, results, cfaEdge);
               }
-              switch (functionName) {
-                case THREAD_START:
-                  return startNewThread(threadingState, statement, results, cfaEdge);
-                case THREAD_MUTEX_LOCK:
-                  return addLock(threadingState, activeThread, extractLockId(statement), results);
-                case THREAD_MUTEX_UNLOCK:
-                  return removeLock(activeThread, extractLockId(statement), results);
-                case THREAD_JOIN:
-                  return joinThread(threadingState, statement, results);
-                case THREAD_EXIT:
-                  // this function-call is already handled in the beginning with isLastNodeOfThread.
-                  // return exitThread(threadingState, activeThread, results);
-                  break;
-                case VERIFIER_ATOMIC_BEGIN:
-                  if (useAtomicLocks) {
-                    return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
-                  }
-                  break;
-                case VERIFIER_ATOMIC_END:
-                  if (useAtomicLocks) {
-                    return removeLock(activeThread, ATOMIC_LOCK, results);
-                  }
-                  break;
-                default:
-                  // nothing to do, return results
+              case THREAD_MUTEX_LOCK -> {
+                return addLock(threadingState, activeThread, extractLockId(statement), results);
               }
+              case THREAD_MUTEX_UNLOCK -> {
+                return removeLock(activeThread, extractLockId(statement), results);
+              }
+              case THREAD_JOIN -> {
+                return joinThread(threadingState, statement, results);
+              }
+              case THREAD_EXIT -> {
+                // this function-call is already handled in the beginning with isLastNodeOfThread.
+                // return exitThread(threadingState, activeThread, results);
+              }
+              case VERIFIER_ATOMIC_BEGIN -> {
+                if (useAtomicLocks) {
+                  return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+                }
+              }
+              case VERIFIER_ATOMIC_END -> {
+                if (useAtomicLocks) {
+                  return removeLock(activeThread, ATOMIC_LOCK, results);
+                }
+              }
+              default -> {} // nothing to do, return results
             }
           }
-          break;
         }
-      case FunctionCallEdge:
-        {
-          if (useAtomicLocks) {
-            // cloning changes the function-name -> we use 'startsWith'.
-            // we have 2 different atomic sequences:
-            //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
-            //      (@Deprecated, for old benchmark tasks)
-            //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X where X can be
-            // anything
-            final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
-            if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
-              return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
-            } else if (calledFunction.startsWith(VERIFIER_ATOMIC)
-                && !calledFunction.startsWith(VERIFIER_ATOMIC_END)) {
-              return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
-            }
+      }
+      case FunctionCallEdge -> {
+        if (useAtomicLocks) {
+          // cloning changes the function-name -> we use 'startsWith'.
+          // we have 2 different atomic sequences:
+          //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+          //      (@Deprecated, for old benchmark tasks)
+          //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X where X can be
+          // anything
+          final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
+          if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
+            return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+          } else if (calledFunction.startsWith(VERIFIER_ATOMIC)
+              && !calledFunction.startsWith(VERIFIER_ATOMIC_END)) {
+            return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
           }
-          break;
         }
-      case FunctionReturnEdge:
-        {
-          if (useAtomicLocks) {
-            // cloning changes the function-name -> we use 'startsWith'.
-            // we have 2 different atomic sequences:
-            //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
-            //      (@Deprecated, for old benchmark tasks)
-            //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X  where X can be
-            // anything
-            final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
-            if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
-              return removeLock(activeThread, ATOMIC_LOCK, results);
-            } else if (exitedFunction.startsWith(VERIFIER_ATOMIC)
-                && !exitedFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
-              return removeLock(activeThread, ATOMIC_LOCK, results);
-            }
+      }
+      case FunctionReturnEdge -> {
+        if (useAtomicLocks) {
+          // cloning changes the function-name -> we use 'startsWith'.
+          // we have 2 different atomic sequences:
+          //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+          //      (@Deprecated, for old benchmark tasks)
+          //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X  where X can be
+          // anything
+          final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
+          if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
+            return removeLock(activeThread, ATOMIC_LOCK, results);
+          } else if (exitedFunction.startsWith(VERIFIER_ATOMIC)
+              && !exitedFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
+            return removeLock(activeThread, ATOMIC_LOCK, results);
           }
-          break;
         }
-      default:
+      }
+      default -> {
         // nothing to do
+      }
     }
     return results;
   }
@@ -388,11 +386,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static boolean isThreadExit(CFAEdge cfaEdge) {
     if (CFAEdgeType.StatementEdge == cfaEdge.getEdgeType()) {
       AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-      if (statement instanceof AFunctionCall) {
+      if (statement instanceof AFunctionCall aFunctionCall) {
         AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          return THREAD_EXIT.equals(((AIdExpression) functionNameExp).getName());
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          return THREAD_EXIT.equals(aIdExpression.getName());
         }
       }
     }
@@ -444,28 +442,25 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params =
         ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
-    if (!(params.get(0) instanceof CUnaryExpression)) {
+    if (!(params.get(0) instanceof CUnaryExpression param0)) {
       throw new UnrecognizedCodeException("unsupported thread assignment", params.get(0));
     }
-    if (!(params.get(2) instanceof CUnaryExpression)) {
+    if (!(params.get(2) instanceof CUnaryExpression param2)) {
       throw new UnrecognizedCodeException("unsupported thread function call", params.get(2));
     }
-    CExpression expr0 = ((CUnaryExpression) params.get(0)).getOperand();
-    CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
-    if (!(expr0 instanceof CIdExpression)) {
+    CExpression expr0 = param0.getOperand();
+    CExpression expr2 = param2.getOperand();
+    if (!(expr0 instanceof CIdExpression id)) {
       throw new UnrecognizedCodeException("unsupported thread assignment", expr0);
     }
-    if (!(expr2 instanceof CIdExpression)) {
+    if (!(expr2 instanceof CIdExpression function)) {
       throw new UnrecognizedCodeException("unsupported thread function call", expr2);
     }
-    if (!(params.get(3) instanceof CExpression)) {
+    if (!(params.get(3) instanceof CExpression threadArg)) {
       throw new UnrecognizedCodeException("unsupported thread function argument", params.get(3));
     }
 
     // now create the thread
-    CIdExpression id = (CIdExpression) expr0;
-    CIdExpression function = (CIdExpression) expr2;
-    CExpression threadArg = (CExpression) params.get(3);
 
     if (useAllPossibleClones) {
       // for witness validation we need to produce all possible successors,
@@ -536,9 +531,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         (CFunctionEntryNode)
             Preconditions.checkNotNull(
                 cfa.getFunctionHead(functionName),
-                "Function '"
-                    + functionName
-                    + "' was not found. Please enable cloning for the CFA!");
+                "Function '%s' was not found. Please enable cloning for the CFA!",
+                functionName);
     CFunctionDeclaration functionDeclaration =
         (CFunctionDeclaration) functioncallNode.getFunction();
     CIdExpression functionId =
@@ -579,7 +573,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     CFANode functioncallNode =
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName),
-            "Function '" + functionName + "' was not found. Please enable cloning for the CFA!");
+            "Function '%s' was not found. Please enable cloning for the CFA!",
+            functionName);
     AbstractState initialStack =
         callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
     AbstractState initialLoc =
@@ -635,11 +630,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   static @Nullable String getLockId(final CFAEdge cfaEdge) throws UnrecognizedCodeException {
     if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       final AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-      if (statement instanceof AFunctionCall) {
+      if (statement instanceof AFunctionCall aFunctionCall) {
         final AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          final String functionName = aIdExpression.getName();
           if (THREAD_MUTEX_LOCK.equals(functionName)) {
             return extractLockId(statement);
           }
@@ -654,13 +649,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params =
         ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
-    if (!(params.get(0) instanceof CUnaryExpression)) {
+    if (!(params.get(0) instanceof CUnaryExpression cUnaryExpression)) {
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
     }
-    CExpression operand = ((CUnaryExpression) params.get(0)).getOperand();
-    if (operand instanceof CArraySubscriptExpression) {
-      CExpression subscriptExpression =
-          ((CArraySubscriptExpression) operand).getSubscriptExpression();
+    CExpression operand = cUnaryExpression.getOperand();
+    if (operand instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      CExpression subscriptExpression = cArraySubscriptExpression.getSubscriptExpression();
       if (!(subscriptExpression instanceof ALiteralExpression)) {
         throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
       }
@@ -671,7 +665,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     //  }
     //  String lockId = ((CIdExpression) expr0).getName();
 
-    String lockId = ((CUnaryExpression) params.get(0)).getOperand().toString();
+    String lockId = cUnaryExpression.getOperand().toString();
     return lockId;
   }
 
@@ -698,11 +692,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     List<? extends AExpression> params =
         ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
     AExpression expr = params.get(n);
-    if (!(expr instanceof CIdExpression)) {
+    if (!(expr instanceof CIdExpression cIdExpression)) {
       throw new UnrecognizedCodeException("unsupported thread join access", expr);
     }
 
-    return ((CIdExpression) expr).getName();
+    return cIdExpression.getName();
   }
 
   /**
@@ -732,26 +726,28 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   private static boolean isImporantForThreading(CFAEdge cfaEdge) {
     switch (cfaEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-          if (statement instanceof AFunctionCall) {
-            AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              return THREAD_FUNCTIONS.contains(((AIdExpression) functionNameExp).getName());
-            }
+      case StatementEdge -> {
+        AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
+        if (statement instanceof AFunctionCall aFunctionCall) {
+          AExpression functionNameExp =
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            return THREAD_FUNCTIONS.contains(aIdExpression.getName());
           }
-          return false;
         }
-      case FunctionCallEdge:
+        return false;
+      }
+      case FunctionCallEdge -> {
         // @Deprecated, for old benchmark tasks
         return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         // @Deprecated, for old benchmark tasks
         return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
-      default:
+      }
+      default -> {
         return false;
+      }
     }
   }
 
@@ -797,10 +793,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
     }
     if (witnessId.equals(witnessThreadId.getValue())) {
-      // corrent branch
+      // current branch
       return ts;
     } else {
-      // threadId does not match -> no successor
+      // threadId does not match -> should be no successor
+      // but keep continuining to avoid cutting off too much in some situations
+      // (cf. 7f01668b139817f88f08791695d9245e7f8ca841)
       return ts;
     }
   }
@@ -808,25 +806,25 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   /** if the current edge creates a new function, return its name, else nothing. */
   public static Optional<String> getCreatedThreadFunction(final CFAEdge edge)
       throws UnrecognizedCodeException {
-    if (edge instanceof AStatementEdge) {
-      AStatement statement = ((AStatementEdge) edge).getStatement();
-      if (statement instanceof AFunctionCall) {
+    if (edge instanceof AStatementEdge aStatementEdge) {
+      AStatement statement = aStatementEdge.getStatement();
+      if (statement instanceof AFunctionCall aFunctionCall) {
         AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          final String functionName = aIdExpression.getName();
           if (ThreadingTransferRelation.THREAD_START.equals(functionName)) {
             List<? extends AExpression> params =
-                ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
-            if (!(params.get(2) instanceof CUnaryExpression)) {
+                aFunctionCall.getFunctionCallExpression().getParameterExpressions();
+            if (!(params.get(2) instanceof CUnaryExpression cUnaryExpression)) {
               throw new UnrecognizedCodeException(
                   "unsupported thread function call", params.get(2));
             }
-            CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
-            if (!(expr2 instanceof CIdExpression)) {
+            CExpression expr2 = cUnaryExpression.getOperand();
+            if (!(expr2 instanceof CIdExpression cIdExpression)) {
               throw new UnrecognizedCodeException("unsupported thread function call", expr2);
             }
-            String newThreadFunctionName = ((CIdExpression) expr2).getName();
+            String newThreadFunctionName = cIdExpression.getName();
             return Optional.of(newThreadFunctionName);
           }
         }

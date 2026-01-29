@@ -39,7 +39,7 @@ public class CompoundException extends CPAException {
     List<String> messages =
         pExceptions.stream().map(Throwable::getMessage).distinct().collect(Collectors.toList());
     if (messages.size() == 1) {
-      return messages.get(0);
+      return messages.getFirst();
     }
     return "Several exceptions occured during the analysis:\n -> "
         + Joiner.on("\n -> ").join(messages);

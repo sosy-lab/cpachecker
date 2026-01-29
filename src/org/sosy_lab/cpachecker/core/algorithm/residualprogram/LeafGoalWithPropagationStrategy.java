@@ -60,9 +60,9 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
       ImmutableList<CFANode> childrenNodes = CFAUtils.successorsOf(node).toList();
 
       if (nodes.get(NodeStates.VIRGIN).containsAll(childrenNodes)
-          && node instanceof CFALabelNode
-          && ((CFALabelNode) node).getLabel().matches("^GOAL_[0-9]+$")) {
-        if (coveredGoals.contains(((CFALabelNode) node).getLabel())) {
+          && node instanceof CFALabelNode cFALabelNode
+          && cFALabelNode.getLabel().matches("^GOAL_[0-9]+$")) {
+        if (coveredGoals.contains(cFALabelNode.getLabel())) {
           nodes.get(NodeStates.COVERED).add(node);
         } else {
           nodes.get(NodeStates.UNCOVERED).add(node);

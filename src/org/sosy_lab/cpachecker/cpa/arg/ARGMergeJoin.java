@@ -136,7 +136,7 @@ public class ARGMergeJoin implements MergeOperator {
     if (!argElement2.getChildren().isEmpty()) {
       // This is a late merge (cf. #991) were a merge was actually performed.
       switch (options.lateMerge) {
-        case ALLOW_WARN:
+        case ALLOW_WARN -> {
           logger.log(
               Level.WARNING,
               getLateMergeMessage(argElement1, argElement2),
@@ -144,10 +144,9 @@ public class ARGMergeJoin implements MergeOperator {
                   + " The merge will be performed as usual and no further cases will be logged. Cf."
                   + " issue #991 for more information about late merges.");
           options.lateMerge = LateMergeHandling.ALLOW;
-        // $FALL-THROUGH$
-        case ALLOW:
-          break;
-        case PREVENT_WARN:
+        }
+        case ALLOW -> {}
+        case PREVENT_WARN -> {
           logger.log(
               Level.WARNING,
               getLateMergeMessage(argElement1, argElement2),
@@ -155,18 +154,18 @@ public class ARGMergeJoin implements MergeOperator {
                   + " This merge and all other late merges will be prevented, but no further cases"
                   + " will be logged. Cf. issue #991 for more information about late merges.");
           options.lateMerge = LateMergeHandling.PREVENT;
-        // $FALL-THROUGH$
-        case PREVENT:
           return pElement2;
-        case CRASH:
-          throw new AssertionError(
-              getLateMergeMessage(argElement1, argElement2)
-                  + " This was configured to crash with option cpa.arg.lateMerge because it should"
-                  + " not happen for this configuration. Either set this option to a different"
-                  + " value or file a bug about this crash in the issue tracker. Cf. issue #991 for"
-                  + " more information about late merges.");
-        default:
-          throw new AssertionError("missing switch case");
+        }
+        case PREVENT -> {
+          return pElement2;
+        }
+        case CRASH ->
+            throw new AssertionError(
+                getLateMergeMessage(argElement1, argElement2)
+                    + " This was configured to crash with option cpa.arg.lateMerge because it"
+                    + " should not happen for this configuration. Either set this option to a"
+                    + " different value or file a bug about this crash in the issue tracker. Cf."
+                    + " issue #991 for more information about late merges.");
       }
     }
 
