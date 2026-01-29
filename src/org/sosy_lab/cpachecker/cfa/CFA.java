@@ -95,7 +95,7 @@ public interface CFA extends CfaNetwork {
    */
   CfaMetadata getMetadata();
 
-   default AcslMetadata getAcslMetadata(){
+  default AcslMetadata getAcslMetadata() {
     return getMetadata().getAcslMetadata();
   }
 }
