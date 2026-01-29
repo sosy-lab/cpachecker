@@ -24,7 +24,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-/** Class that represents the result of a CPAchecker analysis. */
+/**
+ * Class that represents the result of a CPAchecker analysis.
+ *
+ * <p>Call {@link #close()} after processing to free all native memory allocated by the CPAchecker
+ * run.
+ */
 public class CPAcheckerResult implements AutoCloseable {
 
   /** Enum for the possible outcomes of a CPAchecker analysis */
@@ -197,6 +202,14 @@ public class CPAcheckerResult implements AutoCloseable {
     return stats;
   }
 
+  /**
+   * Close the result and free native memory.
+   *
+   * <p>This method frees any native memory that was allocated by the original CPAchecker run. It
+   * should be called only after the statistics have been processed and all output files were
+   * written to disk. After closing, this object and all data from the result becomes invalid and
+   * may no longer be used.
+   */
   @Override
   public void close() {
     if (cpa != null) {

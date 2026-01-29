@@ -277,6 +277,12 @@ public class CPAchecker {
     config.inject(this);
   }
 
+  /**
+   * Run CPAchecker for the given program.
+   *
+   * <p>Returns a {@link CPAcheckerResult}, which should be closed after processing to free any
+   * native memory that was allocated by the run.
+   */
   public CPAcheckerResult run(List<String> programDenotation) {
     checkArgument(!programDenotation.isEmpty());
 
@@ -312,6 +318,12 @@ public class CPAchecker {
     }
   }
 
+  /**
+   * Run CPAchecker for the given CFA.
+   *
+   * <p>Returns a {@link CPAcheckerResult}, which should be closed after processing to free any
+   * native memory that was allocated by the run.
+   */
   public CPAcheckerResult run(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
@@ -466,6 +478,7 @@ public class CPAchecker {
     }
   }
 
+  /** Parse a program and return its CFA. * */
   public ImmutableCFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
