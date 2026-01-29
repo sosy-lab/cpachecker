@@ -14,12 +14,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 /**
  * An injected statement with a guarded {@code goto}, e.g. {@code if (condition) { goto label; }}.

@@ -29,15 +29,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalAndExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalOrExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 class NumStatementsNondeterministicSimulation extends NondeterministicSimulation {
 

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded;
 
-import org.sosy_lab.cpachecker.util.cwriter.export.CCommentStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCommentStatement;
 
 /** The comments are sorted as they appear in the output program. */
 public class SeqComment {

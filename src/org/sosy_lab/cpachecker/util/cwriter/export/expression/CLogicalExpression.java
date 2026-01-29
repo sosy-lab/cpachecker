@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export;
+package org.sosy_lab.cpachecker.util.cwriter.export.expression;
 
 public sealed interface CLogicalExpression extends CExportExpression
     permits CLogicalAndExpression, CLogicalNotExpression, CLogicalOrExpression {}

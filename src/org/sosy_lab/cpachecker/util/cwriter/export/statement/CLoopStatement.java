@@ -6,7 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export;
+package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
 public abstract sealed class CLoopStatement implements CExportStatement
     permits CForLoopStatement, CWhileLoopStatement {

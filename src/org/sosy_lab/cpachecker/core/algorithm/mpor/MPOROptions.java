@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
-import org.sosy_lab.cpachecker.util.cwriter.export.multi_control.CMultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CMultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Contains all {@link Option} fields used to adjust {@link MporPreprocessingAlgorithm}. */
