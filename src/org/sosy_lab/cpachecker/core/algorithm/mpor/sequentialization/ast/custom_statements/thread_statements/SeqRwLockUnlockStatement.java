@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.export.CStatementWrapper;
@@ -62,8 +63,8 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
     CIfStatement ifStatement =
         new CIfStatement(
             new CExpressionWrapper(rwLockFlags.writerEqualsZero()),
-            ImmutableList.of(new CStatementWrapper(rwLockFlags.readersDecrement())),
-            ImmutableList.of(new CStatementWrapper(setNumWritersToZero)));
+            new CCompoundStatement(new CStatementWrapper(rwLockFlags.readersDecrement())),
+            new CCompoundStatement(new CStatementWrapper(setNumWritersToZero)));
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
