@@ -72,6 +72,14 @@ int main() {
   assert(false + false == false);
   assert(true + false == true);
   assert((bool) (true + true) == true);
+  assert(true < 2);
+  assert(true < 2);
+  assert(false > -1);
+  assert(false > -1);
+  assert((bool) 2 < 2);
+  assert((bool) 2 > -1);
+  assert((bool) -1 < 2);
+  assert((bool) -1 > -1);
 
   bool nondet_bool = __VERIFIER_nondet_bool();
   assert(nondet_bool == true || nondet_bool == false); // Your analysis is unsound if this fails
@@ -80,8 +88,10 @@ int main() {
   assert(nondet_bool != 32767); // Your analysis is unsound if this fails
   assert(nondet_bool != 65535); // Your analysis is unsound if this fails
   assert(nondet_bool != 2147483647); // Your analysis is unsound if this fails
+  assert(nondet_bool < 2); // Your analysis is unsound if this fails
   assert(nondet_bool != -1); // Your analysis is unsound if this fails
   assert(nondet_bool != -2147483648); // Your analysis is unsound if this fails
+  assert(nondet_bool > -1); // Your analysis is unsound if this fails
 
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert((bool) (__VERIFIER_nondet_bool() + 1) == true); // Either (bool) 1 == true or (bool) 2 == true
@@ -90,8 +100,10 @@ int main() {
   assert(__VERIFIER_nondet_bool() != 32767); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_bool() != 65535); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_bool() != 2147483647); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_bool() < 2); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_bool() != -1); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_bool() != -2147483648); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_bool() > -1); // Your analysis is unsound if this fails
 
 
   // Chars
@@ -102,10 +114,14 @@ int main() {
   char nondet_char = __VERIFIER_nondet_char();
   assert(nondet_char != 128); // Your analysis is unsound if this fails
   assert(nondet_char != -129); // Your analysis is unsound if this fails
+  assert(nondet_char < 128); // Your analysis is unsound if this fails
+  assert(nondet_char > -129); // Your analysis is unsound if this fails
 
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_char() != 128); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_char() != -129); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_char() < 128); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_char() > -129); // Your analysis is unsound if this fails
 
   // Establish the max and min of unsigned chars and their casting
   assert(((unsigned char) (255 + 1)) == 0);
@@ -114,18 +130,26 @@ int main() {
   unsigned char nondet_uchar = __VERIFIER_nondet_uchar();
   assert(nondet_uchar != 256); // Your analysis is unsound if this fails
   assert(nondet_uchar != -1); // Your analysis is unsound if this fails
+  assert(nondet_uchar < 256); // Your analysis is unsound if this fails
+  assert(nondet_uchar > -1); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_uchar() != 256); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_uchar() != -1); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_uchar() < 256); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_uchar() > -1); // Your analysis is unsound if this fails
 
   u8 nondet_u8 = __VERIFIER_nondet_u8();
   assert(nondet_u8 != 256); // Your analysis is unsound if this fails
   assert(nondet_u8 != -1); // Your analysis is unsound if this fails
+  assert(nondet_u8 < 256); // Your analysis is unsound if this fails
+  assert(nondet_u8 > -1); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_u8() != 256); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_u8() != -1); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_u8() < 256); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_u8() > -1); // Your analysis is unsound if this fails
 
 
   // Shorts
@@ -136,10 +160,14 @@ int main() {
   short nondet_short = __VERIFIER_nondet_short();
   assert(nondet_short != 32768); // Your analysis is unsound if this fails
   assert(nondet_short != -32769); // Your analysis is unsound if this fails
+  assert(nondet_short < 32768); // Your analysis is unsound if this fails
+  assert(nondet_short > -32769); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_short() != 32768); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_short() != -32769); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_short() < 32768); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_short() > -32769); // Your analysis is unsound if this fails
 
   // Establish min and max of unsigned short, as well as correct casting for it
   assert(((unsigned short) (65535 + 1)) == 0);
@@ -148,26 +176,38 @@ int main() {
   unsigned short nondet_ushort = __VERIFIER_nondet_ushort();
   assert(nondet_ushort != 65536); // Your analysis is unsound if this fails
   assert(nondet_ushort != -1); // Your analysis is unsound if this fails
+  assert(nondet_ushort < 65536); // Your analysis is unsound if this fails
+  assert(nondet_ushort > -1); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_ushort() != 65536); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_ushort() != -1); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_ushort() < 65536); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_ushort() > -1); // Your analysis is unsound if this fails
 
   size_t nondet_size_t = __VERIFIER_nondet_size_t();
   assert(nondet_size_t != 65536); // Your analysis is unsound if this fails
   assert(nondet_size_t != -1); // Your analysis is unsound if this fails
+  assert(nondet_size_t < 65536); // Your analysis is unsound if this fails
+  assert(nondet_size_t > -1); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_size_t() != 65536); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_size_t() != -1); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_size_t() < 65536); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_size_t() > -1); // Your analysis is unsound if this fails
 
   u16 nondet_u16 = __VERIFIER_nondet_u16();
   assert(nondet_u16 != 65536); // Your analysis is unsound if this fails
   assert(nondet_u16 != -1); // Your analysis is unsound if this fails
+  assert(nondet_u16 < 65536); // Your analysis is unsound if this fails
+  assert(nondet_u16 > -1); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_u16() != 65536); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_u16() != -1); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_u16() < 65536); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_u16() > -1); // Your analysis is unsound if this fails
 
 
   // Integers
@@ -178,10 +218,14 @@ int main() {
   int nondet_int = __VERIFIER_nondet_int();
   assert(nondet_int != 2147483648ll); // Your analysis is unsound if this fails
   assert(nondet_int != -2147483649ll); // Your analysis is unsound if this fails
+  assert(nondet_int < 2147483648ll); // Your analysis is unsound if this fails
+  assert(nondet_int > -2147483649ll); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_int() != 2147483648ll); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_int() != -2147483649ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_int() < 2147483648ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_int() > -2147483649ll); // Your analysis is unsound if this fails
 
   // Base tests for unsigned overflows to establish unsigned int min and max bounds
   assert(4294967295u + 1 == 0);
@@ -196,44 +240,64 @@ int main() {
   unsigned int nondet_uint = __VERIFIER_nondet_uint();
   assert(nondet_uint != 4294967296ll); // Your analysis is unsound if this fails
   assert(nondet_uint != -1ll); // Your analysis is unsound if this fails
+  assert(nondet_uint < 4294967296ll); // Your analysis is unsound if this fails
+  assert(nondet_uint > -1ll); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_uint() != 4294967296ll); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_uint() != -1ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_uint() < 4294967296ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_uint() > -1ll); // Your analysis is unsound if this fails
 
   unsigned nondet_unsigned = __VERIFIER_nondet_unsigned();
   assert(nondet_unsigned != 4294967296ll); // Your analysis is unsound if this fails
   assert(nondet_unsigned != -1ll); // Your analysis is unsound if this fails
+  assert(nondet_unsigned < 4294967296ll); // Your analysis is unsound if this fails
+  assert(nondet_unsigned > -1ll); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_unsigned() != 4294967296ll); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_unsigned() != -1ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_unsigned() < 4294967296ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_unsigned() > -1ll); // Your analysis is unsound if this fails
 
   u32 nondet_u32 = __VERIFIER_nondet_u32();
   assert(nondet_u32 != 4294967296ll); // Your analysis is unsound if this fails
   assert(nondet_u32 != -1ll); // Your analysis is unsound if this fails
+  assert(nondet_u32 < 4294967296ll); // Your analysis is unsound if this fails
+  assert(nondet_u32 > -1ll); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_u32() != 4294967296ll); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_u32() != -1ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_u32() < 4294967296ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_u32() > -1ll); // Your analysis is unsound if this fails
 
 
   // Longs
   long nondet_long = __VERIFIER_nondet_long();
   assert(nondet_long != 2147483648ll); // Your analysis is unsound if this fails
   assert(nondet_long != -2147483649ll); // Your analysis is unsound if this fails
+  assert(nondet_long < 2147483648ll); // Your analysis is unsound if this fails
+  assert(nondet_long > -2147483649ll); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_long() != 2147483648ll); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_long() != -2147483649ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_long() < 2147483648ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_long() > -2147483649ll); // Your analysis is unsound if this fails
 
   unsigned long nondet_ulong = __VERIFIER_nondet_ulong();
   assert(nondet_ulong != 4294967296ll); // Your analysis is unsound if this fails
   assert(nondet_ulong != -1ll); // Your analysis is unsound if this fails
+  assert(nondet_ulong < 4294967296ll); // Your analysis is unsound if this fails
+  assert(nondet_ulong > -1ll); // Your analysis is unsound if this fails
   
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert(__VERIFIER_nondet_ulong() != 4294967296ll); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_ulong() != -1ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_ulong() < 4294967296ll); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_ulong() > -1ll); // Your analysis is unsound if this fails
 
 
   // TODO: (unsigned) Long Longs need to be checked with __int128
