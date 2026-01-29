@@ -28,8 +28,17 @@ public abstract sealed class SeqMultiControlStatement implements CExportStatemen
     statements = pStatements;
   }
 
+  /**
+   * Transforms the statements of this {@link SeqMultiControlStatement} that are given as a {@link
+   * ImmutableListMultimap} into a {@link ImmutableList} that contains {@link Entry}.
+   *
+   * <p>This is useful for multi control statements that need to index statements by an {@code int},
+   * e.g. {@link SeqBinarySearchTreeStatement} that splits the statements in the middle to build a
+   * tree.
+   */
   ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
       transformStatements() {
+
     return statements.asMap().entrySet().stream()
         .map(
             entry -> {
