@@ -31,12 +31,12 @@ public class SMGCPA32Test extends SMGBaseCPATest {
     runAndAssertSafe(testProgram);
   }
 
-  // Tests that types are not comparable to values from larger types, e.g. nondet_bool() != 2;
+  // Tests that (integer) types are not comparable to values from larger types,
+  //  e.g. nondet_bool() != 2;
   @Ignore // Ignore as we currently fail this in SMG2
   @Test
   public void nondetNumericTypeBoundsProof() throws Exception {
-    String testProgram =
-        "test/programs/basics/type_tests/nondet_generator_numeric_types_32_true.c";
+    String testProgram = "test/programs/basics/type_tests/nondet_generator_integer_types_32_true.c";
     runAndAssertSafe(testProgram);
   }
 

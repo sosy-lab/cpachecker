@@ -36,10 +36,10 @@ typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned long long u64;
-extern u8 __VERIFIER_nondet_u8(void);   // Legacy. Not explicitly listed, but sometimes used. Just a unsigned char for ISP32.
-extern u16 __VERIFIER_nondet_u16(void); // Legacy. Not explicitly listed, but sometimes used. Just a unsigned short for ISP32.
-extern u32 __VERIFIER_nondet_u32(void); // Legacy. Just a unsigned int for ISP32.
-extern u64 __VERIFIER_nondet_u64(void); // Legacy. Not explicitly listed, but sometimes used. Just a unsigned long long for ISP32.
+extern u8 __VERIFIER_nondet_u8(void);   // Legacy. Not explicitly listed, but sometimes used. Just a unsigned char for ILP32.
+extern u16 __VERIFIER_nondet_u16(void); // Legacy. Not explicitly listed, but sometimes used. Just a unsigned short for ILP32.
+extern u32 __VERIFIER_nondet_u32(void); // Legacy. Just a unsigned int for ILP32.
+extern u64 __VERIFIER_nondet_u64(void); // Legacy. Not explicitly listed, but sometimes used. Just a unsigned long long for ILP32.
 
 extern size_t __VERIFIER_nondet_size_t(void); // Defined as unsigned and large enough to hold the return of the sizeof() function. At least 65535 big.
 
@@ -59,7 +59,9 @@ extern double __VERIFIER_nondet_double(void);
 // TODO: add test program that tests casting to correct range (essentially this program, but starting from a type thats larger.)
 
 // Safe for AssertionSafety only if all return the correct result
-// This tests that an analysis sticks to the correct types of values
+// This tests that an analysis sticks to the correct types of values in ILP32
+// If you have doubts about whether this program has signed under/overflows:
+// you can check for signed overflows in GCC using the flag -ftrapv (the program stops if an overflow is detected)
 int main() {
   
   // Bools
@@ -300,13 +302,11 @@ int main() {
   assert(__VERIFIER_nondet_ulong() > -1ll); // Your analysis is unsound if this fails
 
 
-  // TODO: (unsigned) Long Longs need to be checked with __int128
+  // TODO: (unsigned) Long Longs need to be checked with __int128, but int128 is not available in 32bit
   /*
-  __int128 u64Max = 18446744073709551615ull;
-  __int128 one = 1;
-  __int128 u64MaxPlusOne = u64Max + one;
 
   // Long longs
+  (in ILP32 they are larger than int and long and ranges from -9223372036854775808 to 9223372036854775807)
   long long nondet_longlong = __VERIFIER_nondet_longlong();
   assert(nondet_ != maximumPlusOne); // Your analysis is unsound if this fails
   assert(nondet_ != minimumMinOne); // Your analysis is unsound if this fails

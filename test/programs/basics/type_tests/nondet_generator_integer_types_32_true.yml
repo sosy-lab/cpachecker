@@ -8,7 +8,7 @@
 
 format_version: '2.0'
 
-input_files: 'nondet_generator_numeric_types_32_true.c'
+input_files: 'nondet_generator_integer_types_32_true.c'
 
 properties:
   - property_file: ../../../config/specification/Assertion.spc
@@ -16,4 +16,4 @@ properties:
 
 options:
   language: C
-  data_model: LP32
+  data_model: ILP32
