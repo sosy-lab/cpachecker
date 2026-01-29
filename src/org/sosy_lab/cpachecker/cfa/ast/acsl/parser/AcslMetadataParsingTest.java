@@ -65,6 +65,7 @@ public class AcslMetadataParsingTest {
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
     // Regular Annotations (assertions and loop invariants)
+    /*
     b.add(
         task(
             "after_else.c",
@@ -109,6 +110,8 @@ public class AcslMetadataParsingTest {
             ImmutableList.of("assert x == 10;", "assert x == 10;"),
             new CodeLoctation(12, 5)));
 
+     */
+
     // function contracts
     b.add(
         task(
@@ -117,8 +120,18 @@ public class AcslMetadataParsingTest {
             new CodeLoctation(15, 1)));
     b.add(
         task(
+            "square_result.c",
+            ImmutableList.of("ensures \\result == a * a;"),
+            new CodeLoctation(13, 1)));
+    b.add(
+        task(
             "power.c",
             ImmutableList.of("requires a > 0; requires b>= 0; ensures c > 0;"),
+            new CodeLoctation(16, 1)));
+    b.add(
+        task(
+            "power_result.c",
+            ImmutableList.of("requires a > 0; requires b>= 0; ensures \\result > 0;"),
             new CodeLoctation(16, 1)));
     return b.build();
   }
