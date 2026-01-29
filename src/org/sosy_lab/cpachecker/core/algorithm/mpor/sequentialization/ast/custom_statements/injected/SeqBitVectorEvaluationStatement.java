@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
 import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CNegatedExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalNotExpression;
 
 /**
  * The statement for evaluating bit vectors (including {@code if (...)}). Used for both {@link
@@ -43,7 +43,7 @@ public record SeqBitVectorEvaluationStatement(
 
     } else if (options.nondeterminismSource().equals(NondeterminismSource.NEXT_THREAD)) {
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
-      CNegatedExpression ifExpression = evaluationExpression.orElseThrow().negate();
+      CLogicalNotExpression ifExpression = evaluationExpression.orElseThrow().negate();
       CGotoStatement gotoStatement = new CGotoStatement(targetGoto.toCLabelStatement());
       CCompoundStatement compoundStatement = new CCompoundStatement(gotoStatement);
       CIfStatement ifStatement = new CIfStatement(ifExpression, compoundStatement);

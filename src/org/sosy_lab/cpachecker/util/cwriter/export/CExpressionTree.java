@@ -16,8 +16,8 @@ public record CExpressionTree(ExpressionTree<CExportExpression> expressionTree)
     implements CExportExpression {
 
   // TODO this could be moved into CAstExpression, but at the moment we only need it here
-  public CNegatedExpression negate() {
-    return new CNegatedExpression(this);
+  public CLogicalNotExpression negate() {
+    return new CLogicalNotExpression(this);
   }
 
   @Override

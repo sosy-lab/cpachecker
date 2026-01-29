@@ -8,16 +8,22 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
+import com.google.common.collect.ImmutableList;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record CNegatedExpression(CExportExpression expressionToNegate)
-    implements CExportExpression {
+public record CLogicalAndExpression(ImmutableList<CExportExpression> operands)
+    implements CLogicalExpression {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    return "!(" + expressionToNegate.toASTString() + ")";
+    StringJoiner joiner = new StringJoiner(" && ");
+    for (CExportExpression operand : operands) {
+      joiner.add(operand.toASTString(pAAstNodeRepresentation));
+    }
+    return "(" + joiner + ")";
   }
 }

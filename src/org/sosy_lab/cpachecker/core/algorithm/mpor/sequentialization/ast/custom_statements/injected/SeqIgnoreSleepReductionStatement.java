@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CNegatedExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalNotExpression;
 
 public record SeqIgnoreSleepReductionStatement(
     CIdExpression roundMaxVariable,
@@ -43,7 +43,7 @@ public record SeqIgnoreSleepReductionStatement(
             roundMaxVariable, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
 
     // negate the evaluation expression
-    CNegatedExpression ifExpression = bitVectorEvaluationExpression.negate();
+    CLogicalNotExpression ifExpression = bitVectorEvaluationExpression.negate();
     CGotoStatement gotoNext = new CGotoStatement(targetGoto.toCLabelStatement());
     CCompoundStatement compoundStatement = new CCompoundStatement(gotoNext);
     CIfStatement innerIfStatement = new CIfStatement(ifExpression, compoundStatement);
