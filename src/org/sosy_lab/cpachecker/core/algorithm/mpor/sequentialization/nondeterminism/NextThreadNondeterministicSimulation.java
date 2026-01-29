@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import java.util.Optional;
@@ -23,7 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.multi_control.CMultiControlStatement;
 
 class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
 
@@ -52,10 +54,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   public ImmutableList<CExportStatement> buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    return ImmutableList.<CExportStatement>builder()
-        .addAll(buildAllPrecedingStatements(pThread))
-        .add(buildSingleThreadMultiControlStatement(pThread))
-        .build();
+    return listAndElement(
+        buildAllPrecedingStatements(pThread), buildSingleThreadMultiControlStatement(pThread));
   }
 
   @Override
@@ -66,8 +66,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     ImmutableListMultimap<CExportExpression, CExportStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements();
     // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
-    SeqMultiControlStatement outerMultiControlStatement =
-        SeqMultiControlStatement.buildMultiControlStatementByEncoding(
+    CMultiControlStatement outerMultiControlStatement =
+        CMultiControlStatement.buildMultiControlStatementByEncoding(
             options.controlEncodingThread(),
             SeqIdExpressions.NEXT_THREAD,
             innerMultiControlStatements,
@@ -87,12 +87,9 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
               SeqIdExpressions.NEXT_THREAD,
               thread.id(),
               utils.binaryExpressionBuilder());
-
       ImmutableList<CExportStatement> statements =
-          ImmutableList.<CExportStatement>builder()
-              .addAll(buildAllPrecedingStatements(thread))
-              .add(buildSingleThreadMultiControlStatement(thread))
-              .build();
+          listAndElement(
+              buildAllPrecedingStatements(thread), buildSingleThreadMultiControlStatement(thread));
       rStatements.putAll(new CExpressionWrapper(clauseExpression), statements);
     }
     return rStatements.build();

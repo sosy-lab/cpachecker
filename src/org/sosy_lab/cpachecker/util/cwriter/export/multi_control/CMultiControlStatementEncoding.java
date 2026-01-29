@@ -6,10 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
+package org.sosy_lab.cpachecker.util.cwriter.export.multi_control;
 
-public enum MultiControlStatementEncoding {
-  /** Used when the next thread is chosen deterministically. */
+public enum CMultiControlStatementEncoding {
   NONE,
   BINARY_SEARCH_TREE,
   IF_ELSE_CHAIN,

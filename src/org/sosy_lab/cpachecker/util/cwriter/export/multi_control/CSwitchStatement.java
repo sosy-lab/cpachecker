@@ -6,13 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
+package org.sosy_lab.cpachecker.util.cwriter.export.multi_control;
 
 import com.google.common.collect.ImmutableListMultimap;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
@@ -23,11 +22,11 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
  *
  * <p>Example: {@code switch(a) { case b: ...; break; case c: ...; break; } }
  */
-public final class SeqSwitchStatement extends SeqMultiControlStatement {
+public final class CSwitchStatement extends CMultiControlStatement {
 
   private final CExpression switchExpression;
 
-  public SeqSwitchStatement(
+  public CSwitchStatement(
       CExpression pSwitchExpression,
       ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements) {
 
@@ -39,7 +38,7 @@ public final class SeqSwitchStatement extends SeqMultiControlStatement {
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    StringJoiner switchCase = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner switchCase = new StringJoiner(System.lineSeparator());
 
     // add switch (expression) ...
     switchCase.add("switch (" + switchExpression.toASTString(pAAstNodeRepresentation) + ") {");

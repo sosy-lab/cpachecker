@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
+package org.sosy_lab.cpachecker.util.cwriter.export.multi_control;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -18,9 +18,9 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 
-public final class SeqIfElseChainStatement extends SeqMultiControlStatement {
+public final class CIfElseChainStatement extends CMultiControlStatement {
 
-  public SeqIfElseChainStatement(
+  public CIfElseChainStatement(
       ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements) {
 
     super(pStatements);

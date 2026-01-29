@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
+package org.sosy_lab.cpachecker.util.cwriter.export.multi_control;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -17,23 +17,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 
-public abstract sealed class SeqMultiControlStatement implements CExportStatement
-    permits SeqBinarySearchTreeStatement, SeqIfElseChainStatement, SeqSwitchStatement {
+public abstract sealed class CMultiControlStatement implements CExportStatement
+    permits CBinarySearchTreeStatement, CIfElseChainStatement, CSwitchStatement {
 
   final ImmutableListMultimap<CExportExpression, ? extends CExportStatement> statements;
 
-  SeqMultiControlStatement(
+  CMultiControlStatement(
       ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements) {
 
     statements = pStatements;
   }
 
   /**
-   * Transforms the statements of this {@link SeqMultiControlStatement} that are given as a {@link
+   * Transforms the statements of this {@link CMultiControlStatement} that are given as a {@link
    * ImmutableListMultimap} into a {@link ImmutableList} that contains {@link Entry}.
    *
    * <p>This is useful for multi control statements that need to index statements by an {@code int},
-   * e.g. {@link SeqBinarySearchTreeStatement} that splits the statements in the middle to build a
+   * e.g. {@link CBinarySearchTreeStatement} that splits the statements in the middle to build a
    * tree.
    */
   ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
@@ -53,11 +53,11 @@ public abstract sealed class SeqMultiControlStatement implements CExportStatemen
   }
 
   /**
-   * Creates the {@link SeqMultiControlStatement} for {@code pThread} based on the specified {@link
-   * MultiControlStatementEncoding}.
+   * Creates the {@link CMultiControlStatement} for {@code pThread} based on the specified {@link
+   * CMultiControlStatementEncoding}.
    */
-  public static SeqMultiControlStatement buildMultiControlStatementByEncoding(
-      MultiControlStatementEncoding pMultiControlStatementEncoding,
+  public static CMultiControlStatement buildMultiControlStatementByEncoding(
+      CMultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
       ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -67,9 +67,9 @@ public abstract sealed class SeqMultiControlStatement implements CExportStatemen
           throw new IllegalArgumentException(
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
       case BINARY_SEARCH_TREE ->
-          new SeqBinarySearchTreeStatement(pExpression, pStatements, pBinaryExpressionBuilder);
-      case IF_ELSE_CHAIN -> new SeqIfElseChainStatement(pStatements);
-      case SWITCH_CASE -> new SeqSwitchStatement(pExpression, pStatements);
+          new CBinarySearchTreeStatement(pExpression, pStatements, pBinaryExpressionBuilder);
+      case IF_ELSE_CHAIN -> new CIfElseChainStatement(pStatements);
+      case SWITCH_CASE -> new CSwitchStatement(pExpression, pStatements);
     };
   }
 }

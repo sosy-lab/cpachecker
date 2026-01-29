@@ -6,20 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
+package org.sosy_lab.cpachecker.util.cwriter.export.multi_control;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
@@ -28,13 +26,13 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 
 /** Represents a binary search tree with {@code if-else} branches. */
-public final class SeqBinarySearchTreeStatement extends SeqMultiControlStatement {
+public final class CBinarySearchTreeStatement extends CMultiControlStatement {
 
   private final CLeftHandSide expression;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  public SeqBinarySearchTreeStatement(
+  public CBinarySearchTreeStatement(
       CLeftHandSide pExpression,
       ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -48,14 +46,11 @@ public final class SeqBinarySearchTreeStatement extends SeqMultiControlStatement
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    StringJoiner tree = new StringJoiner(SeqSyntax.NEWLINE);
     // use list<entry<,>> instead of map so that we can split it in the middle for the bin tree
     ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
         statementList = transformStatements();
     CExportStatement treeStatement = recursivelyBuildTree(statementList, statementList, expression);
-    tree.add(treeStatement.toASTString(pAAstNodeRepresentation));
-
-    return tree.toString();
+    return treeStatement.toASTString(pAAstNodeRepresentation);
   }
 
   /**

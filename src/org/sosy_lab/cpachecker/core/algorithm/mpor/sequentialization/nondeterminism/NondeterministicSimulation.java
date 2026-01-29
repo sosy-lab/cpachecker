@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceLastThreadOrderInjector;
@@ -30,6 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.multi_control.CMultiControlStatement;
 
 /**
  * Base class for simulating nondeterministic thread execution in the sequentialized program,
@@ -110,12 +110,12 @@ public abstract class NondeterministicSimulation {
   }
 
   /**
-   * Creates the core i.e. the {@link SeqMultiControlStatement} of a thread simulation used for
-   * {@link NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}. The logic is common
-   * for all {@link NondeterminismSource}s, so this is not tied to the separate implementations of
+   * Creates the core i.e. the {@link CMultiControlStatement} of a thread simulation used for {@link
+   * NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}. The logic is common for
+   * all {@link NondeterminismSource}s, so this is not tied to the separate implementations of
    * {@link NondeterministicSimulation}.
    */
-  SeqMultiControlStatement buildSingleThreadMultiControlStatement(MPORThread pThread)
+  CMultiControlStatement buildSingleThreadMultiControlStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(pThread);
@@ -128,7 +128,7 @@ public abstract class NondeterministicSimulation {
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
 
-    return SeqMultiControlStatement.buildMultiControlStatementByEncoding(
+    return CMultiControlStatement.buildMultiControlStatementByEncoding(
         options.controlEncodingStatement(),
         pcLeftHandSide,
         expressionClauseMap,
@@ -180,7 +180,7 @@ public abstract class NondeterministicSimulation {
 
   /**
    * Builds the {@link String} code of a single simulation for the given {@code pThread}, including
-   * the {@link SeqMultiControlStatement}.
+   * the {@link CMultiControlStatement}.
    *
    * <p>The resulting {@link String} must make it possible for the simulation to be placed in a
    * separate function that can be called without any additional wrappers or preceding statements.
@@ -207,7 +207,7 @@ public abstract class NondeterministicSimulation {
 
   /**
    * Builds the list of statements, e.g. assumptions or assignments, that are placed directly before
-   * the {@link SeqMultiControlStatement} of a single {@code pThread}.
+   * the {@link CMultiControlStatement} of a single {@code pThread}.
    */
   abstract ImmutableList<CExportStatement> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException;
