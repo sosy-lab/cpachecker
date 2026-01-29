@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 
 record ReduceIgnoreSleepInjector(
     MPOROptions options,
@@ -46,7 +46,7 @@ record ReduceIgnoreSleepInjector(
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(labelClauseMap.get(targetPc));
         if (StatementInjector.isReductionAllowed(options, newTarget)) {
-          Optional<CExpressionTree> evaluationExpression =
+          Optional<CExportExpression> evaluationExpression =
               BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
                   options, activeThread, otherThreads, bitVectorVariables, utils);
           SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
@@ -64,7 +64,7 @@ record ReduceIgnoreSleepInjector(
 
   private SeqIgnoreSleepReductionStatement buildIgnoreSleepReductionStatement(
       CSeqThreadStatement pStatement,
-      CExpressionTree pBitVectorEvaluationExpression,
+      CExportExpression pBitVectorEvaluationExpression,
       SeqThreadStatementClause pTargetClause) {
 
     ImmutableList.Builder<SeqInjectedStatement> reductionAssumptions = ImmutableList.builder();

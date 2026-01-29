@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -35,15 +33,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CFunctionCallStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CFunctionDefinitionStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 public class SeqAssumeFunction extends CFunctionDefinitionStatement {
 
@@ -150,13 +145,13 @@ public class SeqAssumeFunction extends CFunctionDefinitionStatement {
   }
 
   /**
-   * Returns a {@link CFunctionCallStatementWrapper} representation of an assume function call i.e.
-   * {@code assume(pCondition);}.
+   * Returns a {@link CFunctionCallStatementWrapper} of an assume function call i.e. {@code
+   * assume(pCondition);}.
    */
   public static CFunctionCallStatementWrapper buildAssumeFunctionCallStatement(
-      ExpressionTree<CExportExpression> pCondition) {
+      CExportExpression pCondition) {
 
-    ImmutableList<CExportExpression> parameter = ImmutableList.of(new CExpressionTree(pCondition));
+    ImmutableList<CExportExpression> parameter = ImmutableList.of(pCondition);
     return new CFunctionCallStatementWrapper(ASSUME_FUNCTION_CALL_STATEMENT_DUMMY, parameter);
   }
 
@@ -184,12 +179,8 @@ public class SeqAssumeFunction extends CFunctionDefinitionStatement {
               SeqIntegerLiteralExpressions.INT_0,
               SeqIdExpressions.NEXT_THREAD,
               BinaryOperator.LESS_EQUAL);
-      ImmutableList<CExportExpression> expressions =
-          ImmutableList.of(
-              new CExpressionWrapper(nextThreadLessThanNumThreads),
-              new CExpressionWrapper(nextThreadGreaterOrEqualZero));
       return buildAssumeFunctionCallStatement(
-          And.of(transformedImmutableListCopy(expressions, LeafExpression::of)));
+          CLogicalAndExpression.of(nextThreadLessThanNumThreads, nextThreadGreaterOrEqualZero));
     }
     return new CStatementWrapper(buildAssumeFunctionCallStatement(nextThreadLessThanNumThreads));
   }

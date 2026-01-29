@@ -29,9 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
 
 public class BitVectorEvaluationUtil {
 
@@ -56,17 +54,15 @@ public class BitVectorEvaluationUtil {
 
   // Conjunction and Disjunction ===================================================================
 
+  // TODO this should be inlined ...
   /**
    * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
    * Optional#empty()} if {@code pTerms} is empty.
    */
-  static Optional<CExpressionTree> tryBuildSparseLogicalDisjunction(
-      ImmutableList<ExpressionTree<CExportExpression>> pTerms) {
+  static Optional<CExportExpression> tryBuildSparseLogicalDisjunction(
+      ImmutableList<CExportExpression> pTerms) {
 
-    if (pTerms.isEmpty()) {
-      return Optional.empty();
-    }
-    return Optional.of(new CExpressionTree(Or.of(pTerms)));
+    return pTerms.isEmpty() ? Optional.empty() : Optional.of(new CLogicalOrExpression(pTerms));
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A | B | C | ...)}. */

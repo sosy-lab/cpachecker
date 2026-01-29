@@ -32,12 +32,18 @@ public record CLogicalAndExpression(ImmutableList<CExportExpression> operands)
         "A CLogicalAndExpression must contain at least 2 elements (operand1 && operand2)");
   }
 
-  public CLogicalAndExpression(CExportExpression... pOperands) {
-    this(ImmutableList.copyOf(pOperands));
+  public static CLogicalAndExpression of(ImmutableList<CExpression> pOperands) {
+    return new CLogicalAndExpression(
+        transformedImmutableListCopy(pOperands, o -> new CExpressionWrapper(checkNotNull(o))));
   }
 
-  public CLogicalAndExpression(CExpression... pOperands) {
-    this(transformedImmutableListCopy(pOperands, o -> new CExpressionWrapper(checkNotNull(o))));
+  public static CLogicalAndExpression of(CExportExpression... pOperands) {
+    return new CLogicalAndExpression(ImmutableList.copyOf(pOperands));
+  }
+
+  public static CLogicalAndExpression of(CExpression... pOperands) {
+    return new CLogicalAndExpression(
+        transformedImmutableListCopy(pOperands, o -> new CExpressionWrapper(checkNotNull(o))));
   }
 
   @Override

@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -34,15 +32,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 
 class NumStatementsNondeterministicSimulation extends NondeterministicSimulation {
 
@@ -131,7 +126,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
       return new CExpressionWrapper(roundMaxGreaterZero);
     }
     // if enabled, add bit vector evaluation: "round_max > 0 || {bitvector_evaluation}"
-    Optional<CExpressionTree> bitVectorEvaluationExpression =
+    Optional<CExportExpression> bitVectorEvaluationExpression =
         BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
             options,
             pActiveThread,
@@ -145,12 +140,10 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     ImmutableList<CExportExpression> expressionList =
         ImmutableList.of(
             new CExpressionWrapper(notSync), bitVectorEvaluationExpression.orElseThrow().negate());
-    ExpressionTree<CExportExpression> notSyncAndNotConflict =
-        And.of(transformedImmutableListCopy(expressionList, LeafExpression::of));
+    CLogicalAndExpression notSyncAndNotConflict = new CLogicalAndExpression(expressionList);
     // the usual bit vector expression is true if there is a conflict
     //  -> negate (we want no conflict if we ignore round_max == 0)
-    return new CExpressionTree(
-        Or.of(
-            LeafExpression.of(new CExpressionWrapper(roundMaxGreaterZero)), notSyncAndNotConflict));
+    return CLogicalOrExpression.of(
+        new CExpressionWrapper(roundMaxGreaterZero), notSyncAndNotConflict);
   }
 }

@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalNotExpression;
 
 public record SeqIgnoreSleepReductionStatement(
     CIdExpression roundMaxVariable,
-    CExpressionTree bitVectorEvaluationExpression,
+    CExportExpression bitVectorEvaluationExpression,
     ImmutableList<SeqInjectedStatement> reductionAssumptions,
     CBinaryExpressionBuilder binaryExpressionBuilder,
     SeqBlockLabelStatement targetGoto)

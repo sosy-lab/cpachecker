@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
@@ -86,7 +86,7 @@ public record ReduceLastThreadOrderInjector(
 
     SeqThreadStatementBlock firstBlock =
         Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
-    Optional<CExpressionTree> lastBitVectorEvaluation =
+    Optional<CExportExpression> lastBitVectorEvaluation =
         BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
             options,
             labelClauseMap,
@@ -119,7 +119,7 @@ public record ReduceLastThreadOrderInjector(
           ifCondition,
           new CCompoundStatement(
               SeqAssumeFunction.buildAssumeFunctionCallStatement(
-                  lastBitVectorEvaluation.orElseThrow().expressionTree())));
+                  lastBitVectorEvaluation.orElseThrow())));
     }
   }
 

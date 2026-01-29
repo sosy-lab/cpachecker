@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermin
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionTree;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalNotExpression;
@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalNotExpression;
  */
 public record SeqBitVectorEvaluationStatement(
     MPOROptions options,
-    Optional<CExpressionTree> evaluationExpression,
+    Optional<CExportExpression> evaluationExpression,
     SeqBlockLabelStatement targetGoto)
     implements SeqInjectedStatementWithTargetGoto {
 
@@ -50,8 +50,7 @@ public record SeqBitVectorEvaluationStatement(
       return ifStatement.toASTString(pAAstNodeRepresentation);
 
     } else {
-      return SeqAssumeFunction.buildAssumeFunctionCallStatement(
-              evaluationExpression.orElseThrow().expressionTree())
+      return SeqAssumeFunction.buildAssumeFunctionCallStatement(evaluationExpression.orElseThrow())
           .toASTString(pAAstNodeRepresentation);
     }
   }
