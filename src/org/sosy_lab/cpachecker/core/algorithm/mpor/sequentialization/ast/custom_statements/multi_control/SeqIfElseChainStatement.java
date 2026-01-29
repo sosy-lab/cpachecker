@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringJoiner;
@@ -21,9 +21,13 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 
-public record SeqIfElseChainStatement(
-    ImmutableMap<CExportExpression, ? extends CExportStatement> statements)
-    implements SeqMultiControlStatement {
+public final class SeqIfElseChainStatement extends SeqMultiControlStatement {
+
+  public SeqIfElseChainStatement(
+      ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements) {
+
+    super(pStatements);
+  }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)

@@ -124,7 +124,7 @@ public abstract class NondeterministicSimulation {
             options, syncFlag, clauses.get(pThread), utils.binaryExpressionBuilder());
 
     CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
-    ImmutableMap<CExportExpression, ? extends CExportStatement> expressionClauseMap =
+    ImmutableListMultimap<CExportExpression, ? extends CExportStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
 

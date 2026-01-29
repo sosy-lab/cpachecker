@@ -77,15 +77,16 @@ public class SeqThreadStatementClauseUtil {
     };
   }
 
-  public static ImmutableMap<CExportExpression, SeqThreadStatementClause> mapExpressionToClause(
-      MPOROptions pOptions,
-      CLeftHandSide pPcLeftHandSide,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  public static ImmutableListMultimap<CExportExpression, SeqThreadStatementClause>
+      mapExpressionToClause(
+          MPOROptions pOptions,
+          CLeftHandSide pPcLeftHandSide,
+          ImmutableList<SeqThreadStatementClause> pClauses,
+          CBinaryExpressionBuilder pBinaryExpressionBuilder)
+          throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<CExportExpression, SeqThreadStatementClause> rOriginPcs =
-        ImmutableMap.builder();
+    ImmutableListMultimap.Builder<CExportExpression, SeqThreadStatementClause> rOriginPcs =
+        ImmutableListMultimap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       CExpression labelExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
@@ -95,7 +96,7 @@ public class SeqThreadStatementClauseUtil {
               pBinaryExpressionBuilder);
       rOriginPcs.put(new CExpressionWrapper(labelExpression), clause);
     }
-    return rOriginPcs.buildOrThrow();
+    return rOriginPcs.build();
   }
 
   /**

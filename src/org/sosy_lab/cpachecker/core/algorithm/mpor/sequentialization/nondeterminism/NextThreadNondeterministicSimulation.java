@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermi
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -64,7 +63,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
       throws UnrecognizedCodeException {
 
     // the inner multi control statements choose the next statement, e.g. "pc == 1"
-    ImmutableMap<CExportExpression, SeqMultiControlStatement> innerMultiControlStatements =
+    ImmutableListMultimap<CExportExpression, CExportStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements();
     // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
     SeqMultiControlStatement outerMultiControlStatement =

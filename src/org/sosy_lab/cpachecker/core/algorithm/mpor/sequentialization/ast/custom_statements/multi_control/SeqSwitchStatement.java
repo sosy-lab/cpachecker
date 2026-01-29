@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
@@ -29,10 +27,17 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
  * @param statements No restriction to literal expressions as keys because e.g. {@code case 1 + 2:}
  *     i.e. a {@link CBinaryExpression} is allowed in C.
  */
-public record SeqSwitchStatement(
-    CExpression switchExpression,
-    ImmutableMap<CExportExpression, ? extends CExportStatement> statements)
-    implements SeqMultiControlStatement {
+public final class SeqSwitchStatement extends SeqMultiControlStatement {
+
+  private final CExpression switchExpression;
+
+  public SeqSwitchStatement(
+      CExpression pSwitchExpression,
+      ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements) {
+
+    super(pStatements);
+    switchExpression = pSwitchExpression;
+  }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
@@ -41,26 +46,17 @@ public record SeqSwitchStatement(
     StringJoiner switchCase = new StringJoiner(SeqSyntax.NEWLINE);
 
     // add switch (expression) ...
-    switchCase.add(
-        Joiner.on(SeqSyntax.SPACE)
-            .join(
-                "switch",
-                SeqStringUtil.wrapInBrackets(switchExpression.toASTString()),
-                SeqSyntax.CURLY_BRACKET_LEFT));
+    switchCase.add("switch (" + switchExpression.toASTString(pAAstNodeRepresentation) + ") {");
 
-    // add all cases
-    for (var entry : statements.entrySet()) {
-      CExportStatement statement = entry.getValue();
-      String casePrefix = "case " + entry.getKey().toASTString(pAAstNodeRepresentation) + ":";
-      String suffix = "";
-      if (statement instanceof SeqMultiControlStatement) {
-        // for inner multi control statements, add "break;" suffix. for clauses this is not
-        // necessary, because each block within the clause has its own "break;" suffix
-        suffix = "break" + SeqSyntax.SEMICOLON;
+    // add all case expression: stmt1; ... break;
+    for (CExportExpression expression : statements.keySet()) {
+      switchCase.add("case " + expression.toASTString(pAAstNodeRepresentation) + ":");
+      for (CExportStatement caseStatement : statements.get(expression)) {
+        switchCase.add(caseStatement.toASTString(pAAstNodeRepresentation));
       }
-      switchCase.add(casePrefix + statement.toASTString() + suffix);
+      switchCase.add("break;");
     }
-    switchCase.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+    switchCase.add("}");
     return switchCase.toString();
   }
 }

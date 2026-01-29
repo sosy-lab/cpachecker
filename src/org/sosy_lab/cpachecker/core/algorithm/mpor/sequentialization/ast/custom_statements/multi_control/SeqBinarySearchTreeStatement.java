@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.StringJoiner;
@@ -29,11 +29,21 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 
 /** Represents a binary search tree with {@code if-else} branches. */
-public record SeqBinarySearchTreeStatement(
-    CLeftHandSide expression,
-    ImmutableMap<CExportExpression, ? extends CExportStatement> statements,
-    CBinaryExpressionBuilder binaryExpressionBuilder)
-    implements SeqMultiControlStatement {
+public final class SeqBinarySearchTreeStatement extends SeqMultiControlStatement {
+
+  private final CLeftHandSide expression;
+
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+
+  public SeqBinarySearchTreeStatement(
+      CLeftHandSide pExpression,
+      ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+
+    super(pStatements);
+    expression = pExpression;
+    binaryExpressionBuilder = pBinaryExpressionBuilder;
+  }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
