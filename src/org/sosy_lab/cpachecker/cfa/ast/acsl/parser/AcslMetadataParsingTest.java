@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @RunWith(Parameterized.class)
@@ -132,22 +131,30 @@ public class AcslMetadataParsingTest {
   @Test
   public void parseCorrectNumberOfAcslCommentsTest() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
-    try {
-      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-      if (cfa.getMetadata().getAcslMetadata() != null) {
-        assertThat(cfa.getMetadata().getAcslMetadata().size()).isEqualTo(expectedComments.size());
-      }
-    } catch (RuntimeException e) {
-      assertThat(programName).isEqualTo("badVariable.c");
-      assertThat(e.getMessage())
+    if (programName.equals("badVariable.c")) {
+      RuntimeException expectedException =
+          assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(expectedException)
+          .hasMessageThat()
           .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
+    } else {
+      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+      assertThat(cfa.getMetadata().getAcslMetadata()).isNotNull();
+      assertThat(cfa.getMetadata().getAcslMetadata().size()).isEqualTo(expectedComments.size());
     }
   }
 
   @Test
   public void parseMetadataTest() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
-    try {
+
+    if (programName.equals("badVariable.c")) {
+      RuntimeException expectedException =
+          assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(expectedException)
+          .hasMessageThat()
+          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
+    } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
 
       CProgramScope programScope = new CProgramScope(cfa, logManager);
@@ -160,51 +167,47 @@ public class AcslMetadataParsingTest {
       ImmutableList<AAcslAnnotation> expectedAnnotations = expectedBuilder.build();
 
       AcslMetadata acslMetadata = cfa.getMetadata().getAcslMetadata();
+      assertThat(acslMetadata).isNotNull();
+
       ImmutableSetMultimap<AcslAssertion, CFANode> actualAssertions =
           acslMetadata.assertions().inverse();
       ImmutableSetMultimap<AcslLoopInvariant, CFANode> actualLoopInvariants =
           acslMetadata.invariants().inverse();
       ImmutableSetMultimap<AcslAssigns, CFANode> actualAssigns =
           acslMetadata.modifiedMemoryLocations().inverse();
+
       for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
         switch (expectedAnnotation) {
-          case AcslAssertion assertion -> {
-            assert actualAssertions.containsKey(assertion);
-          }
-          case AcslLoopInvariant loopInvariant -> {
-            assert actualLoopInvariants.containsKey(loopInvariant);
-          }
-          case null, default -> {
-            assert actualAssigns.containsKey(expectedAnnotation);
-          }
+          case AcslAssertion assertion -> assertThat(actualAssertions).containsKey(assertion);
+          case AcslLoopInvariant loopInvariant ->
+              assertThat(actualLoopInvariants).containsKey(loopInvariant);
+          case null, default -> assertThat(actualAssigns).containsKey(expectedAnnotation);
         }
       }
-    } catch (RuntimeException e) {
-      assertThat(programName).isEqualTo("badVariable.c");
-      assertThat(e.getMessage())
-          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
     }
   }
 
   @Test
-  public void updateCfaNodesCorrectlyTest()
-      throws ParserException, IOException, InterruptedException, InvalidConfigurationException {
+  public void updateCfaNodesCorrectlyTest() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
-    try {
-      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-      if (cfa.getMetadata().getAcslMetadata() != null
-          && !cfa.getMetadata().getAcslMetadata().pAcslComments().isEmpty()) {
-        AcslComment comment = cfa.getMetadata().getAcslMetadata().pAcslComments().getFirst();
-        if (comment.hasCfaNode()) {
-          FileLocation nodeLoc = describeFileLocation(comment.getCfaNode());
-          assertThat(nodeLoc.getStartingLineNumber()).isEqualTo(expectedLoc.expectedLine);
-          assertThat(nodeLoc.getStartColumnInLine()).isEqualTo(expectedLoc.expectedCol);
-        }
-      }
-    } catch (RuntimeException e) {
-      assertThat(programName).isEqualTo("badVariable.c");
-      assertThat(e.getMessage())
+
+    if (programName.equals("badVariable.c")) {
+      RuntimeException expectedException =
+          assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(expectedException)
+          .hasMessageThat()
           .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
+    } else {
+      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+      assertThat(cfa.getMetadata().getAcslMetadata()).isNotNull();
+      assertThat(cfa.getMetadata().getAcslMetadata().pAcslComments()).isNotEmpty();
+
+      AcslComment comment = cfa.getMetadata().getAcslMetadata().pAcslComments().getFirst();
+      assertThat(comment.getCfaNode()).isNotNull();
+
+      FileLocation nodeLoc = describeFileLocation(comment.getCfaNode());
+      assertThat(nodeLoc.getStartingLineNumber()).isEqualTo(expectedLoc.expectedLine);
+      assertThat(nodeLoc.getStartColumnInLine()).isEqualTo(expectedLoc.expectedCol);
     }
   }
 
