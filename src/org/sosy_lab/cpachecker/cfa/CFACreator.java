@@ -815,6 +815,11 @@ public class CFACreator {
         ImmutableSetMultimap.builder();
 
     for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
+      Verify.verify(comment.getCfaNode() != null);
+      // If the comment is a function contract, we need to tell the CProgramScope the function name.
+      if (comment.getCfaNode() instanceof FunctionEntryNode) {
+        pScope = pScope.withFunctionScope(comment.getCfaNode().getFunctionName());
+      }
 
       FluentIterable<AAcslAnnotation> allAnnotations =
           FluentIterable.from(
