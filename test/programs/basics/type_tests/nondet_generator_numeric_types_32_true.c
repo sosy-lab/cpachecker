@@ -81,7 +81,7 @@ int main() {
   assert(nondet_bool != 65535); // Your analysis is unsound if this fails
   assert(nondet_bool != 2147483647); // Your analysis is unsound if this fails
   assert(nondet_bool != -1); // Your analysis is unsound if this fails
-  assert(nondet_bool != int_min); // Your analysis is unsound if this fails
+  assert(nondet_bool != -2147483648); // Your analysis is unsound if this fails
 
   // Test that correct types are directly enforced, not only after assigning to a variable!
   assert((bool) (__VERIFIER_nondet_bool() + 1) == true); // Either (bool) 1 == true or (bool) 2 == true
@@ -91,7 +91,7 @@ int main() {
   assert(__VERIFIER_nondet_bool() != 65535); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_bool() != 2147483647); // Your analysis is unsound if this fails
   assert(__VERIFIER_nondet_bool() != -1); // Your analysis is unsound if this fails
-  assert(__VERIFIER_nondet_bool() != int_min); // Your analysis is unsound if this fails
+  assert(__VERIFIER_nondet_bool() != -2147483648); // Your analysis is unsound if this fails
 
 
   // Chars
