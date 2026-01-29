@@ -112,12 +112,23 @@ public class SeqAssumeFunction extends CFunctionDefinitionStatement {
   private static final CFunctionCallStatement ASSUME_FUNCTION_CALL_STATEMENT_DUMMY =
       new CFunctionCallStatement(FileLocation.DUMMY, ASSUME_FUNCTION_CALL_EXPRESSION_DUMMY);
 
-  public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression) {
-    super(ASSUME_FUNCTION_DECLARATION, buildBody(pCondEqualsZeroExpression));
+  public SeqAssumeFunction(CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    super(ASSUME_FUNCTION_DECLARATION, buildBody(pBinaryExpressionBuilder));
   }
 
-  private static CCompoundStatement buildBody(CBinaryExpression pCondEqualsZeroExpression) {
-    CExpressionWrapper ifCondition = new CExpressionWrapper(pCondEqualsZeroExpression);
+  private static CCompoundStatement buildBody(CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    // build the 'cond == 0' expression
+    CBinaryExpression condEqualsZeroExpression =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqAssumeFunction.COND_ID_EXPRESSION,
+            SeqIntegerLiteralExpressions.INT_0,
+            BinaryOperator.EQUALS);
+    CExpressionWrapper ifCondition = new CExpressionWrapper(condEqualsZeroExpression);
+    // build the 'if (cond == 0) { abort(); }' statement
     ImmutableList<CExportStatement> ifBlock =
         ImmutableList.of(new CStatementWrapper(ABORT_FUNCTION_CALL_STATEMENT));
     return new CCompoundStatement(new CIfStatement(ifCondition, new CCompoundStatement(ifBlock)));

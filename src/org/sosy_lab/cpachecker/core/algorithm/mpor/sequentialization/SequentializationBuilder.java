@@ -15,8 +15,6 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -36,7 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqParameterAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
@@ -294,7 +291,7 @@ public class SequentializationBuilder {
     if (pOptions.loopUnrolling()) {
       for (SeqThreadSimulationFunction threadFunction :
           pFields.threadSimulationFunctions.orElseThrow()) {
-        rDeclarations.add(threadFunction.declaration.toASTString());
+        rDeclarations.add(threadFunction.getDeclaration().toASTString());
       }
     }
     // main should always be duplicate
@@ -311,25 +308,18 @@ public class SequentializationBuilder {
       rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS.toASTString());
     }
     // custom function definitions: assume(), main()
-    CBinaryExpression condEqualsZeroExpression =
-        pUtils
-            .binaryExpressionBuilder()
-            .buildBinaryExpression(
-                SeqAssumeFunction.COND_ID_EXPRESSION,
-                SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.EQUALS);
-    SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);
-    rDefinitions.add(assume.buildDefinition());
+    SeqAssumeFunction assume = new SeqAssumeFunction(pUtils.binaryExpressionBuilder());
+    rDefinitions.add(assume.toASTString());
     // create separate thread simulation function definitions, if enabled
     if (pOptions.loopUnrolling()) {
       for (SeqThreadSimulationFunction threadFunction :
           pFields.threadSimulationFunctions.orElseThrow()) {
-        rDefinitions.add(threadFunction.buildDefinition());
+        rDefinitions.add(threadFunction.toASTString());
       }
     }
     // create clauses in main method
     SeqMainFunction mainFunction = new SeqMainFunction(pOptions, pFields, pUtils);
-    rDefinitions.add(mainFunction.buildDefinition());
+    rDefinitions.add(mainFunction.toASTString());
     return rDefinitions.toString();
   }
 

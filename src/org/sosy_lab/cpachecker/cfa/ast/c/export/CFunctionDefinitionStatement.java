@@ -55,6 +55,7 @@ public abstract class CFunctionDefinitionStatement implements CExportStatement {
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
+
     StringJoiner rDefinition = new StringJoiner(System.lineSeparator());
     rDefinition.add(buildSignature(pAAstNodeRepresentation));
     rDefinition.add(body.toASTString(pAAstNodeRepresentation));
