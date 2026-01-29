@@ -18,12 +18,17 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/**
+ * A logical OR expression in C. Example: {@code (operand1 || operand2)}
+ *
+ * @param operands The operands in the logical OR with at least 2 elements
+ */
 public record CLogicalOrExpression(ImmutableList<CExportExpression> operands)
     implements CLogicalExpression {
 
   public CLogicalOrExpression {
     checkArgument(
-        !operands.isEmpty() && operands.size() >= 2,
+        operands.size() >= 2,
         "A CLogicalOrExpression must contain at least 2 elements (operand1 || operand2)");
   }
 
