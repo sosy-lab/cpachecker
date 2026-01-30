@@ -3580,6 +3580,13 @@ cpa.smg2.abstraction.removeUnusedConstraints = false
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
 
+# The SV-COMP defines a list of types that are allowed to be used in
+# __VERIFIER_nondet_X() functions. If this option is false, only those
+# defined in the competition are allowed. All others throw an exception on
+# being evaluated. For true, the type of any __VERIFIER_nondet_X() function
+# is simply accepted without any checks.
+cpa.smg2.allowNondetFunctionsWithArbitraryTypes = true
+
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
 
