@@ -316,6 +316,100 @@ def visualize_block_graph(
         print(f"WARNING: Failed to generate PNG from DOT file: {e}", file=sys.stderr)
 
 
+def generate_timeline_view(messages: List[Dict[str, Any]], block_logs: Dict[str, Any],
+                           export_keys: List[str]) -> str:
+    """Generate timeline view HTML where messages are shown chronologically."""
+    if not messages:
+        return "<p>No messages to display.</p>"
+
+    # Group messages by timestamp
+    first_timestamp = int(messages[0]["header"]["timestamp"])
+    timestamp_groups = {}
+
+    for message in messages:
+        relative_time = message["header"]["timestamp"] - first_timestamp
+        if relative_time not in timestamp_groups:
+            timestamp_groups[relative_time] = []
+        timestamp_groups[relative_time].append(message)
+
+    # Message type to CSS class mapping
+    type_to_class = {
+        "POST_CONDITION": "post-condition",
+        "VIOLATION_CONDITION": "violation-condition",
+        "FOUND_RESULT": "found-result"
+    }
+
+    html_parts = ['<div class="timeline-container">']
+
+    for timestamp in sorted(timestamp_groups.keys()):
+        messages_at_time = timestamp_groups[timestamp]
+
+        html_parts.append(f'<div class="timeline-row" data-timestamp="{timestamp}">')
+        html_parts.append(f'<div class="timeline-time">{timestamp}</div>')
+        html_parts.append('<div class="timeline-messages">')
+
+        for msg in messages_at_time:
+            header = msg["header"]
+            sender_id = header["senderId"]
+            message_type = header["messageType"]
+            msg_id = msg["filename"]
+
+            block_info = block_logs.get(sender_id, {})
+            predecessors = block_info.get("predecessors", [])
+            successors = block_info.get("successors", [])
+            code = "\n".join(x for x in block_info.get("code", []) if x)
+            content = msg.get("content", {})
+
+            # Determine message direction and participants
+            arrow, senders, receivers = "-", ["all"], ["all"]
+            if message_type == "POST_CONDITION":
+                arrow, senders, receivers = "&darr;", predecessors or ["Self"], successors
+            elif message_type == "VIOLATION_CONDITION":
+                arrow, senders, receivers = "&uarr;", successors or ["Self"], predecessors
+            elif message_type == "FOUND_RESULT":
+                senders = [msg.get("from", "Self")]
+
+            # Filter content based on export keys
+            filtered_content = filter_content_by_keys(content, export_keys)
+            content_json = json.dumps(filtered_content, indent=2)
+
+            css_class = type_to_class.get(message_type, "normal")
+
+            # Build compact message card
+            html_parts.append(f'''
+            <div class="timeline-message-card {css_class}" data-sender="{sender_id}" data-type="{message_type}" title="{sender_id}:\n{code}">
+                <div class="timeline-card-header">
+                    <span class="timeline-arrow">{arrow}</span>
+                    <span class="timeline-sender"><strong>{sender_id}</strong></span>
+                    <span class="timeline-type-badge">{message_type.replace('_', ' ')}</span>
+                </div>
+                <div class="timeline-card-body">
+                    <div class="timeline-participants">
+                        <div class="timeline-participant-group">
+                            <span class="label">From:</span> 
+                            <span class="value">{', '.join(senders)}</span>
+                        </div>
+                        <div class="timeline-participant-group">
+                            <span class="label">To:</span> 
+                            <span class="value">{', '.join(receivers) if receivers else 'None'}</span>
+                        </div>
+                    </div>
+                    <div class="timeline-msg-id">ID: {msg_id[1:-5]}</div>
+                    <details class="timeline-content">
+                        <summary>View Content</summary>
+                        <pre class="timeline-content-json">{content_json}</pre>
+                    </details>
+                </div>
+            </div>
+            ''')
+
+        html_parts.append('</div>')  # Close timeline-messages
+        html_parts.append('</div>')  # Close timeline-row
+
+    html_parts.append('</div>')  # Close timeline-container
+    return '\n'.join(html_parts)
+
+
 def generate_html_report(
         messages: List[Dict[str, Any]],
         block_logs: Dict[str, Any],
@@ -334,6 +428,9 @@ def generate_html_report(
 
     # Generate table HTML
     table_html = generate_html_table(messages, block_logs, export_keys)
+
+    # Generate timeline HTML
+    timeline_html = generate_timeline_view(messages, block_logs, export_keys)
 
     # Get unique block IDs and message types for filters
     block_ids = sorted(block_logs.keys())
@@ -359,6 +456,14 @@ def generate_html_report(
         
         <div class="controls">
             <div class="control-group">
+                <div class="view-toggle">
+                    <button id="tableViewBtn" class="btn btn-view active">
+                        <span>📊</span> Table View
+                    </button>
+                    <button id="timelineViewBtn" class="btn btn-view">
+                        <span>📅</span> Timeline View
+                    </button>
+                </div>
                 <button id="resetFiltersBtn" class="btn btn-secondary">
                     <span>🔄</span> Reset Filters
                 </button>
@@ -405,8 +510,16 @@ def generate_html_report(
             </div>
         </div>
         
-        <div class="table-container">
-            {table_html}
+        <div class="view-container" id="tableViewContainer">
+            <div class="table-container">
+                {table_html}
+            </div>
+        </div>
+        
+        <div class="view-container hidden" id="timelineViewContainer">
+            <div class="timeline-wrapper">
+                {timeline_html}
+            </div>
         </div>
     </div>
     
@@ -560,6 +673,17 @@ def get_embedded_css() -> str:
             display: flex;
             gap: 12px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            background: white;
+            padding: 4px;
+            border-radius: 6px;
+            border: 1px solid #d0d0d0;
         }
         
         .btn {
@@ -573,6 +697,24 @@ def get_embedded_css() -> str:
             display: inline-flex;
             align-items: center;
             gap: 6px;
+        }
+        
+        .btn-view {
+            padding: 8px 16px;
+            background: transparent;
+            color: #555;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        .btn-view:hover {
+            background: #f0f0f0;
+        }
+        
+        .btn-view.active {
+            background: #3498db;
+            color: white;
         }
         
         .btn-primary {
@@ -971,6 +1113,202 @@ def get_embedded_css() -> str:
             display: none !important;
         }
         
+        /* Timeline View Styles */
+        .view-container {
+            padding: 20px 40px;
+        }
+        
+        .timeline-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .timeline-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .timeline-row {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 12px;
+            background: #fafafa;
+            border-radius: 6px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .timeline-time {
+            min-width: 80px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.95em;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 4px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .timeline-messages {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .timeline-message-card {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+            min-width: 280px;
+            max-width: 350px;
+            flex: 1;
+        }
+        
+        .timeline-message-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .timeline-message-card.post-condition {
+            border-left: 4px solid #f39c12;
+            background: #fffbf0;
+        }
+        
+        .timeline-message-card.violation-condition {
+            border-left: 4px solid #e74c3c;
+            background: #fff5f5;
+        }
+        
+        .timeline-message-card.found-result {
+            border-left: 4px solid #27ae60;
+            background: #f0fff4;
+        }
+        
+        .timeline-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .timeline-arrow {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .timeline-sender {
+            flex: 1;
+            font-size: 0.9em;
+            color: #2c3e50;
+        }
+        
+        .timeline-type-badge {
+            padding: 3px 8px;
+            background: #34495e;
+            color: white;
+            border-radius: 3px;
+            font-size: 0.7em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .timeline-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .timeline-participants {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.85em;
+        }
+        
+        .timeline-participant-group {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .timeline-participant-group .label {
+            font-weight: 600;
+            color: #555;
+            min-width: 40px;
+        }
+        
+        .timeline-participant-group .value {
+            color: #2c3e50;
+            word-break: break-word;
+        }
+        
+        .timeline-msg-id {
+            font-size: 0.75em;
+            color: #888;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        
+        .timeline-content {
+            margin-top: 4px;
+        }
+        
+        .timeline-content summary {
+            cursor: pointer;
+            font-weight: 500;
+            color: #3498db;
+            font-size: 0.85em;
+            padding: 4px 0;
+            user-select: none;
+        }
+        
+        .timeline-content summary:hover {
+            color: #2980b9;
+        }
+        
+        .timeline-content-json {
+            margin-top: 8px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        @media (max-width: 768px) {
+            .timeline-row {
+                flex-direction: column;
+            }
+            
+            .timeline-time {
+                min-width: 100%;
+                text-align: left;
+            }
+            
+            .timeline-messages {
+                width: 100%;
+            }
+            
+            .timeline-message-card {
+                min-width: 100%;
+                max-width: 100%;
+            }
+        }
+        
         @media (max-width: 768px) {
             body {
                 padding: 0;
@@ -1023,15 +1361,40 @@ def get_embedded_javascript() -> str:
         const filterState = {
             messageTypes: new Set(['POST_CONDITION', 'VIOLATION_CONDITION', 'FOUND_RESULT']),
             blockId: '',
-            contentSearch: ''
+            contentSearch: '',
+            currentView: 'table'
         };
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             initializeFilters();
+            initializeViewToggle();
             initializeModal();
             updateVisibleMessages();
         });
+        
+        function initializeViewToggle() {
+            const tableViewBtn = document.getElementById('tableViewBtn');
+            const timelineViewBtn = document.getElementById('timelineViewBtn');
+            const tableViewContainer = document.getElementById('tableViewContainer');
+            const timelineViewContainer = document.getElementById('timelineViewContainer');
+            
+            tableViewBtn.addEventListener('click', function() {
+                filterState.currentView = 'table';
+                tableViewBtn.classList.add('active');
+                timelineViewBtn.classList.remove('active');
+                tableViewContainer.classList.remove('hidden');
+                timelineViewContainer.classList.add('hidden');
+            });
+            
+            timelineViewBtn.addEventListener('click', function() {
+                filterState.currentView = 'timeline';
+                timelineViewBtn.classList.add('active');
+                tableViewBtn.classList.remove('active');
+                timelineViewContainer.classList.remove('hidden');
+                tableViewContainer.classList.add('hidden');
+            });
+        }
         
         function initializeFilters() {
             // Message type filters
@@ -1091,6 +1454,7 @@ def get_embedded_javascript() -> str:
         }
         
         function applyFilters() {
+            // Filter table view
             const rows = document.querySelectorAll('#messageTable tbody tr');
             
             rows.forEach(row => {
@@ -1117,6 +1481,32 @@ def get_embedded_javascript() -> str:
                 
                 // Show/hide row
                 row.style.display = showRow ? '' : 'none';
+            });
+            
+            // Filter timeline view
+            const timelineCards = document.querySelectorAll('.timeline-message-card');
+            timelineCards.forEach(card => {
+                const messageType = card.dataset.type;
+                const senderId = card.dataset.sender || '';
+                const content = card.textContent.toLowerCase();
+                
+                const typeMatch = filterState.messageTypes.has(messageType);
+                const blockMatch = !filterState.blockId || senderId.toLowerCase().includes(filterState.blockId);
+                const contentMatch = !filterState.contentSearch || content.includes(filterState.contentSearch);
+                
+                if (typeMatch && blockMatch && contentMatch) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Hide timeline rows that have no visible messages
+            const timelineRows = document.querySelectorAll('.timeline-row');
+            timelineRows.forEach(row => {
+                const visibleCards = Array.from(row.querySelectorAll('.timeline-message-card'))
+                    .filter(card => card.style.display !== 'none');
+                row.style.display = visibleCards.length > 0 ? '' : 'none';
             });
             
             updateVisibleMessages();
