@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -122,6 +123,11 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
         : Optional.empty();
   }
 
+  /**
+   * Returns {@code next_thread = __VERIFIER_nondet_...(); assume(next_thread == {thread_id};}, but
+   * only if {@link MPOROptions#loopUnrolling()} is enabled since choosing and assuming over {@code
+   * next_thread} is a preceding statement in the respective {@link SeqThreadSimulationFunction}.
+   */
   protected Optional<ImmutableList<CStatement>> tryBuildNextThreadStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 

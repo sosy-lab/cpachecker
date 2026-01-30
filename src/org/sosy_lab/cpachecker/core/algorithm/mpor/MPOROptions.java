@@ -251,10 +251,16 @@ public class MPOROptions {
     }
     if (nondeterminismSource.isNextThreadNondeterministic()) {
       if (!controlEncodingThread.isEnabled()) {
-        throw new InvalidConfigurationException(
-            String.format(
-                "controlEncodingThread cannot be %s when nondeterminismSource contains NEXT_THREAD",
-                CMultiControlStatementEncoding.NONE));
+        // if loopUnrolling is enabled, then choosing controlEncodingThread=NONE is allowed even
+        // when nondeterminismSource contains NEXT_THREAD, because then there is no multi control
+        // statement for next_thread in the main() function anyway
+        if (!loopUnrolling) {
+          throw new InvalidConfigurationException(
+              String.format(
+                  "controlEncodingThread cannot be %s when nondeterminismSource contains"
+                      + " NEXT_THREAD",
+                  CMultiControlStatementEncoding.NONE));
+        }
       }
     }
     if (!linkReduction) {
