@@ -17,10 +17,27 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
 /**
- * Represents the entirety of a switch statement. Note that every statement is followed by a {@code
- * break;} so that no fall through happens.
+ * Represents the entirety of a switch statement. Note that every {@code case} statement is followed
+ * by a {@code break;} so that no fall through happens. Example with an {@code int expression}
+ * between {@code 0} and {@code 2}:
  *
- * <p>Example: {@code switch(a) { case b: ...; break; case c: ...; break; } }
+ * <pre>{@code
+ * switch (expression) {
+ *    case 0:
+ *       ...
+ *       break;
+ *    case 1:
+ *       ...
+ *       break;
+ *    case 2:
+ *       ...
+ *       break;
+ * }
+ * }</pre>
+ *
+ * <p>For most verifiers, the {@link CSwitchStatement} is a good choice because it scales well with
+ * the number of statements. For CBMC however, the {@link CBinarySearchTreeStatement} performed
+ * better.
  */
 public final class CSwitchStatement extends CMultiControlStatement {
 

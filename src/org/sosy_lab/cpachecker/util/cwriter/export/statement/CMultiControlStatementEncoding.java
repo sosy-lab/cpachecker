@@ -8,7 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 
+/**
+ * An enum for the different types of {@link CMultiControlStatementEncoding}, can be used e.g. in
+ * options to define a specific encoding.
+ */
 public enum CMultiControlStatementEncoding {
+  // NONE may be necessary when some other option defines that there is no multi control statement
+  // at all in the exported C code
   NONE,
   BINARY_SEARCH_TREE,
   IF_ELSE_CHAIN,

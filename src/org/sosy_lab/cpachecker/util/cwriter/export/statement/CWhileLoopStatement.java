@@ -14,8 +14,14 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
 /**
- * Used to export loop statements such as {@code while (1) { ... }} that can be used for infinite
- * loops with minimal overhead (= no iteration variable such as {@code i}).
+ * Used to export {@code while} loop statements. Example:
+ *
+ * <pre>{@code
+ * while (1) {
+ *    statement;
+ *    ...
+ * }
+ * }</pre>
  */
 public final class CWhileLoopStatement extends CLoopStatement {
 

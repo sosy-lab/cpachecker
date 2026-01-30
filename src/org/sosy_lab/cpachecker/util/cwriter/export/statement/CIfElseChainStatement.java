@@ -15,6 +15,28 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
+/**
+ * Represents a chain of {@code if-else} branches. Example for an {@code int expression} between
+ * {@code 0} and {@code 2}:
+ *
+ * <pre>{@code
+ * if (expression == 0) {
+ *    ...
+ * } else {
+ *   if (expression == 1) {
+ *      ...
+ *   } else {
+ *      if (expression == 2) {
+ *         ...
+ *      }
+ *   }
+ * }
+ * }</pre>
+ *
+ * <p>For most verifiers, the {@link CIfElseChainStatement} generally scales much worse with a
+ * growing number of statements compared to {@link CSwitchStatement} and {@link
+ * CBinarySearchTreeStatement}.
+ */
 public final class CIfElseChainStatement extends CMultiControlStatement {
 
   public CIfElseChainStatement(

@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 
+/**
+ * A wrapper class for {@link CStatement} so that it can be treated like a {@link CExportStatement}.
+ */
 public record CStatementWrapper(CStatement statement) implements CExportStatement {
 
   @Override

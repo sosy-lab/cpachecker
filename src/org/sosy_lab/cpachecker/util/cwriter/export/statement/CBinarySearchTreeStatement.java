@@ -25,7 +25,24 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 
-/** Represents a binary search tree with {@code if-else} branches. */
+/**
+ * Represents a binary search tree with {@code if-else} branches. Example for an {@code int
+ * expression} between {@code 0} and {@code 3}:
+ *
+ * <pre>{@code
+ * if (expression < 2) {
+ *   if (expression == 0) { ... }
+ *   else { ... }
+ * } else {
+ *   if (expression == 2) { ... }
+ *   else { ... }
+ * }
+ * }</pre>
+ *
+ * <p>In tests with CBMC, the {@link CBinarySearchTreeStatement} scaled much better with a growing
+ * number of statements compared to {@link CSwitchStatement} and {@link CIfElseChainStatement}. For
+ * other verifiers, the impact was negligible.
+ */
 public final class CBinarySearchTreeStatement extends CMultiControlStatement {
 
   private final CLeftHandSide expression;

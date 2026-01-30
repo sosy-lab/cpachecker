@@ -17,6 +17,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
+/**
+ * A wrapper for a {@link CFunctionCallStatement} so that {@link CExportExpression} can be used as
+ * parameters. Example:
+ *
+ * <pre>{@code
+ * assume(A || B);
+ *
+ * }</pre>
+ *
+ * <p>Note that this class should only be used if there is at least one parameter, otherwise use
+ * {@link CFunctionCallStatement}.
+ */
 public record CFunctionCallStatementWrapper(
     CFunctionCallStatement functionCallStatement, ImmutableList<CExportExpression> parameters)
     implements CExportStatement {

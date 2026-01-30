@@ -16,8 +16,14 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
 /**
- * Used to export loop statements such as {@code for (int i = 0; i < N; i++) { ... }} that can be
- * used for finite loops.
+ * Used to export {@code for} loop statements. Example:
+ *
+ * <pre>{@code
+ * for (int i = 0; i < N; i++) {
+ *    statement;
+ *    ...
+ * }
+ * }</pre>
  */
 public final class CForLoopStatement extends CLoopStatement {
 

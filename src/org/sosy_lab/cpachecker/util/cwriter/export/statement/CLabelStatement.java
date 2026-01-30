@@ -10,7 +10,11 @@ package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 
-/** Represents a label in C. Example: {@code label:}. */
+/**
+ * Represents a label in C. Example:
+ *
+ * <pre>{@code label:}</pre>
+ */
 public record CLabelStatement(String name) implements CExportStatement {
 
   @Override

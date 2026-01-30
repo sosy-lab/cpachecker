@@ -11,7 +11,11 @@ package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/** Represents a single-line C comment, e.g., {@code // this is a comment} */
+/**
+ * Represents a single-line C comment. Example:
+ *
+ * <pre>{@code // this is a comment}</pre>
+ */
 public record CCommentStatement(String comment) implements CExportStatement {
 
   @Override

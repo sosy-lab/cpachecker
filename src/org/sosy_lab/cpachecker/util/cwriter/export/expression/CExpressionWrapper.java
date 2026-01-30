@@ -11,6 +11,10 @@ package org.sosy_lab.cpachecker.util.cwriter.export.expression;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
+/**
+ * A wrapper class for {@link CExpression} so that it can be treated like a {@link
+ * CExportExpression}.
+ */
 public record CExpressionWrapper(CExpression expression) implements CExportExpression {
 
   @Override
