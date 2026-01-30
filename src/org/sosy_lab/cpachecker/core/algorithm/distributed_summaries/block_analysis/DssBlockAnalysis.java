@@ -625,7 +625,9 @@ public class DssBlockAnalysis {
     if (!result.violationConditions().isEmpty()) {
       messages.addAll(reportViolationConditions(result.violationConditions(), false));
     }
-    if (result.summaries().isEmpty() && result.violationConditions().isEmpty()) {
+    if (result.summaries().isEmpty()
+        && result.violationConditions().isEmpty()
+        && (preconditions.isEmpty() || pSenderId.equals("all"))) {
       messages.addAll(reportUnreachableBlockEnd());
     }
     return messages.build();
@@ -688,17 +690,13 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        if (!result.getSummaries().isEmpty()) {
-          AbstractState combinedState =
-              dcpa.getCombineOperator()
-                  .combine(
-                      FluentIterable.from(result.getSummaries())
-                          .filter(AbstractState.class)
-                          .toList());
-          Precision combined =
-              dcpa.getCombinePrecisionOperator()
-                  .combine(result.getSummaries().stream().map(reachedSet::getPrecision).toList());
-          summaries.add(new StateAndPrecision(combinedState, combined));
+        if (!result.getSummaries().isEmpty() && result.getAllViolations().isEmpty()) {
+          ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
+          for (AbstractState summary : result.getSummaries()) {
+            summaryWithPrecision.add(
+                new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+          }
+          summaries.addAll(summaryWithPrecision.build());
         }
         if (!result.getAllViolations().isEmpty()) {
           vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
