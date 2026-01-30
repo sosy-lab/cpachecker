@@ -70,7 +70,7 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return SeqStringUtil.getVariableDeclarationASTStringWithoutStorageClassAndType(
             variableDeclaration, pAAstNodeRepresentation)
         + SeqSyntax.SPACE

@@ -69,7 +69,7 @@ public final class SeqMutexLockStatement extends CSeqThreadStatement {
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
     return Joiner.on(SeqSyntax.SPACE)
         .join(

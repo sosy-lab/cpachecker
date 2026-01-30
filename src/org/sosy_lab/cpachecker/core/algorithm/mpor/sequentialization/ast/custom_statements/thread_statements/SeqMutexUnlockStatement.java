@@ -63,7 +63,7 @@ public final class SeqMutexUnlockStatement extends CSeqThreadStatement {
             mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return lockedFalseAssignment.toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE + injected;
   }
 

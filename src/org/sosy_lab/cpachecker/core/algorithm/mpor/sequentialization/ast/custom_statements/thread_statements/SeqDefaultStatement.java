@@ -57,7 +57,7 @@ public final class SeqDefaultStatement extends CSeqThreadStatement {
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return edge.getStatement().toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE + injected;
   }
 

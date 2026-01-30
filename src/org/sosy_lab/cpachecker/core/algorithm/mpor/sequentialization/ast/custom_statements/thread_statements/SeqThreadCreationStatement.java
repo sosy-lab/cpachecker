@@ -87,7 +87,7 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
     }
     String injectedStatementsString =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
     String startRoutineArgAssignmentString =
         startRoutineArgAssignment.isPresent()

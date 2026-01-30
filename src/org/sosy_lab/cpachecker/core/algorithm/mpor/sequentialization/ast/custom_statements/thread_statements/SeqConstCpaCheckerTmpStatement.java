@@ -169,7 +169,7 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
 
     String targetStatements =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
     return Joiner.on(SeqSyntax.SPACE)
         .join(

@@ -45,7 +45,7 @@ public final class SeqAtomicBeginStatement extends CSeqThreadStatement {
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return SeqStringUtil.wrapInBlockComment(
             PthreadFunctionType.VERIFIER_ATOMIC_BEGIN.name + SeqSyntax.SEMICOLON)
         + SeqSyntax.SPACE

@@ -67,7 +67,7 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
             new CCompoundStatement(new CStatementWrapper(setNumWritersToZero)));
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
     return ifStatement.toASTString(pAAstNodeRepresentation) + injected;
   }

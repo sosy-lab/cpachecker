@@ -80,7 +80,7 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
             : SeqSyntax.EMPTY_STRING;
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
     return Joiner.on(SeqSyntax.SPACE)
         .join(assumeCall.toASTString(pAAstNodeRepresentation), returnValueRead, injected);

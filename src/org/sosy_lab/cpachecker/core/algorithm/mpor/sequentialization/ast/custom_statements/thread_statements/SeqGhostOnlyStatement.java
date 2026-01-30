@@ -43,7 +43,7 @@ public final class SeqGhostOnlyStatement extends CSeqThreadStatement {
       throws UnrecognizedCodeException {
 
     return SeqThreadStatementUtil.buildInjectedStatementsString(
-        pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
+        pcLeftHandSide, targetPc, Optional.empty(), injectedStatements, pAAstNodeRepresentation);
   }
 
   @Override

@@ -59,7 +59,7 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
     return setCondSignaledTrue.toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE + injected;
   }

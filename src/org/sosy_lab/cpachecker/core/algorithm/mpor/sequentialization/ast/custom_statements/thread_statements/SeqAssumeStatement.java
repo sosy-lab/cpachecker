@@ -61,7 +61,7 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
 
     // just return the injected statements, the block handles the if-else branch
     return SeqThreadStatementUtil.buildInjectedStatementsString(
-        pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+        pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
   }
 
   @Override

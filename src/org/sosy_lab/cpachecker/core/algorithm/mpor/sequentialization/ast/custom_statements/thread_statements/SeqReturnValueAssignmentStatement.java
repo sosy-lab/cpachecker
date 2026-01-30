@@ -57,7 +57,7 @@ public final class SeqReturnValueAssignmentStatement extends CSeqThreadStatement
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return assignment.toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE + injected;
   }
 
