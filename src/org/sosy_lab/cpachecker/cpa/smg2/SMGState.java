@@ -6842,7 +6842,9 @@ public class SMGState
 
             if (readValue instanceof NumericValue numValue) {
               // The offset NEEDS to be NULL! Anything else is interpreted as reference!
-              checkArgument(!baseMemoryLoc.isReference());
+              if (baseMemoryLoc.isReference()) {
+                baseMemoryLoc = baseMemoryLoc.getReferenceStart();
+              }
               memLocAndValueBuilder.put(baseMemoryLoc, numValue.bigIntegerValue());
             }
           }
@@ -6861,7 +6863,9 @@ public class SMGState
               if (readValue instanceof NumericValue numValue
                   && numValue.bigIntegerValue().equals(BigInteger.ZERO)) {
                 // The offset NEEDS to be NULL! Anything else is interpreted as reference!
-                checkArgument(!baseMemoryLoc.isReference());
+                if (baseMemoryLoc.isReference()) {
+                  baseMemoryLoc = baseMemoryLoc.getReferenceStart();
+                }
                 memLocAndValueBuilder.put(baseMemoryLoc, numValue.bigIntegerValue());
                 continue;
               }
