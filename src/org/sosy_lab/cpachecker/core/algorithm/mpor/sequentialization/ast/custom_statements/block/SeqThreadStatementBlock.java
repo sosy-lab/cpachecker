@@ -88,12 +88,8 @@ public class SeqThreadStatementBlock implements CExportStatement {
       joiner.add(branchStatement.toASTString(pAAstNodeRepresentation));
     }
 
-    Optional<String> suffix =
-        SeqStringUtil.tryBuildBlockSuffix(options, nextThreadLabel, statements);
-    if (suffix.isPresent()) {
-      joiner.add(suffix.orElseThrow());
-    }
-
+    SeqStringUtil.tryBuildBlockSuffix(options, nextThreadLabel, statements, pAAstNodeRepresentation)
+        .ifPresent(joiner::add);
     return joiner.toString();
   }
 

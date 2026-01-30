@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
-/** An abstract base for a multi control flow statement in C such as {@link switch} statements. */
+/** An abstract base for a multi control flow statement in C such as {@code switch} statements. */
 public abstract sealed class CMultiControlStatement implements CExportStatement
     permits CBinarySearchTreeStatement, CIfElseChainStatement, CSwitchStatement {
 

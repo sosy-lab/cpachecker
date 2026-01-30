@@ -49,20 +49,27 @@ public class SeqStringUtil {
   public static Optional<String> tryBuildBlockSuffix(
       MPOROptions pOptions,
       Optional<CLabelStatement> pNextThreadLabel,
-      ImmutableList<CSeqThreadStatement> pStatements)
+      ImmutableList<CSeqThreadStatement> pStatements,
+      AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
+    // if all statements have a 'goto', then the suffix is never reached
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
       return Optional.empty();
     }
+    // if the bit vector evaluation is empty, 'abort();' is called and the suffix is never reached
     if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
       return Optional.empty();
     }
-    return Optional.of(buildBlockSuffixByControlStatementEncoding(pOptions, pNextThreadLabel));
+    return Optional.of(
+        buildBlockSuffixByControlStatementEncoding(
+            pOptions, pNextThreadLabel, pAAstNodeRepresentation));
   }
 
   private static String buildBlockSuffixByControlStatementEncoding(
-      MPOROptions pOptions, Optional<CLabelStatement> pNextThreadLabel)
+      MPOROptions pOptions,
+      Optional<CLabelStatement> pNextThreadLabel,
+      AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
     // use control encoding of the statement since we append the suffix to the statement
@@ -77,7 +84,8 @@ public class SeqStringUtil {
         }
         // if this is not the last thread, add "goto T{next_thread_ID};"
         if (pNextThreadLabel.isPresent()) {
-          yield new CGotoStatement(pNextThreadLabel.orElseThrow()).toASTString();
+          yield new CGotoStatement(pNextThreadLabel.orElseThrow())
+              .toASTString(pAAstNodeRepresentation);
         }
         // otherwise, continue i.e. go to next loop iteration
         yield "continue" + SeqSyntax.SEMICOLON;
