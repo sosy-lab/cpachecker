@@ -27,14 +27,14 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper
 
 /**
  * Represents a binary search tree with {@code if-else} branches. Example for an {@code int
- * expression} between {@code 0} and {@code 3}:
+ * expression} between {@code 1} and {@code 4}:
  *
  * <pre>{@code
- * if (expression < 2) {
- *   if (expression == 0) { ... }
+ * if (expression < 3) {
+ *   if (expression == 1) { ... }
  *   else { ... }
  * } else {
- *   if (expression == 2) { ... }
+ *   if (expression == 3) { ... }
  *   else { ... }
  * }
  * }</pre>
@@ -45,16 +45,44 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper
  */
 public final class CBinarySearchTreeStatement extends CMultiControlStatement {
 
+  private final int startIndex;
+
   private final CLeftHandSide expression;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
+  /**
+   * Returns a new {@link CBinarySearchTreeStatement}. Example:
+   *
+   * <pre>{@code
+   * if (expr < 3) {
+   *   if (expr == 1) { ... }
+   *   else { ... }
+   * } else {
+   *   if (expr == 3) { ... }
+   *   else { ... }
+   * }
+   * }</pre>
+   *
+   * <p>Note that the indices must be consecutive, i.e., the binary search tree works in the
+   * interval {@code [pStartIndex; pStartIndex + pStatements.size() - 1]}.
+   *
+   * @param pStartIndex the index of the very first statement, e.g. {@code 1} in the example above
+   * @param pExpression the {@link CLeftHandSide} used for the binary {@code <} expressions, e.g.
+   *     {@code expr} in the example above
+   * @param pStatements the map of expressions used in the {@code if} branch (e.g. {@code expr == 1}
+   *     in the example above) to their statements
+   * @param pBinaryExpressionBuilder the {@link CBinaryExpressionBuilder} used to build the binary
+   *     {@code <} expressions
+   */
   public CBinarySearchTreeStatement(
+      int pStartIndex,
       CLeftHandSide pExpression,
       ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     super(pStatements);
+    startIndex = pStartIndex;
     expression = pExpression;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
@@ -66,7 +94,7 @@ public final class CBinarySearchTreeStatement extends CMultiControlStatement {
     // use list<entry<,>> instead of map so that we can split it in the middle for the bin tree
     ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
         statementList = transformStatements();
-    CExportStatement treeStatement = recursivelyBuildTree(statementList, statementList, expression);
+    CExportStatement treeStatement = recursivelyBuildTree(statementList, statementList);
     return treeStatement.toASTString(pAAstNodeRepresentation);
   }
 
@@ -77,8 +105,7 @@ public final class CBinarySearchTreeStatement extends CMultiControlStatement {
   private CExportStatement recursivelyBuildTree(
       final ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
           pAllStatements,
-      List<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>> pCurrentStatements,
-      CLeftHandSide pPc)
+      List<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>> pCurrentStatements)
       throws UnrecognizedCodeException {
 
     int size = pCurrentStatements.size();
@@ -103,20 +130,21 @@ public final class CBinarySearchTreeStatement extends CMultiControlStatement {
       int middleIndex = size / 2;
       Entry<CExportExpression, ImmutableList<? extends CExportStatement>> midEntry =
           pCurrentStatements.get(middleIndex);
-      int midIndex = pAllStatements.indexOf(midEntry) - 1;
+      int midIndex = pAllStatements.indexOf(midEntry);
 
       // if (pc < midIndex) ...
       CIntegerLiteralExpression intLiteral =
           new CIntegerLiteralExpression(
-              FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(midIndex + 1));
+              FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(midIndex + startIndex));
       CBinaryExpression ifExpression =
-          binaryExpressionBuilder.buildBinaryExpression(pPc, intLiteral, BinaryOperator.LESS_THAN);
+          binaryExpressionBuilder.buildBinaryExpression(
+              expression, intLiteral, BinaryOperator.LESS_THAN);
 
       // recursively build if < ...  and else ... subtrees
       CExportStatement ifBranchStatement =
-          recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(0, middleIndex), pPc);
+          recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(0, middleIndex));
       CExportStatement elseBranchStatement =
-          recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(middleIndex, size), pPc);
+          recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(middleIndex, size));
 
       return new CIfStatement(
           new CExpressionWrapper(ifExpression),

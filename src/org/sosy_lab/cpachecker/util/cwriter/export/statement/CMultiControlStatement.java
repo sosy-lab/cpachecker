@@ -14,6 +14,7 @@ import com.google.common.collect.Maps;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
 /** An abstract base for a multi control flow statement in C such as {@code switch} statements. */
@@ -73,7 +74,8 @@ public abstract sealed class CMultiControlStatement implements CExportStatement
           throw new IllegalArgumentException(
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
       case BINARY_SEARCH_TREE ->
-          new CBinarySearchTreeStatement(pExpression, pStatements, pBinaryExpressionBuilder);
+          new CBinarySearchTreeStatement(
+              ProgramCounterVariables.INIT_PC, pExpression, pStatements, pBinaryExpressionBuilder);
       case IF_ELSE_CHAIN -> new CIfElseChainStatement(pStatements);
       case SWITCH_CASE -> new CSwitchStatement(pExpression, pStatements);
     };
