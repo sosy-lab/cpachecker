@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
 
@@ -45,13 +44,11 @@ public class SeqStringUtil {
 
   // Multi Control Statement Suffix ================================================================
 
-  // TODO use AAstNodeRepresentation here
   public static Optional<String> tryBuildBlockSuffix(
       MPOROptions pOptions,
       Optional<CLabelStatement> pNextThreadLabel,
       ImmutableList<CSeqThreadStatement> pStatements,
-      AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
+      AAstNodeRepresentation pAAstNodeRepresentation) {
 
     // if all statements have a 'goto', then the suffix is never reached
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
@@ -69,8 +66,7 @@ public class SeqStringUtil {
   private static String buildBlockSuffixByControlStatementEncoding(
       MPOROptions pOptions,
       Optional<CLabelStatement> pNextThreadLabel,
-      AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
+      AAstNodeRepresentation pAAstNodeRepresentation) {
 
     // use control encoding of the statement since we append the suffix to the statement
     return switch (pOptions.controlEncodingStatement()) {

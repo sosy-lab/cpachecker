@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
@@ -176,7 +177,6 @@ public final class SeqThreadStatementUtil {
 
   // Injected Statements ===========================================================================
 
-  // TODO include AAstNodeRepresentation here
   /**
    * This returns the {@link String} representation for all injected statements, depending on
    * whether {@code pTargetPc} or {@code pTargetGoto} is present.
@@ -185,16 +185,17 @@ public final class SeqThreadStatementUtil {
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements)
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
+      AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
     if (pTargetPc.isPresent()) {
       return buildInjectedStatementsStringByTargetPc(
-          pPcLeftHandSide, pTargetPc.orElseThrow(), pInjectedStatements);
+          pPcLeftHandSide, pTargetPc.orElseThrow(), pInjectedStatements, pAAstNodeRepresentation);
 
     } else if (pTargetGoto.isPresent()) {
       return buildInjectedStatementsStringByTargetGoto(
-          pTargetGoto.orElseThrow(), pInjectedStatements);
+          pTargetGoto.orElseThrow(), pInjectedStatements, pAAstNodeRepresentation);
     }
     throw new IllegalStateException("either pTargetPc or pTargetGoto must be present");
   }
@@ -202,7 +203,8 @@ public final class SeqThreadStatementUtil {
   private static String buildInjectedStatementsStringByTargetPc(
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements)
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
+      AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
     StringJoiner statements = new StringJoiner(SeqSyntax.SPACE);
@@ -215,23 +217,25 @@ public final class SeqThreadStatementUtil {
         SeqThreadStatementUtil.isAnyBitVectorEvaluationExpressionEmpty(pruned);
     // with empty bit vector evaluations, place pc write before injections, otherwise info is lost
     if (emptyBitVectorEvaluation) {
-      statements.add(pcAssignmentStatement.toASTString());
+      statements.add(pcAssignmentStatement.toASTString(pAAstNodeRepresentation));
     }
     // add all injected statements in the correct order
     ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pruned);
     assert ordered.size() == pruned.size() : "ordering of statements resulted in lost statements";
     for (SeqInjectedStatement injectedStatement : ordered) {
-      statements.add(injectedStatement.toASTString());
+      statements.add(injectedStatement.toASTString(pAAstNodeRepresentation));
     }
     // for non-empty bit vector evaluations, place pc write after injections for optimization
     if (!emptyBitVectorEvaluation) {
-      statements.add(pcAssignmentStatement.toASTString());
+      statements.add(pcAssignmentStatement.toASTString(pAAstNodeRepresentation));
     }
     return statements.toString();
   }
 
   private static String buildInjectedStatementsStringByTargetGoto(
-      SeqBlockLabelStatement pTargetGoto, ImmutableList<SeqInjectedStatement> pInjectedStatements)
+      SeqBlockLabelStatement pTargetGoto,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
+      AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
     StringJoiner statements = new StringJoiner(SeqSyntax.SPACE);
@@ -239,11 +243,11 @@ public final class SeqThreadStatementUtil {
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       // add all statements that are not pruned, even when there is a target goto
       if (!injectedStatement.isPrunedWithTargetGoto()) {
-        statements.add(injectedStatement.toASTString());
+        statements.add(injectedStatement.toASTString(pAAstNodeRepresentation));
       }
     }
     // add the goto last, so that the injected statements appear before it
-    return statements.add(gotoStatement.toASTString()).toString();
+    return statements.add(gotoStatement.toASTString(pAAstNodeRepresentation)).toString();
   }
 
   private static ImmutableList<SeqInjectedStatement> pruneInjectedStatements(

@@ -20,8 +20,10 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
  * <p>This cannot be replaced with a {@link CLabelStatement} directly because the name of the label
  * includes a number which is adjusted during the sequentialization process. This class provides the
  * necessary interface to adjust the label number.
+ *
+ * @param threadPrefix The thread prefix in the label, e.g. {@code T0_}
+ * @param number The number of the block, e.g. {@code 0}
  */
-// we store the thread prefix so that cloning does not require the options (shortVariables)
 public record SeqBlockLabelStatement(String threadPrefix, int number) implements CExportStatement {
 
   public SeqBlockLabelStatement withLabelNumber(int pLabelNumber) {
