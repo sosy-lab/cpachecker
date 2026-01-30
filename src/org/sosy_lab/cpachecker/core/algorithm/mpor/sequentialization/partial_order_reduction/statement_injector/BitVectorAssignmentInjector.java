@@ -169,7 +169,8 @@ public record BitVectorAssignmentInjector(
       ImmutableMap<MPORThread, CIdExpression> sparseVariables =
           entry.getValue().getVariablesByReachType(pReachType);
       Optional<SeqBitVectorAssignmentStatement> assignment =
-          buildSparseBitVectorAssignment(entry.getKey(), sparseVariables, pMemoryLocations);
+          buildSparseBitVectorAssignmentByReachType(
+              entry.getKey(), sparseVariables, pMemoryLocations, pReachType);
       if (assignment.isPresent()) {
         rAssignments.add(assignment.orElseThrow());
       }
@@ -177,22 +178,30 @@ public record BitVectorAssignmentInjector(
     return rAssignments.build();
   }
 
-  private Optional<SeqBitVectorAssignmentStatement> buildSparseBitVectorAssignment(
+  private Optional<SeqBitVectorAssignmentStatement> buildSparseBitVectorAssignmentByReachType(
       SeqMemoryLocation pMemoryLocation,
       ImmutableMap<MPORThread, CIdExpression> pSparseVariables,
-      ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations,
+      ReachType pReachType) {
 
     if (!pSparseVariables.containsKey(activeThread)) {
       return Optional.empty();
     }
-    // if enabled, consider only 0 writes (the memory location is not reachable anymore)
-    if (options.pruneSparseBitVectorWrites() && pMemoryLocations.contains(pMemoryLocation)) {
+    // If 'pruneSparseBitVectorWrites' is enabled, then all sparse reachable bit vectors that are
+    // written to 1 (i.e., if rightHandSide is true) such as 'reach = 1;' are pruned.
+    // Pruning the write is sound because 'reach' is initialized to 1 anyway and does not have to be
+    // reassigned its initial value.
+    // Later, at some location during the thread simulation, 'reach' is set to 0 because the
+    // respective memory location is not reachable anymore from that location onward.
+    boolean rightHandSide = pMemoryLocations.contains(pMemoryLocation);
+    if (options.pruneSparseBitVectorWrites()
+        && rightHandSide
+        && pReachType.equals(ReachType.REACHABLE)) {
       return Optional.empty();
     }
-    boolean value = pMemoryLocations.contains(pMemoryLocation);
-    SparseBitVectorValueExpression sparseBitVectorExpression =
-        new SparseBitVectorValueExpression(value);
     CIdExpression sparseVariable = Objects.requireNonNull(pSparseVariables.get(activeThread));
+    SparseBitVectorValueExpression sparseBitVectorExpression =
+        new SparseBitVectorValueExpression(rightHandSide);
     return Optional.of(
         new SeqBitVectorAssignmentStatement(sparseVariable, sparseBitVectorExpression));
   }
