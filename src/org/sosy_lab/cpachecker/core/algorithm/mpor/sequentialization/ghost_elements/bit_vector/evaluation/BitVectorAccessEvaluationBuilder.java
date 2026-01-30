@@ -236,13 +236,16 @@ class BitVectorAccessEvaluationBuilder {
       SeqMemoryLocation pMemoryLocation) {
 
     // create logical disjunction -> (B || C || ...)
-    ImmutableList<CExpression> sparseBitVectors = pSparseBitVectorMap.get(pMemoryLocation);
-    if (sparseBitVectors.isEmpty()) {
-      // if the logical disjunction is empty, return just (A) instead of (A && (B || C || ...))
-      return new CExpressionWrapper(pDirectBitVector);
-    }
-    // create logical and -> (A && (B || C || ...))
-    CLogicalOrExpression disjunction = CLogicalOrExpression.of(sparseBitVectors);
-    return CLogicalAndExpression.of(new CExpressionWrapper(pDirectBitVector), disjunction);
+    Optional<CExportExpression> disjunction =
+        BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(
+            pSparseBitVectorMap.get(pMemoryLocation).stream()
+                .map(CExpressionWrapper::new)
+                .collect(ImmutableList.toImmutableList()));
+    CExportExpression directBitVector = new CExpressionWrapper(pDirectBitVector);
+
+    // if the logical disjunction is empty, return (A), otherwise return (A && (B || ...))
+    return disjunction.isEmpty()
+        ? directBitVector
+        : CLogicalAndExpression.of(directBitVector, disjunction.orElseThrow());
   }
 }

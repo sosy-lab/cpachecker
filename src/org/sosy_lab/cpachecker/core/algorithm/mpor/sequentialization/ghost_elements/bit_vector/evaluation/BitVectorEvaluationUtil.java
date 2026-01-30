@@ -9,14 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -68,7 +66,7 @@ public class BitVectorEvaluationUtil {
     }
     // when there is only 1 term, use a normal CExportExpression
     if (pTerms.size() == 1) {
-      return Optional.of(checkNotNull(Iterables.getOnlyElement(pTerms)));
+      return Optional.of(pTerms.getFirst());
     }
     // when there are at least 2 terms, use a CLogicalOrExpression (it needs at least 2)
     return Optional.of(new CLogicalOrExpression(pTerms));
