@@ -120,7 +120,7 @@ public class DssAnalysisWorker extends DssWorker {
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          yield dssBlockAnalysis.analyzePrecondition();
+          yield dssBlockAnalysis.analyzePrecondition(message.getSenderId());
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
