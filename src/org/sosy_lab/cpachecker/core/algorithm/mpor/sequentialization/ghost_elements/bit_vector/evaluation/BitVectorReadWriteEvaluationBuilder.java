@@ -323,11 +323,11 @@ class BitVectorReadWriteEvaluationBuilder {
       // handle access variables
       ImmutableList<CExpression> otherAccessVariables = pSparseAccessMap.get(memoryLocation);
 
-      Optional<CLogicalOrExpression> leftHandSide =
-          buildPrunedSparseLeftHandSide(
+      Optional<CExportExpression> leftHandSide =
+          tryBuildPrunedSparseExpression(
               pDirectReadMemoryLocations, memoryLocation, otherWriteVariables);
-      Optional<CLogicalOrExpression> rightHandSide =
-          buildPrunedSparseRightHandSide(
+      Optional<CExportExpression> rightHandSide =
+          tryBuildPrunedSparseExpression(
               pDirectWriteMemoryLocations, memoryLocation, otherAccessVariables);
 
       // only add expression if it was not pruned entirely (LHS or RHS present)
@@ -340,45 +340,26 @@ class BitVectorReadWriteEvaluationBuilder {
   }
 
   /** Builds the logical LHS i.e. {@code (R && (W' || W'' || ...))}. */
-  private static Optional<CLogicalOrExpression> buildPrunedSparseLeftHandSide(
-      ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
+  private static Optional<CExportExpression> tryBuildPrunedSparseExpression(
+      ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       SeqMemoryLocation pMemoryLocation,
-      ImmutableList<CExpression> pOtherWriteVariables) {
+      ImmutableList<CExpression> pOtherVariables) {
 
     // if the LHS is 0, then the entire && expression is 0 -> prune
-    if (!pDirectReadMemoryLocations.contains(pMemoryLocation)) {
+    if (!pDirectMemoryLocations.contains(pMemoryLocation)) {
       return Optional.empty();
     }
     // otherwise the LHS is 1, and we only need the right side of the && expression
-    if (pOtherWriteVariables.isEmpty()) {
-      // RHS is empty too -> prune
-      return Optional.empty();
-    }
-    return Optional.of(CLogicalOrExpression.of(pOtherWriteVariables));
-  }
-
-  /** Builds the logical RHS i.e. {@code (W && (A' || A'' || ...))}. */
-  private static Optional<CLogicalOrExpression> buildPrunedSparseRightHandSide(
-      ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      SeqMemoryLocation pMemoryLocation,
-      ImmutableList<CExpression> pOtherAccessVariables) {
-
-    if (!pDirectWriteMemoryLocations.contains(pMemoryLocation)) {
-      // if the LHS (activeWriteVariable) is 0, then the entire && expression is 0 -> prune
-      return Optional.empty();
-    }
-    // otherwise the LHS is 1, and we only need the right side of the && expression
-    if (pOtherAccessVariables.isEmpty()) {
-      // RHS is empty too -> prune
-      return Optional.empty();
-    }
-    return Optional.of(CLogicalOrExpression.of(pOtherAccessVariables));
+    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(
+        pOtherVariables.stream()
+            .map(CExpressionWrapper::new)
+            .collect(ImmutableList.toImmutableList()));
   }
 
   // Pruned Sparse Single Variable Evaluation ======================================================
 
-  private static CLogicalOrExpression buildPrunedSparseSingleVariableEvaluation(
-      Optional<CLogicalOrExpression> pLeftHandSide, Optional<CLogicalOrExpression> pRightHandSide) {
+  private static CExportExpression buildPrunedSparseSingleVariableEvaluation(
+      Optional<CExportExpression> pLeftHandSide, Optional<CExportExpression> pRightHandSide) {
 
     if (pLeftHandSide.isPresent() && pRightHandSide.isEmpty()) {
       return pLeftHandSide.orElseThrow(); // only LHS
