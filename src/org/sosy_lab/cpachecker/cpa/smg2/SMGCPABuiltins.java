@@ -176,7 +176,7 @@ public class SMGCPABuiltins {
     }
 
     if (isCompetitionNondeterministicFunction(functionName)) {
-      return handleVerifierNondetGeneratorFunction(functionName, state, cfaEdge);
+      return handleVerifierNondetGeneratorFunction(funCallExpr, functionName, state, cfaEdge);
     }
 
     if (isExternalAllocationFunction(functionName)) {
@@ -199,8 +199,9 @@ public class SMGCPABuiltins {
    * Verification (SV-COMP). E.g. __VERIFIER_nondet_int().
    */
   private List<ValueAndSMGState> handleVerifierNondetGeneratorFunction(
-      String pFunctionName, SMGState pState, CFAEdge pCfaEdge)
+      CFunctionCallExpression funCallExpr, String pFunctionName, SMGState pState, CFAEdge pCfaEdge)
       throws SMGException, UnsupportedCodeException {
+    CType type = funCallExpr.getExpressionType().getCanonicalType();
     // Allowed (SVCOMP26): {bool, char, int, int128, float, double, loff_t, long, longlong, pchar,
     // pthread_t, sector_t, short, size_t, u32, uchar, uint, uint128, ulong, ulonglong, unsigned,
     // ushort} (no side effects, pointer for void *, etc.).
@@ -215,6 +216,13 @@ public class SMGCPABuiltins {
 
     // TODO: consider casting directly to desired type?
     //  castCValue(uncastedValueAndState.getValue(), pTargetType);
+
+    // TODO: return a const with a correct type in all cases
+    if (options.allowNondetFunctionsWithArbitraryTypes() && type instanceof CSimpleType) {
+      checkArgument(funCallExpr.getParameterExpressions().isEmpty());
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+    }
+
     return switch (pFunctionName.replace(VERIFIER_NONDET_PREFIX, "")) {
       case "pointer" ->
           throw new UnsupportedCodeException(
