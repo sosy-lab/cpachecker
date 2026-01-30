@@ -10,14 +10,17 @@ package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
@@ -86,11 +89,11 @@ public final class CBinarySearchTreeStatement extends CMultiControlStatement {
       int midIndex = pAllStatements.indexOf(midEntry) - 1;
 
       // if (pc < midIndex) ...
+      CIntegerLiteralExpression intLiteral =
+          new CIntegerLiteralExpression(
+              FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(midIndex + 1));
       CBinaryExpression ifExpression =
-          binaryExpressionBuilder.buildBinaryExpression(
-              pPc,
-              SeqExpressionBuilder.buildIntegerLiteralExpression(midIndex + 1),
-              BinaryOperator.LESS_THAN);
+          binaryExpressionBuilder.buildBinaryExpression(pPc, intLiteral, BinaryOperator.LESS_THAN);
 
       // recursively build if < ...  and else ... subtrees
       CExportStatement ifBranchStatement =
