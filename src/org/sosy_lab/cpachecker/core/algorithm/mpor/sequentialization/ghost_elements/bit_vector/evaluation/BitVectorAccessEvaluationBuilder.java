@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -34,7 +32,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalAndExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalOrExpression;
 
 class BitVectorAccessEvaluationBuilder {
 
@@ -171,12 +168,16 @@ class BitVectorAccessEvaluationBuilder {
         ImmutableList<CExpression> sparseBitVectors = pSparseBitVectorMap.get(memoryLocation);
         // if the LHS is 1, check if any expression exists for the RHS
         if (!sparseBitVectors.isEmpty()) {
-          // simplify A && (B || C || ...) to just (B || C || ...)
-          sparseExpressions.add(CLogicalOrExpression.of(sparseBitVectors));
+          Optional<CExportExpression> disjunction =
+              BitVectorEvaluationUtil.tryBuildLogicalOrExpressionFromCExpressions(sparseBitVectors);
+          if (disjunction.isPresent()) {
+            // simplify A && (B || C || ...) to just (B || C || ...)
+            sparseExpressions.add(disjunction.orElseThrow());
+          }
         }
       }
     }
-    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(sparseExpressions.build());
+    return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
   private static Optional<CExportExpression> buildFullSparseEvaluation(
@@ -200,7 +201,7 @@ class BitVectorAccessEvaluationBuilder {
       sparseExpressions.add(logicalAnd);
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
-    return Optional.of(new CLogicalOrExpression(sparseExpressions.build()));
+    return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
   /**
@@ -215,7 +216,7 @@ class BitVectorAccessEvaluationBuilder {
     ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseBitVectorMap =
         BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
             pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
-    List<CExportExpression> sparseExpressions = new ArrayList<>();
+    ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       CIdExpression directBitVector =
           entry.getValue().getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
@@ -225,9 +226,7 @@ class BitVectorAccessEvaluationBuilder {
       sparseExpressions.add(sparseExpression);
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
-    return sparseExpressions.isEmpty()
-        ? Optional.empty()
-        : Optional.of(new CLogicalOrExpression(ImmutableList.copyOf(sparseExpressions)));
+    return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
   private static CExportExpression buildSingleSparseLogicalAndExpression(
@@ -237,10 +236,8 @@ class BitVectorAccessEvaluationBuilder {
 
     // create logical disjunction -> (B || C || ...)
     Optional<CExportExpression> disjunction =
-        BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(
-            pSparseBitVectorMap.get(pMemoryLocation).stream()
-                .map(CExpressionWrapper::new)
-                .collect(ImmutableList.toImmutableList()));
+        BitVectorEvaluationUtil.tryBuildLogicalOrExpressionFromCExpressions(
+            pSparseBitVectorMap.get(pMemoryLocation));
     CExportExpression directBitVector = new CExpressionWrapper(pDirectBitVector);
 
     // if the logical disjunction is empty, return (A), otherwise return (A && (B || ...))

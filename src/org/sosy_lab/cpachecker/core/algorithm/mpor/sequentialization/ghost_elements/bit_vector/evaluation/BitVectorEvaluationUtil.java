@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalOrExpression;
 
 public class BitVectorEvaluationUtil {
@@ -58,7 +59,18 @@ public class BitVectorEvaluationUtil {
    * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
    * Optional#empty()} if {@code pTerms} is empty.
    */
-  static Optional<CExportExpression> tryBuildSparseLogicalDisjunction(
+  static Optional<CExportExpression> tryBuildLogicalOrExpressionFromCExpressions(
+      ImmutableList<CExpression> pTerms) {
+
+    return tryBuildLogicalOrExpression(
+        pTerms.stream().map(CExpressionWrapper::new).collect(ImmutableList.toImmutableList()));
+  }
+
+  /**
+   * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
+   * Optional#empty()} if {@code pTerms} is empty.
+   */
+  static Optional<CExportExpression> tryBuildLogicalOrExpression(
       ImmutableList<CExportExpression> pTerms) {
 
     if (pTerms.isEmpty()) {

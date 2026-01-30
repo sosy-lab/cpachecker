@@ -145,11 +145,8 @@ class BitVectorReadWriteEvaluationBuilder {
 
     if (leftHandSide.isPresent() && rightHandSide.isPresent()) {
       // both LHS and RHS present: create or expression: ||
-      ImmutableList<CExportExpression> expressionList =
-          ImmutableList.of(
-              new CExpressionWrapper(leftHandSide.orElseThrow()),
-              new CExpressionWrapper(rightHandSide.orElseThrow()));
-      return Optional.of(new CLogicalOrExpression(expressionList));
+      return Optional.of(
+          CLogicalOrExpression.of(leftHandSide.orElseThrow(), rightHandSide.orElseThrow()));
 
     } else if (leftHandSide.isPresent()) {
       return Optional.of(new CExpressionWrapper(leftHandSide.orElseThrow()));
@@ -266,11 +263,7 @@ class BitVectorReadWriteEvaluationBuilder {
         buildGeneralDenseRightHandSide(
             pDirectWriteBitVector, pOtherAccessBitVectors, pUtils.binaryExpressionBuilder());
     // (R & (W' | W'' | ...)) || (W & (A' | A'' | ...))
-    ImmutableList<CExportExpression> expressionList =
-        ImmutableList.of(
-            new CExpressionWrapper(leftHandSide), new CExpressionWrapper(rightHandSide));
-
-    return new CLogicalOrExpression(expressionList);
+    return CLogicalOrExpression.of(leftHandSide, rightHandSide);
   }
 
   // General Dense Evaluation ======================================================================
@@ -336,7 +329,7 @@ class BitVectorReadWriteEvaluationBuilder {
             buildPrunedSparseSingleVariableEvaluation(leftHandSide, rightHandSide));
       }
     }
-    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(sparseExpressions.build());
+    return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
   /** Builds the logical LHS i.e. {@code (R && (W' || W'' || ...))}. */
@@ -350,10 +343,7 @@ class BitVectorReadWriteEvaluationBuilder {
       return Optional.empty();
     }
     // otherwise the LHS is 1, and we only need the right side of the && expression
-    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(
-        pOtherVariables.stream()
-            .map(CExpressionWrapper::new)
-            .collect(ImmutableList.toImmutableList()));
+    return BitVectorEvaluationUtil.tryBuildLogicalOrExpressionFromCExpressions(pOtherVariables);
   }
 
   // Pruned Sparse Single Variable Evaluation ======================================================
@@ -397,7 +387,7 @@ class BitVectorReadWriteEvaluationBuilder {
               otherWriteVariables,
               otherAccessVariables));
     }
-    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(sparseExpressions.build());
+    return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
   private static Optional<CExportExpression> buildFullSparseVariableOnlyEvaluation(
@@ -420,46 +410,10 @@ class BitVectorReadWriteEvaluationBuilder {
               otherAccessVariables,
               pBitVectorVariables));
     }
-    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(sparseExpressions.build());
+    return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
   // Full Sparse Single Variable Evaluation ========================================================
-
-  private static CLogicalAndExpression buildFullSparseSingleVariableLeftHandSide(
-      SeqMemoryLocation pMemoryLocation,
-      ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
-      ImmutableList<CExpression> pOtherWriteVariables) {
-
-    CExpression activeReadValue =
-        BitVectorEvaluationUtil.buildSparseDirectBitVector(
-            pMemoryLocation, pDirectReadMemoryLocations);
-    return buildFullSparseSingleVariableLeftHandSide(activeReadValue, pOtherWriteVariables);
-  }
-
-  private static CLogicalAndExpression buildFullSparseSingleVariableLeftHandSide(
-      CExpression pActiveReadValue, ImmutableList<CExpression> pOtherWriteVariables) {
-
-    return CLogicalAndExpression.of(
-        new CExpressionWrapper(pActiveReadValue), CLogicalOrExpression.of(pOtherWriteVariables));
-  }
-
-  private static CLogicalAndExpression buildFullSparseSingleVariableRightHandSide(
-      SeqMemoryLocation pMemoryLocation,
-      ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      ImmutableList<CExpression> pOtherAccessVariables) {
-
-    CExpression activeWriteValue =
-        BitVectorEvaluationUtil.buildSparseDirectBitVector(
-            pMemoryLocation, pDirectWriteMemoryLocations);
-    return buildFullSparseSingleVariableRightHandSide(activeWriteValue, pOtherAccessVariables);
-  }
-
-  private static CLogicalAndExpression buildFullSparseSingleVariableRightHandSide(
-      CExpression pActiveWriteValue, ImmutableList<CExpression> pOtherAccessVariables) {
-
-    return CLogicalAndExpression.of(
-        new CExpressionWrapper(pActiveWriteValue), CLogicalOrExpression.of(pOtherAccessVariables));
-  }
 
   private static CLogicalOrExpression buildFullSparseSingleVariableEvaluation(
       SeqMemoryLocation pMemoryLocation,
@@ -468,12 +422,18 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableList<CExpression> pOtherWriteVariables,
       ImmutableList<CExpression> pOtherAccessVariables) {
 
-    CLogicalAndExpression leftHandSide =
-        buildFullSparseSingleVariableLeftHandSide(
-            pMemoryLocation, pDirectReadMemoryLocations, pOtherWriteVariables);
-    CLogicalAndExpression rightHandSide =
-        buildFullSparseSingleVariableRightHandSide(
-            pMemoryLocation, pDirectWriteMemoryLocations, pOtherAccessVariables);
+    CExpression directReadVariable =
+        BitVectorEvaluationUtil.buildSparseDirectBitVector(
+            pMemoryLocation, pDirectReadMemoryLocations);
+    CExportExpression leftHandSide =
+        buildFullSparseSingleVariableExpression(directReadVariable, pOtherWriteVariables);
+
+    CExpression directWriteVariable =
+        BitVectorEvaluationUtil.buildSparseDirectBitVector(
+            pMemoryLocation, pDirectWriteMemoryLocations);
+    CExportExpression rightHandSide =
+        buildFullSparseSingleVariableExpression(directWriteVariable, pOtherAccessVariables);
+
     return CLogicalOrExpression.of(leftHandSide, rightHandSide);
   }
 
@@ -488,18 +448,29 @@ class BitVectorReadWriteEvaluationBuilder {
         Objects.requireNonNull(pBitVectorVariables.getSparseReadBitVectors().get(pMemoryLocation));
     CExpression activeReadVariable =
         sparseReadBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
-    CLogicalAndExpression leftHandSide =
-        buildFullSparseSingleVariableLeftHandSide(
+    CExportExpression leftHandSide =
+        buildFullSparseSingleVariableExpression(
             Objects.requireNonNull(activeReadVariable), pOtherWriteVariables);
 
     SparseBitVector sparseWriteBitVector =
         Objects.requireNonNull(pBitVectorVariables.getSparseWriteBitVectors().get(pMemoryLocation));
     CExpression activeWriteVariable =
         sparseWriteBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
-    CLogicalAndExpression rightHandSide =
-        buildFullSparseSingleVariableRightHandSide(
+    CExportExpression rightHandSide =
+        buildFullSparseSingleVariableExpression(
             Objects.requireNonNull(activeWriteVariable), pOtherAccessVariables);
 
     return CLogicalOrExpression.of(leftHandSide, rightHandSide);
+  }
+
+  private static CExportExpression buildFullSparseSingleVariableExpression(
+      CExpression pActiveReadValue, ImmutableList<CExpression> pOtherWriteVariables) {
+
+    CExpressionWrapper leftHandSide = new CExpressionWrapper(pActiveReadValue);
+    Optional<CExportExpression> rightHandSide =
+        BitVectorEvaluationUtil.tryBuildLogicalOrExpressionFromCExpressions(pOtherWriteVariables);
+    return rightHandSide.isEmpty()
+        ? leftHandSide
+        : CLogicalAndExpression.of(leftHandSide, rightHandSide.orElseThrow());
   }
 }

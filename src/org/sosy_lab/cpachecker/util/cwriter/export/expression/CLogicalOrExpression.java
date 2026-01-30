@@ -32,11 +32,6 @@ public record CLogicalOrExpression(ImmutableList<CExportExpression> operands)
         "A CLogicalOrExpression must contain at least 2 elements (operand1 || operand2)");
   }
 
-  public static CLogicalOrExpression of(ImmutableList<CExpression> pOperands) {
-    return new CLogicalOrExpression(
-        transformedImmutableListCopy(pOperands, o -> new CExpressionWrapper(checkNotNull(o))));
-  }
-
   public static CLogicalOrExpression of(CExportExpression... pOperands) {
     return new CLogicalOrExpression(ImmutableList.copyOf(pOperands));
   }

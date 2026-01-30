@@ -138,10 +138,9 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(pActiveThread);
     CBinaryExpression notSync =
         utils.binaryExpressionBuilder().negateExpressionAndSimplify(syncFlag);
-    ImmutableList<CExportExpression> expressionList =
-        ImmutableList.of(
+    CLogicalAndExpression notSyncAndNotConflict =
+        CLogicalAndExpression.of(
             new CExpressionWrapper(notSync), bitVectorEvaluationExpression.orElseThrow().negate());
-    CLogicalAndExpression notSyncAndNotConflict = new CLogicalAndExpression(expressionList);
     // the usual bit vector expression is true if there is a conflict
     //  -> negate (we want no conflict if we ignore round_max == 0)
     return CLogicalOrExpression.of(
