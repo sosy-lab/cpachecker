@@ -82,9 +82,6 @@ public class DssBlockAnalysis {
       Collection<StateAndPrecision> summaries,
       Collection<AbstractState> violationConditions) {}
 
-  private record SoundOrUnsoundPreconditions(
-      boolean isSound, boolean containsTopState, List<StateAndPrecision> preconditions) {}
-
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final DssMessageFactory messageFactory;
   private final Multimap<String, @NonNull StateAndPrecision> preconditions;
@@ -650,8 +647,6 @@ public class DssBlockAnalysis {
     if (preconditions.isEmpty() && !block.isRoot()) {
       return new AnalysisResult(true, ImmutableList.of(), ImmutableList.of());
     }
-    System.out.println(
-        DssDebugUtils.prettyPrintPredicateAnalysisBlock(block, preconditions, violationConditions));
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     ImmutableList.Builder<AbstractState> vcs = ImmutableList.builder();
     boolean calculatedTop = false;
