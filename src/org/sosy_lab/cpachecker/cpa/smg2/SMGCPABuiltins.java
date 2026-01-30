@@ -22,8 +22,8 @@ import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardInputOrOu
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardStringInputFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharInputFunction;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
@@ -218,44 +218,130 @@ public class SMGCPABuiltins {
     //  castCValue(uncastedValueAndState.getValue(), pTargetType);
 
     // TODO: return a const with a correct type in all cases
-    if (options.allowNondetFunctionsWithArbitraryTypes() && type instanceof CSimpleType) {
+    String typeNameFromFunction = pFunctionName.replace(VERIFIER_NONDET_PREFIX, "");
+    if (type instanceof CSimpleType) {
       checkArgument(funCallExpr.getParameterExpressions().isEmpty());
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      if (options.allowNondetFunctionsWithArbitraryTypes()) {
+        Value nondet =
+            ConstantSymbolicExpression.of(
+                SymbolicValueFactory.getInstance().newIdentifier(null), type);
+        return ImmutableList.of(ValueAndSMGState.of(nondet, pState));
+      }
     }
 
-    return switch (pFunctionName.replace(VERIFIER_NONDET_PREFIX, "")) {
+    return switch (typeNameFromFunction) {
+      case "bool" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.BOOL),
+                  pState));
+      case "char" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.CHAR),
+                  pState));
+      case "uchar" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null),
+                      CNumericTypes.UNSIGNED_CHAR),
+                  pState));
+      case "short" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null),
+                      CNumericTypes.SHORT_INT),
+                  pState));
+      case "ushort" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null),
+                      CNumericTypes.UNSIGNED_SHORT_INT),
+                  pState));
+      case "int" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.INT),
+                  pState));
+      case "uint", "unsigned", "u32" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null),
+                      CNumericTypes.UNSIGNED_INT),
+                  pState));
+      case "size_t" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.SIZE_T),
+                  pState));
+      case "long" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null),
+                      CNumericTypes.LONG_INT),
+                  pState));
+      case "ulong" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null),
+                      CNumericTypes.UNSIGNED_LONG_INT),
+                  pState));
+      case "longlong" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null),
+                      CNumericTypes.LONG_LONG_INT),
+                  pState));
+      case "ulonglong" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null),
+                      CNumericTypes.UNSIGNED_LONG_LONG_INT),
+                  pState));
+      case "float" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.FLOAT),
+                  pState));
+      case "double" ->
+          ImmutableList.of(
+              ValueAndSMGState.of(
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.DOUBLE),
+                  pState));
+
+      case "int128", "pchar", "uint128" ->
+          ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
       case "pointer" ->
           throw new UnsupportedCodeException(
-              "Function "
-                  + pFunctionName
-                  + " is no longer supported by SV-COMP and is not supported by this analysis",
+              "Function " + pFunctionName + " is currently not supported by this analysis",
               pCfaEdge);
-      case "bool",
-          "char",
-          "int",
-          "int128",
-          "float",
-          "double",
-          "long",
-          "longlong",
-          "pchar",
-          "short",
-          "size_t",
-          "u32",
-          "uchar",
-          "uint",
-          "uint128",
-          "ulong",
-          "ulonglong",
-          "unsigned",
-          "ushort" ->
-          ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      case "memory" ->
+          throw new UnsupportedCodeException(
+              "Function " + pFunctionName + " is currently not supported by this analysis",
+              pCfaEdge);
       case "loff_t", "pthread_t", "sector_t" ->
           throw new SMGException(
               "Function: " + pFunctionName + " is currently unsupported in all SMG analyses");
       default ->
           throw new SMGException(
-              "Unknown and unhandled function: " + pFunctionName + " at " + pCfaEdge);
+              "Unknown and unhandled __VERIFIER_nondet_X() function: "
+                  + pFunctionName
+                  + " at "
+                  + pCfaEdge);
     };
   }
 
@@ -341,7 +427,7 @@ public class SMGCPABuiltins {
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaEnd(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState) {
-    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 1);
+    checkArgument(cFCExpression.getParameterExpressions().size() == 1);
     // The first argument is the variable to be deleted
     CIdExpression firstIdArg =
         (CIdExpression) evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
@@ -360,7 +446,7 @@ public class SMGCPABuiltins {
     if (firstArg instanceof CUnaryExpression) {
       firstArg = ((CUnaryExpression) firstArg).getOperand();
     }
-    Preconditions.checkArgument(firstArg instanceof CIdExpression);
+    checkArgument(firstArg instanceof CIdExpression);
     return firstArg;
   }
 
@@ -371,17 +457,17 @@ public class SMGCPABuiltins {
   private List<ValueAndSMGState> evaluateVaCopy(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
       throws CPATransferException {
-    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
+    checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the destination
     CExpression destArg = cFCExpression.getParameterExpressions().getFirst();
-    Preconditions.checkArgument(destArg instanceof CIdExpression);
+    checkArgument(destArg instanceof CIdExpression);
     CIdExpression destIdArg = (CIdExpression) destArg;
     // The second argument is the source
     CExpression srcArg = cFCExpression.getParameterExpressions().get(1);
-    Preconditions.checkArgument(srcArg instanceof CIdExpression);
+    checkArgument(srcArg instanceof CIdExpression);
     CIdExpression srcIdArg = (CIdExpression) srcArg;
     // Check the types lazy
-    Preconditions.checkArgument(destIdArg.getExpressionType().equals(srcIdArg.getExpressionType()));
+    checkArgument(destIdArg.getExpressionType().equals(srcIdArg.getExpressionType()));
     // The size should be equal as the types are
     BigInteger sizeInBits = evaluator.getBitSizeof(pState, srcIdArg);
     List<ValueAndSMGState> addressesAndStates =
@@ -391,7 +477,7 @@ public class SMGCPABuiltins {
             new NumericValue(BigInteger.ZERO),
             sizeInBits,
             SMGCPAExpressionEvaluator.getCanonicalType(srcIdArg));
-    Preconditions.checkArgument(addressesAndStates.size() == 1);
+    checkArgument(addressesAndStates.size() == 1);
     ValueAndSMGState addressAndState = addressesAndStates.getFirst();
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
@@ -444,7 +530,7 @@ public class SMGCPABuiltins {
       throws CPATransferException {
 
     SMGState currentState = pState;
-    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
+    checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the target for the pointer to the array of values
     CExpression firstArg = evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
 
@@ -477,7 +563,7 @@ public class SMGCPABuiltins {
     List<SMGStateAndOptionalSMGObjectAndOffset> targets =
         firstArg.accept(
             new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger, options));
-    Preconditions.checkArgument(targets.size() == 1);
+    checkArgument(targets.size() == 1);
     for (SMGStateAndOptionalSMGObjectAndOffset target : targets) {
       // We assume that there is only 1 valid returned target
       currentState = target.getSMGState();
@@ -504,7 +590,7 @@ public class SMGCPABuiltins {
               SMGCPAExpressionEvaluator.getCanonicalType(secondArg),
               cfaEdge);
       // Unlikely that someone throws an abstracted list into a var args
-      Preconditions.checkArgument(writtenStates.size() == 1);
+      checkArgument(writtenStates.size() == 1);
       currentState = writtenStates.getFirst();
       offset = offset.add(sizeInBitsVarArg);
     }
@@ -520,27 +606,27 @@ public class SMGCPABuiltins {
       throws CPATransferException {
     // Get the CExpression for the first argument
     List<CExpression> argsExpr = cFCExpression.getParameterExpressions();
-    Preconditions.checkArgument(argsExpr.size() == 1);
+    checkArgument(argsExpr.size() == 1);
     CExpression fpExpr = argsExpr.getFirst();
 
     // Evaluate the expression
     SMGCPAValueVisitor valueVisitor =
         new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
     List<ValueAndSMGState> evalStates = fpExpr.accept(valueVisitor);
-    Preconditions.checkArgument(evalStates.size() == 1);
+    checkArgument(evalStates.size() == 1);
 
     // Get the value for the expression and the new state
     Value atExitAddressValue = evalStates.getFirst().getValue();
     SMGState newState = evalStates.getFirst().getState();
 
     if (atExitAddressValue instanceof AddressExpression pAddressExpression) {
-      Preconditions.checkArgument(
+      checkArgument(
           pAddressExpression.getOffset() instanceof NumericValue addressOffset
               && addressOffset.bigIntegerValue().equals(BigInteger.ZERO));
       atExitAddressValue = pAddressExpression.getMemoryAddress();
     }
 
-    ImmutableList.Builder<ValueAndSMGState> retBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> retBuilder = ImmutableList.builder();
     if (options.canAtexitFail()) {
       // TODO: return non-zero symbolic for symExec
       retBuilder.add(ValueAndSMGState.of(new NumericValue(BigInteger.ONE), pState));
@@ -644,7 +730,7 @@ public class SMGCPABuiltins {
             } else {
               List<SMGStateAndOptionalSMGObjectAndOffset> deref =
                   currentState.dereferencePointer(address);
-              Preconditions.checkArgument(deref.size() == 1);
+              checkArgument(deref.size() == 1);
               SMGStateAndOptionalSMGObjectAndOffset targetAndState = deref.getFirst();
               currentState = targetAndState.getSMGState();
               if (targetAndState.hasSMGObjectAndOffset()) {
@@ -1126,7 +1212,7 @@ public class SMGCPABuiltins {
       }
 
       case ASSUME_EXTERNAL_ALLOCATED -> {
-        ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
+        Builder<ValueAndSMGState> builder = ImmutableList.builder();
         for (SMGState checkedState :
             checkAllParametersForValidity(state, cfaEdge, funCallExpr, functionName)) {
           logger.log(
@@ -1163,7 +1249,7 @@ public class SMGCPABuiltins {
         throw new UnrecognizedCodeException(
             functionName + " needs 2 arguments.", cfaEdge, functionCall);
       }
-      ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+      Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
       for (ValueAndSMGState value1AndState :
           getAllocateFunctionParameter(
               options.getMemoryArrayAllocationFunctionsNumParameter(),
@@ -1254,7 +1340,7 @@ public class SMGCPABuiltins {
       int pParameterNumber, CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState sizeValueAndState :
         getFunctionParameterValue(pParameterNumber, functionCall, pState, cfaEdge)) {
       SMGState currentState = sizeValueAndState.getState();
@@ -1372,7 +1458,7 @@ public class SMGCPABuiltins {
   List<ValueAndSMGState> evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
       CFunctionCallExpression functionCall, String functionName, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
 
@@ -1450,7 +1536,7 @@ public class SMGCPABuiltins {
       CType sizeType,
       CFAEdge edge)
       throws SMGException, SMGSolverException {
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     String functionName = functionCall.getFunctionNameExpression().toASTString();
 
     if (sizeInBits instanceof NumericValue numSizeInBits) {
@@ -1506,7 +1592,7 @@ public class SMGCPABuiltins {
     // check that the size is not 0 (or may be zero)
     // If it can be zero, we split into 2 states, one with 0, one without
     // Symbolic Execution for assumption edges, use previous state and values
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     final ConstraintFactory constraintFactory =
         ConstraintFactory.getInstance(pState, machineModel, logger, options, evaluator, edge);
     SMGState maybeZeroState = pState;
@@ -1651,7 +1737,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     // First arg
     for (ValueAndSMGState bufferAddressAndState :
         getFunctionParameterValue(MEMSET_BUFFER_PARAMETER, functionCall, pState, cfaEdge)) {
@@ -1757,8 +1843,7 @@ public class SMGCPABuiltins {
     BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
 
     // This precondition has to hold for the get(0) getters
-    Preconditions.checkArgument(
-        !currentState.getMemoryModel().pointsToZeroPlus(bufferMemoryAddress));
+    checkArgument(!currentState.getMemoryModel().pointsToZeroPlus(bufferMemoryAddress));
     if (isNumericZero(charValue)) {
       // Create one large edge for 0 (the SMG cuts 0 edges on its own)
       currentState =
@@ -1856,7 +1941,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     // reuse MALLOC_PARAMETER since its just the first argument (and there is always just 1)
     for (ValueAndSMGState argumentAndState :
         getAllocateFunctionParameter(MALLOC_PARAMETER, functionCall, pState, cfaEdge)) {
@@ -1934,7 +2019,7 @@ public class SMGCPABuiltins {
           "The function free() needs exactly 1 paramter", cfaEdge, pFunctionCall);
     }
 
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState addressAndState :
         getFunctionParameterValue(0, pFunctionCall, pState, cfaEdge)) {
       Value maybeAddressValue = addressAndState.getValue();
@@ -1976,7 +2061,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     CExpression targetExpr = functionCall.getParameterExpressions().get(MEMCPY_TARGET_PARAMETER);
 
@@ -2112,7 +2197,7 @@ public class SMGCPABuiltins {
       SMGState pCurrentState,
       CFunctionCallExpression functionCall,
       CFAEdge pCFAEdge,
-      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
+      Builder<ValueAndSMGState> resultBuilder)
       throws CPATransferException {
 
     CExpression sourceExpr = functionCall.getParameterExpressions().get(MEMCPY_SOURCE_PARAMETER);
@@ -2250,7 +2335,7 @@ public class SMGCPABuiltins {
       SMGState pCurrentState,
       CFunctionCallExpression functionCall,
       CFAEdge pCFAEdge,
-      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
+      Builder<ValueAndSMGState> resultBuilder)
       throws CPATransferException {
     for (ValueAndSMGState sizeAndState :
         getFunctionParameterValue(MEMCPY_SIZE_PARAMETER, functionCall, pCurrentState, pCFAEdge)) {
@@ -2298,7 +2383,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     CExpression targetExpr =
         functionCall.getParameterExpressions().get(MEMCMP_CMP_TARGET1_PARAMETER);
@@ -2419,7 +2504,7 @@ public class SMGCPABuiltins {
       SMGState pCurrentState,
       CFunctionCallExpression functionCall,
       CFAEdge pCFAEdge,
-      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
+      Builder<ValueAndSMGState> resultBuilder)
       throws CPATransferException {
 
     CExpression sourceExpr =
@@ -2540,7 +2625,7 @@ public class SMGCPABuiltins {
       SMGState pCurrentState,
       CFunctionCallExpression functionCall,
       CFAEdge pCFAEdge,
-      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
+      Builder<ValueAndSMGState> resultBuilder)
       throws CPATransferException {
     for (ValueAndSMGState sizeAndState :
         getFunctionParameterValue(
@@ -2860,7 +2945,7 @@ public class SMGCPABuiltins {
           "The function strcmp needs exactly 2 arguments.", pCfaEdge);
     }
 
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState firstValueAndSMGState :
         getFunctionParameterValue(STRCMP_FIRST_PARAMETER, pFunctionCall, pState, pCfaEdge)) {
@@ -2970,7 +3055,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     SMGCPAValueVisitor valueVisitor =
         new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
@@ -3073,7 +3158,7 @@ public class SMGCPABuiltins {
     }
 
     SMGState currentState = pState;
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     // Handle (realloc(0, size) -> just malloc
     if (isNumericZero(pPtrValue)) {
@@ -3162,7 +3247,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
+    Builder<ValueAndSMGState> result = ImmutableList.builder();
     CSimpleType paramType = getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
     assert functionCall.getExpressionType() instanceof CSimpleType simpleType
         && simpleType.getCanonicalType().getType().isIntegerType()
@@ -3223,7 +3308,7 @@ public class SMGCPABuiltins {
       } else {
 
         // TODO: we could associate a symbolic output with the input used to assure ==
-        result.add(ValueAndSMGState.of(Value.UnknownValue.getInstance(), currentState));
+        result.add(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
       }
     }
 
