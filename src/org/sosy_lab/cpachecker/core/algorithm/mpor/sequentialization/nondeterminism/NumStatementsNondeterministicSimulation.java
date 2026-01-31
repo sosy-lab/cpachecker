@@ -134,6 +134,10 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
             pOtherThreads,
             ghostElements.bitVectorVariables().orElseThrow(),
             utils);
+    // if the bv evaluation is empty, then the program contains no global memory locations -> prune
+    if (bitVectorEvaluationExpression.isEmpty()) {
+      return new CExpressionWrapper(roundMaxGreaterZero);
+    }
     // ensure that thread is not at a thread sync location: !sync && !conflict
     CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(pActiveThread);
     CBinaryExpression notSync =

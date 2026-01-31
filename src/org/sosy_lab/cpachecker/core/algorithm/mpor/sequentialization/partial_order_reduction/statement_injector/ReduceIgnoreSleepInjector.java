@@ -49,6 +49,11 @@ record ReduceIgnoreSleepInjector(
           Optional<CExportExpression> evaluationExpression =
               BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
                   options, activeThread, otherThreads, bitVectorVariables, utils);
+          // if the bv evaluation is empty, then the program contains no global memory locations
+          // -> no injection necessary
+          if (evaluationExpression.isEmpty()) {
+            return pCurrentStatement;
+          }
           SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
               buildIgnoreSleepReductionStatement(
                   pCurrentStatement, evaluationExpression.orElseThrow(), newTarget);
