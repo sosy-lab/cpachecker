@@ -997,7 +997,7 @@ class ASTConverter {
     if (castType.getCanonicalType() instanceof CCompositeType compositeType
         && compositeType.getKind() == ComplexTypeKind.UNION
         && operand != null
-        && !(operand.getExpressionType().getCanonicalType() instanceof CCompositeType)) {
+        && operand.getExpressionType().getCanonicalType() instanceof CSimpleType) {
 
       // Create a temporary union object and initialize it with a positional initializer list.
       // A single initializer initializes the first union member.
