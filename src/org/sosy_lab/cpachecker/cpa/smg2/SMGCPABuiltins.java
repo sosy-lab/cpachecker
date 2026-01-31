@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
@@ -206,17 +207,6 @@ public class SMGCPABuiltins {
     // pthread_t, sector_t, short, size_t, u32, uchar, uint, uint128, ulong, ulonglong, unsigned,
     // ushort} (no side effects, pointer for void *, etc.).
 
-    // TODO: __VERIFIER_nondet_memory(void *, size_t): This function initializes the given memory
-    // block with arbitrary values. The first argument must be a valid pointer to the start of a
-    // memory block of the given size. The second argument specifies the size of the memory to
-    // initialize and must match the size of the memory block that the first argument points to. The
-    // dereference of any pointer value set through this method results in undefined behavior. This
-    // means that pointer values must be explicitly set through different means before they can be
-    // dereferenced.
-
-    // TODO: consider casting directly to desired type?
-    //  castCValue(uncastedValueAndState.getValue(), pTargetType);
-
     // TODO: return a const with a correct type in all cases
     String typeNameFromFunction = pFunctionName.replace(VERIFIER_NONDET_PREFIX, "");
     if (type instanceof CSimpleType) {
@@ -310,6 +300,17 @@ public class SMGCPABuiltins {
                       SymbolicValueFactory.getInstance().newIdentifier(null),
                       CNumericTypes.UNSIGNED_LONG_LONG_INT),
                   pState));
+      // loff_t is some integer (int, long, long long)
+      // sector_t (e.g.: sector_t __VERIFIER_nondet_sector_t();) similar to loff_t, some numeric
+      // type
+      case "loff_t", "sector_t" -> {
+        checkArgument(type instanceof CSimpleType);
+        yield ImmutableList.of(
+            ValueAndSMGState.of(
+                ConstantSymbolicExpression.of(
+                    SymbolicValueFactory.getInstance().newIdentifier(null), type),
+                pState));
+      }
       case "float" ->
           ImmutableList.of(
               ValueAndSMGState.of(
@@ -323,19 +324,79 @@ public class SMGCPABuiltins {
                       SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.DOUBLE),
                   pState));
 
-      case "int128", "pchar", "uint128" ->
-          ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
-      case "pointer" ->
-          throw new UnsupportedCodeException(
-              "Function " + pFunctionName + " is currently not supported by this analysis",
-              pCfaEdge);
+      case "int128" -> {
+        checkArgument(machineModel.getMachineModelForYAMLWitnessSpecification().contains("64"));
+        final CType signedInt128Type =
+            new CSimpleType(
+                CTypeQualifiers.NONE,
+                CBasicType.INT128,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false);
+        yield ImmutableList.of(
+            ValueAndSMGState.of(
+                ConstantSymbolicExpression.of(
+                    SymbolicValueFactory.getInstance().newIdentifier(null), signedInt128Type),
+                pState));
+      }
+      case "uint128" -> {
+        checkArgument(machineModel.getMachineModelForYAMLWitnessSpecification().contains("64"));
+        final CType unsignedInt128Type =
+            new CSimpleType(
+                CTypeQualifiers.NONE,
+                CBasicType.INT128,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false);
+        yield ImmutableList.of(
+            ValueAndSMGState.of(
+                ConstantSymbolicExpression.of(
+                    SymbolicValueFactory.getInstance().newIdentifier(null), unsignedInt128Type),
+                pState));
+      }
+      /*
+       * TODO: __VERIFIER_nondet_memory(void *, size_t); definition in SV-COMP:
+       *  This function initializes the given memory block with arbitrary values.
+       *  The first argument must be a valid pointer to the start of a memory block
+       *  of the given size. The second argument specifies the size of the memory to initialize
+       *  and must match the size of the memory block that the first argument points to.
+       *  The dereference of any pointer value set through this method results in
+       *  undefined behavior. This means that pointer values must be explicitly set through
+       *  different means before they can be dereferenced.
+       *  The verification tool can assume that __VERIFIER_nondet_memory is implemented as follows:
+       *  void __VERIFIER_nondet_memory(void *mem, size_t size) {
+       *    unsigned char *p = mem;
+       *    for (size_t i = 0; i < size; i++) {
+       *      p[i] = __VERIFIER_nondet_uchar();
+       *    }
+       *  }
+       *  Example uses of __VERIFIER_nondet_memory:
+       *  struct structType s;
+       *  __VERIFIER_nondet_memory(&s, sizeof(s));
+       *  int * values = malloc(sizeof(int) * 20);
+       *  __VERIFIER_nondet_memory(values, sizeof(int) * 20);
+       */
       case "memory" ->
           throw new UnsupportedCodeException(
               "Function " + pFunctionName + " is currently not supported by this analysis",
               pCfaEdge);
-      case "loff_t", "pthread_t", "sector_t" ->
-          throw new SMGException(
-              "Function: " + pFunctionName + " is currently unsupported in all SMG analyses");
+      // pchar: (e.g.: char * __VERIFIER_nondet_pchar();)
+      //  returns a pointer to a char type and is used for guaranteed null terminated strings
+      // pthread_t: (e.g.: pthread_t __VERIFIER_nondet_pthread_t();) is a unique id for a thread.
+      //  We have to make sure that they don't compare equal for inequal threads!
+      // pointer: old, not used anymore AFAIK
+      case "pchar", "pthread_t", "pointer" ->
+          throw new UnsupportedCodeException(
+              "Function " + pFunctionName + " is currently not supported by this analysis",
+              pCfaEdge);
       default ->
           throw new SMGException(
               "Unknown and unhandled __VERIFIER_nondet_X() function: "
