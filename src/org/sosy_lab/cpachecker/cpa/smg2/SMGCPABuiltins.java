@@ -209,159 +209,8 @@ public class SMGCPABuiltins {
 
     // TODO: return a const with a correct type in all cases
     String typeNameFromFunction = pFunctionName.replace(VERIFIER_NONDET_PREFIX, "");
-    if (type instanceof CSimpleType) {
-      checkArgument(funCallExpr.getParameterExpressions().isEmpty());
-      if (options.allowNondetFunctionsWithArbitraryTypes()) {
-        Value nondet =
-            ConstantSymbolicExpression.of(
-                SymbolicValueFactory.getInstance().newIdentifier(null), type);
-        return ImmutableList.of(ValueAndSMGState.of(nondet, pState));
-      }
-    }
 
-    return switch (typeNameFromFunction) {
-      case "bool" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.BOOL),
-                  pState));
-      case "char" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.CHAR),
-                  pState));
-      case "uchar" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null),
-                      CNumericTypes.UNSIGNED_CHAR),
-                  pState));
-      case "short" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null),
-                      CNumericTypes.SHORT_INT),
-                  pState));
-      case "ushort" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null),
-                      CNumericTypes.UNSIGNED_SHORT_INT),
-                  pState));
-      case "int" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.INT),
-                  pState));
-      case "uint", "unsigned", "u32" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null),
-                      CNumericTypes.UNSIGNED_INT),
-                  pState));
-      case "size_t" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.SIZE_T),
-                  pState));
-      case "long" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null),
-                      CNumericTypes.LONG_INT),
-                  pState));
-      case "ulong" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null),
-                      CNumericTypes.UNSIGNED_LONG_INT),
-                  pState));
-      case "longlong" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null),
-                      CNumericTypes.LONG_LONG_INT),
-                  pState));
-      case "ulonglong" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null),
-                      CNumericTypes.UNSIGNED_LONG_LONG_INT),
-                  pState));
-      // loff_t is some integer (int, long, long long)
-      // sector_t (e.g.: sector_t __VERIFIER_nondet_sector_t();) similar to loff_t, some numeric
-      // type
-      case "loff_t", "sector_t" -> {
-        checkArgument(type instanceof CSimpleType);
-        yield ImmutableList.of(
-            ValueAndSMGState.of(
-                ConstantSymbolicExpression.of(
-                    SymbolicValueFactory.getInstance().newIdentifier(null), type),
-                pState));
-      }
-      case "float" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.FLOAT),
-                  pState));
-      case "double" ->
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  ConstantSymbolicExpression.of(
-                      SymbolicValueFactory.getInstance().newIdentifier(null), CNumericTypes.DOUBLE),
-                  pState));
-
-      case "int128" -> {
-        checkArgument(machineModel.getMachineModelForYAMLWitnessSpecification().contains("64"));
-        final CType signedInt128Type =
-            new CSimpleType(
-                CTypeQualifiers.NONE,
-                CBasicType.INT128,
-                false,
-                false,
-                true,
-                false,
-                false,
-                false,
-                false);
-        yield ImmutableList.of(
-            ValueAndSMGState.of(
-                ConstantSymbolicExpression.of(
-                    SymbolicValueFactory.getInstance().newIdentifier(null), signedInt128Type),
-                pState));
-      }
-      case "uint128" -> {
-        checkArgument(machineModel.getMachineModelForYAMLWitnessSpecification().contains("64"));
-        final CType unsignedInt128Type =
-            new CSimpleType(
-                CTypeQualifiers.NONE,
-                CBasicType.INT128,
-                false,
-                false,
-                false,
-                true,
-                false,
-                false,
-                false);
-        yield ImmutableList.of(
-            ValueAndSMGState.of(
-                ConstantSymbolicExpression.of(
-                    SymbolicValueFactory.getInstance().newIdentifier(null), unsignedInt128Type),
-                pState));
-      }
+    if (typeNameFromFunction.contains("memory")) {
       /*
        * TODO: __VERIFIER_nondet_memory(void *, size_t); definition in SV-COMP:
        *  This function initializes the given memory block with arbitrary values.
@@ -384,19 +233,89 @@ public class SMGCPABuiltins {
        *  int * values = malloc(sizeof(int) * 20);
        *  __VERIFIER_nondet_memory(values, sizeof(int) * 20);
        */
-      case "memory" ->
-          throw new UnsupportedCodeException(
-              "Function " + pFunctionName + " is currently not supported by this analysis",
-              pCfaEdge);
+      throw new UnsupportedCodeException(
+          "Function " + pFunctionName + " is currently not supported by this analysis", pCfaEdge);
+    }
+
+    if (typeNameFromFunction.contains("pchar")
+        || typeNameFromFunction.contains("pthread_t")
+        || typeNameFromFunction.contains("pointer")) {
       // pchar: (e.g.: char * __VERIFIER_nondet_pchar();)
       //  returns a pointer to a char type and is used for guaranteed null terminated strings
       // pthread_t: (e.g.: pthread_t __VERIFIER_nondet_pthread_t();) is a unique id for a thread.
       //  We have to make sure that they don't compare equal for inequal threads!
       // pointer: old, not used anymore AFAIK
-      case "pchar", "pthread_t", "pointer" ->
-          throw new UnsupportedCodeException(
-              "Function " + pFunctionName + " is currently not supported by this analysis",
-              pCfaEdge);
+      throw new UnsupportedCodeException(
+          "Function " + pFunctionName + " is currently not supported by this analysis", pCfaEdge);
+    }
+
+    if (type instanceof CSimpleType) {
+      checkArgument(funCallExpr.getParameterExpressions().isEmpty());
+      if (typeNameFromFunction.contains("128")) {
+        // 128 bit ints and floating-points are AFAIK only available on 64 bit machines
+        checkArgument(machineModel.getMachineModelForYAMLWitnessSpecification().contains("64"));
+      }
+      // Derive type from name
+      CType typeByName =
+          getNumericNondetFunctionTypeByName(pFunctionName, pCfaEdge, typeNameFromFunction, type)
+              .getCanonicalType();
+      if (options.allowNondetFunctionsWithArbitraryTypes() || type.equals(typeByName)) {
+        Value nondet =
+            ConstantSymbolicExpression.of(
+                SymbolicValueFactory.getInstance().newIdentifier(null), type);
+        return ImmutableList.of(ValueAndSMGState.of(nondet, pState));
+      }
+    }
+
+    throw new SMGException(
+        "Unhandled __VERIFIER_nondet_X() function: " + pFunctionName + " at " + pCfaEdge);
+  }
+
+  private static CType getNumericNondetFunctionTypeByName(
+      String pFunctionName, CFAEdge pCfaEdge, String typeNameFromFunction, CType type)
+      throws SMGException {
+    return switch (typeNameFromFunction) {
+      case "bool" -> CNumericTypes.BOOL;
+      case "char" -> CNumericTypes.CHAR;
+      case "uchar" -> CNumericTypes.UNSIGNED_CHAR;
+      case "short" -> CNumericTypes.SHORT_INT;
+      case "ushort" -> CNumericTypes.UNSIGNED_SHORT_INT;
+      case "int" -> CNumericTypes.INT;
+      case "uint", "unsigned", "u32" -> CNumericTypes.UNSIGNED_INT;
+      case "size_t" -> CNumericTypes.SIZE_T;
+      case "long" -> CNumericTypes.LONG_INT;
+      case "ulong" -> CNumericTypes.UNSIGNED_LONG_INT;
+      case "longlong" -> CNumericTypes.LONG_LONG_INT;
+      case "ulonglong" -> CNumericTypes.UNSIGNED_LONG_LONG_INT;
+      // loff_t is some integer (int, long, long long)
+      // sector_t (e.g.: sector_t __VERIFIER_nondet_sector_t();) similar to loff_t, some
+      // numeric
+      // type
+      case "loff_t", "sector_t" -> type;
+      case "float" -> CNumericTypes.FLOAT;
+      case "double" -> CNumericTypes.DOUBLE;
+      case "int128" ->
+          new CSimpleType(
+              CTypeQualifiers.NONE,
+              CBasicType.INT128,
+              false,
+              false,
+              true,
+              false,
+              false,
+              false,
+              false);
+      case "uint128" ->
+          new CSimpleType(
+              CTypeQualifiers.NONE,
+              CBasicType.INT128,
+              false,
+              false,
+              false,
+              true,
+              false,
+              false,
+              false);
       default ->
           throw new SMGException(
               "Unknown and unhandled __VERIFIER_nondet_X() function: "
