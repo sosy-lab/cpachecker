@@ -4349,6 +4349,11 @@ public class SymbolicProgramConfiguration {
    * has invalid memory, it is not returned!
    */
   protected Map<MemoryLocation, Entry<CType, SMGObject>> getCurrentStackVariablesWithTypes() {
+
+    if (stackVariableMapping.isEmpty()) {
+      return ImmutableMap.of();
+    }
+
     ImmutableMap.Builder<MemoryLocation, Entry<CType, SMGObject>> trackedLocations =
         ImmutableMap.builder();
 
