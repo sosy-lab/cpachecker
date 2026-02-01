@@ -258,8 +258,7 @@ public class SMGCPABuiltins {
       }
       // Derive type from name (unknown is null)
       @Nullable CType typeByName =
-          getNumericNondetFunctionTypeByName(pFunctionName, pCfaEdge, typeNameFromFunction, type)
-              .getCanonicalType();
+          getNumericNondetFunctionTypeByName(typeNameFromFunction, type).getCanonicalType();
       if (options.allowNondetFunctionsWithArbitraryTypes()
           || (type != null && type.equals(typeByName))) {
         Value nondet =
@@ -274,8 +273,7 @@ public class SMGCPABuiltins {
   }
 
   private static @Nullable CType getNumericNondetFunctionTypeByName(
-      String pFunctionName, CFAEdge pCfaEdge, String typeNameFromFunction, CType type)
-      throws SMGException {
+      String typeNameFromFunction, CType type) {
     return switch (typeNameFromFunction) {
       case "bool" -> CNumericTypes.BOOL;
       case "char" -> CNumericTypes.CHAR;
