@@ -34,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -255,11 +256,12 @@ public class SMGCPABuiltins {
         // 128 bit ints and floating-points are AFAIK only available on 64 bit machines
         checkArgument(machineModel.getMachineModelForYAMLWitnessSpecification().contains("64"));
       }
-      // Derive type from name
-      CType typeByName =
+      // Derive type from name (unknown is null)
+      @Nullable CType typeByName =
           getNumericNondetFunctionTypeByName(pFunctionName, pCfaEdge, typeNameFromFunction, type)
               .getCanonicalType();
-      if (options.allowNondetFunctionsWithArbitraryTypes() || type.equals(typeByName)) {
+      if (options.allowNondetFunctionsWithArbitraryTypes()
+          || (type != null && type.equals(typeByName))) {
         Value nondet =
             ConstantSymbolicExpression.of(
                 SymbolicValueFactory.getInstance().newIdentifier(null), type);
@@ -271,7 +273,7 @@ public class SMGCPABuiltins {
         "Unhandled __VERIFIER_nondet_X() function: " + pFunctionName + " at " + pCfaEdge);
   }
 
-  private static CType getNumericNondetFunctionTypeByName(
+  private static @Nullable CType getNumericNondetFunctionTypeByName(
       String pFunctionName, CFAEdge pCfaEdge, String typeNameFromFunction, CType type)
       throws SMGException {
     return switch (typeNameFromFunction) {
@@ -316,12 +318,7 @@ public class SMGCPABuiltins {
               false,
               false,
               false);
-      default ->
-          throw new SMGException(
-              "Unknown and unhandled __VERIFIER_nondet_X() function: "
-                  + pFunctionName
-                  + " at "
-                  + pCfaEdge);
+      default -> null;
     };
   }
 
