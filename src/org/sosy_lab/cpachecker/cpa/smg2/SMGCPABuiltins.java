@@ -790,6 +790,7 @@ public class SMGCPABuiltins {
 
     SMGState currentState = pState;
     Optional<Value> bufferWriteSizeArgument = Optional.empty();
+    // CType returnType = cFCExpression.getExpressionType().getCanonicalType();
     if (usesBufferSizeArgument) {
       for (int arg = 0; arg < cFCExpression.getParameterExpressions().size(); arg++) {
         CExpression argument = cFCExpression.getParameterExpressions().get(arg);
@@ -815,6 +816,8 @@ public class SMGCPABuiltins {
     List<SMGState> checkedStates =
         checkAllParametersForValidity(currentState, pCfaEdge, cFCExpression, functionName);
     checkState(checkedStates.size() == 1);
+    // TODO: const w returnType (does this return pointers? If yes, look into how to handle)
+    //  returnType is commented out above
     Value returnValue = UnknownValue.getInstance();
     SMGState finalState = checkedStates.getFirst();
 
@@ -860,9 +863,10 @@ public class SMGCPABuiltins {
           targetBufferOffsetInBits = addrExpr.getOffset();
         }
 
-        if (!returnValue.equals(UnknownValue.getInstance()) && !isNumericZero(returnValue)) {
+        if (!returnValue.isUnknown() && !isNumericZero(returnValue)) {
           // Multiple "buffers" in this function, can't return one, return unknown
           returnBufferPointer = false;
+          // TODO: const w returnType (does this return pointers? If yes, look into how to handle)
           returnValue = UnknownValue.getInstance();
         } else if (returnBufferPointer && !isNumericZero(returnValue)) {
           // Remember buffer as return value (if that's 0, we also return 0),
