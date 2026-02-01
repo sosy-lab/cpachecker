@@ -23,7 +23,6 @@ import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardStringInp
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharInputFunction;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
@@ -615,7 +614,7 @@ public class SMGCPABuiltins {
       atExitAddressValue = pAddressExpression.getMemoryAddress();
     }
 
-    Builder<ValueAndSMGState> retBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> retBuilder = ImmutableList.builder();
     if (options.canAtexitFail()) {
       // TODO: return non-zero symbolic for symExec
       retBuilder.add(ValueAndSMGState.of(new NumericValue(BigInteger.ONE), pState));
@@ -1201,7 +1200,7 @@ public class SMGCPABuiltins {
       }
 
       case ASSUME_EXTERNAL_ALLOCATED -> {
-        Builder<ValueAndSMGState> builder = ImmutableList.builder();
+        ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
         for (SMGState checkedState :
             checkAllParametersForValidity(state, cfaEdge, funCallExpr, functionName)) {
           logger.log(
@@ -1238,7 +1237,7 @@ public class SMGCPABuiltins {
         throw new UnrecognizedCodeException(
             functionName + " needs 2 arguments.", cfaEdge, functionCall);
       }
-      Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+      ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
       for (ValueAndSMGState value1AndState :
           getAllocateFunctionParameter(
               options.getMemoryArrayAllocationFunctionsNumParameter(),
@@ -1329,7 +1328,7 @@ public class SMGCPABuiltins {
       int pParameterNumber, CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState sizeValueAndState :
         getFunctionParameterValue(pParameterNumber, functionCall, pState, cfaEdge)) {
       SMGState currentState = sizeValueAndState.getState();
@@ -1447,7 +1446,7 @@ public class SMGCPABuiltins {
   List<ValueAndSMGState> evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
       CFunctionCallExpression functionCall, String functionName, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
 
@@ -1525,7 +1524,7 @@ public class SMGCPABuiltins {
       CType sizeType,
       CFAEdge edge)
       throws SMGException, SMGSolverException {
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     String functionName = functionCall.getFunctionNameExpression().toASTString();
 
     if (sizeInBits instanceof NumericValue numSizeInBits) {
@@ -1581,7 +1580,7 @@ public class SMGCPABuiltins {
     // check that the size is not 0 (or may be zero)
     // If it can be zero, we split into 2 states, one with 0, one without
     // Symbolic Execution for assumption edges, use previous state and values
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     final ConstraintFactory constraintFactory =
         ConstraintFactory.getInstance(pState, machineModel, logger, options, evaluator, edge);
     SMGState maybeZeroState = pState;
@@ -1726,7 +1725,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     // First arg
     for (ValueAndSMGState bufferAddressAndState :
         getFunctionParameterValue(MEMSET_BUFFER_PARAMETER, functionCall, pState, cfaEdge)) {
@@ -1930,7 +1929,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     // reuse MALLOC_PARAMETER since its just the first argument (and there is always just 1)
     for (ValueAndSMGState argumentAndState :
         getAllocateFunctionParameter(MALLOC_PARAMETER, functionCall, pState, cfaEdge)) {
@@ -2008,7 +2007,7 @@ public class SMGCPABuiltins {
           "The function free() needs exactly 1 paramter", cfaEdge, pFunctionCall);
     }
 
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState addressAndState :
         getFunctionParameterValue(0, pFunctionCall, pState, cfaEdge)) {
       Value maybeAddressValue = addressAndState.getValue();
@@ -2050,7 +2049,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     CExpression targetExpr = functionCall.getParameterExpressions().get(MEMCPY_TARGET_PARAMETER);
 
@@ -2186,7 +2185,7 @@ public class SMGCPABuiltins {
       SMGState pCurrentState,
       CFunctionCallExpression functionCall,
       CFAEdge pCFAEdge,
-      Builder<ValueAndSMGState> resultBuilder)
+      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
       throws CPATransferException {
 
     CExpression sourceExpr = functionCall.getParameterExpressions().get(MEMCPY_SOURCE_PARAMETER);
@@ -2324,7 +2323,7 @@ public class SMGCPABuiltins {
       SMGState pCurrentState,
       CFunctionCallExpression functionCall,
       CFAEdge pCFAEdge,
-      Builder<ValueAndSMGState> resultBuilder)
+      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
       throws CPATransferException {
     for (ValueAndSMGState sizeAndState :
         getFunctionParameterValue(MEMCPY_SIZE_PARAMETER, functionCall, pCurrentState, pCFAEdge)) {
@@ -2372,7 +2371,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     CExpression targetExpr =
         functionCall.getParameterExpressions().get(MEMCMP_CMP_TARGET1_PARAMETER);
@@ -2493,7 +2492,7 @@ public class SMGCPABuiltins {
       SMGState pCurrentState,
       CFunctionCallExpression functionCall,
       CFAEdge pCFAEdge,
-      Builder<ValueAndSMGState> resultBuilder)
+      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
       throws CPATransferException {
 
     CExpression sourceExpr =
@@ -2614,7 +2613,7 @@ public class SMGCPABuiltins {
       SMGState pCurrentState,
       CFunctionCallExpression functionCall,
       CFAEdge pCFAEdge,
-      Builder<ValueAndSMGState> resultBuilder)
+      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
       throws CPATransferException {
     for (ValueAndSMGState sizeAndState :
         getFunctionParameterValue(
@@ -2934,7 +2933,7 @@ public class SMGCPABuiltins {
           "The function strcmp needs exactly 2 arguments.", pCfaEdge);
     }
 
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState firstValueAndSMGState :
         getFunctionParameterValue(STRCMP_FIRST_PARAMETER, pFunctionCall, pState, pCfaEdge)) {
@@ -3044,7 +3043,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     SMGCPAValueVisitor valueVisitor =
         new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
@@ -3147,7 +3146,7 @@ public class SMGCPABuiltins {
     }
 
     SMGState currentState = pState;
-    Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     // Handle (realloc(0, size) -> just malloc
     if (isNumericZero(pPtrValue)) {
@@ -3236,7 +3235,7 @@ public class SMGCPABuiltins {
           functionCall);
     }
 
-    Builder<ValueAndSMGState> result = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
     CSimpleType paramType = getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
     assert functionCall.getExpressionType() instanceof CSimpleType simpleType
         && simpleType.getCanonicalType().getType().isIntegerType()
