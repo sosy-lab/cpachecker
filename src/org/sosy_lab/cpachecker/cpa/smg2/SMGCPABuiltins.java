@@ -34,7 +34,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -79,7 +78,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
@@ -202,7 +200,7 @@ public class SMGCPABuiltins {
    */
   private List<ValueAndSMGState> handleVerifierNondetGeneratorFunction(
       CFunctionCallExpression funCallExpr, String pFunctionName, SMGState pState, CFAEdge pCfaEdge)
-      throws SMGException, UnsupportedCodeException {
+      throws SMGException {
     CType type = funCallExpr.getExpressionType().getCanonicalType();
     // Allowed (SVCOMP26): {bool, char, int, int128, float, double, loff_t, long, longlong, pchar,
     // pthread_t, sector_t, short, size_t, u32, uchar, uint, uint128, ulong, ulonglong, unsigned,
@@ -234,11 +232,8 @@ public class SMGCPABuiltins {
        *  int * values = malloc(sizeof(int) * 20);
        *  __VERIFIER_nondet_memory(values, sizeof(int) * 20);
        */
-      throw new UnsupportedCodeException(
-          "Function " + pFunctionName + " is currently not supported by this analysis", pCfaEdge);
-    }
 
-    if (typeNameFromFunction.contains("pchar")
+    } else if (typeNameFromFunction.contains("pchar")
         || typeNameFromFunction.contains("pthread_t")
         || typeNameFromFunction.contains("pointer")) {
       // pchar: (e.g.: char * __VERIFIER_nondet_pchar();)
@@ -246,21 +241,27 @@ public class SMGCPABuiltins {
       // pthread_t: (e.g.: pthread_t __VERIFIER_nondet_pthread_t();) is a unique id for a thread.
       //  We have to make sure that they don't compare equal for inequal threads!
       // pointer: old, not used anymore AFAIK
-      throw new UnsupportedCodeException(
-          "Function " + pFunctionName + " is currently not supported by this analysis", pCfaEdge);
-    }
+      // TODO:
 
-    if (type instanceof CSimpleType) {
+    } else if (type instanceof CSimpleType) {
       checkArgument(funCallExpr.getParameterExpressions().isEmpty());
       if (typeNameFromFunction.contains("128")) {
         // 128 bit ints and floating-points are AFAIK only available on 64 bit machines
         checkArgument(machineModel.getMachineModelForYAMLWitnessSpecification().contains("64"));
       }
       // Derive type from name (unknown is null)
-      @Nullable CType typeByName =
-          getNumericNondetFunctionTypeByName(typeNameFromFunction, type).getCanonicalType();
-      if (options.allowNondetFunctionsWithArbitraryTypes()
-          || (type != null && type.equals(typeByName))) {
+      Optional<CType> typeByName = getNumericNondetFunctionTypeByName(typeNameFromFunction, type);
+      boolean typesEqual =
+          typeByName.isPresent() && type.equals(typeByName.orElseThrow().getCanonicalType());
+      if (options.allowNondetFunctionsWithArbitraryTypes() || typesEqual) {
+        if (!typesEqual) {
+          logger.logOnce(
+              Level.WARNING,
+              "Evaluated __VERIFIER_nondet_X() function "
+                  + pFunctionName
+                  + " with non-SV-COMP defined type "
+                  + type);
+        }
         Value nondet =
             ConstantSymbolicExpression.of(
                 SymbolicValueFactory.getInstance().newIdentifier(null), type);
@@ -269,55 +270,68 @@ public class SMGCPABuiltins {
     }
 
     throw new SMGException(
-        "Unhandled __VERIFIER_nondet_X() function: " + pFunctionName + " at " + pCfaEdge);
+        "Unhandled __VERIFIER_nondet_X() function "
+            + pFunctionName
+            + " with type "
+            + type
+            + " at "
+            + pCfaEdge);
   }
 
-  private static @Nullable CType getNumericNondetFunctionTypeByName(
+  /**
+   * @param typeNameFromFunction suffix X of __VERIFIER_nondet_X
+   * @param type the return type of the current function. Used for suffixes "loff_t" and "sector_t",
+   *     which always just return this type.
+   */
+  private static Optional<CType> getNumericNondetFunctionTypeByName(
       String typeNameFromFunction, CType type) {
-    return switch (typeNameFromFunction) {
-      case "bool" -> CNumericTypes.BOOL;
-      case "char" -> CNumericTypes.CHAR;
-      case "uchar" -> CNumericTypes.UNSIGNED_CHAR;
-      case "short" -> CNumericTypes.SHORT_INT;
-      case "ushort" -> CNumericTypes.UNSIGNED_SHORT_INT;
-      case "int" -> CNumericTypes.INT;
-      case "uint", "unsigned", "u32" -> CNumericTypes.UNSIGNED_INT;
-      case "size_t" -> CNumericTypes.SIZE_T;
-      case "long" -> CNumericTypes.LONG_INT;
-      case "ulong" -> CNumericTypes.UNSIGNED_LONG_INT;
-      case "longlong" -> CNumericTypes.LONG_LONG_INT;
-      case "ulonglong" -> CNumericTypes.UNSIGNED_LONG_LONG_INT;
-      // loff_t is some integer (int, long, long long)
-      // sector_t (e.g.: sector_t __VERIFIER_nondet_sector_t();) similar to loff_t, some
-      // numeric
-      // type
-      case "loff_t", "sector_t" -> type;
-      case "float" -> CNumericTypes.FLOAT;
-      case "double" -> CNumericTypes.DOUBLE;
-      case "int128" ->
-          new CSimpleType(
-              CTypeQualifiers.NONE,
-              CBasicType.INT128,
-              false,
-              false,
-              true,
-              false,
-              false,
-              false,
-              false);
-      case "uint128" ->
-          new CSimpleType(
-              CTypeQualifiers.NONE,
-              CBasicType.INT128,
-              false,
-              false,
-              false,
-              true,
-              false,
-              false,
-              false);
-      default -> null;
-    };
+    CType typeByName =
+        switch (typeNameFromFunction) {
+          case "bool" -> CNumericTypes.BOOL;
+          case "char" -> CNumericTypes.CHAR;
+          case "uchar" -> CNumericTypes.UNSIGNED_CHAR;
+          case "short" -> CNumericTypes.SHORT_INT;
+          case "ushort" -> CNumericTypes.UNSIGNED_SHORT_INT;
+          case "int" -> CNumericTypes.INT;
+          case "uint", "unsigned", "u32" -> CNumericTypes.UNSIGNED_INT;
+          case "size_t" -> CNumericTypes.SIZE_T;
+          case "long" -> CNumericTypes.LONG_INT;
+          case "ulong" -> CNumericTypes.UNSIGNED_LONG_INT;
+          case "longlong" -> CNumericTypes.LONG_LONG_INT;
+          case "ulonglong" -> CNumericTypes.UNSIGNED_LONG_LONG_INT;
+          // loff_t is some integer (int, long, long long)
+          // sector_t (e.g.: sector_t __VERIFIER_nondet_sector_t();) similar to loff_t, some
+          // numeric
+          // type
+          case "loff_t", "sector_t" -> type;
+          case "float" -> CNumericTypes.FLOAT;
+          case "double" -> CNumericTypes.DOUBLE;
+          case "int128" ->
+              new CSimpleType(
+                  CTypeQualifiers.NONE,
+                  CBasicType.INT128,
+                  false,
+                  false,
+                  true,
+                  false,
+                  false,
+                  false,
+                  false);
+          case "uint128" ->
+              new CSimpleType(
+                  CTypeQualifiers.NONE,
+                  CBasicType.INT128,
+                  false,
+                  false,
+                  false,
+                  true,
+                  false,
+                  false,
+                  false);
+          default -> null;
+        };
+
+    return Optional.ofNullable(typeByName);
   }
 
   /**
