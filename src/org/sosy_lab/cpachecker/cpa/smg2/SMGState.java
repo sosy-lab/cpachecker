@@ -798,25 +798,26 @@ public class SMGState
   public boolean verifyVariableEqualityWithValueAt(
       MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) throws SMGException {
     Value expectedValue = valueAndSize.getValue();
-    Value readValue = getValueToVerify(variableAndOffset, valueAndSize);
-    return expectedValue.equals(readValue);
+    Optional<Value> readValue = getValueToVerify(variableAndOffset, valueAndSize);
+    return readValue.isPresent() && expectedValue.equals(readValue.orElseThrow());
   }
 
   /* public for debugging purposes in interpolation only! */
-  public Value getValueToVerify(MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize)
-      throws SMGException {
+  public Optional<Value> getValueToVerify(
+      MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) throws SMGException {
     String variableName = variableAndOffset.getQualifiedName();
     BigInteger offsetInBits = BigInteger.valueOf(variableAndOffset.getOffset());
     // Null for new interpolants, return unknown
     @Nullable BigInteger sizeOfReadInBits = valueAndSize.getSizeInBits();
     if (sizeOfReadInBits == null) {
-      return UnknownValue.getInstance();
+      return Optional.empty();
     }
 
     SMGObject memoryToRead = memoryModel.getObjectForVariable(variableName).orElseThrow();
     // We don't expect materialization here
-    return readValueWithoutMaterialization(memoryToRead, offsetInBits, sizeOfReadInBits, null)
-        .getValue();
+    return Optional.of(
+        readValueWithoutMaterialization(memoryToRead, offsetInBits, sizeOfReadInBits, null)
+            .getValue());
   }
 
   /**
