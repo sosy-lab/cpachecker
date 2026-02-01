@@ -22,7 +22,6 @@ import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardInputOrOu
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardStringInputFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharInputFunction;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -56,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
@@ -200,63 +199,138 @@ public class SMGCPABuiltins {
    */
   private List<ValueAndSMGState> handleVerifierNondetGeneratorFunction(
       CFunctionCallExpression funCallExpr, String pFunctionName, SMGState pState, CFAEdge pCfaEdge)
-      throws SMGException, UnsupportedCodeException {
+      throws SMGException {
     CType type = funCallExpr.getExpressionType().getCanonicalType();
     // Allowed (SVCOMP26): {bool, char, int, int128, float, double, loff_t, long, longlong, pchar,
     // pthread_t, sector_t, short, size_t, u32, uchar, uint, uint128, ulong, ulonglong, unsigned,
     // ushort} (no side effects, pointer for void *, etc.).
 
-    // TODO: __VERIFIER_nondet_memory(void *, size_t): This function initializes the given memory
-    // block with arbitrary values. The first argument must be a valid pointer to the start of a
-    // memory block of the given size. The second argument specifies the size of the memory to
-    // initialize and must match the size of the memory block that the first argument points to. The
-    // dereference of any pointer value set through this method results in undefined behavior. This
-    // means that pointer values must be explicitly set through different means before they can be
-    // dereferenced.
-
-    // TODO: consider casting directly to desired type?
-    //  castCValue(uncastedValueAndState.getValue(), pTargetType);
-
     // TODO: return a const with a correct type in all cases
-    if (options.allowNondetFunctionsWithArbitraryTypes() && type instanceof CSimpleType) {
+    String typeNameFromFunction = pFunctionName.replace(VERIFIER_NONDET_PREFIX, "");
+
+    if (typeNameFromFunction.contains("memory")) {
+      /*
+       * TODO: __VERIFIER_nondet_memory(void *, size_t); definition in SV-COMP:
+       *  This function initializes the given memory block with arbitrary values.
+       *  The first argument must be a valid pointer to the start of a memory block
+       *  of the given size. The second argument specifies the size of the memory to initialize
+       *  and must match the size of the memory block that the first argument points to.
+       *  The dereference of any pointer value set through this method results in
+       *  undefined behavior. This means that pointer values must be explicitly set through
+       *  different means before they can be dereferenced.
+       *  The verification tool can assume that __VERIFIER_nondet_memory is implemented as follows:
+       *  void __VERIFIER_nondet_memory(void *mem, size_t size) {
+       *    unsigned char *p = mem;
+       *    for (size_t i = 0; i < size; i++) {
+       *      p[i] = __VERIFIER_nondet_uchar();
+       *    }
+       *  }
+       *  Example uses of __VERIFIER_nondet_memory:
+       *  struct structType s;
+       *  __VERIFIER_nondet_memory(&s, sizeof(s));
+       *  int * values = malloc(sizeof(int) * 20);
+       *  __VERIFIER_nondet_memory(values, sizeof(int) * 20);
+       */
+
+    } else if (typeNameFromFunction.contains("pchar")
+        || typeNameFromFunction.contains("pthread_t")
+        || typeNameFromFunction.contains("pointer")) {
+      // pchar: (e.g.: char * __VERIFIER_nondet_pchar();)
+      //  returns a pointer to a char type and is used for guaranteed null terminated strings
+      // pthread_t: (e.g.: pthread_t __VERIFIER_nondet_pthread_t();) is a unique id for a thread.
+      //  We have to make sure that they don't compare equal for inequal threads!
+      // pointer: old, not used anymore AFAIK
+      // TODO:
+
+    } else if (type instanceof CSimpleType) {
       checkArgument(funCallExpr.getParameterExpressions().isEmpty());
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      if (typeNameFromFunction.contains("128")) {
+        // 128 bit ints and floating-points are AFAIK only available on 64 bit machines
+        checkArgument(machineModel.getMachineModelForYAMLWitnessSpecification().contains("64"));
+      }
+      // Derive type from name (unknown is null)
+      Optional<CType> typeByName = getNumericNondetFunctionTypeByName(typeNameFromFunction, type);
+      boolean typesEqual =
+          typeByName.isPresent() && type.equals(typeByName.orElseThrow().getCanonicalType());
+      if (options.allowNondetFunctionsWithArbitraryTypes() || typesEqual) {
+        if (!typesEqual) {
+          logger.logOnce(
+              Level.WARNING,
+              "Evaluated __VERIFIER_nondet_X() function "
+                  + pFunctionName
+                  + " with non-SV-COMP defined type "
+                  + type);
+        }
+        Value nondet =
+            ConstantSymbolicExpression.of(
+                SymbolicValueFactory.getInstance().newIdentifier(null), type);
+        return ImmutableList.of(ValueAndSMGState.of(nondet, pState));
+      }
     }
 
-    return switch (pFunctionName.replace(VERIFIER_NONDET_PREFIX, "")) {
-      case "pointer" ->
-          throw new UnsupportedCodeException(
-              "Function "
-                  + pFunctionName
-                  + " is no longer supported by SV-COMP and is not supported by this analysis",
-              pCfaEdge);
-      case "bool",
-          "char",
-          "int",
-          "int128",
-          "float",
-          "double",
-          "long",
-          "longlong",
-          "pchar",
-          "short",
-          "size_t",
-          "u32",
-          "uchar",
-          "uint",
-          "uint128",
-          "ulong",
-          "ulonglong",
-          "unsigned",
-          "ushort" ->
-          ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
-      case "loff_t", "pthread_t", "sector_t" ->
-          throw new SMGException(
-              "Function: " + pFunctionName + " is currently unsupported in all SMG analyses");
-      default ->
-          throw new SMGException(
-              "Unknown and unhandled function: " + pFunctionName + " at " + pCfaEdge);
-    };
+    throw new SMGException(
+        "Unhandled __VERIFIER_nondet_X() function "
+            + pFunctionName
+            + " with type "
+            + type
+            + " at "
+            + pCfaEdge);
+  }
+
+  /**
+   * @param typeNameFromFunction suffix X of __VERIFIER_nondet_X
+   * @param type the return type of the current function. Used for suffixes "loff_t" and "sector_t",
+   *     which always just return this type.
+   */
+  private static Optional<CType> getNumericNondetFunctionTypeByName(
+      String typeNameFromFunction, CType type) {
+    CType typeByName =
+        switch (typeNameFromFunction) {
+          case "bool" -> CNumericTypes.BOOL;
+          case "char" -> CNumericTypes.CHAR;
+          case "uchar" -> CNumericTypes.UNSIGNED_CHAR;
+          case "short" -> CNumericTypes.SHORT_INT;
+          case "ushort" -> CNumericTypes.UNSIGNED_SHORT_INT;
+          case "int" -> CNumericTypes.INT;
+          case "uint", "unsigned", "u32" -> CNumericTypes.UNSIGNED_INT;
+          case "size_t" -> CNumericTypes.SIZE_T;
+          case "long" -> CNumericTypes.LONG_INT;
+          case "ulong" -> CNumericTypes.UNSIGNED_LONG_INT;
+          case "longlong" -> CNumericTypes.LONG_LONG_INT;
+          case "ulonglong" -> CNumericTypes.UNSIGNED_LONG_LONG_INT;
+          // loff_t is some integer (int, long, long long)
+          // sector_t (e.g.: sector_t __VERIFIER_nondet_sector_t();) similar to loff_t, some
+          // numeric
+          // type
+          case "loff_t", "sector_t" -> type;
+          case "float" -> CNumericTypes.FLOAT;
+          case "double" -> CNumericTypes.DOUBLE;
+          case "int128" ->
+              new CSimpleType(
+                  CTypeQualifiers.NONE,
+                  CBasicType.INT128,
+                  false,
+                  false,
+                  true,
+                  false,
+                  false,
+                  false,
+                  false);
+          case "uint128" ->
+              new CSimpleType(
+                  CTypeQualifiers.NONE,
+                  CBasicType.INT128,
+                  false,
+                  false,
+                  false,
+                  true,
+                  false,
+                  false,
+                  false);
+          default -> null;
+        };
+
+    return Optional.ofNullable(typeByName);
   }
 
   /**
@@ -341,7 +415,7 @@ public class SMGCPABuiltins {
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaEnd(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState) {
-    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 1);
+    checkArgument(cFCExpression.getParameterExpressions().size() == 1);
     // The first argument is the variable to be deleted
     CIdExpression firstIdArg =
         (CIdExpression) evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
@@ -360,7 +434,7 @@ public class SMGCPABuiltins {
     if (firstArg instanceof CUnaryExpression) {
       firstArg = ((CUnaryExpression) firstArg).getOperand();
     }
-    Preconditions.checkArgument(firstArg instanceof CIdExpression);
+    checkArgument(firstArg instanceof CIdExpression);
     return firstArg;
   }
 
@@ -371,17 +445,17 @@ public class SMGCPABuiltins {
   private List<ValueAndSMGState> evaluateVaCopy(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
       throws CPATransferException {
-    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
+    checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the destination
     CExpression destArg = cFCExpression.getParameterExpressions().getFirst();
-    Preconditions.checkArgument(destArg instanceof CIdExpression);
+    checkArgument(destArg instanceof CIdExpression);
     CIdExpression destIdArg = (CIdExpression) destArg;
     // The second argument is the source
     CExpression srcArg = cFCExpression.getParameterExpressions().get(1);
-    Preconditions.checkArgument(srcArg instanceof CIdExpression);
+    checkArgument(srcArg instanceof CIdExpression);
     CIdExpression srcIdArg = (CIdExpression) srcArg;
     // Check the types lazy
-    Preconditions.checkArgument(destIdArg.getExpressionType().equals(srcIdArg.getExpressionType()));
+    checkArgument(destIdArg.getExpressionType().equals(srcIdArg.getExpressionType()));
     // The size should be equal as the types are
     BigInteger sizeInBits = evaluator.getBitSizeof(pState, srcIdArg);
     List<ValueAndSMGState> addressesAndStates =
@@ -391,7 +465,7 @@ public class SMGCPABuiltins {
             new NumericValue(BigInteger.ZERO),
             sizeInBits,
             SMGCPAExpressionEvaluator.getCanonicalType(srcIdArg));
-    Preconditions.checkArgument(addressesAndStates.size() == 1);
+    checkArgument(addressesAndStates.size() == 1);
     ValueAndSMGState addressAndState = addressesAndStates.getFirst();
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
@@ -444,7 +518,7 @@ public class SMGCPABuiltins {
       throws CPATransferException {
 
     SMGState currentState = pState;
-    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
+    checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the target for the pointer to the array of values
     CExpression firstArg = evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
 
@@ -477,7 +551,7 @@ public class SMGCPABuiltins {
     List<SMGStateAndOptionalSMGObjectAndOffset> targets =
         firstArg.accept(
             new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger, options));
-    Preconditions.checkArgument(targets.size() == 1);
+    checkArgument(targets.size() == 1);
     for (SMGStateAndOptionalSMGObjectAndOffset target : targets) {
       // We assume that there is only 1 valid returned target
       currentState = target.getSMGState();
@@ -504,7 +578,7 @@ public class SMGCPABuiltins {
               SMGCPAExpressionEvaluator.getCanonicalType(secondArg),
               cfaEdge);
       // Unlikely that someone throws an abstracted list into a var args
-      Preconditions.checkArgument(writtenStates.size() == 1);
+      checkArgument(writtenStates.size() == 1);
       currentState = writtenStates.getFirst();
       offset = offset.add(sizeInBitsVarArg);
     }
@@ -520,21 +594,21 @@ public class SMGCPABuiltins {
       throws CPATransferException {
     // Get the CExpression for the first argument
     List<CExpression> argsExpr = cFCExpression.getParameterExpressions();
-    Preconditions.checkArgument(argsExpr.size() == 1);
+    checkArgument(argsExpr.size() == 1);
     CExpression fpExpr = argsExpr.getFirst();
 
     // Evaluate the expression
     SMGCPAValueVisitor valueVisitor =
         new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
     List<ValueAndSMGState> evalStates = fpExpr.accept(valueVisitor);
-    Preconditions.checkArgument(evalStates.size() == 1);
+    checkArgument(evalStates.size() == 1);
 
     // Get the value for the expression and the new state
     Value atExitAddressValue = evalStates.getFirst().getValue();
     SMGState newState = evalStates.getFirst().getState();
 
     if (atExitAddressValue instanceof AddressExpression pAddressExpression) {
-      Preconditions.checkArgument(
+      checkArgument(
           pAddressExpression.getOffset() instanceof NumericValue addressOffset
               && addressOffset.bigIntegerValue().equals(BigInteger.ZERO));
       atExitAddressValue = pAddressExpression.getMemoryAddress();
@@ -644,7 +718,7 @@ public class SMGCPABuiltins {
             } else {
               List<SMGStateAndOptionalSMGObjectAndOffset> deref =
                   currentState.dereferencePointer(address);
-              Preconditions.checkArgument(deref.size() == 1);
+              checkArgument(deref.size() == 1);
               SMGStateAndOptionalSMGObjectAndOffset targetAndState = deref.getFirst();
               currentState = targetAndState.getSMGState();
               if (targetAndState.hasSMGObjectAndOffset()) {
@@ -1757,8 +1831,7 @@ public class SMGCPABuiltins {
     BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
 
     // This precondition has to hold for the get(0) getters
-    Preconditions.checkArgument(
-        !currentState.getMemoryModel().pointsToZeroPlus(bufferMemoryAddress));
+    checkArgument(!currentState.getMemoryModel().pointsToZeroPlus(bufferMemoryAddress));
     if (isNumericZero(charValue)) {
       // Create one large edge for 0 (the SMG cuts 0 edges on its own)
       currentState =
@@ -3223,7 +3296,7 @@ public class SMGCPABuiltins {
       } else {
 
         // TODO: we could associate a symbolic output with the input used to assure ==
-        result.add(ValueAndSMGState.of(Value.UnknownValue.getInstance(), currentState));
+        result.add(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
       }
     }
 
