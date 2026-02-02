@@ -17,16 +17,16 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.value_expression.BinaryBitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.value_expression.BitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.value_expression.DecimalBitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.value_expression.HexadecimalBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorBinaryLiteralExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorDecimalLiteralExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorHexadecimalLiteralExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorLiteralExpression;
 
 public class BitVectorUtil {
 
@@ -47,7 +47,7 @@ public class BitVectorUtil {
 
   // Creation ======================================================================================
 
-  public static BitVectorValueExpression buildBitVectorExpression(
+  public static CBitVectorLiteralExpression buildBitVectorExpression(
       BitVectorEncoding pBitVectorEncoding,
       MemoryModel pMemoryModel,
       ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
@@ -66,15 +66,15 @@ public class BitVectorUtil {
    * Creates a bit vector expression based on {@code pSetBits} where the left most index is {@code
    * 0} and the right most index is one smaller than the length of the bit vector.
    */
-  private static BitVectorValueExpression buildBitVectorExpressionByEncoding(
+  private static CBitVectorLiteralExpression buildBitVectorExpressionByEncoding(
       BitVectorEncoding pEncoding, MemoryModel pMemoryModel, ImmutableSet<Integer> pSetBits) {
 
     int length = getBitVectorLengthByEncoding(pEncoding, pMemoryModel);
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY -> new BinaryBitVectorValueExpression(length, pSetBits);
-      case DECIMAL -> new DecimalBitVectorValueExpression(pSetBits);
-      case HEXADECIMAL -> new HexadecimalBitVectorValueExpression(length, pSetBits);
+      case BINARY -> new CBitVectorBinaryLiteralExpression(length, pSetBits);
+      case DECIMAL -> new CBitVectorDecimalLiteralExpression(pSetBits);
+      case HEXADECIMAL -> new CBitVectorHexadecimalLiteralExpression(length, pSetBits);
       // TODO this is not so nice ...
       case SPARSE ->
           throw new IllegalArgumentException("use constructor directly for sparse bit vectors");

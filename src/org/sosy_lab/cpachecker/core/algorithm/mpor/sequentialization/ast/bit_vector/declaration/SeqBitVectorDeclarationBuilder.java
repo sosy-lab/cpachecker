@@ -23,8 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vec
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.SparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.value_expression.BitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.value_expression.SparseBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
@@ -35,6 +33,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorLiteralExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.SparseBitVectorValueExpression;
 
 public record SeqBitVectorDeclarationBuilder(
     BitVectorEncoding bitVectorEncoding,
@@ -109,7 +109,7 @@ public record SeqBitVectorDeclarationBuilder(
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
-          BitVectorValueExpression initializer =
+          CBitVectorLiteralExpression initializer =
               BitVectorUtil.buildBitVectorExpression(
                   bitVectorEncoding, memoryModel, memoryLocations);
           rDeclarations.add(
@@ -128,7 +128,7 @@ public record SeqBitVectorDeclarationBuilder(
       LastDenseBitVector lastDenseBitVector =
           bitVectorVariables.getLastDenseBitVectorByAccessType(pAccessType);
       // the last bv is initialized to 0, and assigned to something else in the last update later
-      BitVectorValueExpression initializer =
+      CBitVectorLiteralExpression initializer =
           BitVectorUtil.buildBitVectorExpression(bitVectorEncoding, memoryModel, ImmutableSet.of());
       // reachable last bit vector
       return Optional.of(

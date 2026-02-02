@@ -20,7 +20,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <p>This extra interface is added because using {@link CExpression} as the common base would
  * require adjustments to {@link CFA} handling and all visitors that handle {@link CExpression}.
  */
-public sealed interface CExportExpression permits CExpressionWrapper, CLogicalExpression {
+public sealed interface CExportExpression
+    permits CBitVectorLiteralExpression, CExpressionWrapper, CLogicalExpression {
 
   /**
    * Returns a negation of this expression without any further simplification of the expression,

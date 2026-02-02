@@ -19,8 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.value_expression.BitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.value_expression.SparseBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorAssignmentStatement;
@@ -35,6 +33,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorLiteralExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.SparseBitVectorValueExpression;
 
 public record BitVectorAssignmentInjector(
     MPOROptions options,
@@ -147,7 +147,7 @@ public record BitVectorAssignmentInjector(
     }
     CIdExpression bitVectorVariable =
         bitVectorVariables.getDenseBitVector(activeThread, pAccessType, pReachType);
-    BitVectorValueExpression bitVectorExpression =
+    CBitVectorLiteralExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(
             options.bitVectorEncoding(), memoryModel, pMemoryLocations);
     return ImmutableList.of(
