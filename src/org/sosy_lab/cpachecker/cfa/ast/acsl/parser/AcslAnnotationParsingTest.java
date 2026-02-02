@@ -87,7 +87,7 @@ public class AcslAnnotationParsingTest {
     String annotation = AcslParser.stripCommentMarker(input);
     AcslAssertion parsed =
         (AcslAssertion)
-            AcslParser.parseAcslAnnotation(
+            AcslParser.parseSingleAcslStatement(
                 annotation, FileLocation.DUMMY, cProgramScope, getAcslScope());
     assert expected.equals(parsed);
   }

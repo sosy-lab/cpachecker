@@ -94,14 +94,14 @@ public class AcslParser {
 
     for (String s : statements) {
       AAcslAnnotation annotation =
-          parseAcslAnnotation(s, pFileLocation, pCProgramScope, pAcslScope);
+          parseSingleAcslStatement(s, pFileLocation, pCProgramScope, pAcslScope);
       annotations.add(annotation);
     }
 
     return annotations.build();
   }
 
-  public static AAcslAnnotation parseAcslAnnotation(
+  public static AAcslAnnotation parseSingleAcslStatement(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
     if (pInput.startsWith("assert")) {
