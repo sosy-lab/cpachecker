@@ -109,7 +109,7 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
           assignment.toExpressionAssignmentStatement().toASTString(pAAstNodeRepresentation));
     }
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatementsString(
+        SeqThreadStatementUtil.prepareInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return rString.add(injected).toString();
   }

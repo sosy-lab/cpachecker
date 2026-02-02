@@ -54,7 +54,7 @@ public final class SeqReturnValueAssignmentStatement extends CSeqThreadStatement
       throws UnrecognizedCodeException {
 
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatementsString(
+        SeqThreadStatementUtil.prepareInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return assignment.toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE + injected;
   }

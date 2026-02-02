@@ -67,7 +67,7 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
       throws UnrecognizedCodeException {
 
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatementsString(
+        SeqThreadStatementUtil.prepareInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return SeqStringUtil.getVariableDeclarationASTStringWithoutStorageClassAndType(
             variableDeclaration, pAAstNodeRepresentation)

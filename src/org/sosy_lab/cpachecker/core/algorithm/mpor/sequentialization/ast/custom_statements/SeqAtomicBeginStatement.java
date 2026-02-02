@@ -42,7 +42,7 @@ public final class SeqAtomicBeginStatement extends CSeqThreadStatement {
       throws UnrecognizedCodeException {
 
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatementsString(
+        SeqThreadStatementUtil.prepareInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return SeqStringUtil.wrapInBlockComment(
             PthreadFunctionType.VERIFIER_ATOMIC_BEGIN.name + SeqSyntax.SEMICOLON)

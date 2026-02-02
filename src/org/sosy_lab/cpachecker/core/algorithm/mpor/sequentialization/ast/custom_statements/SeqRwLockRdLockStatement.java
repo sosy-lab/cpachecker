@@ -52,7 +52,7 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
     CFunctionCallStatement assumption =
         SeqAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatementsString(
+        SeqThreadStatementUtil.prepareInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
     return assumption.toASTString(pAAstNodeRepresentation)

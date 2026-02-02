@@ -166,7 +166,7 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
             .orElse(SeqSyntax.EMPTY_STRING);
 
     String targetStatements =
-        SeqThreadStatementUtil.buildInjectedStatementsString(
+        SeqThreadStatementUtil.prepareInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
     return Joiner.on(SeqSyntax.SPACE)

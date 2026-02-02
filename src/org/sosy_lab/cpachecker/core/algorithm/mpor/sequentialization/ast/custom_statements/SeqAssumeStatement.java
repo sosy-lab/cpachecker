@@ -58,7 +58,7 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
       throws UnrecognizedCodeException {
 
     // just return the injected statements, the block handles the if-else branch
-    return SeqThreadStatementUtil.buildInjectedStatementsString(
+    return SeqThreadStatementUtil.prepareInjectedStatements(
         pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
   }
 

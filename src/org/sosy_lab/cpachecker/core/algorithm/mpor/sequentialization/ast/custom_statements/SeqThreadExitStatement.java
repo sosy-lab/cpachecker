@@ -58,7 +58,7 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
       throws UnrecognizedCodeException {
 
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatementsString(
+        SeqThreadStatementUtil.prepareInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return returnValueAssignment.statement().toASTString(pAAstNodeRepresentation)
         + SeqSyntax.SPACE

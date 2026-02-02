@@ -54,7 +54,7 @@ public final class SeqDefaultStatement extends CSeqThreadStatement {
       throws UnrecognizedCodeException {
 
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatementsString(
+        SeqThreadStatementUtil.prepareInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
     return edge.getStatement().toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE + injected;
   }

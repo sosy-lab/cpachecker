@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
 /**
  * Statements that convert {@link CFAEdge}s to {@link String}s for the output program, {@code
@@ -135,6 +137,16 @@ public abstract sealed class CSeqThreadStatement implements SeqExportStatement
   /** The set of underlying {@link SubstituteEdge}s used to create this statement. */
   public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
     return substituteEdges;
+  }
+
+  ImmutableList<CExportStatement> convertInjectedStatementsToCExportStatements()
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
+    for (SeqInjectedStatement injected : injectedStatements) {
+      exportStatements.addAll(injected.toCExportStatements());
+    }
+    return exportStatements.build();
   }
 
   /**

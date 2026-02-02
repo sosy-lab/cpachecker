@@ -40,7 +40,7 @@ public final class SeqGhostOnlyStatement extends CSeqThreadStatement {
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    return SeqThreadStatementUtil.buildInjectedStatementsString(
+    return SeqThreadStatementUtil.prepareInjectedStatements(
         pcLeftHandSide, targetPc, Optional.empty(), injectedStatements, pAAstNodeRepresentation);
   }
 
