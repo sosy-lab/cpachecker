@@ -996,7 +996,6 @@ class ASTConverter {
     // Cannot represent this as a regular cast expression because unions are non-scalar.
     if (castType.getCanonicalType() instanceof CCompositeType compositeType
         && compositeType.getKind() == ComplexTypeKind.UNION
-        && operand != null
         && CTypes.isScalarType(operand.getExpressionType().getCanonicalType())) {
 
       // Create a temporary union object and initialize it with a positional initializer list.
