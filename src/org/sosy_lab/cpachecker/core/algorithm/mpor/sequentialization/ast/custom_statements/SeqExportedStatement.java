@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import com.google.common.collect.ImmutableList;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqASTNode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -16,12 +18,16 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 public abstract sealed class SeqExportedStatement implements SeqASTNode
     permits SeqBlockLabelStatement {
 
-  abstract CExportStatement toCExportStatement();
+  abstract ImmutableList<CExportStatement> toCExportStatements();
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    return toCExportStatement().toASTString(pAAstNodeRepresentation);
+    StringJoiner joiner = new StringJoiner(System.lineSeparator());
+    for (CExportStatement statement : toCExportStatements()) {
+      joiner.add(statement.toASTString(pAAstNodeRepresentation));
+    }
+    return joiner.toString();
   }
 }

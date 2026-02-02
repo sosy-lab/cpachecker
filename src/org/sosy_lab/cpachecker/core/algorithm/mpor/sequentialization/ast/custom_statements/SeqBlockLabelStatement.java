@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
@@ -42,8 +43,8 @@ public final class SeqBlockLabelStatement extends SeqExportedStatement {
   }
 
   @Override
-  CExportStatement toCExportStatement() {
-    return new CLabelStatement(threadPrefix + SeqSyntax.UNDERSCORE + labelNumber);
+  ImmutableList<CExportStatement> toCExportStatements() {
+    return ImmutableList.of(new CLabelStatement(threadPrefix + SeqSyntax.UNDERSCORE + labelNumber));
   }
 
   public int getLabelNumber() {
