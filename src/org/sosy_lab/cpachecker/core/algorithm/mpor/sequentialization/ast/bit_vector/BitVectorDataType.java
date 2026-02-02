@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -21,6 +23,7 @@ public enum BitVectorDataType {
   UINT64_T(64, CNumericTypes.UNSIGNED_LONG_INT);
 
   public final int size;
+
   public final CSimpleType simpleType;
 
   BitVectorDataType(int pSize, CSimpleType pSimpleType) {
@@ -35,5 +38,27 @@ public enum BitVectorDataType {
   public CTypeDeclaration buildDeclaration() {
     return new CTypeDefDeclaration(
         FileLocation.DUMMY, true, simpleType, toASTString(), toASTString());
+  }
+
+  public static BitVectorDataType getTypeByBinaryLength(int pBinaryLength) {
+    checkArgument(pBinaryLength >= 0, "pBinaryLength cannot be negative, got %s", pBinaryLength);
+
+    if (pBinaryLength <= BitVectorDataType.UINT8_T.size) {
+      return BitVectorDataType.UINT8_T;
+    }
+    if (pBinaryLength <= BitVectorDataType.UINT16_T.size) {
+      return BitVectorDataType.UINT16_T;
+    }
+    if (pBinaryLength <= BitVectorDataType.UINT32_T.size) {
+      return BitVectorDataType.UINT32_T;
+    }
+    if (pBinaryLength <= BitVectorDataType.UINT64_T.size) {
+      return BitVectorDataType.UINT64_T;
+    }
+
+    throw new IllegalArgumentException(
+        String.format(
+            "pBinaryLength %s is too long, maximum is %s",
+            pBinaryLength, BitVectorUtil.MAX_BINARY_LENGTH));
   }
 }

@@ -12,10 +12,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorLiteralExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
-public record SeqBitVectorAssignmentStatement(
-    CIdExpression variable, CBitVectorLiteralExpression value) implements SeqInjectedStatement {
+public record SeqBitVectorAssignmentStatement(CIdExpression variable, CExportExpression value)
+    implements SeqInjectedStatement {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
@@ -25,7 +25,7 @@ public record SeqBitVectorAssignmentStatement(
         + SeqSyntax.SPACE
         + SeqSyntax.EQUALS
         + SeqSyntax.SPACE
-        + value.toASTString()
+        + value.toASTString(pAAstNodeRepresentation)
         + SeqSyntax.SEMICOLON;
   }
 

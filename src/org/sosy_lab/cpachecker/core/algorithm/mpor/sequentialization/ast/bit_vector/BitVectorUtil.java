@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorBinaryLiteralExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorDecimalLiteralExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorHexadecimalLiteralExpression;
@@ -69,12 +68,13 @@ public class BitVectorUtil {
   private static CBitVectorLiteralExpression buildBitVectorExpressionByEncoding(
       BitVectorEncoding pEncoding, MemoryModel pMemoryModel, ImmutableSet<Integer> pSetBits) {
 
-    int length = getBitVectorLengthByEncoding(pEncoding, pMemoryModel);
+    BitVectorDataType type =
+        BitVectorDataType.getTypeByBinaryLength(pMemoryModel.getRelevantMemoryLocationAmount());
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY -> new CBitVectorBinaryLiteralExpression(length, pSetBits);
-      case DECIMAL -> new CBitVectorDecimalLiteralExpression(pSetBits);
-      case HEXADECIMAL -> new CBitVectorHexadecimalLiteralExpression(length, pSetBits);
+      case BINARY -> new CBitVectorBinaryLiteralExpression(pSetBits, type.simpleType);
+      case DECIMAL -> new CBitVectorDecimalLiteralExpression(pSetBits, type.simpleType);
+      case HEXADECIMAL -> new CBitVectorHexadecimalLiteralExpression(pSetBits, type.simpleType);
       // TODO this is not so nice ...
       case SPARSE ->
           throw new IllegalArgumentException("use constructor directly for sparse bit vectors");
@@ -140,23 +140,6 @@ public class BitVectorUtil {
     throw new IllegalArgumentException("no bit vector type with given length found: " + pLength);
   }
 
-  public static int getBitVectorLengthByEncoding(
-      BitVectorEncoding pEncoding, MemoryModel pMemoryModel) {
-
-    checkArgument(
-        pMemoryModel.getRelevantMemoryLocationAmount() <= MAX_BINARY_LENGTH,
-        "cannot have more than %s global variables, please disable bit vectors for this program.",
-        MAX_BINARY_LENGTH);
-
-    return switch (pEncoding) {
-      case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY -> getBinaryLength(pMemoryModel);
-      // the length does not matter for these, but we use the number of global variables
-      case DECIMAL, SPARSE -> pMemoryModel.getRelevantMemoryLocationAmount();
-      case HEXADECIMAL -> convertBinaryLengthToHex(getBinaryLength(pMemoryModel));
-    };
-  }
-
   public static int getBinaryLength(MemoryModel pMemoryModel) {
     int rLength = MIN_BINARY_LENGTH;
     while (rLength < pMemoryModel.getRelevantMemoryLocationAmount()) {
@@ -177,18 +160,9 @@ public class BitVectorUtil {
 
   // Helpers =======================================================================================
 
-  /** Pads the resulting hex string to pLength, e.g. 0x0 -> 0x00 for length 2. */
-  public static String padHexString(int pLength, BigInteger pBigInteger) {
-    return SeqStringUtil.hexFormat(pLength, pBigInteger);
-  }
-
   public static int convertBinaryLengthToHex(int pBinaryLength) {
     assert isValidBinaryLength(pBinaryLength) : "pBinaryLength is invalid";
     return pBinaryLength / 4;
-  }
-
-  public static int convertHexLengthToBinary(int pHexLength) {
-    return pHexLength * 4;
   }
 
   /**

@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public final class CBitVectorHexadecimalLiteralExpression extends CBitVectorLiteralExpression {
@@ -40,8 +40,16 @@ public final class CBitVectorHexadecimalLiteralExpression extends CBitVectorLite
     int hexadecimalLength = binaryLength / 4;
 
     // pad the string to exactly the hexadecimal length
-    rBitVector.append(BitVectorUtil.padHexString(hexadecimalLength, bigInteger));
+    rBitVector.append(padHexString(hexadecimalLength, bigInteger));
 
     return rBitVector.toString();
+  }
+
+  /**
+   * Pads the resulting hex string to {@code pLength}, e.g. {@code 0x0} to {@code 0x00} for length
+   * 2.
+   */
+  private String padHexString(int pLength, BigInteger pBigInteger) {
+    return SeqStringUtil.hexFormat(pLength, pBigInteger);
   }
 }

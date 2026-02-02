@@ -26,7 +26,7 @@ public abstract sealed class CBitVectorLiteralExpression implements CExportExpre
    * The right most index in the bit vector, e.g., the {@code 1} in {@code 0b00000001} is at the
    * right-most index.
    */
-  static final int RIGHT_MOST_INDEX = 0;
+  public static final int RIGHT_MOST_INDEX = 0;
 
   static final String ZERO_BIT = "0";
 

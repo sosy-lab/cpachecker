@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
@@ -34,7 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorLiteralExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.SparseBitVectorValueExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 
 public record BitVectorAssignmentInjector(
     MPOROptions options,
@@ -199,9 +200,11 @@ public record BitVectorAssignmentInjector(
         && pReachType.equals(ReachType.REACHABLE)) {
       return Optional.empty();
     }
+
     CIdExpression sparseVariable = Objects.requireNonNull(pSparseVariables.get(activeThread));
-    SparseBitVectorValueExpression sparseBitVectorExpression =
-        new SparseBitVectorValueExpression(rightHandSide);
+    CExpressionWrapper sparseBitVectorExpression =
+        new CExpressionWrapper(
+            rightHandSide ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO);
     return Optional.of(
         new SeqBitVectorAssignmentStatement(sparseVariable, sparseBitVectorExpression));
   }
