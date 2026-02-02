@@ -84,6 +84,9 @@ public class AcslParser {
   }
 
   /**
+   * Splits an acsl comment string into individual acsl statement string. The acsl comment can be
+   * surrounded by comment markers and contain multiple acsl statement.
+   *
    * @param pInput An acsl comment string that contains one or multiple acsl statements. Individual
    *     acsl statements are seperated by a semicolon
    * @param pFileLocation The location where the acsl comment occurs in the source
@@ -112,6 +115,8 @@ public class AcslParser {
   }
 
   /**
+   * Parses an acsl statement into an AAcslAnnotation.
+   *
    * @param pInput A string that contains a single acsl statement of the type assertion, loop
    *     invariant, ensures or requires
    * @param pFileLocation The location where the acsl comment that contains this statement appears
@@ -195,6 +200,8 @@ public class AcslParser {
   }
 
   /**
+   * Removes the comment markers from an acsl comment, if they are present
+   *
    * @param pCommentString An acsl comment string that might contain acsl comment markers
    * @return the acsl comment string without comment markers
    */
