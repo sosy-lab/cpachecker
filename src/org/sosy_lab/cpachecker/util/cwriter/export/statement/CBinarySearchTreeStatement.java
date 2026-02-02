@@ -78,7 +78,7 @@ public final class CBinarySearchTreeStatement extends CMultiControlStatement {
   public CBinarySearchTreeStatement(
       int pStartIndex,
       CLeftHandSide pExpression,
-      ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements,
+      ImmutableListMultimap<CExportExpression, CExportStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     super(pStatements);

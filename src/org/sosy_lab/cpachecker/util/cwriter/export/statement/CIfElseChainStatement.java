@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 public final class CIfElseChainStatement extends CMultiControlStatement {
 
   public CIfElseChainStatement(
-      ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements) {
+      ImmutableListMultimap<CExportExpression, CExportStatement> pStatements) {
 
     super(pStatements);
   }

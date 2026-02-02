@@ -63,7 +63,7 @@ public final class CSwitchStatement extends CMultiControlStatement {
 
   public CSwitchStatement(
       CExpression pSwitchExpression,
-      ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements) {
+      ImmutableListMultimap<CExportExpression, CExportStatement> pStatements) {
 
     super(pStatements);
     switchExpression = pSwitchExpression;

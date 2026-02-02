@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CMultiControlStatementEncoding;
 
 public class SeqThreadStatementClauseUtil {
@@ -72,15 +73,14 @@ public class SeqThreadStatementClauseUtil {
     };
   }
 
-  public static ImmutableListMultimap<CExportExpression, SeqThreadStatementClause>
-      mapExpressionToClause(
-          MPOROptions pOptions,
-          CLeftHandSide pPcLeftHandSide,
-          ImmutableList<SeqThreadStatementClause> pClauses,
-          CBinaryExpressionBuilder pBinaryExpressionBuilder)
-          throws UnrecognizedCodeException {
+  public static ImmutableListMultimap<CExportExpression, CExportStatement> mapExpressionToClause(
+      MPOROptions pOptions,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
-    ImmutableListMultimap.Builder<CExportExpression, SeqThreadStatementClause> rOriginPcs =
+    ImmutableListMultimap.Builder<CExportExpression, CExportStatement> rOriginPcs =
         ImmutableListMultimap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       CExpression labelExpression =
@@ -89,7 +89,7 @@ public class SeqThreadStatementClauseUtil {
               pPcLeftHandSide,
               clause.labelNumber,
               pBinaryExpressionBuilder);
-      rOriginPcs.put(new CExpressionWrapper(labelExpression), clause);
+      rOriginPcs.putAll(new CExpressionWrapper(labelExpression), clause.toCExportStatements());
     }
     return rOriginPcs.build();
   }

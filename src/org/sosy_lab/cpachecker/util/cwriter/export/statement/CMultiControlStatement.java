@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 public abstract sealed class CMultiControlStatement implements CExportStatement
     permits CBinarySearchTreeStatement, CIfElseChainStatement, CSwitchStatement {
 
-  final ImmutableListMultimap<CExportExpression, ? extends CExportStatement> statements;
+  final ImmutableListMultimap<CExportExpression, CExportStatement> statements;
 
   /**
    * Constructor for a {@link CMultiControlStatement}.
@@ -29,8 +29,7 @@ public abstract sealed class CMultiControlStatement implements CExportStatement
    * @param pStatements serves as a common base for all multi control statement, where an expression
    *     is mapped to a list of statements
    */
-  CMultiControlStatement(
-      ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements) {
+  CMultiControlStatement(ImmutableListMultimap<CExportExpression, CExportStatement> pStatements) {
 
     statements = pStatements;
   }
@@ -66,7 +65,7 @@ public abstract sealed class CMultiControlStatement implements CExportStatement
   public static CMultiControlStatement buildMultiControlStatementByEncoding(
       CMultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
-      ImmutableListMultimap<CExportExpression, ? extends CExportStatement> pStatements,
+      ImmutableListMultimap<CExportExpression, CExportStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     return switch (pMultiControlStatementEncoding) {
