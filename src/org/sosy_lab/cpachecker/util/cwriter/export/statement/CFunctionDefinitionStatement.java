@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * }
  * }</pre>
  */
-public abstract class CFunctionDefinitionStatement implements CExportStatement {
+public final class CFunctionDefinitionStatement implements CExportStatement {
 
   /**
    * The {@link CFunctionDeclaration} only contains a {@link String} representation of the name, but
