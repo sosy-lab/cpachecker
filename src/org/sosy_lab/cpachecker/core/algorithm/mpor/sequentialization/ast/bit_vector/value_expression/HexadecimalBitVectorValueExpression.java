@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collections;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
 
@@ -33,7 +34,7 @@ public class HexadecimalBitVectorValueExpression extends BitVectorValueExpressio
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder rBitVector = new StringBuilder();
     rBitVector.append(HEXADECIMAL_LITERAL);
     // build the binary vector, then parse to long and convert to hex

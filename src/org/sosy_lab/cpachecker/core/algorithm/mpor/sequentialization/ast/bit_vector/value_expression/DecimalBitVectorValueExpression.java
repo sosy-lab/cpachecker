@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
 
@@ -26,7 +27,7 @@ public class DecimalBitVectorValueExpression extends BitVectorValueExpression {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return String.valueOf(BitVectorUtil.buildDecimalBitVector(setBits));
   }
 

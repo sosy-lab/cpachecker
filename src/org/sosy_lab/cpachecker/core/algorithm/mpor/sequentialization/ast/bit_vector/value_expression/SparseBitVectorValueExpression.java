@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.value_expression;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorEncoding;
 
 public class SparseBitVectorValueExpression extends BitVectorValueExpression {
@@ -19,7 +20,7 @@ public class SparseBitVectorValueExpression extends BitVectorValueExpression {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return value ? ONE_BIT : ZERO_BIT;
   }
 
