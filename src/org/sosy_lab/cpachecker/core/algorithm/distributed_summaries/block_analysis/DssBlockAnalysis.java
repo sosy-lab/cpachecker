@@ -485,6 +485,8 @@ public class DssBlockAnalysis {
               .isSubsumed(
                   stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
             equal += 1;
+            preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
+            break;
           }
           preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
         }
