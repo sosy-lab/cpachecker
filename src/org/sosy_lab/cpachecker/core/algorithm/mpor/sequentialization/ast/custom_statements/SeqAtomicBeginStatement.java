@@ -41,9 +41,10 @@ public final class SeqAtomicBeginStatement extends CSeqThreadStatement {
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    String injected =
+    ImmutableList<SeqInjectedStatement> injected =
         SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+
     return SeqStringUtil.wrapInBlockComment(
             PthreadFunctionType.VERIFIER_ATOMIC_BEGIN.name + SeqSyntax.SEMICOLON)
         + SeqSyntax.SPACE

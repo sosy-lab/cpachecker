@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
 
@@ -26,7 +25,7 @@ record SeqGotoBlockStatement(CGotoStatement gotoStatement) implements SeqInjecte
   }
 
   @Override
-  public ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException {
+  public ImmutableList<CExportStatement> toCExportStatements() {
     return ImmutableList.of(gotoStatement);
   }
 }

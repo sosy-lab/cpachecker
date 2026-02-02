@@ -61,7 +61,7 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   }
 
   @Override
-  public ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException {
+  public ImmutableList<CExportStatement> toCExportStatements() {
     // TODO
     throw new AssertionError();
   }

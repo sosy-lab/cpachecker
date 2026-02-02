@@ -13,11 +13,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqIgnoreSleepReductionStatement;
@@ -70,7 +73,8 @@ record ReduceIgnoreSleepInjector(
   private SeqIgnoreSleepReductionStatement buildIgnoreSleepReductionStatement(
       CSeqThreadStatement pStatement,
       CExportExpression pBitVectorEvaluationExpression,
-      SeqThreadStatementClause pTargetClause) {
+      SeqThreadStatementClause pTargetClause)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqInjectedStatement> reductionAssumptions = ImmutableList.builder();
     for (SeqInjectedStatement injectedStatement : pStatement.getInjectedStatements()) {
@@ -78,11 +82,17 @@ record ReduceIgnoreSleepInjector(
         reductionAssumptions.add(bitVectorStatement);
       }
     }
+    CBinaryExpression roundMaxExpression =
+        utils
+            .binaryExpressionBuilder()
+            .buildBinaryExpression(
+                SeqIdExpressions.ROUND_MAX,
+                SeqIntegerLiteralExpressions.INT_0,
+                BinaryOperator.EQUALS);
     return new SeqIgnoreSleepReductionStatement(
-        SeqIdExpressions.ROUND_MAX,
+        roundMaxExpression,
         pBitVectorEvaluationExpression,
         reductionAssumptions.build(),
-        utils.binaryExpressionBuilder(),
         pTargetClause.getFirstBlock().getLabel());
   }
 

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
@@ -28,7 +27,7 @@ record SeqProgramCounterUpdateStatement(CExpressionAssignmentStatement pcUpdate)
   }
 
   @Override
-  public ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException {
+  public ImmutableList<CExportStatement> toCExportStatements() {
     return ImmutableList.of(new CStatementWrapper(pcUpdate));
   }
 }

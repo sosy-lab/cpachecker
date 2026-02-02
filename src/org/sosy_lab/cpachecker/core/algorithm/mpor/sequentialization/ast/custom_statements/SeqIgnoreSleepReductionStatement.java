@@ -10,11 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalNotExpression;
@@ -24,20 +19,14 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 
 public record SeqIgnoreSleepReductionStatement(
-    CIdExpression roundMaxVariable,
+    CBinaryExpression roundMaxExpression,
     CExportExpression bitVectorEvaluationExpression,
     ImmutableList<SeqInjectedStatement> reductionAssumptions,
-    CBinaryExpressionBuilder binaryExpressionBuilder,
     SeqBlockLabelStatement targetGoto)
     implements SeqInjectedStatementWithTargetGoto {
 
   @Override
-  public ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException {
-    // create necessary expressions and statements
-    CBinaryExpression roundMaxEqualsZeroExpression =
-        binaryExpressionBuilder.buildBinaryExpression(
-            roundMaxVariable, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
-
+  public ImmutableList<CExportStatement> toCExportStatements() {
     // negate the evaluation expression
     CLogicalNotExpression ifExpression = bitVectorEvaluationExpression.negate();
     CGotoStatement gotoNext = new CGotoStatement(targetGoto.toCLabelStatement());
@@ -48,8 +37,7 @@ public record SeqIgnoreSleepReductionStatement(
       // no reduction assumptions -> just return outer if statement
       CIfStatement outerIfStatement =
           new CIfStatement(
-              new CExpressionWrapper(roundMaxEqualsZeroExpression),
-              new CCompoundStatement(innerIfStatement));
+              new CExpressionWrapper(roundMaxExpression), new CCompoundStatement(innerIfStatement));
       return ImmutableList.of(outerIfStatement);
     }
 
@@ -60,7 +48,7 @@ public record SeqIgnoreSleepReductionStatement(
     }
     CIfStatement outerIfStatement =
         new CIfStatement(
-            new CExpressionWrapper(roundMaxEqualsZeroExpression),
+            new CExpressionWrapper(roundMaxExpression),
             new CCompoundStatement(innerIfStatement),
             new CCompoundStatement(exportReductionAssumptions.build()));
     return ImmutableList.of(outerIfStatement);
@@ -69,10 +57,9 @@ public record SeqIgnoreSleepReductionStatement(
   @Override
   public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
     return new SeqIgnoreSleepReductionStatement(
-        roundMaxVariable,
+        roundMaxExpression,
         bitVectorEvaluationExpression,
         reductionAssumptions,
-        binaryExpressionBuilder,
         targetGoto.withLabelNumber(pTargetNumber));
   }
 
@@ -80,11 +67,7 @@ public record SeqIgnoreSleepReductionStatement(
       ImmutableList<SeqInjectedStatement> pReductionAssumptions) {
 
     return new SeqIgnoreSleepReductionStatement(
-        roundMaxVariable,
-        bitVectorEvaluationExpression,
-        pReductionAssumptions,
-        binaryExpressionBuilder,
-        targetGoto);
+        roundMaxExpression, bitVectorEvaluationExpression, pReductionAssumptions, targetGoto);
   }
 
   @Override

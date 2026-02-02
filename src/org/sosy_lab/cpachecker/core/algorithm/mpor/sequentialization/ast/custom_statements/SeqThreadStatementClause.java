@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
 /**
@@ -126,7 +125,7 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   }
 
   @Override
-  public ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException {
+  public ImmutableList<CExportStatement> toCExportStatements() {
     ImmutableList.Builder<CExportStatement> exportedStatements = ImmutableList.builder();
     for (SeqThreadStatementBlock block : blocks) {
       exportedStatements.addAll(block.toCExportStatements());

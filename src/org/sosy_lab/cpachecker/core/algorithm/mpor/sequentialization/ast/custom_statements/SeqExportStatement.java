@@ -22,7 +22,7 @@ public sealed interface SeqExportStatement extends SeqASTNode
         SeqThreadStatementBlock,
         SeqThreadStatementClause {
 
-  ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException;
+  ImmutableList<CExportStatement> toCExportStatements();
 
   @Override
   default String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
