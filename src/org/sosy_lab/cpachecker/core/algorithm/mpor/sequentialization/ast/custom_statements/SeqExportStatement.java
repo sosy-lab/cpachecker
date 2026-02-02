@@ -15,7 +15,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqASTN
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
-public sealed interface SeqExportStatement extends SeqASTNode permits SeqBlockLabelStatement {
+public sealed interface SeqExportStatement extends SeqASTNode
+    permits CSeqThreadStatement,
+        SeqBlockLabelStatement,
+        SeqInjectedStatement,
+        SeqThreadStatementBlock,
+        SeqThreadStatementClause {
 
   ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException;
 
