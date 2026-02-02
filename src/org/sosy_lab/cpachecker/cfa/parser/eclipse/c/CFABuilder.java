@@ -496,6 +496,8 @@ class CFABuilder extends ASTVisitor {
   }
 
   /**
+   * Finds the Cfa node that represents an acsl comment in the Cfa
+   *
    * @param pResult A ParseResult where the field acslComments is not empty
    * @param pAstCfaRelation The current AstCfaRelation
    * @return An updated version of pResult where each acsl comment now has a Cfa node that
