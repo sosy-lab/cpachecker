@@ -12,13 +12,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -37,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -84,8 +81,8 @@ public class DssBlockAnalysis {
 
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final DssMessageFactory messageFactory;
-  private final Multimap<String, @NonNull StateAndPrecision> preconditions;
-  private final Multimap<String, @NonNull StateAndPrecision> violationConditions;
+  public final Multimap<String, @NonNull StateAndPrecision> preconditions;
+  public final Multimap<String, @NonNull StateAndPrecision> violationConditions;
 
   private final ConfigurableProgramAnalysis cpa;
   private final BlockNode block;
@@ -460,6 +457,7 @@ public class DssBlockAnalysis {
       }
       return DssMessageProcessing.stop();
     }
+    resetStates();
     ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
         deserialize(pReceived);
     DssMessageProcessing processing = DssMessageProcessing.proceed();
@@ -471,64 +469,32 @@ public class DssBlockAnalysis {
     if (!processing.shouldProceed()) {
       return processing;
     }
-    // the resets must be in this order because there is a function isOlderThan in stop of ARG
-    resetStates();
-    deserializedStatesAndPrecisions =
-        FluentIterable.from(deserializedStatesAndPrecisions)
-            .transform(p -> new StateAndPrecision(dcpa.reset(p.state()), p.precision()))
-            .toList();
-    reachedSet.clear();
-    ImmutableSet.Builder<AbstractState> statesBeforeOthersBuilder = ImmutableSet.builder();
-    ImmutableSet.Builder<AbstractState> statesBeforSameIdBuilder = ImmutableSet.builder();
-    for (Entry<String, StateAndPrecision> predecessorWithStateAndPrecision :
-        preconditions.entries()) {
-      if (dcpa.isMostGeneralBlockEntryState(predecessorWithStateAndPrecision.getValue().state())) {
-        continue;
-      }
-      if (predecessorWithStateAndPrecision.getKey().equals(pReceived.getSenderId())) {
-        statesBeforSameIdBuilder.add(predecessorWithStateAndPrecision.getValue().state());
-      } else {
-        statesBeforeOthersBuilder.add(predecessorWithStateAndPrecision.getValue().state());
-      }
-      reachedSet.add(
-          predecessorWithStateAndPrecision.getValue().state(),
-          predecessorWithStateAndPrecision.getValue().precision());
+
+    if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
+      preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
+      return processing;
     }
-    ImmutableSet<AbstractState> statesBeforeOthers = statesBeforeOthersBuilder.build();
-    ImmutableSet<AbstractState> statesBeforeSameId = statesBeforSameIdBuilder.build();
-    DssBlockAnalyses.executeCpaAlgorithmWithStates(
-        reachedSet, cpa, deserializedStatesAndPrecisions);
-    ImmutableSet.Builder<StateAndPrecision> recoveredStatesAndPrecisions = ImmutableSet.builder();
-    ImmutableSet.Builder<StateAndPrecision> fromBefore = ImmutableSet.builder();
-    for (AbstractState abstractState : reachedSet) {
-      if (statesBeforeSameId.contains(abstractState)) {
-        fromBefore.add(
-            new StateAndPrecision(abstractState, reachedSet.getPrecision(abstractState)));
-        continue;
+    int equal = 0;
+    for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
+      for (StateAndPrecision stateAndPrecision :
+          ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
+        if (dcpa.getCoverageOperator()
+            .isSubsumed(
+                dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
+          if (dcpa.getCoverageOperator()
+              .isSubsumed(
+                  stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
+            equal += 1;
+          }
+          preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
+        }
       }
-      if (!statesBeforeOthers.contains(abstractState)) {
-        recoveredStatesAndPrecisions.add(
-            new StateAndPrecision(abstractState, reachedSet.getPrecision(abstractState)));
-      }
+      preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
     }
-    ImmutableSet<@NonNull StateAndPrecision> newStatesAndPrecisions =
-        recoveredStatesAndPrecisions.build();
-    ImmutableSet<@NonNull AbstractState> newStates =
-        FluentIterable.from(newStatesAndPrecisions).transform(StateAndPrecision::state).toSet();
-    ImmutableSet<@NonNull AbstractState> deserializedStates =
-        FluentIterable.from(deserializedStatesAndPrecisions)
-            .transform(StateAndPrecision::state)
-            .toSet();
-    preconditions.removeAll(pReceived.getSenderId());
-    preconditions.putAll(
-        pReceived.getSenderId(), fromBefore.addAll(newStatesAndPrecisions).build());
-    if (Sets.intersection(newStates, deserializedStates).isEmpty()) {
-      reachedSet.clear();
-      resetStates();
-      return DssMessageProcessing.stop();
+    if (equal == deserializedStatesAndPrecisions.size()) {
+      processing = DssMessageProcessing.stop();
     }
-    reachedSet.clear();
-    resetStates();
+
     return processing;
   }
 
