@@ -8,15 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 
-import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -51,37 +47,19 @@ public final class CFunctionDefinitionStatement implements CExportStatement {
     body = pBody;
   }
 
-  /**
-   * Basically {@link CFunctionDeclaration#toASTString()} with parameter names but without the
-   * suffix {@code ;}.
-   */
-  private String buildSignature(AAstNodeRepresentation pAAstNodeRepresentation) {
-    StringJoiner parameters = new StringJoiner(", ");
-    declaration
-        .getParameters()
-        .forEach(p -> parameters.add(p.toASTString(pAAstNodeRepresentation)));
-    String returnType = declaration.getType().getReturnType().toASTString("");
-    return returnType + " " + declaration.getName() + "(" + parameters + ")";
-  }
-
-  public final CFunctionCallStatement buildFunctionCallStatement(
-      ImmutableList<CExpression> pParameters) {
-
-    checkArgument(
-        declaration.getParameters().size() == pParameters.size(),
-        "pParameters.size() must equal parameter declaration amount");
-    CFunctionCallExpression functionCallExpression =
-        new CFunctionCallExpression(
-            FileLocation.DUMMY, declaration.getType(), name, pParameters, declaration);
-    return new CFunctionCallStatement(FileLocation.DUMMY, functionCallExpression);
-  }
-
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
     StringJoiner rDefinition = new StringJoiner(System.lineSeparator());
-    rDefinition.add(buildSignature(pAAstNodeRepresentation));
+
+    StringJoiner parameters = new StringJoiner(", ");
+    declaration
+        .getParameters()
+        .forEach(p -> parameters.add(p.toASTString(pAAstNodeRepresentation)));
+    String returnType = declaration.getType().getReturnType().toASTString("");
+    rDefinition.add(returnType + " " + declaration.getName() + "(" + parameters + ")");
+
     rDefinition.add(body.toASTString(pAAstNodeRepresentation));
     return rDefinition.toString();
   }

@@ -291,7 +291,7 @@ public class SequentializationBuilder {
     if (pOptions.loopUnrolling()) {
       for (SeqThreadSimulationFunction threadFunction :
           pFields.threadSimulationFunctions.orElseThrow()) {
-        rDeclarations.add(threadFunction.getDeclaration().toASTString());
+        rDeclarations.add(threadFunction.getFunctionDefinition().toASTString());
       }
     }
     // main should always be duplicate

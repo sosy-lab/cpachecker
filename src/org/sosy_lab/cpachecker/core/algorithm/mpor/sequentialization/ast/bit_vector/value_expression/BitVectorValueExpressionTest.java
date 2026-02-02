@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorValueExpressionTest {
 
@@ -19,7 +20,7 @@ public class BitVectorValueExpressionTest {
       ImmutableSet.<Integer>builder().add(0).add(1).add(6).add(7).add(13).add(14).build();
 
   @Test
-  public void test_binary() {
+  public void test_binary() throws UnrecognizedCodeException {
     BinaryBitVectorValueExpression binaryExpression =
         new BinaryBitVectorValueExpression(16, setBits);
     String expected = "0b0110000011000011";
@@ -27,7 +28,7 @@ public class BitVectorValueExpressionTest {
   }
 
   @Test
-  public void test_decimal() {
+  public void test_decimal() throws UnrecognizedCodeException {
     DecimalBitVectorValueExpression decimalExpression =
         new DecimalBitVectorValueExpression(setBits);
     String expected = String.valueOf(1 + 2 + 64 + 128 + 8192 + 16384);
@@ -35,7 +36,7 @@ public class BitVectorValueExpressionTest {
   }
 
   @Test
-  public void test_hexadecimal() {
+  public void test_hexadecimal() throws UnrecognizedCodeException {
     HexadecimalBitVectorValueExpression hexadecimalExpression =
         new HexadecimalBitVectorValueExpression(4, setBits);
     String expected = "0x60c3";
