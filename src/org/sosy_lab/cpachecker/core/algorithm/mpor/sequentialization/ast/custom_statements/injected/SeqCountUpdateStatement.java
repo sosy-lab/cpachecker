@@ -8,18 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 public record SeqCountUpdateStatement(CExpressionAssignmentStatement countUpdate)
     implements SeqInjectedStatement {
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
-    return countUpdate.toASTString(pAAstNodeRepresentation);
+  public ImmutableList<CExportStatement> toCExportStatements() {
+    return ImmutableList.of(new CStatementWrapper(countUpdate));
   }
 
   @Override

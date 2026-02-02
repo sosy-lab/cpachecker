@@ -133,9 +133,7 @@ public abstract sealed class CSeqThreadStatement implements CExportStatement
    * SeqBlockLabelStatement}, whichever is present.
    */
   public int getTargetNumber() {
-    return targetPc.isPresent()
-        ? targetPc.orElseThrow()
-        : targetGoto.orElseThrow().getLabelNumber();
+    return targetPc.isPresent() ? targetPc.orElseThrow() : targetGoto.orElseThrow().labelNumber();
   }
 
   /** The set of underlying {@link SubstituteEdge}s used to create this statement. */

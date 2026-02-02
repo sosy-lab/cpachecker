@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
@@ -36,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionAssignmentStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
 
 public final class SeqThreadStatementUtil {
@@ -167,7 +167,7 @@ public final class SeqThreadStatementUtil {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     if (pStatement.getTargetGoto().isPresent()) {
-      int targetNumber = pStatement.getTargetGoto().orElseThrow().getLabelNumber();
+      int targetNumber = pStatement.getTargetGoto().orElseThrow().labelNumber();
       SeqThreadStatementBlock targetBlock =
           Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
       return targetBlock.getStatements();
@@ -276,7 +276,8 @@ public final class SeqThreadStatementUtil {
     leftOver.addAll(
         getInjectedStatementsByClass(pInjectedStatements, SeqSyncUpdateStatement.class));
     leftOver.addAll(
-        getInjectedStatementsByClass(pInjectedStatements, SeqBitVectorAssignmentStatement.class));
+        getInjectedStatementsByClass(
+            pInjectedStatements, CExpressionAssignmentStatementWrapper.class));
     leftOver.addAll(
         getInjectedStatementsByClass(pInjectedStatements, SeqLastBitVectorUpdateStatement.class));
     rOrdered.addAll(

@@ -8,24 +8,24 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 public record SeqSyncUpdateStatement(
     CIdExpression syncVariable, CIntegerLiteralExpression newSyncValue)
     implements SeqInjectedStatement {
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
+  public ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement syncUpdate =
         SeqStatementBuilder.buildExpressionAssignmentStatement(syncVariable, newSyncValue);
-    return syncUpdate.toASTString(pAAstNodeRepresentation);
+    return ImmutableList.of(new CStatementWrapper(syncUpdate));
   }
 
   @Override

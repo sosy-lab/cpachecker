@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
@@ -20,14 +21,13 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
  * <pre>{@code int x = y && z;}</pre>
  */
 public record CExpressionAssignmentStatementWrapper(
-    CExpressionAssignmentStatement expressionAssignmentStatement, CExportExpression rightHandSide)
-    implements CExportStatement {
+    CLeftHandSide leftHandSide, CExportExpression rightHandSide) implements CExportStatement {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    return expressionAssignmentStatement.getLeftHandSide()
+    return leftHandSide.toASTString(pAAstNodeRepresentation)
         + " = "
         + rightHandSide.toASTString(pAAstNodeRepresentation)
         + ";";

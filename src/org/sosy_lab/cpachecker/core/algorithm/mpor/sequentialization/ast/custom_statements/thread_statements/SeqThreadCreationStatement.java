@@ -17,13 +17,13 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionAssignmentStatementWrapper;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_create} of the form:
@@ -40,7 +40,8 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
 
   private final CLeftHandSide createdThreadPc;
 
-  private final Optional<ImmutableList<SeqBitVectorAssignmentStatement>> bitVectorInitializations;
+  private final Optional<ImmutableList<CExpressionAssignmentStatementWrapper>>
+      bitVectorInitializations;
 
   SeqThreadCreationStatement(
       Optional<FunctionParameterAssignment> pStartRoutineArgAssignment,
@@ -59,7 +60,7 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
       Optional<FunctionParameterAssignment> pStartRoutineArgAssignment,
       CLeftHandSide pPcLeftHandSide,
       CLeftHandSide pCreatedThreadPc,
-      Optional<ImmutableList<SeqBitVectorAssignmentStatement>> pBitVectorInitializations,
+      Optional<ImmutableList<CExpressionAssignmentStatementWrapper>> pBitVectorInitializations,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
@@ -80,9 +81,9 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
             createdThreadPc, ProgramCounterVariables.INIT_PC);
     StringJoiner bitVectorInitializationString = new StringJoiner(SeqSyntax.SPACE);
     if (bitVectorInitializations.isPresent()) {
-      for (SeqBitVectorAssignmentStatement initialization :
+      for (CExpressionAssignmentStatementWrapper initialization :
           bitVectorInitializations.orElseThrow()) {
-        bitVectorInitializationString.add(initialization.toASTString());
+        bitVectorInitializationString.add(initialization.toASTString(pAAstNodeRepresentation));
       }
     }
     String injectedStatementsString =

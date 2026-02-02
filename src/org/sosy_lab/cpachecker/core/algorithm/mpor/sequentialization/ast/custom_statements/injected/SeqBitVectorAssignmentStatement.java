@@ -8,25 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionAssignmentStatementWrapper;
 
 public record SeqBitVectorAssignmentStatement(CIdExpression variable, CExportExpression value)
     implements SeqInjectedStatement {
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
-    return variable.toASTString(pAAstNodeRepresentation)
-        + SeqSyntax.SPACE
-        + SeqSyntax.EQUALS
-        + SeqSyntax.SPACE
-        + value.toASTString(pAAstNodeRepresentation)
-        + SeqSyntax.SEMICOLON;
+  public ImmutableList<CExportStatement> toCExportStatements() {
+    return ImmutableList.of(new CExpressionAssignmentStatementWrapper(variable, value));
   }
 
   @Override

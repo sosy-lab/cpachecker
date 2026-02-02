@@ -8,17 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalNotExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 
@@ -33,26 +33,20 @@ public record SeqBitVectorEvaluationStatement(
     implements SeqInjectedStatementWithTargetGoto {
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
+  public ImmutableList<CExportStatement> toCExportStatements() {
+    // no evaluation due to no global accesses -> just goto
     if (evaluationExpression.isEmpty()) {
-      // no evaluation due to no global accesses -> just goto
-      CGotoStatement gotoStatement = new CGotoStatement(targetGoto.toCLabelStatement());
-      return gotoStatement.toASTString(pAAstNodeRepresentation);
-
-    } else if (options.nondeterminismSource().equals(NondeterminismSource.NEXT_THREAD)) {
-      // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
+      return ImmutableList.of(new CGotoStatement(targetGoto.toCLabelStatement()));
+    }
+    // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
+    if (options.nondeterminismSource().equals(NondeterminismSource.NEXT_THREAD)) {
       CLogicalNotExpression ifExpression = evaluationExpression.orElseThrow().negate();
       CGotoStatement gotoStatement = new CGotoStatement(targetGoto.toCLabelStatement());
       CCompoundStatement compoundStatement = new CCompoundStatement(gotoStatement);
-      CIfStatement ifStatement = new CIfStatement(ifExpression, compoundStatement);
-      return ifStatement.toASTString(pAAstNodeRepresentation);
-
-    } else {
-      return SeqAssumeFunction.buildAssumeFunctionCallStatement(evaluationExpression.orElseThrow())
-          .toASTString(pAAstNodeRepresentation);
+      return ImmutableList.of(new CIfStatement(ifExpression, compoundStatement));
     }
+    return ImmutableList.of(
+        SeqAssumeFunction.buildAssumeFunctionCallStatement(evaluationExpression.orElseThrow()));
   }
 
   @Override

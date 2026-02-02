@@ -9,11 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
@@ -39,18 +37,14 @@ public record SeqGuardedGotoStatement(
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
+  public ImmutableList<CExportStatement> toCExportStatements() {
     ImmutableList<CExportStatement> ifStatements =
         ImmutableList.<CExportStatement>builder()
             .addAll(precedingStatements.stream().map(s -> new CStatementWrapper(s)).iterator())
             .add(new CGotoStatement(targetLabel.toCLabelStatement()))
             .build();
     CCompoundStatement compoundStatement = new CCompoundStatement(ifStatements);
-    CIfStatement ifStatement =
-        new CIfStatement(new CExpressionWrapper(condition), compoundStatement);
-    return ifStatement.toASTString(pAAstNodeRepresentation);
+    return ImmutableList.of(new CIfStatement(new CExpressionWrapper(condition), compoundStatement));
   }
 
   @Override

@@ -9,11 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import com.google.common.collect.ImmutableList;
-import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 public record SeqLastBitVectorUpdateStatement(
     CExpressionAssignmentStatement lastThreadUpdate,
@@ -21,15 +20,13 @@ public record SeqLastBitVectorUpdateStatement(
     implements SeqInjectedStatement {
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
-    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    joiner.add(lastThreadUpdate.toASTString(pAAstNodeRepresentation));
+  public ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException {
+    ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
+    exportStatements.add(new CStatementWrapper(lastThreadUpdate));
     for (CExpressionAssignmentStatement lastBitVectorUpdate : lastBitVectorUpdates) {
-      joiner.add(lastBitVectorUpdate.toASTString(pAAstNodeRepresentation));
+      exportStatements.add(new CStatementWrapper(lastBitVectorUpdate));
     }
-    return joiner.toString();
+    return exportStatements.build();
   }
 
   @Override

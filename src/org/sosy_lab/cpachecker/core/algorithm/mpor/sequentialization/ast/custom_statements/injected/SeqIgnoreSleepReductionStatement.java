@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -28,15 +27,13 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 public record SeqIgnoreSleepReductionStatement(
     CIdExpression roundMaxVariable,
     CExportExpression bitVectorEvaluationExpression,
-    ImmutableList<SeqInjectedStatement> reductionAssumptions,
+    ImmutableList<CExportStatement> reductionAssumptions,
     CBinaryExpressionBuilder binaryExpressionBuilder,
     SeqBlockLabelStatement targetGoto)
     implements SeqInjectedStatementWithTargetGoto {
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
+  public ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException {
     // create necessary expressions and statements
     CBinaryExpression roundMaxEqualsZeroExpression =
         binaryExpressionBuilder.buildBinaryExpression(
@@ -54,20 +51,16 @@ public record SeqIgnoreSleepReductionStatement(
           new CIfStatement(
               new CExpressionWrapper(roundMaxEqualsZeroExpression),
               new CCompoundStatement(innerIfStatement));
-      return outerIfStatement.toASTString();
+      return ImmutableList.of(outerIfStatement);
     }
 
     // reduction assumptions are present -> build else branch with assumptions
-    ImmutableList.Builder<CExportStatement> elseStatements = ImmutableList.builder();
-    for (SeqInjectedStatement reductionAssumption : reductionAssumptions) {
-      elseStatements.add(reductionAssumption);
-    }
     CIfStatement outerIfStatement =
         new CIfStatement(
             new CExpressionWrapper(roundMaxEqualsZeroExpression),
             new CCompoundStatement(innerIfStatement),
-            new CCompoundStatement(elseStatements.build()));
-    return outerIfStatement.toASTString(pAAstNodeRepresentation);
+            new CCompoundStatement(reductionAssumptions));
+    return ImmutableList.of(outerIfStatement);
   }
 
   @Override
@@ -81,7 +74,7 @@ public record SeqIgnoreSleepReductionStatement(
   }
 
   public SeqIgnoreSleepReductionStatement withReductionAssumptions(
-      ImmutableList<SeqInjectedStatement> pReductionAssumptions) {
+      ImmutableList<CExportStatement> pReductionAssumptions) {
 
     return new SeqIgnoreSleepReductionStatement(
         roundMaxVariable,

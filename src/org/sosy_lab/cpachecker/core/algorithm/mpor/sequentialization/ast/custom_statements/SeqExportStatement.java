@@ -15,13 +15,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqASTN
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
-public abstract sealed class SeqExportedStatement implements SeqASTNode
-    permits SeqBlockLabelStatement {
+public sealed interface SeqExportStatement extends SeqASTNode permits SeqBlockLabelStatement {
 
-  abstract ImmutableList<CExportStatement> toCExportStatements();
+  ImmutableList<CExportStatement> toCExportStatements() throws UnrecognizedCodeException;
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+  default String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
     StringJoiner joiner = new StringJoiner(System.lineSeparator());
