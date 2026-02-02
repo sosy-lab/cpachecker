@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -196,13 +195,6 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
-          "if both reduceLastThreadOrder and reduceUntilConflict are enabled, define the order"
-              + " in which their statements are placed in the output program.")
-  private ReductionOrder reductionOrder = ReductionOrder.NONE;
-
-  @Option(
-      secure = true,
-      description =
           "use separate int values (scalars) for tracking thread pcs instead of int arrays?")
   private boolean scalarPc = true;
 
@@ -286,13 +278,6 @@ public class MPOROptions {
       if (loopUnrolling) {
         throw new InvalidConfigurationException(
             "loopUnrolling can only be enabled when loopIterations > 0");
-      }
-    }
-    if (reduceLastThreadOrder && reduceUntilConflict) {
-      if (!reductionOrder.isEnabled()) {
-        throw new InvalidConfigurationException(
-            "both reduceLastThreadOrder and reduceUntilConflict are enabled, but no reductionOrder"
-                + " is specified.");
       }
     }
     if (!noBackwardGoto) {
@@ -489,10 +474,6 @@ public class MPOROptions {
 
   public ReductionMode reductionMode() {
     return reductionMode;
-  }
-
-  public ReductionOrder reductionOrder() {
-    return reductionOrder;
   }
 
   public boolean scalarPc() {

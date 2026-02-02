@@ -340,18 +340,19 @@ public class SequentializationBuilder {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
 
-    // last_thread is always unsigned, we assign NUM_THREADS if the current thread terminates
     if (pOptions.reduceLastThreadOrder()) {
+      // LAST_THREAD ghost variable
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
+      // the initializer of LAST_THREAD is dependent on the number of threads
       CInitializer lastThreadInitializer =
           new CInitializerExpression(FileLocation.DUMMY, numThreadsExpression);
       CVariableDeclaration lastThreadDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
+              // LAST_THREAD is always unsigned, NUM_THREADS is assigned if a thread terminates
               CNumericTypes.UNSIGNED_INT,
               SeqIdExpressions.LAST_THREAD.getName(),
-              // the initializer of last_thread is dependent on the number of threads
               lastThreadInitializer);
       rDeclarations.add(lastThreadDeclaration.toASTString());
     }

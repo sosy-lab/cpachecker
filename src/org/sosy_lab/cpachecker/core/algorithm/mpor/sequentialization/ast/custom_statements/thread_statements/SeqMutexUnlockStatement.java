@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -33,18 +32,16 @@ public final class SeqMutexUnlockStatement extends CSeqThreadStatement {
   private final MutexLockedFlag mutexLockedFlag;
 
   SeqMutexUnlockStatement(
-      ReductionOrder pReductionOrder,
       MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     mutexLockedFlag = pMutexLockedFlag;
   }
 
   private SeqMutexUnlockStatement(
-      ReductionOrder pReductionOrder,
       MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -52,13 +49,7 @@ public final class SeqMutexUnlockStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(
-        pReductionOrder,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        pTargetPc,
-        pTargetGoto,
-        pInjectedStatements);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     mutexLockedFlag = pMutexLockedFlag;
   }
 
@@ -69,14 +60,13 @@ public final class SeqMutexUnlockStatement extends CSeqThreadStatement {
             mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return lockedFalseAssignment.toASTString() + SeqSyntax.SPACE + injected;
   }
 
   @Override
   public SeqMutexUnlockStatement withTargetPc(int pTargetPc) {
     return new SeqMutexUnlockStatement(
-        reductionOrder,
         mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,
@@ -88,7 +78,6 @@ public final class SeqMutexUnlockStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqMutexUnlockStatement(
-        reductionOrder,
         mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,
@@ -102,7 +91,6 @@ public final class SeqMutexUnlockStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqMutexUnlockStatement(
-        reductionOrder,
         mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,

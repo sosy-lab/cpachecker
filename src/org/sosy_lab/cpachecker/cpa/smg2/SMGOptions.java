@@ -447,6 +447,15 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
+          "The SV-COMP defines a list of types that are allowed to be used in __VERIFIER_nondet_X()"
+              + " functions. If this option is false, only those defined in the competition are"
+              + " allowed. All others throw an exception on being evaluated. For true, the type of"
+              + " any __VERIFIER_nondet_X() function is simply accepted without any checks.")
+  private boolean allowNondetFunctionsWithArbitraryTypes = true;
+
+  @Option(
+      secure = true,
+      description =
           "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
               + "unknown memory sizes does not abort, but also does not create any memory.")
   private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
@@ -524,6 +533,10 @@ public class SMGOptions {
   public boolean isStopAnalysisOnUnknownMemoryAllocation() {
     return getIgnoreUnknownMemoryAllocationSetting()
         == UnknownMemoryAllocationHandling.STOP_ANALYSIS;
+  }
+
+  public boolean allowNondetFunctionsWithArbitraryTypes() {
+    return allowNondetFunctionsWithArbitraryTypes;
   }
 
   public boolean isMallocZeroReturnsZero() {

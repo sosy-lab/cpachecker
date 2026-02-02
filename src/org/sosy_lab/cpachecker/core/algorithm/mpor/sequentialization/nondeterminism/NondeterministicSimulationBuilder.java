@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -53,18 +54,21 @@ public class NondeterministicSimulationBuilder {
 
   public static NondeterministicSimulation buildNondeterministicSimulationBySource(
       MPOROptions pOptions,
+      Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
-          new NextThreadNondeterministicSimulation(pOptions, pGhostElements, pClauses, pUtils);
+          new NextThreadNondeterministicSimulation(
+              pOptions, pMemoryModel, pGhostElements, pClauses, pUtils);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           new NextThreadAndNumStatementsNondeterministicSimulation(
-              pOptions, pGhostElements, pClauses, pUtils);
+              pOptions, pMemoryModel, pGhostElements, pClauses, pUtils);
       case NUM_STATEMENTS ->
-          new NumStatementsNondeterministicSimulation(pOptions, pGhostElements, pClauses, pUtils);
+          new NumStatementsNondeterministicSimulation(
+              pOptions, pMemoryModel, pGhostElements, pClauses, pUtils);
     };
   }
 
@@ -72,6 +76,7 @@ public class NondeterministicSimulationBuilder {
 
   public static ImmutableList<SeqThreadSimulationFunction> buildThreadSimulationFunctions(
       MPOROptions pOptions,
+      Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils)
@@ -80,7 +85,8 @@ public class NondeterministicSimulationBuilder {
     ImmutableList.Builder<SeqThreadSimulationFunction> rFunctions = ImmutableList.builder();
     for (MPORThread thread : pClauses.keySet()) {
       String threadSimulation =
-          buildNondeterministicSimulationBySource(pOptions, pGhostElements, pClauses, pUtils)
+          buildNondeterministicSimulationBySource(
+                  pOptions, pMemoryModel, pGhostElements, pClauses, pUtils)
               .buildSingleThreadSimulation(thread);
       rFunctions.add(new SeqThreadSimulationFunction(pOptions, threadSimulation, thread));
     }

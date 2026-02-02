@@ -381,11 +381,6 @@ analysis.algorithm.MPOR.reduceUntilConflict = false
 analysis.algorithm.MPOR.reductionMode = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
-# if both reduceLastThreadOrder and reduceUntilConflict are enabled, define
-# the order in which their statements are placed in the output program.
-analysis.algorithm.MPOR.reductionOrder = NONE
-  enum:     [NONE, CONFLICT_THEN_LAST_THREAD, LAST_THREAD_THEN_CONFLICT]
-
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays?
 analysis.algorithm.MPOR.scalarPc = true
@@ -3584,6 +3579,13 @@ cpa.smg2.abstraction.removeUnusedConstraints = false
 
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
+
+# The SV-COMP defines a list of types that are allowed to be used in
+# __VERIFIER_nondet_X() functions. If this option is false, only those
+# defined in the competition are allowed. All others throw an exception on
+# being evaluated. For true, the type of any __VERIFIER_nondet_X() function
+# is simply accepted without any checks.
+cpa.smg2.allowNondetFunctionsWithArbitraryTypes = true
 
 # If this Option is enabled, variable array length may be symbolic.
 cpa.smg2.allowSymbolicVariableArrayLength = false
