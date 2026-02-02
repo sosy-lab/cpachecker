@@ -83,6 +83,16 @@ public class AcslParser {
     return definition;
   }
 
+  /**
+   * @param pInput An acsl comment string that contains one or multiple acsl statements. Individual
+   *     acsl statements are seperated by a semicolon
+   * @param pFileLocation The location where the acsl comment occurs in the source
+   * @param pCProgramScope the CProgramScope of the source program
+   * @param pAcslScope the AcslScope of the source
+   * @return A List of AAcslAnnotations for all acsl statements within the acsl comment
+   * @throws AcslParseException when one of the acsl statements of the comment is not of type
+   *     assertion, loop invariant, ensures or requires
+   */
   public static ImmutableList<AAcslAnnotation> parseAcslComment(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
@@ -101,6 +111,17 @@ public class AcslParser {
     return annotations.build();
   }
 
+  /**
+   * @param pInput A string that contains a single acsl statement of the type assertion, loop
+   *     invariant, ensures or requires
+   * @param pFileLocation The location where the acsl comment that contains this statement appears
+   *     in the source
+   * @param pCProgramScope The CProgramScope of the source
+   * @param pAcslScope The AcslScope of the source
+   * @return An AAcslAnnotation from the input statement
+   * @throws AcslParseException when the acsl statement is not of type assertion, loop invariant,
+   *     ensures or requires
+   */
   public static AAcslAnnotation parseSingleAcslStatement(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
@@ -158,6 +179,11 @@ public class AcslParser {
     return (AcslRequires) requires;
   }
 
+  /**
+   * @param pInput An acsl comment string that contains one or multiple acsl statements. Individual
+   *     acsl statements are seperated by semicolons
+   * @return A list of the individual acsl statement strings
+   */
   private static ImmutableList<String> splitAnnotation(String pInput) {
     ImmutableList.Builder<String> statements = ImmutableList.builder();
     Pattern pattern = Pattern.compile("(?<statement>\\w+[^;]*;)");
@@ -168,6 +194,10 @@ public class AcslParser {
     return statements.build();
   }
 
+  /**
+   * @param pCommentString An acsl comment string that might contain acsl comment markers
+   * @return the acsl comment string without comment markers
+   */
   public static String stripCommentMarker(String pCommentString) {
     String commentString = pCommentString;
     if (pCommentString.startsWith("//@")) {
