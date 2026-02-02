@@ -508,7 +508,7 @@ public class SMGCPAExpressionEvaluator {
                     + " address expression."));
         continue;
       }
-      // We don't want to materilize memory here?
+      // We don't want to materialize memory here?
       // pState = maybeTargetAndOffset.orElseThrow().getSMGState();
       SMGObject object = maybeTargetAndOffset.getSMGObject();
 

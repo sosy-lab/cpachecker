@@ -7132,7 +7132,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       // i + 3 because we always have i + 1 objects as a concrete list + zero object + abstract list
       // (0+ in the end)
       assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(i + 3);
-      // currentPointer == pointer to just materilized list segment
+      // currentPointer == pointer to just materialized list segment
       Value currentPointer =
           currentState
               .getMemoryModel()
