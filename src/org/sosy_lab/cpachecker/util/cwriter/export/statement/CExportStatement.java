@@ -22,13 +22,11 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement.CS
  * require adjustments to {@link CFA} handling (where a {@link CStatement} is linked to a single
  * edge whereas a {@link CIfStatement} represents multiple edges) and all visitors that handle
  * {@link CStatement}.
- *
- * <p>Note that this interface is not {@code sealed} because its implementing classes may be
- * distributed in other packages.
  */
 public sealed interface CExportStatement
     permits CCommentStatement,
         CCompoundStatement,
+        CExpressionAssignmentStatementWrapper,
         CFunctionCallStatementWrapper,
         CFunctionDefinitionStatement,
         CGotoStatement,
