@@ -107,7 +107,7 @@ public class AcslMetadataParsingTest {
         task(
             "same_annotation_twice.c",
             ImmutableList.of("assert x == 10;", "assert x == 10;"),
-            new CodeLoctation(12, 5)))
+            new CodeLoctation(12, 5)));
 
     // function contracts
     b.add(
