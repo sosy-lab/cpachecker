@@ -167,7 +167,7 @@ public final class SeqThreadStatementUtil {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     if (pStatement.getTargetGoto().isPresent()) {
-      int targetNumber = pStatement.getTargetGoto().orElseThrow().number();
+      int targetNumber = pStatement.getTargetGoto().orElseThrow().getLabelNumber();
       SeqThreadStatementBlock targetBlock =
           Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
       return targetBlock.getStatements();

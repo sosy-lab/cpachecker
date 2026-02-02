@@ -46,13 +46,13 @@ public class SeqThreadStatementClause implements CExportStatement {
 
   public SeqThreadStatementClause(SeqThreadStatementBlock pBlock) {
     id = getNewId();
-    labelNumber = pBlock.getLabel().number();
+    labelNumber = pBlock.getLabel().getLabelNumber();
     blocks = ImmutableList.of(pBlock);
   }
 
   public SeqThreadStatementClause(ImmutableList<SeqThreadStatementBlock> pBlocks) {
     id = getNewId();
-    labelNumber = pBlocks.getFirst().getLabel().number();
+    labelNumber = pBlocks.getFirst().getLabel().getLabelNumber();
     blocks = pBlocks;
   }
 

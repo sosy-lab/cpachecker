@@ -45,4 +45,8 @@ public final class SeqBlockLabelStatement extends SeqExportedStatement {
   CExportStatement toCExportStatement() {
     return new CLabelStatement(threadPrefix + SeqSyntax.UNDERSCORE + labelNumber);
   }
+
+  public int getLabelNumber() {
+    return labelNumber;
+  }
 }

@@ -120,7 +120,7 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap.Builder<Integer, SeqThreadStatementBlock> rMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        rMap.put(block.getLabel().number(), block);
+        rMap.put(block.getLabel().getLabelNumber(), block);
       }
     }
     return rMap.buildOrThrow();
@@ -160,7 +160,8 @@ public class SeqThreadStatementClauseUtil {
         for (CSeqThreadStatement mergedStatement : block.getStatements()) {
           newStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
-        int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().number()));
+        int blockIndex =
+            Objects.requireNonNull(labelBlockMap.get(block.getLabel().getLabelNumber()));
         newBlocks.add(block.withLabelNumber(blockIndex).withStatements(newStatements.build()));
       }
       int clauseIndex = Objects.requireNonNull(labelClauseMap.get(clause.labelNumber));
@@ -176,7 +177,7 @@ public class SeqThreadStatementClauseUtil {
     int index = ProgramCounterVariables.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        rLabelToIndex.put(block.getLabel().number(), index++);
+        rLabelToIndex.put(block.getLabel().getLabelNumber(), index++);
       }
     }
     return rLabelToIndex.buildOrThrow();
@@ -218,7 +219,7 @@ public class SeqThreadStatementClauseUtil {
     } else if (pCurrentStatement.getTargetGoto().isPresent()) {
       SeqBlockLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
       // for gotos, use block labels
-      int index = Objects.requireNonNull(pLabelBlockMap.get(label.number()));
+      int index = Objects.requireNonNull(pLabelBlockMap.get(label.getLabelNumber()));
       return pCurrentStatement.withTargetGoto(label.withLabelNumber(index));
     }
     // no valid target pc or target goto -> no replacement
@@ -396,7 +397,8 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementBlock> pBlocks) {
 
     return ImmutableList.sortedCopyOf(
-        Comparator.comparingInt((SeqThreadStatementBlock block) -> block.getLabel().number())
+        Comparator.comparingInt(
+                (SeqThreadStatementBlock block) -> block.getLabel().getLabelNumber())
             .reversed(),
         pBlocks);
   }
