@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 
-
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;

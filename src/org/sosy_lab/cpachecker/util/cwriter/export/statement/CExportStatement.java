@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement.CSwitchCaseStatement;
 
 /**
  * Provides a common interface for {@link CStatement} (via {@link CStatementWrapper}) and statements
@@ -25,7 +26,18 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <p>Note that this interface is not {@code sealed} because its implementing classes may be
  * distributed in other packages.
  */
-public interface CExportStatement {
+public sealed interface CExportStatement
+    permits CCommentStatement,
+        CCompoundStatement,
+        CFunctionCallStatementWrapper,
+        CFunctionDefinitionStatement,
+        CGotoStatement,
+        CIfStatement,
+        CLabelStatement,
+        CLoopStatement,
+        CMultiControlStatement,
+        CStatementWrapper,
+        CSwitchCaseStatement {
 
   default String toASTString() throws UnrecognizedCodeException {
     return toASTString(AAstNodeRepresentation.DEFAULT);

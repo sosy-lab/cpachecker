@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
  */
 public final class CSwitchStatement extends CMultiControlStatement {
 
-  private record CSwitchCaseStatement(
+  record CSwitchCaseStatement(
       CExportExpression expression, ImmutableList<? extends CExportStatement> statements)
       implements CExportStatement {
 
