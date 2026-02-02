@@ -496,6 +496,8 @@ class CFABuilder extends ASTVisitor {
 
   public ParseResult matchAcslCommentsToNodes(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
 
+    Preconditions.checkArgument(
+        pResult.acslComments().isPresent(), "The Parse Result has no Acsl comments.");
     /*
     Find the CfaNode for each Acsl Comment
 
