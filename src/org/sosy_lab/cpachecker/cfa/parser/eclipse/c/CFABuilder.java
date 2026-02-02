@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -494,10 +495,16 @@ class CFABuilder extends ASTVisitor {
     functionBuilder.finish();
   }
 
+  /**
+   * @param pResult A ParseResult where the field acslComments is not empty
+   * @param pAstCfaRelation The current AstCfaRelation
+   * @return An updated version of pResult where each acsl comment now has a Cfa node that
+   *     represents the comment location in the Cfa.
+   */
   public ParseResult matchAcslCommentsToNodes(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
 
     Preconditions.checkArgument(
-        pResult.acslComments().isPresent(), "The Parse Result has no Acsl comments.");
+        pResult.acslComments().isPresent(), "The parse result has no acsl comments.");
     /*
     Find the CfaNode for each Acsl Comment
 
@@ -539,6 +546,13 @@ class CFABuilder extends ASTVisitor {
     return pResult.withAcslComments(acslComments, blocks);
   }
 
+  /**
+   * @param pComment An AcslComment that has a comment string and a file location.
+   * @param pAstCfaRelation The current Ast Cfa Relation.
+   * @return - The Cfa node for the tightest statement for a regular acsl annotation - The head of
+   *     the tightest iteration structure for a loop invariant - Optional.empy() for a function
+   *     contract
+   */
   private Optional<CFANode> nodeForRegularAnnotation(
       AcslComment pComment, AstCfaRelation pAstCfaRelation) {
     FileLocation commentLocation = pComment.getFileLocation();
@@ -578,6 +592,13 @@ class CFABuilder extends ASTVisitor {
     return Optional.empty();
   }
 
+  /**
+   * @param pComment An AcslComment that is possibly a function contract
+   * @param pAstCfaRelation The current Ast Cfa Relation
+   * @param pAllComments All Acsl Comments of the current Parse Result
+   * @return - The next Function Entry Node if pComment is a function contract - Optional.empty()
+   *     otherwise.
+   */
   private Optional<FunctionEntryNode> nodeForFunctionContract(
       AcslComment pComment, AstCfaRelation pAstCfaRelation, List<AcslComment> pAllComments) {
     FileLocation nextLocation =

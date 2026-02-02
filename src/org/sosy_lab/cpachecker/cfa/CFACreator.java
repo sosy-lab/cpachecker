@@ -801,9 +801,16 @@ public class CFACreator {
     return immutableCFA;
   }
 
+  /**
+   * @param pScope The CProgramScope of the source file
+   * @param pParseResult A Parse Result with Acsl Comments
+   * @return A new Acsl Metadata from the Acsl Comments in pParseResult
+   * @throws AcslParseException When one of the acsl statements is of an unknown type.
+   */
   private AcslMetadata createAcslMetadata(CProgramScope pScope, ParseResult pParseResult)
       throws AcslParseException {
-    Verify.verify(pParseResult.acslComments().isPresent());
+    Preconditions.checkArgument(
+        pParseResult.acslComments().isPresent(), "The parse result has no acsl comments");
 
     ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
         ImmutableSetMultimap.builder();
