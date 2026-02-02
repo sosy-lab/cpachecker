@@ -92,10 +92,11 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -1310,7 +1311,9 @@ public class SMGTransferRelation
                   addressToWriteTo,
                   offsetToWriteToInBits,
                   sizeInBits,
-                  UnknownValue.getInstance(),
+                  ConstantSymbolicExpression.of(
+                      SymbolicValueFactory.getInstance().newIdentifier(null),
+                      leftHandSideType.getCanonicalType()),
                   leftHandSideType,
                   edge));
         }
@@ -1360,21 +1363,17 @@ public class SMGTransferRelation
             && addressInValueOffset.longValue() == 0) {
           // offset == 0 -> write the value directly (known pointer)
           valueToWrite = addressInValue.getMemoryAddress();
-        } else if (addressInValue.getOffset() instanceof NumericValue
-            || options.trackPredicates()) {
-          // Offset known but not 0, search for/create the correct address
+        } else {
+          // Offset either numeric but not 0, or symbolic; search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
                   addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
-          // Very unlikely that a 0+ list abstraction gets materialized here
+          // Very unlikely that a 0+ list abstraction gets materialized here, add if this fails
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
           ValueAndSMGState newAddressAndState = newAddressesAndStates.getFirst();
           currentState = newAddressAndState.getState();
           valueToWrite = newAddressAndState.getValue();
-        } else {
-          // Offset unknown/symbolic. This is not usable!
-          valueToWrite = UnknownValue.getInstance();
         }
         Preconditions.checkArgument(
             sizeInBits
