@@ -3300,6 +3300,7 @@ public class SMGCPABuiltins {
       } else {
 
         // TODO: we could associate a symbolic output with the input used to assure ==
+        // CType returnType = functionCall.getExpressionType().getCanonicalType();
         result.add(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
       }
     }
