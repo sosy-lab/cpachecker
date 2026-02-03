@@ -991,32 +991,54 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
-    // Casting a scalar to a union type, e.g. "uv v = (uv) 8191;"
-    // Initialize the first union member with the given scalar value.
-    // Cannot represent this as a regular cast expression because unions are non-scalar.
+    // Cast-to-union extension (GCC): initialize the union member whose type matches the operand's
+    // type.
+    // (Currently handled for scalar operands.)
+    // Lower this to a designated initializer because unions are non-scalar and cannot be
+    // represented
+    // as a regular cast expression in CPAchecker's CFA.
+
     if (castType.getCanonicalType() instanceof CCompositeType compositeType
         && compositeType.getKind() == ComplexTypeKind.UNION
         && CTypes.isScalarType(operand.getExpressionType().getCanonicalType())) {
 
-      // Create a temporary union object and initialize it with a positional initializer list.
-      // A single initializer initializes the first union member.
-      if(compositeType.getMembers().isEmpty()){
+      if (compositeType.getMembers().isEmpty()) {
         throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
       }
-      CType firstMemberType = compositeType.getMembers().getFirst().getType();
 
-      CExpression initExpression = operand;
-      // If necessary, perform a regular scalar cast to the first member type.
-      if (!areInitializerAssignable(firstMemberType, initExpression)
-          && CTypes.isScalarType(firstMemberType)
-          && CTypes.isScalarType(initExpression.getExpressionType())) {
-        initExpression = new CCastExpression(loc, firstMemberType, initExpression);
+      CType operandType = operand.getExpressionType().getCanonicalType();
+
+      CCompositeTypeMemberDeclaration matchingMember = null;
+      for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
+        if (member.getType().getCanonicalType().equals(operandType)) {
+          matchingMember = member;
+          break; // deterministic: first matching member wins
+        }
       }
 
-      CInitializer init =
-          new CInitializerList(
-              loc, ImmutableList.of(new CInitializerExpression(loc, initExpression)));
+      if (matchingMember == null) {
+        throw new CFAGenerationRuntimeException(
+            "Invalid cast to union type: operand type "
+                + operandType.toASTString("")
+                + " does not match any union member type at "
+                + loc);
+      }
 
+      // Lower (U)operand into (U){ .<member> = operand }.
+      // This avoids representing a non-scalar union cast as CCastExpression.
+      String memberName = matchingMember.getName();
+      if (memberName == null || memberName.isEmpty()) {
+        // Anonymous union/struct members are tricky to designate reliably here.
+        throw new CFAGenerationRuntimeException(
+            "Cast to union would initialize an anonymous member; unsupported at " + loc);
+      }
+
+      CFieldDesignator designator = new CFieldDesignator(loc, memberName);
+      CInitializer designated =
+          new CDesignatedInitializer(
+              loc, ImmutableList.of(designator), new CInitializerExpression(loc, operand));
+
+      CInitializer init = new CInitializerList(loc, ImmutableList.of(designated));
       return createTemporaryVariable(loc, castType, init);
     }
 
