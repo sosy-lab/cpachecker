@@ -55,7 +55,7 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
     // just return the injected statements, the block handles the if-else branch
-    return getInjectedStatementsAsExportStatements();
+    return buildExportStatements();
   }
 
   @Override

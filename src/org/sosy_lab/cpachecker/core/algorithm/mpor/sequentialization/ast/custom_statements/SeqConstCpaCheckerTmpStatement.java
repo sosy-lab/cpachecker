@@ -157,22 +157,19 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
+    CExportStatement declaration = new CVariableDeclarationWrapper(constCpaCheckerTmpDeclaration);
+
     CExportStatement firstStatement =
         new CStatementWrapper(((CStatementEdge) firstSuccessorEdge.cfaEdge).getStatement());
 
-    ImmutableList<CExportStatement> secondStatement =
-        secondSuccessorEdge.isPresent()
-            ? ImmutableList.of(
-                new CStatementWrapper(
-                    ((CStatementEdge) secondSuccessorEdge.orElseThrow().cfaEdge).getStatement()))
-            : ImmutableList.of();
+    if (secondSuccessorEdge.isPresent()) {
+      CExportStatement secondStatement =
+          new CStatementWrapper(
+              ((CStatementEdge) secondSuccessorEdge.orElseThrow().cfaEdge).getStatement());
+      return buildExportStatements(declaration, firstStatement, secondStatement);
+    }
 
-    return ImmutableList.<CExportStatement>builder()
-        .add(new CVariableDeclarationWrapper(constCpaCheckerTmpDeclaration))
-        .add(firstStatement)
-        .addAll(secondStatement)
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(declaration, firstStatement);
   }
 
   @Override

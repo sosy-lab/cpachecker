@@ -57,10 +57,7 @@ public final class SeqMutexUnlockStatement extends CSeqThreadStatement {
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
 
-    return ImmutableList.<CExportStatement>builder()
-        .add(new CStatementWrapper(lockedFalseAssignment))
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(new CStatementWrapper(lockedFalseAssignment));
   }
 
   @Override

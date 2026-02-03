@@ -71,12 +71,10 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
 
-    return ImmutableList.<CExportStatement>builder()
-        .add(new CStatementWrapper(assumeSignaled))
-        .add(new CStatementWrapper(setSignaledFalse))
-        .add(new CStatementWrapper(setMutexLockedTrue))
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(
+        new CStatementWrapper(assumeSignaled),
+        new CStatementWrapper(setSignaledFalse),
+        new CStatementWrapper(setMutexLockedTrue));
   }
 
   @Override

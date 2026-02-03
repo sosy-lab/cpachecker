@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
@@ -85,12 +86,13 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
         ProgramCounterVariables.buildPcAssignmentStatement(
             createdThreadPc, ProgramCounterVariables.INIT_PC);
 
-    return ImmutableList.<CExportStatement>builder()
-        .addAll(startRoutineArg)
-        .addAll(bitVector.build())
-        .add(new CStatementWrapper(createdThreadPcAssignment))
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(
+        Stream.of(
+                startRoutineArg.stream(),
+                bitVector.build().stream().distinct(),
+                Stream.of(new CStatementWrapper(createdThreadPcAssignment)))
+            .flatMap(s -> s)
+            .toArray(CExportStatement[]::new));
   }
 
   @Override

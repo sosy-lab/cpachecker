@@ -24,20 +24,20 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
  */
 public final class SeqDefaultStatement extends CSeqThreadStatement {
 
-  private final CStatementEdge edge;
+  private final CStatementEdge statementEdge;
 
   SeqDefaultStatement(
-      CStatementEdge pEdge,
+      CStatementEdge pStatementEdge,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     super(pSubstituteEdges, pPcLeftHandSide, pTargetPc);
-    edge = pEdge;
+    statementEdge = pStatementEdge;
   }
 
   private SeqDefaultStatement(
-      CStatementEdge pEdge,
+      CStatementEdge pStatementEdge,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -45,21 +45,18 @@ public final class SeqDefaultStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     super(pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
-    edge = pEdge;
+    statementEdge = pStatementEdge;
   }
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
-    return ImmutableList.<CExportStatement>builder()
-        .add(new CStatementWrapper(edge.getStatement()))
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(new CStatementWrapper(statementEdge.getStatement()));
   }
 
   @Override
   public SeqDefaultStatement withTargetPc(int pTargetPc) {
     return new SeqDefaultStatement(
-        edge,
+        statementEdge,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -70,7 +67,7 @@ public final class SeqDefaultStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqDefaultStatement(
-        edge,
+        statementEdge,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -83,7 +80,7 @@ public final class SeqDefaultStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqDefaultStatement(
-        edge, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
+        statementEdge, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
   }
 
   @Override

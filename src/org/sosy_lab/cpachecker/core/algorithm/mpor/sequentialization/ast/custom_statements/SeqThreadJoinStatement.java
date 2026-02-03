@@ -67,18 +67,14 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
     CFunctionCallStatement assumeCall =
         SeqAssumeFunction.buildAssumeFunctionCallStatement(joinedThreadNotActive);
 
-    ImmutableList<CExportStatement> returnValueRead =
-        joinedThreadExitVariable.isPresent()
-            ? ImmutableList.of(
-                new CStatementWrapper(
-                    buildReturnValueRead(joinedThreadExitVariable.orElseThrow(), substituteEdges)))
-            : ImmutableList.of();
+    if (joinedThreadExitVariable.isPresent()) {
+      CExportStatement returnValueRead =
+          new CStatementWrapper(
+              buildReturnValueRead(joinedThreadExitVariable.orElseThrow(), substituteEdges));
+      return buildExportStatements(new CStatementWrapper(assumeCall), returnValueRead);
+    }
 
-    return ImmutableList.<CExportStatement>builder()
-        .add(new CStatementWrapper(assumeCall))
-        .addAll(returnValueRead)
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(new CStatementWrapper(assumeCall));
   }
 
   private static CStatement buildReturnValueRead(

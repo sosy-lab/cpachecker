@@ -50,11 +50,8 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
     CFunctionCallStatement assumption =
         SeqAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
 
-    return ImmutableList.<CExportStatement>builder()
-        .add(new CStatementWrapper(assumption))
-        .add(new CStatementWrapper(rwLockFlags.readersIncrement()))
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(
+        new CStatementWrapper(assumption), new CStatementWrapper(rwLockFlags.readersIncrement()));
   }
 
   @Override

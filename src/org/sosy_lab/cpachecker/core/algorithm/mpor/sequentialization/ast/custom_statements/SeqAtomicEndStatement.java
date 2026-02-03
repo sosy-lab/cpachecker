@@ -37,11 +37,9 @@ public final class SeqAtomicEndStatement extends CSeqThreadStatement {
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
-    return ImmutableList.<CExportStatement>builder()
-        // just add a comment with the function name for better overview
-        .add(new CCommentStatement(PthreadFunctionType.VERIFIER_ATOMIC_END.name + ";"))
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    // just add a comment with the function name for better overview
+    return buildExportStatements(
+        new CCommentStatement(PthreadFunctionType.VERIFIER_ATOMIC_END.name + ";"));
   }
 
   @Override

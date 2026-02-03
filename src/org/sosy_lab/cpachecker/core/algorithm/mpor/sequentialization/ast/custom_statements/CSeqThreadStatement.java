@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -140,10 +141,39 @@ public abstract sealed class CSeqThreadStatement implements SeqExportStatement
   }
 
   /**
+   * Takes the given {@link CExportStatement}s and appends the {@link SeqInjectedStatement} to them.
+   * Given that all {@link CSeqThreadStatement}s have injected statements that are placed after the
+   * actual statements, this is handled here and not by each specific {@link CSeqThreadStatement}s.
+   */
+  ImmutableList<CExportStatement> buildExportStatements(CExportStatement... pExportStatements) {
+    checkState(
+        targetPc.isPresent() || targetGoto.isPresent(),
+        "Either targetPc or targetGoto must be present.");
+
+    // first build the CExportStatements of the SeqInjectedStatement
+    ImmutableList<SeqInjectedStatement> preparedInjectedStatements =
+        targetPc.isPresent()
+            ? SeqThreadStatementUtil.prepareInjectedStatementsByTargetPc(
+                pcLeftHandSide, targetPc.orElseThrow(), injectedStatements)
+            : SeqThreadStatementUtil.prepareInjectedStatementsByTargetGoto(
+                targetGoto.orElseThrow(), injectedStatements);
+
+    ImmutableList<CExportStatement> injectedExportStatements =
+        preparedInjectedStatements.stream()
+            .flatMap(injected -> injected.toCExportStatements().stream())
+            .collect(ImmutableList.toImmutableList());
+
+    return ImmutableList.<CExportStatement>builder()
+        .addAll(List.of(pExportStatements))
+        .addAll(injectedExportStatements)
+        .build();
+  }
+
+  /**
    * Prepares the given {@link SeqInjectedStatement} by pruning and sorting them before converting
    * them to {@link CExportStatement}.
    */
-  ImmutableList<CExportStatement> getInjectedStatementsAsExportStatements() {
+  private ImmutableList<CExportStatement> getInjectedStatementsAsExportStatements() {
     checkState(
         targetPc.isPresent() || targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present.");
@@ -155,11 +185,9 @@ public abstract sealed class CSeqThreadStatement implements SeqExportStatement
             : SeqThreadStatementUtil.prepareInjectedStatementsByTargetGoto(
                 targetGoto.orElseThrow(), injectedStatements);
 
-    ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
-    for (SeqInjectedStatement injected : preparedInjectedStatements) {
-      exportStatements.addAll(injected.toCExportStatements());
-    }
-    return exportStatements.build();
+    return preparedInjectedStatements.stream()
+        .flatMap(injected -> injected.toCExportStatements().stream())
+        .collect(ImmutableList.toImmutableList());
   }
 
   /**

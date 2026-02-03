@@ -52,10 +52,7 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
 
-    return ImmutableList.<CExportStatement>builder()
-        .add(new CStatementWrapper(setCondSignaledTrue))
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(new CStatementWrapper(setCondSignaledTrue));
   }
 
   @Override

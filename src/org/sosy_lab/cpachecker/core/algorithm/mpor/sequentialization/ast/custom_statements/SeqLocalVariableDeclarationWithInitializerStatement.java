@@ -72,10 +72,7 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
     CExpressionAssignmentStatementWrapper assignment =
         new CExpressionAssignmentStatementWrapper(idExpression, initializer);
 
-    return ImmutableList.<CExportStatement>builder()
-        .add(assignment)
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(assignment);
   }
 
   @Override

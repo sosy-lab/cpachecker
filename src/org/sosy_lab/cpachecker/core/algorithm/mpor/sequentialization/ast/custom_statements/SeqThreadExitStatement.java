@@ -54,10 +54,7 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
-    return ImmutableList.<CExportStatement>builder()
-        .add(new CStatementWrapper(returnValueAssignment.statement()))
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(new CStatementWrapper(returnValueAssignment.statement()));
   }
 
   @Override

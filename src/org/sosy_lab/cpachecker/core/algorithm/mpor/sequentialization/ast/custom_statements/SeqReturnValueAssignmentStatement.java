@@ -50,10 +50,7 @@ public final class SeqReturnValueAssignmentStatement extends CSeqThreadStatement
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
-    return ImmutableList.<CExportStatement>builder()
-        .add(new CStatementWrapper(assignment))
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(new CStatementWrapper(assignment));
   }
 
   @Override

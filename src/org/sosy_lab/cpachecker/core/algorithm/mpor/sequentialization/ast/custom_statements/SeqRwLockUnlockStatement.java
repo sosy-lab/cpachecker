@@ -61,10 +61,7 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
             new CCompoundStatement(new CStatementWrapper(rwLockFlags.readersDecrement())),
             new CCompoundStatement(new CStatementWrapper(setNumWritersToZero)));
 
-    return ImmutableList.<CExportStatement>builder()
-        .add(ifStatement)
-        .addAll(getInjectedStatementsAsExportStatements())
-        .build();
+    return buildExportStatements(ifStatement);
   }
 
   @Override

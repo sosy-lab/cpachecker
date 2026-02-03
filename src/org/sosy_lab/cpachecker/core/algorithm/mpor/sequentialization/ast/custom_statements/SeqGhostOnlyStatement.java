@@ -37,7 +37,7 @@ public final class SeqGhostOnlyStatement extends CSeqThreadStatement {
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
-    return getInjectedStatementsAsExportStatements();
+    return buildExportStatements();
   }
 
   @Override
