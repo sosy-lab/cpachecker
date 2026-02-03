@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -164,7 +163,7 @@ public abstract sealed class CSeqThreadStatement implements SeqExportStatement
             .collect(ImmutableList.toImmutableList());
 
     return ImmutableList.<CExportStatement>builder()
-        .addAll(List.of(pExportStatements))
+        .add(pExportStatements)
         .addAll(injectedExportStatements)
         .build();
   }
