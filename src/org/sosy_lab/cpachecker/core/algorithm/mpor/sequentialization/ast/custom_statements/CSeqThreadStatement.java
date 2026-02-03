@@ -170,27 +170,6 @@ public abstract sealed class CSeqThreadStatement implements SeqExportStatement
   }
 
   /**
-   * Prepares the given {@link SeqInjectedStatement} by pruning and sorting them before converting
-   * them to {@link CExportStatement}.
-   */
-  private ImmutableList<CExportStatement> getInjectedStatementsAsExportStatements() {
-    checkState(
-        targetPc.isPresent() || targetGoto.isPresent(),
-        "Either targetPc or targetGoto must be present.");
-
-    ImmutableList<SeqInjectedStatement> preparedInjectedStatements =
-        targetPc.isPresent()
-            ? SeqThreadStatementUtil.prepareInjectedStatementsByTargetPc(
-                pcLeftHandSide, targetPc.orElseThrow(), injectedStatements)
-            : SeqThreadStatementUtil.prepareInjectedStatementsByTargetGoto(
-                targetGoto.orElseThrow(), injectedStatements);
-
-    return preparedInjectedStatements.stream()
-        .flatMap(injected -> injected.toCExportStatements().stream())
-        .collect(ImmutableList.toImmutableList());
-  }
-
-  /**
    * The value that is written to the pc, e.g. {@code pc = 42}. After linking, a statement may not
    * have a target {@code pc}, hence optional.
    */
