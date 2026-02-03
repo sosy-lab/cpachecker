@@ -35,7 +35,8 @@ public sealed interface CExportStatement
         CLoopStatement,
         CMultiControlStatement,
         CStatementWrapper,
-        CSwitchCaseStatement {
+        CSwitchCaseStatement,
+        CVariableDeclarationWrapper {
 
   default String toASTString() throws UnrecognizedCodeException {
     return toASTString(AAstNodeRepresentation.DEFAULT);

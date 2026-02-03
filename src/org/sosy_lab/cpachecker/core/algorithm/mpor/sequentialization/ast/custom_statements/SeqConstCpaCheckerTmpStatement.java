@@ -10,11 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -27,9 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CVariableDeclarationWrapper;
 
 /**
  * Represents a special CPAchecker case where a {@code const CPAchecker_TMP} variable is declared
@@ -157,26 +156,23 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
+  public ImmutableList<CExportStatement> toCExportStatements() {
+    CExportStatement firstStatement =
+        new CStatementWrapper(((CStatementEdge) firstSuccessorEdge.cfaEdge).getStatement());
 
-    // TODO this poses some problems, working on String instead of statements
+    ImmutableList<CExportStatement> secondStatement =
+        secondSuccessorEdge.isPresent()
+            ? ImmutableList.of(
+                new CStatementWrapper(
+                    ((CStatementEdge) secondSuccessorEdge.orElseThrow().cfaEdge).getStatement()))
+            : ImmutableList.of();
 
-    String substituteEdgeBString =
-        secondSuccessorEdge
-            .map(substituteEdge -> substituteEdge.cfaEdge.getCode())
-            .orElse(SeqSyntax.EMPTY_STRING);
-
-    String targetStatements =
-        SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
-
-    return Joiner.on(SeqSyntax.SPACE)
-        .join(
-            constCpaCheckerTmpDeclaration.toASTString(pAAstNodeRepresentation),
-            firstSuccessorEdge.cfaEdge.getCode(),
-            substituteEdgeBString,
-            targetStatements);
+    return ImmutableList.<CExportStatement>builder()
+        .add(new CVariableDeclarationWrapper(constCpaCheckerTmpDeclaration))
+        .add(firstStatement)
+        .addAll(secondStatement)
+        .addAll(getInjectedStatementsAsExportStatements())
+        .build();
   }
 
   @Override
