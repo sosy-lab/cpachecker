@@ -12,10 +12,8 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class SeqStringUtil {
 
@@ -36,11 +34,6 @@ public class SeqStringUtil {
 
   // AST Nodes =====================================================================================
 
-  /** {@link CType#toString()} yields a trailing white space, this function strips it. */
-  public static String getTypeName(CType pType) {
-    return pType.toString().strip();
-  }
-
   /**
    * If {@link CVariableDeclaration#toASTString()} yields {@code int x = 42;} then this method
    * yields {@code int x;}.
@@ -48,29 +41,11 @@ public class SeqStringUtil {
   public static String getVariableDeclarationASTStringWithoutInitializer(
       CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
 
-    return buildStorageClassNameAndTypeASTString(pVariableDeclaration, pAAstNodeRepresentation)
-        + ";";
-  }
-
-  /**
-   * If {@link CVariableDeclaration#toASTString()} yields {@code extern int x = 42;} then this
-   * method yields {@code x = 42;}. Note that the initializer does not have to be present.
-   */
-  public static String getVariableDeclarationASTStringWithoutStorageClassAndType(
-      CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
-
-    return buildNameASTString(pVariableDeclaration, pAAstNodeRepresentation)
-        + buildInitializerASTString(pVariableDeclaration, pAAstNodeRepresentation)
-        + ";";
-  }
-
-  private static String buildStorageClassNameAndTypeASTString(
-      CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
-
     return pVariableDeclaration.getCStorageClass().toASTString()
         + pVariableDeclaration
             .getType()
-            .toASTString(buildNameASTString(pVariableDeclaration, pAAstNodeRepresentation));
+            .toASTString(buildNameASTString(pVariableDeclaration, pAAstNodeRepresentation))
+        + ";";
   }
 
   private static String buildNameASTString(
@@ -81,20 +56,5 @@ public class SeqStringUtil {
       case QUALIFIED -> pVariableDeclaration.getQualifiedName().replace("::", "__");
       case ORIGINAL_NAMES -> pVariableDeclaration.getOrigName();
     };
-  }
-
-  private static String buildInitializerASTString(
-      CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
-
-    if (pVariableDeclaration.getInitializer() != null) {
-      return " = " + pVariableDeclaration.getInitializer().toASTString(pAAstNodeRepresentation);
-    }
-    return "";
-  }
-
-  // Hexadecimal Format ============================================================================
-
-  public static String hexFormat(int pLength, BigInteger pBigInteger) {
-    return String.format("%0" + pLength + "x", pBigInteger);
   }
 }

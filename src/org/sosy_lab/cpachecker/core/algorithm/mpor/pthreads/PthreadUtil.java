@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class PthreadUtil {
@@ -199,7 +198,7 @@ public class PthreadUtil {
    * false} otherwise.
    */
   public static boolean isAnyPthreadObjectType(CType pType) {
-    String typeName = SeqStringUtil.getTypeName(pType);
+    String typeName = pType.toString().strip();
     for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
       if (typeName.equals(pthreadObjectType.name)) {
         return true;
