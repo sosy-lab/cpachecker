@@ -144,7 +144,9 @@ public abstract sealed class CSeqThreadStatement implements SeqExportStatement
    * Given that all {@link CSeqThreadStatement}s have injected statements that are placed after the
    * actual statements, this is handled here and not by each specific {@link CSeqThreadStatement}s.
    */
-  ImmutableList<CExportStatement> buildExportStatements(CExportStatement... pExportStatements) {
+  ImmutableList<CExportStatement> buildExportStatements(
+      ImmutableList<CExportStatement> pExportStatements) {
+
     checkState(
         targetPc.isPresent() || targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present.");
@@ -163,9 +165,18 @@ public abstract sealed class CSeqThreadStatement implements SeqExportStatement
             .collect(ImmutableList.toImmutableList());
 
     return ImmutableList.<CExportStatement>builder()
-        .add(pExportStatements)
+        .addAll(pExportStatements)
         .addAll(injectedExportStatements)
         .build();
+  }
+
+  /**
+   * Takes the given {@link CExportStatement}s and appends the {@link SeqInjectedStatement} to them.
+   * Given that all {@link CSeqThreadStatement}s have injected statements that are placed after the
+   * actual statements, this is handled here and not by each specific {@link CSeqThreadStatement}s.
+   */
+  ImmutableList<CExportStatement> buildExportStatements(CExportStatement... pExportStatements) {
+    return buildExportStatements(ImmutableList.copyOf(pExportStatements));
   }
 
   /**

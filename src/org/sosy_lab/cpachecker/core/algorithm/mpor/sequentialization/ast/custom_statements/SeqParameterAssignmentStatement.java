@@ -105,7 +105,7 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
       functionStatements.add(new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
     }
 
-    return buildExportStatements(functionStatements.build().toArray(new CExportStatement[0]));
+    return buildExportStatements(functionStatements.build());
   }
 
   @Override

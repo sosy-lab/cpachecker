@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import java.util.stream.Stream;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -68,31 +66,26 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
-    ImmutableList<CExportStatement> startRoutineArg =
-        startRoutineArgAssignment.isPresent()
-            ? ImmutableList.of(
-                new CStatementWrapper(
-                    startRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement()))
-            : ImmutableList.of();
+    ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
 
-    ImmutableList.Builder<CExportStatement> bitVector = ImmutableList.builder();
+    if (startRoutineArgAssignment.isPresent()) {
+      exportStatements.add(
+          new CStatementWrapper(
+              startRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement()));
+    }
+
     if (bitVectorInitializations.isPresent()) {
       bitVectorInitializations
           .orElseThrow()
-          .forEach(i -> bitVector.addAll(i.toCExportStatements()));
+          .forEach(i -> exportStatements.addAll(i.toCExportStatements()));
     }
 
-    CExpressionAssignmentStatement createdThreadPcAssignment =
-        ProgramCounterVariables.buildPcAssignmentStatement(
-            createdThreadPc, ProgramCounterVariables.INIT_PC);
+    exportStatements.add(
+        new CStatementWrapper(
+            ProgramCounterVariables.buildPcAssignmentStatement(
+                createdThreadPc, ProgramCounterVariables.INIT_PC)));
 
-    return buildExportStatements(
-        Stream.of(
-                startRoutineArg.stream(),
-                bitVector.build().stream(),
-                Stream.of(new CStatementWrapper(createdThreadPcAssignment)))
-            .flatMap(s -> s)
-            .toArray(CExportStatement[]::new));
+    return buildExportStatements(exportStatements.build());
   }
 
   @Override
