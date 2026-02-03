@@ -115,8 +115,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = true;
   }
 
-  public void makeTerminating() {
-    isTerminating = true;
+  public BooleanFormula getTransitionInvariant() {
+    return transitionInvariant;
   }
 
   @Override

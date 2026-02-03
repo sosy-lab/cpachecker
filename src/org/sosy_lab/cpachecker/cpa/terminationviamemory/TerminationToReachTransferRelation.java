@@ -47,6 +47,10 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
+    TerminationToReachState terminationState = (TerminationToReachState) state;
+    if (!bfmgr.isFalse(terminationState.getTransitionInvariant())) {
+      return ImmutableList.of();
+    }
     return ImmutableList.of(state);
   }
 
