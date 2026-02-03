@@ -33,10 +33,12 @@ public final class CBitVectorHexadecimalLiteralExpression extends CBitVectorLite
     // build a binary vector, then parse to long and convert to hex
     CBitVectorBinaryLiteralExpression binaryBitVector =
         new CBitVectorBinaryLiteralExpression(oneBits, type);
+
+    // create the string of the binary bit vector, and strip its '0b' prefix
     String binaryString = binaryBitVector.toASTString(pAAstNodeRepresentation).substring(2);
 
     // use long in case we have 64 length bit vectors
-    BigInteger bigInteger = new BigInteger(binaryBitVector.toString(), 2);
+    BigInteger bigInteger = new BigInteger(binaryString, 2);
     int hexadecimalLength = binaryLength / 4;
 
     // pad the string to exactly the hexadecimal length
