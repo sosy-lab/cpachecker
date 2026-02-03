@@ -13,12 +13,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CBreakStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CContinueStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CReturnStatementWrapper;
 
 /**
  * A block features a {@code goto} label and a list of {@link CSeqThreadStatement}. An inner block
@@ -78,11 +81,43 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
       exportStatements.add(ifStatement);
     }
 
-    // TODO
-    SeqStringUtil.tryBuildBlockSuffix(options, nextThreadLabel, statements, pAAstNodeRepresentation)
-        .ifPresent(joiner::add);
+    tryBuildBlockSuffix().ifPresent(s -> exportStatements.add(s));
 
     return exportStatements.build();
+  }
+
+  private Optional<CExportStatement> tryBuildBlockSuffix() {
+    // if all statements have a 'goto', then the suffix is never reached
+    if (SeqThreadStatementUtil.allHaveTargetGoto(statements)) {
+      return Optional.empty();
+    }
+
+    // if the bit vector evaluation is empty, 'abort();' is called and the suffix is never reached
+    if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(statements)) {
+      return Optional.empty();
+    }
+
+    // use control encoding of the statement since we append the suffix to the statement
+    return switch (options.controlEncodingStatement()) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build suffix for control encoding " + options.controlEncodingStatement());
+      case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
+        if (options.loopUnrolling()) {
+          // with loop unrolling (and separate thread functions) enabled, always return to main()
+          yield Optional.of(new CReturnStatementWrapper(Optional.empty()));
+        }
+        // if this is not the last thread, add "goto T{next_thread_ID};"
+        if (nextThreadLabel.isPresent()) {
+          yield Optional.of(new CGotoStatement(nextThreadLabel.orElseThrow()));
+        }
+        // otherwise, continue i.e. go to next loop iteration
+        yield Optional.of(new CContinueStatement());
+      }
+      // for switch cases, add additional "break;" after each block, because CSwitchStatement
+      // only adds "break;" after an entire compound statement i.e. after the last block
+      case SWITCH_CASE -> Optional.of(new CBreakStatement());
+    };
   }
 
   public SeqBlockLabelStatement getLabel() {

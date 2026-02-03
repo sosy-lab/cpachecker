@@ -9,4 +9,4 @@
 package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 
 public sealed interface CJumpStatement extends CExportStatement
-    permits CBreakStatement, CContinueStatement, CGotoStatement {}
+    permits CBreakStatement, CContinueStatement, CGotoStatement, CReturnStatementWrapper {}
