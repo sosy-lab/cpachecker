@@ -1027,7 +1027,7 @@ class ASTConverter {
       // Lower (U)operand into (U){ .<member> = operand }.
       // This avoids representing a non-scalar union cast as CCastExpression.
       String memberName = matchingMember.getName();
-      if (memberName == null || memberName.isEmpty()) {
+      if (isNullOrEmpty(memberName)) {
         // Anonymous union/struct members are tricky to designate reliably here.
         throw new CFAGenerationRuntimeException(
             "Cast to union would initialize an anonymous member; unsupported at " + loc);
