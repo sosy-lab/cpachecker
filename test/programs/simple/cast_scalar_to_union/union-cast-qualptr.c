@@ -1,0 +1,16 @@
+typedef union U {
+  int *p;
+  const int *cp;
+  long dummy;
+} U;
+
+int main(void) {
+  const int *x = 0;
+  U u = (U) x;      // must choose cp
+
+  if (u.cp != x) goto error;
+  return 0;
+
+error:
+  return -1;
+}
