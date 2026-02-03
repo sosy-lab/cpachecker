@@ -13,17 +13,9 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
 
 public class SeqStringUtil {
 
@@ -40,78 +32,6 @@ public class SeqStringUtil {
 
   public static ImmutableList<String> splitOnNewline(String pString) {
     return ImmutableList.copyOf(newlineSplitter.split(pString));
-  }
-
-  // Multi Control Statement Suffix ================================================================
-
-  public static Optional<String> tryBuildBlockSuffix(
-      MPOROptions pOptions,
-      Optional<CLabelStatement> pNextThreadLabel,
-      ImmutableList<CSeqThreadStatement> pStatements,
-      AAstNodeRepresentation pAAstNodeRepresentation) {
-
-    // if all statements have a 'goto', then the suffix is never reached
-    if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
-      return Optional.empty();
-    }
-    // if the bit vector evaluation is empty, 'abort();' is called and the suffix is never reached
-    if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
-      return Optional.empty();
-    }
-    return Optional.of(
-        buildBlockSuffixByControlStatementEncoding(
-            pOptions, pNextThreadLabel, pAAstNodeRepresentation));
-  }
-
-  private static String buildBlockSuffixByControlStatementEncoding(
-      MPOROptions pOptions,
-      Optional<CLabelStatement> pNextThreadLabel,
-      AAstNodeRepresentation pAAstNodeRepresentation) {
-
-    // use control encoding of the statement since we append the suffix to the statement
-    return switch (pOptions.controlEncodingStatement()) {
-      case NONE ->
-          throw new IllegalArgumentException(
-              "cannot build suffix for control encoding " + pOptions.controlEncodingStatement());
-      case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
-        if (pOptions.loopUnrolling()) {
-          // with loop unrolling (and separate thread functions) enabled, always return to main()
-          yield "return" + SeqSyntax.SEMICOLON;
-        }
-        // if this is not the last thread, add "goto T{next_thread_ID};"
-        if (pNextThreadLabel.isPresent()) {
-          yield new CGotoStatement(pNextThreadLabel.orElseThrow())
-              .toASTString(pAAstNodeRepresentation);
-        }
-        // otherwise, continue i.e. go to next loop iteration
-        yield "continue" + SeqSyntax.SEMICOLON;
-      }
-      // for switch cases, add additional "break;" after each block, because SeqSwitchStatement
-      // only adds "break;" after an entire clause i.e. after the last block
-      case SWITCH_CASE -> "break" + SeqSyntax.SEMICOLON;
-    };
-  }
-
-  // Wrap / Append Methods =========================================================================
-
-  /** Returns {@code /* pString * /} without the last whitespace (Javadoc doesn't allow it ...) */
-  public static String wrapInBlockComment(String pString) {
-    return SeqComment.COMMENT_BLOCK_BEGIN + pString + SeqComment.COMMENT_BLOCK_END;
-  }
-
-  /** Returns ""pString"" */
-  public static String wrapInQuotationMarks(String pString) {
-    return SeqSyntax.QUOTATION_MARK + pString + SeqSyntax.QUOTATION_MARK;
-  }
-
-  /** Returns "(pString)" */
-  public static String wrapInBrackets(String pString) {
-    return SeqSyntax.BRACKET_LEFT + pString + SeqSyntax.BRACKET_RIGHT;
-  }
-
-  /** Returns "pString {" */
-  public static String appendCurlyBracketLeft(String pString) {
-    return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
   }
 
   // AST Nodes =====================================================================================
