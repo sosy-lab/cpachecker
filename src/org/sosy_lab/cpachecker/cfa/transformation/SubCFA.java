@@ -10,9 +10,13 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/**
+ * Representation of the result of a successful program transformation.
+ */
 public class SubCFA {
   private CFA cfa;
   private CFANode originalCFAEntryNode;
@@ -71,8 +75,13 @@ public class SubCFA {
     }
   }
 
-
-  public CFA insertSubCFA(CFA pCFA) {
+  /**
+   * Inserts the CFANodes and CFAEdges plus additional CFAMetadata into the given MutableCFA.
+   *
+   * @param pCFA MutableCFA
+   * @return MutableCFA with the added program transformation
+   */
+  public MutableCFA insertSubCFA(MutableCFA pCFA) {
     return pCFA;
   }
 }

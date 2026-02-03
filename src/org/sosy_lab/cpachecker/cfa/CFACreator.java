@@ -94,6 +94,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
+import org.sosy_lab.cpachecker.cfa.transformation.CFAProgramTransformer;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -333,6 +334,13 @@ public class CFACreator {
               + " computed for each edge of the CFA. Live means that their value"
               + " is read later on.")
   private boolean findLiveVariables = false;
+
+  @Option(
+      secure = true,
+      name = "",
+      description =
+          "Use Program Transformations to add simplified paths to the CFA.")
+  private boolean useProgramTransformations = false;
 
   @Option(
       secure = true,
@@ -893,6 +901,12 @@ public class CFACreator {
     if (useGlobalVars) {
       // add global variables at the beginning of main
       insertGlobalDeclarations(cfa, globalDeclarations);
+    }
+
+    // TODO is this the right place?
+    // perform program transformations and insert the resulting subCFAs
+    if (useProgramTransformations) {
+      cfa = CFAProgramTransformer.applyTransformations(cfa);
     }
 
     return cfa;
