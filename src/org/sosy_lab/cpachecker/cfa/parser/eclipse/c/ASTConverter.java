@@ -1000,12 +1000,10 @@ class ASTConverter {
 
       // Create a temporary union object and initialize it with a positional initializer list.
       // A single initializer initializes the first union member.
-      CType firstMemberType;
       if(compositeType.getMembers().isEmpty()){
         throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
-      }else{
-        firstMemberType = compositeType.getMembers().getFirst().getType();
       }
+      CType firstMemberType = compositeType.getMembers().getFirst().getType();
 
       CExpression initExpression = operand;
       // If necessary, perform a regular scalar cast to the first member type.
