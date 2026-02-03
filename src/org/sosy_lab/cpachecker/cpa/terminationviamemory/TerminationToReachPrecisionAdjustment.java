@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -93,28 +94,55 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 terminationState.getStoredValues().get(keyPair),
                 terminationState.getPathFormulasForIteration().get(keyPair).getSsa(),
                 terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
-        try {
-          isTargetStateReachable =
-              !solver.isUnsat(bfmgr.and(prefixFormula, iterationFormula, sameStateFormula));
-        } catch (SolverException e) {
-          logger.logDebugException(e);
-          return Optional.of(result);
-        }
-        if (isTargetStateReachable) {
-          terminationState.makeTarget();
-          result = result.withAbstractState(terminationState);
-          statistics.setNonterminatingLoop(
-              cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
-          return Optional.of(result.withAction(Action.BREAK));
-        }
 
-        ImmutableList<BooleanFormula> interpolant =
-            itpMgr
-                .interpolate(ImmutableList.of(prefixFormula, iterationFormula, sameStateFormula))
-                .orElseThrow();
+        while (true) {
+          // First, check that the BMC check is UNSATs
+          try {
+            isTargetStateReachable =
+                !solver.isUnsat(bfmgr.and(prefixFormula, iterationFormula, sameStateFormula));
+          } catch (SolverException e) {
+            logger.logDebugException(e);
+            return Optional.of(result);
+          }
+          if (isTargetStateReachable) {
+            terminationState.makeTarget();
+            result = result.withAbstractState(terminationState);
+            statistics.setNonterminatingLoop(
+                cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
+            return Optional.of(result.withAction(Action.BREAK));
+          }
+
+          // If BMC check is UNSAT, try to overapproximate the transition invariant
+          ImmutableList<BooleanFormula> interpolant =
+              itpMgr
+                  .interpolate(
+                      ImmutableList.of(
+                          bfmgr.and(prefixFormula, iterationFormula), sameStateFormula))
+                  .orElseThrow();
+          prefixFormula = bfmgr.or(prefixFormula, interpolant.getFirst());
+
+          // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
+          if (isTransitionInvariant(prefixFormula, iterationFormula, sameStateFormula)) {
+            TerminationToReachState terminatingState =
+                new TerminationToReachState(
+                    ImmutableMap.of(),
+                    ImmutableMap.of(),
+                    ImmutableMap.of(),
+                    ImmutableMap.of(),
+                    prefixFormula);
+            return Optional.of(result.withAbstractState(terminatingState));
+          }
+        }
       }
     }
     return Optional.of(result);
+  }
+
+  private boolean isTransitionInvariant(
+      BooleanFormula candidateTransitionInvariant,
+      BooleanFormula iterationFormula,
+      BooleanFormula sameStateFormula) {
+    return false;
   }
 
   private BooleanFormula buildCycleFormula(

@@ -90,14 +90,18 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new TerminationToReachTransferRelation(fmgr, pfmgr);
+    return new TerminationToReachTransferRelation(fmgr, bfmgr, pfmgr);
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new TerminationToReachState(
-        ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        bfmgr.makeFalse());
   }
 
   @Override

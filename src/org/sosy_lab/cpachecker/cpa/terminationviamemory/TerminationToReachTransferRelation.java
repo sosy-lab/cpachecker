@@ -28,14 +28,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
+  private final BooleanFormulaManager bfmgr;
   private final PathFormulaManager pfmgr;
 
-  public TerminationToReachTransferRelation(FormulaManagerView pFmgr, PathFormulaManager pPfmgr) {
+  public TerminationToReachTransferRelation(
+      FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr, PathFormulaManager pPfmgr) {
     fmgr = pFmgr;
+    bfmgr = pBfmgr;
     pfmgr = pPfmgr;
   }
 
@@ -121,7 +125,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newStoredValues.buildOrThrow(),
               newNumberOfIterations.buildOrThrow(),
               newPathFormulaForIteration.buildOrThrow(),
-              newPathFormulaForPrefix.buildOrThrow()));
+              newPathFormulaForPrefix.buildOrThrow(),
+              bfmgr.makeFalse()));
     }
     return ImmutableList.of(pState);
   }

@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 /**
@@ -33,6 +34,9 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
       SimpleTargetInformation.singleton("termination");
   private boolean isTarget;
+
+  /** The following formula is the computed transition invariant for the current state. */
+  private BooleanFormula transitionInvariant;
 
   /**
    * The following map keeps track of all the variables as type of @Formula, so that they can be
@@ -70,13 +74,15 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
           pStoredValues,
       ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
-      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForPrefix) {
+      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForPrefix,
+      BooleanFormula pTransitionInvariant) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     pathFormulaForPrefix = pPathFormulaForPrefix;
     isTarget = false;
+    transitionInvariant = pTransitionInvariant;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -107,6 +113,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   public void makeTarget() {
     isTarget = true;
+  }
+
+  public void makeTerminating() {
+    isTerminating = true;
   }
 
   @Override
