@@ -41,20 +41,15 @@ public class SeqStringUtil {
   public static String getVariableDeclarationASTStringWithoutInitializer(
       CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
 
+    String variableName =
+        switch (pAAstNodeRepresentation) {
+          case DEFAULT -> pVariableDeclaration.getName();
+          case QUALIFIED -> pVariableDeclaration.getQualifiedName().replace("::", "__");
+          case ORIGINAL_NAMES -> pVariableDeclaration.getOrigName();
+        };
+
     return pVariableDeclaration.getCStorageClass().toASTString()
-        + pVariableDeclaration
-            .getType()
-            .toASTString(buildNameASTString(pVariableDeclaration, pAAstNodeRepresentation))
+        + pVariableDeclaration.getType().toASTString(variableName)
         + ";";
-  }
-
-  private static String buildNameASTString(
-      CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
-
-    return switch (pAAstNodeRepresentation) {
-      case DEFAULT -> pVariableDeclaration.getName();
-      case QUALIFIED -> pVariableDeclaration.getQualifiedName().replace("::", "__");
-      case ORIGINAL_NAMES -> pVariableDeclaration.getOrigName();
-    };
   }
 }
