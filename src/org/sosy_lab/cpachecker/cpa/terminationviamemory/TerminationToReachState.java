@@ -54,20 +54,28 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   /**
    * For every loop-head (given by location and call-stack), we track the path formula until
-   * reaching this abstract state.
+   * reaching this abstract state. This is the part inside the loop, i.e. the loop iterations.
    */
   private ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
+
+  /**
+   * For every loop-head (given by location and call-stack), we track the path formula until
+   * reaching this abstract state. This is the part before reaching the loop.
+   */
+  private ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForPrefix;
 
   public TerminationToReachState(
       ImmutableMap<
               Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
           pStoredValues,
       ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
-      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration) {
+      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
+      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForPrefix) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
+    pathFormulaForPrefix = pPathFormulaForPrefix;
     isTarget = false;
   }
 
@@ -88,8 +96,13 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return storedValues;
   }
 
-  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> getPathFormulas() {
+  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula>
+      getPathFormulasForIteration() {
     return pathFormulaForIteration;
+  }
+
+  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> getPathFormulasForPrefix() {
+    return pathFormulaForPrefix;
   }
 
   public void makeTarget() {

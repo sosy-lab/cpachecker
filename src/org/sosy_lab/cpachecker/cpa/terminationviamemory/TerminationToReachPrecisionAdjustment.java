@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -40,6 +41,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final Solver solver;
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
+  private final InterpolationManager itpMgr;
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
   private final LogManager logger;
@@ -50,13 +52,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       LogManager plogger,
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
-      FormulaManagerView pFmgr) {
+      FormulaManagerView pFmgr,
+      InterpolationManager pItpMgr) {
     solver = pSolver;
     statistics = pStatistics;
     cfa = pCFA;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
     logger = plogger;
+    itpMgr = pItpMgr;
   }
 
   @Override
@@ -80,14 +84,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     if (location.isLoopStart() && terminationState.getStoredValues().containsKey(keyPair)) {
       if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
         boolean isTargetStateReachable;
-        BooleanFormula targetFormula =
+        BooleanFormula prefixFormula =
+            terminationState.getPathFormulasForPrefix().get(keyPair).getFormula();
+        BooleanFormula iterationFormula =
+            terminationState.getPathFormulasForIteration().get(keyPair).getFormula();
+        BooleanFormula sameStateFormula =
             buildCycleFormula(
-                terminationState.getPathFormulas().get(keyPair).getFormula(),
                 terminationState.getStoredValues().get(keyPair),
-                terminationState.getPathFormulas().get(keyPair).getSsa(),
+                terminationState.getPathFormulasForIteration().get(keyPair).getSsa(),
                 terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
         try {
-          isTargetStateReachable = !solver.isUnsat(targetFormula);
+          isTargetStateReachable =
+              !solver.isUnsat(bfmgr.and(prefixFormula, iterationFormula, sameStateFormula));
         } catch (SolverException e) {
           logger.logDebugException(e);
           return Optional.of(result);
@@ -99,20 +107,22 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
           return Optional.of(result.withAction(Action.BREAK));
         }
+
+        ImmutableList<BooleanFormula> interpolant =
+            itpMgr
+                .interpolate(ImmutableList.of(prefixFormula, iterationFormula, sameStateFormula))
+                .orElseThrow();
       }
     }
     return Optional.of(result);
   }
 
   private BooleanFormula buildCycleFormula(
-      BooleanFormula pFullPathFormula,
-      Map<Integer, ImmutableSet<Formula>> storedValues,
-      SSAMap pLatestValues,
-      int pMaxIndex) {
+      Map<Integer, ImmutableSet<Formula>> storedValues, SSAMap pLatestValues, int pMaxIndex) {
     BooleanFormula cycle =
         buildComparingFormulas(storedValues, pMaxIndex, pLatestValues).stream()
             .collect(bfmgr.toDisjunction());
-    return bfmgr.and(pFullPathFormula, cycle);
+    return cycle;
   }
 
   private ImmutableList<BooleanFormula> buildComparingFormulas(

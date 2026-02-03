@@ -26,6 +26,6 @@ public class TerminationToSafetyUtils {
     PredicateCPA predicateCPA =
         CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, TerminationToSafetyUtils.class);
 
-    terminationCPA.setSolver(predicateCPA.getSolver());
+    terminationCPA.setSolver(predicateCPA);
   }
 }

@@ -25,15 +25,18 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
 
-  public TerminationToReachTransferRelation(FormulaManagerView pFmgr) {
+  public TerminationToReachTransferRelation(FormulaManagerView pFmgr, PathFormulaManager pPfmgr) {
     fmgr = pFmgr;
+    pfmgr = pPfmgr;
   }
 
   @Override
@@ -69,6 +72,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
           ImmutableMap.builder();
       ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula>
           newPathFormulaForIteration = ImmutableMap.builder();
+      ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula>
+          newPathFormulaForPrefix = ImmutableMap.builder();
 
       for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
           entry : terminationState.getStoredValues().entrySet()) {
@@ -77,10 +82,11 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
           newNumberOfIterations.put(
               entry.getKey(), terminationState.getNumberOfIterationsAtLoopHead(entry.getKey()));
           newPathFormulaForIteration.put(
-              entry.getKey(), terminationState.getPathFormulas().get(entry.getKey()));
+              entry.getKey(), terminationState.getPathFormulasForIteration().get(entry.getKey()));
+          newPathFormulaForPrefix.put(
+              entry.getKey(), terminationState.getPathFormulasForPrefix().get(entry.getKey()));
         }
       }
-      newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
       ImmutableMap.Builder<Integer, ImmutableSet<Formula>> newValues = ImmutableMap.builder();
 
       if (terminationState.getStoredValues().containsKey(pairKey)) {
@@ -91,19 +97,33 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(
             pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
+
+        if (terminationState.getPathFormulasForIteration().containsKey(pairKey)) {
+          newPathFormulaForIteration.put(
+              pairKey,
+              pfmgr.makeConjunction(
+                  ImmutableList.of(
+                      terminationState.getPathFormulasForIteration().get(pairKey),
+                      predicateState.getPathFormula())));
+        } else {
+          newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
+        }
+        newPathFormulaForPrefix.put(
+            pairKey, terminationState.getPathFormulasForPrefix().get(pairKey));
       } else {
         newValues.put(0, extractLoopHeadVariables(predicateState.getPathFormula()));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
+        newPathFormulaForPrefix.put(pairKey, predicateState.getPathFormula());
       }
       return ImmutableList.of(
           new TerminationToReachState(
               newStoredValues.buildOrThrow(),
               newNumberOfIterations.buildOrThrow(),
-              newPathFormulaForIteration.buildOrThrow()));
-    } else {
-      return ImmutableList.of(pState);
+              newPathFormulaForIteration.buildOrThrow(),
+              newPathFormulaForPrefix.buildOrThrow()));
     }
+    return ImmutableList.of(pState);
   }
 
   private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {

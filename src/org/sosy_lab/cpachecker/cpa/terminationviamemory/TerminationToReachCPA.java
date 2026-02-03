@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
+import java.util.Optional;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -24,6 +26,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -35,6 +40,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  */
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private Solver solver;
+  private InterpolationManager itpMgr;
+  private PathFormulaManager pfmgr;
+  private Configuration configuration;
+  private ShutdownNotifier shutdownNotifier;
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private PrecisionAdjustment precisionAdjustment;
@@ -42,11 +51,17 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private final TerminationToReachStatistics statistics;
   private final LogManager logger;
 
-  public TerminationToReachCPA(LogManager pLogger, Configuration pConfiguration, CFA pCFA)
+  public TerminationToReachCPA(
+      LogManager pLogger,
+      Configuration pConfiguration,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
     cfa = pCFA;
+    configuration = pConfiguration;
+    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
   }
 
@@ -54,23 +69,35 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     return AutomaticCPAFactory.forType(TerminationToReachCPA.class);
   }
 
-  public void setSolver(Solver pSolver) {
-    solver = pSolver;
+  public void setSolver(PredicateCPA pCPA) throws InvalidConfigurationException {
+    solver = pCPA.getSolver();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    pfmgr = pCPA.getPathFormulaManager();
+    itpMgr =
+        new InterpolationManager(
+            pCPA.getPathFormulaManager(),
+            solver,
+            Optional.empty(),
+            Optional.empty(),
+            configuration,
+            shutdownNotifier,
+            logger);
     precisionAdjustment =
-        new TerminationToReachPrecisionAdjustment(solver, statistics, logger, cfa, bfmgr, fmgr);
+        new TerminationToReachPrecisionAdjustment(
+            solver, statistics, logger, cfa, bfmgr, fmgr, itpMgr);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new TerminationToReachTransferRelation(fmgr);
+    return new TerminationToReachTransferRelation(fmgr, pfmgr);
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
+    return new TerminationToReachState(
+        ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
   }
 
   @Override
