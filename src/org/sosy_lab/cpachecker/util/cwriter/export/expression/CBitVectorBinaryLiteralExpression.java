@@ -21,11 +21,10 @@ public final class CBitVectorBinaryLiteralExpression extends CBitVectorLiteralEx
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder rBitVector = new StringBuilder();
-    rBitVector.append(BINARY_PREFIX);
     // build bit vector from right to left and then reverse
     for (int i = RIGHT_MOST_INDEX; i < binaryLength + RIGHT_MOST_INDEX; i++) {
       rBitVector.append(oneBits.contains(i) ? ONE_BIT : ZERO_BIT);
     }
-    return rBitVector.reverse().toString();
+    return BINARY_PREFIX + rBitVector.reverse();
   }
 }
