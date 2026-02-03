@@ -11,11 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
 /** Represents a conditional case block statement with {@code if} and {@code else} statements. */
 public final class SeqAssumeStatement extends CSeqThreadStatement {
@@ -54,12 +53,9 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
+  public ImmutableList<CExportStatement> toCExportStatements() {
     // just return the injected statements, the block handles the if-else branch
-    return SeqThreadStatementUtil.prepareInjectedStatements(
-        pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
+    return getInjectedStatementsAsExportStatements();
   }
 
   @Override

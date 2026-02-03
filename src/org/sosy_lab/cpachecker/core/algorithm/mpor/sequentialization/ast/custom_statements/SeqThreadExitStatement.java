@@ -13,13 +13,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_exit}, where the second parameter
@@ -54,15 +53,11 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
-    String injected =
-        SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
-    return returnValueAssignment.statement().toASTString(pAAstNodeRepresentation)
-        + SeqSyntax.SPACE
-        + injected;
+  public ImmutableList<CExportStatement> toCExportStatements() {
+    return ImmutableList.<CExportStatement>builder()
+        .add(new CStatementWrapper(returnValueAssignment.statement()))
+        .addAll(getInjectedStatementsAsExportStatements())
+        .build();
   }
 
   @Override

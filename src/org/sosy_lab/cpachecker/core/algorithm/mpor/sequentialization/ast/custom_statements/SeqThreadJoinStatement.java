@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -27,10 +25,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 /** Represents a statement that simulates calls to {@code pthread_join}. */
 public final class SeqThreadJoinStatement extends CSeqThreadStatement {
@@ -66,27 +63,26 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
+  public ImmutableList<CExportStatement> toCExportStatements() {
     CFunctionCallStatement assumeCall =
         SeqAssumeFunction.buildAssumeFunctionCallStatement(joinedThreadNotActive);
-    String returnValueRead =
-        joinedThreadExitVariable.isPresent()
-            ? buildReturnValueRead(joinedThreadExitVariable.orElseThrow(), substituteEdges)
-                .toASTString(pAAstNodeRepresentation)
-            : SeqSyntax.EMPTY_STRING;
-    String injected =
-        SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
-    return Joiner.on(SeqSyntax.SPACE)
-        .join(assumeCall.toASTString(pAAstNodeRepresentation), returnValueRead, injected);
+    ImmutableList<CExportStatement> returnValueRead =
+        joinedThreadExitVariable.isPresent()
+            ? ImmutableList.of(
+                new CStatementWrapper(
+                    buildReturnValueRead(joinedThreadExitVariable.orElseThrow(), substituteEdges)))
+            : ImmutableList.of();
+
+    return ImmutableList.<CExportStatement>builder()
+        .add(new CStatementWrapper(assumeCall))
+        .addAll(returnValueRead)
+        .addAll(getInjectedStatementsAsExportStatements())
+        .build();
   }
 
   private static CStatement buildReturnValueRead(
-      CIdExpression pJoinedThreadExitVariable, ImmutableSet<SubstituteEdge> pSubstituteEdges)
-      throws UnsupportedCodeException {
+      CIdExpression pJoinedThreadExitVariable, ImmutableSet<SubstituteEdge> pSubstituteEdges) {
 
     SubstituteEdge substituteEdge = pSubstituteEdges.iterator().next();
     int returnValueIndex =
@@ -104,10 +100,9 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
         }
       }
     }
-    throw new UnsupportedCodeException(
+    throw new AssertionError(
         "pthread_join retval could not be extracted from the following expression: "
-            + returnValueParameter,
-        null);
+            + returnValueParameter);
   }
 
   @Override

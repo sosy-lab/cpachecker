@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -138,11 +139,24 @@ public abstract sealed class CSeqThreadStatement implements SeqExportStatement
     return substituteEdges;
   }
 
-  static ImmutableList<CExportStatement> convertInjectedStatementsToCExportStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  /**
+   * Prepares the given {@link SeqInjectedStatement} by pruning and sorting them before converting
+   * them to {@link CExportStatement}.
+   */
+  ImmutableList<CExportStatement> getInjectedStatementsAsExportStatements() {
+    checkState(
+        targetPc.isPresent() || targetGoto.isPresent(),
+        "Either targetPc or targetGoto must be present.");
+
+    ImmutableList<SeqInjectedStatement> preparedInjectedStatements =
+        targetPc.isPresent()
+            ? SeqThreadStatementUtil.prepareInjectedStatementsByTargetPc(
+                pcLeftHandSide, targetPc.orElseThrow(), injectedStatements)
+            : SeqThreadStatementUtil.prepareInjectedStatementsByTargetGoto(
+                targetGoto.orElseThrow(), injectedStatements);
 
     ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
-    for (SeqInjectedStatement injected : pInjectedStatements) {
+    for (SeqInjectedStatement injected : preparedInjectedStatements) {
       exportStatements.addAll(injected.toCExportStatements());
     }
     return exportStatements.build();

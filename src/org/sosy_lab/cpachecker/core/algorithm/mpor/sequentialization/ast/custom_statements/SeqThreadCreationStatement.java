@@ -8,19 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_create} of the form:
@@ -69,37 +66,31 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
+  public ImmutableList<CExportStatement> toCExportStatements() {
+    ImmutableList<CExportStatement> startRoutineArg =
+        startRoutineArgAssignment.isPresent()
+            ? ImmutableList.of(
+                new CStatementWrapper(
+                    startRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement()))
+            : ImmutableList.of();
 
-    CExpressionAssignmentStatement createdThreadPcAssignmentStatement =
+    ImmutableList.Builder<CExportStatement> bitVector = ImmutableList.builder();
+    if (bitVectorInitializations.isPresent()) {
+      bitVectorInitializations
+          .orElseThrow()
+          .forEach(i -> bitVector.addAll(i.toCExportStatements()));
+    }
+
+    CExpressionAssignmentStatement createdThreadPcAssignment =
         ProgramCounterVariables.buildPcAssignmentStatement(
             createdThreadPc, ProgramCounterVariables.INIT_PC);
-    StringJoiner bitVectorInitializationString = new StringJoiner(SeqSyntax.SPACE);
-    if (bitVectorInitializations.isPresent()) {
-      for (SeqBitVectorAssignmentStatement initialization :
-          bitVectorInitializations.orElseThrow()) {
-        bitVectorInitializationString.add(initialization.toASTString(pAAstNodeRepresentation));
-      }
-    }
-    String injectedStatementsString =
-        SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
-    String startRoutineArgAssignmentString =
-        startRoutineArgAssignment.isPresent()
-            ? startRoutineArgAssignment
-                .orElseThrow()
-                .toExpressionAssignmentStatement()
-                .toASTString(pAAstNodeRepresentation)
-            : SeqSyntax.EMPTY_STRING;
-
-    return Joiner.on(SeqSyntax.SPACE)
-        .join(
-            startRoutineArgAssignmentString,
-            bitVectorInitializationString,
-            createdThreadPcAssignmentStatement.toASTString(pAAstNodeRepresentation),
-            injectedStatementsString);
+    return ImmutableList.<CExportStatement>builder()
+        .addAll(startRoutineArg)
+        .addAll(bitVector.build())
+        .add(new CStatementWrapper(createdThreadPcAssignment))
+        .addAll(getInjectedStatementsAsExportStatements())
+        .build();
   }
 
   @Override

@@ -11,16 +11,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
@@ -51,9 +50,7 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
+  public ImmutableList<CExportStatement> toCExportStatements() {
     CExpressionAssignmentStatement setNumWritersToZero =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             rwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_0);
@@ -63,11 +60,11 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
             new CExpressionWrapper(rwLockFlags.writerEqualsZero()),
             new CCompoundStatement(new CStatementWrapper(rwLockFlags.readersDecrement())),
             new CCompoundStatement(new CStatementWrapper(setNumWritersToZero)));
-    String injected =
-        SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
-    return ifStatement.toASTString(pAAstNodeRepresentation) + injected;
+    return ImmutableList.<CExportStatement>builder()
+        .add(ifStatement)
+        .addAll(getInjectedStatementsAsExportStatements())
+        .build();
   }
 
   @Override

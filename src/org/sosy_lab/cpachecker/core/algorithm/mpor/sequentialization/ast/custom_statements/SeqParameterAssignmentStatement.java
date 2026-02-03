@@ -13,8 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -25,9 +23,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 /**
  * Represents the assignment of a parameter given to a function to an injected parameter variable in
@@ -96,22 +94,21 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
+  public ImmutableList<CExportStatement> toCExportStatements() {
+    ImmutableList.Builder<CExportStatement> functionStatements = ImmutableList.builder();
 
-    StringJoiner rString = new StringJoiner(SeqSyntax.SPACE);
+    // if the function name is "reach_error", inject a "reach_error()" call for reachability
     if (functionName.equals(REACH_ERROR_FUNCTION_NAME)) {
-      // if the function name is "reach_error", inject a "reach_error()" call for reachability
-      rString.add(REACH_ERROR_FUNCTION_CALL_STATEMENT.toASTString(pAAstNodeRepresentation));
+      functionStatements.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
     }
     for (FunctionParameterAssignment assignment : assignments) {
-      rString.add(
-          assignment.toExpressionAssignmentStatement().toASTString(pAAstNodeRepresentation));
+      functionStatements.add(new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
     }
-    String injected =
-        SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
-    return rString.add(injected).toString();
+
+    return ImmutableList.<CExportStatement>builder()
+        .addAll(functionStatements.build())
+        .addAll(getInjectedStatementsAsExportStatements())
+        .build();
   }
 
   @Override

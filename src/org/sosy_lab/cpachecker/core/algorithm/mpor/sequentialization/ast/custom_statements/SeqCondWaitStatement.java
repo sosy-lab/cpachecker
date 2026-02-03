@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -21,9 +19,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 public final class SeqCondWaitStatement extends CSeqThreadStatement {
 
@@ -58,31 +56,27 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
+  public ImmutableList<CExportStatement> toCExportStatements() {
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
+
     // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
     CFunctionCallStatement assumeSignaled =
         SeqAssumeFunction.buildAssumeFunctionCallStatement(condSignaledFlag.isSignaledExpression());
     CExpressionAssignmentStatement setSignaledFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
+
     // step 2: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
 
-    String injected =
-        SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
-
-    return Joiner.on(SeqSyntax.SPACE)
-        .join(
-            assumeSignaled.toASTString(pAAstNodeRepresentation),
-            setSignaledFalse.toASTString(pAAstNodeRepresentation),
-            setMutexLockedTrue.toASTString(pAAstNodeRepresentation),
-            injected);
+    return ImmutableList.<CExportStatement>builder()
+        .add(new CStatementWrapper(assumeSignaled))
+        .add(new CStatementWrapper(setSignaledFalse))
+        .add(new CStatementWrapper(setMutexLockedTrue))
+        .addAll(getInjectedStatementsAsExportStatements())
+        .build();
   }
 
   @Override

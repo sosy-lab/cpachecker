@@ -66,6 +66,8 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
+    // TODO working on variable declarations?
+
     String injected =
         SeqThreadStatementUtil.prepareInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);

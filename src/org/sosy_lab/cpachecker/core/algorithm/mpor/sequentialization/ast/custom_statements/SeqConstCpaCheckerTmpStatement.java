@@ -160,6 +160,8 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
+    // TODO this poses some problems, working on String instead of statements
+
     String substituteEdgeBString =
         secondSuccessorEdge
             .map(substituteEdge -> substituteEdge.cfaEdge.getCode())

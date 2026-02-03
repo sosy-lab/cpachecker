@@ -11,12 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 /**
  * Represents the assignments of a function return value, e.g. {@code x = fib(5);} where {@code fib}
@@ -50,13 +49,11 @@ public final class SeqReturnValueAssignmentStatement extends CSeqThreadStatement
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
-    String injected =
-        SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
-    return assignment.toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE + injected;
+  public ImmutableList<CExportStatement> toCExportStatements() {
+    return ImmutableList.<CExportStatement>builder()
+        .add(new CStatementWrapper(assignment))
+        .addAll(getInjectedStatementsAsExportStatements())
+        .build();
   }
 
   @Override

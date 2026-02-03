@@ -11,13 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
 
@@ -46,18 +46,15 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
+  public ImmutableList<CExportStatement> toCExportStatements() {
     CFunctionCallStatement assumption =
         SeqAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
-    String injected =
-        SeqThreadStatementUtil.prepareInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, pAAstNodeRepresentation);
 
-    return assumption.toASTString(pAAstNodeRepresentation)
-        + rwLockFlags.readersIncrement().toASTString(pAAstNodeRepresentation)
-        + injected;
+    return ImmutableList.<CExportStatement>builder()
+        .add(new CStatementWrapper(assumption))
+        .add(new CStatementWrapper(rwLockFlags.readersIncrement()))
+        .addAll(getInjectedStatementsAsExportStatements())
+        .build();
   }
 
   @Override
