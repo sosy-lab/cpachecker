@@ -34,7 +34,8 @@ public final class CBitVectorHexadecimalLiteralExpression extends CBitVectorLite
         new CBitVectorBinaryLiteralExpression(oneBits, type);
 
     // create the string of the binary bit vector, and strip its '0b' prefix
-    String binaryString = binaryBitVector.toASTString(pAAstNodeRepresentation).substring(2);
+    String binaryString =
+        binaryBitVector.toASTString(pAAstNodeRepresentation).substring(BINARY_PREFIX.length());
 
     // use long in case we have 64 length bit vectors
     BigInteger bigInteger = new BigInteger(binaryString, 2);
