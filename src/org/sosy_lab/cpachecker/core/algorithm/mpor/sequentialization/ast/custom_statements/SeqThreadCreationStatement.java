@@ -89,7 +89,7 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
     return buildExportStatements(
         Stream.of(
                 startRoutineArg.stream(),
-                bitVector.build().stream().distinct(),
+                bitVector.build().stream(),
                 Stream.of(new CStatementWrapper(createdThreadPcAssignment)))
             .flatMap(s -> s)
             .toArray(CExportStatement[]::new));
