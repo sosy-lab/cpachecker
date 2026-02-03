@@ -12,12 +12,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
@@ -62,36 +58,31 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
-    // TODO
-    throw new AssertionError();
-  }
+    ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
 
-  @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException {
-
-    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    joiner.add(label.toASTString(pAAstNodeRepresentation) + SeqSyntax.SPACE);
+    exportStatements.add(label.toCLabelStatement());
 
     if (statements.size() == 1) {
-      // 1 statement: just return toASTString
-      joiner.add(statements.getFirst().toASTString(pAAstNodeRepresentation));
+      // 1 statement: add its respective export statements
+      exportStatements.addAll(statements.getFirst().toCExportStatements());
 
     } else {
       // 2 statements (= assume statements): create if-else statement
       SeqAssumeStatement firstAssume = (SeqAssumeStatement) statements.getFirst();
       SeqAssumeStatement secondAssume = (SeqAssumeStatement) statements.getLast();
-      CIfStatement branchStatement =
+      CIfStatement ifStatement =
           new CIfStatement(
               new CExpressionWrapper(firstAssume.ifExpression.orElseThrow()),
-              new CCompoundStatement(firstAssume),
-              new CCompoundStatement(secondAssume));
-      joiner.add(branchStatement.toASTString(pAAstNodeRepresentation));
+              new CCompoundStatement(firstAssume.toCExportStatements()),
+              new CCompoundStatement(secondAssume.toCExportStatements()));
+      exportStatements.add(ifStatement);
     }
 
+    // TODO
     SeqStringUtil.tryBuildBlockSuffix(options, nextThreadLabel, statements, pAAstNodeRepresentation)
         .ifPresent(joiner::add);
-    return joiner.toString();
+
+    return exportStatements.build();
   }
 
   public SeqBlockLabelStatement getLabel() {

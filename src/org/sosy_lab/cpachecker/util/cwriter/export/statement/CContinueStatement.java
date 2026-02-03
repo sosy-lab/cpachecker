@@ -9,16 +9,14 @@
 package org.sosy_lab.cpachecker.util.cwriter.export.statement;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/**
- * Represents a goto statement in C. Example:
- *
- * <pre>{@code goto label;}</pre>
- */
-public record CGotoStatement(CLabelStatement label) implements CJumpStatement {
+public final class CContinueStatement implements CJumpStatement {
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "goto " + label.name() + ";";
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
+    return "continue;";
   }
 }
