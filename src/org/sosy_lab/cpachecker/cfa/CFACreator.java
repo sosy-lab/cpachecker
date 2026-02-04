@@ -850,16 +850,20 @@ public class CFACreator {
       if (comment.getCfaNode() instanceof FunctionEntryNode) {
         ImmutableSet.Builder<AcslEnsures> ensuresBuilder = ImmutableSet.builder();
         ImmutableSet.Builder<AcslRequires> requiresBuilder = ImmutableSet.builder();
+        ImmutableSet.Builder<AcslAssigns> functionAssignsBuilder = ImmutableSet.builder();
 
         ensuresBuilder.addAll(
             allAnnotations.filter(a -> a instanceof AcslEnsures).transform(a -> (AcslEnsures) a));
+        functionAssignsBuilder.addAll(
+            allAnnotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a));
         requiresBuilder.addAll(
             allAnnotations.filter(a -> a instanceof AcslRequires).transform(a -> (AcslRequires) a));
 
         ImmutableSet<AcslEnsures> ensures = ensuresBuilder.build();
+        ImmutableSet<AcslAssigns> assigns = functionAssignsBuilder.build();
         ImmutableSet<AcslRequires> requires = requiresBuilder.build();
         AcslFunctionContract contract =
-            new AcslFunctionContract(comment.getFileLocation(), ensures, requires);
+            new AcslFunctionContract(comment.getFileLocation(), ensures, assigns, requires);
         functionContractBuilder.put(comment.getCfaNode(), contract);
       }
     }

@@ -17,14 +17,17 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class AcslFunctionContract extends AAcslAnnotation {
 
   private final @Nullable ImmutableSet<AcslEnsures> ensuresClauses;
+  private final @Nullable ImmutableSet<AcslAssigns> assignsClauses;
   private final @Nullable ImmutableSet<AcslRequires> requiresClauses;
 
   public AcslFunctionContract(
       FileLocation pFileLocation,
       @Nullable ImmutableSet<AcslEnsures> pEnsuresClauses,
+      @Nullable ImmutableSet<AcslAssigns> pAssignsClauses,
       @Nullable ImmutableSet<AcslRequires> pRequiresClauses1) {
     super(pFileLocation);
     ensuresClauses = pEnsuresClauses;
+    assignsClauses = pAssignsClauses;
     requiresClauses = pRequiresClauses1;
   }
 
@@ -53,6 +56,11 @@ public final class AcslFunctionContract extends AAcslAnnotation {
     if (ensuresClauses != null) {
       for (AcslEnsures e : ensuresClauses) {
         astString.append(e.toAstString()).append("\n");
+      }
+    }
+    if (assignsClauses != null) {
+      for (AcslAssigns a : assignsClauses) {
+        astString.append(a.toAstString()).append("\n");
       }
     }
     if (requiresClauses != null) {
