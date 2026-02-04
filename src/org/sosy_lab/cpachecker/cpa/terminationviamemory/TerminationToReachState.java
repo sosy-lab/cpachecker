@@ -34,10 +34,6 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
       SimpleTargetInformation.singleton("termination");
   private boolean isTarget;
-
-  /** The following formula is the computed transition invariant for the current state. */
-  private BooleanFormula transitionInvariant;
-
   private boolean isTerminating;
 
   /**
@@ -118,10 +114,6 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   public void setTerminating() {
     isTerminating = true;
-  }
-
-  public void setTransitionInvariant(BooleanFormula pTransitionInvariant) {
-    transitionInvariant = pTransitionInvariant;
   }
 
   public boolean isTerminating() {

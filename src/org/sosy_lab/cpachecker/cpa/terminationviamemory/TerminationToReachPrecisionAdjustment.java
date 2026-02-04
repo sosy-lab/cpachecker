@@ -146,7 +146,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             TerminationToReachState terminatingState =
                 new TerminationToReachState(
                     ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
-            terminatingState.setTransitionInvariant(prefixFormula);
             terminatingState.setTerminating();
             return Optional.of(result.withAbstractState(terminatingState));
           }
