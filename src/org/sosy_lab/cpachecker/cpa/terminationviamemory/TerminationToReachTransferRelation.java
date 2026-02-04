@@ -37,10 +37,12 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
   private final PathFormulaManager pfmgr;
 
   public TerminationToReachTransferRelation(
-      FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr, PathFormulaManager pPfmgr) {
-    fmgr = pFmgr;
-    bfmgr = pBfmgr;
-    pfmgr = pPfmgr;
+      FormulaManagerView pFormulaManagerView,
+      BooleanFormulaManager pBooleanFormulaManager,
+      PathFormulaManager pPathFormulaManager) {
+    fmgr = pFormulaManagerView;
+    bfmgr = pBooleanFormulaManager;
+    pfmgr = pPathFormulaManager;
   }
 
   @Override
