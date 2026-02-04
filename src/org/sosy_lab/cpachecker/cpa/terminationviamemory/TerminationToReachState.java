@@ -38,6 +38,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   /** The following formula is the computed transition invariant for the current state. */
   private BooleanFormula transitionInvariant;
 
+  private boolean isTerminating;
+
   /**
    * The following map keeps track of all the variables as type of @Formula, so that they can be
    * directly used in the further formulas by precision-adjustment operator. For every loop-head
@@ -74,15 +76,14 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
           pStoredValues,
       ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
-      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForPrefix,
-      BooleanFormula pTransitionInvariant) {
+      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForPrefix) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     pathFormulaForPrefix = pPathFormulaForPrefix;
     isTarget = false;
-    transitionInvariant = pTransitionInvariant;
+    isTerminating = false;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -115,8 +116,16 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = true;
   }
 
-  public BooleanFormula getTransitionInvariant() {
-    return transitionInvariant;
+  public void setTerminating() {
+    isTerminating = true;
+  }
+
+  public void setTransitionInvariant(BooleanFormula pTransitionInvariant) {
+    transitionInvariant = pTransitionInvariant;
+  }
+
+  public boolean isTerminating() {
+    return isTerminating;
   }
 
   @Override

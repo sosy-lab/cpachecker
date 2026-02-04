@@ -28,20 +28,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
-  private final BooleanFormulaManager bfmgr;
   private final PathFormulaManager pfmgr;
 
   public TerminationToReachTransferRelation(
-      FormulaManagerView pFormulaManagerView,
-      BooleanFormulaManager pBooleanFormulaManager,
-      PathFormulaManager pPathFormulaManager) {
+      FormulaManagerView pFormulaManagerView, PathFormulaManager pPathFormulaManager) {
     fmgr = pFormulaManagerView;
-    bfmgr = pBooleanFormulaManager;
     pfmgr = pPathFormulaManager;
   }
 
@@ -50,7 +45,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
-    if (!bfmgr.isFalse(terminationState.getTransitionInvariant())) {
+    if (terminationState.isTerminating()) {
       return ImmutableList.of();
     }
     return ImmutableList.of(state);
@@ -131,8 +126,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newStoredValues.buildOrThrow(),
               newNumberOfIterations.buildOrThrow(),
               newPathFormulaForIteration.buildOrThrow(),
-              newPathFormulaForPrefix.buildOrThrow(),
-              bfmgr.makeFalse()));
+              newPathFormulaForPrefix.buildOrThrow()));
     }
     return ImmutableList.of(pState);
   }

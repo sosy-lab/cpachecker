@@ -145,11 +145,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   prefixFormula, iterationFormula, prevIndices, smallestIndices, largestIndices)) {
             TerminationToReachState terminatingState =
                 new TerminationToReachState(
-                    ImmutableMap.of(),
-                    ImmutableMap.of(),
-                    ImmutableMap.of(),
-                    ImmutableMap.of(),
-                    prefixFormula);
+                    ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
+            terminatingState.setTransitionInvariant(prefixFormula);
+            terminatingState.setTerminating();
             return Optional.of(result.withAbstractState(terminatingState));
           }
 
@@ -202,9 +200,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       }
     }
     candidateTransitionInvariant =
-        fmgr.substitute(candidateTransitionInvariant, prevSubMap.build());
+        fmgr.substitute(candidateTransitionInvariant, prevSubMap.buildOrThrow());
     candidateTransitionInvariant =
-        fmgr.substitute(candidateTransitionInvariant, currSubMap.build());
+        fmgr.substitute(candidateTransitionInvariant, currSubMap.buildOrThrow());
     return candidateTransitionInvariant;
   }
 
