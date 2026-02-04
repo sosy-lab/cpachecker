@@ -86,10 +86,12 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
           newStoredValues.put(entry.getKey(), entry.getValue());
           newNumberOfIterations.put(
               entry.getKey(), terminationState.getNumberOfIterationsAtLoopHead(entry.getKey()));
-          newPathFormulaForIteration.put(
-              entry.getKey(), terminationState.getPathFormulasForIteration().get(entry.getKey()));
           newPathFormulaForPrefix.put(
               entry.getKey(), terminationState.getPathFormulasForPrefix().get(entry.getKey()));
+          if (terminationState.getPathFormulasForIteration().containsKey(entry.getKey())) {
+            newPathFormulaForIteration.put(
+                entry.getKey(), terminationState.getPathFormulasForIteration().get(entry.getKey()));
+          }
         }
       }
       ImmutableMap.Builder<Integer, ImmutableSet<Formula>> newValues = ImmutableMap.builder();
