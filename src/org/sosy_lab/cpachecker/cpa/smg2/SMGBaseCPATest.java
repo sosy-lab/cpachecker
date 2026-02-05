@@ -39,13 +39,15 @@ public class SMGBaseCPATest {
   private static final String CONFIGURATION_FILE_SMG_VALUE_ANALYSIS =
       "config/smgValueAnalysis.properties";
 
-  /** Default, MemSafety, and MemCleanup specifications are used commonly in SMG2 */
+  /** Default, MemSafety, MemCleanup, and No-Overflow specifications are usable with SMG2 */
   private static final String SPECIFICATION_DEFAULT = "config/specification/default.spc";
 
   private static final String SPECIFICATION_MEMSAFETY = "config/specification/memorysafety.spc";
   private static final String SPECIFICATION_MEMCLEANUP = "config/specification/memorycleanup.spc";
 
-  // TODO: overflows?
+  private static final String SPECIFICATION_OVERFLOW = "config/specification/overflow.spc";
+
+  private static final String TEST_PROGRAM_COMMON_PREFIX = "test/programs/";
 
   @Parameters(name = "{0}")
   public static Configuration[] getAllConfigurations()
@@ -64,9 +66,35 @@ public class SMGBaseCPATest {
 
   private static final MachineModel machineModel = getMachineModel();
 
+  /**
+   * Executes the program given in the current {@link Configuration} and asserts that it is SAFE.
+   *
+   * @param testProgram path to test program, e.g.
+   *     'test/programs/basics/array_tests/array_usage_32_true.c'. The common path-prefix
+   *     'test/programs/' is automatically added if not present, i.e.
+   *     'basics/array_tests/array_usage_32_true.c' is equivalent to the previous path.
+   */
   void runAndAssertSafe(String testProgram) throws Exception {
-    TestResults results = CPATestRunner.run(configuration, testProgram);
-    results.assertIsSafe();
+    runProgram(testProgram).assertIsSafe();
+  }
+
+  /**
+   * Executes the program given in the current {@link Configuration} and asserts that it is UNSAFE.
+   *
+   * @param testProgram path to test program, e.g.
+   *     'test/programs/basics/array_tests/array_usage_32_false.c'. The common path-prefix
+   *     'test/programs/' is automatically added if not present, i.e.
+   *     'basics/array_tests/array_usage_32_false.c' is equivalent to the previous path.
+   */
+  void runAndAssertUnsafe(String testProgram) throws Exception {
+    runProgram(testProgram).assertIsUnsafe();
+  }
+
+  private TestResults runProgram(String testProgram) throws Exception {
+    if (!testProgram.startsWith(TEST_PROGRAM_COMMON_PREFIX)) {
+      testProgram = TEST_PROGRAM_COMMON_PREFIX + testProgram;
+    }
+    return CPATestRunner.run(configuration, testProgram);
   }
 
   private static Configuration getSMGSymExecConfigWithDefaultSpec()
@@ -86,6 +114,11 @@ public class SMGBaseCPATest {
         CONFIGURATION_FILE_SMG_SYMBOLIC_EXECUTION, Language.C, SPECIFICATION_MEMCLEANUP);
   }
 
+  private static Configuration getSMGSymExecConfigWithOverflowSpec()
+      throws IOException, InvalidConfigurationException {
+    return getConfig(CONFIGURATION_FILE_SMG_SYMBOLIC_EXECUTION, Language.C, SPECIFICATION_OVERFLOW);
+  }
+
   private static Configuration getSMGValueConfigWithDefaultSpec()
       throws IOException, InvalidConfigurationException {
     return getConfig(CONFIGURATION_FILE_SMG_VALUE_ANALYSIS, Language.C, SPECIFICATION_DEFAULT);
@@ -99,6 +132,11 @@ public class SMGBaseCPATest {
   private static Configuration getSMGValueConfigWithMemCleanupSpec()
       throws IOException, InvalidConfigurationException {
     return getConfig(CONFIGURATION_FILE_SMG_VALUE_ANALYSIS, Language.C, SPECIFICATION_MEMCLEANUP);
+  }
+
+  private static Configuration getSMGValueConfigWithOverflowSpec()
+      throws IOException, InvalidConfigurationException {
+    return getConfig(CONFIGURATION_FILE_SMG_VALUE_ANALYSIS, Language.C, SPECIFICATION_OVERFLOW);
   }
 
   /** Uses the default {@link Configuration} and does not allow generated files to be accessed. */
