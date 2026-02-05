@@ -802,6 +802,11 @@ public class CFACreator {
   }
 
   /**
+   * Creates the acsl metadata for the CFA by parsing each annotation statement from an acsl comment
+   * into an object of corresponding type. The acsl parser needs the C program scope of the source
+   * program which depends on the CFA. Therefore, the acsl metadata can only be created after the
+   * CFA already exists.
+   *
    * @param pScope The CProgramScope of the source file
    * @param pParseResult A Parse Result with Acsl Comments
    * @return A new Acsl Metadata from the Acsl Comments in pParseResult
