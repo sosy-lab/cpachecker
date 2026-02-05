@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vec
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqLastBitVectorUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
@@ -125,12 +125,12 @@ public record ReduceLastThreadOrderInjector(
 
   // Last Updates ==================================================================================
 
-  CSeqThreadStatement injectLastUpdatesIntoStatement(
-      CSeqThreadStatement pStatement,
+  SeqThreadStatement injectLastUpdatesIntoStatement(
+      SeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    if (pStatement.getTargetPc().isPresent()) {
-      int targetPc = pStatement.getTargetPc().orElseThrow();
+    if (pStatement.data().targetPc().isPresent()) {
+      int targetPc = pStatement.data().targetPc().orElseThrow();
       // if a thread exits, set last_thread to NUM_THREADS - 1.
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
         return injectLastThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
@@ -159,8 +159,8 @@ public record ReduceLastThreadOrderInjector(
     return pStatement;
   }
 
-  private CSeqThreadStatement injectLastThreadUpdateIntoStatement(
-      CSeqThreadStatement pStatement,
+  private SeqThreadStatement injectLastThreadUpdateIntoStatement(
+      SeqThreadStatement pStatement,
       int pLastThreadValue,
       ImmutableList<CExpressionAssignmentStatement> pLastBitVectorUpdates) {
 

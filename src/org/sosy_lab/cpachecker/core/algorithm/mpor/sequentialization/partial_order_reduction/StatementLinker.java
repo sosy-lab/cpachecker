@@ -16,11 +16,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqMutexUnlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
@@ -62,8 +62,8 @@ record StatementLinker(MPOROptions options, MemoryModel memoryModel) {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
-        for (CSeqThreadStatement statement : block.getStatements()) {
+        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+        for (SeqThreadStatement statement : block.getStatements()) {
           newStatements.add(
               linkStatements(statement, pLinkedTargetIds, labelClauseMap, labelBlockMap));
         }
@@ -75,36 +75,36 @@ record StatementLinker(MPOROptions options, MemoryModel memoryModel) {
   }
 
   /**
-   * Links the target statements of {@code pCurrentStatement}, if applicable i.e. if the target
-   * statement is guaranteed to commute.
+   * Links the target statements of {@code pStatement}, if applicable i.e. if the target statement
+   * is guaranteed to commute.
    */
-  private CSeqThreadStatement linkStatements(
-      CSeqThreadStatement pCurrentStatement,
+  private SeqThreadStatement linkStatements(
+      SeqThreadStatement pStatement,
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    if (pCurrentStatement.isTargetPcValid()) {
-      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
+    if (pStatement.isTargetPcValid()) {
+      int targetPc = pStatement.data().targetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-      if (isValidLink(pCurrentStatement, newTarget, pLabelBlockMap)) {
+      if (isValidLink(pStatement, newTarget, pLabelBlockMap)) {
         pLinkedTargetIds.add(newTarget.id);
-        return pCurrentStatement.withTargetGoto(newTarget.getFirstBlock().getLabel());
+        return pStatement.withTargetGoto(newTarget.getFirstBlock().getLabel());
       }
     }
-    return pCurrentStatement;
+    return pStatement;
   }
 
   // Helpers =======================================================================================
 
   /** Checks if {@code pStatement} and {@code pTarget} can be linked via {@code goto}. */
   private boolean isValidLink(
-      CSeqThreadStatement pStatement,
+      SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
-    return pStatement.isLinkable()
+    return pStatement.data().type().isLinkable
         // if the target is a loop start, then backward loop goto must be enabled for linking
         && !SeqThreadStatementClauseUtil.isSeparateLoopStart(options, pTarget)
         // do not link atomic blocks, this is handled by AtomicBlockMerger
@@ -122,7 +122,8 @@ record StatementLinker(MPOROptions options, MemoryModel memoryModel) {
    * not (always) commute, e.g. unlocks of global mutexes.
    */
   private static boolean isRelevantMemoryLocationIgnored(SeqThreadStatementClause pTarget) {
-    if (pTarget.getFirstBlock().getFirstStatement() instanceof SeqMutexUnlockStatement) {
+    SeqThreadStatement firstStatement = pTarget.getFirstBlock().getFirstStatement();
+    if (firstStatement.data().type().equals(SeqThreadStatementType.MUTEX_UNLOCK)) {
       return true;
     }
     return false;

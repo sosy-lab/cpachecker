@@ -15,7 +15,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
@@ -49,10 +49,10 @@ public class AtomicBlockMerger {
 
     ImmutableList.Builder<SeqThreadStatementClause> rWithGotos = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
+      ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       // at this stage, mergedBlocks is empty, we only require the first block
       SeqThreadStatementBlock firstBlock = clause.getFirstBlock();
-      for (CSeqThreadStatement statement : firstBlock.getStatements()) {
+      for (SeqThreadStatement statement : firstBlock.getStatements()) {
         newStatements.add(injectAtomicGotosIntoStatement(statement, pLabelBlockMap));
       }
       SeqThreadStatementBlock newBlock = firstBlock.withStatements(newStatements.build());
@@ -61,21 +61,21 @@ public class AtomicBlockMerger {
     return rWithGotos.build();
   }
 
-  private static CSeqThreadStatement injectAtomicGotosIntoStatement(
-      CSeqThreadStatement pCurrentStatement,
+  private static SeqThreadStatement injectAtomicGotosIntoStatement(
+      SeqThreadStatement pStatement,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    if (pCurrentStatement.isTargetPcValid()) {
-      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
+    if (pStatement.isTargetPcValid()) {
+      int targetPc = pStatement.data().targetPc().orElseThrow();
       SeqThreadStatementBlock targetBlock = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
-      CSeqThreadStatement firstStatement = targetBlock.getFirstStatement();
+      SeqThreadStatement firstStatement = targetBlock.getFirstStatement();
       // only add goto when the target starts in an atomic block
       if (SeqThreadStatementUtil.startsInAtomicBlock(firstStatement)) {
-        return pCurrentStatement.withTargetGoto(targetBlock.getLabel());
+        return pStatement.withTargetGoto(targetBlock.getLabel());
       }
     }
     // no int target pc -> no replacement
-    return pCurrentStatement;
+    return pStatement;
   }
 
   private static ImmutableList<SeqThreadStatementClause> mergeAtomicBlocks(

@@ -17,9 +17,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
@@ -38,13 +38,13 @@ record ReduceUntilConflictInjector(
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 
-  CSeqThreadStatement injectUntilConflictReductionIntoStatement(CSeqThreadStatement pStatement)
+  SeqThreadStatement injectUntilConflictReductionIntoStatement(SeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
     // if valid target pc found, inject bit vector write and evaluation statements
-    if (pStatement.getTargetPc().isPresent()) {
+    if (pStatement.data().targetPc().isPresent()) {
       ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
-      int targetPc = pStatement.getTargetPc().orElseThrow();
+      int targetPc = pStatement.data().targetPc().orElseThrow();
       // exclude exit pc, don't want 'assume(conflict)' there
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(labelClauseMap.get(targetPc));

@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
@@ -103,8 +103,8 @@ public class SeqValidator {
     ImmutableMap.Builder<Integer, ImmutableSet<Integer>> rPcMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
-      for (CSeqThreadStatement statement : clause.getAllStatements()) {
-        statement.getTargetPc().ifPresent(targetPcs::add);
+      for (SeqThreadStatement statement : clause.getAllStatements()) {
+        statement.data().targetPc().ifPresent(targetPcs::add);
       }
       rPcMap.put(clause.labelNumber, targetPcs.build());
     }
@@ -185,10 +185,10 @@ public class SeqValidator {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     for (SeqThreadStatementBlock block : pLabelBlockMap.values()) {
-      for (CSeqThreadStatement statement : block.getStatements()) {
-        if (statement.getTargetGoto().isPresent()) {
+      for (SeqThreadStatement statement : block.getStatements()) {
+        if (statement.data().targetGoto().isPresent()) {
           int blockNumber = block.getLabel().labelNumber();
-          int targetNumber = statement.getTargetGoto().orElseThrow().labelNumber();
+          int targetNumber = statement.data().targetGoto().orElseThrow().labelNumber();
           if (blockNumber > targetNumber) {
             SeqThreadStatementBlock targetBlock =
                 Objects.requireNonNull(pLabelBlockMap.get(targetNumber));

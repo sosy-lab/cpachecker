@@ -21,10 +21,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vec
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -39,12 +39,12 @@ record ReduceIgnoreSleepInjector(
     BitVectorVariables bitVectorVariables,
     SequentializationUtils utils) {
 
-  CSeqThreadStatement injectIgnoreSleepReductionIntoStatement(CSeqThreadStatement pCurrentStatement)
+  SeqThreadStatement injectIgnoreSleepReductionIntoStatement(SeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
     // if valid target pc found, inject bit vector write and evaluation statements
-    if (pCurrentStatement.getTargetPc().isPresent()) {
-      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
+    if (pStatement.data().targetPc().isPresent()) {
+      int targetPc = pStatement.data().targetPc().orElseThrow();
       // exclude exit pc, don't want 'assume(conflict)' there
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(labelClauseMap.get(targetPc));
@@ -55,29 +55,29 @@ record ReduceIgnoreSleepInjector(
           // if the bv evaluation is empty, then the program contains no global memory locations
           // -> no injection necessary
           if (evaluationExpression.isEmpty()) {
-            return pCurrentStatement;
+            return pStatement;
           }
           SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
               buildIgnoreSleepReductionStatement(
-                  pCurrentStatement, evaluationExpression.orElseThrow(), newTarget);
-          return pCurrentStatement.withInjectedStatements(
+                  pStatement, evaluationExpression.orElseThrow(), newTarget);
+          return pStatement.withInjectedStatements(
               replaceReductionAssumptions(
-                  pCurrentStatement.getInjectedStatements(), ignoreSleepReductionStatement));
+                  pStatement.data().injectedStatements(), ignoreSleepReductionStatement));
         }
       }
     }
     // no injection possible -> return statement as is
-    return pCurrentStatement;
+    return pStatement;
   }
 
   private SeqIgnoreSleepReductionStatement buildIgnoreSleepReductionStatement(
-      CSeqThreadStatement pStatement,
+      SeqThreadStatement pStatement,
       CExportExpression pBitVectorEvaluationExpression,
       SeqThreadStatementClause pTargetClause)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqInjectedStatement> reductionAssumptions = ImmutableList.builder();
-    for (SeqInjectedStatement injectedStatement : pStatement.getInjectedStatements()) {
+    for (SeqInjectedStatement injectedStatement : pStatement.data().injectedStatements()) {
       if (injectedStatement instanceof SeqBitVectorEvaluationStatement bitVectorStatement) {
         reductionAssumptions.add(bitVectorStatement);
       }

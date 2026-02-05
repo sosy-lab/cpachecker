@@ -49,7 +49,7 @@ public class SeqThreadStatementClauseUtil {
     return FluentIterable.from(Iterables.concat(pClauses.values()))
         .transformAndConcat(clause -> clause.getBlocks())
         .transformAndConcat(block -> Objects.requireNonNull(block).getStatements())
-        .transformAndConcat(statement -> Objects.requireNonNull(statement).getSubstituteEdges())
+        .transformAndConcat(statement -> Objects.requireNonNull(statement).data().substituteEdges())
         .toSet();
   }
 
@@ -151,8 +151,8 @@ public class SeqThreadStatementClauseUtil {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
-        for (CSeqThreadStatement mergedStatement : block.getStatements()) {
+        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+        for (SeqThreadStatement mergedStatement : block.getStatements()) {
           newStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
         int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().labelNumber()));
@@ -188,20 +188,20 @@ public class SeqThreadStatementClauseUtil {
     return rLabelToIndex.buildOrThrow();
   }
 
-  private static CSeqThreadStatement replaceTargetPc(
-      CSeqThreadStatement pCurrentStatement,
+  private static SeqThreadStatement replaceTargetPc(
+      SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, Integer> pLabelBlockMap,
       final ImmutableMap<Integer, Integer> pLabelClauseMap) {
 
     if (pCurrentStatement.isTargetPcValid()) {
-      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
+      int targetPc = pCurrentStatement.data().targetPc().orElseThrow();
       // for pc writes, use clause labels
       int clauseIndex = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       // for injected statements (e.g. bitvector gotos), use the block label
       int blockIndex = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
       ImmutableList<SeqInjectedStatement> replacingInjectedStatements =
           transformedImmutableListCopy(
-              pCurrentStatement.getInjectedStatements(),
+              pCurrentStatement.data().injectedStatements(),
               injected ->
                   injected instanceof SeqInjectedStatementWithTargetGoto injectedWithGoto
                       ? injectedWithGoto.withTargetNumber(blockIndex)
@@ -210,8 +210,8 @@ public class SeqThreadStatementClauseUtil {
           .withTargetPc(clauseIndex)
           .withInjectedStatements(replacingInjectedStatements);
 
-    } else if (pCurrentStatement.getTargetGoto().isPresent()) {
-      SeqBlockLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
+    } else if (pCurrentStatement.data().targetGoto().isPresent()) {
+      SeqBlockLabelStatement label = pCurrentStatement.data().targetGoto().orElseThrow();
       // for gotos, use block labels
       int index = Objects.requireNonNull(pLabelBlockMap.get(label.labelNumber()));
       return pCurrentStatement.withTargetGoto(label.withLabelNumber(index));
@@ -243,9 +243,9 @@ public class SeqThreadStatementClauseUtil {
     if (pCurrent.equals(pTarget)) {
       return true;
     } else {
-      CSeqThreadStatement firstStatement = pCurrent.getFirstBlock().getFirstStatement();
+      SeqThreadStatement firstStatement = pCurrent.getFirstBlock().getFirstStatement();
       SeqThreadStatementClause next =
-          pLabelClauseMap.get(firstStatement.getTargetPc().orElseThrow());
+          pLabelClauseMap.get(firstStatement.data().targetPc().orElseThrow());
       assert next != null : "could not find target case clause";
       if (pCurrent.labelNumber + 1 == next.labelNumber) {
         return isConsecutiveLabelPath(next, pTarget, pLabelClauseMap);
@@ -307,7 +307,7 @@ public class SeqThreadStatementClauseUtil {
       ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pGraph,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    for (CSeqThreadStatement statement : pCurrentBlock.getStatements()) {
+    for (SeqThreadStatement statement : pCurrentBlock.getStatements()) {
       int targetNumber = statement.getTargetNumber();
       if (targetNumber != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementBlock targetBlock =

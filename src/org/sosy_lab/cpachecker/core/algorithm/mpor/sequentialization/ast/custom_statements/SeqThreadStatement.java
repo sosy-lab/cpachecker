@@ -52,4 +52,32 @@ public record SeqThreadStatement(
         ? data.targetPc().orElseThrow()
         : data.targetGoto().orElseThrow().labelNumber();
   }
+
+  /**
+   * Clones this statement with the given pc. This function should only be called when finalizing
+   * (i.e. pruning) {@link SeqThreadStatementClause}s.
+   */
+  public SeqThreadStatement withTargetPc(int pTargetPc) {
+    return new SeqThreadStatement(data.withTargetPc(pTargetPc), exportStatements);
+  }
+
+  /**
+   * Clones this statement with the given label. This function should only be called when finalizing
+   * (i.e. pruning) {@link SeqThreadStatementClause}s.
+   */
+  public SeqThreadStatement withTargetGoto(SeqBlockLabelStatement pTargetGoto) {
+    return new SeqThreadStatement(data.withTargetGoto(pTargetGoto), exportStatements);
+  }
+
+  /**
+   * Clones this statement and replaces all existing statements with {@code pInjectedStatements}.
+   * This is necessary when a {@link SeqInjectedStatement} contains a goto or pc that is replaced,
+   * e.g. when consecutive labels are enabled.
+   */
+  public SeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+
+    return new SeqThreadStatement(
+        data.withInjectedStatements(pInjectedStatements), exportStatements);
+  }
 }

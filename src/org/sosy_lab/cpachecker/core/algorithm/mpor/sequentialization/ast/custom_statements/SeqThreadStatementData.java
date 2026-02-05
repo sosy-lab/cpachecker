@@ -86,8 +86,8 @@ public record SeqThreadStatementData(
   }
 
   /**
-   * Clones this instance with the given pc. This function should only be called when finalizing
-   * (i.e. pruning) {@link SeqThreadStatementClause}s.
+   * Clones this data with the given pc. This function should only be called when finalizing (i.e.
+   * pruning) {@link SeqThreadStatementClause}s.
    */
   public SeqThreadStatementData withTargetPc(int pTargetPc) {
     if (type.equals(SeqThreadStatementType.THREAD_EXIT)) {
@@ -108,7 +108,7 @@ public record SeqThreadStatementData(
   }
 
   /**
-   * Clones the statement with the given label. This function should only be called when finalizing
+   * Clones this data with the given label. This function should only be called when finalizing
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
   public SeqThreadStatementData withTargetGoto(SeqBlockLabelStatement pTargetGoto) {
@@ -123,9 +123,9 @@ public record SeqThreadStatementData(
   }
 
   /**
-   * Clones this statement and replaces all existing statements with {@code pInjectedStatements}.
-   * This is necessary when a {@link SeqInjectedStatement} contains a goto or pc that is replaced,
-   * e.g. when consecutive labels are enabled.
+   * Clones this data and replaces all existing statements with {@code pInjectedStatements}. This is
+   * necessary when a {@link SeqInjectedStatement} contains a goto or pc that is replaced, e.g. when
+   * consecutive labels are enabled.
    */
   public SeqThreadStatementData withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {

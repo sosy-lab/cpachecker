@@ -20,9 +20,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
@@ -45,11 +45,11 @@ public record BitVectorAssignmentInjector(
     BitVectorVariables bitVectorVariables,
     MemoryModel memoryModel) {
 
-  CSeqThreadStatement injectBitVectorAssignmentsIntoStatement(CSeqThreadStatement pStatement) {
+  SeqThreadStatement injectBitVectorAssignmentsIntoStatement(SeqThreadStatement pStatement) {
     // if valid target pc found, inject bit vector write and evaluation statements
-    if (pStatement.getTargetPc().isPresent()) {
+    if (pStatement.data().targetPc().isPresent()) {
       ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
-      int targetPc = pStatement.getTargetPc().orElseThrow();
+      int targetPc = pStatement.data().targetPc().orElseThrow();
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
         // for the exit pc, reset the bit vector to just 0s
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorResets = buildBitVectorResets();

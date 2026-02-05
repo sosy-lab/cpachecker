@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.CSeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
@@ -51,14 +51,14 @@ public record StatementInjector(
   private SeqThreadStatementBlock injectStatementsIntoBlock(SeqThreadStatementBlock pBlock)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
-    for (CSeqThreadStatement statement : pBlock.getStatements()) {
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
       newStatements.add(injectStatementsIntoStatement(statement));
     }
     return pBlock.withStatements(newStatements.build());
   }
 
-  private CSeqThreadStatement injectStatementsIntoStatement(CSeqThreadStatement pStatement)
+  private SeqThreadStatement injectStatementsIntoStatement(SeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
     if (options.reduceUntilConflict()) {

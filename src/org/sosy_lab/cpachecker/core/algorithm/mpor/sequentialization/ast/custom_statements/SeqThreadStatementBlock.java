@@ -141,13 +141,13 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
         options, nextThreadLabel, label.withLabelNumber(pLabelNumber), statements);
   }
 
-  public SeqThreadStatementBlock withStatements(ImmutableList<CSeqThreadStatement> pStatements) {
+  public SeqThreadStatementBlock withStatements(ImmutableList<SeqThreadStatement> pStatements) {
     return new SeqThreadStatementBlock(options, nextThreadLabel, label, pStatements);
   }
 
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */
   public boolean startsAtomicBlock() {
-    return getFirstStatement() instanceof SeqAtomicBeginStatement;
+    return getFirstStatement().data().type().equals(SeqThreadStatementType.ATOMIC_BEGIN);
   }
 
   /**

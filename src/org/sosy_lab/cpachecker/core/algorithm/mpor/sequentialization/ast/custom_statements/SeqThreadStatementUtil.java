@@ -32,8 +32,8 @@ public final class SeqThreadStatementUtil {
    * Returns {@code true} if {@code pCurrentStatement} starts inside an atomic block, but does not
    * actually start it.
    */
-  public static boolean startsInAtomicBlock(CSeqThreadStatement pStatement) {
-    for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {
+  public static boolean startsInAtomicBlock(SeqThreadStatement pStatement) {
+    for (SubstituteEdge substituteEdge : pStatement.data().substituteEdges()) {
       CFAEdgeForThread threadEdge = substituteEdge.getThreadEdge();
       // use the predecessor, since we require information about this statement
       if (threadEdge.getPredecessor().isInAtomicBlock) {
@@ -43,9 +43,9 @@ public final class SeqThreadStatementUtil {
     return false;
   }
 
-  public static boolean anySynchronizesThreads(ImmutableList<CSeqThreadStatement> pStatements) {
-    for (CSeqThreadStatement statement : pStatements) {
-      if (statement.synchronizesThreads()) {
+  public static boolean anySynchronizesThreads(ImmutableList<SeqThreadStatement> pStatements) {
+    for (SeqThreadStatement statement : pStatements) {
+      if (statement.data().type().synchronizesThreads) {
         return true;
       }
     }
@@ -92,18 +92,18 @@ public final class SeqThreadStatementUtil {
    * {@code pc} statements and stores them in {@code pFound}.
    */
   public static void recursivelyFindTargetStatements(
-      Set<CSeqThreadStatement> pFound,
-      CSeqThreadStatement pStatement,
+      Set<SeqThreadStatement> pFound,
+      SeqThreadStatement pStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     // recursively search the target goto statements
-    ImmutableList<CSeqThreadStatement> targetStatements =
-        ImmutableList.<CSeqThreadStatement>builder()
+    ImmutableList<SeqThreadStatement> targetStatements =
+        ImmutableList.<SeqThreadStatement>builder()
             .addAll(getTargetPcStatements(pStatement, pLabelClauseMap))
             .addAll(getTargetGotoStatements(pStatement, pLabelBlockMap))
             .build();
-    for (CSeqThreadStatement targetStatement : targetStatements) {
+    for (SeqThreadStatement targetStatement : targetStatements) {
       // prevent infinite loops when statements contain loops
       if (pFound.add(targetStatement)) {
         recursivelyFindTargetStatements(pFound, targetStatement, pLabelClauseMap, pLabelBlockMap);
@@ -116,14 +116,14 @@ public final class SeqThreadStatementUtil {
    * in {@code pFound}.
    */
   public static void recursivelyFindTargetGotoStatements(
-      Set<CSeqThreadStatement> pFound,
-      CSeqThreadStatement pStatement,
+      Set<SeqThreadStatement> pFound,
+      SeqThreadStatement pStatement,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     // recursively search the target goto statements
-    ImmutableList<CSeqThreadStatement> targetGotoStatements =
+    ImmutableList<SeqThreadStatement> targetGotoStatements =
         getTargetGotoStatements(pStatement, pLabelBlockMap);
-    for (CSeqThreadStatement targetStatement : targetGotoStatements) {
+    for (SeqThreadStatement targetStatement : targetGotoStatements) {
       // prevent infinite recursion when statements contain loops
       if (pFound.add(targetStatement)) {
         recursivelyFindTargetGotoStatements(pFound, targetStatement, pLabelBlockMap);
@@ -131,12 +131,12 @@ public final class SeqThreadStatementUtil {
     }
   }
 
-  private static ImmutableList<CSeqThreadStatement> getTargetPcStatements(
-      CSeqThreadStatement pStatement,
+  private static ImmutableList<SeqThreadStatement> getTargetPcStatements(
+      SeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     if (pStatement.isTargetPcValid()) {
-      int targetNumber = pStatement.getTargetPc().orElseThrow();
+      int targetNumber = pStatement.data().targetPc().orElseThrow();
       SeqThreadStatementClause targetClause =
           Objects.requireNonNull(pLabelClauseMap.get(targetNumber));
       return targetClause.getFirstBlock().getStatements();
@@ -148,12 +148,12 @@ public final class SeqThreadStatementUtil {
    * Searches all statements targeted by {@code pStatement} via {@code goto}. This excludes target
    * {@code pc} because they represent a cut i.e. context switch in the sequentialization.
    */
-  private static ImmutableList<CSeqThreadStatement> getTargetGotoStatements(
-      CSeqThreadStatement pStatement,
+  private static ImmutableList<SeqThreadStatement> getTargetGotoStatements(
+      SeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    if (pStatement.getTargetGoto().isPresent()) {
-      int targetNumber = pStatement.getTargetGoto().orElseThrow().labelNumber();
+    if (pStatement.data().targetGoto().isPresent()) {
+      int targetNumber = pStatement.data().targetGoto().orElseThrow().labelNumber();
       SeqThreadStatementBlock targetBlock =
           Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
       return targetBlock.getStatements();
@@ -291,19 +291,19 @@ public final class SeqThreadStatementUtil {
 
   // Helper ========================================================================================
 
-  public static CSeqThreadStatement appendedInjectedStatementsToStatement(
-      CSeqThreadStatement pStatement, ImmutableList<SeqInjectedStatement> pAppended) {
+  public static SeqThreadStatement appendedInjectedStatementsToStatement(
+      SeqThreadStatement pStatement, ImmutableList<SeqInjectedStatement> pAppended) {
 
     return pStatement.withInjectedStatements(
-        appendInjectedStatements(pStatement.getInjectedStatements(), pAppended));
+        appendInjectedStatements(pStatement.data().injectedStatements(), pAppended));
   }
 
-  public static CSeqThreadStatement appendedInjectedStatementsToStatement(
-      CSeqThreadStatement pStatement, SeqInjectedStatement... pAppended) {
+  public static SeqThreadStatement appendedInjectedStatementsToStatement(
+      SeqThreadStatement pStatement, SeqInjectedStatement... pAppended) {
 
     return pStatement.withInjectedStatements(
         appendInjectedStatements(
-            pStatement.getInjectedStatements(), ImmutableList.copyOf(pAppended)));
+            pStatement.data().injectedStatements(), ImmutableList.copyOf(pAppended)));
   }
 
   private static ImmutableList<SeqInjectedStatement> appendInjectedStatements(

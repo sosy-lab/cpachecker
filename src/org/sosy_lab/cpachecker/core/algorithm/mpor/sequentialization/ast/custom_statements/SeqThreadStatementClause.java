@@ -85,8 +85,8 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
     return blocks;
   }
 
-  public ImmutableList<CSeqThreadStatement> getAllStatements() {
-    ImmutableList.Builder<CSeqThreadStatement> rAll = ImmutableList.builder();
+  public ImmutableList<SeqThreadStatement> getAllStatements() {
+    ImmutableList.Builder<SeqThreadStatement> rAll = ImmutableList.builder();
     for (SeqThreadStatementBlock block : blocks) {
       rAll.addAll(block.getStatements());
     }
@@ -115,7 +115,7 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   /** Returns true if all statements in all blocks are blank. */
   public boolean isBlank() {
     for (SeqThreadStatementBlock block : blocks) {
-      for (CSeqThreadStatement statement : block.getStatements()) {
+      for (SeqThreadStatement statement : block.getStatements()) {
         if (!statement.isOnlyPcWrite()) {
           return false;
         }
