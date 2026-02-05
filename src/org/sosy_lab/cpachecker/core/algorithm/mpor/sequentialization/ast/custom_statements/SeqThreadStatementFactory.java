@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -16,25 +15,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -50,11 +40,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CInitializerWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCommentStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionAssignmentStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
@@ -94,31 +82,6 @@ public class SeqThreadStatementFactory {
   }
 
   // Functions for specific SeqThreadStatementType
-
-  public static SeqThreadStatement buildAssumeStatement(
-      CAssumeEdge pAssumeEdge,
-      boolean pFirstEdge,
-      CLeftHandSide pPcLeftHandSide,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc) {
-
-    // for the first assume edge, use "if (expression)", for second, use "else" (no expression)
-    Optional<CExpression> ifExpression =
-        pFirstEdge ? Optional.of(pAssumeEdge.getExpression()) : Optional.empty();
-
-    SeqThreadStatementData data =
-        new SeqThreadStatementData(
-            SeqThreadStatementType.ASSUME,
-            ImmutableSet.of(pSubstituteEdge),
-            pPcLeftHandSide,
-            Optional.of(pTargetPc),
-            Optional.empty(),
-            ImmutableList.of(),
-            ifExpression);
-
-    // just return the finalized statements, the block handles the if-else branch
-    return new SeqThreadStatement(data, finalizeExportStatements(data, ImmutableList.of()));
-  }
 
   public static SeqThreadStatement buildAtomicBeginStatement(SeqThreadStatementData pData) {
     // just add a comment with the function name for better overview in the output program
@@ -178,59 +141,6 @@ public class SeqThreadStatementFactory {
                 new CStatementWrapper(setMutexLockedTrue))));
   }
 
-  public static SeqThreadStatement buildDefaultStatement(
-      CStatementEdge pStatementEdge,
-      SubstituteEdge pSubstituteEdge,
-      CLeftHandSide pPcLeftHandSide,
-      int pTargetPc) {
-
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.DEFAULT, pSubstituteEdge, pPcLeftHandSide, pTargetPc);
-    return new SeqThreadStatement(
-        data, ImmutableList.of(new CStatementWrapper(pStatementEdge.getStatement())));
-  }
-
-  public static SeqThreadStatement buildGhostOnlyStatement(
-      CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.GHOST_ONLY, ImmutableSet.of(), pPcLeftHandSide, pTargetPc);
-    return new SeqThreadStatement(data, finalizeExportStatements(data, ImmutableList.of()));
-  }
-
-  public static SeqThreadStatement buildLocalVariableDeclarationWithInitializerStatement(
-      CVariableDeclaration pVariableDeclaration,
-      SubstituteEdge pSubstituteEdge,
-      CLeftHandSide pPcLeftHandSide,
-      int pTargetPc) {
-
-    checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
-    checkArgument(
-        pVariableDeclaration.getInitializer() != null,
-        "pVariableDeclaration must have an initializer");
-
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.LOCAL_VARIABLE_DECLARATION_WITH_INITIALIZER,
-            pSubstituteEdge,
-            pPcLeftHandSide,
-            pTargetPc);
-
-    // the local variable is declared outside main() without an initializer e.g. 'int x;', and here
-    // it is assigned the initializer e.g. 'x = 7;'
-    CIdExpression idExpression =
-        new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
-    CInitializerWrapper initializer =
-        new CInitializerWrapper(pVariableDeclaration.getInitializer());
-    CExpressionAssignmentStatementWrapper assignment =
-        new CExpressionAssignmentStatementWrapper(idExpression, initializer);
-
-    return new SeqThreadStatement(
-        data, finalizeExportStatements(data, ImmutableList.of(assignment)));
-  }
-
   public static SeqThreadStatement buildMutexLockStatement(
       SeqThreadStatementData pData, MutexLockedFlag pMutexLockedFlag) {
 
@@ -261,63 +171,6 @@ public class SeqThreadStatementFactory {
   }
 
   // Parameter Assignment Statements
-
-  public static final String REACH_ERROR_FUNCTION_NAME = "reach_error";
-
-  private static final CFunctionTypeWithNames REACH_ERROR_FUNCTION_TYPE =
-      new CFunctionTypeWithNames(CVoidType.VOID, ImmutableList.of(), false);
-
-  public static final CFunctionDeclaration REACH_ERROR_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          REACH_ERROR_FUNCTION_TYPE,
-          REACH_ERROR_FUNCTION_NAME,
-          ImmutableList.of(),
-          ImmutableSet.of(FunctionAttribute.NO_RETURN));
-
-  private static final CIdExpression REACH_ERROR_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, REACH_ERROR_FUNCTION_DECLARATION);
-
-  private static final CFunctionCallExpression REACH_ERROR_FUNCTION_CALL_EXPRESSION =
-      new CFunctionCallExpression(
-          FileLocation.DUMMY,
-          CVoidType.VOID,
-          REACH_ERROR_ID_EXPRESSION,
-          ImmutableList.of(),
-          REACH_ERROR_FUNCTION_DECLARATION);
-
-  private static final CFunctionCallStatement REACH_ERROR_FUNCTION_CALL_STATEMENT =
-      new CFunctionCallStatement(FileLocation.DUMMY, REACH_ERROR_FUNCTION_CALL_EXPRESSION);
-
-  public static SeqThreadStatement buildParameterAssignmentStatement(
-      String pFunctionName,
-      ImmutableList<FunctionParameterAssignment> pFunctionParameterAssignments,
-      SubstituteEdge pSubstituteEdge,
-      CLeftHandSide pPcLeftHandSide,
-      int pTargetPc) {
-
-    checkArgument(
-        !pFunctionParameterAssignments.isEmpty() || pFunctionName.equals(REACH_ERROR_FUNCTION_NAME),
-        "If pAssignments is empty, then the function name must be reach_error.");
-
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.PARAMETER_ASSIGNMENT,
-            pSubstituteEdge,
-            pPcLeftHandSide,
-            pTargetPc);
-
-    ImmutableList.Builder<CExportStatement> functionStatements = ImmutableList.builder();
-    // if the function name is "reach_error", inject a "reach_error()" call for reachability
-    if (pFunctionName.equals(REACH_ERROR_FUNCTION_NAME)) {
-      functionStatements.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
-    }
-    for (FunctionParameterAssignment assignment : pFunctionParameterAssignments) {
-      functionStatements.add(new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
-    }
-
-    return new SeqThreadStatement(data, finalizeExportStatements(data, functionStatements.build()));
-  }
 
   public static SeqThreadStatement buildReturnValueAssignmentStatement(
       CExpressionAssignmentStatement pReturnValueAssignment,
