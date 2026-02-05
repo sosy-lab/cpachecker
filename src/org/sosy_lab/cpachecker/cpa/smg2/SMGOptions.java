@@ -717,8 +717,8 @@ public class SMGOptions {
     @Option(
         secure = true,
         description =
-            "Apply merge operator to determine subsumtion of abstracted lists in the stop"
-                + " operator.")
+            "Apply merge operator based on Predators join algorithm to determine subsumtion of"
+                + " abstracted lists in the stop operator more precisely. Can be costly.")
     private boolean useMergeForAbstractionDetectionInStopOperator = false;
 
     @Option(

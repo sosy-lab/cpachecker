@@ -91,10 +91,11 @@ public class SMGCPA
       secure = true,
       name = "merge",
       toUppercase = true,
-      values = {"SEP", "MERGE"},
+      values = {"SEP", "PREDATOR-MERGE"},
       description =
-          "Which merge operator to use for the SMGCPA. MERGE uses the merge operation described by"
-              + " Predator.")
+          "Which merge operator to use for the SMGCPA. 'PREDATOR-MERGE' uses the merge operation"
+              + " described for the Predator verification tool; appendix C 'The Join Algorithms',"
+              + " page 28 in https://doi.org/10.1007/978-3-642-38856-9_13.")
   private String mergeType = "SEP";
 
   @Option(secure = true, description = "get an initial precision from file")

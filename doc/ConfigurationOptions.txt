@@ -3726,10 +3726,11 @@ cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 # Determines if memory errors are target states
 cpa.smg2.memoryErrors = false
 
-# Which merge operator to use for the SMGCPA. MERGE uses the merge operation
-# described by Predator.
+# Which merge operator to use for the SMGCPA. 'PREDATOR-MERGE' uses the merge
+# operation described for the Predator verification tool; appendix C 'The
+# Join Algorithms', page 28 in https://doi.org/10.1007/978-3-642-38856-9_13.
 cpa.smg2.merge = "SEP"
-  allowed values: [SEP, MERGE]
+  allowed values: [SEP, PREDATOR-MERGE]
 
 # Apply merge operator only on ends of code blocks.
 cpa.smg2.merge.exclusivelyBlockEnds = false
@@ -3750,8 +3751,9 @@ cpa.smg2.merge.overapproximateConcreteValues = false
 # merging.
 cpa.smg2.merge.overapproximateSymbolicConstraints = false
 
-# Apply merge operator to determine subsumtion of abstracted lists in the
-# stop operator.
+# Apply merge operator based on Predators join algorithm to determine
+# subsumtion of abstracted lists in the stop operator more precisely. Can be
+# costly.
 cpa.smg2.merge.useMergeForAbstractionDetectionInStopOperator = false
 
 # Whether to perform SAT checks only for the last added constraint
