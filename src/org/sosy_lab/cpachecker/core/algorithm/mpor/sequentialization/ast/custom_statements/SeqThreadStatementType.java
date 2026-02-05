@@ -25,7 +25,9 @@ public enum SeqThreadStatementType {
    *
    * <p>{@code const int __CPAchecker_TMP = q->head; q->head = (q->head) + 1; CPAchecker_TMP;}
    *
-   * <p>The original code contained only one statement, but CPAchecker may transform it into 2 or 3.
+   * <p>The original code contained only one statement, but CPAchecker may transform it into 2 or 3,
+   * which are treated as one atomic section in the sequentialization, i.e., inside a single {@link
+   * SeqThreadStatement}.
    *
    * <p>Reasoning: given that we declare all variables outside the main function in the
    * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code
@@ -36,7 +38,13 @@ public enum SeqThreadStatementType {
   DEFAULT(true, false),
   /** A statement that contains only ghost code without any statement from the input program. */
   GHOST_ONLY(true, false),
-  LOCAL_VARIABLE_DECLARATION_WITH_INITIALIZER(true, false),
+  /**
+   * A local variable that is declared inside a function ({@code int l = 9;}) is declared as a
+   * global variable outside the {@code main()} function in the sequentialization ({@code int l;}).
+   * The thread simulation inside the respective function then only initializes the local variable
+   * ({@code l = 9;}).
+   */
+  LOCAL_VARIABLE_INITIALIZATION(true, false),
   MUTEX_LOCK(true, true),
   MUTEX_UNLOCK(true, false),
   PARAMETER_ASSIGNMENT(true, false),

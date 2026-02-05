@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
 
 /**
- * The label before a block of {@link CSeqThreadStatement}s, e.g. {@code T0_0: stmt1; stmt2; ...}.
+ * The label before a block of {@link SeqThreadStatement}s, e.g. {@code T0_0: stmt1; stmt2; ...}.
  */
 public record SeqBlockLabelStatement(String threadPrefix, int labelNumber)
     implements SeqExportStatement {

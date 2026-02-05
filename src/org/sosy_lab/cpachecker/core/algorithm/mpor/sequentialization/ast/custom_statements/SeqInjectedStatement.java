@@ -19,7 +19,7 @@ public sealed interface SeqInjectedStatement extends SeqExportStatement
 
   /**
    * Whether this {@link SeqInjectedStatement} can be pruned from its owning {@link
-   * CSeqThreadStatement} if it contains a target {@code goto} instead of a target {@code pc}.
+   * SeqThreadStatement} if it contains a target {@code goto} instead of a target {@code pc}.
    *
    * <p>If a target {@code goto} is present, then the simulation stays in the same thread. Some
    * {@link SeqInjectedStatement}s update e.g. ghost variables that are utilized by other threads.
@@ -30,8 +30,8 @@ public sealed interface SeqInjectedStatement extends SeqExportStatement
 
   /**
    * Whether this {@link SeqInjectedStatement} can be pruned from its owning {@link
-   * CSeqThreadStatement} when at least one {@link SeqInjectedStatement} contains an empty bit
-   * vector evaluation expression.
+   * SeqThreadStatement} when at least one {@link SeqInjectedStatement} contains an empty bit vector
+   * evaluation expression.
    */
   boolean isPrunedWithEmptyBitVectorEvaluation();
 }

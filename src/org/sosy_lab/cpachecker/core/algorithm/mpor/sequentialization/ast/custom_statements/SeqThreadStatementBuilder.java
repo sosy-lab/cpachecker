@@ -349,7 +349,7 @@ public record SeqThreadStatementBuilder(
         // "leftover" declarations should be local variables with an initializer
         CVariableDeclaration variableDeclaration =
             (CVariableDeclaration) declarationEdge.getDeclaration();
-        yield buildLocalVariableDeclarationWithInitializerStatement(
+        yield buildLocalVariableInitializationStatement(
             variableDeclaration, pSubstituteEdge, pcLeftHandSide, targetPc);
       }
 
@@ -416,7 +416,7 @@ public record SeqThreadStatementBuilder(
     return new SeqThreadStatement(data, finalizeExportStatements(data, ImmutableList.of()));
   }
 
-  private static SeqThreadStatement buildLocalVariableDeclarationWithInitializerStatement(
+  private static SeqThreadStatement buildLocalVariableInitializationStatement(
       CVariableDeclaration pVariableDeclaration,
       SubstituteEdge pSubstituteEdge,
       CLeftHandSide pPcLeftHandSide,
@@ -429,7 +429,7 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.LOCAL_VARIABLE_DECLARATION_WITH_INITIALIZER,
+            SeqThreadStatementType.LOCAL_VARIABLE_INITIALIZATION,
             pSubstituteEdge,
             pPcLeftHandSide,
             pTargetPc);
@@ -947,8 +947,8 @@ public record SeqThreadStatementBuilder(
 
   /**
    * Takes the given {@link CExportStatement}s and appends the {@link SeqInjectedStatement} to them.
-   * Given that all {@link CSeqThreadStatement}s have injected statements that are placed after the
-   * actual statements, this is handled here and not by each specific {@link CSeqThreadStatement}s.
+   * Given that all {@link SeqThreadStatement}s have injected statements that are placed after the
+   * actual statements, this is handled here and not by each specific {@link SeqThreadStatement}s.
    */
   private static ImmutableList<CExportStatement> finalizeExportStatements(
       SeqThreadStatementData pData, ImmutableList<CExportStatement> pExportStatements) {

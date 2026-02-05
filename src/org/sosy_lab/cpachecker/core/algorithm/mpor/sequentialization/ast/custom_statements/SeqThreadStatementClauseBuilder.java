@@ -272,7 +272,7 @@ public record SeqThreadStatementClauseBuilder(
   /**
    * Returns the clauses associated with {@link PthreadFunctionType#PTHREAD_COND_WAIT}. This
    * function requires an interleaving between the locking of the mutex and the blocking on the cond
-   * variable, forcing us two create two {@link CSeqThreadStatement} from a single {@link
+   * variable, forcing us two create two {@link SeqThreadStatement} from a single {@link
    * CFAEdgeForThread}.
    */
   private ImmutableList<SeqThreadStatementClause> buildCondWaitClauses(

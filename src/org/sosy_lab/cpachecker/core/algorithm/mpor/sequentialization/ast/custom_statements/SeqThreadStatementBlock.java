@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CReturnStatementWrapper;
 
 /**
- * A block features a {@code goto} label and a list of {@link CSeqThreadStatement}. An inner block
- * is only reachable from inside a thread simulation via its {@code goto} label.
+ * A block features a {@code goto} label and a list of {@link SeqThreadStatement}. An inner block is
+ * only reachable from inside a thread simulation via its {@code goto} label.
  */
 public final class SeqThreadStatementBlock implements SeqExportStatement {
 
