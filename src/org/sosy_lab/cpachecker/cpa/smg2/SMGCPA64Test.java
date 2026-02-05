@@ -12,7 +12,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
-/** Test class to execute the SMG2 CPA with LP64 test programs. */
+/**
+ * Test class to execute the SMG2-CPA with LP64 test programs. All programs listed here are executed
+ * for all valid specifications supported by the SMG2-CPA, i.e. default specification, MemSafety,
+ * MemCleanup, No-Overflow, in two configurations; SMG based Symbolic Execution and SMG based Value
+ * Analysis.
+ */
 public class SMGCPA64Test extends SMGBaseCPATest {
 
   @Test
@@ -44,6 +49,56 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   public void nondetFloatingPointTypeBoundsProof() throws Exception {
     String testProgram = "test/programs/basics/type_tests/nondet_generator_float_types_64_true.c";
     runAndAssertSafe(testProgram);
+  }
+
+  // Tests basic usage of arrays with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageProof() throws Exception {
+    String testProgram = "test/programs/basics/array_tests/array_usage_64_true.c";
+    runAndAssertSafe(testProgram);
+  }
+
+  // Tests basic usage of arrays with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageViolation() throws Exception {
+    String testProgram = "test/programs/basics/array_tests/array_usage_64_false.c";
+    runAndAssertUnsafe(testProgram);
+  }
+
+  // Tests basic usage of arrays in methods with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageInMethodsProof() throws Exception {
+    String testProgram = "test/programs/basics/array_tests/array_usage_methods_64_true.c";
+    runAndAssertSafe(testProgram);
+  }
+
+  // Tests basic usage of arrays in methods with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageInMethodsViolation() throws Exception {
+    String testProgram = "test/programs/basics/array_tests/array_usage_methods_64_false.c";
+    runAndAssertUnsafe(testProgram);
+  }
+
+  // Tests basic usage of arrays in methods as pointers with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageInMethodsAsPointersProof() throws Exception {
+    String testProgram =
+        "test/programs/basics/array_tests/array_usage_pointers_in_methods_64_true.c";
+    runAndAssertSafe(testProgram);
+  }
+
+  // Tests basic usage of arrays in methods as pointers with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageInMethodsAsPointersViolation() throws Exception {
+    String testProgram =
+        "test/programs/basics/array_tests/array_usage_pointers_in_methods_64_false.c";
+    runAndAssertUnsafe(testProgram);
   }
 
   protected static MachineModel getMachineModel() {
