@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
@@ -38,35 +37,25 @@ public class AntlrAnnotationToAnnotationVisitor
 
   @Override
   public AcslAssertion visitAssertion(AssertionContext ctx) {
-    ParseTree predTree = ctx.getChild(1);
-    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
-    AcslAssertion assertion = new AcslAssertion(fileLocation, predicate);
-
-    return assertion;
+    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    return new AcslAssertion(fileLocation, predicate);
   }
 
   @Override
   public AcslLoopInvariant visitLoopInvariant(LoopInvariantContext ctx) {
-    ParseTree predTree = ctx.getChild(2);
-    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
-    AcslLoopInvariant loopInvariant = new AcslLoopInvariant(fileLocation, predicate);
-
-    return loopInvariant;
+    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    return new AcslLoopInvariant(fileLocation, predicate);
   }
 
   @Override
   public AcslEnsures visitEnsuresClause(EnsuresClauseContext ctx) {
-    ParseTree predTree = ctx.getChild(1);
-    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
-    AcslEnsures ensures = new AcslEnsures(fileLocation, predicate);
-    return ensures;
+    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    return new AcslEnsures(fileLocation, predicate);
   }
 
   @Override
   public AcslRequires visitRequiresClause(RequiresClauseContext ctx) {
-    ParseTree predTree = ctx.getChild(1);
-    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
-    AcslRequires requires = new AcslRequires(fileLocation, predicate);
-    return requires;
+    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    return new AcslRequires(fileLocation, predicate);
   }
 }
