@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
@@ -21,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperato
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
@@ -35,10 +37,18 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public class AcslParserLogicalDefinitionsTest {
 
@@ -525,5 +535,78 @@ public class AcslParserLogicalDefinitionsTest {
             + " a[l]";
 
     testLogicalFunctionParsing(input, output);
+  }
+
+  @Test
+  @Ignore
+  public void memSafetySimpleSllPredicateTest() throws AcslParseException {
+    /*  Abstraction predicate 'pred_sll' for a Singly-Linked-List (SLL) of type 'sll' defined as:
+     *
+     * struct sll {
+     *   struct sll *next;
+     * };
+     *
+     * pred_sll(sll * start, sll * end, int size)
+     *   match size:
+     *     case 1: start->next == 0 && start == end // End of list,
+     *                                             // i.e. end address reached and next pointer is 0
+     *     case n + 1: start != 0 && start->next != start && start->next != 0 &&
+     *                 pred_sll(start->next, end, size - 1)
+     *
+     * Translates to:
+     * pred_sll(sll * start, sll * end, int size):
+     *   size == 1 ? start->next == 0 && start == end
+     *   : start != 0 && start->next != start && start->next != 0
+     *     && pred_sll(start->next, end, size - 1)
+     */
+
+    CCompositeType sllCType = new CCompositeType(CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "sll", "sll");
+    CPointerType sllCPointerType =  new CPointerType(CTypeQualifiers.NONE, sllCType);
+    sllCType.setMembers(
+        ImmutableList.of(new CCompositeTypeMemberDeclaration(sllCPointerType, "next")));
+
+    AcslCType sllPointerAcslType = new AcslCType(sllCPointerType);
+    AcslParameterDeclaration start =
+        new AcslParameterDeclaration(FileLocation.DUMMY, sllPointerAcslType, "start");
+    AcslParameterDeclaration end =
+        new AcslParameterDeclaration(FileLocation.DUMMY, sllPointerAcslType, "end");
+    AcslParameterDeclaration size =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "size");
+
+    AcslPredicateDeclaration sllPredicateDeclaration =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            // Function type:
+            new AcslPredicateType(
+                ImmutableList.of(start.getType(), end.getType(), size.getType()),
+                false),
+            "pred_sll",
+            "pred_sll",
+            // We don't want polymorphic types for MemSafety
+            ImmutableList.of(),
+            // Parameters:
+            ImmutableList.of(start, end, size));
+
+    AcslAstNode expectedOutput =
+        new AcslLogicPredicateDefinition(
+            FileLocation.DUMMY,
+            // Function Declaration
+            sllPredicateDeclaration,
+            // Function body
+            new AcslTernaryPredicate(FileLocation.DUMMY,
+                // ITE condition: size == 1
+                new AcslBinaryTermPredicate(FileLocation.DUMMY,  new AcslIdTerm(FileLocation.DUMMY, size), new AcslIntegerLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE), AcslBinaryTermExpressionOperator.EQUALS),
+                // If branch: start->next == 0 && start == end
+                new AcslBinaryPredicate(FileLocation.DUMMY,  new AcslBinaryTermPredicate(FileLocation.DUMMY, /* start->next */ , new AcslIntegerLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO), AcslBinaryTermExpressionOperator.EQUALS), new AcslBinaryTermPredicate(FileLocation.DUMMY,  new AcslIdTerm(FileLocation.DUMMY, start), new AcslIdTerm(FileLocation.DUMMY, end), AcslBinaryTermExpressionOperator.EQUALS), AcslBinaryPredicateOperator.AND),
+                // Else branch: start != 0 && start->next != start && start->next != 0
+                //               && pred_sll(start->next, end, size - 1)
+                new AcslBinaryPredicate(FileLocation.DUMMY, new AcslBinaryTermPredicate(FileLocation.DUMMY,  new AcslIdTerm(FileLocation.DUMMY, start), new AcslIntegerLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO), AcslBinaryTermExpressionOperator.NOT_EQUALS) , new AcslBinaryPredicate(FileLocation.DUMMY, /* start->next != start */ , new AcslBinaryPredicate(FileLocation.DUMMY, /* start->next != 0 */ , /* pred_sll(start->next, end, size - 1) */, AcslBinaryPredicateOperator.AND), AcslBinaryPredicateOperator.AND), AcslBinaryPredicateOperator.AND))
+            );
+
+// TODO: @Marian: ITE form or pattern matching? Or both? Both would be kinda cool.
+    String input =
+        "TODO";
+
+    testLogicalFunctionParsing(input, expectedOutput);
   }
 }
