@@ -3726,9 +3726,10 @@ cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 # Determines if memory errors are target states
 cpa.smg2.memoryErrors = false
 
-# which merge operator to use for the SMGCPA
+# Which merge operator to use for the SMGCPA. MERGE uses the merge operation
+# described by Predator.
 cpa.smg2.merge = "SEP"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP, MERGE]
 
 # Apply merge operator only on ends of code blocks.
 cpa.smg2.merge.exclusivelyBlockEnds = false

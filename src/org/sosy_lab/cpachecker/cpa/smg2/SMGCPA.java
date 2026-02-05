@@ -91,8 +91,10 @@ public class SMGCPA
       secure = true,
       name = "merge",
       toUppercase = true,
-      values = {"SEP", "JOIN"},
-      description = "which merge operator to use for the SMGCPA")
+      values = {"SEP", "MERGE"},
+      description =
+          "Which merge operator to use for the SMGCPA. MERGE uses the merge operation described by"
+              + " Predator.")
   private String mergeType = "SEP";
 
   @Option(secure = true, description = "get an initial precision from file")
@@ -231,8 +233,8 @@ public class SMGCPA
   public MergeOperator getMergeOperator() {
     return switch (mergeType) {
       case "SEP" -> MergeSepOperator.getInstance();
-      case "JOIN" -> new SMGMergeOperator(statistics, options);
-      default -> throw new AssertionError("unknown mergetype for SMGCPA");
+      case "MERGE" -> new SMGMergeOperator(statistics, options);
+      default -> throw new AssertionError("unknown merge-type " + mergeType + " for SMGCPA");
     };
   }
 
@@ -241,7 +243,7 @@ public class SMGCPA
     return switch (stopType) {
       case "NEVER" -> StopNeverOperator.getInstance();
       case "SEP" -> new StopSepOperator(getAbstractDomain());
-      default -> throw new AssertionError("unknown stoptype for SMGCPA");
+      default -> throw new AssertionError("unknown stop-type " + stopType + " for SMGCPA");
     };
   }
 
