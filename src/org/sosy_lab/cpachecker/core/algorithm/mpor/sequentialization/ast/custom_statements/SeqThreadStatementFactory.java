@@ -8,39 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCommentStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
@@ -83,34 +62,6 @@ public class SeqThreadStatementFactory {
 
   // Functions for specific SeqThreadStatementType
 
-  public static SeqThreadStatement buildAtomicBeginStatement(SeqThreadStatementData pData) {
-    // just add a comment with the function name for better overview in the output program
-    CCommentStatement commentStatement =
-        new CCommentStatement(PthreadFunctionType.VERIFIER_ATOMIC_BEGIN.name + ";");
-    return new SeqThreadStatement(
-        pData, finalizeExportStatements(pData, ImmutableList.of(commentStatement)));
-  }
-
-  public static SeqThreadStatement buildAtomicEndStatement(SeqThreadStatementData pData) {
-    // just add a comment with the function name for better overview in the output program
-    CCommentStatement commentStatement =
-        new CCommentStatement(PthreadFunctionType.VERIFIER_ATOMIC_END.name + ";");
-    return new SeqThreadStatement(
-        pData, finalizeExportStatements(pData, ImmutableList.of(commentStatement)));
-  }
-
-  public static SeqThreadStatement buildCondSignalStatement(
-      SeqThreadStatementData pData, CondSignaledFlag pCondSignaledFlag) {
-
-    CExpressionAssignmentStatement setCondSignaledTrue =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            pCondSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
-    return new SeqThreadStatement(
-        pData,
-        finalizeExportStatements(
-            pData, ImmutableList.of(new CStatementWrapper(setCondSignaledTrue))));
-  }
-
   public static SeqThreadStatement buildCondWaitStatement(
       SeqThreadStatementData pData,
       CondSignaledFlag pCondSignaledFlag,
@@ -139,52 +90,6 @@ public class SeqThreadStatementFactory {
                 new CStatementWrapper(assumeSignaled),
                 new CStatementWrapper(setSignaledFalse),
                 new CStatementWrapper(setMutexLockedTrue))));
-  }
-
-  public static SeqThreadStatement buildMutexLockStatement(
-      SeqThreadStatementData pData, MutexLockedFlag pMutexLockedFlag) {
-
-    CFunctionCallStatement assumeCall =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(pMutexLockedFlag.notLockedExpression());
-    CExpressionAssignmentStatement setMutexLockedTrue =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            pMutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
-
-    return new SeqThreadStatement(
-        pData,
-        finalizeExportStatements(
-            pData,
-            ImmutableList.of(
-                new CStatementWrapper(assumeCall), new CStatementWrapper(setMutexLockedTrue))));
-  }
-
-  public static SeqThreadStatement buildMutexUnlockStatement(
-      SeqThreadStatementData pData, MutexLockedFlag pMutexLockedFlag) {
-
-    CStatementWrapper lockedFalseAssignment =
-        new CStatementWrapper(
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                pMutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0));
-
-    return new SeqThreadStatement(
-        pData, finalizeExportStatements(pData, ImmutableList.of(lockedFalseAssignment)));
-  }
-
-  // Parameter Assignment Statements
-
-  public static SeqThreadStatement buildReturnValueAssignmentStatement(
-      CExpressionAssignmentStatement pReturnValueAssignment,
-      SubstituteEdge pSubstituteEdge,
-      CLeftHandSide pPcLeftHandSide,
-      int pTargetPc) {
-
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.DEFAULT, pSubstituteEdge, pPcLeftHandSide, pTargetPc);
-    return new SeqThreadStatement(
-        data,
-        finalizeExportStatements(
-            data, ImmutableList.of(new CStatementWrapper(pReturnValueAssignment))));
   }
 
   public static SeqThreadStatement buildRwLockRdLockStatement(
@@ -237,91 +142,5 @@ public class SeqThreadStatementFactory {
                 new CStatementWrapper(assumptionWriters),
                 new CStatementWrapper(assumptionReaders),
                 new CStatementWrapper(setWritersToOne))));
-  }
-
-  public static SeqThreadStatement buildThreadCreationStatement(
-      SeqThreadStatementData pData,
-      // The assignment of the parameter given in the {@code pthread_create} call. This is present
-      // if the start_routine has exactly one parameter, even if the parameter is not used.
-      Optional<FunctionParameterAssignment> pStartRoutineArgAssignment,
-      CLeftHandSide pCreatedThreadPc,
-      Optional<ImmutableList<SeqBitVectorAssignmentStatement>> pBitVectorInitializations) {
-
-    ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
-    if (pStartRoutineArgAssignment.isPresent()) {
-      exportStatements.add(
-          new CStatementWrapper(
-              pStartRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement()));
-    }
-    if (pBitVectorInitializations.isPresent()) {
-      pBitVectorInitializations
-          .orElseThrow()
-          .forEach(i -> exportStatements.addAll(i.toCExportStatements()));
-    }
-    exportStatements.add(
-        new CStatementWrapper(
-            ProgramCounterVariables.buildPcAssignmentStatement(
-                pCreatedThreadPc, ProgramCounterVariables.INIT_PC)));
-
-    return new SeqThreadStatement(pData, finalizeExportStatements(pData, exportStatements.build()));
-  }
-
-  public static SeqThreadStatement buildThreadExitStatement(
-      SeqThreadStatementData pData, FunctionReturnValueAssignment pReturnValueAssignment) {
-
-    CStatementWrapper returnValueAssignment =
-        new CStatementWrapper(pReturnValueAssignment.statement());
-    return new SeqThreadStatement(
-        pData, finalizeExportStatements(pData, ImmutableList.of(returnValueAssignment)));
-  }
-
-  // Thread Join Functions
-
-  public static SeqThreadStatement buildThreadJoinStatement(
-      SeqThreadStatementData pData,
-      Optional<CIdExpression> pJoinedThreadExitVariable,
-      CBinaryExpression pJoinedThreadNotActive)
-      throws UnrecognizedCodeException {
-
-    CStatementWrapper assumeCall =
-        new CStatementWrapper(
-            SeqAssumeFunction.buildAssumeFunctionCallStatement(pJoinedThreadNotActive));
-    if (pJoinedThreadExitVariable.isPresent()) {
-      CStatementWrapper returnValueRead =
-          new CStatementWrapper(
-              buildReturnValueRead(
-                  pJoinedThreadExitVariable.orElseThrow(), pData.substituteEdges()));
-      return new SeqThreadStatement(
-          pData, finalizeExportStatements(pData, ImmutableList.of(assumeCall, returnValueRead)));
-    }
-    return new SeqThreadStatement(
-        pData, finalizeExportStatements(pData, ImmutableList.of(assumeCall)));
-  }
-
-  private static CStatement buildReturnValueRead(
-      CIdExpression pJoinedThreadExitVariable, ImmutableSet<SubstituteEdge> pSubstituteEdges)
-      throws UnrecognizedCodeException {
-
-    // only a single SubstituteEdge should be linked to a pthread_join statement
-    SubstituteEdge substituteEdge = checkNotNull(Iterables.getOnlyElement(pSubstituteEdges));
-    int returnValueIndex =
-        PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
-    CFunctionCall functionCall =
-        PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
-    CExpression returnValueParameter =
-        functionCall.getFunctionCallExpression().getParameterExpressions().get(returnValueIndex);
-    if (returnValueParameter instanceof CUnaryExpression unaryExpression) {
-      // extract retval from unary expression &retval
-      if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-        if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-          return SeqStatementBuilder.buildExpressionAssignmentStatement(
-              idExpression, pJoinedThreadExitVariable);
-        }
-      }
-    }
-    throw new UnrecognizedCodeException(
-        "pthread_join retval could not be extracted from the following expression: "
-            + returnValueParameter,
-        substituteEdge.cfaEdge);
   }
 }
