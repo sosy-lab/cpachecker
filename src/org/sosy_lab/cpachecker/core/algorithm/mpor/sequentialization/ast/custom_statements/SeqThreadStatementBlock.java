@@ -39,7 +39,7 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
    */
   private final SeqBlockLabelStatement label;
 
-  private final ImmutableList<CSeqThreadStatement> statements;
+  private final ImmutableList<SeqThreadStatement> statements;
 
   private final boolean isLoopStart;
 
@@ -47,7 +47,7 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
       MPOROptions pOptions,
       Optional<CLabelStatement> pNextThreadLabel,
       SeqBlockLabelStatement pLabel,
-      ImmutableList<CSeqThreadStatement> pStatements) {
+      ImmutableList<SeqThreadStatement> pStatements) {
 
     checkArgument(
         pStatements.size() == 1 || pStatements.size() == 2,
@@ -67,17 +67,17 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
 
     if (statements.size() == 1) {
       // 1 statement: add its respective export statements
-      exportStatements.addAll(statements.getFirst().toCExportStatements());
+      exportStatements.addAll(statements.getFirst().exportStatements());
 
     } else {
       // 2 statements (= assume statements): create if-else statement
-      SeqAssumeStatement firstAssume = (SeqAssumeStatement) statements.getFirst();
-      SeqAssumeStatement secondAssume = (SeqAssumeStatement) statements.getLast();
+      SeqThreadStatement firstAssume = statements.getFirst();
+      SeqThreadStatement secondAssume = statements.getLast();
       CIfStatement ifStatement =
           new CIfStatement(
-              new CExpressionWrapper(firstAssume.ifExpression.orElseThrow()),
-              new CCompoundStatement(firstAssume.toCExportStatements()),
-              new CCompoundStatement(secondAssume.toCExportStatements()));
+              new CExpressionWrapper(firstAssume.data().ifExpression().orElseThrow()),
+              new CCompoundStatement(firstAssume.exportStatements()),
+              new CCompoundStatement(secondAssume.exportStatements()));
       exportStatements.add(ifStatement);
     }
 
@@ -124,11 +124,11 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
     return label;
   }
 
-  public CSeqThreadStatement getFirstStatement() {
+  public SeqThreadStatement getFirstStatement() {
     return statements.getFirst();
   }
 
-  public ImmutableList<CSeqThreadStatement> getStatements() {
+  public ImmutableList<SeqThreadStatement> getStatements() {
     return statements;
   }
 

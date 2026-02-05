@@ -52,9 +52,9 @@ public final class SeqThreadStatementUtil {
     return false;
   }
 
-  public static boolean allHaveTargetGoto(ImmutableList<CSeqThreadStatement> pStatements) {
-    for (CSeqThreadStatement statement : pStatements) {
-      if (statement.getTargetGoto().isEmpty()) {
+  public static boolean allHaveTargetGoto(ImmutableList<SeqThreadStatement> pStatements) {
+    for (SeqThreadStatement statement : pStatements) {
+      if (statement.data().targetGoto().isEmpty()) {
         return false;
       }
     }
@@ -62,10 +62,10 @@ public final class SeqThreadStatementUtil {
   }
 
   public static boolean anyContainsEmptyBitVectorEvaluationExpression(
-      ImmutableList<CSeqThreadStatement> pStatements) {
+      ImmutableList<SeqThreadStatement> pStatements) {
 
-    for (CSeqThreadStatement statement : pStatements) {
-      if (isAnyBitVectorEvaluationExpressionEmpty(statement.getInjectedStatements())) {
+    for (SeqThreadStatement statement : pStatements) {
+      if (isAnyBitVectorEvaluationExpressionEmpty(statement.data().injectedStatements())) {
         return true;
       }
     }

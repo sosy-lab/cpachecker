@@ -408,8 +408,7 @@ public record SeqThreadStatementBuilder(
         data, ImmutableList.of(new CStatementWrapper(pStatementEdge.getStatement())));
   }
 
-  private static SeqThreadStatement buildGhostOnlyStatement(
-      CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+  static SeqThreadStatement buildGhostOnlyStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
@@ -417,7 +416,7 @@ public record SeqThreadStatementBuilder(
     return new SeqThreadStatement(data, finalizeExportStatements(data, ImmutableList.of()));
   }
 
-  public static SeqThreadStatement buildLocalVariableDeclarationWithInitializerStatement(
+  private static SeqThreadStatement buildLocalVariableDeclarationWithInitializerStatement(
       CVariableDeclaration pVariableDeclaration,
       SubstituteEdge pSubstituteEdge,
       CLeftHandSide pPcLeftHandSide,
@@ -608,7 +607,7 @@ public record SeqThreadStatementBuilder(
             data, ImmutableList.of(new CStatementWrapper(setCondSignaledTrue))));
   }
 
-  public SeqCondWaitStatement buildCondWaitStatement(
+  public SeqThreadStatement buildCondWaitStatement(
       CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
@@ -620,12 +619,31 @@ public record SeqThreadStatementBuilder(
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
     MutexLockedFlag mutexLockedFlag = threadSyncFlags.getMutexLockedFlag(pthreadMutexT);
 
-    return new SeqCondWaitStatement(
-        condSignaledFlag,
-        mutexLockedFlag,
-        pcLeftHandSide,
-        ImmutableSet.of(pSubstituteEdge),
-        pTargetPc);
+    SeqThreadStatementData data =
+        SeqThreadStatementData.of(
+            SeqThreadStatementType.COND_WAIT, pSubstituteEdge, pcLeftHandSide, pTargetPc);
+
+    // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
+    // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
+    CFunctionCallStatement assumeSignaled =
+        SeqAssumeFunction.buildAssumeFunctionCallStatement(condSignaledFlag.isSignaledExpression());
+    CExpressionAssignmentStatement setSignaledFalse =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
+            condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
+
+    // step 2: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
+    CExpressionAssignmentStatement setMutexLockedTrue =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
+            mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
+
+    return new SeqThreadStatement(
+        data,
+        finalizeExportStatements(
+            data,
+            ImmutableList.of(
+                new CStatementWrapper(assumeSignaled),
+                new CStatementWrapper(setSignaledFalse),
+                new CStatementWrapper(setMutexLockedTrue))));
   }
 
   private SeqThreadStatement buildThreadCreationStatement(

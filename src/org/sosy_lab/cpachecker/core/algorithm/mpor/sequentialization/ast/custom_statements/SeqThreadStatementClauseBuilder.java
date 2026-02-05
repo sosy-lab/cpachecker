@@ -209,9 +209,9 @@ public record SeqThreadStatementClauseBuilder(
 
     } else {
       CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
-      ImmutableList.Builder<CSeqThreadStatement> statements = ImmutableList.builder();
+      ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
       if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-        statements.add(new SeqGhostOnlyStatement(pcLeftHandSide, targetPc));
+        statements.add(SeqThreadStatementBuilder.buildGhostOnlyStatement(pcLeftHandSide, targetPc));
       } else {
         statements.addAll(
             pStatementBuilder.buildStatementsFromThreadNode(pThreadNode, pCoveredNodes));
@@ -295,7 +295,7 @@ public record SeqThreadStatementClauseBuilder(
         buildClause(pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(mutexUnlockStatement)));
 
     // step 2: build pthread_cond_t handling statement
-    SeqCondWaitStatement condWaitStatement =
+    SeqThreadStatement condWaitStatement =
         pStatementBuilder.buildCondWaitStatement(pFunctionCall, pSubstituteEdge, pTargetPc);
     rClauses.add(
         buildClause(pThread, pNextThreadLabel, nextFreePc, ImmutableList.of(condWaitStatement)));
@@ -307,7 +307,7 @@ public record SeqThreadStatementClauseBuilder(
       MPORThread pThread,
       Optional<CLabelStatement> pNextThreadLabel,
       int pLabelPc,
-      ImmutableList<CSeqThreadStatement> pStatements) {
+      ImmutableList<SeqThreadStatement> pStatements) {
 
     String threadPrefix = SeqNameUtil.buildThreadPrefix(options, pThread.id());
     SeqBlockLabelStatement blockLabelStatement = new SeqBlockLabelStatement(threadPrefix, pLabelPc);

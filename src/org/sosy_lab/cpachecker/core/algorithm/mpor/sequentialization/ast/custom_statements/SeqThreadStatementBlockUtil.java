@@ -18,9 +18,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 public class SeqThreadStatementBlockUtil {
 
-  static boolean isLoopStart(ImmutableList<CSeqThreadStatement> pStatements) {
-    for (CSeqThreadStatement statement : pStatements) {
-      for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
+  static boolean isLoopStart(ImmutableList<SeqThreadStatement> pStatements) {
+    for (SeqThreadStatement statement : pStatements) {
+      for (SubstituteEdge substituteEdge : statement.data().substituteEdges()) {
         CFANode predecessor = substituteEdge.cfaEdge.getPredecessor();
         if (predecessor.isLoopStart()) {
           // simple for / while loop with predicate expression -> loop is in direct predecessor
