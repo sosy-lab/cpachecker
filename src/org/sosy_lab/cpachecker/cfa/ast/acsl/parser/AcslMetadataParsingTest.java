@@ -151,7 +151,7 @@ public class AcslMetadataParsingTest {
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       assertThat(cfa.getAcslMetadata()).isNotNull();
-      assertThat(cfa.getAcslMetadata().size()).isEqualTo(expectedComments.size());
+      assertThat(cfa.getAcslMetadata().numOfAnnotaniots()).isEqualTo(expectedComments.size());
     }
   }
 

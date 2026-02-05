@@ -45,7 +45,7 @@ public record AcslMetadata(
         ImmutableSetMultimap.of());
   }
 
-  public int size() {
+  public int numOfAnnotaniots() {
     return assertions.size()
         + invariants.size()
         + functionContracts.size()

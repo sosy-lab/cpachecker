@@ -37,9 +37,7 @@ public sealed interface AcslType extends Type
 
   static AcslType mostGeneralType(AcslType pType1, AcslType pType2) {
 
-    if (pType1 == pType2) {
-      return pType1;
-    } else if (pType1.equals(pType2)) {
+    if (pType1.equals(pType2)) {
       return pType1;
     } else if (anyPermutationOf(
         (x, y) -> x == AcslBuiltinLogicType.REAL && y == AcslBuiltinLogicType.INTEGER,
