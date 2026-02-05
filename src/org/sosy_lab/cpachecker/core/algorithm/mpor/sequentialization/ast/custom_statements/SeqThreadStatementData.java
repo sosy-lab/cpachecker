@@ -49,7 +49,7 @@ public record SeqThreadStatementData(
         targetPc.isPresent() ^ targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present (exclusive or).");
     checkArgument(
-        ifExpression().isEmpty() || type.equals(SeqThreadStatementType.ASSUME),
+        ifExpression.isEmpty() || type.equals(SeqThreadStatementType.ASSUME),
         "If the ifExpression is present, then type must be SeqThreadStatementType.ASSUME");
   }
 
