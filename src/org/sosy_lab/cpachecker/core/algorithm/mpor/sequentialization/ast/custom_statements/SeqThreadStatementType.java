@@ -17,6 +17,20 @@ public enum SeqThreadStatementType {
   ATOMIC_END(true, false),
   COND_SIGNAL(true, false),
   COND_WAIT(true, true),
+  /**
+   * Represents a special CPAchecker case where a {@code const CPAchecker_TMP} variable is declared
+   * and assigned inside a case clause.
+   *
+   * <p>A {@code const CPAchecker_TMP} is e.g. used for field references:
+   *
+   * <p>{@code const int __CPAchecker_TMP = q->head; q->head = (q->head) + 1; CPAchecker_TMP;}
+   *
+   * <p>The original code contained only one statement, but CPAchecker may transform it into 2 or 3.
+   *
+   * <p>Reasoning: given that we declare all variables outside the main function in the
+   * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code
+   * q->head}.
+   */
   CONST_CPACHECKER_TMP(true, false),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */
   DEFAULT(true, false),

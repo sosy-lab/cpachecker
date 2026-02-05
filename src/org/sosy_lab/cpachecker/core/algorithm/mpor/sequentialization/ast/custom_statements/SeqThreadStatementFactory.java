@@ -18,11 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 public class SeqThreadStatementFactory {
@@ -90,57 +86,5 @@ public class SeqThreadStatementFactory {
                 new CStatementWrapper(assumeSignaled),
                 new CStatementWrapper(setSignaledFalse),
                 new CStatementWrapper(setMutexLockedTrue))));
-  }
-
-  public static SeqThreadStatement buildRwLockRdLockStatement(
-      SeqThreadStatementData pData, RwLockNumReadersWritersFlag pRwLockFlags) {
-
-    CStatementWrapper assumption =
-        new CStatementWrapper(
-            SeqAssumeFunction.buildAssumeFunctionCallStatement(pRwLockFlags.writerEqualsZero()));
-    CStatementWrapper rwLockReadersIncrement =
-        new CStatementWrapper(pRwLockFlags.readersIncrement());
-
-    return new SeqThreadStatement(
-        pData,
-        finalizeExportStatements(pData, ImmutableList.of(assumption, rwLockReadersIncrement)));
-  }
-
-  public static SeqThreadStatement buildRwLockUnlockStatement(
-      SeqThreadStatementData pData, RwLockNumReadersWritersFlag pRwLockFlags) {
-
-    CExpressionAssignmentStatement setNumWritersToZero =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            pRwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_0);
-    CIfStatement ifStatement =
-        new CIfStatement(
-            new CExpressionWrapper(pRwLockFlags.writerEqualsZero()),
-            new CCompoundStatement(new CStatementWrapper(pRwLockFlags.readersDecrement())),
-            new CCompoundStatement(new CStatementWrapper(setNumWritersToZero)));
-
-    return new SeqThreadStatement(
-        pData, finalizeExportStatements(pData, ImmutableList.of(ifStatement)));
-  }
-
-  public static SeqThreadStatement buildRwLockWrLockStatement(
-      SeqThreadStatementData pData, RwLockNumReadersWritersFlag pRwLockFlags) {
-
-    CExpressionAssignmentStatement setWritersToOne =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            pRwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_1);
-
-    CFunctionCallStatement assumptionWriters =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(pRwLockFlags.writerEqualsZero());
-    CFunctionCallStatement assumptionReaders =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(pRwLockFlags.readersEqualsZero());
-
-    return new SeqThreadStatement(
-        pData,
-        finalizeExportStatements(
-            pData,
-            ImmutableList.of(
-                new CStatementWrapper(assumptionWriters),
-                new CStatementWrapper(assumptionReaders),
-                new CStatementWrapper(setWritersToOne))));
   }
 }
