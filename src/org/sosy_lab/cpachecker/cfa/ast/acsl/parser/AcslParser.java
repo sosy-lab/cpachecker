@@ -157,7 +157,7 @@ public class AcslParser {
   public static AcslLoopInvariant parseAcslLoopInvariant(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.loop_invariant());
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.loopInvariant());
     AntlrAnnotationToAnnotationVisitor converter =
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
     AAcslAnnotation loopInvariant = converter.visit(tree);
@@ -167,7 +167,7 @@ public class AcslParser {
   public static AcslEnsures parseAcslEnsures(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.ensures_clause());
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.ensuresClause());
     AntlrAnnotationToAnnotationVisitor converter =
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
     AAcslAnnotation ensures = converter.visit(tree);
@@ -177,7 +177,7 @@ public class AcslParser {
   public static AcslRequires parseAcslRequires(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.requires_clause());
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.requiresClause());
     AntlrAnnotationToAnnotationVisitor converter =
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
     AAcslAnnotation requires = converter.visit(tree);

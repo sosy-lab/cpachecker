@@ -12,7 +12,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
-/** This class represents the Acsl requires_clause for a function_contract */
+/** This class represents the Acsl requiresClause for a function_contract */
 public final class AcslRequires extends AAcslAnnotation {
   private final AcslPredicate predicate;
 

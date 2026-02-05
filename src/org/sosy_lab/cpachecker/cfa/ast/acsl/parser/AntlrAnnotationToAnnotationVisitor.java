@@ -19,9 +19,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Ensures_clauseContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Loop_invariantContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Requires_clauseContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.EnsuresClauseContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.RequiresClauseContext;
 
 public class AntlrAnnotationToAnnotationVisitor
     extends AntlrToInternalAbstractConverter<AAcslAnnotation> {
@@ -46,7 +46,7 @@ public class AntlrAnnotationToAnnotationVisitor
   }
 
   @Override
-  public AcslLoopInvariant visitLoop_invariant(Loop_invariantContext ctx) {
+  public AcslLoopInvariant visitLoopInvariant(LoopInvariantContext ctx) {
     ParseTree predTree = ctx.getChild(2);
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
     AcslLoopInvariant loopInvariant = new AcslLoopInvariant(fileLocation, predicate);
@@ -55,7 +55,7 @@ public class AntlrAnnotationToAnnotationVisitor
   }
 
   @Override
-  public AcslEnsures visitEnsures_clause(Ensures_clauseContext ctx) {
+  public AcslEnsures visitEnsuresClause(EnsuresClauseContext ctx) {
     ParseTree predTree = ctx.getChild(1);
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
     AcslEnsures ensures = new AcslEnsures(fileLocation, predicate);
@@ -63,7 +63,7 @@ public class AntlrAnnotationToAnnotationVisitor
   }
 
   @Override
-  public AcslRequires visitRequires_clause(Requires_clauseContext ctx) {
+  public AcslRequires visitRequiresClause(RequiresClauseContext ctx) {
     ParseTree predTree = ctx.getChild(1);
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
     AcslRequires requires = new AcslRequires(fileLocation, predicate);
