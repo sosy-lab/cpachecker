@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -57,7 +58,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionAssignme
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
-public class SeqExportStatementBuilder {
+public class SeqThreadStatementFactory {
 
   // Functions for all SeqThreadStatementType
 
@@ -94,9 +95,29 @@ public class SeqExportStatementBuilder {
 
   // Functions for specific SeqThreadStatementType
 
-  public static SeqThreadStatement buildAssumeStatement(SeqThreadStatementData pData) {
+  public static SeqThreadStatement buildAssumeStatement(
+      CAssumeEdge pAssumeEdge,
+      boolean pFirstEdge,
+      CLeftHandSide pPcLeftHandSide,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc) {
+
+    // for the first assume edge, use "if (expression)", for second, use "else" (no expression)
+    Optional<CExpression> ifExpression =
+        pFirstEdge ? Optional.of(pAssumeEdge.getExpression()) : Optional.empty();
+
+    SeqThreadStatementData data =
+        new SeqThreadStatementData(
+            SeqThreadStatementType.ASSUME,
+            ImmutableSet.of(pSubstituteEdge),
+            pPcLeftHandSide,
+            Optional.of(pTargetPc),
+            Optional.empty(),
+            ImmutableList.of(),
+            ifExpression);
+
     // just return the finalized statements, the block handles the if-else branch
-    return new SeqThreadStatement(pData, finalizeExportStatements(pData, ImmutableList.of()));
+    return new SeqThreadStatement(data, finalizeExportStatements(data, ImmutableList.of()));
   }
 
   public static SeqThreadStatement buildAtomicBeginStatement(SeqThreadStatementData pData) {
@@ -158,23 +179,44 @@ public class SeqExportStatementBuilder {
   }
 
   public static SeqThreadStatement buildDefaultStatement(
-      SeqThreadStatementData pData, CStatementEdge pStatementEdge) {
+      CStatementEdge pStatementEdge,
+      SubstituteEdge pSubstituteEdge,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
 
+    SeqThreadStatementData data =
+        SeqThreadStatementData.of(
+            SeqThreadStatementType.DEFAULT, pSubstituteEdge, pPcLeftHandSide, pTargetPc);
     return new SeqThreadStatement(
-        pData, ImmutableList.of(new CStatementWrapper(pStatementEdge.getStatement())));
+        data, ImmutableList.of(new CStatementWrapper(pStatementEdge.getStatement())));
   }
 
-  public static SeqThreadStatement buildGhostOnlyStatement(SeqThreadStatementData pData) {
-    return new SeqThreadStatement(pData, finalizeExportStatements(pData, ImmutableList.of()));
+  public static SeqThreadStatement buildGhostOnlyStatement(
+      CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+
+    SeqThreadStatementData data =
+        SeqThreadStatementData.of(
+            SeqThreadStatementType.GHOST_ONLY, ImmutableSet.of(), pPcLeftHandSide, pTargetPc);
+    return new SeqThreadStatement(data, finalizeExportStatements(data, ImmutableList.of()));
   }
 
   public static SeqThreadStatement buildLocalVariableDeclarationWithInitializerStatement(
-      SeqThreadStatementData pData, CVariableDeclaration pVariableDeclaration) {
+      CVariableDeclaration pVariableDeclaration,
+      SubstituteEdge pSubstituteEdge,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
     checkArgument(
         pVariableDeclaration.getInitializer() != null,
         "pVariableDeclaration must have an initializer");
+
+    SeqThreadStatementData data =
+        SeqThreadStatementData.of(
+            SeqThreadStatementType.LOCAL_VARIABLE_DECLARATION_WITH_INITIALIZER,
+            pSubstituteEdge,
+            pPcLeftHandSide,
+            pTargetPc);
 
     // the local variable is declared outside main() without an initializer e.g. 'int x;', and here
     // it is assigned the initializer e.g. 'x = 7;'
@@ -186,7 +228,7 @@ public class SeqExportStatementBuilder {
         new CExpressionAssignmentStatementWrapper(idExpression, initializer);
 
     return new SeqThreadStatement(
-        pData, finalizeExportStatements(pData, ImmutableList.of(assignment)));
+        data, finalizeExportStatements(data, ImmutableList.of(assignment)));
   }
 
   public static SeqThreadStatement buildMutexLockStatement(
@@ -248,13 +290,22 @@ public class SeqExportStatementBuilder {
       new CFunctionCallStatement(FileLocation.DUMMY, REACH_ERROR_FUNCTION_CALL_EXPRESSION);
 
   public static SeqThreadStatement buildParameterAssignmentStatement(
-      SeqThreadStatementData pData,
       String pFunctionName,
-      ImmutableList<FunctionParameterAssignment> pFunctionParameterAssignments) {
+      ImmutableList<FunctionParameterAssignment> pFunctionParameterAssignments,
+      SubstituteEdge pSubstituteEdge,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
 
     checkArgument(
         !pFunctionParameterAssignments.isEmpty() || pFunctionName.equals(REACH_ERROR_FUNCTION_NAME),
         "If pAssignments is empty, then the function name must be reach_error.");
+
+    SeqThreadStatementData data =
+        SeqThreadStatementData.of(
+            SeqThreadStatementType.PARAMETER_ASSIGNMENT,
+            pSubstituteEdge,
+            pPcLeftHandSide,
+            pTargetPc);
 
     ImmutableList.Builder<CExportStatement> functionStatements = ImmutableList.builder();
     // if the function name is "reach_error", inject a "reach_error()" call for reachability
@@ -264,17 +315,23 @@ public class SeqExportStatementBuilder {
     for (FunctionParameterAssignment assignment : pFunctionParameterAssignments) {
       functionStatements.add(new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
     }
-    return new SeqThreadStatement(
-        pData, finalizeExportStatements(pData, functionStatements.build()));
+
+    return new SeqThreadStatement(data, finalizeExportStatements(data, functionStatements.build()));
   }
 
   public static SeqThreadStatement buildReturnValueAssignmentStatement(
-      SeqThreadStatementData pData, CExpressionAssignmentStatement pReturnValueAssignment) {
+      CExpressionAssignmentStatement pReturnValueAssignment,
+      SubstituteEdge pSubstituteEdge,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
 
+    SeqThreadStatementData data =
+        SeqThreadStatementData.of(
+            SeqThreadStatementType.DEFAULT, pSubstituteEdge, pPcLeftHandSide, pTargetPc);
     return new SeqThreadStatement(
-        pData,
+        data,
         finalizeExportStatements(
-            pData, ImmutableList.of(new CStatementWrapper(pReturnValueAssignment))));
+            data, ImmutableList.of(new CStatementWrapper(pReturnValueAssignment))));
   }
 
   public static SeqThreadStatement buildRwLockRdLockStatement(

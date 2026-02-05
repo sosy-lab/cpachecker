@@ -186,7 +186,7 @@ public record SeqThreadStatementBuilder(
 
   // Statement build methods =======================================================================
 
-  private CSeqThreadStatement buildStatementFromThreadEdge(
+  private SeqThreadStatement buildStatementFromThreadEdge(
       boolean pFirstEdge, CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge)
       throws UnsupportedCodeException {
 
@@ -195,47 +195,44 @@ public record SeqThreadStatementBuilder(
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
 
     if (resultsInBlankStatement(pSubstituteEdge, successor)) {
-      return new SeqGhostOnlyStatement(pcLeftHandSide, targetPc);
+      return SeqThreadStatementFactory.buildGhostOnlyStatement(pcLeftHandSide, targetPc);
     }
 
-    ImmutableSet<SubstituteEdge> substituteEdgeSet = ImmutableSet.of(pSubstituteEdge);
     return switch (pSubstituteEdge.cfaEdge) {
       case CAssumeEdge assumeEdge ->
-          // for the first assume edge, use "if (expression)", for second, use "else"
-          pFirstEdge
-              ? new SeqAssumeStatement(
-                  assumeEdge.getExpression(), pcLeftHandSide, substituteEdgeSet, targetPc)
-              : new SeqAssumeStatement(pcLeftHandSide, substituteEdgeSet, targetPc);
+          SeqThreadStatementFactory.buildAssumeStatement(
+              assumeEdge, pFirstEdge, pcLeftHandSide, pSubstituteEdge, targetPc);
 
       case CDeclarationEdge declarationEdge -> {
         // "leftover" declarations should be local variables with an initializer
         CVariableDeclaration variableDeclaration =
             (CVariableDeclaration) declarationEdge.getDeclaration();
-        yield new SeqLocalVariableDeclarationWithInitializerStatement(
-            variableDeclaration, pcLeftHandSide, substituteEdgeSet, targetPc);
+        yield SeqThreadStatementFactory.buildLocalVariableDeclarationWithInitializerStatement(
+            variableDeclaration, pSubstituteEdge, pcLeftHandSide, targetPc);
       }
 
       case CFunctionCallEdge functionCallEdge ->
-          buildFunctionCallStatement(pThreadEdge, functionCallEdge, substituteEdgeSet, targetPc);
+          buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc);
 
       case CReturnStatementEdge ignore ->
-          buildReturnValueAssignmentStatement(pThreadEdge, substituteEdgeSet, targetPc);
+          buildReturnValueAssignmentStatement(pThreadEdge, pSubstituteEdge, targetPc);
 
       case CFAEdge edge when PthreadUtil.isExplicitlyHandledPthreadFunction(edge) ->
           buildStatementFromPthreadFunction(pThreadEdge, pSubstituteEdge, targetPc);
 
       case CStatementEdge statementEdge ->
-          new SeqDefaultStatement(statementEdge, pcLeftHandSide, substituteEdgeSet, targetPc);
+          SeqThreadStatementFactory.buildDefaultStatement(
+              statementEdge, pSubstituteEdge, pcLeftHandSide, targetPc);
 
       default ->
           throw new AssertionError("Unhandled CFAEdge type: " + cfaEdge.getClass().getSimpleName());
     };
   }
 
-  private CSeqThreadStatement buildFunctionCallStatement(
+  private SeqThreadStatement buildFunctionCallStatement(
       CFAEdgeForThread pThreadEdge,
       CFunctionCallEdge pFunctionCallEdge,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      SubstituteEdge pSubstituteEdge,
       int pTargetPc) {
 
     String functionName =
@@ -245,14 +242,14 @@ public record SeqThreadStatementBuilder(
     if (functionStatements.parameterAssignments().containsKey(pThreadEdge)) {
       ImmutableList<FunctionParameterAssignment> assignments =
           functionStatements.parameterAssignments().get(pThreadEdge);
-      return new SeqParameterAssignmentStatement(
-          functionName, assignments, pcLeftHandSide, pSubstituteEdges, pTargetPc);
+      return SeqThreadStatementFactory.buildParameterAssignmentStatement(
+          functionName, assignments, pSubstituteEdge, pcLeftHandSide, pTargetPc);
     }
 
     // handle function without parameters that is a call to "reach_error"
-    if (functionName.equals(SeqParameterAssignmentStatement.REACH_ERROR_FUNCTION_NAME)) {
-      return new SeqParameterAssignmentStatement(
-          functionName, ImmutableList.of(), pcLeftHandSide, pSubstituteEdges, pTargetPc);
+    if (functionName.equals(SeqThreadStatementFactory.REACH_ERROR_FUNCTION_NAME)) {
+      return SeqThreadStatementFactory.buildParameterAssignmentStatement(
+          functionName, ImmutableList.of(), pSubstituteEdge, pcLeftHandSide, pTargetPc);
     }
 
     // handle function without parameters that is not "reach_error" -> blank statement
@@ -260,22 +257,22 @@ public record SeqThreadStatementBuilder(
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
     assert functionDeclaration.getParameters().isEmpty()
         : "function has parameters, but they are not present in pFunctionStatements";
-    return new SeqGhostOnlyStatement(pcLeftHandSide, pTargetPc);
+
+    return SeqThreadStatementFactory.buildGhostOnlyStatement(pcLeftHandSide, pTargetPc);
   }
 
-  private CSeqThreadStatement buildReturnValueAssignmentStatement(
-      CFAEdgeForThread pThreadEdge, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
+  private SeqThreadStatement buildReturnValueAssignmentStatement(
+      CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
     // returning from non-start-routine function: assign return value to return vars
     if (functionStatements.returnValueAssignments().containsKey(pThreadEdge)) {
       FunctionReturnValueAssignment assignment =
           Objects.requireNonNull(functionStatements.returnValueAssignments().get(pThreadEdge));
-      return new SeqReturnValueAssignmentStatement(
-          assignment.statement(), pcLeftHandSide, pSubstituteEdges, pTargetPc);
-    } else {
-      // -> function does not return anything, i.e. return;
-      return new SeqGhostOnlyStatement(pcLeftHandSide, pTargetPc);
+      return SeqThreadStatementFactory.buildReturnValueAssignmentStatement(
+          assignment.statement(), pSubstituteEdge, pcLeftHandSide, pTargetPc);
     }
+    // -> function does not return anything, i.e. return;
+    return SeqThreadStatementFactory.buildGhostOnlyStatement(pcLeftHandSide, pTargetPc);
   }
 
   private CSeqThreadStatement buildStatementFromPthreadFunction(
