@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
@@ -49,6 +50,13 @@ public record SeqThreadStatementData(
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
   public SeqThreadStatementData withTargetPc(int pTargetPc) {
+    if (type.equals(SeqThreadStatementType.THREAD_EXIT)) {
+      checkArgument(
+          pTargetPc == ProgramCounterVariables.EXIT_PC,
+          "%s should only be cloned with exit pc %s",
+          SeqThreadStatementType.THREAD_EXIT,
+          ProgramCounterVariables.EXIT_PC);
+    }
     return new SeqThreadStatementData(
         type,
         substituteEdges,

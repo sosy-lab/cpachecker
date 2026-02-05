@@ -22,6 +22,7 @@ public enum SeqThreadStatementType {
   DEFAULT(true, false),
   /** A statement that contains only ghost code without any statement from the input program. */
   GHOST_ONLY(true, false),
+  LOCAL_VARIABLE_DECLARATION_WITH_INITIALIZER(true, false),
   MUTEX_LOCK(true, true),
   MUTEX_UNLOCK(true, false),
   PARAMETER_ASSIGNMENT(true, false),

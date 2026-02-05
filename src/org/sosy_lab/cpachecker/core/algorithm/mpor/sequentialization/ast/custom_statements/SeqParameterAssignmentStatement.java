@@ -13,15 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
@@ -32,33 +24,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
  * the sequentialization.
  */
 public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
-
-  public static final String REACH_ERROR_FUNCTION_NAME = "reach_error";
-
-  private static final CFunctionTypeWithNames REACH_ERROR_FUNCTION_TYPE =
-      new CFunctionTypeWithNames(CVoidType.VOID, ImmutableList.of(), false);
-
-  public static final CFunctionDeclaration REACH_ERROR_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          REACH_ERROR_FUNCTION_TYPE,
-          REACH_ERROR_FUNCTION_NAME,
-          ImmutableList.of(),
-          ImmutableSet.of(FunctionAttribute.NO_RETURN));
-
-  private static final CIdExpression REACH_ERROR_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, REACH_ERROR_FUNCTION_DECLARATION);
-
-  private static final CFunctionCallExpression REACH_ERROR_FUNCTION_CALL_EXPRESSION =
-      new CFunctionCallExpression(
-          FileLocation.DUMMY,
-          CVoidType.VOID,
-          REACH_ERROR_ID_EXPRESSION,
-          ImmutableList.of(),
-          REACH_ERROR_FUNCTION_DECLARATION);
-
-  private static final CFunctionCallStatement REACH_ERROR_FUNCTION_CALL_STATEMENT =
-      new CFunctionCallStatement(FileLocation.DUMMY, REACH_ERROR_FUNCTION_CALL_EXPRESSION);
 
   private final String functionName;
 
