@@ -133,8 +133,11 @@ public class BlockGraph {
                 .filter(n -> endNodes.get(n.getInitialLocation()).isEmpty()));
     Multimap<@NonNull BlockNodeWithoutGraphInformation, @NonNull BlockNodeWithoutGraphInformation>
         loopPredecessors = findLoopPredecessors(root, pNodes);
+    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopSuccessors =
+        ArrayListMultimap.create();
+    loopPredecessors.forEach((block, predecessor) -> loopSuccessors.put(predecessor, block));
 
-    ImmutableSet<BlockNode> blockNodes =
+    ImmutableSet<@NonNull BlockNode> blockNodes =
         transformedImmutableSetCopy(
             pNodes,
             b ->
@@ -156,7 +159,14 @@ public class BlockGraph {
                         .immutableCopy(),
                     transformedImmutableSetCopy(
                         startNodes.get(b.getFinalLocation()),
-                        BlockNodeWithoutGraphInformation::getId)));
+                        BlockNodeWithoutGraphInformation::getId),
+                    Sets.intersection(
+                            transformedImmutableSetCopy(
+                                startNodes.get(b.getFinalLocation()),
+                                BlockNodeWithoutGraphInformation::getId),
+                            transformedImmutableSetCopy(
+                                loopSuccessors.get(b), BlockNodeWithoutGraphInformation::getId))
+                        .immutableCopy()));
     return new BlockGraph(blockNodes);
   }
 
@@ -177,6 +187,7 @@ public class BlockGraph {
               ImmutableSet.copyOf(importedBlock.predecessors()),
               ImmutableSet.copyOf(importedBlock.loopPredecessors()),
               ImmutableSet.copyOf(importedBlock.successors()),
+              ImmutableSet.copyOf(importedBlock.loopSuccessors()),
               pIdToNodeMap.get(importedBlock.abstractionLocation())));
     }
     return new BlockGraph(nodes.build());
@@ -230,6 +241,7 @@ public class BlockGraph {
                   "endNode",
                   shiftedNodeNumber(n.getFinalLocation().getNodeNumber(), minCfaNodeNumber));
               attributes.put("loopPredecessors", n.getLoopPredecessorIds());
+              attributes.put("loopSuccessors", n.getLoopSuccessorIds());
               attributes.put(
                   "abstractionLocation",
                   shiftedNodeNumber(

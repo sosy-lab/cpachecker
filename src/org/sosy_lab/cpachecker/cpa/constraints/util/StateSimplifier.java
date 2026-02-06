@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -278,15 +279,23 @@ public class StateSimplifier {
   }
 
   private static final class ActivityInfo {
-    private static final Map<SymbolicIdentifier, ActivityInfo> infos = new HashMap<>();
-
+    private static Map<String, Map<SymbolicIdentifier, ActivityInfo>> threadIdMap =
+        new ConcurrentHashMap<>();
     private final SymbolicIdentifier identifier;
     private Set<Constraint> usingConstraints;
     private Activity activity;
 
+    private static Map<SymbolicIdentifier, ActivityInfo> getInfos() {
+      if (!threadIdMap.containsKey(Thread.currentThread().getName())) {
+        threadIdMap.put(Thread.currentThread().getName(), new HashMap<>());
+      }
+      return threadIdMap.get(Thread.currentThread().getName());
+    }
+
     static ActivityInfo getInfo(
         final SymbolicIdentifier pIdentifier, final Constraint pConstraint) {
 
+      Map<SymbolicIdentifier, ActivityInfo> infos = getInfos();
       if (infos.containsKey(pIdentifier)) {
         ActivityInfo info = infos.get(pIdentifier);
         info.usingConstraints.add(pConstraint);

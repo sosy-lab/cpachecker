@@ -33,6 +33,24 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+/**
+ * The native DSS spawns multiple workers through {@link DssWorkerBuilder}:
+ *
+ * <p>For each block, an {@link DssWorkerBuilder#addAnalysisWorker(BlockNode, DssAnalysisOptions)
+ * analysis worker} is created. The worker operating on a block without predecessor is responsible
+ * to claim a specification violation if a violation condition is about to be propagated. If {@link
+ * DssAnalysisOptions#isDebugModeEnabled() debug mode} is enabled, a {@link
+ * DssWorkerBuilder#addVisualizationWorker(BlockGraph, DssAnalysisOptions) visualization worker} is
+ * used to provide a visualization of the message exchange between analysis workers.
+ *
+ * <p>Proofs are found if all workers are waiting for new messages. The {@link DssThreadMonitor
+ * thread monitor} broadcasts the verdict TRUE if all workers are done.
+ *
+ * <p>The analysis is started by calling {@link
+ * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker#runInitialAnalysis()}
+ * on all workers. The monitoring of the messages is done by {@link DssObserverWorker}, which blocks
+ * until it can determine a final verification verdict (SAFE, UNSAFE, or timeout)
+ */
 public class MultithreadingDssExecutor implements DssExecutor, AutoCloseable {
 
   private static final String OBSERVER_WORKER_ID = "__observer__";
@@ -80,7 +98,8 @@ public class MultithreadingDssExecutor implements DssExecutor, AutoCloseable {
         observer.getId());
     // run workers
     List<Thread> threads = new ArrayList<>(actors.getActors().size());
-    for (DssActor worker : actors.getAnalysisWorkers()) {
+    for (DssActor worker :
+        Iterables.concat(actors.getAnalysisWorkers(), actors.getRemainingActors())) {
       Thread thread = new Thread(worker, worker.getId());
       threads.add(thread);
       thread.setDaemon(true);

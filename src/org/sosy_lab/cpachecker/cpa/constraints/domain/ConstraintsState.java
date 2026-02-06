@@ -186,6 +186,10 @@ public final class ConstraintsState extends ForwardingSet<Constraint>
     return sb.append("] size->  ").append(constraints.size()).toString();
   }
 
+  public boolean isTop() {
+    return constraints.isEmpty() || constraints.stream().allMatch(c -> c.isTrivial());
+  }
+
   @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();

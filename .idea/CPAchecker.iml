@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager">
     <output url="file://$MODULE_DIR$/classes" />
@@ -9,6 +20,7 @@
       <excludeFolder url="file://$MODULE_DIR$/test/programs/benchmarks" />
       <excludeFolder url="file://$MODULE_DIR$/test/programs/ldv-benchmarks" />
       <excludeFolder url="file://$MODULE_DIR$/test/results" />
+      <excludeFolder url="file://$MODULE_DIR$/output/block_analysis" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

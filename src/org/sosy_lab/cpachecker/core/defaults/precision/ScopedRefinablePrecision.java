@@ -33,7 +33,7 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
     rawPrecision = ImmutableSortedSet.of();
   }
 
-  private ScopedRefinablePrecision(
+  public ScopedRefinablePrecision(
       VariableTrackingPrecision pBaseline, Iterable<MemoryLocation> pRawPrecision) {
     super(pBaseline);
     rawPrecision = ImmutableSortedSet.copyOf(pRawPrecision);
@@ -113,6 +113,10 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
     return pOtherPrecision.getClass().equals(getClass())
         && super.getBaseline().equals(((ScopedRefinablePrecision) pOtherPrecision).getBaseline())
         && rawPrecision.equals(((ScopedRefinablePrecision) pOtherPrecision).rawPrecision);
+  }
+
+  public ImmutableSortedSet<MemoryLocation> getRawPrecision() {
+    return rawPrecision;
   }
 
   @Override

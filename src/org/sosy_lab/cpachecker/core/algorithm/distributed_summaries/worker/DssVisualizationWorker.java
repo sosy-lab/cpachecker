@@ -32,9 +32,12 @@ public class DssVisualizationWorker extends DssWorker {
   private boolean shutdown = false;
   private final int identifier;
 
+  private final int numberOfBlocks;
+  private int statisticMessageCount = 0;
+
   DssVisualizationWorker(
       String id,
-      BlockGraph pNode,
+      BlockGraph pBlockGraph,
       DssConnection pConnection,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
@@ -44,9 +47,10 @@ public class DssVisualizationWorker extends DssWorker {
     identifier = Instant.now().hashCode();
     connection = pConnection;
     reportFiles = pOptions.getReportFiles();
+    numberOfBlocks = pBlockGraph.getNodes().size();
     try {
       if (pOptions.getBlockCFAFile() != null) {
-        pNode.export(pOptions.getBlockCFAFile(), cfa);
+        pBlockGraph.export(pOptions.getBlockCFAFile(), cfa);
       }
     } catch (IOException e) {
       pLogger.logException(
@@ -74,7 +78,8 @@ public class DssVisualizationWorker extends DssWorker {
     while (connection.hasPendingMessages()) {
       DssMessage m = connection.read();
       log(m);
-      stop |= m.getType() == DssMessageType.EXCEPTION || m.getType() == DssMessageType.RESULT;
+      statisticMessageCount += m.getType() == DssMessageType.STATISTIC ? 1 : 0;
+      stop |= m.getType() == DssMessageType.EXCEPTION || statisticMessageCount == numberOfBlocks;
     }
     if (stop) {
       shutdown = true;

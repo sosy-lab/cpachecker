@@ -53,17 +53,23 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil.UniqueIndexProvider;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -75,6 +81,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -95,7 +102,8 @@ public final class ValueAnalysisState
         Serializable,
         Graphable,
         LatticeAbstractState<ValueAnalysisState>,
-        PseudoPartitionable {
+        PseudoPartitionable,
+        ViolationConditionReportingState {
 
   @Serial private static final long serialVersionUID = -3152134511524554358L;
 
@@ -110,6 +118,10 @@ public final class ValueAnalysisState
    */
   private PersistentMap<MemoryLocation, ValueAndType> constantsMap;
 
+  public @Nullable MachineModel getMachineModel() {
+    return machineModel;
+  }
+
   /**
    * hashCode needs to be updated with every change of {@link #constantsMap}.
    *
@@ -119,9 +131,18 @@ public final class ValueAnalysisState
   private int hashCode = 0;
 
   private final @Nullable MachineModel machineModel;
+  private transient @Nullable PathFormula violationCondition;
 
   public ValueAnalysisState(MachineModel pMachineModel) {
     this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of());
+  }
+
+  public void setViolationCondition(@Nullable PathFormula pViolationCondition) {
+    violationCondition = pViolationCondition;
+  }
+
+  public @Nullable PathFormula getViolationCondition() {
+    return violationCondition;
   }
 
   public ValueAnalysisState(
@@ -143,6 +164,10 @@ public final class ValueAnalysisState
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
     assert hashCode == constantsMap.hashCode();
+  }
+
+  public boolean isTop() {
+    return constantsMap.isEmpty();
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
@@ -656,6 +681,9 @@ public final class ValueAnalysisState
 
         if (num != null) {
           Type type = entry.getValue().getType();
+          while (type instanceof CTypedefType pCTypedefType) {
+            type = pCTypedefType.getRealType();
+          }
           if (!memoryLocation.isReference() && type instanceof CSimpleType simpleType) {
             if (simpleType.getType().isIntegerType()) {
               int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
@@ -1003,6 +1031,40 @@ public final class ValueAnalysisState
     }
 
     return result;
+  }
+
+  public static List<Constraint> compareInConstraint(
+      ValueAnalysisState pState1, ValueAnalysisState pState2) {
+    List<Constraint> constraints = new ArrayList<>();
+    for (Entry<MemoryLocation, ValueAndType> entry : pState1.constantsMap.entrySet()) {
+      MemoryLocation mL = entry.getKey();
+      if (!pState2.constantsMap.containsKey(mL)) {
+        continue;
+      }
+      ValueAndType value2 = pState2.constantsMap.get(mL);
+      if (value2.getType().equals(entry.getValue().getType())) {
+        ConstantSymbolicExpression expr1 =
+            new ConstantSymbolicExpression(entry.getValue().getValue(), entry.getValue().getType());
+        ConstantSymbolicExpression expr2 =
+            new ConstantSymbolicExpression(value2.getValue(), value2.getType());
+        if (!expr1.equals(expr2)) {
+          constraints.add(
+              SymbolicValueFactory.getInstance()
+                  .equal(expr1, expr2, value2.getType(), value2.getType()));
+        }
+      }
+    }
+    return constraints;
+  }
+
+  @Override
+  public BooleanFormula getViolationCondition(FormulaManagerView manager) {
+    if (violationCondition == null) {
+      return manager.getBooleanFormulaManager().makeTrue();
+    }
+    return PredicateOperatorUtil.uninstantiate(
+            violationCondition, manager, UniqueIndexProvider.withUUID())
+        .booleanFormula();
   }
 
   public static class ValueAndType implements Serializable {

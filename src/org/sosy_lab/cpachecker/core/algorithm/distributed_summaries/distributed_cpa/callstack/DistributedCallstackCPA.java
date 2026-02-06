@@ -47,6 +47,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
+  private final BlockNode block;
 
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
@@ -56,6 +57,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
       BlockNode pBlockNode,
       CFA pCFA,
       BiMap<Integer, CFANode> pIdToNodeMap) {
+    block = pBlockNode;
     callstackCPA = pCallstackCPA;
     cfa = pCFA;
     serialize = new SerializeCallstackStateOperator(pIdToNodeMap.inverse());
@@ -132,7 +134,8 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public AbstractState reset(AbstractState pAbstractState) {
     Preconditions.checkArgument(pAbstractState instanceof CallstackState);
-    return pAbstractState;
+    return new CallstackState(
+        null, block.getInitialLocation().getFunctionName(), block.getInitialLocation());
   }
 
   @Override

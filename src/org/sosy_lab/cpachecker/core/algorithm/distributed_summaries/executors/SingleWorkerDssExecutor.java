@@ -43,6 +43,13 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * The single worker executor decomposed the CFA in multiple blocks and then only runs the block
+ * analysis on one given block. For this, all{@link SingleWorkerDssExecutor#knownConditions known
+ * conditions} need to be set in advance and all messages yet to be processed need to be set as
+ * {@link SingleWorkerDssExecutor#newConditions}. The results will be written to a given output
+ * directory.
+ */
 @Options(prefix = "distributedSummaries.singleWorker")
 public class SingleWorkerDssExecutor implements DssExecutor, AutoCloseable {
 

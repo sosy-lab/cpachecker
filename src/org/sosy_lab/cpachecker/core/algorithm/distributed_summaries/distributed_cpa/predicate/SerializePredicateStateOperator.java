@@ -45,18 +45,20 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     FormulaManagerView formulaManagerView = predicateCPA.getSolver().getFormulaManager();
     BooleanFormula booleanFormula;
-    SSAMap ssaMap = state.getPathFormula().getSsa();
+    SSAMap ssaMap;
     if (state.isAbstractionState()) {
       booleanFormula = state.getAbstractionFormula().asFormula();
+      SSAMap ssa = state.getAbstractionFormula().getBlockFormula().getSsa();
       SSAMapBuilder reset = SSAMap.emptySSAMap().builder();
-      for (String variable : ssaMap.allVariables()) {
-        reset.setIndex(variable, ssaMap.getType(variable), 1);
+      for (String variable : ssa.allVariables()) {
+        reset.setIndex(variable, ssa.getType(variable), 1);
       }
       ssaMap = reset.build();
       booleanFormula =
           predicateCPA.getSolver().getFormulaManager().instantiate(booleanFormula, ssaMap);
     } else {
       booleanFormula = state.getPathFormula().getFormula();
+      ssaMap = state.getPathFormula().getSsa();
     }
     String serializedFormula = formulaManagerView.dumpFormula(booleanFormula).toString();
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);

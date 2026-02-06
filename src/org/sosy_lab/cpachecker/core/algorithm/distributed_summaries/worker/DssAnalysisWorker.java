@@ -121,7 +121,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          yield dssBlockAnalysis.analyzePrecondition();
+          yield dssBlockAnalysis.analyzePrecondition(message.getSenderId());
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
@@ -197,10 +197,15 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     }
   }
 
+  public void broadcastInitialMessages()
+      throws CPAException, SolverException, InterruptedException {
+    broadcast(dssBlockAnalysis.runInitialAnalysis());
+  }
+
   @Override
   public void run() {
     try {
-      broadcast(dssBlockAnalysis.runInitialAnalysis());
+      broadcastInitialMessages();
       super.run();
     } catch (Exception | Error e) {
       logger.logException(Level.SEVERE, e, "Worker stopped working due to an error...");

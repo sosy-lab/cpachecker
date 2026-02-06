@@ -14,6 +14,7 @@ import java.util.Deque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssThreadMonitor;
 
 public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
@@ -24,23 +25,22 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
    * messages according to the enum {@link
-   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType}.
-   *
-   * @param pQueue the queue to forward
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType}
    */
-  private DssDefaultQueue(BlockingQueue<DssMessage> pQueue) {
-    queue = pQueue;
+  public DssDefaultQueue() {
+    queue = new LinkedBlockingQueue<>();
     highestPriority = new ArrayDeque<>();
     next = new ArrayDeque<>();
-  }
-
-  public DssDefaultQueue() {
-    this(new LinkedBlockingQueue<>());
   }
 
   @Override
   protected BlockingQueue<DssMessage> delegate() {
     return queue;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return next.isEmpty() && highestPriority.isEmpty() && queue.isEmpty();
   }
 
   @Override
@@ -72,6 +72,11 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
     if (!next.isEmpty()) {
       return next.removeFirst();
     }
-    return queue.take();
+    DssThreadMonitor.remove(Thread.currentThread().getName());
+    try {
+      return queue.take();
+    } finally {
+      DssThreadMonitor.add(Thread.currentThread().getName());
+    }
   }
 }

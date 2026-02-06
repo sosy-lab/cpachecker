@@ -10,22 +10,19 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Objects;
 import org.jspecify.annotations.NonNull;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class CombinePredicateStateOperator implements CombineOperator {
 
@@ -57,41 +54,18 @@ public class CombinePredicateStateOperator implements CombineOperator {
     Preconditions.checkArgument(
         states.size() == predicateAbstractStates.size(),
         "All states must be PredicateAbstractStates and abstraction states.");
-    ImmutableSet<@NonNull BooleanFormula> booleanFormulas =
-        predicateAbstractStates
-            .transform(s -> s.getAbstractionFormula().asInstantiatedFormula())
-            .toSet();
 
-    // Merge SSAMaps
-    SSAMapBuilder ssaMap = SSAMap.emptySSAMap().builder();
-    for (PathFormula formula : predicateAbstractStates.transform(s -> s.getPathFormula())) {
-      for (String variable : formula.getSsa().allVariables()) {
-        ssaMap.setIndex(variable, formula.getSsa().getType(variable), 1);
-      }
+    ImmutableList<@NonNull AbstractionFormula> formulas =
+        predicateAbstractStates.transform(p -> p.getAbstractionFormula()).toList();
+
+    AbstractionFormula first = formulas.getFirst();
+    for (int i = 1; i < formulas.size(); i++) {
+      first = predicateCPA.getPredicateManager().makeAnd(first, formulas.get(i));
     }
 
-    // Merge PointerTargetSets
-    PathFormulaManager pathFormulaManager = predicateCPA.getPathFormulaManager();
-    PointerTargetSet combined = null;
-    for (PointerTargetSet pts :
-        predicateAbstractStates.transform(p -> p.getPathFormula().getPointerTargetSet())) {
-      if (combined == null) {
-        combined = pts;
-      } else {
-        combined = pathFormulaManager.mergePts(combined, pts, ssaMap);
-      }
-    }
-    Preconditions.checkNotNull(combined, "Combined PointerTargetSet should not be null.");
-    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-        pathFormulaManager
-            .makeEmptyPathFormula()
-            .withContext(ssaMap.build(), combined)
-            .withFormula(
-                predicateCPA
-                    .getSolver()
-                    .getFormulaManager()
-                    .getBooleanFormulaManager()
-                    .or(booleanFormulas)),
-        (PredicateAbstractState) Objects.requireNonNull(Iterables.get(states, 0)));
+    return PredicateAbstractState.mkAbstractionState(
+        predicateCPA.getPathFormulaManager().makeEmptyPathFormula(),
+        first,
+        PathCopyingPersistentTreeMap.of());
   }
 }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -22,7 +23,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class SymbolicValueFactory {
 
   private static final SymbolicValueFactory SINGLETON = new SymbolicValueFactory();
-  private int idCounter = 0;
+  private AtomicInteger idCounter = new AtomicInteger(0);
 
   private SymbolicValueFactory() {
     // DO NOTHING
@@ -33,11 +34,11 @@ public class SymbolicValueFactory {
   }
 
   public static void reset() {
-    SINGLETON.idCounter = 0;
+    SINGLETON.idCounter = new AtomicInteger(0);
   }
 
   public SymbolicIdentifier newIdentifier(MemoryLocation pMemoryLocation) {
-    return new SymbolicIdentifier(idCounter++, pMemoryLocation);
+    return new SymbolicIdentifier(idCounter.getAndIncrement(), pMemoryLocation);
   }
 
   public SymbolicExpression asConstant(Value pValue, Type pType) {

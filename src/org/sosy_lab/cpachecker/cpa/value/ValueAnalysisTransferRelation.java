@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -92,6 +93,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -105,6 +107,7 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -115,6 +118,8 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -124,15 +129,18 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.xml.sax.SAXException;
 
 public class ValueAnalysisTransferRelation
@@ -308,6 +316,8 @@ public class ValueAnalysisTransferRelation
   private Map<Integer, String> valuesFromFile;
   @LazyInit private Random randomSampler = null;
 
+  private transient BlockStrengtheningOperator blockStrengtheningOperator;
+
   // Functions that we know are safe to ignore
   private static final Set<String> IGNORED_UNSUPPORTED_FUNCTIONS =
       ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable");
@@ -340,6 +350,11 @@ public class ValueAnalysisTransferRelation
         && options.getFunctionValuesForRandom() != null) {
       setupFunctionValuesForRandom();
     }
+  }
+
+  public void setBlockStrengtheningOperator(
+      BlockStrengtheningOperator pBlockStrengtheningOperator) {
+    blockStrengtheningOperator = pBlockStrengtheningOperator;
   }
 
   @Override
@@ -1184,7 +1199,7 @@ public class ValueAnalysisTransferRelation
       throws UnrecognizedCodeException {
 
     long offset = 0L;
-    for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
+    for (CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
       MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
 
       CExpression owner = pExp;
@@ -1336,7 +1351,7 @@ public class ValueAnalysisTransferRelation
       if (readableState.contains(varName)) {
         return readableState.getValueFor(varName);
       } else {
-        return Value.UnknownValue.getInstance();
+        return UnknownValue.getInstance();
       }
     }
   }
@@ -1354,7 +1369,7 @@ public class ValueAnalysisTransferRelation
 
       if (evv.hasMissingFieldAccessInformation()) {
         missingInformationRightJExpression = jRightHandSide;
-        return Value.UnknownValue.getInstance();
+        return UnknownValue.getInstance();
       } else {
         return value;
       }
@@ -1458,6 +1473,61 @@ public class ValueAnalysisTransferRelation
           toStrengthen.clear();
           toStrengthen.addAll(result);
         }
+        case BlockState blockState -> {
+          if (!blockState.isTarget()) {
+            continue;
+          }
+
+          if (blockStrengtheningOperator != null) {
+            try {
+              Collection<ValueAnalysisState> strengthened =
+                  blockStrengtheningOperator.strengthen(
+                      ((ValueAnalysisState) pElement), blockState);
+              if (strengthened.isEmpty()) {
+                return strengthened;
+              }
+            } catch (SolverException e) {
+              throw new CPATransferException("Solver failure during block strengthening", e);
+            } catch (InterruptedException e) {
+              throw new CPATransferException("Interrupted during block strengthening", e);
+            }
+          }
+          result.clear();
+          SymbolicIdentifierRenamer renamer =
+              new SymbolicIdentifierRenamer(
+                  SymbolicIdentifierRenamer.blockRenaming.get(blockState.getBlockNode().getId()),
+                  SymbolicIdentifierRenamer.blockIdentifiers.get(
+                      blockState.getBlockNode().getId()));
+          AbstractState wrappedState = blockState.getViolationConditions().getFirst();
+          ValueAnalysisState violationState =
+              AbstractStates.extractStateByType(wrappedState, ValueAnalysisState.class);
+          if (violationState == null) {
+            continue;
+          }
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            ValueAnalysisState newState = new ValueAnalysisState(machineModel);
+            for (Entry<MemoryLocation, ValueAndType> entry : stateToStrengthen.getConstants()) {
+              newState.assignConstant(
+                  entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+            }
+            for (Entry<MemoryLocation, ValueAndType> entry : violationState.getConstants()) {
+              if (newState.contains(entry.getKey())) {
+                continue;
+              }
+              if (entry.getValue().getValue() instanceof SymbolicValue sV) {
+                newState.assignConstant(
+                    entry.getKey(), sV.accept(renamer), entry.getValue().getType());
+              } else {
+                newState.assignConstant(
+                    entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+              }
+            }
+            result.add(newState);
+          }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
+        }
         default -> {}
       }
     }
@@ -1521,7 +1591,7 @@ public class ValueAnalysisTransferRelation
               CSimpleType paramType =
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
               if (paramType.getType().isFloatingPointType()) {
-                FloatValue.Format format = FloatValue.Format.fromCType(machineModel, paramType);
+                Format format = Format.fromCType(machineModel, paramType);
                 FloatValue integralPartValue =
                     numericValue.floatingPointValue(format).round(RoundingMode.TRUNCATE);
                 CFloatLiteralExpression integralPart =

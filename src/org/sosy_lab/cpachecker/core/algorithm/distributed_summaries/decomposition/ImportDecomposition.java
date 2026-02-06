@@ -32,9 +32,7 @@ public class ImportDecomposition implements DssBlockDecomposition {
 
   public ImportDecomposition(Path pImportFile) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
-    blocks =
-        objectMapper.readValue(
-            pImportFile.toFile(), new TypeReference<Map<String, ImportedBlock>>() {});
+    blocks = objectMapper.readValue(pImportFile.toFile(), new TypeReference<>() {});
     for (ImportedBlock value : blocks.values()) {
       if (value.edges().stream().anyMatch(e -> e.size() != 2)) {
         throw new IllegalArgumentException(

@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -128,6 +129,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private MemoryLocationValueHandler unknownValueHandler;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
+  private final BlockStrengtheningOperator blockStrengtheningOperator;
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
@@ -146,6 +148,10 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     config.inject(this, ValueAnalysisCPA.class);
 
+    blockStrengtheningOperator =
+        cfa.getLanguage() == Language.C
+            ? new BlockStrengtheningOperator(config, logger, pShutdownNotifier, cfa)
+            : null;
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
@@ -260,13 +266,20 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public ValueAnalysisTransferRelation getTransferRelation() {
-    return new ValueAnalysisTransferRelation(
-        logger,
-        cfa,
-        transferOptions,
-        unknownValueHandler,
-        constraintsStrengthenOperator,
-        statistics);
+    ValueAnalysisTransferRelation relation =
+        new ValueAnalysisTransferRelation(
+            logger,
+            cfa,
+            transferOptions,
+            unknownValueHandler,
+            constraintsStrengthenOperator,
+            statistics);
+    relation.setBlockStrengtheningOperator(blockStrengtheningOperator);
+    return relation;
+  }
+
+  public BlockStrengtheningOperator getBlockStrengtheningOperator() {
+    return blockStrengtheningOperator;
   }
 
   @Override

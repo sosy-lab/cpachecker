@@ -13,8 +13,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -44,7 +49,10 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
@@ -53,9 +61,16 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverRe
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Transfer relation for Symbolic Execution Analysis. */
@@ -72,6 +87,11 @@ public class ConstraintsTransferRelation
       name = "satCheckStrategy",
       description = "When to check the satisfiability of constraints")
   private CheckStrategy checkStrategy = CheckStrategy.AT_ASSUME;
+
+  @Option(
+      name = "globalsResetIdentifiers",
+      description = "Reset symbolic identifier IDs when initializing globals")
+  private boolean resetID = true;
 
   private final LogManagerWithoutDuplicates logger;
 
@@ -135,7 +155,7 @@ public class ConstraintsTransferRelation
   @Override
   protected ConstraintsState handleBlankEdge(BlankEdge cfaEdge) {
     // FIXME: Find a better way to have consistent symbolic identifier names
-    if (cfaEdge.getDescription().equals("INIT GLOBAL VARS")) {
+    if (resetID && cfaEdge.getDescription().equals("INIT GLOBAL VARS")) {
       SymbolicValueFactory.reset();
     }
     return state;
@@ -293,6 +313,12 @@ public class ConstraintsTransferRelation
 
       } else if (currStrengtheningState instanceof AutomatonState) {
         strengthenOperator = new AutomatonStrengthenOperator();
+
+      } else if (currStrengtheningState instanceof BlockState) {
+        strengthenOperator = new BlockAnalysisStrengthenOperator(pStrengtheningStates);
+      }
+      if (currStrengtheningState instanceof ConstraintsState) {
+        strengthenOperator = new ConstraintsAnalysisStrengthenOperator();
       }
 
       if (strengthenOperator != null) {
@@ -431,6 +457,193 @@ public class ConstraintsTransferRelation
       } catch (SolverException e) {
         throw new CPATransferException("Error while strengthening.", e);
       }
+    }
+  }
+
+  private final class BlockAnalysisStrengthenOperator implements StrengthenOperator {
+    private Set<SymbolicIdentifier> identifiers = new HashSet<>();
+    private ValueAnalysisState valueState;
+    SymbolicIdentifierRenamer visitor;
+
+    private void collectIDs(ConstraintsState pConstraintsState) {
+      for (Constraint constraint : pConstraintsState) {
+        assert constraint != null;
+        identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(constraint));
+      }
+    }
+
+    private void collectIDs(ValueAnalysisState pValueState) {
+      for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
+        if (constant.getValue().getValue() instanceof SymbolicValue symVal) {
+          identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
+        }
+        if (constant.getValue().getValue() instanceof SymbolicIdentifier symID) {
+          identifiers.add(symID);
+        }
+      }
+    }
+
+    private ConstraintsState renameIDsInConstraintsState(ConstraintsState pConstraintsState) {
+      ConstraintsState newState = new ConstraintsState();
+      for (Constraint constraint : pConstraintsState) {
+        assert constraint != null;
+        newState = newState.copyWithNew((Constraint) constraint.accept(visitor));
+      }
+      return newState;
+    }
+
+    private ValueAnalysisState renameIDsInValueState(ValueAnalysisState pValueState) {
+      ValueAnalysisState newState = new ValueAnalysisState(pValueState.getMachineModel());
+      for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
+        if (constant.getValue().getValue() instanceof SymbolicValue symValue) {
+          newState.assignConstant(
+              constant.getKey(), symValue.accept(visitor), constant.getValue().getType());
+        } else {
+          newState.assignConstant(
+              constant.getKey(), constant.getValue().getValue(), constant.getValue().getType());
+        }
+      }
+      return newState;
+    }
+
+    private CompositeState getRenamedViolation(BlockState pBlockState) {
+
+      visitor = new SymbolicIdentifierRenamer(new HashMap<>(), identifiers);
+      AbstractState violation = pBlockState.getViolationConditions().getFirst();
+      List<AbstractState> newViolation = new ArrayList<>();
+
+      assert violation instanceof ARGState;
+      AbstractState wrappedState = ((ARGState) violation).getWrappedState();
+      assert wrappedState instanceof CompositeState;
+
+      for (AbstractState abstractState : ((CompositeState) wrappedState).getWrappedStates()) {
+        AbstractState newState = abstractState;
+        if (abstractState instanceof ConstraintsState constraintsState) {
+          newState = renameIDsInConstraintsState(constraintsState);
+        }
+        if (abstractState instanceof ValueAnalysisState vState) {
+          newState = renameIDsInValueState(vState);
+        }
+        newViolation.add(newState);
+      }
+      SymbolicIdentifierRenamer.blockRenaming.put(
+          pBlockState.getBlockNode().getId(), visitor.getIdentifierMap());
+      SymbolicIdentifierRenamer.blockIdentifiers.put(
+          pBlockState.getBlockNode().getId(), identifiers);
+      return new CompositeState(newViolation);
+    }
+
+    private BlockAnalysisStrengthenOperator(final Iterable<AbstractState> pStrengtheningStates) {
+      for (AbstractState abstractState : pStrengtheningStates) {
+        if (abstractState instanceof ConstraintsState constraintsState) {
+          collectIDs(constraintsState);
+        }
+        if (abstractState instanceof ValueAnalysisState vS) {
+          valueState = vS;
+          collectIDs(valueState);
+        }
+      }
+    }
+
+    @Override
+    public Optional<Collection<ConstraintsState>> strengthen(
+        final ConstraintsState pStateToStrengthen,
+        final AbstractState pStrengtheningState,
+        final String pFunctionName,
+        final CFAEdge pCfaEdge)
+        throws CPATransferException, InterruptedException {
+
+      assert pStrengtheningState instanceof BlockState;
+      if (!((BlockState) pStrengtheningState).isTarget()) {
+        return Optional.empty();
+      }
+
+      List<? extends @NonNull AbstractState> violations =
+          ((BlockState) pStrengtheningState).getViolationConditions();
+
+      if (!(violations.getFirst() instanceof ARGState cS)) {
+        return Optional.empty();
+      }
+      CompositeState newViolation = getRenamedViolation((BlockState) pStrengtheningState);
+
+      List<ConstraintsState> newStates = new ArrayList<>();
+      newStates.add(pStateToStrengthen);
+      boolean nothingChanged = true;
+
+      for (AbstractState currStrengtheningState : newViolation.getWrappedStates()) {
+        StrengthenOperator strengthenOperator = null;
+
+        ConstraintsState currStateToStrengthen = new ConstraintsState(newStates.getFirst());
+        if (currStrengtheningState instanceof ConstraintsState constraintsState) {
+          if (valueState != null) {
+            List<Constraint> valueComparison =
+                ValueAnalysisState.compareInConstraint(
+                    valueState,
+                    AbstractStates.extractStateByType(newViolation, ValueAnalysisState.class));
+            if (!valueComparison.isEmpty()) {
+              currStrengtheningState = constraintsState.copyWithNew(valueComparison);
+            }
+          }
+          strengthenOperator = new ConstraintsAnalysisStrengthenOperator();
+        }
+
+        if (strengthenOperator == null) {
+          continue;
+        }
+
+        Optional<Collection<ConstraintsState>> oNewStrengthenedStates =
+            strengthenOperator.strengthen(
+                currStateToStrengthen, currStrengtheningState, pFunctionName, pCfaEdge);
+
+        if (oNewStrengthenedStates.isPresent()) {
+          newStates.clear(); // remove the old state to replace it with the new, strengthened result
+          nothingChanged = false;
+          Collection<ConstraintsState> strengthenedStates = oNewStrengthenedStates.orElseThrow();
+
+          if (!strengthenedStates.isEmpty()) {
+            ConstraintsState newState = Iterables.getOnlyElement(strengthenedStates);
+            newStates.add(newState);
+          } else {
+            return Optional.of(ImmutableSet.of());
+          }
+        }
+      }
+      if (nothingChanged) {
+        return Optional.empty();
+      }
+      return Optional.of(newStates);
+    }
+  }
+
+  private final class ConstraintsAnalysisStrengthenOperator implements StrengthenOperator {
+
+    @Override
+    public Optional<Collection<ConstraintsState>> strengthen(
+        final ConstraintsState pStateToStrengthen,
+        final AbstractState pStrengtheningState,
+        final String pFunctionName,
+        final CFAEdge pCfaEdge)
+        throws CPATransferException, InterruptedException {
+
+      assert pStrengtheningState instanceof ConstraintsState;
+      if (pStateToStrengthen.equals(pStrengtheningState)) {
+        return Optional.empty();
+      }
+
+      ConstraintsState newState = pStateToStrengthen;
+      for (Constraint constraint : ((ConstraintsState) pStrengtheningState)) {
+        newState = newState.copyWithNew(constraint);
+      }
+
+      try {
+        newState = getIfSatisfiable(newState, functionName, solver);
+      } catch (SolverException e) {
+        throw new CPATransferException("Solver failed when strengthening constraints state", e);
+      }
+      if (newState != null) {
+        return Optional.of(ImmutableSet.of(simplifier.removeTrivialConstraints(newState)));
+      }
+      return Optional.of(ImmutableSet.of());
     }
   }
 

@@ -12,6 +12,7 @@ import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -27,25 +28,25 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
 
   @Serial private static final long serialVersionUID = 2228733300503173691L;
 
-  private final Optional<MemoryLocation> representedLocation;
+  private final @Nullable MemoryLocation representedLocation;
 
   // For some analysis, we need the state to decide equality of abstract expressions instead of
   // MemLoc
-  private final Optional<AbstractState> stateWithRepresentation;
+  private final @Nullable AbstractState stateWithRepresentation;
 
   protected SymbolicExpression(final MemoryLocation pRepresentedLocation) {
-    representedLocation = Optional.of(pRepresentedLocation);
-    stateWithRepresentation = Optional.empty();
+    representedLocation = pRepresentedLocation;
+    stateWithRepresentation = null;
   }
 
   protected SymbolicExpression(final AbstractState pStateWithRepresentation) {
-    representedLocation = Optional.empty();
-    stateWithRepresentation = Optional.of(pStateWithRepresentation);
+    representedLocation = null;
+    stateWithRepresentation = pStateWithRepresentation;
   }
 
   protected SymbolicExpression() {
-    representedLocation = Optional.empty();
-    stateWithRepresentation = Optional.empty();
+    representedLocation = null;
+    stateWithRepresentation = null;
   }
 
   @Override
@@ -55,7 +56,7 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
 
   @Override
   public Optional<MemoryLocation> getRepresentedLocation() {
-    return representedLocation;
+    return Optional.ofNullable(representedLocation);
   }
 
   /**
@@ -86,11 +87,11 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
   public abstract boolean isTrivial();
 
   public AbstractState getAbstractState() {
-    return stateWithRepresentation.orElseThrow();
+    return Optional.ofNullable(stateWithRepresentation).orElseThrow();
   }
 
   public boolean hasAbstractState() {
-    return stateWithRepresentation.isPresent();
+    return stateWithRepresentation != null;
   }
 
   @Override

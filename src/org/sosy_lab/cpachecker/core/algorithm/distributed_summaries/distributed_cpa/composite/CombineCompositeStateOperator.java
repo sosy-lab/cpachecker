@@ -12,19 +12,24 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CombineCompositeStateOperator implements CombineOperator {
 
   private final List<ConfigurableProgramAnalysis> wrapped;
+  private final CFANode node;
 
-  public CombineCompositeStateOperator(List<ConfigurableProgramAnalysis> pWrapped) {
+  public CombineCompositeStateOperator(
+      List<ConfigurableProgramAnalysis> pWrapped, CFANode pInitialNode) {
     wrapped = pWrapped;
+    node = pInitialNode;
   }
 
   @Override
@@ -51,11 +56,8 @@ public class CombineCompositeStateOperator implements CombineOperator {
         AbstractState combinedState = dcpa.getCombineOperator().combine(statesToCombine.build());
         wrappedStates.add(combinedState);
       } else {
-        // Alternatively, we could think of returning the initial state.
-        throw new CPAException(
-            "Wrapped analysis "
-                + wrapped.get(i).getClass().getSimpleName()
-                + " does not implement CombineOperator.");
+        wrappedStates.add(
+            wrapped.get(i).getInitialState(node, StateSpacePartition.getDefaultPartition()));
       }
     }
     return new CompositeState(wrappedStates.build());

@@ -144,6 +144,10 @@ public class ConstraintsSolver {
 
   private final MachineModel machineModel;
 
+  public FormulaManagerView getFormulaManager() {
+    return formulaManager;
+  }
+
   public ConstraintsSolver(
       final Configuration pConfig,
       final MachineModel pMachineModel,
@@ -628,7 +632,7 @@ public class ConstraintsSolver {
    * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
-  private ImmutableSet<BooleanFormula> getFullFormula(
+  public ImmutableSet<BooleanFormula> getFullFormula(
       Collection<Constraint> pConstraints, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -649,6 +653,10 @@ public class ConstraintsSolver {
         : "Trying to add a formula that already exists!";
 
     return getFormulaCreator(pFunctionName).createFormula(pConstraint);
+  }
+
+  public Solver getSolver() {
+    return solver;
   }
 
   private interface ConstraintsCache {

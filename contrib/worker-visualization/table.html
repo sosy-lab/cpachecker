@@ -19,9 +19,22 @@ SPDX-License-Identifier: Apache-2.0
     /*CSS*/
 </style>
 <body>
-<div>
-    <img src="graph.png"/>
+
+<input type="checkbox" id="toggleGraph" />
+
+<div class="overlay">
+    <label for="toggleGraph" class="overlay-bg" aria-label="Close overlay"></label>
+
+    <div class="overlay-content" aria-modal="true" role="dialog" aria-labelledby="graphTitle">
+        <img src="graph.png" alt="Graph" />
+    </div>
 </div>
+
+<label for="toggleGraph" class="btn">
+    <span class="show">+</span>
+    <span class="hide">-</span>
+</label>
+
 <table class="worker">
 <!--<<<TABLE>>><!-->
 </table>

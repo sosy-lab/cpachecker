@@ -30,6 +30,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+/**
+ * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
+ * ID, a type, a timestamp, and content. The content is a flat map of key-value pairs, where keys
+ * can be hierarchical using dot notation.
+ */
 public abstract class DssMessage {
 
   public enum DssMessageType {
@@ -76,6 +81,13 @@ public abstract class DssMessage {
   private final Instant timestamp;
   private final ImmutableMap<String, String> content;
 
+  /**
+   * Creates a new message with the given sender ID, type, and content.
+   *
+   * @param pSenderId the ID of the sender
+   * @param pType the type of the message
+   * @param pContent the content of the message
+   */
   DssMessage(String pSenderId, DssMessageType pType, Map<String, String> pContent) {
     checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
     senderId = pSenderId;
@@ -84,6 +96,12 @@ public abstract class DssMessage {
     content = ImmutableMap.copyOf(pContent);
   }
 
+  /**
+   * Checks whether the given content is valid for this message type.
+   *
+   * @param pContent the content to check
+   * @return true if the content is valid, false otherwise
+   */
   abstract boolean isValid(Map<String, String> pContent);
 
   public final Instant getTimestamp() {

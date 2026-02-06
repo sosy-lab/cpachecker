@@ -2105,6 +2105,9 @@ cpa.constraints.cacheSubsets = false
 # Whether to use superset caching
 cpa.constraints.cacheSupersets = false
 
+# Reset symbolic identifier IDs when initializing globals
+cpa.constraints.globalsResetIdentifiers = true
+
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
   enum:     [SUBSET]
@@ -4504,7 +4507,7 @@ distributedSummaries.decomposition.importDecomposition = no default value
 
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
-  enum:     [DSS, SINGLE_WORKER]
+  enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
 
 # If this option is set to true, the analysis will try to cover all violation
 # conditions in the block, even if no valid ARG path exists. In some cases,
@@ -4549,6 +4552,10 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
+
+# Whether to run symbolic execution to compute the violation condition for
+# value analysis.
+dss.cpa.value.runSymExec = true
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

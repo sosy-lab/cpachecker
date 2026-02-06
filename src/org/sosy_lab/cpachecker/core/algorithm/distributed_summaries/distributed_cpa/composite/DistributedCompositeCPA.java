@@ -78,7 +78,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     deserializePrecisionOperator = new DeserializeCompositePrecisionOperator(wrappedCpas, pNode);
     verificationConditionOperator = new CompositeViolationConditionOperator(wrappedCpas);
     coverageOperator = new CompositeStateCoverageOperator(wrappedCpas);
-    combineOperator = new CombineCompositeStateOperator(wrappedCpas);
+    combineOperator = new CombineCompositeStateOperator(wrappedCpas, pNode.getInitialLocation());
     combinePrecisionOperator = new CombineCompositePrecisionOperator(wrappedCpas);
   }
 
