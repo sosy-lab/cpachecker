@@ -6,11 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.smg2;
+package org.sosy_lab.cpachecker.cpa.smg2.test;
 
 import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.Set;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -33,36 +35,51 @@ public class SMGBaseCPATest {
    * The default configuration files to use for running SMG2 as Symbolic Execution and Value
    * Analysis
    */
-  private static final String CONFIGURATION_FILE_SMG_SYMBOLIC_EXECUTION =
-      "config/smgSymbolicExecution.properties";
+  private static final String SMG_SYMBOLIC_EXECUTION = "smgSymbolicExecution.properties";
 
-  private static final String CONFIGURATION_FILE_SMG_VALUE_ANALYSIS =
-      "config/smgValueAnalysis.properties";
+  private static final String SMG_VALUE_ANALYSIS = "smgValueAnalysis.properties";
 
   /** Default, MemSafety, MemCleanup, and No-Overflow specifications are usable with SMG2 */
-  private static final String SPECIFICATION_DEFAULT = "config/specification/default.spc";
+  private static final String DEFAULT_SPECIFICATION = "default.spc";
 
-  private static final String SPECIFICATION_MEMSAFETY = "config/specification/memorysafety.spc";
-  private static final String SPECIFICATION_MEMCLEANUP = "config/specification/memorycleanup.spc";
-
-  private static final String SPECIFICATION_OVERFLOW = "config/specification/overflow.spc";
+  private static final String MEMSAFETY_SPECIFICATION = "memorysafety.spc";
+  private static final String MEMCLEANUP_SPECIFICATION = "memorycleanup.spc";
+  private static final String OVERFLOW_SPECIFICATION = "overflow.spc";
 
   private static final String TEST_PROGRAM_COMMON_PREFIX = "test/programs/";
+  private static final String CPA_CONFIG_COMMON_PREFIX = "config/";
+  private static final String SPECIFICATION_COMMON_PREFIX = "config/specification/";
 
-  @Parameters(name = "{0}")
-  public static Configuration[] getAllConfigurations()
-      throws IOException, InvalidConfigurationException {
-    return new Configuration[] {
-      getSMGSymExecConfigWithDefaultSpec(),
-      getSMGSymExecConfigWithMemSafetySpec(),
-      getSMGSymExecConfigWithMemCleanupSpec(),
-      getSMGValueConfigWithDefaultSpec(),
-      getSMGValueConfigWithMemSafetySpec(),
-      getSMGValueConfigWithMemCleanupSpec()
-    };
+  @Parameters(name = "CPA: {0} with specification: {1}")
+  public static String[][] getAllConfigurationsAndSpecifications() {
+    return getAllSMGCPAConfigurationsAndSpecificationsForTests();
   }
 
-  @Parameter public Configuration configuration;
+  private static String[][] getAllSMGCPAConfigurationsAndSpecificationsForTests() {
+    Set<String> cpasToRun = ImmutableSet.of(SMG_SYMBOLIC_EXECUTION, SMG_VALUE_ANALYSIS);
+    Set<String> specsToRun =
+        ImmutableSet.of(
+            DEFAULT_SPECIFICATION,
+            MEMSAFETY_SPECIFICATION,
+            MEMCLEANUP_SPECIFICATION,
+            OVERFLOW_SPECIFICATION);
+    String[][] params = new String[cpasToRun.size() * specsToRun.size()][2];
+    int count = 0;
+    for (String cpa : cpasToRun) {
+      for (String spec : specsToRun) {
+        params[count][0] = cpa;
+        params[count][1] = spec;
+        count++;
+      }
+    }
+    return params;
+  }
+
+  @Parameter(0)
+  public String configToUse;
+
+  @Parameter(1)
+  public String specToUse;
 
   private static final MachineModel machineModel = getMachineModel();
 
@@ -94,49 +111,15 @@ public class SMGBaseCPATest {
     if (!testProgram.startsWith(TEST_PROGRAM_COMMON_PREFIX)) {
       testProgram = TEST_PROGRAM_COMMON_PREFIX + testProgram;
     }
-    return CPATestRunner.run(configuration, testProgram);
+    return CPATestRunner.run(buildConfigForC(configToUse, specToUse), testProgram);
   }
 
-  private static Configuration getSMGSymExecConfigWithDefaultSpec()
-      throws IOException, InvalidConfigurationException {
-    return getConfig(CONFIGURATION_FILE_SMG_SYMBOLIC_EXECUTION, Language.C, SPECIFICATION_DEFAULT);
-  }
-
-  private static Configuration getSMGSymExecConfigWithMemSafetySpec()
+  private static Configuration buildConfigForC(String cpaConfiguration, String specification)
       throws IOException, InvalidConfigurationException {
     return getConfig(
-        CONFIGURATION_FILE_SMG_SYMBOLIC_EXECUTION, Language.C, SPECIFICATION_MEMSAFETY);
-  }
-
-  private static Configuration getSMGSymExecConfigWithMemCleanupSpec()
-      throws IOException, InvalidConfigurationException {
-    return getConfig(
-        CONFIGURATION_FILE_SMG_SYMBOLIC_EXECUTION, Language.C, SPECIFICATION_MEMCLEANUP);
-  }
-
-  private static Configuration getSMGSymExecConfigWithOverflowSpec()
-      throws IOException, InvalidConfigurationException {
-    return getConfig(CONFIGURATION_FILE_SMG_SYMBOLIC_EXECUTION, Language.C, SPECIFICATION_OVERFLOW);
-  }
-
-  private static Configuration getSMGValueConfigWithDefaultSpec()
-      throws IOException, InvalidConfigurationException {
-    return getConfig(CONFIGURATION_FILE_SMG_VALUE_ANALYSIS, Language.C, SPECIFICATION_DEFAULT);
-  }
-
-  private static Configuration getSMGValueConfigWithMemSafetySpec()
-      throws IOException, InvalidConfigurationException {
-    return getConfig(CONFIGURATION_FILE_SMG_VALUE_ANALYSIS, Language.C, SPECIFICATION_MEMSAFETY);
-  }
-
-  private static Configuration getSMGValueConfigWithMemCleanupSpec()
-      throws IOException, InvalidConfigurationException {
-    return getConfig(CONFIGURATION_FILE_SMG_VALUE_ANALYSIS, Language.C, SPECIFICATION_MEMCLEANUP);
-  }
-
-  private static Configuration getSMGValueConfigWithOverflowSpec()
-      throws IOException, InvalidConfigurationException {
-    return getConfig(CONFIGURATION_FILE_SMG_VALUE_ANALYSIS, Language.C, SPECIFICATION_OVERFLOW);
+        CPA_CONFIG_COMMON_PREFIX + cpaConfiguration,
+        Language.C,
+        SPECIFICATION_COMMON_PREFIX + specification);
   }
 
   /** Uses the default {@link Configuration} and does not allow generated files to be accessed. */

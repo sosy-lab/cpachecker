@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.smg2;
+package org.sosy_lab.cpachecker.cpa.smg2.test;
 
 import org.junit.Ignore;
 import org.junit.Test;
