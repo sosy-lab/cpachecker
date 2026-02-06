@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.common.time.Tickers;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssStatisticsMessage.DssStatisticType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 public class DssBlockAnalysisStatistics {
@@ -90,18 +90,18 @@ public class DssBlockAnalysisStatistics {
     return serializationTime;
   }
 
-  public Map<String, Object> getStatistics() {
-    return ImmutableMap.<String, Object>builder()
+  public Map<StatisticsKey, String> getStatistics() {
+    return ImmutableMap.<StatisticsKey, String>builder()
         .put(
-            DssStatisticType.SERIALIZATION_COUNT.name(),
+            StatisticsKey.SERIALIZATION_COUNT,
             Integer.toString(serializationCount.getUpdateCount()))
         .put(
-            DssStatisticType.DESERIALIZATION_COUNT.name(),
+            StatisticsKey.DESERIALIZATION_COUNT,
             Integer.toString(deserializationCount.getUpdateCount()))
-        .put(DssStatisticType.PROCEED_COUNT.name(), Integer.toString(proceedCount.getUpdateCount()))
-        .put(DssStatisticType.SERIALIZATION_TIME.name(), serializationTime.nanos())
-        .put(DssStatisticType.DESERIALIZATION_TIME.name(), deserializationTime.nanos())
-        .put(DssStatisticType.PROCEED_TIME.name(), proceedTime.nanos())
+        .put(StatisticsKey.PROCEED_COUNT, Integer.toString(proceedCount.getUpdateCount()))
+        .put(StatisticsKey.SERIALIZATION_TIME, Long.toString(serializationTime.nanos()))
+        .put(StatisticsKey.DESERIALIZATION_TIME, Long.toString(deserializationTime.nanos()))
+        .put(StatisticsKey.PROCEED_TIME, Long.toString(proceedTime.nanos()))
         .buildOrThrow();
   }
 }

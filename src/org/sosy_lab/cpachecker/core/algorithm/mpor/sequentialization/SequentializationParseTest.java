@@ -61,7 +61,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
-            .setOption("analysis.algorithm.MPOR.reductionOrder", "LAST_THREAD_THEN_CONFLICT")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -156,7 +155,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
-            .setOption("analysis.algorithm.MPOR.reductionOrder", "CONFLICT_THEN_LAST_THREAD")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -274,7 +272,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
-            .setOption("analysis.algorithm.MPOR.reductionOrder", "LAST_THREAD_THEN_CONFLICT")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
@@ -295,7 +292,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.loopIterations", "9999")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
-            .setOption("analysis.algorithm.MPOR.optimizeConstAuxiliaryVariables", "true")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectors", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectorWrites", "true")
@@ -398,6 +394,8 @@ public class SequentializationParseTest {
 
   private static final String ANON_TYPE_KEYWORD = "__anon_type_";
 
+  private static final int FIRST_LINE = 1;
+
   /**
    * Checks whether two sequentializations with the exact same input result in the exact same
    * output, i.e. the same {@link String} output and the same {@link SequentializationFields}
@@ -411,8 +409,7 @@ public class SequentializationParseTest {
       String lineB = linesB.get(i);
       // ignore __anon_type_{count} since the static counter is not reset between CFA creation runs
       if (!lineA.contains(ANON_TYPE_KEYWORD) && !lineB.contains(ANON_TYPE_KEYWORD)) {
-        assertWithMessage(
-                "lineA, lineB with number %s are not equal: ", (i + Sequentialization.FIRST_LINE))
+        assertWithMessage("lineA, lineB with number %s are not equal: ", (i + FIRST_LINE))
             .that(lineA)
             .isEqualTo(lineB);
       }

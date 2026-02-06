@@ -14,8 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -76,19 +74,6 @@ public class PredicateOperatorUtil {
     public String extend(String pCurrentId) {
       return pCurrentId;
     }
-  }
-
-  public static String extractFormulaString(
-      DssMessage pMessage,
-      Class<? extends ConfigurableProgramAnalysis> pKey,
-      FormulaManagerView pFormulaManagerView) {
-    return pMessage
-        .getAbstractState(pKey)
-        .map(Object::toString)
-        .orElse(
-            pFormulaManagerView
-                .dumpFormula(pFormulaManagerView.getBooleanFormulaManager().makeTrue())
-                .toString());
   }
 
   public static PathFormula getPathFormula(

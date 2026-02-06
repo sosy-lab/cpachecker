@@ -115,7 +115,6 @@ public class SeqThreadStatementBlock implements SeqStatement {
   }
 
   public SeqThreadStatementBlock withStatements(ImmutableList<CSeqThreadStatement> pStatements) {
-
     return new SeqThreadStatementBlock(options, nextThreadLabel, label, pStatements);
   }
 

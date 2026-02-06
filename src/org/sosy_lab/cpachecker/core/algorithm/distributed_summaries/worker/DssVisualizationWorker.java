@@ -10,57 +10,69 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization.DssMessageLogger;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class DssVisualizationWorker extends DssWorker {
 
-  private final DssMessageLogger messageLogger;
   private final DssConnection connection;
+  private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private final Path reportFiles;
   private boolean shutdown = false;
+  private final int identifier;
 
   DssVisualizationWorker(
       String id,
-      BlockGraph pTree,
+      BlockGraph pNode,
       DssConnection pConnection,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
-      LogManager pLogger)
-      throws InvalidConfigurationException {
+      LogManager pLogger) {
     super(id, pMessageFactory, pLogger);
+    identifier = Instant.now().hashCode();
     connection = pConnection;
-    messageLogger = new DssMessageLogger(pTree, pOptions.getParentConfig());
+    reportFiles = pOptions.getReportFiles();
     try {
-      messageLogger.logBlockGraph();
+      if (pOptions.getBlockCFAFile() != null) {
+        pNode.export(pOptions.getBlockCFAFile());
+      }
     } catch (IOException e) {
       pLogger.logException(
           Level.WARNING,
           e,
-          "VisualizationWorker failed to log the BlockTree. "
+          "VisualizationWorker failed to log the BlockGraph. "
               + "The visualization might contain old data or will not work. "
               + "However, the analysis continues normally.");
     }
   }
 
+  private void log(DssMessage pMessage) throws IOException {
+    if (reportFiles != null) {
+      JSON.writeJSONString(
+          pMessage.asJsonWithIdentifier(identifier),
+          reportFiles.resolve("M" + idGenerator.getFreshId() + ".json"));
+    }
+  }
+
   @Override
   public Collection<DssMessage> processMessage(DssMessage pMessage)
-      throws InterruptedException, IOException, SolverException, CPAException {
-    messageLogger.log(pMessage);
+      throws InterruptedException, IOException {
+    log(pMessage);
     boolean stop = false;
     while (connection.hasPendingMessages()) {
       DssMessage m = connection.read();
-      messageLogger.log(m);
-      stop |= m.getType() == MessageType.ERROR || m.getType() == MessageType.FOUND_RESULT;
+      log(m);
+      stop |= m.getType() == DssMessageType.EXCEPTION || m.getType() == DssMessageType.RESULT;
     }
     if (stop) {
       shutdown = true;

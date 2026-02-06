@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteUtil {
 
@@ -38,17 +39,17 @@ public class SubstituteUtil {
    * CParameterDeclaration}. Other declarations such as {@link CFunctionDeclaration}s are not
    * substituted.
    */
-  public static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
+  static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
     return pSimpleDeclaration instanceof CVariableDeclaration
         || pSimpleDeclaration instanceof CParameterDeclaration;
   }
 
-  public static ImmutableList<MPORThread> extractThreads(
-      ImmutableList<MPORSubstitution> pSubstitutions) {
-
-    return pSubstitutions.stream()
-        .map(MPORSubstitution::getThread)
-        .collect(ImmutableList.toImmutableList());
+  static CVariableDeclaration asVariableDeclaration(CSimpleDeclaration pSimpleDeclaration) {
+    checkArgument(isSubstitutable(pSimpleDeclaration));
+    if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
+      return variableDeclaration;
+    }
+    return ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
   }
 
   public static MPORSubstitution extractMainThreadSubstitution(
@@ -58,7 +59,7 @@ public class SubstituteUtil {
   }
 
   /** Function and Type declarations are placed outside {@code main()}. */
-  public static boolean isExcludedDeclarationEdge(
+  static boolean isExcludedDeclarationEdge(
       MPOROptions pOptions, CDeclarationEdge pDeclarationEdge) {
 
     CDeclaration declaration = pDeclarationEdge.getDeclaration();
@@ -103,14 +104,14 @@ public class SubstituteUtil {
       MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rPointerDereferences = ImmutableSet.builder();
-    for (CSimpleDeclaration pointerDereference :
+    for (CVariableDeclaration pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
       rPointerDereferences.add(SeqMemoryLocation.of(pOptions, pCallContext, pointerDereference));
     }
-    ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+    ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
         fieldReferencePointerDereferences =
             pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType);
-    for (CSimpleDeclaration fieldOwner : fieldReferencePointerDereferences.keySet()) {
+    for (CVariableDeclaration fieldOwner : fieldReferencePointerDereferences.keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember :
           fieldReferencePointerDereferences.get(fieldOwner)) {
         rPointerDereferences.add(
@@ -127,12 +128,12 @@ public class SubstituteUtil {
       MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
-    for (CSimpleDeclaration declaration : pTracker.getDeclarationsByAccessType(pAccessType)) {
+    for (CVariableDeclaration declaration : pTracker.getDeclarationsByAccessType(pAccessType)) {
       rMemoryLocations.add(SeqMemoryLocation.of(pOptions, pCallContext, declaration));
     }
-    ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
+    ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
         pTracker.getFieldMembersByAccessType(pAccessType);
-    for (CSimpleDeclaration fieldOwner : fieldMembers.keySet()) {
+    for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
         rMemoryLocations.add(SeqMemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
       }
@@ -146,7 +147,7 @@ public class SubstituteUtil {
    * Maps pointers {@code ptr} to the memory locations e.g. {@code &var} assigned to them based on
    * {@code substituteEdges}, including both global and local memory locations.
    */
-  public static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
+  static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
       MPOROptions pOptions,
       Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker) {
@@ -171,10 +172,10 @@ public class SubstituteUtil {
 
   // Main Function Arg =============================================================================
 
-  public static ImmutableSet<CParameterDeclaration> findAllMainFunctionArgs(
+  public static ImmutableSet<CVariableDeclaration> findAllMainFunctionArgs(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableSet.Builder<CParameterDeclaration> rArgs = ImmutableSet.builder();
+    ImmutableSet.Builder<CVariableDeclaration> rArgs = ImmutableSet.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rArgs.addAll(substituteEdge.accessedMainFunctionArgs);
     }

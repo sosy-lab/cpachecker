@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
-import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
+import org.sosy_lab.cpachecker.cpa.value.ToValuePrecisionConverter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -122,7 +122,7 @@ public class SMGCPA
   private VariableTrackingPrecision precision;
   private boolean refineablePrecisionSet = false;
 
-  private final PredicateToValuePrecisionConverter predToValPrec;
+  private final ToValuePrecisionConverter predToValPrec;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
   private final SMGCPAStatistics statistics;
@@ -144,7 +144,7 @@ public class SMGCPA
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     precision = initializePrecision(config, cfa);
-    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+    predToValPrec = new ToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
 
     statistics = new SMGCPAStatistics();

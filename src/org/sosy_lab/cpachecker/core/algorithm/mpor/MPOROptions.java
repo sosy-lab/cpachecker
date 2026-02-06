@@ -9,21 +9,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-/** Contains all {@link Option} fields used to adjust {@link MPORAlgorithm}. */
+/** Contains all {@link Option} fields used to adjust {@link MporPreprocessingAlgorithm}. */
 @Options(prefix = "analysis.algorithm.MPOR")
 public class MPOROptions {
 
@@ -135,24 +131,6 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
-          "create additional output file with metadata such as input file(s) and algorithm"
-              + " options?")
-  private boolean outputMetadata = true;
-
-  @Option(
-      secure = true,
-      description =
-          "the file name for the sequentialization and metadata. uses the first input file name as"
-              + " the default prefix.")
-  @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate outputPath = PathTemplate.ofFormatString("%s-sequentialized");
-
-  @Option(secure = true, description = "export the sequentialized program in a .i file?")
-  private boolean outputProgram = true;
-
-  @Option(
-      secure = true,
-      description =
           "prune and simplify bit vector evaluation expressions based on perfect knowledge? e.g."
               + " if it is known that the left hand side in an & expression is 0, then the entire"
               + " evaluation can be pruned.")
@@ -192,6 +170,16 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
+          "Continue executing the current thread if it is the only active thread. This option"
+              + " utilizes a thread_count ghost variable which is incremented for each created"
+              + " thread and decremented for each terminated thread. These increments and decrement"
+              + " are placed inside a possibly infinite loop, so when analyzing for overflows, it"
+              + " may be more efficient to disable this option.")
+  private boolean reduceSingleActiveThread = true;
+
+  @Option(
+      secure = true,
+      description =
           "continue executing the current thread until it is in conflict with at least another"
               + " thread?")
   private boolean reduceUntilConflict = false;
@@ -203,13 +191,6 @@ public class MPOROptions {
               + " state space more than ACCESS_ONLY, but introduces additional overhead (i.e."
               + " number of variables, assignments, and expression evaluations)")
   private ReductionMode reductionMode = ReductionMode.NONE;
-
-  @Option(
-      secure = true,
-      description =
-          "if both reduceLastThreadOrder and reduceUntilConflict are enabled, define the order"
-              + " in which their statements are placed in the output program.")
-  private ReductionOrder reductionOrder = ReductionOrder.NONE;
 
   @Option(
       secure = true,
@@ -299,13 +280,6 @@ public class MPOROptions {
             "loopUnrolling can only be enabled when loopIterations > 0");
       }
     }
-    if (reduceLastThreadOrder && reduceUntilConflict) {
-      if (!reductionOrder.isEnabled()) {
-        throw new InvalidConfigurationException(
-            "both reduceLastThreadOrder and reduceUntilConflict are enabled, but no reductionOrder"
-                + " is specified.");
-      }
-    }
     if (!noBackwardGoto) {
       if (validateNoBackwardGoto) {
         throw new InvalidConfigurationException(
@@ -380,10 +354,6 @@ public class MPOROptions {
 
   public boolean isAnyBitVectorReductionEnabled() {
     return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
-  }
-
-  public boolean isThreadCountRequired() {
-    return nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS) && loopIterations == 0;
   }
 
   public boolean isThreadLabelRequired() {
@@ -470,18 +440,6 @@ public class MPOROptions {
     return nondeterminismSource;
   }
 
-  public boolean outputMetadata() {
-    return outputMetadata;
-  }
-
-  public PathTemplate outputPath() {
-    return outputPath;
-  }
-
-  public boolean outputProgram() {
-    return outputProgram;
-  }
-
   public boolean pruneBitVectorEvaluations() {
     return pruneBitVectorEvaluations;
   }
@@ -506,16 +464,16 @@ public class MPOROptions {
     return reduceLastThreadOrder;
   }
 
+  public boolean reduceSingleActiveThread() {
+    return reduceSingleActiveThread;
+  }
+
   public boolean reduceUntilConflict() {
     return reduceUntilConflict;
   }
 
   public ReductionMode reductionMode() {
     return reductionMode;
-  }
-
-  public ReductionOrder reductionOrder() {
-    return reductionOrder;
   }
 
   public boolean scalarPc() {

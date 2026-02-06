@@ -11,15 +11,27 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -33,23 +45,37 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final SerializeOperator serializeOperator;
   private final ProceedOperator proceedOperator;
   private final ViolationConditionOperator verificationConditionOperator;
+  private final CoverageOperator coverageOperator;
+  private final SerializePrecisionOperator serializePrecisionOperator;
+  private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final CombineOperator combineOperator;
 
-  private final ConfigurableProgramAnalysis blockCPA;
+  private final ConfigurableProgramAnalysis blockCpa;
+  private final BlockNode node;
   private final Function<CFANode, BlockState> blockStateSupplier;
+  private final CombinePrecisionOperator combinePrecisionOperator;
 
   public DistributedBlockCPA(
-      ConfigurableProgramAnalysis pBlockCPA,
-      BlockNode pNode,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
+      ConfigurableProgramAnalysis pBlockCpa, BlockNode pNode, DssAnalysisOptions pOptions) {
     checkArgument(
-        pBlockCPA instanceof BlockCPA, "%s is no %s", pBlockCPA.getClass(), BlockCPA.class);
-    blockCPA = pBlockCPA;
-    serializeOperator = new SerializeBlockStateOperator();
-    deserializeOperator = new DeserializeBlockStateOperator(pNode, pIntegerCFANodeMap);
-    proceedOperator = new ProceedBlockStateOperator(pNode);
+        pBlockCpa instanceof BlockCPA, "%s is no %s", pBlockCpa.getClass(), BlockCPA.class);
+    blockCpa = pBlockCpa;
+    node = pNode;
     blockStateSupplier =
-        node -> new BlockState(node, pNode, BlockStateType.INITIAL, Optional.empty());
-    verificationConditionOperator = new BlockViolationConditionOperator();
+        location ->
+            new BlockState(
+                location, pNode, BlockStateType.INITIAL, Optional.empty(), ImmutableList.of());
+
+    serializeOperator = new SerializeBlockStateOperator();
+    deserializeOperator = new DeserializeBlockStateOperator(pNode);
+    proceedOperator = new ProceedBlockStateOperator(pNode);
+    verificationConditionOperator =
+        new BlockViolationConditionOperator(pOptions.isDebugModeEnabled());
+    coverageOperator = new BlockStateCoverageOperator();
+    serializePrecisionOperator = new NoPrecisionSerializeOperator();
+    deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
+    combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
+    combinePrecisionOperator = new CombineSingletonPrecisionOperator();
   }
 
   @Override
@@ -60,6 +86,21 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   @Override
   public DeserializeOperator getDeserializeOperator() {
     return deserializeOperator;
+  }
+
+  @Override
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return serializePrecisionOperator;
+  }
+
+  @Override
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
   }
 
   @Override
@@ -74,12 +115,26 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
 
   @Override
   public ConfigurableProgramAnalysis getCPA() {
-    return blockCPA;
+    return blockCpa;
   }
 
   @Override
-  public boolean isTop(AbstractState pAbstractState) {
-    return true;
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
+    Preconditions.checkArgument(
+        pAbstractState instanceof BlockState,
+        "Expected BlockState, but got %s",
+        pAbstractState.getClass().getSimpleName());
+    CFANode location = ((BlockState) pAbstractState).getLocationNode();
+    return location.equals(node.getInitialLocation()) || location.equals(node.getFinalLocation());
+  }
+
+  @Override
+  public AbstractState reset(AbstractState pAbstractState) {
+    Preconditions.checkArgument(
+        pAbstractState instanceof BlockState,
+        "Expected BlockState, but got %s",
+        pAbstractState.getClass().getSimpleName());
+    return pAbstractState;
   }
 
   @Override
@@ -88,8 +143,18 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+  public CoverageOperator getCoverageOperator() {
+    return coverageOperator;
+  }
+
+  @Override
+  public CombineOperator getCombineOperator() {
+    return combineOperator;
+  }
+
+  @Override
+  public AbstractState getInitialState(CFANode location, StateSpacePartition partition)
       throws InterruptedException {
-    return blockStateSupplier.apply(node);
+    return Objects.requireNonNull(blockStateSupplier.apply(location));
   }
 }

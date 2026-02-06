@@ -10,43 +10,25 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusObserver.StatusPrecise;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusObserver.StatusPropertyChecked;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusObserver.StatusSoundness;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DssBlockAnalyses {
 
   private DssBlockAnalyses() {}
-
-  static DssMessagePayload appendStatus(
-      AlgorithmStatus pStatus, DssMessagePayload pCurrentPayload) {
-    return DssMessagePayload.builder()
-        .addAllEntries(pCurrentPayload)
-        .addEntry(
-            DssMessagePayload.PROPERTY,
-            pStatus.wasPropertyChecked()
-                ? StatusPropertyChecked.CHECKED.name()
-                : StatusPropertyChecked.UNCHECKED.name())
-        .addEntry(
-            DssMessagePayload.SOUND,
-            pStatus.isSound() ? StatusSoundness.SOUND.name() : StatusSoundness.UNSOUND.name())
-        .addEntry(
-            DssMessagePayload.PRECISE,
-            pStatus.isPrecise() ? StatusPrecise.PRECISE.name() : StatusPrecise.IMPRECISE.name())
-        .buildPayload();
-  }
 
   /**
    * Simulate the CPA algorithm on the given reached set using the states provided in the list. The
@@ -59,15 +41,15 @@ public class DssBlockAnalyses {
    * @throws InterruptedException thread interrupted during precision computation
    * @throws CPAException wrapper exception for all CPA exceptions
    */
-  static void performCpaAlgorithmWithStates(
-      ReachedSet reachedSet, ConfigurableProgramAnalysis pCpa, List<AbstractState> pStates)
+  static void executeCpaAlgorithmWithStates(
+      ReachedSet reachedSet, ConfigurableProgramAnalysis pCpa, List<StateAndPrecision> pStates)
       throws InterruptedException, CPAException {
-    for (AbstractState state : pStates) {
+    for (StateAndPrecision stateAndPrecision : pStates) {
+      AbstractState state = stateAndPrecision.state();
       CFANode location = AbstractStates.extractLocation(state);
       assert location != null;
       if (reachedSet.isEmpty()) {
-        reachedSet.add(
-            state, pCpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()));
+        reachedSet.add(state, stateAndPrecision.precision());
       } else {
         // CPA algorithm
         for (AbstractState abstractState : ImmutableSet.copyOf(reachedSet)) {
@@ -109,7 +91,6 @@ public class DssBlockAnalyses {
       Algorithm pAlgorithm, ReachedSet pReachedSet, BlockNode pBlockNode)
       throws CPAException, InterruptedException {
 
-    AbstractState startState = pReachedSet.getFirstState();
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     // find all target states in block, except target states that are only reachable from another
     // target state
@@ -118,38 +99,45 @@ public class DssBlockAnalyses {
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
     }
 
-    return new DssBlockAnalysisResult(pReachedSet, startState, pBlockNode, status);
+    return new DssBlockAnalysisResult(pReachedSet, pBlockNode, status);
   }
 
   static class DssBlockAnalysisResult {
 
     private final ImmutableSet<ARGState> summaries;
+    private final ImmutableSet<ARGState> finalLocationStates;
     private final ImmutableSet<ARGState> violations;
     private final AlgorithmStatus status;
 
     private DssBlockAnalysisResult(
-        ReachedSet pReachedSet,
-        AbstractState pStartState,
-        BlockNode pBlockNode,
-        AlgorithmStatus pStatus) {
+        ReachedSet pReachedSet, BlockNode pBlockNode, AlgorithmStatus pStatus) {
       status = pStatus;
       ImmutableSet.Builder<ARGState> summariesBuilder = ImmutableSet.builder();
       ImmutableSet.Builder<ARGState> violationsBuilder = ImmutableSet.builder();
+      ImmutableSet.Builder<ARGState> finalLocationBuilder = ImmutableSet.builder();
       for (AbstractState abstractState : pReachedSet) {
-        if (abstractState.equals(pStartState)) {
+        ARGState argState = (ARGState) abstractState;
+        BlockState blockState =
+            Objects.requireNonNull(AbstractStates.extractStateByType(argState, BlockState.class));
+        if (blockState.getType() == BlockStateType.INITIAL) {
           continue;
         }
-        ARGState argState = (ARGState) abstractState;
+        if (blockState.getType() == BlockStateType.FINAL) {
+          finalLocationBuilder.add(argState);
+        }
         if (argState.isTarget()) {
           // if we find a target state, it is either a real violation
           // or the ghost edge was reached (violation condition cannot be refuted)
           violationsBuilder.add(argState);
-        } else if (pBlockNode.getFinalLocation().equals(AbstractStates.extractLocation(argState))) {
+        } else if (blockState.getLocationNode().equals(pBlockNode.getFinalLocation())
+            && blockState.getType() == BlockStateType.FINAL
+            && argState.getChildren().isEmpty()) {
           summariesBuilder.add(argState);
         }
       }
       violations = violationsBuilder.build();
       summaries = summariesBuilder.build();
+      finalLocationStates = finalLocationBuilder.build();
     }
 
     public AlgorithmStatus getStatus() {
@@ -162,6 +150,10 @@ public class DssBlockAnalyses {
 
     public ImmutableSet<ARGState> getViolations() {
       return violations;
+    }
+
+    public ImmutableSet<ARGState> getFinalLocationStates() {
+      return finalLocationStates;
     }
 
     @Override

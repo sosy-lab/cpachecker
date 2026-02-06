@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -281,13 +282,13 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       MemoryLocation heapLoc = entry.getKey();
       Value valueAsValue = entry.getValue().getValue();
 
-      if (!valueAsValue.isNumericValue()) {
+      if (!(valueAsValue instanceof NumericValue numValue)) {
         // Skip non numerical values for now
         // TODO Should they also be integrated?
         continue;
       }
 
-      Number value = valueAsValue.asNumericValue().getNumber();
+      Number value = numValue.getNumber();
       LeftHandSide lhs = createBaseIdExpresssion(heapLoc);
       assert pVariableAddressMap.containsKey(lhs);
       Address baseAddress = pVariableAddressMap.get(lhs);

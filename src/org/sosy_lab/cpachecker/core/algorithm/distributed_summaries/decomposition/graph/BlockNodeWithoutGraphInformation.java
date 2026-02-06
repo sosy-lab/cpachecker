@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -53,7 +53,7 @@ public class BlockNodeWithoutGraphInformation {
     return finalLocation;
   }
 
-  public ImmutableSet<CFANode> getNodes() {
+  public ImmutableSet<@NonNull CFANode> getNodes() {
     return nodes;
   }
 
@@ -61,7 +61,7 @@ public class BlockNodeWithoutGraphInformation {
     return code;
   }
 
-  public ImmutableSet<CFAEdge> getEdges() {
+  public ImmutableSet<@NonNull CFAEdge> getEdges() {
     return edges;
   }
 

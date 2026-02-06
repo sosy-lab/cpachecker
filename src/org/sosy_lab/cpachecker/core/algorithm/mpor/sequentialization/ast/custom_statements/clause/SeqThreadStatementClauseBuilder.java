@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqCondWaitStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqGhostOnlyStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
@@ -161,7 +161,6 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
     SeqThreadStatementBuilder statementBuilder =
         new SeqThreadStatementBuilder(
-            options.reductionOrder(),
             pThread,
             allThreads,
             substituteEdges,
@@ -220,7 +219,7 @@ public record SeqThreadStatementClauseBuilder(
       CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
       ImmutableList.Builder<CSeqThreadStatement> statements = ImmutableList.builder();
       if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-        statements.add(new SeqBlankStatement(options.reductionOrder(), pcLeftHandSide, targetPc));
+        statements.add(new SeqGhostOnlyStatement(pcLeftHandSide, targetPc));
       } else {
         statements.addAll(
             pStatementBuilder.buildStatementsFromThreadNode(pThreadNode, pCoveredNodes));

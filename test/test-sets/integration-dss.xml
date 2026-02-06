@@ -18,7 +18,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition>
 	<option name="--dss" />
-	<option name="--option">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>
+	<option name="--option">distributedSummaries.decomposition.decompositionType=MERGE_DECOMPOSITION</option>
   </rundefinition>
 
   <tasks>

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
@@ -572,11 +573,9 @@ public class SMGCPAMaterializer {
                 !e.hasValue().isZero()
                     && smg.isPointer(e.hasValue())
                     && smg.getPTEdge(e.hasValue()).orElseThrow().pointsTo().equals(newAbsListSeg)
-                    && smg.getPTEdge(e.hasValue()).orElseThrow().getOffset().isNumericValue()
-                    && smg.getPTEdge(e.hasValue())
-                        .orElseThrow()
-                        .getOffset()
-                        .asNumericValue()
+                    && smg.getPTEdge(e.hasValue()).orElseThrow().getOffset()
+                        instanceof NumericValue numPtrOffset
+                    && numPtrOffset
                         .bigIntegerValue()
                         .equals(
                             ((SMGDoublyLinkedListSegment) newAbsListSeg)
@@ -823,11 +822,9 @@ public class SMGCPAMaterializer {
               currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
           Value oldOffset = oldPTE.getOffset();
           Preconditions.checkArgument(
-              targetMemoryAndState
-                  .getOffsetForObject()
-                  .asNumericValue()
-                  .bigIntegerValue()
-                  .equals(oldOffset.asNumericValue().bigIntegerValue()));
+              targetMemoryAndState.getOffsetForObject() instanceof NumericValue targetOffset
+                  && oldOffset instanceof NumericValue numOldOffset
+                  && targetOffset.bigIntegerValue().equals(numOldOffset.bigIntegerValue()));
           int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
           SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
           if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {

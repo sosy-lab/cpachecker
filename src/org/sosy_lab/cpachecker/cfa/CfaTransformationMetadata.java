@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa;
 public record CfaTransformationMetadata(CFA originalCfa, ProgramTransformation transformation) {
 
   public enum ProgramTransformation {
-    NONE,
     SEQUENTIALIZATION_ATTEMPTED,
   }
 }

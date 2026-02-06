@@ -19,35 +19,24 @@ import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class MemoryModelStructParameterTest {
 
@@ -142,80 +131,6 @@ public class MemoryModelStructParameterTest {
   private final CPointerType OUTER_STRUCT_POINTER_TYPE =
       new CPointerType(CTypeQualifiers.NONE, OUTER_STRUCT_COMPLEX_TYPE);
 
-  // CFunctionType
-
-  private final CFunctionType DUMMY_FUNCTION_TYPE =
-      new CFunctionType(INT_TYPE, ImmutableList.of(), false);
-
-  // CFunctionDeclarations
-
-  private final CFunctionDeclaration DUMMY_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          DUMMY_FUNCTION_TYPE,
-          "dummy_function",
-          ImmutableList.of(),
-          ImmutableSet.of());
-
-  private final CIdExpression DUMMY_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, DUMMY_FUNCTION_DECLARATION);
-
-  // CFunctionCallExpression
-
-  private final CFunctionCallExpression DUMMY_FUNCTION_CALL_EXPRESSION =
-      new CFunctionCallExpression(
-          FileLocation.DUMMY,
-          DUMMY_FUNCTION_TYPE,
-          DUMMY_ID_EXPRESSION,
-          ImmutableList.of(),
-          DUMMY_FUNCTION_DECLARATION);
-
-  // CFunctionCallStatement
-
-  private final CFunctionCallStatement DUMMY_FUNCTION_CALL_STATEMENT =
-      new CFunctionCallStatement(FileLocation.DUMMY, DUMMY_FUNCTION_CALL_EXPRESSION);
-
-  // CFA Nodes
-
-  private final CFANode DUMMY_PREDECESSOR = CFANode.newDummyCFANode();
-
-  private final CFANode DUMMY_SUCCESSOR = CFANode.newDummyCFANode();
-
-  private final FunctionExitNode DUMMY_FUNCTION_EXIT_NODE =
-      new FunctionExitNode(DUMMY_FUNCTION_DECLARATION);
-
-  private final CFunctionEntryNode DUMMY_FUNCTION_ENTRY_NODE =
-      new CFunctionEntryNode(
-          FileLocation.DUMMY,
-          DUMMY_FUNCTION_DECLARATION,
-          DUMMY_FUNCTION_EXIT_NODE,
-          Optional.empty());
-
-  // CFA Edges
-
-  private final CFunctionSummaryEdge DUMMY_FUNCTION_SUMMARY_EDGE =
-      new CFunctionSummaryEdge(
-          "",
-          FileLocation.DUMMY,
-          DUMMY_PREDECESSOR,
-          DUMMY_SUCCESSOR,
-          DUMMY_FUNCTION_CALL_STATEMENT,
-          DUMMY_FUNCTION_ENTRY_NODE);
-
-  private final CFunctionCallEdge DUMMY_FUNCTION_CALL_EDGE =
-      new CFunctionCallEdge(
-          "",
-          FileLocation.DUMMY,
-          DUMMY_PREDECESSOR,
-          DUMMY_FUNCTION_ENTRY_NODE,
-          DUMMY_FUNCTION_CALL_STATEMENT,
-          DUMMY_FUNCTION_SUMMARY_EDGE);
-
-  // ThreadEdge
-
-  private final CFAEdgeForThread DUMMY_CALL_CONTEXT =
-      new CFAEdgeForThread(0, DUMMY_FUNCTION_CALL_EDGE, Optional.empty());
-
   // CDeclaration
 
   private final CVariableDeclaration GLOBAL_G1_DECLARATION =
@@ -251,15 +166,24 @@ public class MemoryModelStructParameterTest {
           "outer_struct",
           EMPTY_INITIALIZER_LIST);
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_OUTER_STRUCT =
-      new CParameterDeclaration(
-          FileLocation.DUMMY, OUTER_STRUCT_POINTER_TYPE, "param_ptr_outer_struct");
+  private final class CParameterDeclarations {
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_OUTER_STRUCT =
+        new CParameterDeclaration(
+            FileLocation.DUMMY, OUTER_STRUCT_POINTER_TYPE, "param_ptr_outer_struct");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P1 =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P1");
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P1 =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P1");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P2 =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P2");
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P2 =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P2");
+
+    CParameterDeclarations() {
+      // qualified names are required, otherwise .asVariableDeclaration throws
+      PARAMETER_DECLARATION_POINTER_OUTER_STRUCT.setQualifiedName("dummy");
+      PARAMETER_DECLARATION_POINTER_P1.setQualifiedName("dummy");
+      PARAMETER_DECLARATION_POINTER_P2.setQualifiedName("dummy");
+    }
+  }
 
   // Memory Locations (structs)
 
@@ -307,23 +231,26 @@ public class MemoryModelStructParameterTest {
 
   // Memory Locations (parameters)
 
+  private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
+
   private final SeqMemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
-          Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_OUTER_STRUCT);
+          Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_OUTER_STRUCT
+              .asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
-          Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_P1);
+          Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P1.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
-          Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_P2);
+          Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration());
 
   public MemoryModelStructParameterTest() throws InvalidConfigurationException {}
 

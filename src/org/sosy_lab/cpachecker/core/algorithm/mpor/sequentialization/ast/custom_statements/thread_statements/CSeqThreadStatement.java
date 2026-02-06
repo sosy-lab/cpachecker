@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
@@ -34,7 +33,7 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
     permits SeqAssumeStatement,
         SeqAtomicBeginStatement,
         SeqAtomicEndStatement,
-        SeqBlankStatement,
+        SeqGhostOnlyStatement,
         SeqCondSignalStatement,
         SeqCondWaitStatement,
         SeqConstCpaCheckerTmpStatement,
@@ -50,12 +49,6 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
         SeqThreadCreationStatement,
         SeqThreadExitStatement,
         SeqThreadJoinStatement {
-
-  /**
-   * The order in which reduction statements inside this {@link CSeqThreadStatement} should be
-   * ordered, specified in the options.
-   */
-  final ReductionOrder reductionOrder;
 
   final ImmutableSet<SubstituteEdge> substituteEdges;
 
@@ -76,12 +69,10 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
    * SeqBlockLabelStatement} and no {@link SeqInjectedStatement}s.
    */
   CSeqThreadStatement(
-      ReductionOrder pReductionOrder,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       CLeftHandSide pPcLeftHandSide,
       Integer pTargetPc) {
 
-    reductionOrder = pReductionOrder;
     substituteEdges = pSubstituteEdges;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
@@ -94,7 +85,6 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
    * {@link SeqInjectedStatement}s.
    */
   CSeqThreadStatement(
-      ReductionOrder pReductionOrder,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
@@ -104,8 +94,7 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
     // XOR that one must be present, one must be empty
     checkArgument(
         pTargetPc.isPresent() ^ pTargetGoto.isPresent(),
-        "either targetPc or targetGoto must be present (exclusive or)");
-    reductionOrder = pReductionOrder;
+        "either targetPc or targetLabel must be present (exclusive or)");
     substituteEdges = pSubstituteEdges;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
@@ -119,6 +108,24 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
    */
   public boolean isTargetPcValid() {
     return targetPc.filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
+  }
+
+  /**
+   * Returns true if the target {@code pc} is present and equal to {@link
+   * ProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
+   */
+  public boolean isTargetPcExit() {
+    return targetPc.filter(pc -> pc == ProgramCounterVariables.EXIT_PC).isPresent();
+  }
+
+  /**
+   * Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;}, and no
+   * additional {@link SeqInjectedStatement}s.
+   */
+  public boolean isOnlyPcWrite() {
+    // the only case where a statement writes only 'pc' is when it is a blank statement without
+    // any injected statement
+    return this instanceof SeqGhostOnlyStatement && injectedStatements.isEmpty();
   }
 
   /**
@@ -186,7 +193,4 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
    * forcing us to e.g. not link the statements, otherwise a thread may terminate pre-emptively.
    */
   public abstract boolean synchronizesThreads();
-
-  /** Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;} */
-  public abstract boolean onlyWritesPc();
 }
