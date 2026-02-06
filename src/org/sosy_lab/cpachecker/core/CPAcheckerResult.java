@@ -16,13 +16,16 @@ import java.io.PrintStream;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 /** Class that represents the result of a CPAchecker analysis. */
-public class CPAcheckerResult {
+public class CPAcheckerResult implements AutoCloseable {
 
   /** Enum for the possible outcomes of a CPAchecker analysis */
   public enum Result {
@@ -46,29 +49,37 @@ public class CPAcheckerResult {
 
   private final @Nullable CFA cfa;
 
+  private final @Nullable ConfigurableProgramAnalysis cpa;
+
+  private final LogManager logger;
+
   private final @Nullable Statistics stats;
 
   private @Nullable Statistics proofGeneratorStats = null;
 
   CPAcheckerResult(
-      Result result,
-      String targetDescription,
-      @Nullable ReachedSet reached,
-      @Nullable CFA cfa,
-      @Nullable Statistics stats) {
-    this.targetDescription = checkNotNull(targetDescription);
-    this.result = checkNotNull(result);
-    this.reached = reached;
-    this.cfa = cfa;
-    this.stats = stats;
+      Result pResult,
+      String pTargetDescription,
+      @Nullable ReachedSet pReached,
+      @Nullable CFA pCfa,
+      @Nullable ConfigurableProgramAnalysis pCpa,
+      LogManager pLogger,
+      @Nullable Statistics pStats) {
+    this.targetDescription = checkNotNull(pTargetDescription);
+    this.result = checkNotNull(pResult);
+    this.reached = pReached;
+    this.cfa = pCfa;
+    this.cpa = pCpa;
+    this.logger = pLogger;
+    this.stats = pStats;
   }
 
-  private CPAcheckerResult(Result result) {
-    this(result, "");
+  private CPAcheckerResult(Result pResult) {
+    this(pResult, "");
   }
 
-  private CPAcheckerResult(Result result, String targetDescription) {
-    this(result, targetDescription, null, null, null);
+  private CPAcheckerResult(Result pResult, String pTargetDescription) {
+    this(pResult, pTargetDescription, null, null, null, LogManager.createNullLogManager(), null);
   }
 
   /** Return the result of the analysis. */
@@ -184,5 +195,12 @@ public class CPAcheckerResult {
 
   public Statistics getStatistics() {
     return stats;
+  }
+
+  @Override
+  public void close() {
+    if (cpa != null) {
+      CPAs.closeCpaIfPossible(cpa, logger);
+    }
   }
 }

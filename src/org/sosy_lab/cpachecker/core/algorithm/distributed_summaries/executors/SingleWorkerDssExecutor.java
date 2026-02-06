@@ -44,13 +44,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "distributedSummaries.singleWorker")
-public class SingleWorkerDssExecutor implements DssExecutor {
+public class SingleWorkerDssExecutor implements DssExecutor, AutoCloseable {
 
   private record OldAndNewMessages(List<DssMessage> oldMessages, List<DssMessage> newMessages) {}
 
   private final Specification specification;
   private final DssAnalysisOptions options;
   private final DssMessageFactory messageFactory;
+
+  private DssAnalysisWorker actor;
 
   @FileOption(Type.OUTPUT_DIRECTORY)
   @Option(description = "Where to write responses", secure = true)
@@ -168,7 +170,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
             .addAnalysisWorker(blockNode, options)
             .build();
 
-    DssAnalysisWorker actor = (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor());
+    actor = (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor());
     // use list instead of set. Each message has a unique timestamp,
     // so there will be no duplicates that a set can remove.
     // But the equality checks are unnecessarily expensive
@@ -190,4 +192,11 @@ public class SingleWorkerDssExecutor implements DssExecutor {
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {}
+
+  @Override
+  public void close() {
+    if (actor != null) {
+      actor.close();
+    }
+  }
 }
