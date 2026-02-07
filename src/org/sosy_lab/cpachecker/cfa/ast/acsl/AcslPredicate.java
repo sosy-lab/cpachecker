@@ -18,6 +18,7 @@ public sealed interface AcslPredicate extends AExpression, AcslAstNode
         AcslBinaryTermPredicate,
         AcslIdPredicate,
         AcslLiteralPredicate,
+        AcslFunctionCallPredicate,
         AcslOldPredicate,
         AcslTernaryPredicate,
         AcslUnaryPredicate,
