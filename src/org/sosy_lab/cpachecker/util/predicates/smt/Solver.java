@@ -363,7 +363,7 @@ public final class Solver implements AutoCloseable {
       ProverOptions[] newOptions = Arrays.copyOf(options, options.length + 1);
       newOptions[options.length] =
           switch (interpolationMode) {
-            case INDEPENDENT_MODEL_BASED -> ProverOptions.GENERATE_MODEL_BASED_INTERPOLANTS;
+            case INDEPENDENT_MODEL_BASED -> ProverOptions.GENERATE_PROJECTION_BASED_INTERPOLANTS;
             case INDEPENDENT_UNIFORM_FORWARD -> ProverOptions.GENERATE_UNIFORM_FORWARD_INTERPOLANTS;
             case INDEPENDENT_UNIFORM_BACKWARD ->
                 ProverOptions.GENERATE_UNIFORM_BACKWARD_INTERPOLANTS;

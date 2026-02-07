@@ -114,12 +114,25 @@ solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
 solver.logAllQueries = false
 solver.logfile = no default value
 
+# If used together with solver.mathsat5.useExtendedSMTLIB2Output, SMTLIB2
+# output will contain let-bindings instead of define-fun based bindings.
+solver.mathsat5.dumpSMTLIB2LetExpressions = false
+
 # Further options that will be passed to Mathsat in addition to the default
 # options. Format is 'key1=value1,key2=value2'
 solver.mathsat5.furtherOptions = ""
 
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
+
+# If enabled, SMTLIB2 output of MathSAT5 will be generated using the extended
+# dumping function msat_to_smtlib2_ext(), instead of the regular dumping
+# function msat_to_smtlib2(). This extended dump might allow the exporting of
+# features to SMTLIB2 that can't be solved using MathSAT5, e.g. quantified
+# formulas. The output will contain define-fun based bindings instead of
+# let-expressions per default. If you want to use let bindings, enable option
+# solver.mathsat5.dumpSMTLIB2LetExpressions as well.
+solver.mathsat5.useExtendedSMTLIB2Output = false
 
 # Use non-linear arithmetic of the solver if supported and throw exception
 # otherwise, approximate non-linear arithmetic with UFs if unsupported, or
@@ -128,26 +141,42 @@ solver.mathsat5.loadOptimathsat5 = false
 solver.nonLinearArithmetic = USE
   enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
 
-# Algorithm for boolean interpolation
+# deprecated name for solver.opensmt.interpolation.algorithm.booleanTheory
 solver.opensmt.algBool = MCMILLAN
   enum:     [MCMILLAN, PUDLAK, MCMILLAN_PRIME, PROOF_SENSITIVE, PROOF_SENSITIVE_WEAK,
              PROOF_SENSITIVE_STRONG]
 
-# Algorithm for LRA interpolation
+# deprecated name for solver.opensmt.interpolation.algorithm.lraTheory
 solver.opensmt.algLra = STRONG
   enum:     [STRONG, WEAK, FACTOR, DECOMPOSING_STRONG, DECOMPOSING_WEAK]
 
-# Algorithm for UF interpolation
+# deprecated name for solver.opensmt.interpolation.algorithm.ufTheory
 solver.opensmt.algUf = STRONG
   enum:     [STRONG, WEAK, RANDOM]
+
+# Interpolation algorithm for boolean theory
+solver.opensmt.interpolation.algorithm.booleanTheory = MCMILLAN
+  enum:     [MCMILLAN, PUDLAK, MCMILLAN_PRIME, PROOF_SENSITIVE, PROOF_SENSITIVE_WEAK,
+             PROOF_SENSITIVE_STRONG]
+
+# Interpolation algorithm for LRA theory
+solver.opensmt.interpolation.algorithm.lraTheory = STRONG
+  enum:     [STRONG, WEAK, FACTOR, DECOMPOSING_STRONG, DECOMPOSING_WEAK]
+
+# Interpolation algorithm for UF theory
+solver.opensmt.interpolation.algorithm.ufTheory = STRONG
+  enum:     [STRONG, WEAK, RANDOM]
+
+# Level of simplification for interpolants,ranging from 0 (no simplification)
+# to 4 (maximum simplification).
+solver.opensmt.interpolation.simplificationLevel = 0
 
 # SMT-LIB2 name of the logic to be used by the solver.
 solver.opensmt.logic = QF_AUFLIRA
   enum:     [CORE, QF_AX, QF_UF, QF_IDL, QF_RDL, QF_LIA, QF_LRA, QF_ALIA, QF_ALRA,
              QF_UFLIA, QF_UFLRA, QF_AUFLIA, QF_AUFLRA, QF_AUFLIRA]
 
-# Level of simplification for interpolants,ranging from 0 (no simplification)
-# to 4 (maximum simplification).
+# deprecated name for solver.opensmt.interpolation.simplificationLevel
 solver.opensmt.simplifyInterpolants = 0
 
 # Enable additional assertion checks within Princess. The main usage is
@@ -180,8 +209,8 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # Sequentialize all solver actions to allow concurrent access!
 solver.synchronize = false
@@ -195,6 +224,14 @@ solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3.legacy.log = no default value
+
+# Require proofs from SMT solver
+solver.z3.legacy.requireProofs = true
+  allowed values: [true, false]
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -3163,13 +3200,13 @@ cpa.predicate.solver.interpolationMode = no default value
 
 # deprecated name for solver.interpolationSolver
 cpa.predicate.solver.interpolationSolver = no default value
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # deprecated name for solver.solver
 cpa.predicate.solver.solver = MATHSAT5
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
@@ -5436,13 +5473,13 @@ solver.interpolationMode = no default value
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # Comma-separated list of files with specifications that should be checked
 # (cf. config/specification/ for examples). Property files as used in SV-COMP
