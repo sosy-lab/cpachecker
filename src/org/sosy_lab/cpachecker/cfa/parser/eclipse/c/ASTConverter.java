@@ -994,9 +994,7 @@ class ASTConverter {
     // Cast-to-union extension (GCC): initialize the union member whose type matches the operand's
     // type.
     // (Currently handled for scalar operands.)
-    // Lower this to a designated initializer because unions are non-scalar and cannot be
-    // represented
-    // as a regular cast expression in CPAchecker's CFA.
+    // Lower this to a designated initializer
 
     if (castType.getCanonicalType() instanceof CCompositeType compositeType
         && compositeType.getKind() == ComplexTypeKind.UNION
