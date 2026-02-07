@@ -173,7 +173,8 @@ public class DssFactory {
       }
       builder.put(wrappedCPA.getClass(), dcpa);
     }
-    return new DistributedCompositeCPA(pCompositeCPA, pBlockNode, builder.buildOrThrow());
+    return new DistributedCompositeCPA(
+        pLogManager, pCompositeCPA, pBlockNode, builder.buildOrThrow());
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

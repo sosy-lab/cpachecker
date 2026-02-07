@@ -13,7 +13,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 public class DistributedCompositeCPA
     implements ForwardingDistributedConfigurableProgramAnalysis, WrapperCPA {
 
+  private final LogManager logger;
   private final CompositeCPA compositeCPA;
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
@@ -57,6 +60,7 @@ public class DistributedCompositeCPA
   private final ImmutableList<ConfigurableProgramAnalysis> wrappedCpas;
 
   public DistributedCompositeCPA(
+      LogManager pLogger,
       CompositeCPA pCompositeCPA,
       BlockNode pNode,
       ImmutableMap<
@@ -72,6 +76,7 @@ public class DistributedCompositeCPA
     }
     wrappedCpas = wrappedCpasBuilder.build();
 
+    logger = pLogger;
     statistics = new DssBlockAnalysisStatistics("DCPA-" + pNode.getId());
     compositeCPA = pCompositeCPA;
     serialize = new SerializeCompositeStateOperator(wrappedCpas, statistics);
@@ -241,6 +246,15 @@ public class DistributedCompositeCPA
           }
         }
       }
+    }
+    if (compositeCPA.retrieveWrappedCpa(type) != null) {
+      logger.log(
+          Level.FINE,
+          "Requested to retrieve CPA type "
+              + type
+              + " from "
+              + this.getClass()
+              + " but does not exist in distributed versions of CPAs.");
     }
     return null;
   }
