@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import static org.sosy_lab.java_smt.api.FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit;
+
 import com.google.common.base.Ascii;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
@@ -2695,7 +2697,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Convert a {@link FloatingPointNumber} to {@link FloatValue} */
   public static FloatValue fromFloatingPointNumber(FloatingPointNumber pNumber) {
-    Format format = new Format(pNumber.getExponentSize(), pNumber.getMantissaSize());
+    Format format =
+        new Format(pNumber.getExponentSize(), pNumber.getMantissaSizeWithoutHiddenBit());
     long exponent = pNumber.getExponent().longValue() - format.bias();
     BigInteger significand = pNumber.getMantissa();
     if (exponent >= format.minExp() && exponent <= format.maxExp()) {
@@ -2712,8 +2715,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         Sign.of(sign),
         BigInteger.valueOf(exponent + format.bias()),
         significand.clearBit(format.sigBits()),
-        format.expBits(),
-        format.sigBits());
+        getFloatingPointTypeFromSizesWithoutHiddenBit(format.expBits(), format.sigBits()));
   }
 
   /** Convert a <code>float</code> to {@link FloatValue} */

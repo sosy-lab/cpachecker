@@ -21,6 +21,7 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingModeFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
@@ -312,6 +313,13 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   @Override
   public BooleanFormula isNormal(FloatingPointFormula pNumber) {
     return manager.isNormal(pNumber);
+  }
+
+  @Override
+  public FloatingPointRoundingModeFormula makeRoundingMode(
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    // TODO:
+    return null; // Ignore for now
   }
 
   @Override

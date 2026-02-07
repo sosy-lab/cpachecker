@@ -23,6 +23,7 @@ import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingModeFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
@@ -314,6 +315,13 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
+  public FloatingPointRoundingModeFormula makeRoundingMode(
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    // TODO:
+    return null; // Ignore for now
+  }
+
+  @Override
   public FloatingPointFormula makeNumber(double pN, FormulaType.FloatingPointType type) {
     if (Double.isNaN(pN)) {
       return makeNaN(type);
@@ -367,9 +375,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       BigInteger exponent, BigInteger mantissa, Sign sign, FloatingPointType type) {
     // Create a FloatValue from the individual fields
     FloatValue value =
-        FloatValue.fromFloatingPointNumber(
-            FloatingPointNumber.of(
-                sign, exponent, mantissa, type.getExponentSize(), type.getMantissaSize()));
+        FloatValue.fromFloatingPointNumber(FloatingPointNumber.of(sign, exponent, mantissa, type));
 
     // Cover special cases for Infinity and NaN
     if (value.isInfinite()) {

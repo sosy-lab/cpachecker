@@ -80,12 +80,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
           case EQ_ZERO, GTE_ZERO ->
               cache.get(newArgs.getFirst())
                   + operatorFromFunctionDeclaration(functionDeclaration, f);
-          case FP_ROUND_EVEN,
-              FP_ROUND_AWAY,
-              FP_ROUND_POSITIVE,
-              FP_ROUND_NEGATIVE,
-              FP_ROUND_ZERO,
-              FP_ROUND_TO_INTEGRAL ->
+          case FP_ROUND_TO_INTEGRAL ->
               // Ignore because otherwise rounding mode is treated like an additional operand
               // TODO These cases do not insert anything into the cache and might result in an
               // invalid or incomplete result. We should better abort here than continue with an
