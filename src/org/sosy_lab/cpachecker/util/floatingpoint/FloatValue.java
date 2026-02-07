@@ -262,6 +262,9 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * <p>The precision of a FloatValue is equivalent to the length of its significand. Here the
    * 'hidden bit' is not counted. The exponent range can be derived from the width of the exponent
    * field.
+   *
+   * @param expBits Size of the exponent
+   * @param sigBits Size of the significand (the 'hidden bit' is not counted)
    */
   @Immutable
   public record Format(int expBits, int sigBits) implements Serializable {
@@ -273,6 +276,12 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     /** The maximal number of bits of the exponent field */
     private static final int MAX_EXPONENT_WIDTH = 25;
 
+    /**
+     * Define a new {@link Format}
+     *
+     * @param expBits Size of the exponent
+     * @param sigBits Size of the significand (the 'hidden bit' is not counted)
+     */
     public Format {
       // Check that the arguments are valid
       Preconditions.checkArgument(
