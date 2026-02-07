@@ -23,14 +23,14 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrViaMallocProof() throws Exception {
     String testProgram = "pointer_arithmetics/pointer_arithmetics_int_malloc_64_safe.c";
-    runAndAssertSafe(testProgram);
+    assertThatProgram(testProgram).isSafe();
   }
 
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrCastNumericViaMallocProof() throws Exception {
     String testProgram =
         "pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_64_safe.c";
-    runAndAssertSafe(testProgram);
+    assertThatProgram(testProgram).isSafe();
   }
 
   // Tests that (integer) types are not comparable to values from larger types,
@@ -39,7 +39,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void nondetIntegerTypeBoundsProof() throws Exception {
     String testProgram = "basics/type_tests/nondet_generator_integer_types_64_true.c";
-    runAndAssertSafe(testProgram);
+    assertThatProgram(testProgram).isSafe();
   }
 
   // Tests that (float) types are not comparable to values from larger types
@@ -47,7 +47,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void nondetFloatingPointTypeBoundsProof() throws Exception {
     String testProgram = "basics/type_tests/nondet_generator_float_types_64_true.c";
-    runAndAssertSafe(testProgram);
+    assertThatProgram(testProgram).isSafe();
   }
 
   // Tests basic usage of arrays with constants
@@ -55,7 +55,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void arrayUsageProof() throws Exception {
     String testProgram = "basics/array_tests/array_usage_64_true.c";
-    runAndAssertSafe(testProgram);
+    assertThatProgram(testProgram).isSafe();
   }
 
   // Tests basic usage of arrays with constants
@@ -63,7 +63,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void arrayUsageViolation() throws Exception {
     String testProgram = "basics/array_tests/array_usage_64_false.c";
-    runAndAssertUnsafe(testProgram);
+    assertThatProgram(testProgram).isUnsafe();
   }
 
   // Tests basic usage of arrays in methods with constants
@@ -71,7 +71,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void arrayUsageInMethodsProof() throws Exception {
     String testProgram = "basics/array_tests/array_usage_methods_64_true.c";
-    runAndAssertSafe(testProgram);
+    assertThatProgram(testProgram).isSafe();
   }
 
   // Tests basic usage of arrays in methods with constants
@@ -79,7 +79,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void arrayUsageInMethodsViolation() throws Exception {
     String testProgram = "basics/array_tests/array_usage_methods_64_false.c";
-    runAndAssertUnsafe(testProgram);
+    assertThatProgram(testProgram).isUnsafe();
   }
 
   // Tests basic usage of arrays in methods as pointers with constants
@@ -87,7 +87,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void arrayUsageInMethodsAsPointersProof() throws Exception {
     String testProgram = "basics/array_tests/array_usage_pointers_in_methods_64_true.c";
-    runAndAssertSafe(testProgram);
+    assertThatProgram(testProgram).isSafe();
   }
 
   // Tests basic usage of arrays in methods as pointers with constants
@@ -95,7 +95,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void arrayUsageInMethodsAsPointersViolation() throws Exception {
     String testProgram = "basics/array_tests/array_usage_pointers_in_methods_64_false.c";
-    runAndAssertUnsafe(testProgram);
+    assertThatProgram(testProgram).isUnsafe();
   }
 
   protected static MachineModel getMachineModel() {

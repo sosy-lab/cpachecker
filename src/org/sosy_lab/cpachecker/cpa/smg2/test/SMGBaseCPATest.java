@@ -8,11 +8,19 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.test;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.truth.Truth.assert_;
 import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
+import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest.ProgramSubject.assertUsing;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.truth.Fact;
+import com.google.common.truth.FailureMetadata;
+import com.google.common.truth.SimpleSubjectBuilder;
+import com.google.common.truth.Subject;
 import java.io.IOException;
 import java.util.Set;
+import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -21,6 +29,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
@@ -81,37 +90,20 @@ public class SMGBaseCPATest {
   @Parameter(1)
   public String specToUse;
 
+  private Configuration analysisToUse;
+
   private static final MachineModel machineModel = getMachineModel();
 
-  /**
-   * Executes the program given in the current {@link Configuration} and asserts that it is SAFE.
-   *
-   * @param testProgram path to test program, e.g.
-   *     'test/programs/basics/array_tests/array_usage_32_true.c'. The common path-prefix
-   *     'test/programs/' is automatically added if not present, i.e.
-   *     'basics/array_tests/array_usage_32_true.c' is equivalent to the previous path.
-   */
-  void runAndAssertSafe(String testProgram) throws Exception {
-    runProgram(testProgram).assertIsSafe();
+  @Before
+  public void init() throws IOException, InvalidConfigurationException {
+    analysisToUse = buildConfigForC(configToUse, specToUse);
   }
 
-  /**
-   * Executes the program given in the current {@link Configuration} and asserts that it is UNSAFE.
-   *
-   * @param testProgram path to test program, e.g.
-   *     'test/programs/basics/array_tests/array_usage_32_false.c'. The common path-prefix
-   *     'test/programs/' is automatically added if not present, i.e.
-   *     'basics/array_tests/array_usage_32_false.c' is equivalent to the previous path.
-   */
-  void runAndAssertUnsafe(String testProgram) throws Exception {
-    runProgram(testProgram).assertIsUnsafe();
-  }
-
-  private TestResults runProgram(String testProgram) throws Exception {
-    if (!testProgram.startsWith(TEST_PROGRAM_COMMON_PREFIX)) {
-      testProgram = TEST_PROGRAM_COMMON_PREFIX + testProgram;
+  private static String addProgramPathPrefixIfNeeded(String programPath) {
+    if (!programPath.startsWith(TEST_PROGRAM_COMMON_PREFIX)) {
+      return TEST_PROGRAM_COMMON_PREFIX + programPath;
     }
-    return CPATestRunner.run(buildConfigForC(configToUse, specToUse), testProgram);
+    return programPath;
   }
 
   private static Configuration buildConfigForC(String cpaConfiguration, String specification)
@@ -134,5 +126,88 @@ public class SMGBaseCPATest {
 
   protected static MachineModel getMachineModel() {
     return MachineModel.LINUX32;
+  }
+
+  /**
+   * Use this for checking assertions about the result of a program verification on a program given
+   * via its path with Truth: <code>
+   * assertThatProgram(pathToProgram).is...()</code>.
+   *
+   * @param pathToProgram path to test program, e.g.
+   *     'test/programs/basics/array_tests/array_usage_32_true.c'. The common path-prefix
+   *     'test/programs/' is automatically added if not present, i.e.
+   *     'basics/array_tests/array_usage_32_true.c' is equivalent to the previous path.
+   */
+  protected final ProgramSubject assertThatProgram(String pathToProgram) {
+    return assertUsing(analysisToUse).that(pathToProgram);
+  }
+
+  /**
+   * {@link Subject} subclass for testing assertions about a program verification with Truth (allows
+   * using <code>assert_().about(...).that(String).isSafe()</code> etc.) that is given the path to a
+   * program to be analyzed.
+   *
+   * <p>For a test use {@link ProgramSubject#assertThatProgram(String)}.
+   */
+  public static final class ProgramSubject extends Subject {
+
+    private final Configuration analysis;
+    private final String programPath;
+
+    private ProgramSubject(
+        FailureMetadata pMetadata, String pProgramPath, Configuration pAnalysis) {
+      super(pMetadata, pProgramPath);
+      programPath = addProgramPathPrefixIfNeeded(checkNotNull(pProgramPath));
+      analysis = checkNotNull(pAnalysis);
+    }
+
+    /** heck that the analysis result of the program is SAFE in the current analysis. */
+    public void isSafe() throws Exception {
+      isExpectedResult(Result.TRUE, "safe");
+    }
+
+    /** heck that the analysis result of the program is UNSAFE in the current analysis. */
+    public void isUnsafe() throws Exception {
+      isExpectedResult(Result.FALSE, "unsafe");
+    }
+
+    /** Check that the analysis result of the program is UNKNOWN in the current analysis. */
+    public void isUnknown() throws Exception {
+      isExpectedResult(Result.UNKNOWN, "unknown");
+    }
+
+    /**
+     * Check that the subject is a certain result, returning an error with the String when failing.
+     */
+    public void isExpectedResult(Result expectedResult, String expectedResultString)
+        throws Exception {
+      TestResults results = CPATestRunner.run(analysis, programPath);
+      Result verdict = results.getCheckerResult().getResult();
+      if (verdict == expectedResult) {
+        return;
+      }
+      failWithActual(
+          Fact.fact("analysis result expected to be", expectedResultString),
+          Fact.fact("but was", verdict),
+          Fact.fact("which has log", results.getLog().trim()));
+    }
+
+    /**
+     * Use this for checking assertions with Truth: <code>
+     * assertUsing(context)).that(formula).is...()</code>.
+     */
+    public static SimpleSubjectBuilder<ProgramSubject, String> assertUsing(
+        final Configuration analysis) {
+      return assert_().about(programSubjectOf(analysis));
+    }
+
+    /**
+     * Use this for checking assertions about programs (given the corresponding analysis) with
+     * Truth: <code>assert_().about(programSubjectOf(analysis)).that(pathToProgram).is...()</code>.
+     */
+    public static Subject.Factory<ProgramSubject, String> programSubjectOf(
+        final Configuration analysis) {
+      return (metadata, pathToProgram) -> new ProgramSubject(metadata, pathToProgram, analysis);
+    }
   }
 }
