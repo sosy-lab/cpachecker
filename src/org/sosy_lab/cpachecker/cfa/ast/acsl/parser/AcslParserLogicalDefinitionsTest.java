@@ -22,8 +22,11 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperato
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
@@ -42,12 +45,19 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public class AcslParserLogicalDefinitionsTest {
@@ -537,14 +547,29 @@ public class AcslParserLogicalDefinitionsTest {
     testLogicalFunctionParsing(input, output);
   }
 
+  // Predicate for an SLL without any values that is null terminated and starts at the beginning of
+  // the list
   @Test
   @Ignore
   public void memSafetySimpleSllPredicateTest() throws AcslParseException {
-    /*  Abstraction predicate 'pred_sll' for a Singly-Linked-List (SLL) of type 'sll' defined as:
+    /*
+     * Abstraction predicate 'pred_sll' for a Singly-Linked-List (SLL) of type 'sll' defined as:
      *
      * struct sll {
      *   struct sll *next;
      * };
+     *
+     * With the following C code creating the list with the predicate (loop invariant) 'pred_sll':
+     *
+     * struct sll* create(void) {
+     *   struct sll *sll = alloc_and_zero();
+     *   struct sll *now = sll;
+     *   while(random()) {
+     *     now->next = alloc_and_zero();
+     *     now = now->next;
+     *   }
+     *   return sll;
+     * }
      *
      * pred_sll(sll * start, sll * end, int size)
      *   match size:
@@ -560,10 +585,85 @@ public class AcslParserLogicalDefinitionsTest {
      *     && pred_sll(start->next, end, size - 1)
      */
 
-    CCompositeType sllCType = new CCompositeType(CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "sll", "sll");
-    CPointerType sllCPointerType =  new CPointerType(CTypeQualifiers.NONE, sllCType);
+    CCompositeType sllCType =
+        new CCompositeType(CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "sll", "sll");
+    CPointerType sllCPointerType = new CPointerType(CTypeQualifiers.NONE, sllCType);
     sllCType.setMembers(
         ImmutableList.of(new CCompositeTypeMemberDeclaration(sllCPointerType, "next")));
+
+    // The C "variable" is the parameter 'start'
+    // TODO: is this (and end) a CParameterDeclaration instead?
+    CSimpleDeclaration startCVariable =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            sllCPointerType,
+            "start",
+            "start",
+            "start",
+            null);
+    CIdExpression startCIdExpr = new CIdExpression(FileLocation.DUMMY, startCVariable);
+    CSimpleDeclaration endCVariable =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            sllCPointerType,
+            "end",
+            "end",
+            "end",
+            null);
+    CIdExpression endCIdExpr = new CIdExpression(FileLocation.DUMMY, endCVariable);
+
+    // start->next
+    CFieldReference startCNextFieldDeref =
+        new CFieldReference(FileLocation.DUMMY, sllCType, "next", startCIdExpr, true);
+    // start->next == 0
+    CBinaryExpression sllNextEqualsZero =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            sllCPointerType,
+            startCNextFieldDeref,
+            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+            BinaryOperator.EQUALS);
+    // start->next != 0
+    CBinaryExpression sllNextNotEqualsZero =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            sllCPointerType,
+            startCNextFieldDeref,
+            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+            BinaryOperator.NOT_EQUALS);
+    // start->next != start
+    CBinaryExpression sllNextNotEqualsStart =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            sllCPointerType,
+            startCNextFieldDeref,
+            startCIdExpr,
+            BinaryOperator.NOT_EQUALS);
+    // start == end (pointer equality)
+    CBinaryExpression startEqualsEnd =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            sllCPointerType,
+            startCIdExpr,
+            endCIdExpr,
+            BinaryOperator.EQUALS);
+    // start != 0 (pointer equality)
+    CBinaryExpression startNotEqualsZero =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            sllCPointerType,
+            startCIdExpr,
+            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+            BinaryOperator.NOT_EQUALS);
 
     AcslCType sllPointerAcslType = new AcslCType(sllCPointerType);
     AcslParameterDeclaration start =
@@ -573,13 +673,42 @@ public class AcslParserLogicalDefinitionsTest {
     AcslParameterDeclaration size =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "size");
 
+    AcslCLeftHandSideTerm startCNextFieldDerefTerm =
+        new AcslCLeftHandSideTerm(FileLocation.DUMMY, start.getType(), startCNextFieldDeref);
+    AcslCExpressionTerm sllNextEqualsZeroTerm =
+        new AcslCExpressionTerm(
+            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, sllNextEqualsZero);
+    AcslCExpressionTerm sllNextNotEqualsZeroTerm =
+        new AcslCExpressionTerm(
+            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, sllNextNotEqualsZero);
+    AcslCExpressionTerm sllNextNotEqualsStartTerm =
+        new AcslCExpressionTerm(
+            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, sllNextNotEqualsStart);
+    AcslCExpressionTerm startEqualsEndTerm =
+        new AcslCExpressionTerm(FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, startEqualsEnd);
+    AcslCExpressionTerm startNotEqualsZeroTerm =
+        new AcslCExpressionTerm(
+            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, startNotEqualsZero);
+
+    // Note on Acsl expressions vs C expressions here: Acsl is purely mathematical (i.e. unbounded
+    // integers), C expressions are bound to the C types. As long as there is no C bound upper limit
+    // to the list length, this does not really matter.
+    AcslIdTerm sizeIdTerm = new AcslIdTerm(FileLocation.DUMMY, size);
+    AcslBinaryTerm sizeMinusOne =
+        new AcslBinaryTerm(
+            FileLocation.DUMMY,
+            sizeIdTerm.getExpressionType(),
+            sizeIdTerm,
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, sizeIdTerm.getExpressionType(), BigInteger.ONE),
+            AcslBinaryTermOperator.MINUS);
+
     AcslPredicateDeclaration sllPredicateDeclaration =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
             // Function type:
             new AcslPredicateType(
-                ImmutableList.of(start.getType(), end.getType(), size.getType()),
-                false),
+                ImmutableList.of(start.getType(), end.getType(), size.getType()), false),
             "pred_sll",
             "pred_sll",
             // We don't want polymorphic types for MemSafety
@@ -587,26 +716,83 @@ public class AcslParserLogicalDefinitionsTest {
             // Parameters:
             ImmutableList.of(start, end, size));
 
+    // TODO: how to connect 2 boolean terms with logical operators, e.g. AND?
     AcslAstNode expectedOutput =
         new AcslLogicPredicateDefinition(
             FileLocation.DUMMY,
             // Function Declaration
             sllPredicateDeclaration,
             // Function body
-            new AcslTernaryPredicate(FileLocation.DUMMY,
+            new AcslTernaryPredicate(
+                FileLocation.DUMMY,
                 // ITE condition: size == 1
-                new AcslBinaryTermPredicate(FileLocation.DUMMY,  new AcslIdTerm(FileLocation.DUMMY, size), new AcslIntegerLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE), AcslBinaryTermExpressionOperator.EQUALS),
+                new AcslBinaryTermPredicate(
+                    FileLocation.DUMMY,
+                    new AcslIdTerm(FileLocation.DUMMY, size),
+                    new AcslIntegerLiteralTerm(
+                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                    AcslBinaryTermExpressionOperator.EQUALS),
                 // If branch: start->next == 0 && start == end
-                new AcslBinaryPredicate(FileLocation.DUMMY,  new AcslBinaryTermPredicate(FileLocation.DUMMY, /* start->next */ , new AcslIntegerLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO), AcslBinaryTermExpressionOperator.EQUALS), new AcslBinaryTermPredicate(FileLocation.DUMMY,  new AcslIdTerm(FileLocation.DUMMY, start), new AcslIdTerm(FileLocation.DUMMY, end), AcslBinaryTermExpressionOperator.EQUALS), AcslBinaryPredicateOperator.AND),
+                new AcslBinaryPredicate(
+                    FileLocation.DUMMY,
+                    sllNextEqualsZeroTerm,
+                    startEqualsEndTerm,
+                    AcslBinaryPredicateOperator.AND),
                 // Else branch: start != 0 && start->next != start && start->next != 0
                 //               && pred_sll(start->next, end, size - 1)
-                new AcslBinaryPredicate(FileLocation.DUMMY, new AcslBinaryTermPredicate(FileLocation.DUMMY,  new AcslIdTerm(FileLocation.DUMMY, start), new AcslIntegerLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO), AcslBinaryTermExpressionOperator.NOT_EQUALS) , new AcslBinaryPredicate(FileLocation.DUMMY, /* start->next != start */ , new AcslBinaryPredicate(FileLocation.DUMMY, /* start->next != 0 */ , /* pred_sll(start->next, end, size - 1) */, AcslBinaryPredicateOperator.AND), AcslBinaryPredicateOperator.AND), AcslBinaryPredicateOperator.AND))
-            );
+                new AcslBinaryPredicate(
+                    FileLocation.DUMMY,
+                    startNotEqualsZeroTerm,
+                    new AcslBinaryPredicate(
+                        FileLocation.DUMMY, /* start->next != start */
+                        sllNextNotEqualsStartTerm,
+                        new AcslBinaryPredicate(
+                            FileLocation.DUMMY, /* start->next != 0 */
+                            sllNextNotEqualsZeroTerm,
+                            /* pred_sll(start->next, end, size - 1) */
+                            new AcslFunctionCallPredicate(
+                                FileLocation.DUMMY,
+                                new AcslIdTerm(FileLocation.DUMMY, sllPredicateDeclaration),
+                                ImmutableList.of(
+                                    /*start->next*/ startCNextFieldDerefTerm,
+                                    new AcslIdTerm(FileLocation.DUMMY, end),
+                                    sizeMinusOne),
+                                sllPredicateDeclaration),
+                            AcslBinaryPredicateOperator.AND),
+                        AcslBinaryPredicateOperator.AND),
+                    AcslBinaryPredicateOperator.AND)));
 
-// TODO: @Marian: ITE form or pattern matching? Or both? Both would be kinda cool.
-    String input =
-        "TODO";
+    // TODO: @Marian: ITE form or pattern matching? Or both? Both would be kinda cool.
+    String input = "TODO";
 
     testLogicalFunctionParsing(input, expectedOutput);
   }
+
+  // TODO: Predicate for an DLL without any values that is null terminated and starts at the
+  // beginning of the list
+
+  // TODO: Predicate for an DLL without any values that is null terminated and starts at the end of
+  // the list
+
+  // TODO: Predicate for an SLL with a single value shared in all segments that is null terminated
+  // and starts at the beginning of the list
+
+  // TODO: Predicate for an DLL with a single value shared in all segments that is null terminated
+  // and starts at the beginning of the list
+
+  // TODO: Predicate for an DLL with a single value shared in all segments that is null terminated
+  // and starts at the end of the list
+
+  // TODO: Predicate for an SLL with a single value that is a new nondet in all segments that is
+  // null terminated and starts at the beginning of the list
+
+  // TODO: Predicate for an DLL with a single value that is a new nondet in all segments that is
+  // null terminated and starts at the beginning of the list
+
+  // TODO: Predicate for an DLL with a single value that is a new nondet in all segments that is
+  // null terminated and starts at the end of the list
+
+  // TODO: more tests with looping lists
+  // TODO: more tests with pointer offsets that need to be taken into account (linux style
+  // linked-list)
 }
