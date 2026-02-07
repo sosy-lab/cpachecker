@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
-import com.google.common.collect.ImmutableList;
-import java.util.Collection;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -23,17 +20,16 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public class DistributedARGCPA
-    implements ForwardingDistributedConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA {
+public class DistributedARGCPA extends AbstractSingleWrapperCPA
+    implements ForwardingDistributedConfigurableProgramAnalysis, StatisticsProvider {
 
   private final ARGCPA argcpa;
   private final DistributedConfigurableProgramAnalysis wrappedCPA;
@@ -47,6 +43,7 @@ public class DistributedARGCPA
   private final CombineOperator combineOperator;
 
   public DistributedARGCPA(ARGCPA pARGCPA, DistributedConfigurableProgramAnalysis pWrapped) {
+    super(pWrapped);
     argcpa = pARGCPA;
     wrappedCPA = pWrapped;
     proceedOperator = new ProceedARGCPAOperator(wrappedCPA);
@@ -137,30 +134,5 @@ public class DistributedARGCPA
 
   public DistributedConfigurableProgramAnalysis getWrappedCPA() {
     return wrappedCPA;
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    if (wrappedCPA instanceof StatisticsProvider statisticsProvider) {
-      statisticsProvider.collectStatistics(statsCollection);
-    }
-  }
-
-  @Override
-  public @Nullable <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
-    if (type.isAssignableFrom(getClass())) {
-      return type.cast(this);
-    } else if (type.isAssignableFrom(wrappedCPA.getClass())) {
-      return type.cast(wrappedCPA);
-    } else if (wrappedCPA instanceof WrapperCPA wrapperCPA) {
-      return wrapperCPA.retrieveWrappedCpa(type);
-    } else {
-      return null;
-    }
-  }
-
-  @Override
-  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
-    return ImmutableList.of(wrappedCPA);
   }
 }
