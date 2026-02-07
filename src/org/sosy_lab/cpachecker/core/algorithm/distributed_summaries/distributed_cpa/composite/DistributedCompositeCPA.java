@@ -229,9 +229,18 @@ public class DistributedCompositeCPA
   @SuppressWarnings("unchecked")
   @Override
   public @Nullable <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
-    for (var c : wrappedCpas) {
-      if (type.isInstance(c)) {
-        return (T) c;
+    if (type.isAssignableFrom(getClass())) {
+      return (T) this;
+    } else {
+      for (ConfigurableProgramAnalysis cpa : wrappedCpas) {
+        if (type.isAssignableFrom(cpa.getClass())) {
+          return (T) cpa;
+        } else if (cpa instanceof WrapperCPA wrapperCPA) {
+          T result = wrapperCPA.retrieveWrappedCpa(type);
+          if (result != null) {
+            return result;
+          }
+        }
       }
     }
     return null;
