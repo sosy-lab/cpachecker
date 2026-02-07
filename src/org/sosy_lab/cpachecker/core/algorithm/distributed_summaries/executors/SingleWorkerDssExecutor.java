@@ -44,15 +44,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "distributedSummaries.singleWorker")
-public class SingleWorkerDssExecutor implements DssExecutor, AutoCloseable {
+public class SingleWorkerDssExecutor implements DssExecutor {
 
   private record OldAndNewMessages(List<DssMessage> oldMessages, List<DssMessage> newMessages) {}
 
   private final Specification specification;
   private final DssAnalysisOptions options;
   private final DssMessageFactory messageFactory;
-
-  private DssAnalysisWorker actor;
 
   @FileOption(Type.OUTPUT_DIRECTORY)
   @Option(description = "Where to write responses", secure = true)
@@ -170,33 +168,29 @@ public class SingleWorkerDssExecutor implements DssExecutor, AutoCloseable {
             .addAnalysisWorker(blockNode, options)
             .build();
 
-    actor = (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor());
-    // use list instead of set. Each message has a unique timestamp,
-    // so there will be no duplicates that a set can remove.
-    // But the equality checks are unnecessarily expensive
-    List<DssMessage> response = new ArrayList<>();
-    if (knownConditions.isEmpty() && newConditions.isEmpty()) {
-      response.addAll(actor.runInitialAnalysis());
-    } else {
-      OldAndNewMessages preparedBatches = prepareOldAndNewMessages(knownConditions, newConditions);
-      for (DssMessage message : preparedBatches.oldMessages()) {
-        actor.storeMessage(message);
+    try (DssAnalysisWorker actor =
+        (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor())) {
+      // use list instead of set. Each message has a unique timestamp,
+      // so there will be no duplicates that a set can remove.
+      // But the equality checks are unnecessarily expensive
+      List<DssMessage> response = new ArrayList<>();
+      if (knownConditions.isEmpty() && newConditions.isEmpty()) {
+        response.addAll(actor.runInitialAnalysis());
+      } else {
+        OldAndNewMessages preparedBatches =
+            prepareOldAndNewMessages(knownConditions, newConditions);
+        for (DssMessage message : preparedBatches.oldMessages()) {
+          actor.storeMessage(message);
+        }
+        for (DssMessage message : preparedBatches.newMessages()) {
+          response.addAll(actor.processMessage(message));
+        }
       }
-      for (DssMessage message : preparedBatches.newMessages()) {
-        response.addAll(actor.processMessage(message));
-      }
+      writeAllMessages(response);
     }
-    writeAllMessages(response);
     return new StatusAndResult(AlgorithmStatus.NO_PROPERTY_CHECKED, Result.UNKNOWN);
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {}
-
-  @Override
-  public void close() {
-    if (actor != null) {
-      actor.close();
-    }
-  }
 }

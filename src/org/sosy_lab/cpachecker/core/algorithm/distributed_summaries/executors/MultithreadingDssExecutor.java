@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class MultithreadingDssExecutor implements DssExecutor, AutoCloseable {
+public class MultithreadingDssExecutor implements DssExecutor {
 
   private static final String OBSERVER_WORKER_ID = "__observer__";
 
@@ -41,8 +41,6 @@ public class MultithreadingDssExecutor implements DssExecutor, AutoCloseable {
   private final DssAnalysisOptions options;
   private final Specification specification;
   private final List<Statistics> stats;
-
-  private DssActors actors;
 
   public MultithreadingDssExecutor(Configuration pConfiguration, Specification pSpecification)
       throws InvalidConfigurationException {
@@ -70,7 +68,7 @@ public class MultithreadingDssExecutor implements DssExecutor, AutoCloseable {
   @Override
   public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    actors = createDssActors(cfa, blockGraph);
+    DssActors actors = createDssActors(cfa, blockGraph);
     stats.addAll(actors.getWorkersWithStats());
     DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
     Preconditions.checkState(
@@ -94,20 +92,16 @@ public class MultithreadingDssExecutor implements DssExecutor, AutoCloseable {
     monitor.setDaemon(true);
     monitor.start();
     // blocks the thread until the result message is received
-    return observer.observe();
+    var status = observer.observe();
+    // close analysis workers to free resources
+    for (var actor : actors.getAnalysisWorkers()) {
+      actor.close();
+    }
+    return status;
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.addAll(stats);
-  }
-
-  @Override
-  public void close() {
-    if (actors != null) {
-      for (var actor : actors.getAnalysisWorkers()) {
-        actor.close();
-      }
-    }
   }
 }
