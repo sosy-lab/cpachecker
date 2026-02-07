@@ -68,36 +68,32 @@ public class MultithreadingDssExecutor implements DssExecutor {
   @Override
   public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    DssActors actors = createDssActors(cfa, blockGraph);
-    stats.addAll(actors.getWorkersWithStats());
-    DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
-    Preconditions.checkState(
-        observer.getId().equals(OBSERVER_WORKER_ID),
-        "Observer worker must have id %s but has id %s",
-        OBSERVER_WORKER_ID,
-        observer.getId());
-    // run workers
-    List<Thread> threads = new ArrayList<>(actors.getActors().size());
-    for (DssActor worker : actors.getAnalysisWorkers()) {
-      Thread thread = new Thread(worker, worker.getId());
-      threads.add(thread);
-      thread.setDaemon(true);
-      thread.start();
-    }
+    try (DssActors actors = createDssActors(cfa, blockGraph)) {
+      stats.addAll(actors.getWorkersWithStats());
+      DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
+      Preconditions.checkState(
+          observer.getId().equals(OBSERVER_WORKER_ID),
+          "Observer worker must have id %s but has id %s",
+          OBSERVER_WORKER_ID,
+          observer.getId());
+      // run workers
+      List<Thread> threads = new ArrayList<>(actors.getActors().size());
+      for (DssActor worker : actors.getAnalysisWorkers()) {
+        Thread thread = new Thread(worker, worker.getId());
+        threads.add(thread);
+        thread.setDaemon(true);
+        thread.start();
+      }
 
-    Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
-    // sends a result message iff all workers are waiting
-    DssThreadMonitor monitor =
-        new DssThreadMonitor(threads, messageFactory, observer.getConnection());
-    monitor.setDaemon(true);
-    monitor.start();
-    // blocks the thread until the result message is received
-    var status = observer.observe();
-    // close analysis workers to free resources
-    for (var actor : actors.getAnalysisWorkers()) {
-      actor.close();
+      Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
+      // sends a result message iff all workers are waiting
+      DssThreadMonitor monitor =
+          new DssThreadMonitor(threads, messageFactory, observer.getConnection());
+      monitor.setDaemon(true);
+      monitor.start();
+      // blocks the thread until the result message is received
+      return observer.observe();
     }
-    return status;
   }
 
   @Override

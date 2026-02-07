@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 
-public class DssActors {
+public class DssActors implements AutoCloseable {
 
   private final ImmutableList<DssObserverWorker> observers;
   private final ImmutableList<DssAnalysisWorker> analysisWorkers;
@@ -60,5 +60,13 @@ public class DssActors {
 
   public DssActor getOnlyActor() {
     return Iterables.getOnlyElement(actors);
+  }
+
+  @Override
+  public void close() {
+    // close analysis workers to free resources
+    for (var actor : analysisWorkers) {
+      actor.close();
+    }
   }
 }
