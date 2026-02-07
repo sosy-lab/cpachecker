@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class DssBlockAnalysis implements AutoCloseable {
+public class DssBlockAnalysis {
 
   private record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
@@ -560,16 +560,5 @@ public class DssBlockAnalysis implements AutoCloseable {
 
   public DistributedConfigurableProgramAnalysis getDcpa() {
     return dcpa;
-  }
-
-  @Override
-  public void close() {
-    // The distributed CPA in 'dcpa' may contain some CPAs that were locally adjusted for DSS by
-    // wrapping them in their corresponding Distributed*CPA version. For example, if 'cpa' contains
-    // a PredicateCPA, then 'dcpa' will contain a DistributedPredicateCPA that wraps that instance
-    // of the PredicateCPA. These Distributed*CPA versions may manage additional resources that must
-    // be closed. So we can not just close 'cpa'; instead, we need to close the Distributed*CPA in
-    // 'dcpa' to make sure all resources are freed
-    CPAs.closeCpaIfPossible(dcpa, logger);
   }
 }

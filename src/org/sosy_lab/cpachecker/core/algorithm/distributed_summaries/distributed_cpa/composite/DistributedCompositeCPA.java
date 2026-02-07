@@ -247,6 +247,12 @@ public class DistributedCompositeCPA
 
   @Override
   public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
+    // The 'wrappedCpas' may contain some CPAs that were locally adjusted for DSS by wrapping them
+    // in their corresponding Distributed*CPA version. For example, if compositeCPA contains a
+    // PredicateCPA, then wrappedCpas will contain a DistributedPredicateCPA that wraps that
+    // instance of the PredicateCPA. These Distributed*CPA versions may manage additional resources
+    // that must be closed. So we can not delegate to compositeCPA to get the wrapped CPAs; instead,
+    // we need to make sure to return the Distributed*CPA versions.
     return wrappedCpas;
   }
 }
