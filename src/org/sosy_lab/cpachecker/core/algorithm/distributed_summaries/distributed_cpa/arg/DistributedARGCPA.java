@@ -146,13 +146,12 @@ public class DistributedARGCPA
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public @Nullable <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
     if (type.isAssignableFrom(getClass())) {
-      return (T) this;
+      return type.cast(this);
     } else if (type.isAssignableFrom(wrappedCPA.getClass())) {
-      return (T) wrappedCPA;
+      return type.cast(wrappedCPA);
     } else if (wrappedCPA instanceof WrapperCPA wrapperCPA) {
       return wrapperCPA.retrieveWrappedCpa(type);
     } else {
