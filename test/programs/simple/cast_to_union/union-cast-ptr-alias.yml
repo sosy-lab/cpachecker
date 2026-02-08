@@ -8,8 +8,7 @@
 
 format_version: '1.0'
 
-# old file name: union-cast-ptr-alias.c
-input_files: 'union-cast-ptr-alias'
+input_files: 'union-cast-ptr-alias.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-label.prp

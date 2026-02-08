@@ -8,8 +8,7 @@
 
 format_version: '1.0'
 
-# old file name: union-cast-enum.c
-input_files: 'union-cast-enum'
+input_files: 'union-cast-enum.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-label.prp
