@@ -111,16 +111,19 @@ public final class ValueAnalysisInterpolant
     int newNumberOfGlobalConstantsInAssignment = numberOfGlobalConstantsInAssignment;
     int newNumberOfSymbolicConstantsInAssignment = numberOfSymbolicConstants;
 
-    List<MapsDifference.Entry<MemoryLocation, ValueAndType>> additions = new ArrayList<>();
+    // Collects additions of entries from other.assignment not present in assignment
+    List<MapsDifference.Entry<MemoryLocation, ValueAndType>> additionsToAssignment =
+        new ArrayList<>();
+
     PersistentMap<MemoryLocation, ValueAndType> newAssignment =
         PersistentSortedMaps.merge(
             (PathCopyingPersistentTreeMap<MemoryLocation, ValueAndType>) assignment,
             (PathCopyingPersistentTreeMap<MemoryLocation, ValueAndType>) other.assignment,
             Equivalence.equals(),
             getLenientMergeConflictHandler(),
-            collectOtherAdditions(additions));
+            collectRightValueDifferencesOnly(additionsToAssignment));
 
-    for (MapsDifference.Entry<MemoryLocation, ValueAndType> addition : additions) {
+    for (MapsDifference.Entry<MemoryLocation, ValueAndType> addition : additionsToAssignment) {
       checkArgument(addition.getLeftValue().isEmpty());
       newAssignmentsSize++;
       if (!addition.getKey().isOnFunctionStack()) {
@@ -148,16 +151,21 @@ public final class ValueAnalysisInterpolant
     };
   }
 
-  public static <K, V> Visitor<K, V> collectOtherAdditions(
-      Collection<MapsDifference.Entry<K, V>> target) {
-    checkNotNull(target);
+  // Collects all entries that are not present in the "left" list, but in the "right".
+  // Does not collect entries with matching keys, but not matching values.
+  // This allows external tracking of details of the resulting map to be calculated by tacking the
+  // starting information of the left map and then subtracting the information of the result of this
+  // method
+  public static <K, V> Visitor<K, V> collectRightValueDifferencesOnly(
+      Collection<MapsDifference.Entry<K, V>> collectIn) {
+    checkNotNull(collectIn);
     return new Visitor<>() {
       @Override
       public void leftValueOnly(K pKey, V pLeftValue) {}
 
       @Override
       public void rightValueOnly(K pKey, V pRightValue) {
-        target.add(MapsDifference.Entry.forRightValueOnly(pKey, pRightValue));
+        collectIn.add(MapsDifference.Entry.forRightValueOnly(pKey, pRightValue));
       }
 
       @Override
