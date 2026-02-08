@@ -374,8 +374,8 @@ public final class ValueAnalysisState
    * This method returns the value for the given variable.
    *
    * @param memLoc the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value associated with the given variable
+   * @throws NullPointerException - if no value is present in this state for the given variable
    */
   public Value getValueFor(MemoryLocation memLoc) {
     return checkNotNull(getValueAndTypeFor(memLoc).getValue());
@@ -385,9 +385,9 @@ public final class ValueAnalysisState
    * This method returns the type for the given memory location.
    *
    * @param memLoc the memory location for which to get the type
+   * @return the type associated with the given memory location
    * @throws NullPointerException - if no type is present in this state for the given memory
    *     location
-   * @return the type associated with the given memory location
    */
   public @Nullable Type getTypeForMemoryLocation(MemoryLocation memLoc) {
     return getValueAndTypeFor(memLoc).getType();
@@ -397,8 +397,8 @@ public final class ValueAnalysisState
    * This method returns the value and type for the given variable.
    *
    * @param memLoc the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value and type associated with the given variable
+   * @throws NullPointerException - if no value is present in this state for the given variable
    */
   public ValueAndType getValueAndTypeFor(MemoryLocation memLoc) {
     return checkNotNull(constantsMap.get(memLoc));
@@ -454,25 +454,51 @@ public final class ValueAnalysisState
       return reachedState;
     }
 
-    PersistentMap<MemoryLocation, ValueAndType> newConstantsMap = PathCopyingPersistentTreeMap.of();
-
     int newConstantsMapSize = 0;
     int newGlobalsSize = 0;
     int newSymbolicsSize = 0;
 
-    for (Entry<MemoryLocation, ValueAndType> otherEntry : reachedState.constantsMap.entrySet()) {
-      MemoryLocation key = otherEntry.getKey();
-      ValueAndType value = otherEntry.getValue();
+    PersistentMap<MemoryLocation, ValueAndType> newConstantsMap = PathCopyingPersistentTreeMap.of();
+    Iterator<Entry<MemoryLocation, ValueAndType>> it1 = constantsMap.entrySet().iterator();
+    Iterator<Entry<MemoryLocation, ValueAndType>> it2 =
+        reachedState.constantsMap.entrySet().iterator();
+    Entry<MemoryLocation, ValueAndType> e1 = null;
+    Entry<MemoryLocation, ValueAndType> e2 = null;
 
-      if (Objects.equals(value, constantsMap.get(key))) {
-        newConstantsMapSize++;
-        if (!key.isOnFunctionStack()) {
-          newGlobalsSize++;
+    while ((e1 != null || it1.hasNext()) && (e2 != null || it2.hasNext())) {
+      if (e1 == null) {
+        e1 = it1.next();
+      }
+
+      if (e2 == null) {
+        e2 = it2.next();
+      }
+
+      int comp = e1.getKey().compareTo(e2.getKey());
+      if (comp < 0) {
+        e1 = null;
+
+      } else if (comp > 0) {
+        e2 = null;
+
+      } else {
+        // Equal keys
+        MemoryLocation key = e1.getKey();
+        ValueAndType value1 = e1.getValue();
+        ValueAndType value2 = e2.getValue();
+        if (Objects.equals(value2, value1)) {
+          newConstantsMapSize++;
+          if (!key.isOnFunctionStack()) {
+            newGlobalsSize++;
+          }
+          if (value2.getValue() instanceof SymbolicValue) {
+            newSymbolicsSize++;
+          }
+          newConstantsMap = newConstantsMap.putAndCopy(key, value2);
         }
-        if (value.getValue() instanceof SymbolicValue) {
-          newSymbolicsSize++;
-        }
-        newConstantsMap = newConstantsMap.putAndCopy(key, value);
+
+        e1 = null;
+        e2 = null;
       }
     }
 
