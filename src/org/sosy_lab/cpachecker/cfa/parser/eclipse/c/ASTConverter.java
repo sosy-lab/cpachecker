@@ -991,8 +991,8 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
-    // Cast-to-union extension (GCC): initialize the union member whose type matches the operand's
-    // type.
+    // Cast-to-union extension (GCC): initialize the union member whose type is an exact match of
+    // the operand's type.
     // (Currently handled for scalar operands.)
     // Lower this to a designated initializer
 
