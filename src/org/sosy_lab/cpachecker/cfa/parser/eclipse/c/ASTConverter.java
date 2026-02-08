@@ -997,8 +997,7 @@ class ASTConverter {
     // Lower this to a designated initializer
 
     if (castType.getCanonicalType() instanceof CCompositeType compositeType
-        && compositeType.getKind() == ComplexTypeKind.UNION
-        && CTypes.isScalarType(operand.getExpressionType().getCanonicalType())) {
+        && compositeType.getKind() == ComplexTypeKind.UNION) {
 
       if (compositeType.getMembers().isEmpty()) {
         throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
