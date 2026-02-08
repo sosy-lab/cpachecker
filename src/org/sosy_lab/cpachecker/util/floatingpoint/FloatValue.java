@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /**
  * Java based implementation of multi-precision floating point values with correct rounding.
@@ -291,6 +293,16 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
           MAX_EXPONENT_WIDTH);
       Preconditions.checkArgument(
           sigBits >= 0, "Significand field must not have negative bit width");
+    }
+
+    /** Create a matching {@link Format} for the given JavaSMT {@link FloatingPointType} */
+    public static Format fromFloatingPointType(FloatingPointType type) {
+      return new Format(type.getExponentSize(), type.getMantissaSize());
+    }
+
+    /** Convert this {@link Format} to a JavaSMT {@link FloatingPointType} */
+    public FloatingPointType toFloatingPointType() {
+      return FormulaType.getFloatingPointType(expBits, sigBits);
     }
 
     private static final int FLOAT8_EXP_BITS = 4;
