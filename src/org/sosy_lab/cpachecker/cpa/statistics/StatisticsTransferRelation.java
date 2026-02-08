@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** The transfer relation of the StatisticsCPA. */
 public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
@@ -30,7 +29,7 @@ public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
     StatisticsState state = (StatisticsState) pState;
     CFANode node = state.getLocationNode();
     if (pCfaEdge != null) {
-      if (CFAUtils.allLeavingEdges(node).contains(pCfaEdge)) {
+      if (node.getAllLeavingEdges().contains(pCfaEdge)) {
         return Collections.singleton(state.nextState(pCfaEdge));
       }
       return ImmutableSet.of();
@@ -39,7 +38,7 @@ public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
     ImmutableList.Builder<StatisticsState> allSuccessors =
         ImmutableList.builderWithExpectedSize(node.getNumLeavingEdges());
 
-    for (CFAEdge successor : CFAUtils.leavingEdges(node)) {
+    for (CFAEdge successor : node.getLeavingEdges()) {
       allSuccessors.add(state.nextState(successor));
     }
 

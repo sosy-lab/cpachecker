@@ -118,7 +118,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
 
-    exporter = new TestCaseExporter(pCfa, logger, pConfig);
+    exporter = new TestCaseExporter(pCfa, logger, pConfig, testTargetCpa.isRunInParallel());
 
     numMutations = Math.max(numMutations, 0);
 
@@ -127,7 +127,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       Preconditions.checkArgument(
           specProp.isCoverage(), "Property %s not supported for test-case generation", specProp);
       Preconditions.checkArgument(
-          pSpec.getFiles().isEmpty(), "Specification files not supported for test-case generation");
+          pSpec.getFiles().size() <= 1,
+          "Further specification files not supported for test-case generation");
       Preconditions.checkArgument(
           pSpec.getPathToSpecificationAutomata().isEmpty(),
           "Specification automata not supported n test-case generation");

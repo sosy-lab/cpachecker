@@ -91,14 +91,10 @@ public class SMGProveNequality {
     if (pToEdge.pointsTo().getSize().isUnknown() || pToEdge.getOffset().isUnknown()) {
       // Unknown -> Overapproximate
       return true;
-    } else if (targetObj.getSize().isNumericValue() && pToEdge.getOffset().isNumericValue()) {
-      return pToEdge
-                  .getOffset()
-                  .asNumericValue()
-                  .bigIntegerValue()
-                  .compareTo(pToEdge.pointsTo().getSize().asNumericValue().bigIntegerValue())
-              > 0
-          || pToEdge.getOffset().asNumericValue().bigIntegerValue().signum() < 0;
+    } else if (targetObj.getSize() instanceof NumericValue targetObjSize
+        && pToEdge.getOffset() instanceof NumericValue pToEdgeOffset) {
+      return pToEdgeOffset.bigIntegerValue().compareTo(targetObjSize.bigIntegerValue()) > 0
+          || pToEdgeOffset.bigIntegerValue().signum() < 0;
     } else {
       // Use SMT solver
       return state

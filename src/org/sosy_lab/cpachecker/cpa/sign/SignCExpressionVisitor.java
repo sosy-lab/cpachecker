@@ -124,8 +124,8 @@ public class SignCExpressionVisitor
           case MINUS -> evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
           case MULTIPLY -> evaluateMulOperator(pLeft, pRight);
           case DIVIDE -> evaluateDivideOperator(pLeft, pRight);
-          case MODULO -> evaluateModuloOperator(pLeft, pRight);
-          case BINARY_AND -> evaluateAndOperator(pLeft, pRight);
+          case REMAINDER -> evaluateModuloOperator(pLeft, pRight);
+          case BITWISE_AND -> evaluateAndOperator(pLeft, pRight);
           case LESS_EQUAL -> evaluateLessEqualOperator(pLeft, pRight);
           case GREATER_EQUAL -> evaluateLessEqualOperator(pRight, pLeft);
           case LESS_THAN -> evaluateLessOperator(pLeft, pRight);

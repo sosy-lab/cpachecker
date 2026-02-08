@@ -171,13 +171,15 @@ class DynamicMemoryHandler {
       Long value1 = tryEvaluateExpression(param1);
       if (value0 != null && value1 != null) {
         long result =
-            AbstractExpressionValueVisitor.calculateBinaryOperation(
-                    new NumericValue(value0),
-                    new NumericValue(value1),
-                    multiplication,
-                    conv.machineModel,
-                    conv.logger)
-                .asLong(multiplication.getExpressionType());
+            ((NumericValue)
+                    AbstractExpressionValueVisitor.calculateBinaryOperation(
+                        new NumericValue(value0),
+                        new NumericValue(value1),
+                        multiplication,
+                        conv.machineModel,
+                        conv.logger))
+                .asLong(multiplication.getExpressionType())
+                .orElseThrow();
 
         CExpression newParam =
             new CIntegerLiteralExpression(
@@ -405,7 +407,7 @@ class DynamicMemoryHandler {
               CNumericTypes.SIGNED_CHAR,
               AliasedLocation.ofAddress(result),
               Value.ofValue(
-                  conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
+                  conv.fmgr.makeNumber(conv.getFormulaTypeFromType(CNumericTypes.SIGNED_CHAR), 0)),
               true,
               null,
               conv.bfmgr.makeTrue(),

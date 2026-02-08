@@ -91,6 +91,91 @@ with considerably less effort!
 - Do not forget to update the file [`ConfigurationOptions.txt`](ConfigurationOptions.txt)
   (done automatically by `ant`) and commit it together with your changes.
 
+### Configuration Files
+
+- All config files should have a comment explaining the goal of the respective configuration.
+  In the files in the main `config/` directory
+  this description should be an explanation for users of CPAchecker
+  and for example refer to the relevant papers.
+- Respect the grouping of files into the respective directories
+  (also cf. the linked `README.md` files in each directory)
+  and the individual rules:
+  - [`config/`](../config/README.md): main configs for users of CPAchecker  
+    These config files should be complete and usable.
+    Except in special cases they should always include
+    our default [resource limits](config/includes/resource-limits.properties)
+    and our [default specification](config/specification/default.spc).
+    In many cases it makes sense to refactor all other options out
+    into a separate file in `config/includes/` to make it reusable
+    also for component configs.
+    It often makes sense to provide several config files
+    for different high-level variants of an analysis,
+    and in this case we usually want to a default such that users
+    who are not experts with the respective analysis
+    can use a recommendation from us
+    (for example, we could have `foo-Cegar.properties`, `foo-NoCegar.properties`,
+    and `foo.properties` that just includes one of the other two files).
+  - [`config/cex-checks/`](../config/cex-checks/README.md): configs for analyses to be used as counterexample check  
+    These can rely on the state space being finite
+    (and usually consisting of only a single path) due to an additional automaton.
+    Files in this directory should not include a specification nor the default resource limits
+    and thus not include files that are directly in `config/`.
+  - [`config/components/`](../config/components/README.md): configs for analyses that are components of a meta analysis
+    (e.g., in a strategy selection or portfolio)  
+    These configs may contain options that are useful only in particular cases,
+    like small time limits for parts of sequential combinations.
+    Files in this directory should not include a specification nor the default resource limits
+    and thus not include files that are directly in `config/`.
+  - [`config/includes/`](../config/includes/README.md): partial configs that make sense only as building blocks included in other files  
+    Typically the files here should not contain a specification
+    nor the default resource limits in order to make them useful
+    in main configs as well as component configs.
+    Thus the files here should only include files that are also in `config/includes/`.
+  - [`config/specification/`](../config/specification/README.md): no config files, but specification files
+  - [`config/unmaintained/`](../config/unmaintained/README.md): main configs for users of CPAchecker,
+    but unmaintained and potentially outdated  
+    All files here should not be included or referenced
+    from other config files outside of this directory.
+- CPAchecker configurations are usually much easier to understand
+  (and less error-prone to maintain!)
+  if we avoid overwriting options from one file in a different file,
+  i.e., if one can simply look at all options in a config file and its included files
+  without having to worry about whether the option is maybe overwritten
+  and not effective in the resulting config.
+  In the case where you want to include some config file
+  but overwrite one of the options thereof and reset it to the default value,
+  consider instead splitting the included file such that you have two files
+  that can be used for the new purpose without the need to overwrite something previously set:
+  one file that contains the included config but without the unwanted option,
+  and one file that includes the former and adds the option.  
+  This is especially relevant in cases where config file `a.properties`
+  should overwrite an option from `b.properties` but where `a.properties`
+  does not (directly) include `b.properties`, for example in transitive include chains
+  or where a third file includes both `a.properties` and `b.properties`
+  that have no further relation to each other.
+  In the latter case the final value of the config option depends
+  on the order of the include statements, which is highly error prone.
+  This case will likely be forbidden in the future
+  (cf. https://github.com/sosy-lab/java-common-lib/issues/4)
+  and should already never occur.
+- Make sure that configs with the same name in different directories behave similarly!
+  Differences that result directly from the use case of the respective config file
+  as indicated by the directory are ok.
+  For example `config/foo.properties` and `config/includes/foo.properties`
+  can and should differ with regards to options that we want only in main config files
+  (default specification and resource limits),
+  and `config/foo.properties` and `config/components/foo.properties`
+  can also differ in options that make no sense as main or component config
+  (like specific resource limits or options for parsing or CFA creation).
+  But it should be avoided that such files for example define different algorithms,
+  a different set of CPAs, or different analysis options.
+  In such cases, rename one of the config files.
+  Config files in `config/unmaintained/` should never have the same name
+  as config files outside of this directory.
+
+Note that the syntax of configuration files is explained in
+[`Configuration.md`](Configuration.md#configuration-file-format).
+
 ### Documentation / Comments
 
 - The following ranks several places by their importance of having comments:
@@ -104,7 +189,7 @@ with considerably less effort!
 - All `@Option` fields need to have a non-empty description
   that explains (to a user) what the option does.
 - All top-level configuration files (`config/*.properties`) need to have a description
-  that explains (to a user) what the configuration does.
+  that explains (to a user) what the configuration does (cf. above).
 - Add references to external sources wherever possible,
   e.g., to papers describing implemented concepts or any relevant standard
   like C, Java, witnesses, etc.

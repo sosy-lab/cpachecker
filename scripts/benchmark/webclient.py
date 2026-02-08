@@ -918,6 +918,16 @@ class WebInterface:
                         params.append(("option", "output.disable=true"))
                         params.append(("option", "statistics.memory=false"))
                         disableAssertions = True
+
+                    elif option in ["--witness", "-witness"]:
+                        witness_path = next(i)
+
+                        # upload witness file
+                        witness_file = self._add_file_to_params(
+                            params, "witnessText", witness_path
+                        )
+                        opened_files.append(witness_file)
+
                     elif option[0] == "-":
                         if config:
                             raise WebClientError(

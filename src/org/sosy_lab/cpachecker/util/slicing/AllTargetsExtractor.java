@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 
@@ -42,6 +41,6 @@ public class AllTargetsExtractor implements SlicingCriteriaExtractor {
       logger.logf(Level.WARNING, "No target locations for specification: %s", pError);
     }
 
-    return from(targetLocations).transformAndConcat(CFAUtils::allEnteringEdges).toSet();
+    return from(targetLocations).transformAndConcat(CFANode::getAllEnteringEdges).toSet();
   }
 }

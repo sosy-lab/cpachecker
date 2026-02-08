@@ -108,7 +108,7 @@ class PointerTargetSetManager {
 
   private final CToFormulaConverterWithPointerAliasing conv;
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
@@ -125,7 +125,7 @@ class PointerTargetSetManager {
    */
   PointerTargetSetManager(
       CToFormulaConverterWithPointerAliasing pConv,
-      FormulaEncodingWithPointerAliasingOptions pOptions,
+      CFormulaEncodingWithPointerAliasingOptions pOptions,
       FormulaManagerView pFormulaManager,
       TypeHandlerWithPointerAliasing pTypeHandler,
       ShutdownNotifier pShutdownNotifier,
@@ -640,6 +640,10 @@ class PointerTargetSetManager {
             formulaManager.makeGreaterThan(newBaseFormula, oldAddress, true));
       }
     }
+    // this should probably only be given if
+    //  cpa.predicate.addRangeConstraintsForNondet
+    // is 'true'. But this is no-op for most cases anyway.
+    pConstraints.addConstraint(formulaManager.makeDomainRangeConstraint(newBaseFormula, false));
 
     // Add alignment constraint
     // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
@@ -677,12 +681,16 @@ class PointerTargetSetManager {
     // zero to prevent overflows with bitvector arithmetic.
 
     pConstraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
+    pConstraints.addConstraint(
+        formulaManager.makeDomainRangeConstraint(newBasePlusTypeSize, false));
     PersistentList<Formula> highestAllocatedAddresses =
         PersistentLinkedList.of(newBasePlusTypeSize);
 
     if (pAllocationSize != null && !pAllocationSize.equals(typeSizeF)) {
       Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, pAllocationSize);
       pConstraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
+      pConstraints.addConstraint(
+          formulaManager.makeDomainRangeConstraint(basePlusAllocationSize, false));
 
       highestAllocatedAddresses = highestAllocatedAddresses.with(basePlusAllocationSize);
     }

@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -91,6 +92,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -114,7 +116,10 @@ import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /** Class containing all the code that converts C code into a formula. */
-public class CtoFormulaConverter {
+public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
+
+  // Name prefix for variables that represent function parameters.
+  public static final String PARAM_VARIABLE_NAME = "__param__";
 
   // list of functions that are pure (no side effects from the perspective of this analysis)
   static final ImmutableSet<String> PURE_EXTERNAL_FUNCTIONS =
@@ -158,8 +163,6 @@ public class CtoFormulaConverter {
   private static final String RETURN_VARIABLE_NAME =
       VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
 
-  public static final String PARAM_VARIABLE_NAME = "__param__";
-
   private static final ImmutableSet<String> SAFE_VAR_ARG_FUNCTIONS =
       ImmutableSet.of("printf", "printk");
 
@@ -168,7 +171,7 @@ public class CtoFormulaConverter {
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
-  final FormulaEncodingOptions options;
+  final CFormulaEncodingOptions options;
   protected final MachineModel machineModel;
   private final Optional<VariableClassification> variableClassification;
   final CtoFormulaTypeHandler typeHandler;
@@ -182,26 +185,19 @@ public class CtoFormulaConverter {
 
   protected final AnalysisDirection direction;
 
-  // Index that is used to read from variables that were not assigned yet
-  private static final int VARIABLE_UNINITIALIZED = 1;
-
-  // Index to be used for first assignment to a variable (must be higher than
-  // VARIABLE_UNINITIALIZED!)
-  private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
-
   protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
   public CtoFormulaConverter(
-      FormulaEncodingOptions pOptions,
-      FormulaManagerView fmgr,
+      CFormulaEncodingOptions pOptions,
+      FormulaManagerView pFmgr,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification,
-      LogManager logger,
+      LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CtoFormulaTypeHandler pTypeHandler,
       AnalysisDirection pDirection) {
 
-    this.fmgr = fmgr;
+    fmgr = pFmgr;
     options = pOptions;
     machineModel = pMachineModel;
     variableClassification = pVariableClassification;
@@ -210,7 +206,7 @@ public class CtoFormulaConverter {
     bfmgr = fmgr.getBooleanFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
-    this.logger = new LogManagerWithoutDuplicates(logger);
+    logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
 
     direction = pDirection;
@@ -297,7 +293,8 @@ public class CtoFormulaConverter {
     return true;
   }
 
-  public final FormulaType<?> getFormulaTypeFromCType(CType type) {
+  @Override
+  public final FormulaType<?> getFormulaTypeFromType(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType simpleType) {
       switch (simpleType.getType()) {
@@ -360,27 +357,17 @@ public class CtoFormulaConverter {
     return (function + "::" + exprToVarNameUnscoped(e)).intern();
   }
 
-  /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
-  protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
-    int idx = getFreshIndex(name, type, ssa);
-    ssa.setIndex(name, type, idx);
-    return idx;
-  }
-
   /**
    * Produces a fresh new SSA index for an assignment, but does _not_ update the SSA map. Usually
-   * you should use {@link #makeFreshIndex(String, CType, SSAMapBuilder)} instead, because using
-   * variables with indices that are not stored in the SSAMap is not a good idea (c.f. the comment
-   * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
-   * correctly.
+   * you should use {@link LanguageToSmtConverter#makeFreshIndex(String, Type, SSAMapBuilder)}
+   * instead, because using variables with indices that are not stored in the SSAMap is not a good
+   * idea (c.f. the comment inside getIndex()). If you use this method, you need to make sure to
+   * update the SSAMap correctly.
    */
+  @Override
   protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa.getType(name));
-    int idx = ssa.getFreshIndex(name);
-    if (idx <= 0) {
-      idx = VARIABLE_FIRST_ASSIGNMENT;
-    }
-    return idx;
+    checkSsaSavedType(name, type, (CType) ssa.getType(name));
+    return super.getFreshIndex(name, type, ssa);
   }
 
   /**
@@ -389,23 +376,10 @@ public class CtoFormulaConverter {
    *
    * @return the index of the variable
    */
-  protected int getIndex(String name, CType type, SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa.getType(name));
-    int idx = ssa.getIndex(name);
-    if (idx <= 0) {
-      logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
-      idx = VARIABLE_UNINITIALIZED;
-
-      // It is important to store the index in the variable here.
-      // If getIndex() was called with a specific name,
-      // this means that name@idx will appear in formulas.
-      // Thus, we need to make sure that calls to FormulaManagerView.instantiate()
-      // will also add indices for this name,
-      // which it does exactly if the name is in the SSAMap.
-      ssa.setIndex(name, type, idx);
-    }
-
-    return idx;
+  @Override
+  public int getExistingOrNewIndex(String name, CType type, SSAMapBuilder ssa) {
+    checkSsaSavedType(name, type, (CType) ssa.getType(name));
+    return super.getExistingOrNewIndex(name, type, ssa);
   }
 
   protected void checkSsaSavedType(String name, CType type, CType t) {
@@ -421,7 +395,7 @@ public class CtoFormulaConverter {
     //      : "Saving variables with mutliple types is not possible!";
     if (t != null && !areEqualWithMatchingPointerArray(t, type)) {
 
-      if (!getFormulaTypeFromCType(t).equals(getFormulaTypeFromCType(type))) {
+      if (!getFormulaTypeFromType(t).equals(getFormulaTypeFromType(type))) {
         throw new UnsupportedOperationException(
             "Variable "
                 + name
@@ -453,16 +427,18 @@ public class CtoFormulaConverter {
    * @param pts The previous PointerTargetSet.
    * @throws InterruptedException If execution is interrupted.
    */
+  @Override
   public BooleanFormula makeSsaUpdateTerm(
       final String variableName,
-      final CType variableType,
+      final Type variableType,
       final int oldIndex,
       final int newIndex,
       final PointerTargetSet pts)
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
+    checkArgument(variableType instanceof CType);
 
-    final FormulaType<?> variableFormulaType = getFormulaTypeFromCType(variableType);
+    final FormulaType<?> variableFormulaType = getFormulaTypeFromType((CType) variableType);
     final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
     final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
 
@@ -474,7 +450,7 @@ public class CtoFormulaConverter {
    * handle scoping!
    */
   protected Formula makeConstant(String name, CType type) {
-    return fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name);
+    return fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromType(type), name);
   }
 
   /**
@@ -484,8 +460,8 @@ public class CtoFormulaConverter {
    * <p>This method does not update the index of the variable.
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
-    int useIndex = getIndex(name, type, ssa);
-    return fmgr.makeVariable(getFormulaTypeFromCType(type), name, useIndex);
+    int useIndex = getExistingOrNewIndex(name, type, ssa);
+    return fmgr.makeVariable(getFormulaTypeFromType(type), name, useIndex);
   }
 
   /**
@@ -498,11 +474,12 @@ public class CtoFormulaConverter {
    * @param forcePointerDereference (only used in CToFormulaConverterWithPointerAliasing)
    * @return the created formula
    */
+  @Override
   public Formula makeFormulaForUninstantiatedVariable(
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     // Need to call fmgr.makeVariable directly instead of makeConstant,
     // because otherwise the variable gets marked as "never needs an SSA index"
-    return fmgr.makeVariable(getFormulaTypeFromCType(pType), pVarName);
+    return fmgr.makeVariable(getFormulaTypeFromType(pType), pVarName);
   }
 
   /**
@@ -516,6 +493,7 @@ public class CtoFormulaConverter {
    * @param pType the type of the variable
    * @return the created formula
    */
+  @Override
   public Formula makeFormulaForVariable(
       SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     SSAMapBuilder ssa = pContextSSA.builder();
@@ -538,12 +516,12 @@ public class CtoFormulaConverter {
     int useIndex;
 
     if (direction == AnalysisDirection.BACKWARD) {
-      useIndex = getIndex(name, type, ssa);
+      useIndex = getExistingOrNewIndex(name, type, ssa);
     } else {
       useIndex = makeFreshIndex(name, type, ssa);
     }
 
-    Formula result = fmgr.makeVariable(getFormulaTypeFromCType(type), name, useIndex);
+    Formula result = fmgr.makeVariable(getFormulaTypeFromType(type), name, useIndex);
 
     if (direction == AnalysisDirection.BACKWARD) {
       makeFreshIndex(name, type, ssa);
@@ -556,7 +534,7 @@ public class CtoFormulaConverter {
       final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
     final int index = makeFreshIndex(name, type, ssa);
     Formula newVariable =
-        fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name + "!" + index);
+        fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromType(type), name + "!" + index);
 
     if (options.addRangeConstraintsForNondet() || CTypes.isBoolType(type)) {
       // For bool we always need the constraint that it is 0 or 1 and not 8 nondet bits
@@ -600,8 +578,8 @@ public class CtoFormulaConverter {
     CType fromType = handlePointerAndEnumAsInt(pFromType);
     CType toType = handlePointerAndEnumAsInt(pToType);
 
-    FormulaType<?> fromFormulaType = getFormulaTypeFromCType(fromType);
-    FormulaType<?> toFormulaType = getFormulaTypeFromCType(toType);
+    FormulaType<?> fromFormulaType = getFormulaTypeFromType(fromType);
+    FormulaType<?> toFormulaType = getFormulaTypeFromType(toType);
 
     if (fromFormulaType.isBitvectorType() && toFormulaType.isFloatingPointType()) {
       int sourceSize = ((BitvectorType) fromFormulaType).getSize();
@@ -666,7 +644,7 @@ public class CtoFormulaConverter {
   protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
       final CType pFromType, Formula formula) {
     CType fromType = handlePointerAndEnumAsInt(pFromType);
-    FormulaType<?> fromFormulaType = getFormulaTypeFromCType(fromType);
+    FormulaType<?> fromFormulaType = getFormulaTypeFromType(fromType);
 
     if (fromFormulaType.isBitvectorType()) {
       // already a bitvector
@@ -689,7 +667,7 @@ public class CtoFormulaConverter {
   protected @Nullable Formula makeValueReinterpretationFromBitvector(
       final CType pToType, BitvectorFormula formula) {
     CType toType = handlePointerAndEnumAsInt(pToType);
-    FormulaType<?> toFormulaType = getFormulaTypeFromCType(toType);
+    FormulaType<?> toFormulaType = getFormulaTypeFromType(toType);
 
     if (toFormulaType.isFloatingPointType()) {
       return fmgr.getFloatingPointFormulaManager()
@@ -793,6 +771,8 @@ public class CtoFormulaConverter {
           fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
       final Formula upperBound =
           fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
+
+      constraints.addConstraint(fmgr.makeDomainRangeConstraint(variable, signed));
       constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
     }
   }
@@ -916,8 +896,8 @@ public class CtoFormulaConverter {
           throw new AssertionError("Not a simple type: " + t);
         };
 
-    final FormulaType<?> fromType = getFormulaTypeFromCType(pFromCType);
-    final FormulaType<?> toType = getFormulaTypeFromCType(pToCType);
+    final FormulaType<?> fromType = getFormulaTypeFromType(pFromCType);
+    final FormulaType<?> toType = getFormulaTypeFromType(pToCType);
 
     final Formula ret;
     if (fromType.equals(toType)) {
@@ -1016,13 +996,14 @@ public class CtoFormulaConverter {
       }
       Value floatValue =
           AbstractExpressionValueVisitor.castCValue(intValue, targetType, machineModel, logger);
+
       return new CFloatLiteralExpression(
           e.getFileLocation(),
           machineModel,
           targetType,
           FloatValue.fromInteger(
               FloatValue.Format.fromCType(machineModel, targetType),
-              floatValue.asNumericValue().bigIntegerValue()));
+              ((NumericValue) floatValue).bigIntegerValue()));
     }
 
     return pExp;
@@ -1032,7 +1013,7 @@ public class CtoFormulaConverter {
     return pType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType();
   }
 
-  //  @Override
+  @Override
   public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -1371,7 +1352,7 @@ public class CtoFormulaConverter {
       if (size > 0) {
         Formula var = makeVariable(varName, decl.getType(), ssa);
         CType elementCType = decl.getType();
-        FormulaType<?> elementFormulaType = getFormulaTypeFromCType(elementCType);
+        FormulaType<?> elementFormulaType = getFormulaTypeFromType(elementCType);
         Formula zero = fmgr.makeNumber(elementFormulaType, 0L);
         result = bfmgr.and(result, fmgr.assignment(var, zero));
       }
@@ -1697,6 +1678,7 @@ public class CtoFormulaConverter {
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
    */
+  @Override
   public final Formula buildTermFromPathFormula(
       PathFormula pFormula, CIdExpression expr, CFAEdge edge) throws UnrecognizedCodeException {
 
@@ -1832,6 +1814,7 @@ public class CtoFormulaConverter {
    * @param ssa the SSAMap to use
    * @throws InterruptedException may be thrown in subclasses
    */
+  @Override
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
       final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMapBuilder ssa)
       throws InterruptedException {
@@ -2012,5 +1995,6 @@ public class CtoFormulaConverter {
    *
    * @param out - output stream
    */
+  @Override
   public void printStatistics(PrintStream out) {}
 }

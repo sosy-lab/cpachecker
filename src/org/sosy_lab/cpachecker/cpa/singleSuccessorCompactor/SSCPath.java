@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SSCPath extends ARGPath {
 
@@ -133,7 +132,7 @@ public class SSCPath extends ARGPath {
       parentLoc = nextLoc;
     }
     // handle last edge of chain, we need to handle multiple successor nodes here.
-    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(parentLoc)) {
+    for (CFAEdge leavingEdge : parentLoc.getLeavingEdges()) {
       if (Objects.equals(leavingEdge.getSuccessor(), childLoc)) {
         newFullPath.add(leavingEdge);
         return; // child found -> finished

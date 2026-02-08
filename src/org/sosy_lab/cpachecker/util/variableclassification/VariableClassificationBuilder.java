@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultiset;
@@ -407,7 +406,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     Collection<CFANode> nodes = cfa.nodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
     for (CFANode node : nodes) {
-      for (CFAEdge edge : leavingEdges(node)) {
+      for (CFAEdge edge : node.getLeavingEdges()) {
         handleEdge(edge, cfa);
         varFieldDependencies =
             varFieldDependencies.withDependencies(
@@ -429,9 +428,9 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     Multiset<String> assumeVariables = HashMultiset.create();
 
     for (CFANode node : nodes) {
-      for (CAssumeEdge edge : Iterables.filter(leavingEdges(node), CAssumeEdge.class)) {
+      for (CAssumeEdge edge : Iterables.filter(node.getLeavingEdges(), CAssumeEdge.class)) {
         assumeVariables.addAll(
-            CFAUtils.getIdExpressionsOfExpression(edge.getExpression())
+            CFAUtils.getCIdExpressionsOfExpression(edge.getExpression())
                 .transform(id -> id.getDeclaration().getQualifiedName())
                 .toSet());
       }
@@ -448,14 +447,14 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     Multiset<String> assignedVariables = HashMultiset.create();
 
     for (CFANode node : nodes) {
-      for (CFAEdge leavingEdge : leavingEdges(node)) {
+      for (CFAEdge leavingEdge : node.getLeavingEdges()) {
         if (leavingEdge instanceof AStatementEdge edge) {
           if (!(edge.getStatement() instanceof CAssignment assignment)) {
             continue;
           }
 
           assignedVariables.addAll(
-              CFAUtils.getIdExpressionsOfExpression(assignment.getLeftHandSide())
+              CFAUtils.getCIdExpressionsOfExpression(assignment.getLeftHandSide())
                   .transform(id -> id.getDeclaration().getQualifiedName())
                   .toSet());
         }

@@ -6,12 +6,28 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This file contains only some global CI config.
-# Most jobs are included here:
+# This file contains only some global CI config the auto-update-dependencies job.
+# Either the latter is executed or the regular jobs are included depending on input.
+
+spec:
+  inputs:
+    auto_update_dependencies:
+      description: "Run the auto-update-dependencies job instead of the normal CI pipeline"
+      type: boolean
+      default: false
+    git_push_remote:
+      description: 'Whether and where to push if a job wants to commit changes (e.g., "origin", leave empty for no push)'
+      default:
+    expensive_tests:
+      description: "Run expensive tests as part of unit tests"
+      type: boolean
+      default: false
+---
+
 include:
   - local: build/gitlab-ci.local.yml
     rules:
-      - if: $AUTO_UPDATE_DEPENDENCIES != "true"
+      - if: $[[ inputs.auto_update_dependencies ]] != true
 
 # Run either MR pipelines or regular pipelines, but never both at the same time.
 # Cf. https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
@@ -26,7 +42,9 @@ variables:
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: d0df2ab5b02285f95bef9d3c6263f2ecdb3752ad
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.41.0
+  REFASTER_VERSION: 2.47.0
+  ANT_PROPS_CHECKS: "-Divy.disable=true -DskipBuild=true -Djunit.enableExpensiveTests=$[[ inputs.expensive_tests ]]"
+
 
 auto-update-dependencies:
   stage: deploy
@@ -34,8 +52,10 @@ auto-update-dependencies:
   script:
     - build/auto-update-dependencies.sh
   environment: repo/auto-update-dependencies
+  variables:
+    PUSH: "$[[ inputs.git_push_remote ]]"
   rules:
-    - if: $AUTO_UPDATE_DEPENDENCIES == "true"
+    - if: $[[ inputs.auto_update_dependencies ]] == true
   cache:
     key: "$CI_JOB_NAME"
     paths:

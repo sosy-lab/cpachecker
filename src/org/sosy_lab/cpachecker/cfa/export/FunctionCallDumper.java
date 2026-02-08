@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class allows to dump functioncalls in a tree-like structure. For most cases the structure is
@@ -191,7 +190,9 @@ public final class FunctionCallDumper {
           final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
           final String functionName = function.getPredecessor().getFunctionName();
           final AFunctionDeclaration calledFunctionDecl =
-              CFAUtils.leavingEdges(function.getPredecessor())
+              function
+                  .getPredecessor()
+                  .getLeavingEdges()
                   .filter(FunctionCallEdge.class)
                   .first()
                   .toJavaUtil()

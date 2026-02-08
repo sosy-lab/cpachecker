@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.math.BigInteger;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.OptionalLong;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -207,17 +207,17 @@ public record NumericValue(Number number) implements Value {
   }
 
   @Override
-  public @Nullable Long asLong(CType type) {
+  public OptionalLong asLong(CType type) {
     checkNotNull(type);
     type = type.getCanonicalType();
     if (!(type instanceof CSimpleType)) {
-      return null;
+      return OptionalLong.empty();
     }
 
     if (((CSimpleType) type).getType() == CBasicType.INT) {
-      return longValue();
+      return OptionalLong.of(longValue());
     } else {
-      return null;
+      return OptionalLong.empty();
     }
   }
 

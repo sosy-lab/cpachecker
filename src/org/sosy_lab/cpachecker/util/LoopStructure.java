@@ -136,8 +136,8 @@ public final class LoopStructure {
       SequencedSet<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
 
       for (CFANode n : nodes) {
-        CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
-        CFAUtils.leavingEdges(n).copyInto(newOutgoingEdges);
+        n.getEnteringEdges().copyInto(newIncomingEdges);
+        n.getLeavingEdges().copyInto(newOutgoingEdges);
       }
 
       innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -682,13 +683,13 @@ public final class ValueAnalysisState
       if (val == null) {
         return false;
       }
-      Long value = val.getValue().asLong(CNumericTypes.INT);
+      OptionalLong value = val.getValue().asLong(CNumericTypes.INT);
 
-      if (value == null) {
+      if (value.isEmpty()) {
         return false;
       } else {
         try {
-          return value == Long.parseLong(parts.get(1));
+          return value.orElseThrow() == Long.parseLong(parts.get(1));
         } catch (NumberFormatException e) {
           // The command might contains something like "main::p==cmd" where the user wants to
           // compare the variable p to the variable cmd (nearest in scope)

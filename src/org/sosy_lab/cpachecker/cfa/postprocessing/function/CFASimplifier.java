@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public final class CFASimplifier {
 
@@ -140,8 +139,7 @@ public final class CFASimplifier {
                     + " in function "
                     + current.getFunctionName());
           }
-          assert CFAUtils.allLeavingEdges(current)
-              .allMatch(Predicates.instanceOf(AssumeEdge.class));
+          assert current.getAllLeavingEdges().allMatch(Predicates.instanceOf(AssumeEdge.class));
 
           boolean firstNodeQualifies =
               nodeQualifiesForPossibleRemoval(current.getLeavingEdge(0).getSuccessor());

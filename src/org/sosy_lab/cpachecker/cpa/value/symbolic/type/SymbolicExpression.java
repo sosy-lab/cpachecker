@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -113,8 +114,8 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
   }
 
   @Override
-  public Long asLong(CType type) {
-    return null;
+  public OptionalLong asLong(CType type) {
+    return OptionalLong.empty();
   }
 
   @Override
@@ -129,5 +130,13 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
     // but the values not. -> Override always!
     return pObj instanceof SymbolicExpression symbolicExpression
         && Objects.equals(representedLocation, symbolicExpression.representedLocation);
+  }
+
+  protected static Type getCanonicalType(Type pType) {
+    if (pType instanceof CType cType) {
+      return cType.getCanonicalType();
+    } else {
+      return pType;
+    }
   }
 }
