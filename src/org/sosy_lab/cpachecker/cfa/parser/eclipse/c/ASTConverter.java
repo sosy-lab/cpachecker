@@ -1017,7 +1017,7 @@ class ASTConverter {
         throw new CFAGenerationRuntimeException(
             "Invalid cast to union type: operand type "
                 + operandType.toASTString("")
-                + " does not match any union member type at "
+                + " does not exactly match any union member's type at "
                 + loc);
       }
 
