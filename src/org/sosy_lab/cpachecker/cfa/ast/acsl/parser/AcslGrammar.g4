@@ -459,3 +459,7 @@ parameter
 lemmaDef
     : polyId ':' pred
     ;
+
+ statement
+    : (assertion | loop_invariant | ensures_clause | assigns_clause | requires_clause)
+    ;

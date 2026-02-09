@@ -115,8 +115,8 @@ requires x == 10;
     String input = "assert x == 10;";
 
     AcslAssertion expected = getAssertion();
-    AcslAssertion parsed =
-        AcslParser.parseAcslAssertion(
+    AAcslAnnotation parsed =
+        AcslParser.parseSingleAcslStatement(
             input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assert expected.equals(parsed);
   }
@@ -126,8 +126,8 @@ requires x == 10;
     String input = "loop invariant x <= 10;";
 
     AcslLoopInvariant expected = getLoopInvariant();
-    AcslLoopInvariant parsed =
-        AcslParser.parseAcslLoopInvariant(
+    AAcslAnnotation parsed =
+        AcslParser.parseSingleAcslStatement(
             input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assert expected.equals(parsed);
   }
@@ -136,8 +136,9 @@ requires x == 10;
   public void parseEnsuresTest() throws AcslParseException {
     String input = "ensures x <= 10;";
     AcslEnsures expected = getEnsures();
-    AcslEnsures parsed =
-        AcslParser.parseAcslEnsures(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AAcslAnnotation parsed =
+        AcslParser.parseSingleAcslStatement(
+            input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assert expected.equals(parsed);
   }
 
@@ -145,8 +146,9 @@ requires x == 10;
   public void parseRequiresTest() throws AcslParseException {
     String input = "requires x == 10;";
     AcslRequires expected = getRequires();
-    AcslRequires parsed =
-        AcslParser.parseAcslRequires(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AAcslAnnotation parsed =
+        AcslParser.parseSingleAcslStatement(
+            input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assert expected.equals(parsed);
   }
 

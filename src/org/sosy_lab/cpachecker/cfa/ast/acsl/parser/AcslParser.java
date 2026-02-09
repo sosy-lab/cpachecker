@@ -27,10 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
 
@@ -124,64 +120,14 @@ public class AcslParser {
    * @param pCProgramScope The CProgramScope of the source
    * @param pAcslScope The AcslScope of the source
    * @return An AAcslAnnotation from the input statement
-   * @throws AcslParseException when the acsl statement is not of type assertion, loop invariant,
-   *     ensures or requires
    */
   public static AAcslAnnotation parseSingleAcslStatement(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
-    if (pInput.startsWith("assert")) {
-      return parseAcslAssertion(pInput, pFileLocation, pCProgramScope, pAcslScope);
-    } else if (pInput.startsWith("loop invariant")) {
-      return parseAcslLoopInvariant(pInput, pFileLocation, pCProgramScope, pAcslScope);
-    } else if (pInput.startsWith("ensures")) {
-      return parseAcslEnsures(pInput, pFileLocation, pCProgramScope, pAcslScope);
-    } else if (pInput.startsWith("requires")) {
-      return parseAcslRequires(pInput, pFileLocation, pCProgramScope, pAcslScope);
-    }
-    throw new AcslParseException(
-        pFileLocation
-            + ": Only assert, loop invariant, ensures and requires are allowed as annotations");
-  }
-
-  public static AcslAssertion parseAcslAssertion(
-      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
-      throws AcslParseException {
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.assertion());
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.statement());
     AntlrAnnotationToAnnotationVisitor converter =
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
-    AAcslAnnotation assertion = converter.visit(tree);
-    return (AcslAssertion) assertion;
-  }
-
-  public static AcslLoopInvariant parseAcslLoopInvariant(
-      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
-      throws AcslParseException {
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.loopInvariant());
-    AntlrAnnotationToAnnotationVisitor converter =
-        new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
-    AAcslAnnotation loopInvariant = converter.visit(tree);
-    return (AcslLoopInvariant) loopInvariant;
-  }
-
-  public static AcslEnsures parseAcslEnsures(
-      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
-      throws AcslParseException {
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.ensuresClause());
-    AntlrAnnotationToAnnotationVisitor converter =
-        new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
-    AAcslAnnotation ensures = converter.visit(tree);
-    return (AcslEnsures) ensures;
-  }
-
-  public static AcslRequires parseAcslRequires(
-      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
-      throws AcslParseException {
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.requiresClause());
-    AntlrAnnotationToAnnotationVisitor converter =
-        new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
-    AAcslAnnotation requires = converter.visit(tree);
-    return (AcslRequires) requires;
+    return converter.visit(tree);
   }
 
   /**
