@@ -105,6 +105,11 @@ class Benchmark(VcloudBenchmarkBase):
         if self.config.cloudUser:
             user = self.config.cloudUser
             if ":" not in user:
+                if not sys.stdin.isatty():
+                    sys.exit(
+                        "Missing password for --cloudUser.\n"
+                        "Use --cloudUser USER:PWD or a password file."
+                    )
                 psw = getpass.getpass("Please enter password for user '" + user + "': ")
                 self.config.cloudUser += ":" + psw
 
