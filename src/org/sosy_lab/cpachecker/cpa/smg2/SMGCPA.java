@@ -234,7 +234,7 @@ public class SMGCPA
   public MergeOperator getMergeOperator() {
     return switch (mergeType) {
       case "SEP" -> MergeSepOperator.getInstance();
-      case "MERGE" -> new SMGMergeOperator(statistics, options);
+      case "PREDATOR-MERGE" -> new SMGMergeOperator(statistics, options);
       default -> throw new AssertionError("unknown merge-type " + mergeType + " for SMGCPA");
     };
   }
