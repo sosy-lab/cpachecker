@@ -152,6 +152,15 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return nestingLevel;
   }
 
+  /**
+   * Internal name (label) of this memory that can optionally be used to identify memory. This
+   * should never be used as factual information about the memory, and is only meant as debug
+   * assistance. Does not have to exist.
+   */
+  public Optional<String> getName() {
+    return name;
+  }
+
   @Override
   public int compareTo(SMGObject pOther) {
     return Integer.compare(id, pOther.id);
