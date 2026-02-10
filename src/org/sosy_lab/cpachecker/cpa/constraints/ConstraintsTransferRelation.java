@@ -561,7 +561,7 @@ public class ConstraintsTransferRelation
       List<? extends @NonNull AbstractState> violations =
           ((BlockState) pStrengtheningState).getViolationConditions();
 
-      if (!(violations.getFirst() instanceof ARGState cS)) {
+      if (!(violations.getFirst() instanceof ARGState)) {
         return Optional.empty();
       }
       CompositeState newViolation = getRenamedViolation((BlockState) pStrengtheningState);

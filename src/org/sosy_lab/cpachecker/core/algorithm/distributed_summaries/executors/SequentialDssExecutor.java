@@ -43,7 +43,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * message until there are either no messages left to process (proof) or a violation condition is
  * broadcasted by a worker operating on a block node without predecessors.
  */
-public class SequentialDssExecutor implements DssExecutor {
+public class SequentialDssExecutor implements DssExecutor, AutoCloseable {
 
   private final DssMessageFactory messageFactory;
   private final DssAnalysisOptions options;
@@ -115,5 +115,10 @@ public class SequentialDssExecutor implements DssExecutor {
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.addAll(stats);
+  }
+
+  @Override
+  public void close() {
+    // TODO
   }
 }
