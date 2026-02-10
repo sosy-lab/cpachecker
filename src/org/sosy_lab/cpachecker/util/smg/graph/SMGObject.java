@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Optional;
@@ -114,7 +116,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
    * @return a new object with the same size etc. as the old.
    */
   public static SMGObject of(SMGObject objectToCopy) {
-    Preconditions.checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
+    checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
     return new SMGObject(objectToCopy.nestingLevel, objectToCopy.size, objectToCopy.offset);
   }
 
@@ -195,9 +197,12 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   public SMGObject copyWithNewNestingLevel(int pNewLevel) {
-    Preconditions.checkArgument(pNewLevel >= 0);
+    checkArgument(pNewLevel >= 0);
     if (nestingLevel == pNewLevel) {
       return this;
+    }
+    if (name.isPresent()) {
+      return of(pNewLevel, size, offset, name.orElseThrow());
     }
     return of(pNewLevel, size, offset);
   }
@@ -224,6 +229,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     // 10. Let level(o) = max level of o1 and o2
     int newNestingLevel = Integer.max(nestingLevel, otherObj.nestingLevel);
     int newMinLength = Integer.min(getMinLength(), otherObj.getMinLength());
+    checkArgument(name.equals(otherObj.name));
     if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
       // This includes DLLs
       return otherSLL
