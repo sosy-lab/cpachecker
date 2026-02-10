@@ -993,6 +993,8 @@ class ASTConverter {
 
     // Cast-to-union extension (GCC): initialize the union member whose type is an exact match of
     // the operand's type.
+    // https://gcc.gnu.org/onlinedocs/gcc/Cast-to-Union.html
+    // We found out, that 'match' means exact type match in this case through our own experiments.
     // (Currently handled for scalar operands.)
     // Lower this to a designated initializer
 
