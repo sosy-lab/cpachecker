@@ -6,10 +6,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-format_version: '1.0'
+format_version: '2.1'
 
 input_files: 'union-cast-enum.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-label.prp
     expected_verdict: true
+
+options:
+  language: C
