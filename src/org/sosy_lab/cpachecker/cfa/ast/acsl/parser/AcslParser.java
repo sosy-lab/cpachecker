@@ -61,9 +61,7 @@ public class AcslParser {
     AntlrPredicateToPredicateConverter converter =
         new AntlrPredicateToPredicateConverter(pCProgramScope, AcslScope.mutableCopy(pAcslScope));
 
-    AcslPredicate expression = converter.visit(tree);
-
-    return expression;
+    return converter.visit(tree);
   }
 
   public static AcslLogicDefinition parseLogicalDefinition(String pInput, AcslScope pAcslScope)
@@ -124,7 +122,7 @@ public class AcslParser {
   public static AAcslAnnotation parseSingleAcslStatement(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.statement());
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.acslStatement());
     AntlrAnnotationToAnnotationVisitor converter =
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
     return converter.visit(tree);

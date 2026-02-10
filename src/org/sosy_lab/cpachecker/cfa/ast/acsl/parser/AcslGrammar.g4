@@ -305,8 +305,8 @@ c_statement
     ;
 
 assertion
-    :  'assert' pred ';'
-    |  'for' id (',' id)* ':' 'assert' pred ';'
+    : 'assert' pred ';'
+    | 'for' id (',' id)* ':' 'assert' pred ';'
     ;
 
 
@@ -460,6 +460,6 @@ lemmaDef
     : polyId ':' pred
     ;
 
- statement
+acslStatement
     : (assertion | loop_invariant | ensures_clause | assigns_clause | requires_clause)
     ;
