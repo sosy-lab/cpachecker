@@ -78,8 +78,7 @@ public class AcslAnnotationParsingTest {
   }
 
   @Test
-  public void parseAcslAnnotationAssertionTest()
-      throws AcslParseException {
+  public void parseAcslAnnotationAssertionTest() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     String input = "//@ assert x == 10;";
 
