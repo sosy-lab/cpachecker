@@ -132,7 +132,7 @@ public class AcslParser {
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
     AAcslAnnotation result = converter.visit(tree);
     if (result == null) {
-      throw new NotImplementedException(
+      throw new AntlrToInternalNotImplementedException(
           "Parsing of: "
               + pInput
               + " at: "
