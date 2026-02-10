@@ -2020,13 +2020,145 @@ public class SymbolicProgramConfiguration {
     // 9. If LL, let min length = min of o1 or o2
     // 10. Let level(o) = max level of o1 and o2
     SMGObject o = o1.join(o2);
-    // TODO: We could also have stack objs due to alloca(), if we hit this, implement it.
-    checkState(spc1.heapObjects.contains(o1) && spc2.heapObjects.contains(o2));
+
+    Optional<String> label1 = o1.getName();
+    Optional<String> label2 = o2.getName();
+    checkState(o.getName().equals(label1) && o.getName().equals(label2));
+
+    boolean o1IsHeapObj = spc1.heapObjects.contains(o1);
+    boolean o2IsHeapObj = spc2.heapObjects.contains(o2);
     assert o.getMinLength() == Integer.min(o1.getMinLength(), o2.getMinLength());
-    if (!newSPC.heapObjects.contains(o)) {
+    if (o1IsHeapObj && o2IsHeapObj && !newSPC.heapObjects.contains(o)) {
       newSPC = newSPC.copyAndAddHeapObject(o);
+    } else if (!o1IsHeapObj && !o2IsHeapObj) {
+      // No heap object, might be global or stack (e.g. allocated via alloca()),
+      //   or a bug (in that we got a stack/global variable?)
+      if (spc1.globalVariableMapping.containsValue(o1)
+          && spc2.globalVariableMapping.containsValue(o2)) {
+        // Globals
+        String varName1 =
+            spc1.globalVariableMapping.entrySet().stream()
+                .filter(e -> e.getValue().equals(o1))
+                .findFirst()
+                .orElseThrow()
+                .getKey();
+        String varName2 =
+            spc2.globalVariableMapping.entrySet().stream()
+                .filter(e -> e.getValue().equals(o2))
+                .findFirst()
+                .orElseThrow()
+                .getKey();
+        checkState(varName1.equals(varName2));
+
+        // This could be a reference towards a string literal, or just some global variable.
+        // All of those are already copied.
+        SMGObject alreadyExistingObj = newSPC.globalVariableMapping.get(varName1);
+        checkState(alreadyExistingObj != null);
+        o = alreadyExistingObj;
+
+      } else {
+
+        checkState(!newSPC.heapObjects.contains(o));
+
+        // External objects are currently not supported. We can add them if this fails
+        checkState(!spc1.externalObjectAllocation.containsKey(o1));
+        checkState(!spc2.externalObjectAllocation.containsKey(o2));
+
+        // We don't handle global objects here, look into it once it fails
+        // Note: they should already be present from the initial copying
+        checkState(!spc1.globalVariableMapping.containsValue(o1));
+        checkState(!spc2.globalVariableMapping.containsValue(o2));
+
+        boolean o1NotAllowedToBeRead = spc1.readBlacklist.contains(o1);
+        boolean o2NotAllowedToBeRead = spc2.readBlacklist.contains(o2);
+        checkState(o1NotAllowedToBeRead == o2NotAllowedToBeRead);
+        checkState(!newSPC.readBlacklist.contains(o)); // o should be unknown in any case!
+
+        // alloca() allocations are somewhere on the stack-frame, and need to be re-added exactly
+        // where they are in spc1 and spc2
+        String o1VarName = null;
+        CFunctionDeclaration o1StackFuncDef = null;
+        for (StackFrame frame1 : spc1.getStackFrames()) {
+          for (Entry<String, SMGObject> variable1 : frame1.getVariables().entrySet()) {
+            if (variable1.getValue().equals(o1)) {
+              // We can't handle recursive cases currently, so we need to make sure that this is
+              // none!
+              checkState(o1VarName == null);
+              o1VarName = variable1.getKey();
+              o1StackFuncDef = frame1.getFunctionDefinition();
+            }
+          }
+        }
+
+        String o2VarName = null;
+        CFunctionDeclaration o2StackFuncDef = null;
+        for (StackFrame frame2 : spc2.getStackFrames()) {
+          for (Entry<String, SMGObject> variable2 : frame2.getVariables().entrySet()) {
+            if (variable2.getValue().equals(o2)) {
+              // We can't handle recursive cases currently, so we need to make sure that this is
+              // none!
+              checkState(o2VarName == null);
+              o2VarName = variable2.getKey();
+              o2StackFuncDef = frame2.getFunctionDefinition();
+            }
+          }
+        }
+        checkState(o2VarName != null && o1VarName != null && o2VarName.equals(o1VarName));
+        checkState(
+            o2StackFuncDef != null
+                && o1StackFuncDef != null
+                && o2StackFuncDef.equals(o1StackFuncDef));
+
+        boolean isAlreadyOnStack = false;
+        String newObjVarName = null;
+        CFunctionDeclaration newObjStackFuncDef = null;
+        for (StackFrame newFrame : newSPC.getStackFrames()) {
+          for (Entry<String, SMGObject> newVar : newFrame.getVariables().entrySet()) {
+            if (newVar.getValue().equals(o)) {
+              // We copied the object initially
+              isAlreadyOnStack = true;
+              newObjVarName = newVar.getKey();
+              newObjStackFuncDef = newFrame.getFunctionDefinition();
+            } else if (newVar.getKey().equals(o2VarName)) {
+              // We did not copy it initially, OR the copy happened and the join produced a new
+              // object
+              isAlreadyOnStack = true;
+              newObjVarName = newVar.getKey();
+              newObjStackFuncDef = newFrame.getFunctionDefinition();
+              // The object needs to be replaced in this case. Meaning also that all pointers to it
+              // need to be replaced, this is doof, and we don't want that. Instead, we should not
+              // copy them initially (and check for recursion there) and then simply add them back
+              // here
+              checkState(o.equals(newVar.getValue()));
+            }
+          }
+        }
+
+        // TODO: remove dummy checkState
+        checkState(isAlreadyOnStack && newObjVarName != null && newObjStackFuncDef != null);
+        // TODO: finish implementation when needed;
+        //  Idea: we already copied stack variables, so we can just check that the reference is
+        // towards the same object in both sources and return the already present object like with
+        // the globals above.
+
+        checkState(o1VarName.equals(o2VarName));
+        CType o1Type = spc1.variableToTypeMap.get(o1VarName);
+        CType o2Type = spc2.variableToTypeMap.get(o2VarName);
+        checkState(o1Type != null && o2Type != null);
+        checkState(o1Type.equals(o2Type));
+        CType oType = newSPC.variableToTypeMap.get(newObjVarName);
+        checkState(oType.equals(o1Type)); // o should be known in any case!
+
+        throw new IllegalStateException("Error when merging references towards stack memory");
+      }
+    } else {
+      // One is heap, one is not, this can't be merged. Or some bug.
+      checkState(o1IsHeapObj == o2IsHeapObj);
+      return Optional.empty();
     }
+
     if (!pSpc1.smg.isValid(o1)) {
+      checkState(!pSpc2.smg.isValid(o2));
       newSPC = newSPC.invalidateSMGObject(o, false);
     }
     // 11. If m1(o1) exists, replace each edge leading to m1(o1) by an equally labeled edge leading
