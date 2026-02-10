@@ -16,6 +16,7 @@ import java.io.Serial;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jdk.jshell.spi.ExecutionControl.NotImplementedException;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -100,8 +101,12 @@ public class AcslParser {
     ImmutableList<String> statements = splitAnnotation(comment);
 
     for (String s : statements) {
-      AAcslAnnotation annotation =
-          parseSingleAcslStatement(s, pFileLocation, pCProgramScope, pAcslScope);
+      AAcslAnnotation annotation;
+      try {
+        annotation = parseSingleAcslStatement(s, pFileLocation, pCProgramScope, pAcslScope);
+      } catch (NotImplementedException e) {
+        throw new AcslParseException(e.getMessage());
+      }
       annotations.add(annotation);
     }
 
@@ -121,11 +126,21 @@ public class AcslParser {
    */
   public static AAcslAnnotation parseSingleAcslStatement(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
-      throws AcslParseException {
+      throws AcslParseException, NotImplementedException {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.acslStatement());
     AntlrAnnotationToAnnotationVisitor converter =
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
-    return converter.visit(tree);
+    AAcslAnnotation result = converter.visit(tree);
+    if (result == null) {
+      throw new NotImplementedException(
+          "Parsing of: "
+              + pInput
+              + " at: "
+              + pFileLocation
+              + " failed. Currently only 'assert', 'ensures', 'assigns' and 'loop invariant' are"
+              + " supported.");
+    }
+    return result;
   }
 
   /**

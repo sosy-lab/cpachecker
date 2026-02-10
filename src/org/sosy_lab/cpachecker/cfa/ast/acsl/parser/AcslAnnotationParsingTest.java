@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Objects;
+import jdk.jshell.spi.ExecutionControl.NotImplementedException;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -78,7 +79,8 @@ public class AcslAnnotationParsingTest {
   }
 
   @Test
-  public void parseAcslAnnotationAssertionTest() throws AcslParseException {
+  public void parseAcslAnnotationAssertionTest()
+      throws AcslParseException, NotImplementedException {
     CProgramScope cProgramScope = getCProgramScope();
     String input = "//@ assert x == 10;";
 
@@ -111,7 +113,7 @@ requires x == 10;
   }
 
   @Test
-  public void parseAssertionTest() throws AcslParseException {
+  public void parseAssertionTest() throws AcslParseException, NotImplementedException {
     String input = "assert x == 10;";
 
     AcslAssertion expected = getAssertion();
@@ -122,7 +124,7 @@ requires x == 10;
   }
 
   @Test
-  public void parseLoopInvariantTest() throws AcslParseException {
+  public void parseLoopInvariantTest() throws AcslParseException, NotImplementedException {
     String input = "loop invariant x <= 10;";
 
     AcslLoopInvariant expected = getLoopInvariant();
@@ -133,7 +135,7 @@ requires x == 10;
   }
 
   @Test
-  public void parseEnsuresTest() throws AcslParseException {
+  public void parseEnsuresTest() throws AcslParseException, NotImplementedException {
     String input = "ensures x <= 10;";
     AcslEnsures expected = getEnsures();
     AAcslAnnotation parsed =
@@ -143,7 +145,7 @@ requires x == 10;
   }
 
   @Test
-  public void parseRequiresTest() throws AcslParseException {
+  public void parseRequiresTest() throws AcslParseException, NotImplementedException {
     String input = "requires x == 10;";
     AcslRequires expected = getRequires();
     AAcslAnnotation parsed =

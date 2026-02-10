@@ -64,4 +64,9 @@ public class AntlrAnnotationToAnnotationVisitor
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
     return new AcslRequires(fileLocation, predicate);
   }
+
+  @Override
+  protected AAcslAnnotation defaultResult() {
+    return super.defaultResult();
+  }
 }
