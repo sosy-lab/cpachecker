@@ -16,7 +16,6 @@ import java.io.Serial;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import jdk.jshell.spi.ExecutionControl.NotImplementedException;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -104,7 +103,7 @@ public class AcslParser {
       AAcslAnnotation annotation;
       try {
         annotation = parseSingleAcslStatement(s, pFileLocation, pCProgramScope, pAcslScope);
-      } catch (NotImplementedException e) {
+      } catch (AntlrToInternalNotImplementedException e) {
         throw new AcslParseException(e.getMessage());
       }
       annotations.add(annotation);
@@ -126,7 +125,7 @@ public class AcslParser {
    */
   public static AAcslAnnotation parseSingleAcslStatement(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
-      throws AcslParseException, NotImplementedException {
+      throws AcslParseException {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.acslStatement());
     AntlrAnnotationToAnnotationVisitor converter =
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);

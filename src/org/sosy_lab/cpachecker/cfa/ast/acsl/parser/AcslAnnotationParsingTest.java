@@ -113,7 +113,7 @@ requires x == 10;
   }
 
   @Test
-  public void parseAssertionTest() throws AcslParseException, NotImplementedException {
+  public void parseAssertionTest() throws AcslParseException {
     String input = "assert x == 10;";
 
     AcslAssertion expected = getAssertion();
@@ -124,7 +124,7 @@ requires x == 10;
   }
 
   @Test
-  public void parseLoopInvariantTest() throws AcslParseException, NotImplementedException {
+  public void parseLoopInvariantTest() throws AcslParseException {
     String input = "loop invariant x <= 10;";
 
     AcslLoopInvariant expected = getLoopInvariant();
@@ -135,7 +135,7 @@ requires x == 10;
   }
 
   @Test
-  public void parseEnsuresTest() throws AcslParseException, NotImplementedException {
+  public void parseEnsuresTest() throws AcslParseException {
     String input = "ensures x <= 10;";
     AcslEnsures expected = getEnsures();
     AAcslAnnotation parsed =
@@ -145,7 +145,7 @@ requires x == 10;
   }
 
   @Test
-  public void parseRequiresTest() throws AcslParseException, NotImplementedException {
+  public void parseRequiresTest() throws AcslParseException {
     String input = "requires x == 10;";
     AcslRequires expected = getRequires();
     AAcslAnnotation parsed =
