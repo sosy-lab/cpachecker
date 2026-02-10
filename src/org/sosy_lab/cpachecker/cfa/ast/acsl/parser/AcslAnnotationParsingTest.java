@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Objects;
-import jdk.jshell.spi.ExecutionControl.NotImplementedException;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -80,7 +79,7 @@ public class AcslAnnotationParsingTest {
 
   @Test
   public void parseAcslAnnotationAssertionTest()
-      throws AcslParseException, NotImplementedException {
+      throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     String input = "//@ assert x == 10;";
 
