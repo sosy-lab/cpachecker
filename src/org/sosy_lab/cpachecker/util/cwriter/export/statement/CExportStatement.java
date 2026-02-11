@@ -34,7 +34,7 @@ public sealed interface CExportStatement
         CIfStatement,
         CJumpStatement,
         CLabelStatement,
-        CLoopStatement,
+        CWhileLoopStatement,
         CMultiControlStatement,
         CStatementWrapper,
         CSwitchCaseStatement,

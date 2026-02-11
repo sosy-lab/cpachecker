@@ -334,6 +334,12 @@ public class SequentializationBuilder {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
 
+    // if the loop is finite, i.e., loopIterations is not 0, and loopUnrolling is disabled,
+    // then add the variable that is incremented with each iteration
+    if (pOptions.loopIterations() != 0 && !pOptions.loopUnrolling()) {
+      rDeclarations.add(SeqVariableDeclarations.ITERATION.toASTString());
+    }
+
     if (pOptions.reduceLastThreadOrder()) {
       // LAST_THREAD ghost variable
       CIntegerLiteralExpression numThreadsExpression =

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -36,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -47,8 +47,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CForLoopStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLoopStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CWhileLoopStatement;
 
@@ -163,7 +161,7 @@ public final class SeqMainFunction extends SeqFunction {
 
       // build the loop depending on settings, and include all statements in it
       CCompoundStatement compoundStatement = new CCompoundStatement(loopBlock.build());
-      CLoopStatement loopStatement =
+      CWhileLoopStatement loopStatement =
           buildLoopStatement(pOptions, compoundStatement, pUtils.binaryExpressionBuilder());
       rBody.add(loopStatement);
     }
@@ -210,7 +208,7 @@ public final class SeqMainFunction extends SeqFunction {
     return rAssignments.build();
   }
 
-  private static CLoopStatement buildLoopStatement(
+  private static CWhileLoopStatement buildLoopStatement(
       MPOROptions pOptions,
       CCompoundStatement pLoopBody,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -224,20 +222,20 @@ public final class SeqMainFunction extends SeqFunction {
           new CExpressionWrapper(SeqIntegerLiteralExpressions.INT_1), pLoopBody);
 
     } else {
-      // bounded for (...) loop
-      CBinaryExpression forExpression =
+      // bounded while (i < N) loop
+      CBinaryExpression loopExpression =
           pBinaryExpressionBuilder.buildBinaryExpression(
               SeqIdExpressions.ITERATION,
               SeqExpressionBuilder.buildIntegerLiteralExpression(pOptions.loopIterations()),
               BinaryOperator.LESS_THAN);
-      CExpressionAssignmentStatement forIterationUpdate =
+      CExpressionAssignmentStatement iterationIncrement =
           SeqStatementBuilder.buildIncrementStatement(
               SeqIdExpressions.ITERATION, pBinaryExpressionBuilder);
-      return new CForLoopStatement(
-          SeqVariableDeclarations.ITERATION,
-          new CExpressionWrapper(forExpression),
-          forIterationUpdate,
-          pLoopBody);
+      // add the 'iteration++' statement as the first statement of the loop body
+      CCompoundStatement loopBodyWithIncrement =
+          new CCompoundStatement(
+              elementAndList(new CStatementWrapper(iterationIncrement), pLoopBody.statements()));
+      return new CWhileLoopStatement(new CExpressionWrapper(loopExpression), loopBodyWithIncrement);
     }
   }
 }
