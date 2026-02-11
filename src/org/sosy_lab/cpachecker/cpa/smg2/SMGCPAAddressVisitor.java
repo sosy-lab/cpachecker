@@ -111,8 +111,7 @@ public class SMGCPAAddressVisitor
     String globalVarName = evaluator.getCStringLiteralExpressionVairableName(e);
     SMGState currentState = state;
     if (!currentState.isGlobalVariablePresent(globalVarName)) {
-      Value sizeOfString =
-          new NumericValue(evaluator.getBitSizeof(currentState, e.getExpressionType()));
+      Value sizeOfString = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
       currentState =
           currentState.copyAndAddGlobalVariable(sizeOfString, globalVarName, e.getExpressionType());
       List<SMGState> statesWithString =
@@ -131,7 +130,8 @@ public class SMGCPAAddressVisitor
     }
     // TODO: assertion that the Strings are immutable
     ValueAndSMGState addressValueAndState =
-        evaluator.createAddressForLocalOrGlobalVariable(globalVarName, currentState);
+        evaluator.createAddressForLocalOrGlobalVariable(
+            globalVarName, e.getExpressionType(), currentState);
     Value addressValue = addressValueAndState.getValue();
     currentState = addressValueAndState.getState();
 
@@ -182,7 +182,7 @@ public class SMGCPAAddressVisitor
           continue;
         }
         // Calculate the offset out of the subscript value and the type
-        BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
+        Value typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
         Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         // Get the value from the array and return the value + state

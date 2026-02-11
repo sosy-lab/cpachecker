@@ -138,7 +138,8 @@ public final class AddressExpression extends SymbolicExpression {
       // Precondition as this should never fail in SMGs
       Preconditions.checkArgument(getOffset().equals(other.getOffset()));
       // SMG values have the offset baked into them. Only the SMG truly knows equality for them
-      return SMGState.areValuesEqual(thisState, addressValue, otherState, other.addressValue);
+      return SMGState.areValuesEqual(
+          thisState, addressValue, otherState, other.addressValue, false);
     }
     return super.equals(o);
   }

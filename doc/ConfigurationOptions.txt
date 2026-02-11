@@ -3587,6 +3587,9 @@ cpa.smg2.allocateExternalVariables = true
 # is simply accepted without any checks.
 cpa.smg2.allowNondetFunctionsWithArbitraryTypes = true
 
+# If this Option is enabled, variable array length may be symbolic.
+cpa.smg2.allowSymbolicVariableArrayLength = false
+
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
 
@@ -3605,14 +3608,6 @@ cpa.smg2.cacheSupersets = false
 # If this Option is enabled, C function atexit() will return a succeeding and
 # failing registration for each registration. Otherwise only succeeding.
 cpa.smg2.canAtexitFail = false
-
-# with this option enabled, memory addresses (pointers) are transformed into
-# a numeric assumption upon casting the pointer to a number. This assumption
-# can be returned to a proper pointer by casting it back. This enables
-# numeric operations beyond pointer arithmetics, but loses precision for
-# comparisons/assumptions, as the numeric assumption is static. May be
-# unsound!
-cpa.smg2.castMemoryAddressesToNumeric = false
 
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
@@ -3711,10 +3706,6 @@ cpa.smg2.initialPrecisionFile = no default value
 # get an initial precision from a predicate precision file
 cpa.smg2.initialPredicatePrecisionFile = no default value
 
-# Perform merge SMGStates by SMGJoin on ends of code block. Works with
-# 'merge=JOIN'
-cpa.smg2.joinOnBlockEnd = false
-
 # If this option is enabled, a call to malloc with value zero results in a
 # return value that is equal to zero. If this option is disabled, a non-zero
 # memory section that may not be accessed but freed is returned.
@@ -3735,9 +3726,35 @@ cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 # Determines if memory errors are target states
 cpa.smg2.memoryErrors = false
 
-# which merge operator to use for the SMGCPA
+# Which merge operator to use for the SMGCPA. 'PREDATOR-MERGE' uses the merge
+# operation described for the Predator verification tool; appendix C 'The
+# Join Algorithms', page 28 in https://doi.org/10.1007/978-3-642-38856-9_13.
 cpa.smg2.merge = "SEP"
-  allowed values: [SEP]
+  allowed values: [SEP, PREDATOR-MERGE]
+
+# Apply merge operator only on ends of code blocks.
+cpa.smg2.merge.exclusivelyBlockEnds = false
+
+# Apply merge operator only on equal code block ends if true. Only applied if
+# exclusivelyBlockEnds=true.
+cpa.smg2.merge.exclusivelyEqualBlockEnds = false
+
+# Apply merge operator only on states with at least one input state including
+# an abstracted list.
+cpa.smg2.merge.exclusivelyWithAbstractionPresent = false
+
+# When true, concrete values can be overapproximated when merging, e.g. when
+# merged with a symbolic value, or another, but distinct concrete value.
+cpa.smg2.merge.overapproximateConcreteValues = false
+
+# When true, unequal constraints on symbolic values are overapproximated when
+# merging.
+cpa.smg2.merge.overapproximateSymbolicConstraints = false
+
+# Apply merge operator based on Predators join algorithm to determine
+# subsumtion of abstracted lists in the stop operator more precisely. Can be
+# costly.
+cpa.smg2.merge.useMergeForAbstractionDetectionInStopOperator = false
 
 # Whether to perform SAT checks only for the last added constraint
 cpa.smg2.minimalSatCheck = true
