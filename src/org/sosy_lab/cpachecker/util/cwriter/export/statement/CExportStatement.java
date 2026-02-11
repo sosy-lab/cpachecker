@@ -28,7 +28,6 @@ public sealed interface CExportStatement
         CCompoundStatement,
         CExpressionAssignmentStatementWrapper,
         CFunctionCallStatementWrapper,
-        CFunctionDefinitionStatement,
         CIfStatement,
         CJumpStatement,
         CLabelStatement,

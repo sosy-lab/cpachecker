@@ -18,18 +18,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqASTNode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CFunctionDefinitionStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
 public abstract sealed class SeqFunction implements SeqASTNode
     permits SeqAssumeFunction, SeqMainFunction, SeqThreadSimulationFunction {
 
-  CFunctionDefinitionStatement functionDefinition;
+  CExportFunctionDefinition functionDefinition;
 
-  SeqFunction(CFunctionDefinitionStatement pFunctionDefinition) {
+  SeqFunction(CExportFunctionDefinition pFunctionDefinition) {
     functionDefinition = pFunctionDefinition;
   }
 
-  public CFunctionDefinitionStatement getFunctionDefinition() {
+  public CExportFunctionDefinition getFunctionDefinition() {
     return functionDefinition;
   }
 

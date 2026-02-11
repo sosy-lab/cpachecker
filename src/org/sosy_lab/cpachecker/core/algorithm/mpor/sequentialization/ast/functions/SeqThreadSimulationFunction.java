@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CFunctionDefinitionStatement;
 
 /**
  * A (separate) function to simulate a thread in. The thread simulation is usually placed inside the
@@ -32,8 +32,7 @@ public final class SeqThreadSimulationFunction extends SeqFunction {
   public SeqThreadSimulationFunction(
       MPOROptions pOptions, CCompoundStatement pFunctionBody, MPORThread pThread) {
 
-    super(
-        new CFunctionDefinitionStatement(buildDeclaration(pOptions, pThread.id()), pFunctionBody));
+    super(new CExportFunctionDefinition(buildDeclaration(pOptions, pThread.id()), pFunctionBody));
     thread = pThread;
   }
 

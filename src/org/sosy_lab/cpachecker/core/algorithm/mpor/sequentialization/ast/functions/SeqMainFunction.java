@@ -43,11 +43,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CForLoopStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CFunctionDefinitionStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLoopStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CWhileLoopStatement;
@@ -71,7 +71,7 @@ public final class SeqMainFunction extends SeqFunction {
       throws UnrecognizedCodeException {
 
     super(
-        new CFunctionDefinitionStatement(
+        new CExportFunctionDefinition(
             MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils)));
   }
 

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
@@ -16,10 +16,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 
 /**
- * A {@link CExportStatement} to represent an entire C function, including return {@link CType},
- * function name as {@link CIdExpression}, {@link CFunctionDeclaration} with parameters and a {@link
+ * A class to represent an entire C function, including return {@link CType}, function name as
+ * {@link CIdExpression}, {@link CFunctionDeclaration} with parameters and a {@link
  * CCompoundStatement} to represent the body of the function. Example:
  *
  * <pre>{@code
@@ -28,7 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * }
  * }</pre>
  */
-public final class CFunctionDefinitionStatement implements CExportStatement {
+public final class CExportFunctionDefinition {
 
   /**
    * The {@link CFunctionDeclaration} only contains a {@link String} representation of the name, but
@@ -40,13 +41,12 @@ public final class CFunctionDefinitionStatement implements CExportStatement {
 
   private final CCompoundStatement body;
 
-  public CFunctionDefinitionStatement(CFunctionDeclaration pDeclaration, CCompoundStatement pBody) {
+  public CExportFunctionDefinition(CFunctionDeclaration pDeclaration, CCompoundStatement pBody) {
     name = new CIdExpression(FileLocation.DUMMY, pDeclaration);
     declaration = pDeclaration;
     body = pBody;
   }
 
-  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
