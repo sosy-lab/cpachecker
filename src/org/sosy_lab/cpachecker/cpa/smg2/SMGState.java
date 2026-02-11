@@ -4965,7 +4965,7 @@ public class SMGState
     // We don't know if the access is safe or if the values are only allowed to be in the range of
     // the object as we are just asking for an address!
     List<SMGState> assignedStates =
-        findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(valueToAssign, edge);
+        findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(valueToAssign, expr, edge);
 
     // (The concrete assignments don't invoke an SMT check anymore if there are no more symbolic
     // values in any of the size or offset expressions)
@@ -5153,7 +5153,12 @@ public class SMGState
   }
 
   private List<SMGState> findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(
-      SymbolicValue valueToAssign, @Nullable CFAEdge edge) throws SMGException, SMGSolverException {
+      SymbolicValue valueToAssign, CArraySubscriptExpression expr, @Nullable CFAEdge edge)
+      throws SMGException, SMGSolverException {
+    // The subscript type has to be taken from the expression,
+    //  as the type is not fixed (see C11 §6.5.2.1 Array subscripting).
+    CType arraySubscriptType = expr.getSubscriptExpression().getExpressionType().getCanonicalType();
+
     Map<SymbolicIdentifier, Value> assignments = new HashMap<>();
     // Get used variables
     Set<SymbolicIdentifier> identsToReplace;
@@ -5200,12 +5205,10 @@ public class SMGState
         }
 
         // Got all possible assignments. Now we need to assign them in all possible combinations.
-        // Subscript is always int
-        CType calcTypeForMemAccess = CNumericTypes.INT;
         for (Entry<SymbolicIdentifier, Value> assignment : assignments.entrySet()) {
           List<SMGState> simpleAssignedStates =
               currentState.assignSymbolicVariable(
-                  assignment.getKey(), assignment.getValue(), calcTypeForMemAccess, edge);
+                  assignment.getKey(), assignment.getValue(), arraySubscriptType, edge);
           // Each of those states now must be combined with each other possible assignment state
           assignedStatesBuilder.addAll(simpleAssignedStates);
         }
@@ -5218,8 +5221,7 @@ public class SMGState
           findValueAssignmentsWithSolver(valueToAssign, edge);
 
       // Got all possible assignments. Now we need to assign them in all possible combinations.
-      // Subscript is always int
-      CType calcTypeForMemAccess = CNumericTypes.INT;
+
       for (ValueAndSMGState assignmentAndState : concreteValueAndNewStates) {
         SMGState stateWithConstraints = assignmentAndState.getState();
         Value concreteAssignment = assignmentAndState.getValue();
@@ -5227,7 +5229,7 @@ public class SMGState
 
         List<SMGState> simpleAssignedStates =
             stateWithConstraints.assignSymbolicVariable(
-                valueToAssign, concreteAssignment, calcTypeForMemAccess, edge);
+                valueToAssign, concreteAssignment, arraySubscriptType, edge);
         // Each of those states now must be combined with each other possible assignment state
         assignedStatesBuilder.addAll(simpleAssignedStates);
       }
