@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
@@ -80,6 +81,9 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   private final DelegatingRefinerAtomNormalizer normalizer;
   private final DelegatingRefinerMatchingVisitor matcher;
 
+  private final Multiset<String> accumulatedPatternFrequency = HashMultiset.create();
+  private final Multiset<String> accumulatedCategoryFrequency = HashMultiset.create();
+
   /**
    * Construct a redundant predicates heuristic which checks for pattern and category redundancy as
    * stop condition.
@@ -147,13 +151,16 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
-    ImmutableMultiset.Builder<String> patternFrequencyBuilder = ImmutableMultiset.builder();
-    ImmutableMultiset.Builder<String> categoryFrequencyBuilder = ImmutableMultiset.builder();
+    if (!pDeltas.isEmpty()) {
+      ReachedSetDelta latestDelta = pDeltas.get(pDeltas.size() - 1);
+      collectAndCategorizePatterns(
+          latestDelta, accumulatedPatternFrequency, accumulatedCategoryFrequency);
+    }
 
-    collectAndCategorizePatterns(pDeltas, patternFrequencyBuilder, categoryFrequencyBuilder);
-
-    ImmutableMultiset<String> patternFrequency = patternFrequencyBuilder.build();
-    ImmutableMultiset<String> categoryFrequency = categoryFrequencyBuilder.build();
+    ImmutableMultiset<String> patternFrequency =
+        ImmutableMultiset.copyOf(accumulatedPatternFrequency);
+    ImmutableMultiset<String> categoryFrequency =
+        ImmutableMultiset.copyOf(accumulatedCategoryFrequency);
 
     logPatterns(patternFrequency, categoryFrequency);
 
@@ -165,20 +172,18 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   }
 
   protected void collectAndCategorizePatterns(
-      ImmutableList<ReachedSetDelta> pDeltas,
-      ImmutableMultiset.Builder<String> pPatternBuilder,
-      ImmutableMultiset.Builder<String> pCategoryBuilder) {
+      ReachedSetDelta pDelta,
+      Multiset<String> pPatternAccumulator,
+      Multiset<String> pCategoryAccumulator) {
 
-    for (ReachedSetDelta delta : pDeltas) {
-      for (AbstractState pState : delta.addedStates()) {
-        PredicateAbstractState predState =
-            checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
+    for (AbstractState pState : pDelta.addedStates()) {
+      PredicateAbstractState predState =
+          checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
 
-        if (predState.isAbstractionState()) {
-          BooleanFormula abstractionFormula = predState.getAbstractionFormula().asFormula();
-          DelegatingRefinerSExpression rootExpression = normalizer.buildAtom(abstractionFormula);
-          collectMatches(rootExpression, matcher, pPatternBuilder, pCategoryBuilder);
-        }
+      if (predState.isAbstractionState()) {
+        BooleanFormula abstractionFormula = predState.getAbstractionFormula().asFormula();
+        DelegatingRefinerSExpression rootExpression = normalizer.buildAtom(abstractionFormula);
+        collectMatches(rootExpression, matcher, pPatternAccumulator, pCategoryAccumulator);
       }
     }
   }
@@ -186,16 +191,16 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   private void collectMatches(
       DelegatingRefinerSExpression pExpression,
       DelegatingRefinerMatchingVisitor pMatcher,
-      ImmutableMultiset.Builder<String> pPatternBuilder,
-      ImmutableMultiset.Builder<String> pCategoryBuilder) {
+      Multiset<String> pPatternAccumulator,
+      Multiset<String> pCategoryAccumulator) {
     ImmutableList<DelegatingRefinerNormalizedFormula> matches = pExpression.accept(pMatcher);
     for (DelegatingRefinerNormalizedFormula match : matches) {
-      pPatternBuilder.add(match.id());
-      pCategoryBuilder.add(match.category());
+      pPatternAccumulator.add(match.id());
+      pCategoryAccumulator.add(match.category());
     }
     if (pExpression instanceof DelegatingRefinerSExpressionSExpressionOperator operator) {
       for (DelegatingRefinerSExpression subAtom : operator.sExpressionList()) {
-        collectMatches(subAtom, pMatcher, pPatternBuilder, pCategoryBuilder);
+        collectMatches(subAtom, pMatcher, pPatternAccumulator, pCategoryAccumulator);
       }
     }
   }

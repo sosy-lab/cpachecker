@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
@@ -47,6 +48,9 @@ public class DelegatingRefinerHeuristicRedundantPredicatesPlateau
   private int plateauSteps = 0;
   private int previousDominantPatternCount = 0;
 
+  private final Multiset<String> accumulatedPatternFrequency = HashMultiset.create();
+  private final Multiset<String> accumulatedCategoryFrequency = HashMultiset.create();
+
   /**
    * Construct a redundant predicates heuristic that checks if redundancy has plateaued and only a
    * single patterns continues to grow.
@@ -82,21 +86,24 @@ public class DelegatingRefinerHeuristicRedundantPredicatesPlateau
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
-    ImmutableMultiset.Builder<String> patternFrequencyBuilder = ImmutableMultiset.builder();
-    ImmutableMultiset.Builder<String> categoryFrequencyBuilder = ImmutableMultiset.builder();
+    if (!pDeltas.isEmpty()) {
+      ReachedSetDelta latestDelta = pDeltas.get(pDeltas.size() - 1);
+      collectAndCategorizePatterns(
+          latestDelta, accumulatedPatternFrequency, accumulatedCategoryFrequency);
+    }
 
-    collectAndCategorizePatterns(pDeltas, patternFrequencyBuilder, categoryFrequencyBuilder);
-
-    ImmutableMultiset<String> patternFrequency = patternFrequencyBuilder.build();
-    ImmutableMultiset<String> categoryFrequency = categoryFrequencyBuilder.build();
+    ImmutableMultiset<String> patternFrequency =
+        ImmutableMultiset.copyOf(accumulatedPatternFrequency);
+    ImmutableMultiset<String> categoryFrequency =
+        ImmutableMultiset.copyOf(accumulatedCategoryFrequency);
 
     logPatterns(patternFrequency, categoryFrequency);
 
     if (isPlateauingAndDominantPatternGrowing(patternFrequency)) {
-      return true;
+      return false;
     }
 
-    return false;
+    return true;
   }
 
   private boolean isPlateauingAndDominantPatternGrowing(

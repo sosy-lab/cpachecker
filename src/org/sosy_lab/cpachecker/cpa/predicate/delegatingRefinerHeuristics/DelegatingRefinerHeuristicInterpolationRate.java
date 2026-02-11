@@ -36,8 +36,10 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   private final FormulaManagerView formulaManager;
   private final LogManager logger;
   private double currentAbstractionLocationRefinementRatio;
-
   private double currentTotalInterpolantRate;
+
+  private int totalAbstractionLocationCount = 0;
+  private int totalInterpolantCount = 0;
 
   @Option(
       secure = true,
@@ -127,21 +129,11 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
-    int numberRefinements = pDeltas.size();
-    if (numberRefinements == 0) {
-      return false;
-    }
+    if (!pDeltas.isEmpty()) {
+      ReachedSetDelta latestDelta = pDeltas.get(pDeltas.size() - 1);
+      totalAbstractionLocationCount += latestDelta.abstractionLocationsCount();
 
-    // Get the current number of abstraction locations from the delta
-    int currentAbstractionLocationCount =
-        pDeltas.stream().mapToInt(ReachedSetDelta::abstractionLocationsCount).sum();
-
-    // Compute the number of interpolants added and their average ratio per refinement
-    int numberInterpolants = 0;
-
-    for (ReachedSetDelta delta : pDeltas) {
-      for (AbstractState pState : delta.addedStates()) {
-
+      for (AbstractState pState : latestDelta.addedStates()) {
         PredicateAbstractState predState =
             checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
 
@@ -152,19 +144,21 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
               && !formulaManager
                   .getBooleanFormulaManager()
                   .isFalse(predState.getAbstractionFormula().asFormula()))) {
-            numberInterpolants++;
+            totalInterpolantCount++;
           }
         }
       }
+    } else {
+      return false;
     }
 
+    int numberRefinements = pDeltas.size();
     currentAbstractionLocationRefinementRatio =
-        (double) currentAbstractionLocationCount / numberRefinements;
+        (double) totalAbstractionLocationCount / numberRefinements;
 
-    currentTotalInterpolantRate = (double) numberInterpolants / (double) numberRefinements;
+    currentTotalInterpolantRate = (double) totalInterpolantCount / (double) numberRefinements;
 
-    // dynamically adjusting interpolant rate
-    double effectiveAcceptableInterpolantRate = acceptableInterpolantRate;
+    double effectiveAcceptableInterpolantRate;
 
     // if abstractionLocations to refinement ratio is very low, run usually needs a higher
     // interpolation threshold

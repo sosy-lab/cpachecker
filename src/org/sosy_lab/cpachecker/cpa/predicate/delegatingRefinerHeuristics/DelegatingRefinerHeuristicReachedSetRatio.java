@@ -26,8 +26,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
  */
 @Options(prefix = "cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio")
 public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefinerHeuristic {
+
   private final LogManager logger;
   private double currentAbstractionLocationRefinementRatio;
+
+  private int totalAbstractionLocations = 0;
 
   @Option(
       secure = true,
@@ -61,6 +64,7 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
    * refinements remains below the configured threshold; returns {@code false} otherwise.
    *
    * @param pConfig configuration used to inject the configurable thresholds
+   * @param pLogger logger used to log messages
    * @throws InvalidConfigurationException if the provided ratio is negative
    */
   public DelegatingRefinerHeuristicReachedSetRatio(Configuration pConfig, LogManager pLogger)
@@ -99,26 +103,27 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
    */
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
+    if (!pDeltas.isEmpty()) {
+      ReachedSetDelta latestDelta = pDeltas.get(pDeltas.size() - 1);
+      totalAbstractionLocations += latestDelta.abstractionLocationsCount();
+    }
+
     int numberRefinements = pDeltas.size();
     if (numberRefinements == 0) {
       return false;
     }
 
-    // Get the current number of abstraction locations from the delta
-    int currentAbstractionLocationCount =
-        pDeltas.stream().mapToInt(ReachedSetDelta::abstractionLocationsCount).sum();
-
-    if (currentAbstractionLocationCount < abstractionLocationThreshold) {
+    if (totalAbstractionLocations < abstractionLocationThreshold) {
       return true;
     }
 
     currentAbstractionLocationRefinementRatio =
-        (double) currentAbstractionLocationCount / numberRefinements;
+        (double) totalAbstractionLocations / numberRefinements;
 
     if (currentAbstractionLocationRefinementRatio > abstractionLocationRefinementRatio) {
       logger.logf(
           Level.INFO,
-          "ratio of abstraction location to refinements is too high: %.2f for threshold %.2f."
+          "Ratio of abstraction location to refinements is too high: %.2f for threshold %.2f."
               + " Heuristic %s is no longer applicable.",
           currentAbstractionLocationRefinementRatio,
           abstractionLocationRefinementRatio,
@@ -128,7 +133,7 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
     if (numberRefinements > refinementThreshold) {
       logger.logf(
           Level.INFO,
-          "number refinements is too high: %d for threshold %d."
+          "Number refinements is too high: %d for threshold %d."
               + " Heuristic %s is no longer applicable.",
           numberRefinements,
           refinementThreshold,
