@@ -1553,7 +1553,8 @@ public class SMGState
         Constraint constraint = constraintIter.next();
         Set<SymbolicIdentifier> identsInConstraint = constraintsToIdentsInside.get(constraint);
         if (identsInConstraint == null) {
-          identsInConstraint = memoryModel.getSymbolicIdentifiersForValue(constraint);
+          identsInConstraint =
+              memoryModel.getSymbolicIdentifiersWithTypesForValue(constraint).keySet();
           constraintsToIdentsInside.put(constraint, identsInConstraint);
         }
 
@@ -4477,7 +4478,7 @@ public class SMGState
     if (valueToAssign instanceof SymbolicIdentifier symIdenToReplace) {
       identsToReplace = ImmutableSet.of(symIdenToReplace);
     } else {
-      identsToReplace = memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+      identsToReplace = memoryModel.getSymbolicIdentifiersWithTypesForValue(valueToAssign).keySet();
     }
 
     ImmutableList.Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
@@ -4555,12 +4556,17 @@ public class SMGState
   public boolean isConcreteAssignmentFeasible(SymbolicValue valueToAssign) {
     // Get used variables
     Set<SymbolicIdentifier> identsToReplace =
-        memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+        memoryModel.getSymbolicIdentifiersWithTypesForValue(valueToAssign).keySet();
 
     boolean isNotConstraints = true;
     for (Constraint constraint : getConstraints()) {
       if (identsToReplace.stream()
-          .anyMatch(i -> memoryModel.getSymbolicIdentifiersForValue(constraint).contains(i))) {
+          .anyMatch(
+              i ->
+                  memoryModel
+                      .getSymbolicIdentifiersWithTypesForValue(constraint)
+                      .keySet()
+                      .contains(i))) {
         isNotConstraints = false;
         break;
       }
@@ -4580,7 +4586,7 @@ public class SMGState
   public Optional<SymbolicValue> isVariableAssignmentFeasible(SymbolicValue valueToAssign) {
     // Get used variables
     Set<SymbolicIdentifier> identsToReplace =
-        memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+        memoryModel.getSymbolicIdentifiersWithTypesForValue(valueToAssign).keySet();
 
     if (identsToReplace.size() == 1) {
       for (SymbolicValue ident : identsToReplace) {
@@ -4590,7 +4596,8 @@ public class SMGState
       // A combining variable needs to include all identifiers
       SymbolicValue strippedValue = valueToAssign;
       while (memoryModel
-          .getSymbolicIdentifiersForValue(strippedValue)
+          .getSymbolicIdentifiersWithTypesForValue(strippedValue)
+          .keySet()
           .containsAll(identsToReplace)) {
         if (memoryModel.getSMGValueFromValue(strippedValue).isPresent()) {
           return Optional.of(strippedValue);
