@@ -1484,22 +1484,25 @@ public class SMGCPAExpressionEvaluator {
               .getMessage()
               .contains("Could not determine variable array length for length")) {
         CExpression arrayLength = arrayType.getLength();
+        CType arrayLengthType = arrayLength.getExpressionType().getCanonicalType();
         // Evaluate using the value visitor, and reuse symbolic size
         List<ValueAndSMGState> lengths =
             new SMGCPAValueVisitor(this, pInitialSmgState, pEdge, logger, options)
-                .evaluate(arrayLength, CNumericTypes.INT);
+                .evaluate(arrayLength, arrayLengthType);
         if (lengths.size() == 1) {
-          ValueAndSMGState valueAndState = lengths.getFirst();
-          Value length = valueAndState.getValue();
+          ValueAndSMGState arrayLengthValueAndState = lengths.getFirst();
+          Value arrayLengthValue = arrayLengthValueAndState.getValue();
           checkState(
-              !length.isExplicitlyKnown(),
+              !arrayLengthValue.isExplicitlyKnown(),
               "The sizeOf visitor returned a non-explicit value, but we found one later.");
           if (options.allowSymbolicvariableArrayLength()) {
-            BigInteger sizeOfType = machineModel.getSizeof(arrayType.getType());
+            BigInteger byteSizeOfElementType =
+                machineModel.getSizeof(arrayType.getType().getCanonicalType());
 
             return multiplyBitOffsetValues(
-                length,
-                sizeOfType.multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits())));
+                arrayLengthValue,
+                byteSizeOfElementType.multiply(
+                    BigInteger.valueOf(machineModel.getSizeofCharInBits())));
           }
         }
       }
