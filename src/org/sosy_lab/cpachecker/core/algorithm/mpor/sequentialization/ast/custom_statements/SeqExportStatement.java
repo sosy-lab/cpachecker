@@ -16,10 +16,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
 public sealed interface SeqExportStatement extends SeqASTNode
-    permits SeqBlockLabelStatement,
-        SeqInjectedStatement,
-        SeqThreadStatementBlock,
-        SeqThreadStatementClause {
+    permits SeqBlockLabelStatement, SeqThreadStatementBlock, SeqThreadStatementClause {
 
   ImmutableList<CExportStatement> toCExportStatements();
 

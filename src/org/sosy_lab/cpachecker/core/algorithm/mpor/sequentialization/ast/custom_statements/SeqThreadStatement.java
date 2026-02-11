@@ -83,11 +83,11 @@ public record SeqThreadStatement(
   }
 
   /**
-   * Appends the {@link SeqInjectedStatement} to the {@link CExportStatement}s of this statement and
+   * Appends the {@link SeqInstrumentation} to the {@link CExportStatement}s of this statement and
    * returns them. This should be done after the injected statements are finalized, i.e., after all
    * instrumentation, links, and {@code pc} updates were performed.
    */
-  ImmutableList<CExportStatement> appendInjectedStatementsToExportStatements() {
+  ImmutableList<CExportStatement> appendInstrumentationToExportStatements() {
     checkState(
         data.targetPc().isPresent() || data.targetGoto().isPresent(),
         "Either targetPc or targetGoto must be present.");

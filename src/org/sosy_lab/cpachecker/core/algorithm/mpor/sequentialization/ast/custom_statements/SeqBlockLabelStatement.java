@@ -19,14 +19,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
 public record SeqBlockLabelStatement(String threadPrefix, int labelNumber)
     implements SeqExportStatement {
 
-  /**
-   * Returns an instance of a {@link SeqBlockLabelStatement}, {@code T0_0: ...}.
-   *
-   * @param threadPrefix The thread prefix in the label, e.g. {@code T0_}
-   * @param labelNumber The number of the block, e.g. {@code 0}
-   */
-  public SeqBlockLabelStatement {}
-
   public SeqBlockLabelStatement withLabelNumber(int pLabelNumber) {
     return new SeqBlockLabelStatement(threadPrefix, pLabelNumber);
   }
