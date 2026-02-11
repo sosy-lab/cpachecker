@@ -10,5 +10,4 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
-public record SeqInstrumentationStatement(
-    SeqThreadStatementType type, CExportStatement statement) {}
+public record SeqInstrumentation(SeqInstrumentationType type, CExportStatement statement) {}
