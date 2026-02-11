@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.smg.graph;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
@@ -202,6 +203,8 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
       return this;
     }
     if (name.isPresent()) {
+      // Const binary strings in abstracted objects are VERY unlikely
+      checkState(!isConstBinaryString);
       return of(pNewLevel, size, offset, name.orElseThrow());
     }
     return of(pNewLevel, size, offset);
@@ -229,13 +232,17 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     // 10. Let level(o) = max level of o1 and o2
     int newNestingLevel = Integer.max(nestingLevel, otherObj.nestingLevel);
     int newMinLength = Integer.min(getMinLength(), otherObj.getMinLength());
-    checkArgument(name.equals(otherObj.name));
     if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
       // This includes DLLs
       return otherSLL
           .copyWithNewMinimumLength(newMinLength)
           .copyWithNewNestingLevel(newNestingLevel);
     } else {
+      if (otherObj.nestingLevel == nestingLevel
+          && name.equals(otherObj.name)
+          && isConstBinaryString == otherObj.isConstBinaryString) {
+        return this;
+      }
       return copyWithNewNestingLevel(newNestingLevel);
     }
   }
