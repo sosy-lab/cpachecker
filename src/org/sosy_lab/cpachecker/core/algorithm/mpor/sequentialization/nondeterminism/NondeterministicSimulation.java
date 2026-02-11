@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -139,10 +140,8 @@ public abstract class NondeterministicSimulation {
   ImmutableList<CExportStatement> buildAllPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    return ImmutableList.<CExportStatement>builder()
-        .addAll(buildPrecedingReductionStatements(pThread))
-        .add(buildPrecedingStatements(pThread))
-        .build();
+    return listAndElement(
+        buildPrecedingReductionStatements(pThread), buildPrecedingStatements(pThread));
   }
 
   /**
