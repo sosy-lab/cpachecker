@@ -65,7 +65,7 @@ public final class SeqThreadStatementUtil {
       ImmutableList<SeqThreadStatement> pStatements) {
 
     for (SeqThreadStatement statement : pStatements) {
-      if (isAnyBitVectorEvaluationExpressionEmpty(statement.data().injectedStatements())) {
+      if (isAnyBitVectorEvaluationExpressionEmpty(statement.data().instrumentation())) {
         return true;
       }
     }
@@ -73,11 +73,11 @@ public final class SeqThreadStatementUtil {
   }
 
   public static boolean isAnyBitVectorEvaluationExpressionEmpty(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInstrumentation> pInstrumentation) {
 
-    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      if (injectedStatement instanceof SeqBitVectorEvaluationStatement evaluationStatement) {
-        if (evaluationStatement.evaluationExpression().isEmpty()) {
+    for (SeqInstrumentation instrumentation : pInstrumentation) {
+      if (instrumentation.type().equals(SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION)) {
+        if (instrumentation.statement() instanceof CGotoStatement) {
           return true;
         }
       }
@@ -163,15 +163,15 @@ public final class SeqThreadStatementUtil {
 
   // Injected Statements ===========================================================================
 
-  static ImmutableList<SeqInjectedStatement> prepareInjectedStatementsByTargetPc(
+  static ImmutableList<SeqInstrumentation> prepareInstrumentationByTargetPc(
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInstrumentation> pInstrumentation) {
 
-    ImmutableList.Builder<SeqInjectedStatement> prepared = ImmutableList.builder();
+    ImmutableList.Builder<SeqInstrumentation> prepared = ImmutableList.builder();
 
     // first create pruned statements
-    ImmutableList<SeqInjectedStatement> pruned = pruneInjectedStatements(pInjectedStatements);
+    ImmutableList<SeqInstrumentation> pruned = pruneInjectedStatements(pInstrumentation);
 
     // create the pc write
     CExpressionAssignmentStatement pcAssignmentStatement =
@@ -181,135 +181,103 @@ public final class SeqThreadStatementUtil {
 
     // with empty bit vector evaluations, place pc write before injections, otherwise info is lost
     if (emptyBitVectorEvaluation) {
-      prepared.add(new SeqProgramCounterUpdateStatement(pcAssignmentStatement));
+      prepared.add(SeqInstrumentationBuilder.buildProgramCounterUpdate(pcAssignmentStatement));
     }
 
     // add all injected statements in the correct order
-    ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pruned);
+    ImmutableList<SeqInstrumentation> ordered = orderInstrumentation(pruned);
     assert ordered.size() == pruned.size() : "ordering of statements resulted in lost statements";
     prepared.addAll(ordered);
 
     // for non-empty bit vector evaluations, place pc write after injections for optimization
     if (!emptyBitVectorEvaluation) {
-      prepared.add(new SeqProgramCounterUpdateStatement(pcAssignmentStatement));
+      prepared.add(SeqInstrumentationBuilder.buildProgramCounterUpdate(pcAssignmentStatement));
     }
 
     return prepared.build();
   }
 
-  static ImmutableList<SeqInjectedStatement> prepareInjectedStatementsByTargetGoto(
-      SeqBlockLabelStatement pTargetGoto, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  static ImmutableList<SeqInstrumentation> prepareInstrumentationByTargetGoto(
+      SeqBlockLabelStatement pTargetGoto, ImmutableList<SeqInstrumentation> pInstrumentation) {
 
-    ImmutableList.Builder<SeqInjectedStatement> prepared = ImmutableList.builder();
+    ImmutableList.Builder<SeqInstrumentation> prepared = ImmutableList.builder();
 
-    CGotoStatement gotoStatement = new CGotoStatement(pTargetGoto.toCLabelStatement());
-    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
+    for (SeqInstrumentation instrumentation : pInstrumentation) {
       // add all statements that are not pruned, even when there is a target goto
-      if (!injectedStatement.isPrunedWithTargetGoto()) {
-        prepared.add(injectedStatement);
+      if (!instrumentation.type().isPrunedWithTargetGoto) {
+        prepared.add(instrumentation);
       }
     }
 
     // add the goto last, so that the injected statements appear before it
-    return prepared.add(new SeqGotoBlockStatement(gotoStatement)).build();
+    return prepared
+        .add(
+            SeqInstrumentationBuilder.buildGotoBlockLabelStatement(pTargetGoto.toCLabelStatement()))
+        .build();
   }
 
-  private static ImmutableList<SeqInjectedStatement> pruneInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  private static ImmutableList<SeqInstrumentation> pruneInjectedStatements(
+      ImmutableList<SeqInstrumentation> pInstrumentation) {
 
-    Set<SeqInjectedStatement> pruned = new HashSet<>();
-    if (isAnyBitVectorEvaluationExpressionEmpty(pInjectedStatements)) {
+    Set<SeqInstrumentation> pruned = new HashSet<>();
+    if (isAnyBitVectorEvaluationExpressionEmpty(pInstrumentation)) {
       pruned.addAll(
-          pInjectedStatements.stream()
-              .filter(s -> s.isPrunedWithEmptyBitVectorEvaluation())
+          pInstrumentation.stream()
+              .filter(s -> s.type().isPrunedWithEmptyBitVectorEvaluation)
               .collect(ImmutableSet.toImmutableSet()));
     }
-    return pInjectedStatements.stream()
+    return pInstrumentation.stream()
         .filter(i -> !pruned.contains(i))
         .collect(ImmutableList.toImmutableList());
   }
 
-  private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  private static ImmutableList<SeqInstrumentation> orderInstrumentation(
+      ImmutableList<SeqInstrumentation> pInstrumentation) {
 
-    ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
-    List<SeqInjectedStatement> leftOver = new ArrayList<>();
+    ImmutableList.Builder<SeqInstrumentation> rOrdered = ImmutableList.builder();
+    List<SeqInstrumentation> leftOver = new ArrayList<>();
     // first add partial order reduction statements, since if they abort, the rest is not needed
-    leftOver.addAll(orderInjectedReductionStatements(pInjectedStatements));
+    leftOver.addAll(
+        getInstrumentationByType(
+            pInstrumentation, SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION));
     // bit vector updates are placed at the end, i.e. where pc etc. updates are
     leftOver.addAll(
-        getInjectedStatementsByClass(pInjectedStatements, SeqSyncUpdateStatement.class));
+        getInstrumentationByType(pInstrumentation, SeqInstrumentationType.THREAD_SYNC_UPDATE));
     leftOver.addAll(
-        getInjectedStatementsByClass(pInjectedStatements, SeqBitVectorAssignmentStatement.class));
+        getInstrumentationByType(pInstrumentation, SeqInstrumentationType.BIT_VECTOR_UPDATE));
     leftOver.addAll(
-        getInjectedStatementsByClass(pInjectedStatements, SeqLastBitVectorUpdateStatement.class));
+        getInstrumentationByType(pInstrumentation, SeqInstrumentationType.LAST_BIT_VECTOR_UPDATE));
     rOrdered.addAll(
-        pInjectedStatements.stream()
-            .filter(statement -> !leftOver.contains(statement))
-            // since we clone reduceIgnoreSleep, .contains does not work
-            .filter(statement -> !(statement instanceof SeqIgnoreSleepReductionStatement))
+        pInstrumentation.stream()
+            .filter(i -> !leftOver.contains(i))
             .collect(ImmutableList.toImmutableList()));
     rOrdered.addAll(leftOver);
     return rOrdered.build();
   }
 
-  private static ImmutableList<SeqInjectedStatement> orderInjectedReductionStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  private static ImmutableList<SeqInstrumentation> getInstrumentationByType(
+      ImmutableList<SeqInstrumentation> pInstrumentation, SeqInstrumentationType pType) {
 
-    ImmutableList<SeqInjectedStatement> ignoreSleepStatements =
-        getInjectedStatementsByClass(pInjectedStatements, SeqIgnoreSleepReductionStatement.class);
-    if (!ignoreSleepStatements.isEmpty()) {
-      // order the reduction assumptions inside ignoreSleepStatements separately
-      assert ignoreSleepStatements.size() == 1 : "there can only be a single ignoreSleepStatement";
-      SeqIgnoreSleepReductionStatement ignoreSleepStatement =
-          (SeqIgnoreSleepReductionStatement) ignoreSleepStatements.getFirst();
-      ImmutableList<SeqInjectedStatement> reductionAssumptions =
-          ignoreSleepStatement.reductionAssumptions();
-      return ImmutableList.of(
-          ignoreSleepStatement.withReductionAssumptions(
-              ImmutableList.<SeqInjectedStatement>builder()
-                  .addAll(
-                      getInjectedStatementsByClass(
-                          reductionAssumptions, SeqBitVectorEvaluationStatement.class))
-                  .build()));
-    }
-    return ImmutableList.<SeqInjectedStatement>builder()
-        .addAll(
-            getInjectedStatementsByClass(
-                pInjectedStatements, SeqBitVectorEvaluationStatement.class))
-        .build();
-  }
-
-  private static ImmutableList<SeqInjectedStatement> getInjectedStatementsByClass(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      Class<? extends SeqInjectedStatement> pClass) {
-
-    return pInjectedStatements.stream()
-        .filter(statement -> pClass.isInstance(statement))
+    return pInstrumentation.stream()
+        .filter(i -> i.type().equals(pType))
         .collect(ImmutableList.toImmutableList());
   }
 
   // Helper ========================================================================================
 
-  public static SeqThreadStatement appendedInjectedStatementsToStatement(
-      SeqThreadStatement pStatement, ImmutableList<SeqInjectedStatement> pAppended) {
+  public static SeqThreadStatement appendedInstrumentationStatement(
+      SeqThreadStatement pStatement, ImmutableList<SeqInstrumentation> pAppended) {
 
-    return pStatement.withInjectedStatements(
-        appendInjectedStatements(pStatement.data().injectedStatements(), pAppended));
+    return pStatement.withInstrumentation(
+        FluentIterable.concat(pStatement.data().instrumentation(), ImmutableList.copyOf(pAppended))
+            .toList());
   }
 
-  public static SeqThreadStatement appendedInjectedStatementsToStatement(
-      SeqThreadStatement pStatement, SeqInjectedStatement... pAppended) {
+  public static SeqThreadStatement appendedInstrumentationStatement(
+      SeqThreadStatement pStatement, SeqInstrumentation... pAppended) {
 
-    return pStatement.withInjectedStatements(
-        appendInjectedStatements(
-            pStatement.data().injectedStatements(), ImmutableList.copyOf(pAppended)));
-  }
-
-  private static ImmutableList<SeqInjectedStatement> appendInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pExistingStatements,
-      ImmutableList<SeqInjectedStatement> pAppendedStatements) {
-
-    return FluentIterable.concat(pExistingStatements, pAppendedStatements).toList();
+    return pStatement.withInstrumentation(
+        FluentIterable.concat(pStatement.data().instrumentation(), ImmutableList.copyOf(pAppended))
+            .toList());
   }
 }

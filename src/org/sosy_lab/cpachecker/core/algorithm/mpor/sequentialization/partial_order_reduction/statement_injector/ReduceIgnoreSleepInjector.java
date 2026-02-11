@@ -21,9 +21,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vec
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqIgnoreSleepReductionStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -57,12 +57,12 @@ record ReduceIgnoreSleepInjector(
           if (evaluationExpression.isEmpty()) {
             return pStatement;
           }
-          SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
+          SeqInstrumentation ignoreSleepReductionStatement =
               buildIgnoreSleepReductionStatement(
                   pStatement, evaluationExpression.orElseThrow(), newTarget);
-          return pStatement.withInjectedStatements(
+          return pStatement.withInstrumentation(
               replaceReductionAssumptions(
-                  pStatement.data().injectedStatements(), ignoreSleepReductionStatement));
+                  pStatement.data().instrumentation(), ignoreSleepReductionStatement));
         }
       }
     }
@@ -70,16 +70,16 @@ record ReduceIgnoreSleepInjector(
     return pStatement;
   }
 
-  private SeqIgnoreSleepReductionStatement buildIgnoreSleepReductionStatement(
+  private SeqInstrumentation buildIgnoreSleepReductionStatement(
       SeqThreadStatement pStatement,
       CExportExpression pBitVectorEvaluationExpression,
       SeqThreadStatementClause pTargetClause)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqInjectedStatement> reductionAssumptions = ImmutableList.builder();
-    for (SeqInjectedStatement injectedStatement : pStatement.data().injectedStatements()) {
-      if (injectedStatement instanceof SeqBitVectorEvaluationStatement bitVectorStatement) {
-        reductionAssumptions.add(bitVectorStatement);
+    ImmutableList.Builder<SeqInstrumentation> reductionAssumptions = ImmutableList.builder();
+    for (SeqInstrumentation instrumentation : pStatement.data().instrumentation()) {
+      if (instrumentation.type().equals(SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION)) {
+        reductionAssumptions.add(instrumentation);
       }
     }
     CBinaryExpression roundMaxExpression =
@@ -89,24 +89,24 @@ record ReduceIgnoreSleepInjector(
                 SeqIdExpressions.ROUND_MAX,
                 SeqIntegerLiteralExpressions.INT_0,
                 BinaryOperator.EQUALS);
-    return new SeqIgnoreSleepReductionStatement(
+    return SeqInstrumentationBuilder.buildIgnoreSleepReductionStatement(
         roundMaxExpression,
         pBitVectorEvaluationExpression,
         reductionAssumptions.build(),
         pTargetClause.getFirstBlock().getLabel());
   }
 
-  private static ImmutableList<SeqInjectedStatement> replaceReductionAssumptions(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      SeqIgnoreSleepReductionStatement pIgnoreSleepStatements) {
+  private static ImmutableList<SeqInstrumentation> replaceReductionAssumptions(
+      ImmutableList<SeqInstrumentation> pInjectedStatements,
+      SeqInstrumentation pIgnoreSleepStatements) {
 
-    ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
-    newInjected.add(pIgnoreSleepStatements);
-    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      if (!(injectedStatement instanceof SeqBitVectorEvaluationStatement)) {
-        newInjected.add(injectedStatement);
+    ImmutableList.Builder<SeqInstrumentation> newInstrumentation = ImmutableList.builder();
+    newInstrumentation.add(pIgnoreSleepStatements);
+    for (SeqInstrumentation instrumentation : pInjectedStatements) {
+      if (instrumentation.type().equals(SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION)) {
+        newInstrumentation.add(instrumentation);
       }
     }
-    return newInjected.build();
+    return newInstrumentation.build();
   }
 }

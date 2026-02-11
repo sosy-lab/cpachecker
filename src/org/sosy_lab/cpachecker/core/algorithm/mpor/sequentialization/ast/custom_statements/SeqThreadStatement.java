@@ -42,7 +42,7 @@ public record SeqThreadStatement(
     // the only case where a statement writes only 'pc' is when it is a blank statement without
     // any injected statement
     return data.type().equals(SeqThreadStatementType.GHOST_ONLY)
-        && data.injectedStatements().isEmpty();
+        && data.instrumentation().isEmpty();
   }
 
   /**
@@ -72,21 +72,20 @@ public record SeqThreadStatement(
   }
 
   /**
-   * Clones this statement and replaces all existing statements with {@code pInjectedStatements}.
-   * This is necessary when a {@link SeqInjectedStatement} contains a goto or pc that is replaced,
-   * e.g. when consecutive labels are enabled.
+   * Clones this statement and replaces all existing statements with {@code pInstrumentation}. This
+   * is necessary when a {@link SeqInstrumentation} contains a goto or pc that is replaced, e.g.
+   * when consecutive labels are enabled.
    */
-  public SeqThreadStatement withInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement withInstrumentation(
+      ImmutableList<SeqInstrumentation> pInstrumentation) {
 
-    return new SeqThreadStatement(
-        data.withInjectedStatements(pInjectedStatements), exportStatements);
+    return new SeqThreadStatement(data.withInstrumentation(pInstrumentation), exportStatements);
   }
 
   /**
    * Appends the {@link SeqInjectedStatement} to the {@link CExportStatement}s of this statement and
    * returns them. This should be done after the injected statements are finalized, i.e., after all
-   * instrumentations, links, and {@code pc} updates were performed.
+   * instrumentation, links, and {@code pc} updates were performed.
    */
   ImmutableList<CExportStatement> appendInjectedStatementsToExportStatements() {
     checkState(
@@ -94,16 +93,16 @@ public record SeqThreadStatement(
         "Either targetPc or targetGoto must be present.");
 
     // first build the CExportStatements of the SeqInjectedStatement
-    ImmutableList<SeqInjectedStatement> preparedInjectedStatements =
+    ImmutableList<SeqInstrumentation> preparedInstrumentation =
         data.targetPc().isPresent()
-            ? SeqThreadStatementUtil.prepareInjectedStatementsByTargetPc(
-                data.pcLeftHandSide(), data.targetPc().orElseThrow(), data.injectedStatements())
-            : SeqThreadStatementUtil.prepareInjectedStatementsByTargetGoto(
-                data.targetGoto().orElseThrow(), data.injectedStatements());
+            ? SeqThreadStatementUtil.prepareInstrumentationByTargetPc(
+                data.pcLeftHandSide(), data.targetPc().orElseThrow(), data.instrumentation())
+            : SeqThreadStatementUtil.prepareInstrumentationByTargetGoto(
+                data.targetGoto().orElseThrow(), data.instrumentation());
 
     ImmutableList<CExportStatement> injectedExportStatements =
-        preparedInjectedStatements.stream()
-            .flatMap(injected -> injected.toCExportStatements().stream())
+        preparedInstrumentation.stream()
+            .map(injected -> injected.statement())
             .collect(ImmutableList.toImmutableList());
 
     return ImmutableList.<CExportStatement>builder()

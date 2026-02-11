@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vec
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqLastBitVectorUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
@@ -168,10 +168,10 @@ public record ReduceLastThreadOrderInjector(
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             SeqIdExpressions.LAST_THREAD,
             SeqExpressionBuilder.buildIntegerLiteralExpression(pLastThreadValue));
-    SeqLastBitVectorUpdateStatement lastUpdateStatement =
-        new SeqLastBitVectorUpdateStatement(lastThreadExit, pLastBitVectorUpdates);
-    return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-        pStatement, lastUpdateStatement);
+    return SeqThreadStatementUtil.appendedInstrumentationStatement(
+        pStatement,
+        SeqInstrumentationBuilder.buildLastThreadUpdateStatement(lastThreadExit),
+        SeqInstrumentationBuilder.buildLastBitVectorUpdateStatement(pLastBitVectorUpdates));
   }
 
   // Last Access Bit Vectors =======================================================================

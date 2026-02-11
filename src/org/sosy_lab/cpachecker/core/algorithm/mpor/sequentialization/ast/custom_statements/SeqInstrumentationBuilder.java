@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -65,6 +66,39 @@ public class SeqInstrumentationBuilder {
     CIfStatement ifStatement =
         new CIfStatement(new CExpressionWrapper(pCondition), compoundStatement);
     return new SeqInstrumentation(SeqInstrumentationType.GUARDED_GOTO, ifStatement);
+  }
+
+  public static SeqInstrumentation buildIgnoreSleepReductionStatement(
+      CBinaryExpression roundMaxExpression,
+      CExportExpression bitVectorEvaluationExpression,
+      ImmutableList<SeqInstrumentation> reductionAssumptions,
+      SeqBlockLabelStatement targetGoto) {
+
+    // negate the evaluation expression
+    CLogicalNotExpression ifExpression = bitVectorEvaluationExpression.negate();
+    CGotoStatement gotoNext = new CGotoStatement(targetGoto.toCLabelStatement());
+    CCompoundStatement compoundStatement = new CCompoundStatement(gotoNext);
+    CIfStatement innerIfStatement = new CIfStatement(ifExpression, compoundStatement);
+
+    if (reductionAssumptions.isEmpty()) {
+      // no reduction assumptions -> just return outer if statement
+      CIfStatement outerIfStatement =
+          new CIfStatement(
+              new CExpressionWrapper(roundMaxExpression), new CCompoundStatement(innerIfStatement));
+      return new SeqInstrumentation(
+          SeqInstrumentationType.IGNORE_SLEEP_REDUCTION, outerIfStatement);
+    }
+
+    // reduction assumptions are present -> build else branch with assumptions
+    CIfStatement outerIfStatement =
+        new CIfStatement(
+            new CExpressionWrapper(roundMaxExpression),
+            new CCompoundStatement(innerIfStatement),
+            new CCompoundStatement(
+                reductionAssumptions.stream()
+                    .map(a -> a.statement())
+                    .collect(ImmutableList.toImmutableList())));
+    return new SeqInstrumentation(SeqInstrumentationType.IGNORE_SLEEP_REDUCTION, outerIfStatement);
   }
 
   public static SeqInstrumentation buildLastThreadUpdateStatement(

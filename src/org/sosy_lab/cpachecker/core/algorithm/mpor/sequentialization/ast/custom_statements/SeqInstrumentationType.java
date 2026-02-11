@@ -13,6 +13,7 @@ public enum SeqInstrumentationType {
   BLOCK_LABEL(false, false),
   GOTO_BLOCK_LABEL(false, false),
   GUARDED_GOTO(true, true),
+  IGNORE_SLEEP_REDUCTION(true, false),
   LAST_BIT_VECTOR_UPDATE(true, true),
   LAST_THREAD_UPDATE(true, true),
   PROGRAM_COUNTER_UPDATE(false, false),

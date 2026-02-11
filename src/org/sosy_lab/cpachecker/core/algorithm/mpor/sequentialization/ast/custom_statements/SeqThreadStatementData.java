@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
  * @param targetPc The value assigned to {@code pcLeftHandSide}, e.g. {@code 42} in {@code pc0 =
  *     42;}, used only if there is no {@code targetGoto}
  * @param targetGoto The {@code goto stmt;} statement, used only if there is no {@code targetPc}.
- * @param injectedStatements The list of {@link SeqInjectedStatement}. May includes e.g. partial
- *     order reduction instrumentation.
+ * @param instrumentation The list of {@link SeqInstrumentation}s, includes e.g. partial order
+ *     reduction instrumentation.
  * @param ifExpression The {@link CExpression} used in a {@link CAssumeEdge}, can only be present if
  *     this data instance is tied to {@link SeqThreadStatementType#ASSUME}
  */
@@ -41,7 +41,7 @@ public record SeqThreadStatementData(
     CLeftHandSide pcLeftHandSide,
     Optional<Integer> targetPc,
     Optional<SeqBlockLabelStatement> targetGoto,
-    ImmutableList<SeqInjectedStatement> injectedStatements,
+    ImmutableList<SeqInstrumentation> instrumentation,
     Optional<CExpression> ifExpression) {
 
   public SeqThreadStatementData {
@@ -103,7 +103,7 @@ public record SeqThreadStatementData(
         pcLeftHandSide,
         Optional.of(pTargetPc),
         Optional.empty(),
-        injectedStatements,
+        instrumentation,
         ifExpression);
   }
 
@@ -118,17 +118,17 @@ public record SeqThreadStatementData(
         pcLeftHandSide,
         Optional.empty(),
         Optional.of(pTargetGoto),
-        injectedStatements,
+        instrumentation,
         ifExpression);
   }
 
   /**
-   * Clones this data and replaces all existing statements with {@code pInjectedStatements}. This is
-   * necessary when a {@link SeqInjectedStatement} contains a goto or pc that is replaced, e.g. when
+   * Clones this data and replaces all existing statements with {@code pInstrumentation}. This is
+   * necessary when a {@link SeqInstrumentation} contains a goto or pc that is replaced, e.g. when
    * consecutive labels are enabled.
    */
-  public SeqThreadStatementData withInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatementData withInstrumentation(
+      ImmutableList<SeqInstrumentation> pInstrumentation) {
 
     return new SeqThreadStatementData(
         type,
@@ -136,7 +136,7 @@ public record SeqThreadStatementData(
         pcLeftHandSide,
         targetPc,
         targetGoto,
-        pInjectedStatements,
+        pInstrumentation,
         ifExpression);
   }
 }
