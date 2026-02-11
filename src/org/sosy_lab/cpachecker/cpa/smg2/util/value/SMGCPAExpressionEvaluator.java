@@ -1495,7 +1495,7 @@ public class SMGCPAExpressionEvaluator {
           checkState(
               !arrayLengthValue.isExplicitlyKnown(),
               "The sizeOf visitor returned a non-explicit value, but we found one later.");
-          if (options.allowSymbolicvariableArrayLength()) {
+          if (options.allowSymbolicVariableArrayLength()) {
             BigInteger byteSizeOfElementType =
                 machineModel.getSizeof(arrayType.getType().getCanonicalType());
 
