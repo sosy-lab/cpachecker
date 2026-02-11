@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockMerger;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.StatementLinker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -70,29 +71,38 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> atomicBlocks =
         options.atomicBlockMerge() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
 
-    // if enabled, apply partial order reduction and reduce number of clauses
-    PartialOrderReducer partialOrderReducer =
-        new PartialOrderReducer(
-            options, atomicBlocks, ghostElements.bitVectorVariables(), memoryModel, utils);
-    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
-        partialOrderReducer.reduce();
+    // if enabled, link statements that are guaranteed to commute via gotos
+    StatementLinker statementLinker = new StatementLinker(options, memoryModel);
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
+        options.linkReduction() ? statementLinker.linkClauses(atomicBlocks) : atomicBlocks;
 
-    // if enabled, ensure that no backward goto exist
+    // if enabled, ensure that no backward goto exist. this should be done after all pc writes were
+    // replaced with goto statements. in addition, the statements are possibly reordered, and it
+    // should therefore be done before making labels consecutive.
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noBackwardGoto =
         options.noBackwardGoto()
             ? SeqThreadStatementClauseUtil.removeBackwardGoto(
-                options.validateNoBackwardGoto(), reducedClauses)
-            : reducedClauses;
+                options.validateNoBackwardGoto(), linked)
+            : linked;
 
-    // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
+    // ensure label numbers are consecutive (start at 0, end at clauseNum - 1). this must be done
+    // before adding any injected statements, otherwise the injected statements may have to be
+    // adjusted too, e.g., to adjust a 'goto' label in a partial order reduction instrumentation.
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
         options.consecutiveLabels()
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
             : noBackwardGoto;
 
+    // if enabled, apply partial order reduction and reduce number of clauses
+    PartialOrderReducer partialOrderReducer =
+        new PartialOrderReducer(
+            options, consecutiveLabels, ghostElements.bitVectorVariables(), memoryModel, utils);
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
+        partialOrderReducer.reduceClauses();
+
     // validate clauses based on pOptions
-    SeqValidator.tryValidateClauses(options, consecutiveLabels);
-    return consecutiveLabels;
+    SeqValidator.tryValidateClauses(options, reducedClauses);
+    return reducedClauses;
   }
 
   /** Maps threads to the case clauses they potentially execute. */

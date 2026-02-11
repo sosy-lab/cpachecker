@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
@@ -26,10 +27,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-record StatementLinker(MPOROptions options, MemoryModel memoryModel) {
+public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryModel) {
 
   /** Links commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
-  ImmutableListMultimap<MPORThread, SeqThreadStatementClause> link(
+  public ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linkClauses(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rLinked =
@@ -114,7 +115,7 @@ record StatementLinker(MPOROptions options, MemoryModel memoryModel) {
         // only consider global accesses if not ignored
         && !(!isRelevantMemoryLocationIgnored(pTarget)
             && SeqMemoryLocationFinder.containsRelevantMemoryLocation(
-                pLabelBlockMap, targetBlock, memoryModel));
+                pLabelBlockMap, targetBlock, memoryModel.orElseThrow()));
   }
 
   /**
