@@ -2152,8 +2152,8 @@ public class SymbolicProgramConfiguration {
         checkState(isAlreadyOnStack && newObjVarName != null && newObjStackFuncDef != null);
         // TODO: finish implementation when needed;
         //  Idea: we already copied stack variables, so we can just check that the reference is
-        // towards the same object in both sources and return the already present object like with
-        // the globals above.
+        //  towards the same object in both sources and return the already present object like with
+        //  the globals above.
 
         checkState(o1VarName.equals(o2VarName));
         CType o1Type = spc1.variableToTypeMap.get(o1VarName);
