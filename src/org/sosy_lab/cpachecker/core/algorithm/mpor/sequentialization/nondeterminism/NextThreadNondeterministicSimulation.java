@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CMultiControlStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
@@ -52,16 +53,16 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   }
 
   @Override
-  public ImmutableList<CExportStatement> buildSingleThreadSimulation(MPORThread pThread)
+  public CCompoundStatement buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    return listAndElement(
-        buildAllPrecedingStatements(pThread), buildSingleThreadMultiControlStatement(pThread));
+    return new CCompoundStatement(
+        listAndElement(
+            buildAllPrecedingStatements(pThread), buildSingleThreadMultiControlStatement(pThread)));
   }
 
   @Override
-  public ImmutableList<CExportStatement> buildAllThreadSimulations()
-      throws UnrecognizedCodeException {
+  public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
 
     // the inner multi control statements choose the next statement, e.g. "pc == 1"
     ImmutableListMultimap<CExportExpression, CExportStatement> innerMultiControlStatements =
@@ -73,7 +74,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
             SeqIdExpressions.NEXT_THREAD,
             innerMultiControlStatements,
             utils.binaryExpressionBuilder());
-    return ImmutableList.of(outerMultiControlStatement);
+    return new CCompoundStatement(ImmutableList.of(outerMultiControlStatement));
   }
 
   private ImmutableListMultimap<CExportExpression, CExportStatement>
@@ -97,7 +98,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   }
 
   @Override
-  public ImmutableList<CExportStatement> buildPrecedingStatements(MPORThread pThread)
+  public CCompoundStatement buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
@@ -108,7 +109,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     ImmutableList.Builder<CExportStatement> rStatements = ImmutableList.builder();
     pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
     nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(new CStatementWrapper(s))));
-    return rStatements.build();
+    return new CCompoundStatement(rStatements.build());
   }
 
   /**

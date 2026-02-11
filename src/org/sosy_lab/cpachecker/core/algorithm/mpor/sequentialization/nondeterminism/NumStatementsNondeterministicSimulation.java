@@ -52,7 +52,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   }
 
   @Override
-  public ImmutableList<CExportStatement> buildSingleThreadSimulation(MPORThread pThread)
+  public CCompoundStatement buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException {
     ImmutableList.Builder<CExportStatement> rSimulation = ImmutableList.builder();
 
@@ -89,25 +89,25 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
         new CIfStatement(
             new CExpressionWrapper(ifCondition), new CCompoundStatement(ifBlock.build()));
 
-    // add all and return
-    return rSimulation.add(ifStatement).build();
+    return new CCompoundStatement(rSimulation.add(ifStatement).build());
   }
 
   @Override
-  public ImmutableList<CExportStatement> buildAllThreadSimulations()
-      throws UnrecognizedCodeException {
+  public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
+
     ImmutableList.Builder<CExportStatement> rThreadSimulations = ImmutableList.builder();
     for (MPORThread thread : clauses.keySet()) {
-      rThreadSimulations.addAll(buildSingleThreadSimulation(thread));
+      rThreadSimulations.add(buildSingleThreadSimulation(thread));
     }
-    return rThreadSimulations.build();
+    return new CCompoundStatement(rThreadSimulations.build());
   }
 
   @Override
-  public ImmutableList<CExportStatement> buildPrecedingStatements(MPORThread pThread) {
+  public CCompoundStatement buildPrecedingStatements(MPORThread pThread) {
     // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
-    return ImmutableList.<CExportStatement>builder().add(new CStatementWrapper(roundReset)).build();
+    return new CCompoundStatement(
+        ImmutableList.<CExportStatement>builder().add(new CStatementWrapper(roundReset)).build());
   }
 
   private CExportExpression buildRoundMaxGreaterZeroExpression(

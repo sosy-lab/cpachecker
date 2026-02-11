@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CMultiControlStatement;
@@ -140,7 +141,7 @@ public abstract class NondeterministicSimulation {
 
     return ImmutableList.<CExportStatement>builder()
         .addAll(buildPrecedingReductionStatements(pThread))
-        .addAll(buildPrecedingStatements(pThread))
+        .add(buildPrecedingStatements(pThread))
         .build();
   }
 
@@ -194,7 +195,7 @@ public abstract class NondeterministicSimulation {
    * soundly prune the exploration of a thread simulation without underapproximating the state
    * space.
    */
-  abstract ImmutableList<CExportStatement> buildSingleThreadSimulation(MPORThread pThread)
+  abstract CCompoundStatement buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException;
 
   /**
@@ -202,13 +203,12 @@ public abstract class NondeterministicSimulation {
    * {@code if} guards. This is used only when {@link MPOROptions#loopUnrolling()} is disabled,
    * since then all thread simulations are placed as one code block in the {@code main()} function.
    */
-  public abstract ImmutableList<CExportStatement> buildAllThreadSimulations()
-      throws UnrecognizedCodeException;
+  public abstract CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException;
 
   /**
    * Builds the list of statements, e.g. assumptions or assignments, that are placed directly before
    * the {@link CMultiControlStatement} of a single {@code pThread}.
    */
-  abstract ImmutableList<CExportStatement> buildPrecedingStatements(MPORThread pThread)
+  abstract CCompoundStatement buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException;
 }

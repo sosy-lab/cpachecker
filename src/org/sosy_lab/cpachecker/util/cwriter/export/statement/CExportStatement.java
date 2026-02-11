@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement.CS
  * {@link CStatement}.
  *
  * <p>For a reference of the C standard, see <a
- * href="https://www.cppreference.com/w/c/language/statements.html">...</a>.
+ * href="https://www.cppreference.com/w/c/language/statements.html">https://www.cppreference.com/w/c/language/statements.html</a>.
  */
 public sealed interface CExportStatement
     permits CCommentStatement,

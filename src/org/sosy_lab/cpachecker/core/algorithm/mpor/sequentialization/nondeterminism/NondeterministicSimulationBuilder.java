@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
 /**
  * Contains methods that can be used to build thread simulations based on the specified {@link
@@ -86,13 +85,11 @@ public class NondeterministicSimulationBuilder {
 
     ImmutableList.Builder<SeqThreadSimulationFunction> rFunctions = ImmutableList.builder();
     for (MPORThread thread : pClauses.keySet()) {
-      ImmutableList<CExportStatement> threadSimulation =
+      CCompoundStatement threadSimulation =
           buildNondeterministicSimulationBySource(
                   pOptions, pMemoryModel, pGhostElements, pClauses, pUtils)
               .buildSingleThreadSimulation(thread);
-      rFunctions.add(
-          new SeqThreadSimulationFunction(
-              pOptions, new CCompoundStatement(threadSimulation), thread));
+      rFunctions.add(new SeqThreadSimulationFunction(pOptions, threadSimulation, thread));
     }
     return rFunctions.build();
   }

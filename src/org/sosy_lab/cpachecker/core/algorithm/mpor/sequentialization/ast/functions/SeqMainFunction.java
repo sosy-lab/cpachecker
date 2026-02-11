@@ -156,7 +156,7 @@ public final class SeqMainFunction extends SeqFunction {
       if (pOptions.comments()) {
         loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
       }
-      loopBlock.addAll(
+      loopBlock.add(
           NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
                   pOptions, pFields.memoryModel, pFields.ghostElements, pFields.clauses, pUtils)
               .buildAllThreadSimulations());
