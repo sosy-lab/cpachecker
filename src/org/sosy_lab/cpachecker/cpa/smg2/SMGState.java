@@ -5247,10 +5247,7 @@ public class SMGState
       if (identsToReplace.stream()
           .anyMatch(
               i ->
-                  memoryModel
-                      .getSymbolicIdentifiersWithTypesForValue(constraint)
-                      .keySet()
-                      .contains(i))) {
+                  memoryModel.getSymbolicIdentifiersWithTypesForValue(constraint).containsKey(i))) {
         isNotConstraints = false;
         break;
       }
