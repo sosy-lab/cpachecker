@@ -30,7 +30,7 @@ public sealed interface CExportStatement
     permits CCommentStatement,
         CCompoundStatement,
         CExpressionAssignmentStatementWrapper,
-        CFunctionCallStatementWrapper,
+        CExpressionStatementWrapper,
         CIfStatement,
         CJumpStatement,
         CLabelStatement,

@@ -6,19 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+package org.sosy_lab.cpachecker.util.cwriter.export.expression;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
 /**
- * A wrapper for a {@link CFunctionCallStatement} so that {@link CExportExpression} can be used as
+ * A wrapper for a {@link CFunctionCallExpression} so that {@link CExportExpression} can be used as
  * parameters. Example:
  *
  * <pre>{@code
@@ -27,13 +26,13 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
  * }</pre>
  *
  * <p>Note that this class should only be used if there is at least one parameter, otherwise use
- * {@link CFunctionCallStatement}.
+ * {@link CFunctionCallExpression}.
  */
-public record CFunctionCallStatementWrapper(
-    CFunctionCallStatement functionCallStatement, ImmutableList<CExportExpression> parameters)
-    implements CExportStatement {
+public record CFunctionCallExpressionWrapper(
+    CFunctionCallExpression functionCallExpression, ImmutableList<CExportExpression> parameters)
+    implements CExportExpression {
 
-  public CFunctionCallStatementWrapper {
+  public CFunctionCallExpressionWrapper {
     checkArgument(
         !parameters.isEmpty(),
         "The parameters list cannot be empty, because a CFunctionCallStatementWrapper should only"
@@ -42,9 +41,8 @@ public record CFunctionCallStatementWrapper(
             + " CFunctionCallStatement instead.");
     // this is not necessary because the parameters are replaced anyway, but still good practice
     checkArgument(
-        functionCallStatement.getFunctionCallExpression().getParameterExpressions().size()
-            == parameters.size(),
-        "The amount of parameters in functionCallStatement must match parameters.size().");
+        functionCallExpression.getParameterExpressions().size() == parameters.size(),
+        "The amount of parameters in functionCallExpression must match parameters.size().");
   }
 
   @Override
@@ -52,16 +50,13 @@ public record CFunctionCallStatementWrapper(
       throws UnrecognizedCodeException {
     // take the name of the function from the CFunctionCallStatement
     String functionName =
-        functionCallStatement
-            .getFunctionCallExpression()
-            .getFunctionNameExpression()
-            .toASTString(pAAstNodeRepresentation);
+        functionCallExpression.getFunctionNameExpression().toASTString(pAAstNodeRepresentation);
 
     // replace the parameters of the CFunctionCallStatement, separated by ', '
     StringJoiner parameterList = new StringJoiner(", ");
     for (CExportExpression parameter : parameters) {
       parameterList.add(parameter.toASTString(pAAstNodeRepresentation));
     }
-    return functionName + "(" + parameterList + ");";
+    return functionName + "(" + parameterList + ")";
   }
 }

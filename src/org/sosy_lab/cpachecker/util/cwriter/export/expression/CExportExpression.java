@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public sealed interface CExportExpression
     permits CBitVectorLiteralExpression,
         CExpressionWrapper,
+        CFunctionCallExpressionWrapper,
         CInitializerWrapper,
         CLogicalExpression {
 

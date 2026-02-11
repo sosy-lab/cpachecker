@@ -33,10 +33,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.expression.CFunctionCallExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalAndExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CFunctionCallStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
@@ -104,9 +105,6 @@ public final class SeqAssumeFunction extends SeqFunction {
   public static final CFunctionCallStatement ABORT_FUNCTION_CALL_STATEMENT =
       new CFunctionCallStatement(FileLocation.DUMMY, ABORT_FUNCTION_CALL_EXPRESSION);
 
-  private static final CFunctionCallStatement ASSUME_FUNCTION_CALL_STATEMENT_DUMMY =
-      new CFunctionCallStatement(FileLocation.DUMMY, ASSUME_FUNCTION_CALL_EXPRESSION_DUMMY);
-
   public SeqAssumeFunction(CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -147,14 +145,15 @@ public final class SeqAssumeFunction extends SeqFunction {
   }
 
   /**
-   * Returns a {@link CFunctionCallStatementWrapper} of an assume function call i.e. {@code
+   * Returns a {@link CFunctionCallExpressionWrapper} of an assume function call i.e. {@code
    * assume(pCondition);}.
    */
-  public static CFunctionCallStatementWrapper buildAssumeFunctionCallStatement(
-      CExportExpression pCondition) {
+  public static CExportStatement buildAssumeFunctionCallStatement(CExportExpression pCondition) {
 
     ImmutableList<CExportExpression> parameter = ImmutableList.of(pCondition);
-    return new CFunctionCallStatementWrapper(ASSUME_FUNCTION_CALL_STATEMENT_DUMMY, parameter);
+    CFunctionCallExpressionWrapper assumeCallExpression =
+        new CFunctionCallExpressionWrapper(ASSUME_FUNCTION_CALL_EXPRESSION_DUMMY, parameter);
+    return new CExpressionStatementWrapper(assumeCallExpression);
   }
 
   /**
