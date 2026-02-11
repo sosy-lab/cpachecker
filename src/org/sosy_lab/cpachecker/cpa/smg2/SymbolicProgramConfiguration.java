@@ -314,8 +314,14 @@ public class SymbolicProgramConfiguration {
           && !thisType.getCanonicalType().equals(otherType.getCanonicalType())) {
         return Optional.empty();
       }
-      SMGObject newObject =
-          SMGObject.of(0, thisGlobalObj.getSize(), thisGlobalObj.getOffset(), thisVarName);
+      SMGObject newObject;
+      if (thisGlobalObj == otherGlobalObj) {
+        // If the objects are the same, we can keep it!
+        newObject = thisGlobalObj;
+      } else {
+        newObject =
+            SMGObject.of(0, thisGlobalObj.getSize(), thisGlobalObj.getOffset(), thisVarName);
+      }
       mergedSPC = mergedSPC.copyAndAddGlobalObject(newObject, thisVarName, thisType);
       addObjectsToBeMerged(
           thisSMG,
@@ -393,8 +399,14 @@ public class SymbolicProgramConfiguration {
             && !thisType.getCanonicalType().equals(otherType.getCanonicalType())) {
           return Optional.empty();
         }
-        // Copy
-        SMGObject newObject = SMGObject.of(0, otherObj.getSize(), BigInteger.ZERO, otherVarName);
+        SMGObject newObject;
+        if (thisObj == otherObj) {
+          // If the objects are the same, we can keep it!
+          newObject = thisObj;
+        } else {
+          // Copy
+          newObject = SMGObject.of(0, otherObj.getSize(), BigInteger.ZERO, otherVarName);
+        }
         mergedSPC = mergedSPC.copyAndAddStackObject(newObject, otherVarName, thisType);
         addObjectsToBeMerged(
             thisSMG,
@@ -2054,6 +2066,8 @@ public class SymbolicProgramConfiguration {
         // All of those are already copied.
         SMGObject alreadyExistingObj = newSPC.globalVariableMapping.get(varName1);
         checkState(alreadyExistingObj != null);
+        // If the object is equal in both sources, it should be the same here as well!
+        checkState(o1 != o2 || o1 == alreadyExistingObj);
         o = alreadyExistingObj;
 
       } else {
