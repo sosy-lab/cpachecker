@@ -67,7 +67,7 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
 
     if (statements.size() == 1) {
       // 1 statement: add its respective export statements
-      exportStatements.addAll(statements.getFirst().exportStatements());
+      exportStatements.addAll(statements.getFirst().appendInjectedStatementsToExportStatements());
 
     } else {
       // 2 statements (= assume statements): create if-else statement
@@ -76,8 +76,8 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
       CIfStatement ifStatement =
           new CIfStatement(
               new CExpressionWrapper(firstAssume.data().ifExpression().orElseThrow()),
-              new CCompoundStatement(firstAssume.exportStatements()),
-              new CCompoundStatement(secondAssume.exportStatements()));
+              new CCompoundStatement(firstAssume.appendInjectedStatementsToExportStatements()),
+              new CCompoundStatement(secondAssume.appendInjectedStatementsToExportStatements()));
       exportStatements.add(ifStatement);
     }
 

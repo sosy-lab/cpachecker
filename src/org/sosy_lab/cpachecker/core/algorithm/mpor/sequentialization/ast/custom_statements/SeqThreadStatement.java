@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
@@ -79,5 +81,34 @@ public record SeqThreadStatement(
 
     return new SeqThreadStatement(
         data.withInjectedStatements(pInjectedStatements), exportStatements);
+  }
+
+  /**
+   * Appends the {@link SeqInjectedStatement} to the {@link CExportStatement}s of this statement and
+   * returns them. This should be done after the injected statements are finalized, i.e., after all
+   * instrumentations, links, and {@code pc} updates were performed.
+   */
+  ImmutableList<CExportStatement> appendInjectedStatementsToExportStatements() {
+    checkState(
+        data.targetPc().isPresent() || data.targetGoto().isPresent(),
+        "Either targetPc or targetGoto must be present.");
+
+    // first build the CExportStatements of the SeqInjectedStatement
+    ImmutableList<SeqInjectedStatement> preparedInjectedStatements =
+        data.targetPc().isPresent()
+            ? SeqThreadStatementUtil.prepareInjectedStatementsByTargetPc(
+                data.pcLeftHandSide(), data.targetPc().orElseThrow(), data.injectedStatements())
+            : SeqThreadStatementUtil.prepareInjectedStatementsByTargetGoto(
+                data.targetGoto().orElseThrow(), data.injectedStatements());
+
+    ImmutableList<CExportStatement> injectedExportStatements =
+        preparedInjectedStatements.stream()
+            .flatMap(injected -> injected.toCExportStatements().stream())
+            .collect(ImmutableList.toImmutableList());
+
+    return ImmutableList.<CExportStatement>builder()
+        .addAll(exportStatements)
+        .addAll(injectedExportStatements)
+        .build();
   }
 }

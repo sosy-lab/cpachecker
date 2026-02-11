@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -252,7 +251,7 @@ public record SeqThreadStatementBuilder(
           new CStatementWrapper(
               ((CStatementEdge) pSecondSuccessorEdge.orElseThrow().cfaEdge).getStatement()));
     }
-    return new SeqThreadStatement(data, finalizeExportStatements(data, exportStatements.build()));
+    return new SeqThreadStatement(data, exportStatements.build());
   }
 
   private void checkConstCpaCheckerTmpArguments(
@@ -392,7 +391,7 @@ public record SeqThreadStatementBuilder(
             ifExpression);
 
     // just return the finalized statements, the block handles the if-else branch
-    return new SeqThreadStatement(data, finalizeExportStatements(data, ImmutableList.of()));
+    return new SeqThreadStatement(data, ImmutableList.of());
   }
 
   private static SeqThreadStatement buildDefaultStatement(
@@ -409,11 +408,10 @@ public record SeqThreadStatementBuilder(
   }
 
   static SeqThreadStatement buildGhostOnlyStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.GHOST_ONLY, ImmutableSet.of(), pPcLeftHandSide, pTargetPc);
-    return new SeqThreadStatement(data, finalizeExportStatements(data, ImmutableList.of()));
+    return new SeqThreadStatement(data, ImmutableList.of());
   }
 
   private static SeqThreadStatement buildLocalVariableInitializationStatement(
@@ -443,8 +441,7 @@ public record SeqThreadStatementBuilder(
     CExpressionAssignmentStatementWrapper assignment =
         new CExpressionAssignmentStatementWrapper(idExpression, initializer);
 
-    return new SeqThreadStatement(
-        data, finalizeExportStatements(data, ImmutableList.of(assignment)));
+    return new SeqThreadStatement(data, ImmutableList.of(assignment));
   }
 
   private SeqThreadStatement buildFunctionCallStatement(
@@ -501,8 +498,7 @@ public record SeqThreadStatementBuilder(
     for (FunctionParameterAssignment assignment : pFunctionParameterAssignments) {
       functionStatements.add(new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
     }
-    return new SeqThreadStatement(
-        pData, finalizeExportStatements(pData, functionStatements.build()));
+    return new SeqThreadStatement(pData, functionStatements.build());
   }
 
   private SeqThreadStatement buildReturnValueAssignmentStatement(
@@ -516,9 +512,7 @@ public record SeqThreadStatementBuilder(
           SeqThreadStatementData.of(
               SeqThreadStatementType.DEFAULT, pSubstituteEdge, pcLeftHandSide, pTargetPc);
       return new SeqThreadStatement(
-          data,
-          finalizeExportStatements(
-              data, ImmutableList.of(new CStatementWrapper(assignment.statement()))));
+          data, ImmutableList.of(new CStatementWrapper(assignment.statement())));
     }
 
     // -> function does not return anything, i.e. return;
@@ -582,8 +576,7 @@ public record SeqThreadStatementBuilder(
 
     // just add a comment with the function name for better overview in the output program
     CCommentStatement commentStatement = new CCommentStatement(pFunctionType.name + ";");
-    return new SeqThreadStatement(
-        data, finalizeExportStatements(data, ImmutableList.of(commentStatement)));
+    return new SeqThreadStatement(data, ImmutableList.of(commentStatement));
   }
 
   private SeqThreadStatement buildCondSignalStatement(
@@ -602,9 +595,7 @@ public record SeqThreadStatementBuilder(
             SeqThreadStatementType.COND_SIGNAL, pSubstituteEdge, pcLeftHandSide, pTargetPc);
 
     return new SeqThreadStatement(
-        data,
-        finalizeExportStatements(
-            data, ImmutableList.of(new CStatementWrapper(setCondSignaledTrue))));
+        data, ImmutableList.of(new CStatementWrapper(setCondSignaledTrue)));
   }
 
   public SeqThreadStatement buildCondWaitStatement(
@@ -638,12 +629,10 @@ public record SeqThreadStatementBuilder(
 
     return new SeqThreadStatement(
         data,
-        finalizeExportStatements(
-            data,
-            ImmutableList.of(
-                new CStatementWrapper(assumeSignaled),
-                new CStatementWrapper(setSignaledFalse),
-                new CStatementWrapper(setMutexLockedTrue))));
+        ImmutableList.of(
+            new CStatementWrapper(assumeSignaled),
+            new CStatementWrapper(setSignaledFalse),
+            new CStatementWrapper(setMutexLockedTrue)));
   }
 
   private SeqThreadStatement buildThreadCreationStatement(
@@ -681,7 +670,7 @@ public record SeqThreadStatementBuilder(
                 pcVariables().getPcLeftHandSide(createdThread.id()),
                 ProgramCounterVariables.INIT_PC)));
 
-    return new SeqThreadStatement(data, finalizeExportStatements(data, exportStatements.build()));
+    return new SeqThreadStatement(data, exportStatements.build());
   }
 
   private SeqThreadStatement buildThreadExitStatement(
@@ -697,9 +686,7 @@ public record SeqThreadStatementBuilder(
     FunctionReturnValueAssignment returnValueAssignment =
         Objects.requireNonNull(functionStatements.startRoutineExitAssignments().get(pThreadEdge));
     return new SeqThreadStatement(
-        data,
-        finalizeExportStatements(
-            data, ImmutableList.of(new CStatementWrapper(returnValueAssignment.statement()))));
+        data, ImmutableList.of(new CStatementWrapper(returnValueAssignment.statement())));
   }
 
   private SeqThreadStatement buildThreadJoinStatement(
@@ -721,11 +708,9 @@ public record SeqThreadStatementBuilder(
           new CStatementWrapper(
               buildReturnValueRead(
                   targetThread.startRoutineExitVariable().orElseThrow(), pSubstituteEdge));
-      return new SeqThreadStatement(
-          data, finalizeExportStatements(data, ImmutableList.of(assumeCall, returnValueRead)));
+      return new SeqThreadStatement(data, ImmutableList.of(assumeCall, returnValueRead));
     }
-    return new SeqThreadStatement(
-        data, finalizeExportStatements(data, ImmutableList.of(assumeCall)));
+    return new SeqThreadStatement(data, ImmutableList.of(assumeCall));
   }
 
   private static CStatement buildReturnValueRead(
@@ -773,10 +758,8 @@ public record SeqThreadStatementBuilder(
 
     return new SeqThreadStatement(
         data,
-        finalizeExportStatements(
-            data,
-            ImmutableList.of(
-                new CStatementWrapper(assumeCall), new CStatementWrapper(setMutexLockedTrue))));
+        ImmutableList.of(
+            new CStatementWrapper(assumeCall), new CStatementWrapper(setMutexLockedTrue)));
   }
 
   public SeqThreadStatement buildMutexUnlockStatement(
@@ -796,8 +779,7 @@ public record SeqThreadStatementBuilder(
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0));
 
-    return new SeqThreadStatement(
-        data, finalizeExportStatements(data, ImmutableList.of(lockedFalseAssignment)));
+    return new SeqThreadStatement(data, ImmutableList.of(lockedFalseAssignment));
   }
 
   // rw_lock statements
@@ -838,8 +820,7 @@ public record SeqThreadStatementBuilder(
     CStatementWrapper rwLockReadersIncrement =
         new CStatementWrapper(pRwLockFlags.readersIncrement());
 
-    return new SeqThreadStatement(
-        data, finalizeExportStatements(data, ImmutableList.of(assumption, rwLockReadersIncrement)));
+    return new SeqThreadStatement(data, ImmutableList.of(assumption, rwLockReadersIncrement));
   }
 
   private SeqThreadStatement buildRwLockUnlockStatement(
@@ -858,8 +839,7 @@ public record SeqThreadStatementBuilder(
             new CCompoundStatement(new CStatementWrapper(pRwLockFlags.readersDecrement())),
             new CCompoundStatement(new CStatementWrapper(setNumWritersToZero)));
 
-    return new SeqThreadStatement(
-        data, finalizeExportStatements(data, ImmutableList.of(ifStatement)));
+    return new SeqThreadStatement(data, ImmutableList.of(ifStatement));
   }
 
   private SeqThreadStatement buildRwLockWrLockStatement(
@@ -880,12 +860,10 @@ public record SeqThreadStatementBuilder(
 
     return new SeqThreadStatement(
         data,
-        finalizeExportStatements(
-            data,
-            ImmutableList.of(
-                new CStatementWrapper(assumptionWriters),
-                new CStatementWrapper(assumptionReaders),
-                new CStatementWrapper(setWritersToOne))));
+        ImmutableList.of(
+            new CStatementWrapper(assumptionWriters),
+            new CStatementWrapper(assumptionReaders),
+            new CStatementWrapper(setWritersToOne)));
   }
 
   // Helpers
@@ -943,37 +921,6 @@ public record SeqThreadStatementBuilder(
       }
     }
     return false;
-  }
-
-  /**
-   * Takes the given {@link CExportStatement}s and appends the {@link SeqInjectedStatement} to them.
-   * Given that all {@link SeqThreadStatement}s have injected statements that are placed after the
-   * actual statements, this is handled here and not by each specific {@link SeqThreadStatement}s.
-   */
-  private static ImmutableList<CExportStatement> finalizeExportStatements(
-      SeqThreadStatementData pData, ImmutableList<CExportStatement> pExportStatements) {
-
-    checkState(
-        pData.targetPc().isPresent() || pData.targetGoto().isPresent(),
-        "Either targetPc or targetGoto must be present.");
-
-    // first build the CExportStatements of the SeqInjectedStatement
-    ImmutableList<SeqInjectedStatement> preparedInjectedStatements =
-        pData.targetPc().isPresent()
-            ? SeqThreadStatementUtil.prepareInjectedStatementsByTargetPc(
-                pData.pcLeftHandSide(), pData.targetPc().orElseThrow(), pData.injectedStatements())
-            : SeqThreadStatementUtil.prepareInjectedStatementsByTargetGoto(
-                pData.targetGoto().orElseThrow(), pData.injectedStatements());
-
-    ImmutableList<CExportStatement> injectedExportStatements =
-        preparedInjectedStatements.stream()
-            .flatMap(injected -> injected.toCExportStatements().stream())
-            .collect(ImmutableList.toImmutableList());
-
-    return ImmutableList.<CExportStatement>builder()
-        .addAll(pExportStatements)
-        .addAll(injectedExportStatements)
-        .build();
   }
 
   private boolean isExcludedSummaryEdge(CFAEdge pCfaEdge) {
