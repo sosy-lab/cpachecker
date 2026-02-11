@@ -10,9 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 public sealed interface SeqInjectedStatement extends SeqExportStatement
     permits SeqBitVectorAssignmentStatement,
+        SeqBitVectorEvaluationStatement,
         SeqCountUpdateStatement,
         SeqGotoBlockStatement,
-        SeqInjectedStatementWithTargetGoto,
+        SeqGuardedGotoStatement,
+        SeqIgnoreSleepReductionStatement,
         SeqLastBitVectorUpdateStatement,
         SeqProgramCounterUpdateStatement,
         SeqSyncUpdateStatement {

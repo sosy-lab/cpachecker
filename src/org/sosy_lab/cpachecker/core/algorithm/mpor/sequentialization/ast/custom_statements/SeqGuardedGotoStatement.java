@@ -27,13 +27,7 @@ public record SeqGuardedGotoStatement(
     CExpression condition,
     ImmutableList<CStatement> precedingStatements,
     SeqBlockLabelStatement targetLabel)
-    implements SeqInjectedStatementWithTargetGoto {
-
-  @Override
-  public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
-    return new SeqGuardedGotoStatement(
-        condition, precedingStatements, targetLabel.withLabelNumber(pTargetNumber));
-  }
+    implements SeqInjectedStatement {
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {

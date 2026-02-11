@@ -29,7 +29,7 @@ public record SeqBitVectorEvaluationStatement(
     MPOROptions options,
     Optional<CExportExpression> evaluationExpression,
     SeqBlockLabelStatement targetGoto)
-    implements SeqInjectedStatementWithTargetGoto {
+    implements SeqInjectedStatement {
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
@@ -46,12 +46,6 @@ public record SeqBitVectorEvaluationStatement(
     }
     return ImmutableList.of(
         SeqAssumeFunction.buildAssumeFunctionCallStatement(evaluationExpression.orElseThrow()));
-  }
-
-  @Override
-  public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
-    return new SeqBitVectorEvaluationStatement(
-        options, evaluationExpression, targetGoto.withLabelNumber(pTargetNumber));
   }
 
   @Override

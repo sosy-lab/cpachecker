@@ -23,7 +23,7 @@ public record SeqIgnoreSleepReductionStatement(
     CExportExpression bitVectorEvaluationExpression,
     ImmutableList<SeqInjectedStatement> reductionAssumptions,
     SeqBlockLabelStatement targetGoto)
-    implements SeqInjectedStatementWithTargetGoto {
+    implements SeqInjectedStatement {
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
@@ -52,15 +52,6 @@ public record SeqIgnoreSleepReductionStatement(
             new CCompoundStatement(innerIfStatement),
             new CCompoundStatement(exportReductionAssumptions.build()));
     return ImmutableList.of(outerIfStatement);
-  }
-
-  @Override
-  public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
-    return new SeqIgnoreSleepReductionStatement(
-        roundMaxExpression,
-        bitVectorEvaluationExpression,
-        reductionAssumptions,
-        targetGoto.withLabelNumber(pTargetNumber));
   }
 
   public SeqIgnoreSleepReductionStatement withReductionAssumptions(

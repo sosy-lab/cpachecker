@@ -197,18 +197,7 @@ public class SeqThreadStatementClauseUtil {
       int targetPc = pCurrentStatement.data().targetPc().orElseThrow();
       // for pc writes, use clause labels
       int clauseIndex = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-      // for injected statements (e.g. bitvector gotos), use the block label
-      int blockIndex = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
-      ImmutableList<SeqInjectedStatement> replacingInjectedStatements =
-          transformedImmutableListCopy(
-              pCurrentStatement.data().injectedStatements(),
-              injected ->
-                  injected instanceof SeqInjectedStatementWithTargetGoto injectedWithGoto
-                      ? injectedWithGoto.withTargetNumber(blockIndex)
-                      : injected);
-      return pCurrentStatement
-          .withTargetPc(clauseIndex)
-          .withInjectedStatements(replacingInjectedStatements);
+      return pCurrentStatement.withTargetPc(clauseIndex);
 
     } else if (pCurrentStatement.data().targetGoto().isPresent()) {
       SeqBlockLabelStatement label = pCurrentStatement.data().targetGoto().orElseThrow();
