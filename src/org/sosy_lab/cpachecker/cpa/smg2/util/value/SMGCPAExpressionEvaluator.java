@@ -762,8 +762,6 @@ public class SMGCPAExpressionEvaluator {
       CExpression exprReading)
       throws SMGException, SMGSolverException {
 
-    // Offsets are always interpreted as int in C
-    // CType offsetType = CNumericTypes.INT;
     ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
     // Get the SMGObject for the value
     for (SMGStateAndOptionalSMGObjectAndOffset maybeTargetAndOffset :
