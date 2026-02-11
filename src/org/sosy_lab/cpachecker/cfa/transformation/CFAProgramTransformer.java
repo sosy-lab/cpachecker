@@ -20,7 +20,7 @@ public class CFAProgramTransformer {
     boolean finished = false;
 
     while (!finished) {
-      SubCFA subCFAToBeAdded = new SubCFA(pCFA, null, null, ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION);
+      SubCFA subCFAToBeAdded =  SubCFA.createSubCFA(pCFA, null, null, ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION);
       modifiedCFA = subCFAToBeAdded.insertSubCFA(pCFA);
       break;
     }

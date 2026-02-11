@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class TREProgramTransformation extends ProgramTransformation{
+public class TailRecursionEliminationProgramTransformation extends ProgramTransformation{
   public ProgramTransformationBehaviour behaviour = ProgramTransformationBehaviour.PRECISE;
 
   @Override
@@ -21,7 +21,6 @@ public class TREProgramTransformation extends ProgramTransformation{
     //TODO do tail recursion elimination
 
     return new SubCFA(
-        pCFA,
         pEntryNode,
         pExitNode,
         null,
