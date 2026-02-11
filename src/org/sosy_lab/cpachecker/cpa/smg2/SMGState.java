@@ -5218,7 +5218,7 @@ public class SMGState
       // valueToAssign is exactly a variable to assign, but consists of more than one variable.
       // Assign it, remember the constraints and then replace the var with the concrete.
       List<ValueAndSMGState> concreteValueAndNewStates =
-          findValueAssignmentsWithSolver(valueToAssign, edge);
+          findValueAssignmentsWithSolver(valueToAssign, expr, edge);
 
       // Got all possible assignments. Now we need to assign them in all possible combinations.
 
@@ -5312,7 +5312,8 @@ public class SMGState
    * @throws SMGSolverException in case of errors, e.g. interrupts.
    */
   public List<ValueAndSMGState> findValueAssignmentsWithSolver(
-      Value valueToAssign, @Nullable CFAEdge edge) throws SMGSolverException {
+      Value valueToAssign, CArraySubscriptExpression exprCurrentlyUnderEval, @Nullable CFAEdge edge)
+      throws SMGSolverException {
     // The constraint x + y - z == valueToAssign is assigned a concrete value with constraints only.
     // This is slow with the solver later on.
 
@@ -5320,11 +5321,12 @@ public class SMGState
     SymbolicIdentifier newSymbolicToBeAssigned =
         SymbolicValueFactory.getInstance().newIdentifier(null);
     // Got all possible assignments. Now we need to assign them in all possible combinations.
-    // Subscript is always int
-    CType calcTypeForMemAccess = CNumericTypes.INT;
+    // Subscript can be many types. Always use it from the expression!
+    CType subscriptType =
+        exprCurrentlyUnderEval.getSubscriptExpression().getExpressionType().getCanonicalType();
     SMGState equalsState =
         copyAndAddValuesEqualConstraint(
-            valueToAssign, newSymbolicToBeAssigned, calcTypeForMemAccess, edge);
+            valueToAssign, newSymbolicToBeAssigned, subscriptType, edge);
 
     // Add the parameters for the memory access and check sat to get a model
     SatisfiabilityAndSMGState maybeAssignmentResultAndState =
@@ -5355,15 +5357,16 @@ public class SMGState
       if (assignment != null) {
         equalsState =
             equalsState.copyAndAddValuesEqualConstraint(
-                valueToAssign, assignment, calcTypeForMemAccess, edge);
+                valueToAssign, assignment, subscriptType, edge);
         assignedBuilder.add(ValueAndSMGState.of(assignment, equalsState));
 
         SMGState unEqualState =
             copyAndAddValueBlockingConstraint(
-                (SymbolicValue) valueToAssign, assignment, calcTypeForMemAccess, edge);
+                (SymbolicValue) valueToAssign, assignment, subscriptType, edge);
 
         List<ValueAndSMGState> recursiveAssignments =
-            unEqualState.findValueAssignmentsWithSolver(valueToAssign, edge);
+            unEqualState.findValueAssignmentsWithSolver(
+                valueToAssign, exprCurrentlyUnderEval, edge);
 
         assignedBuilder.addAll(recursiveAssignments);
       }
@@ -5646,12 +5649,14 @@ public class SMGState
       checkArgument(
           maybeRegion.getOffsetForObject() instanceof NumericValue maybeRegionOffset
               && maybeRegionOffset.bigIntegerValue().equals(BigInteger.ZERO));
+      // We write the entire memory size, and the edges are automatically merged into one big edge
       returnBuilder.add(
           currentState.writeValueWithChecks(
               memoryRegion,
               maybeRegion.getOffsetForObject(),
               memoryRegion.getSize(),
               new NumericValue(0),
+              // The type does not matter here
               CNumericTypes.INT,
               edge));
     }
