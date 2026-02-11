@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -173,7 +172,7 @@ public class SMGCPATransferRelationTest {
             .copyFrom(Configuration.defaultConfiguration())
             .setOption("cpa.smg2.preciseSMGRead", "false")
             .build();
-    smgOptions = new SMGOptions(defaultOptionsNoPreciseRead);
+    smgOptions = new SMGOptions(defaultOptionsNoPreciseRead, null);
     SMGCPAExpressionEvaluator evaluator =
         new SMGCPAExpressionEvaluator(
             MACHINE_MODEL, logManager, SMGCPAExportOptions.getNoExportInstance(), smgOptions, null);
@@ -187,7 +186,6 @@ public class SMGCPATransferRelationTest {
         new SMGTransferRelation(
             logManager,
             smgOptions,
-            new PrecAdjustmentOptions(Configuration.defaultConfiguration(), null),
             SMGCPAExportOptions.getNoExportInstance(),
             MACHINE_MODEL,
             ImmutableList.of(),
@@ -787,7 +785,7 @@ public class SMGCPATransferRelationTest {
         assertThat(statesAfterDecl).hasSize(1);
         // We check the variable later
         SMGState stateAfterDecl = statesAfterDecl.getFirst();
-        assertThat(stateAfterDecl.getMemoryModel().getSmg().checkSMGSanity()).isTrue();
+        assertThat(stateAfterDecl.getMemoryModel().checkSMGSanity()).isTrue();
 
         CFunctionCallAssignmentStatement mallocAndAssignmentExpr =
             new CFunctionCallAssignmentStatement(
@@ -833,7 +831,7 @@ public class SMGCPATransferRelationTest {
             SymbolicProgramConfiguration memoryModel =
                 statesListAfterMallocAssign.getFirst().getMemoryModel();
 
-            assertThat(memoryModel.getSmg().checkSMGSanity()).isTrue();
+            assertThat(memoryModel.checkSMGSanity()).isTrue();
 
             assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
             SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
@@ -925,7 +923,7 @@ public class SMGCPATransferRelationTest {
         assertThat(((NumericValue) mallocObjectAndOffset.getOffsetForObject()).bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
 
-        assertThat(memoryModel.getSmg().checkSMGSanity()).isTrue();
+        assertThat(memoryModel.checkSMGSanity()).isTrue();
 
         // Read the SMGObject to make sure that there is no value written
         // TODO:

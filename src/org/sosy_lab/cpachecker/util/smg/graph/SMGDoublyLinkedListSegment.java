@@ -85,8 +85,11 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
   }
 
   @Override
-  public SMGObject copyWithNewLevel(int newLevel) {
+  public SMGObject copyWithNewNestingLevel(int newLevel) {
     Preconditions.checkArgument(newLevel >= 0);
+    if (getNestingLevel() == newLevel) {
+      return this;
+    }
     return new SMGDoublyLinkedListSegment(
         newLevel,
         getSize(),
@@ -132,7 +135,18 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
 
   @Override
   public String toString() {
-    return getMinLength() + "+DLL " + super.hashCode();
+    String sizeToPrint = super.getSize().toString();
+    if (super.getSize().isNumericValue()) {
+      sizeToPrint = super.getSize().asNumericValue().bigIntegerValue().toString();
+    }
+    return getMinLength()
+        + "+DLL "
+        + super.hashCode()
+        + "["
+        + super.getOffset()
+        + ", "
+        + sizeToPrint
+        + ")";
   }
 
   @Override
