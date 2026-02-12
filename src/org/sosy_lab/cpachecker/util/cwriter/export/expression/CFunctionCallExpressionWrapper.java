@@ -27,6 +27,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>Note that this class should only be used if there is at least one parameter, otherwise use
  * {@link CFunctionCallExpression}.
+ *
+ * @param functionCallExpression The {@link CFunctionCallExpression} whose parameters will be
+ *     replaced. Note that the parameters in the {@link CFunctionCallExpression} must match the size
+ *     of the second parameter {@code parameters}.
+ * @param parameters The {@link CExportExpression} that replace the parameters of {@code
+ *     functionCallExpression}
  */
 public record CFunctionCallExpressionWrapper(
     CFunctionCallExpression functionCallExpression, ImmutableList<CExportExpression> parameters)
