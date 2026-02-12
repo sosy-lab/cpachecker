@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -36,7 +38,7 @@ public record SeqThreadStatement(
 
   /**
    * Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;}, and no
-   * additional {@link SeqInjectedStatement}s.
+   * additional {@link SeqInstrumentation}s.
    */
   public boolean isOnlyPcWrite() {
     // the only case where a statement writes only 'pc' is when it is a blank statement without
@@ -101,9 +103,7 @@ public record SeqThreadStatement(
                 data.targetGoto().orElseThrow(), data.instrumentation());
 
     ImmutableList<CExportStatement> injectedExportStatements =
-        preparedInstrumentation.stream()
-            .map(injected -> injected.statement())
-            .collect(ImmutableList.toImmutableList());
+        transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());
 
     return ImmutableList.<CExportStatement>builder()
         .addAll(exportStatements)

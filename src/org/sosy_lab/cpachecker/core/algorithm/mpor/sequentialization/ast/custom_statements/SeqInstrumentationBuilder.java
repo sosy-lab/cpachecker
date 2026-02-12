@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -95,9 +98,8 @@ public class SeqInstrumentationBuilder {
             new CExpressionWrapper(roundMaxExpression),
             new CCompoundStatement(innerIfStatement),
             new CCompoundStatement(
-                reductionAssumptions.stream()
-                    .map(a -> a.statement())
-                    .collect(ImmutableList.toImmutableList())));
+                transformedImmutableListCopy(
+                    reductionAssumptions, a -> checkNotNull(a).statement())));
     return new SeqInstrumentation(SeqInstrumentationType.IGNORE_SLEEP_REDUCTION, outerIfStatement);
   }
 
