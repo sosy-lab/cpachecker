@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CWhileLoopStatement;
 
 /** A class to represent the {@code main()} function in the sequentialization. */
-public final class SeqMainFunction extends SeqFunction {
+public final class SeqMainFunction extends SeqFunctionDefinition {
 
   // CFunctionType
 

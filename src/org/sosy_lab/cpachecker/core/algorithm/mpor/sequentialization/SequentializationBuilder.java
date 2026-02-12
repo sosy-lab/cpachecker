@@ -308,17 +308,19 @@ public class SequentializationBuilder {
     }
     // custom function definitions: assume(), main()
     SeqAssumeFunction assume = new SeqAssumeFunction(pUtils.binaryExpressionBuilder());
-    rDefinitions.add(assume.toASTString());
+    rDefinitions.add(assume.getFunctionDefinition().toASTString(AAstNodeRepresentation.DEFAULT));
     // create separate thread simulation function definitions, if enabled
     if (pOptions.loopUnrolling()) {
       for (SeqThreadSimulationFunction threadFunction :
           pFields.threadSimulationFunctions.orElseThrow()) {
-        rDefinitions.add(threadFunction.toASTString());
+        rDefinitions.add(
+            threadFunction.getFunctionDefinition().toASTString(AAstNodeRepresentation.DEFAULT));
       }
     }
     // create clauses in main method
     SeqMainFunction mainFunction = new SeqMainFunction(pOptions, pFields, pUtils);
-    rDefinitions.add(mainFunction.toASTString());
+    rDefinitions.add(
+        mainFunction.getFunctionDefinition().toASTString(AAstNodeRepresentation.DEFAULT));
     return rDefinitions.toString();
   }
 

@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
  * {@code main()} function, but can also be placed in a separate function, e.g. when {@link
  * MPOROptions#loopUnrolling()} is enabled.
  */
-public final class SeqThreadSimulationFunction extends SeqFunction {
+public final class SeqThreadSimulationFunction extends SeqFunctionDefinition {
 
   public final MPORThread thread;
 

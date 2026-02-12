@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
 /** A statement executed by a thread simulation in the sequentialization. */
 public record SeqThreadStatement(
-    SeqThreadStatementData data, ImmutableList<CExportStatement> exportStatements) {
+    SeqThreadStatementData data, ImmutableList<CExportStatement> exportStatements)
+    implements SeqExportStatement {
 
   /**
    * Returns true if the target {@code pc} is present and not equal to {@link
@@ -84,12 +85,8 @@ public record SeqThreadStatement(
     return new SeqThreadStatement(data.withInstrumentation(pInstrumentation), exportStatements);
   }
 
-  /**
-   * Appends the {@link SeqInstrumentation} to the {@link CExportStatement}s of this statement and
-   * returns them. This should be done after the injected statements are finalized, i.e., after all
-   * instrumentation, links, and {@code pc} updates were performed.
-   */
-  ImmutableList<CExportStatement> appendInstrumentationToExportStatements() {
+  @Override
+  public ImmutableList<CExportStatement> toCExportStatements() {
     checkState(
         data.targetPc().isPresent() || data.targetGoto().isPresent(),
         "Either targetPc or targetGoto must be present.");

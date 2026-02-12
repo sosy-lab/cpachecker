@@ -15,6 +15,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -232,14 +233,9 @@ public class SeqPruner {
    * Returns {@code true} if {@code pClause} has exactly 1 {@link SeqThreadStatementType#GHOST_ONLY}
    * and a target {@code pc} and throws a {@link IllegalArgumentException} otherwise.
    */
-  private static boolean validPrunableClause(SeqThreadStatementClause pClause)
-      throws UnrecognizedCodeException {
-
-    checkArgument(
-        pClause.getFirstBlock().getStatements().size() == 1,
-        "prunable case clauses must contain exactly 1 statement: %s",
-        pClause.toASTString());
-    SeqThreadStatement statement = pClause.getFirstBlock().getFirstStatement();
+  private static boolean validPrunableClause(SeqThreadStatementClause pClause) {
+    SeqThreadStatement statement =
+        Iterables.getOnlyElement(pClause.getFirstBlock().getStatements());
     checkArgument(
         statement.isOnlyPcWrite(),
         "Prunable statement must be GHOST_ONLY, but got: %s",

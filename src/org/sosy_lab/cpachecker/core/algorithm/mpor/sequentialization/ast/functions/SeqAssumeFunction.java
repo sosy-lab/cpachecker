@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionStatemen
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
-public final class SeqAssumeFunction extends SeqFunction {
+public final class SeqAssumeFunction extends SeqFunctionDefinition {
 
   // CParameterDeclaration
 
