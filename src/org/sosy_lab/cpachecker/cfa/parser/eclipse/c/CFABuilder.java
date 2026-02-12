@@ -16,7 +16,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -30,6 +30,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
@@ -53,6 +54,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Function_contractContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Loop_invariantContext;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -74,7 +79,6 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.ast.IterationElement;
 
 /**
  * Builder to traverse AST.
@@ -199,9 +203,17 @@ class CFABuilder extends ASTVisitor {
       for (IASTComment comment : ast.getComments()) {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          acslComments.add(
-              new AcslComment(
-                  astCreator.getLocation(comment), AcslParser.stripCommentMarker(commentString)));
+          try {
+            commentString = AcslParser.stripCommentMarker(commentString);
+            ParserRuleContext commentContext = AcslParser.acslCommentToContext(commentString);
+            acslComments.add(
+                new AcslComment(
+                    astCreator.getLocation(comment),
+                    AcslParser.stripCommentMarker(commentString),
+                    commentContext));
+          } catch (AcslParseException e) {
+            throw new CFAGenerationRuntimeException(e);
+          }
         }
       }
     }
@@ -377,9 +389,9 @@ class CFABuilder extends ASTVisitor {
       ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
-    ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope =
+    Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope =
         ImmutableMap.builder();
-    ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope =
+    Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope =
         ImmutableMap.builder();
     for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
       GlobalScope actScope = functionDeclaration.scope();
@@ -444,8 +456,8 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CComplexTypeDeclaration> types,
       ImmutableMap<String, CTypeDefDeclaration> typedefs,
       ImmutableMap<String, CSimpleDeclaration> globalVars,
-      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
-      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope)
+      Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
+      Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope)
       throws InterruptedException {
 
     FunctionScope localScope =
@@ -503,68 +515,44 @@ class CFABuilder extends ASTVisitor {
    * @return An updated version of pResult where each acsl comment now has a Cfa node that
    *     represents the comment location in the Cfa.
    */
-  public ParseResult matchAcslCommentsToNodes(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
+  public ParseResult addAcslToNodeMapping(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
 
     Preconditions.checkArgument(
         pResult.acslComments().isPresent(), "The parse result has no acsl comments.");
-    /*
-    Find the CfaNode for each Acsl Comment
-
-    Step 1: For regular statement annotations (e.g. assertions, loop invariants)
-    we can get the Cfa Node from the tightest statement for the comment location.
-    If "getTightestStatementForStarting()" fails, the comment is not a regular statement annotation.
-     */
-    ImmutableSet.Builder<AcslComment> notARegularAnnotationBuilder = ImmutableSet.builder();
 
     for (AcslComment comment : pResult.acslComments().orElseThrow()) {
-      Optional<CFANode> nodeForComment = nodeForRegularAnnotation(comment, pAstCfaRelation);
-      if (nodeForComment.isPresent()) {
-        comment.updateCfaNode(nodeForComment.orElseThrow());
-      } else {
-        notARegularAnnotationBuilder.add(comment);
+      ParserRuleContext ctx = comment.getCommentContext();
+      Optional<CFANode> n;
+      switch (ctx) {
+        case AssertionContext ignored -> {
+          n = nodeForAssertion(comment.getFileLocation(), pAstCfaRelation);
+          comment.updateCfaNode(n.orElseThrow());
+        }
+        case Loop_invariantContext ignored -> {
+          n = nodeForLoopInvariant(comment.getFileLocation(), pAstCfaRelation);
+          comment.updateCfaNode(n.orElseThrow());
+        }
+        case Function_contractContext ignored -> {
+          n =
+              nodeForFunctionContract(
+                  comment, pAstCfaRelation, pResult.acslComments().orElseThrow());
+          comment.updateCfaNode(n.orElseThrow());
+        }
+        default -> throw new IllegalStateException("Unexpected Context: " + ctx);
       }
     }
-    ImmutableSet<AcslComment> notRegularAnnotations = notARegularAnnotationBuilder.build();
-
-    /*
-    Step 2: Search the reamining Acsl Commnets, that are not statement annotations for function contracts
-    A function contract annotation comes immediately before the function declaration
-     */
-    ImmutableSet.Builder<AcslComment> notAFunctionContractBuilder = ImmutableSet.builder();
-
-    for (AcslComment comment : notRegularAnnotations) {
-      Optional<FunctionEntryNode> functionEntryNode =
-          nodeForFunctionContract(comment, pAstCfaRelation, pResult.acslComments().orElseThrow());
-      if (functionEntryNode.isPresent()) {
-        comment.updateCfaNode(functionEntryNode.orElseThrow());
-      } else {
-        notAFunctionContractBuilder.add(comment);
-      }
-    }
-    ImmutableSet<AcslComment> notFunctionContracts = notAFunctionContractBuilder.build();
-    // ToDo: Handle special cases
-    Verify.verify(notFunctionContracts.isEmpty());
-
     return pResult.withAcslComments(acslComments, blocks);
   }
 
-  /**
-   * @param pComment An AcslComment that has a comment string and a file location.
-   * @param pAstCfaRelation The current Ast Cfa Relation.
-   * @return - The Cfa node for the tightest statement for a regular acsl annotation - The head of
-   *     the tightest iteration structure for a loop invariant - Optional.empy() for a function
-   *     contract
-   */
-  private Optional<CFANode> nodeForRegularAnnotation(
-      AcslComment pComment, AstCfaRelation pAstCfaRelation) {
-    FileLocation commentLocation = pComment.getFileLocation();
-    String commentString = pComment.getComment();
+  private Optional<CFANode> nodeForAssertion(
+      FileLocation pLocation, AstCfaRelation pAstCfaRelation) {
 
     Optional<ASTElement> tightestStatement =
         pAstCfaRelation.getElemForStarting(
-            commentLocation.getStartingLineNumber(),
-            OptionalInt.of(commentLocation.getStartColumnInLine()));
+            pLocation.getStartingLineNumber(), OptionalInt.of(pLocation.getStartColumnInLine()));
+
     if (tightestStatement.isPresent() && !tightestStatement.orElseThrow().edges().isEmpty()) {
+
       FluentIterable<CFANode> predecessors =
           FluentIterable.from(tightestStatement.orElseThrow().edges())
               .transform(e -> e.getPredecessor());
@@ -576,21 +564,25 @@ class CFABuilder extends ASTVisitor {
               .filter(n -> !predecessors.contains(n) && !(n instanceof FunctionExitNode))
               .toList();
 
-      // An AcslComment should belong to exactly one CfaNode
-      if (!nodesForComment.isEmpty()) {
-        Optional<CFANode> node = Optional.of(nodesForComment.getFirst());
-
-        if (commentString.startsWith("loop invariant")) {
-          // Get the next loop head if we are dealing with a loop invariat
-          Optional<IterationElement> it =
-              pAstCfaRelation.getTightestIterationStructureForNode(node.orElseThrow());
-          if (it.isPresent()) {
-            node = it.orElseThrow().getLoopHead();
-          }
-        }
-        return node;
-      }
+      return Optional.of(nodesForComment.getFirst());
     }
+    return Optional.empty();
+  }
+
+  private Optional<CFANode> nodeForLoopInvariant(
+      FileLocation pLocation, AstCfaRelation pAstCfaRelation) {
+
+    FileLocation nextStatement =
+        pAstCfaRelation.nextStartStatementLocation(pLocation.getNodeOffset());
+    Optional<CFANode> iterationNode =
+        pAstCfaRelation.getNodeForIterationStatementLocation(
+            nextStatement.getStartingLineNumber(), nextStatement.getStartColumnInLine());
+
+    if (iterationNode.isPresent()) {
+      Verify.verify(iterationNode.orElseThrow().isLoopStart());
+      return iterationNode;
+    }
+
     return Optional.empty();
   }
 
@@ -601,14 +593,17 @@ class CFABuilder extends ASTVisitor {
    * @return - The next Function Entry Node if pComment is a function contract - Optional.empty()
    *     otherwise.
    */
-  private Optional<FunctionEntryNode> nodeForFunctionContract(
+  private Optional<CFANode> nodeForFunctionContract(
       AcslComment pComment, AstCfaRelation pAstCfaRelation, List<AcslComment> pAllComments) {
+
     FileLocation nextLocation =
         pAstCfaRelation.nextStartStatementLocation(pComment.getFileLocation().getNodeOffset());
+
     if (nextLocation.isRealLocation() && pComment.noCommentInBetween(nextLocation, pAllComments)) {
       Optional<CFANode> nextNode =
           pAstCfaRelation.getNodeForStatementLocation(
               nextLocation.getStartingLineNumber(), nextLocation.getStartColumnInLine());
+
       if (nextNode.isPresent()) {
         ImmutableList<CFAEdge> edges =
             nextNode
@@ -621,6 +616,7 @@ class CFABuilder extends ASTVisitor {
         }
       }
     }
+
     return Optional.empty();
   }
 

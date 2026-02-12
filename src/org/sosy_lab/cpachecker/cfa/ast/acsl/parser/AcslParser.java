@@ -18,6 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jspecify.annotations.NonNull;
@@ -110,6 +111,13 @@ public class AcslParser {
     }
 
     return annotations.build();
+  }
+
+  public static ParserRuleContext acslCommentToContext(String pInput) throws AcslParseException {
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.acslComment());
+    AntrlCommentToAnnotationVisitor converter = new AntrlCommentToAnnotationVisitor();
+    ParserRuleContext ctx = converter.visit(tree);
+    return ctx;
   }
 
   /**

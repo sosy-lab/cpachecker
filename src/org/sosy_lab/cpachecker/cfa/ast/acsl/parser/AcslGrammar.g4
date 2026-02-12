@@ -461,10 +461,10 @@ lemmaDef
     ;
 
 acslStatement
-    : assertion | ensures_clause | assigns_clause | requires_clause
+    : assertion | ensures_clause | assigns_clause | requires_clause | loop_invariant
     ;
 
 
 acslComment
-    : '/*@' acslStatement* | loop_invariant* | function_contract | statement_contract '*/' | '//@' acslStatement* | loop_invariant* | function_contract | statement_contract '/n'
+    :  assertion* | loop_invariant* | function_contract
     ;

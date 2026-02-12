@@ -363,7 +363,7 @@ class EclipseCParser implements CParser {
       result = result.withASTStructure(astCfaRelation);
 
       if (result.acslComments().isPresent()) {
-        result = builder.matchAcslCommentsToNodes(result, astCfaRelation);
+        result = builder.addAcslToNodeMapping(result, astCfaRelation);
       }
 
       return result;
