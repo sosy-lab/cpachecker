@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Joiner;
-import java.nio.file.Path;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -20,7 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vec
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqNameUtil {
@@ -37,9 +35,7 @@ public class SeqNameUtil {
       MPOROptions pOptions, CVariableDeclaration pVariableDeclaration) {
 
     checkArgument(pVariableDeclaration.isGlobal(), "variable declaration must be global");
-    return buildGlobalVariablePrefix(pOptions)
-        + SeqSyntax.UNDERSCORE
-        + pVariableDeclaration.getName();
+    return buildGlobalVariablePrefix(pOptions) + "_" + pVariableDeclaration.getName();
   }
 
   public static String buildLocalVariableName(
@@ -49,12 +45,9 @@ public class SeqNameUtil {
       int pCallContext,
       Optional<String> pFunctionName) {
 
-    String functionName =
-        pFunctionName.isPresent()
-            ? pFunctionName.orElseThrow() + SeqSyntax.UNDERSCORE
-            : SeqSyntax.EMPTY_STRING;
+    String functionName = pFunctionName.isPresent() ? pFunctionName.orElseThrow() + "_" : "";
     String prefix = buildLocalVariablePrefix(pOptions, functionName, pThreadId, pCallContext);
-    return prefix + SeqSyntax.UNDERSCORE + pVariableDeclaration.getName();
+    return prefix + "_" + pVariableDeclaration.getName();
   }
 
   private static String buildGlobalVariablePrefix(MPOROptions pOptions) {
@@ -64,7 +57,7 @@ public class SeqNameUtil {
   private static String buildLocalVariablePrefix(
       MPOROptions pOptions, String pFunctionName, int pThreadId, int pCallNumber) {
 
-    return Joiner.on(SeqSyntax.UNDERSCORE)
+    return Joiner.on("_")
         .join(
             (pOptions.shortVariableNames() ? "L" : "LOCAL"),
             pFunctionName,
@@ -80,7 +73,7 @@ public class SeqNameUtil {
       int pCallNumber,
       int pArgumentIndex) {
 
-    return Joiner.on(SeqSyntax.UNDERSCORE)
+    return Joiner.on("_")
         .join(
             pOptions.shortVariableNames() ? "P" : "PARAMETER",
             pFunctionName,
@@ -93,8 +86,7 @@ public class SeqNameUtil {
   public static String buildMainFunctionArgName(
       MPOROptions pOptions, CParameterDeclaration pMainFunctionArgDeclaration) {
 
-    return (pOptions.shortVariableNames() ? "M" : "MAIN_FUNCTION_ARG")
-        + SeqSyntax.UNDERSCORE
+    return (pOptions.shortVariableNames() ? "M_" : "MAIN_FUNCTION_ARG_")
         + pMainFunctionArgDeclaration.getName();
   }
 
@@ -107,14 +99,14 @@ public class SeqNameUtil {
 
     String startPrefix = pOptions.shortVariableNames() ? "S" : "START_ROUTINE_ARG";
     String threadPrefix = buildThreadPrefix(pOptions, pThreadId);
-    return Joiner.on(SeqSyntax.UNDERSCORE)
+    return Joiner.on("_")
         .join(startPrefix, pFunctionName, threadPrefix, pStartRoutineArgDeclaration.getName());
   }
 
   public static String buildStartRoutineExitVariableName(MPOROptions pOptions, int pThreadId) {
     String exitPrefix = pOptions.shortVariableNames() ? "E" : "EXIT";
     String threadPrefix = buildThreadPrefix(pOptions, pThreadId);
-    return Joiner.on(SeqSyntax.UNDERSCORE).join(exitPrefix, threadPrefix, "RETURN_VALUE");
+    return Joiner.on("_").join(exitPrefix, threadPrefix, "RETURN_VALUE");
   }
 
   // Bit Vectors ===================================================================================
@@ -176,7 +168,7 @@ public class SeqNameUtil {
 
     return pOptions.shortVariableNames()
         ? "b" + pReachType.shortName + pAccessType.shortName + pThreadId
-        : Joiner.on(SeqSyntax.UNDERSCORE)
+        : Joiner.on("_")
             .join(
                 buildThreadPrefix(pOptions, pThreadId),
                 "BIT_VECTOR",
@@ -190,7 +182,7 @@ public class SeqNameUtil {
     // last bit vectors are always reachable
     return pOptions.shortVariableNames()
         ? "last_b" + ReachType.REACHABLE.shortName + pAccessType.shortName
-        : Joiner.on(SeqSyntax.UNDERSCORE)
+        : Joiner.on("_")
             .join("LAST_BIT_VECTOR", ReachType.REACHABLE.longName, pAccessType.longName);
   }
 
@@ -208,9 +200,9 @@ public class SeqNameUtil {
             + pReachType.shortName
             + pAccessType.shortName
             + pThreadId
-            + SeqSyntax.UNDERSCORE
+            + "_"
             + pMemoryLocation.getName()
-        : Joiner.on(SeqSyntax.UNDERSCORE)
+        : Joiner.on("_")
             .join(
                 buildThreadPrefix(pOptions, pThreadId),
                 "BIT_VECTOR",
@@ -226,9 +218,9 @@ public class SeqNameUtil {
         ? "last_b"
             + ReachType.REACHABLE.shortName
             + pAccessType.shortName
-            + SeqSyntax.UNDERSCORE
+            + "_"
             + pMemoryLocation.getName()
-        : Joiner.on(SeqSyntax.UNDERSCORE)
+        : Joiner.on("_")
             .join(
                 "LAST_BIT_VECTOR",
                 ReachType.REACHABLE.longName,
@@ -240,11 +232,6 @@ public class SeqNameUtil {
 
   public static String buildDummyQualifiedName(String pVariableName) {
     // the qualified names are not relevant in the seq, so we just use dummy::
-    return "dummy" + SeqSyntax.COLON.repeat(1) + pVariableName;
-  }
-
-  public static String getFileNameWithoutExtension(Path pInputFilePath) {
-    String fileName = pInputFilePath.getFileName().toString();
-    return fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+    return "dummy::" + pVariableName;
   }
 }

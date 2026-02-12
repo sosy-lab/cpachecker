@@ -42,9 +42,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
@@ -53,7 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SequentializationBuilder {
 
   public static String buildBitVectorTypeDeclarations() {
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     for (BitVectorDataType bitVectorType : BitVectorDataType.values()) {
       CTypeDeclaration bitVectorTypeDeclaration = bitVectorType.buildDeclaration();
       rDeclarations.add(bitVectorTypeDeclaration.toASTString());
@@ -64,7 +63,7 @@ public class SequentializationBuilder {
   public static String buildInputFunctionAndTypeDeclarations(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.UNCHANGED_DECLARATIONS.toASTString());
     }
@@ -91,7 +90,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.GLOBAL_VAR_DECLARATIONS.toASTString());
     }
@@ -109,7 +108,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
       throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.LOCAL_VAR_DECLARATIONS.toASTString());
     }
@@ -188,7 +187,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
       throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES.toASTString());
     }
@@ -215,7 +214,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES.toASTString());
     }
@@ -229,7 +228,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES.toASTString());
     }
@@ -249,7 +248,7 @@ public class SequentializationBuilder {
   public static String buildStartRoutineExitDeclarations(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.START_ROUTINE_EXIT_VARIABLES.toASTString());
     }
@@ -267,7 +266,7 @@ public class SequentializationBuilder {
   public static String buildFunctionDeclarations(
       MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS.toASTString());
     }
@@ -300,7 +299,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    StringJoiner rDefinitions = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDefinitions = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
       rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS.toASTString());
     }
@@ -330,7 +329,7 @@ public class SequentializationBuilder {
   static String buildThreadSimulationVariableDeclarations(
       MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
 
     // if the loop is finite, i.e., loopIterations is not 0, and loopUnrolling is disabled,
     // then add the variable that is incremented with each iteration
