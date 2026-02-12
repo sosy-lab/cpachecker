@@ -4693,7 +4693,7 @@ public class SMGState
     checkArgument(!(valueToWrite instanceof AddressExpression));
     checkNotNull(numericOffsetInBits);
     checkArgument(sizeInBits.isNumericValue());
-    SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite, valueType);
+    SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(valueToWrite, valueType);
     SMGValue smgValue = valueAndState.getSMGValue();
     currentState = valueAndState.getSMGState();
     return ImmutableList.of(
