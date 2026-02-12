@@ -100,7 +100,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newValues.putAll(terminationState.getStoredValues().get(pairKey));
         newValues.put(
             terminationState.getNumberOfIterationsAtLoopHead(pairKey),
-            extractLoopHeadVariables(predicateState.getPathFormula()));
+            extractLoopHeadVariables(predicateState.getPathFormula(), pairKey.getSecond()));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(
             pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
@@ -118,7 +118,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newPathFormulaForPrefix.put(
             pairKey, terminationState.getPathFormulasForPrefix().get(pairKey));
       } else {
-        newValues.put(0, extractLoopHeadVariables(predicateState.getPathFormula()));
+        newValues.put(
+            0, extractLoopHeadVariables(predicateState.getPathFormula(), pairKey.getSecond()));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
         newPathFormulaForPrefix.put(pairKey, predicateState.getPathFormula());
@@ -133,11 +134,15 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     return ImmutableList.of(pState);
   }
 
-  private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
+  private ImmutableSet<Formula> extractLoopHeadVariables(
+      PathFormula pPathFormula, CallstackState pCallstackState) {
     SSAMap ssaMap = pPathFormula.getSsa();
     ImmutableSet.Builder<Formula> newStoredIndices = ImmutableSet.builder();
-    for (Formula variable : fmgr.extractVariables(pPathFormula.getFormula()).values()) {
-      newStoredIndices.add(fmgr.instantiate(fmgr.uninstantiate(variable), ssaMap));
+    for (Entry<String, Formula> variable :
+        fmgr.extractVariables(pPathFormula.getFormula()).entrySet()) {
+      if (variable.getKey().startsWith(pCallstackState.getCurrentFunction())) {
+        newStoredIndices.add(fmgr.instantiate(fmgr.uninstantiate(variable.getValue()), ssaMap));
+      }
     }
     return newStoredIndices.build();
   }
