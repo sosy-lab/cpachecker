@@ -3863,7 +3863,7 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         mallocZeroMemory,
         readBlacklist,
-        valueToTypeMap.putAndCopy(smgValue, valueType),
+        valueToTypeMap.putAndCopy(smgValue, checkNotNull(valueType)),
         options);
   }
 

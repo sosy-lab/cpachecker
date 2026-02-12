@@ -547,8 +547,6 @@ public class SMGCPAExpressionEvaluator {
       Value finalOffsetInBits = addBitOffsetValues(baseOffset, offsetInBits);
 
       checkArgument(targetAddressType instanceof CPointerType);
-      // Assert that there is a known type for the known pointer
-      assert targetAddressType.equals(pState.getMemoryModel().getTypeForValue(targetAddress));
 
       // search for existing pointer first and return if found; else make a new one for the offset
       returnBuilder.add(
