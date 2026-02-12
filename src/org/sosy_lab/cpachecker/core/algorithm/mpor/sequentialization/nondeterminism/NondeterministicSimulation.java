@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -23,15 +24,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceLastThreadOrderInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementBuilder;
+import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CMultiControlStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement;
 
 /**
  * Base class for simulating nondeterministic thread execution in the sequentialized program,
@@ -112,12 +116,35 @@ public abstract class NondeterministicSimulation {
   }
 
   /**
-   * Creates the core i.e. the {@link CMultiControlStatement} of a thread simulation used for {@link
-   * NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}. The logic is common for
-   * all {@link NondeterminismSource}s, so this is not tied to the separate implementations of
-   * {@link NondeterministicSimulation}.
+   * Creates the {@link CExportStatement} based on the specified {@link
+   * CMultiSelectionStatementEncoding}.
    */
-  CMultiControlStatement buildSingleThreadMultiControlStatement(MPORThread pThread)
+  static CExportStatement buildMultiSelectionStatementByEncoding(
+      CMultiSelectionStatementEncoding pEncoding,
+      CLeftHandSide pExpression,
+      ImmutableListMultimap<CExportExpression, CExportStatement> pStatements,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build statements for control encoding " + pEncoding);
+      case BINARY_SEARCH_TREE ->
+          CMultiSelectionStatementBuilder.buildBinarySearchTree(
+              ProgramCounterVariables.INIT_PC, pExpression, pStatements, pBinaryExpressionBuilder);
+      case IF_ELSE_CHAIN -> CMultiSelectionStatementBuilder.buildIfElseChain(pStatements);
+      case SWITCH_CASE -> new CSwitchStatement(pExpression, pStatements);
+    };
+  }
+
+  /**
+   * Creates the core i.e. the {@link CMultiSelectionStatementEncoding} statement of a thread
+   * simulation used for {@link NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}.
+   * The logic is common for all {@link NondeterminismSource}s, so this is not tied to the separate
+   * implementations of {@link NondeterministicSimulation}.
+   */
+  CExportStatement buildSingleThreadMultiSelectionStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(pThread);
@@ -130,7 +157,7 @@ public abstract class NondeterministicSimulation {
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
 
-    return CMultiControlStatement.buildMultiControlStatementByEncoding(
+    return buildMultiSelectionStatementByEncoding(
         options.controlEncodingStatement(),
         pcLeftHandSide,
         expressionClauseMap,
@@ -180,7 +207,7 @@ public abstract class NondeterministicSimulation {
 
   /**
    * Builds the {@link String} code of a single simulation for the given {@code pThread}, including
-   * the {@link CMultiControlStatement}.
+   * the {@link CMultiSelectionStatementEncoding} statement.
    *
    * <p>The resulting {@link String} must make it possible for the simulation to be placed in a
    * separate function that can be called without any additional wrappers or preceding statements.
@@ -206,7 +233,7 @@ public abstract class NondeterministicSimulation {
 
   /**
    * Builds the list of statements, e.g. assumptions or assignments, that are placed directly before
-   * the {@link CMultiControlStatement} of a single {@code pThread}.
+   * the {@link CMultiSelectionStatementEncoding} statement of a single {@code pThread}.
    */
   abstract CCompoundStatement buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException;

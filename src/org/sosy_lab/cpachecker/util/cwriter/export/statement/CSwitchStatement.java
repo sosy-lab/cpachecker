@@ -14,6 +14,7 @@ import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
 /**
@@ -36,10 +37,10 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
  * }</pre>
  *
  * <p>For most verifiers, the {@link CSwitchStatement} is a good choice because it scales well with
- * the number of statements. For CBMC however, the {@link CBinarySearchTreeStatement} performed
- * better.
+ * the number of statements. For CBMC however, the {@link
+ * CMultiSelectionStatementEncoding#BINARY_SEARCH_TREE} performed better.
  */
-public final class CSwitchStatement extends CMultiControlStatement {
+public final class CSwitchStatement implements CExportStatement {
 
   record CSwitchCaseStatement(
       CExportExpression expression, ImmutableList<? extends CExportStatement> statements)
@@ -61,12 +62,14 @@ public final class CSwitchStatement extends CMultiControlStatement {
 
   private final CExpression switchExpression;
 
+  private final ImmutableListMultimap<CExportExpression, CExportStatement> statements;
+
   public CSwitchStatement(
       CExpression pSwitchExpression,
       ImmutableListMultimap<CExportExpression, CExportStatement> pStatements) {
 
-    super(pStatements);
     switchExpression = pSwitchExpression;
+    statements = pStatements;
   }
 
   @Override

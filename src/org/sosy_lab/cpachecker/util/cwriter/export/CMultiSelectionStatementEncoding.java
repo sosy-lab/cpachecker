@@ -6,13 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 /**
- * An enum for the different types of {@link CMultiControlStatementEncoding}, can be used e.g. in
+ * An enum for the different types of {@link CMultiSelectionStatementEncoding}, can be used e.g. in
  * options to define a specific encoding.
  */
-public enum CMultiControlStatementEncoding {
+public enum CMultiSelectionStatementEncoding {
   // NONE may be necessary when some other option defines that there is no multi control statement
   // at all in the exported C code
   NONE,

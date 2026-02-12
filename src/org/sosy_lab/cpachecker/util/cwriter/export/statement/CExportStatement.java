@@ -34,11 +34,11 @@ public sealed interface CExportStatement
         CIfStatement,
         CJumpStatement,
         CLabelStatement,
-        CWhileLoopStatement,
-        CMultiControlStatement,
         CStatementWrapper,
+        CSwitchStatement,
         CSwitchCaseStatement,
-        CVariableDeclarationWrapper {
+        CVariableDeclarationWrapper,
+        CWhileLoopStatement {
 
   default String toASTString() throws UnrecognizedCodeException {
     return toASTString(AAstNodeRepresentation.DEFAULT);

@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CMultiControlStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
 class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
@@ -58,7 +57,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
 
     return new CCompoundStatement(
         listAndElement(
-            buildAllPrecedingStatements(pThread), buildSingleThreadMultiControlStatement(pThread)));
+            buildAllPrecedingStatements(pThread),
+            buildSingleThreadMultiSelectionStatement(pThread)));
   }
 
   @Override
@@ -68,8 +68,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     ImmutableListMultimap<CExportExpression, CExportStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements();
     // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
-    CMultiControlStatement outerMultiControlStatement =
-        CMultiControlStatement.buildMultiControlStatementByEncoding(
+    CExportStatement outerMultiControlStatement =
+        buildMultiSelectionStatementByEncoding(
             options.controlEncodingThread(),
             SeqIdExpressions.NEXT_THREAD,
             innerMultiControlStatements,
@@ -91,7 +91,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
               utils.binaryExpressionBuilder());
       ImmutableList<CExportStatement> statements =
           listAndElement(
-              buildAllPrecedingStatements(thread), buildSingleThreadMultiControlStatement(thread));
+              buildAllPrecedingStatements(thread),
+              buildSingleThreadMultiSelectionStatement(thread));
       rStatements.putAll(new CExpressionWrapper(clauseExpression), statements);
     }
     return rStatements.build();

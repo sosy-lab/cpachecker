@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vec
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CMultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Contains all {@link Option} fields used to adjust {@link MporPreprocessingAlgorithm}. */
@@ -62,14 +62,14 @@ public class MPOROptions {
       secure = true,
       description =
           "defines the syntax in which the next statement of a thread simulation is chosen.")
-  private CMultiControlStatementEncoding controlEncodingStatement =
-      CMultiControlStatementEncoding.SWITCH_CASE;
+  private CMultiSelectionStatementEncoding controlEncodingStatement =
+      CMultiSelectionStatementEncoding.SWITCH_CASE;
 
   @Option(
       secure = true,
       description = "defines the syntax in which the next thread executing a statement is chosen.")
-  private CMultiControlStatementEncoding controlEncodingThread =
-      CMultiControlStatementEncoding.NONE;
+  private CMultiSelectionStatementEncoding controlEncodingThread =
+      CMultiSelectionStatementEncoding.NONE;
 
   @Option(
       secure = true,
@@ -244,10 +244,10 @@ public class MPOROptions {
    * {@link AssertionError} if a rejection occurs.
    */
   private void handleOptionRejections() throws InvalidConfigurationException {
-    if (controlEncodingStatement.equals(CMultiControlStatementEncoding.NONE)) {
+    if (controlEncodingStatement.equals(CMultiSelectionStatementEncoding.NONE)) {
       throw new InvalidConfigurationException(
           String.format(
-              "controlEncodingStatement cannot be %s", CMultiControlStatementEncoding.NONE));
+              "controlEncodingStatement cannot be %s", CMultiSelectionStatementEncoding.NONE));
     }
     if (nondeterminismSource.isNextThreadNondeterministic()) {
       if (!controlEncodingThread.isEnabled()) {
@@ -259,7 +259,7 @@ public class MPOROptions {
               String.format(
                   "controlEncodingThread cannot be %s when nondeterminismSource contains"
                       + " NEXT_THREAD",
-                  CMultiControlStatementEncoding.NONE));
+                  CMultiSelectionStatementEncoding.NONE));
         }
       }
     }
@@ -369,7 +369,7 @@ public class MPOROptions {
       // only use with NUM_STATEMENTS nondeterminism, for NEXT_THREAD, just continue;
       if (!nondeterminismSource.isNextThreadNondeterministic()) {
         // in switch case, just use break; instead of continue;
-        if (!controlEncodingStatement.equals(CMultiControlStatementEncoding.SWITCH_CASE)) {
+        if (!controlEncodingStatement.equals(CMultiSelectionStatementEncoding.SWITCH_CASE)) {
           return true;
         }
       }
@@ -403,11 +403,11 @@ public class MPOROptions {
     return consecutiveLabels;
   }
 
-  public CMultiControlStatementEncoding controlEncodingStatement() {
+  public CMultiSelectionStatementEncoding controlEncodingStatement() {
     return controlEncodingStatement;
   }
 
-  public CMultiControlStatementEncoding controlEncodingThread() {
+  public CMultiSelectionStatementEncoding controlEncodingThread() {
     return controlEncodingThread;
   }
 

@@ -36,10 +36,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CMultiControlStatementEncoding;
 
 public class SeqThreadStatementClauseUtil {
 
@@ -54,7 +54,7 @@ public class SeqThreadStatementClauseUtil {
   }
 
   public static CExpression getStatementExpressionByEncoding(
-      CMultiControlStatementEncoding pEncoding,
+      CMultiSelectionStatementEncoding pEncoding,
       CExpression pExpression,
       int pStatementNumber,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
