@@ -76,8 +76,6 @@ record ReduceUntilConflictInjector(
             memoryModel,
             utils);
     return SeqInstrumentationBuilder.buildUntilConflictReductionStatement(
-        options.nondeterminismSource(),
-        evaluationExpression,
-        pTargetBlock.getLabel().toCLabelStatement());
+        options.nondeterminismSource(), evaluationExpression, pTargetBlock.buildLabelStatement());
   }
 }

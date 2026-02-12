@@ -23,8 +23,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 /**
  * A record to keep the data that is linked to every {@link SeqThreadStatement}.
  *
+ * @param type The {@link SeqThreadStatementType} of this statement.
  * @param substituteEdges The set of {@link SubstituteEdge}s created from the input programs {@link
  *     CFA} that this statement represents.
+ * @param threadId The ID of the thread that executes this statement.
  * @param pcLeftHandSide The {@link CLeftHandSide} that is written to when updating the pc, e.g.
  *     {@code pc0 = 42;}.
  * @param targetPc The value assigned to {@code pcLeftHandSide}, e.g. {@code 42} in {@code pc0 =
@@ -38,9 +40,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 public record SeqThreadStatementData(
     SeqThreadStatementType type,
     ImmutableSet<SubstituteEdge> substituteEdges,
+    int threadId,
     CLeftHandSide pcLeftHandSide,
     Optional<Integer> targetPc,
-    Optional<SeqBlockLabelStatement> targetGoto,
+    Optional<Integer> targetGoto,
     ImmutableList<SeqInstrumentation> instrumentation,
     Optional<CExpression> ifExpression) {
 
@@ -56,12 +59,14 @@ public record SeqThreadStatementData(
   public static SeqThreadStatementData of(
       SeqThreadStatementType pType,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pThreadId,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
     return new SeqThreadStatementData(
         pType,
         pSubstituteEdges,
+        pThreadId,
         pPcLeftHandSide,
         Optional.of(pTargetPc),
         Optional.empty(),
@@ -72,12 +77,14 @@ public record SeqThreadStatementData(
   public static SeqThreadStatementData of(
       SeqThreadStatementType pType,
       SubstituteEdge pSubstituteEdge,
+      int pThreadId,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
     return new SeqThreadStatementData(
         pType,
         ImmutableSet.of(pSubstituteEdge),
+        pThreadId,
         pPcLeftHandSide,
         Optional.of(pTargetPc),
         Optional.empty(),
@@ -100,6 +107,7 @@ public record SeqThreadStatementData(
     return new SeqThreadStatementData(
         type,
         substituteEdges,
+        threadId,
         pcLeftHandSide,
         Optional.of(pTargetPc),
         Optional.empty(),
@@ -111,10 +119,11 @@ public record SeqThreadStatementData(
    * Clones this data with the given label. This function should only be called when finalizing
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
-  public SeqThreadStatementData withTargetGoto(SeqBlockLabelStatement pTargetGoto) {
+  public SeqThreadStatementData withTargetGoto(int pTargetGoto) {
     return new SeqThreadStatementData(
         type,
         substituteEdges,
+        threadId,
         pcLeftHandSide,
         Optional.empty(),
         Optional.of(pTargetGoto),
@@ -133,6 +142,7 @@ public record SeqThreadStatementData(
     return new SeqThreadStatementData(
         type,
         substituteEdges,
+        threadId,
         pcLeftHandSide,
         targetPc,
         targetGoto,

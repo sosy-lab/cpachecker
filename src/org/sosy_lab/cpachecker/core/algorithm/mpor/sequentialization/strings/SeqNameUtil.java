@@ -27,6 +27,10 @@ public class SeqNameUtil {
     return (pOptions.shortVariableNames() ? "T" : "THREAD") + pThreadId;
   }
 
+  public static String buildThreadStatementBlockLabelName(int pThreadId, int pLabelNumber) {
+    return "T" + pThreadId + "_" + pLabelNumber;
+  }
+
   private static String buildCallSuffix(MPOROptions pOptions, int pCallNumber) {
     return (pOptions.shortVariableNames() ? "C" : "CALL") + pCallNumber;
   }

@@ -71,7 +71,7 @@ public class AtomicBlockMerger {
       SeqThreadStatement firstStatement = targetBlock.getFirstStatement();
       // only add goto when the target starts in an atomic block
       if (SeqThreadStatementUtil.startsInAtomicBlock(firstStatement)) {
-        return pStatement.withTargetGoto(targetBlock.getLabel());
+        return pStatement.withTargetGoto(targetBlock.getLabelNumber());
       }
     }
     // no int target pc -> no replacement

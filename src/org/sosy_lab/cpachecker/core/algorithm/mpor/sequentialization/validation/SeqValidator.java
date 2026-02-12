@@ -187,8 +187,8 @@ public class SeqValidator {
     for (SeqThreadStatementBlock block : pLabelBlockMap.values()) {
       for (SeqThreadStatement statement : block.getStatements()) {
         if (statement.data().targetGoto().isPresent()) {
-          int blockNumber = block.getLabel().labelNumber();
-          int targetNumber = statement.data().targetGoto().orElseThrow().labelNumber();
+          int blockNumber = block.getLabelNumber();
+          int targetNumber = statement.data().targetGoto().orElseThrow();
           if (blockNumber > targetNumber) {
             SeqThreadStatementBlock targetBlock =
                 Objects.requireNonNull(pLabelBlockMap.get(targetNumber));

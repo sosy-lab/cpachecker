@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.StatementLinker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -220,7 +219,9 @@ public record SeqThreadStatementClauseBuilder(
       CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
       ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
       if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-        statements.add(SeqThreadStatementBuilder.buildGhostOnlyStatement(pcLeftHandSide, targetPc));
+        statements.add(
+            SeqThreadStatementBuilder.buildGhostOnlyStatement(
+                pThread.id(), pcLeftHandSide, targetPc));
       } else {
         statements.addAll(
             pStatementBuilder.buildStatementsFromThreadNode(pThreadNode, pCoveredNodes));
@@ -318,10 +319,8 @@ public record SeqThreadStatementClauseBuilder(
       int pLabelPc,
       ImmutableList<SeqThreadStatement> pStatements) {
 
-    String threadPrefix = SeqNameUtil.buildThreadPrefix(options, pThread.id());
-    SeqBlockLabelStatement blockLabelStatement = new SeqBlockLabelStatement(threadPrefix, pLabelPc);
     SeqThreadStatementBlock block =
-        new SeqThreadStatementBlock(options, pNextThreadLabel, blockLabelStatement, pStatements);
+        new SeqThreadStatementBlock(options, pThread.id(), pLabelPc, pStatements, pNextThreadLabel);
     return new SeqThreadStatementClause(block);
   }
 }

@@ -90,7 +90,7 @@ public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryM
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       if (isValidLink(pStatement, newTarget, pLabelBlockMap)) {
         pLinkedTargetIds.add(newTarget.id);
-        return pStatement.withTargetGoto(newTarget.getFirstBlock().getLabel());
+        return pStatement.withTargetGoto(newTarget.getFirstBlock().getLabelNumber());
       }
     }
     return pStatement;

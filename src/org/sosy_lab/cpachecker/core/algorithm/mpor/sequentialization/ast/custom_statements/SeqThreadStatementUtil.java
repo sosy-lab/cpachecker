@@ -20,9 +20,11 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
 
 public final class SeqThreadStatementUtil {
 
@@ -153,7 +155,7 @@ public final class SeqThreadStatementUtil {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     if (pStatement.data().targetGoto().isPresent()) {
-      int targetNumber = pStatement.data().targetGoto().orElseThrow().labelNumber();
+      int targetNumber = pStatement.data().targetGoto().orElseThrow();
       SeqThreadStatementBlock targetBlock =
           Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
       return targetBlock.getStatements();
@@ -198,22 +200,20 @@ public final class SeqThreadStatementUtil {
   }
 
   static ImmutableList<SeqInstrumentation> prepareInstrumentationByTargetGoto(
-      SeqBlockLabelStatement pTargetGoto, ImmutableList<SeqInstrumentation> pInstrumentation) {
+      int pThreadId, int pTargetGotoNumber, ImmutableList<SeqInstrumentation> pInstrumentation) {
 
     ImmutableList.Builder<SeqInstrumentation> prepared = ImmutableList.builder();
-
     for (SeqInstrumentation instrumentation : pInstrumentation) {
       // add all statements that are not pruned, even when there is a target goto
       if (!instrumentation.type().isPrunedWithTargetGoto) {
         prepared.add(instrumentation);
       }
     }
-
     // add the goto last, so that the injected statements appear before it
-    return prepared
-        .add(
-            SeqInstrumentationBuilder.buildGotoBlockLabelStatement(pTargetGoto.toCLabelStatement()))
-        .build();
+    String labelName = SeqNameUtil.buildThreadStatementBlockLabelName(pThreadId, pTargetGotoNumber);
+    SeqInstrumentation gotoBlockLabel =
+        SeqInstrumentationBuilder.buildGotoBlockLabelStatement(new CLabelStatement(labelName));
+    return prepared.add(gotoBlockLabel).build();
   }
 
   private static ImmutableList<SeqInstrumentation> pruneInjectedStatements(

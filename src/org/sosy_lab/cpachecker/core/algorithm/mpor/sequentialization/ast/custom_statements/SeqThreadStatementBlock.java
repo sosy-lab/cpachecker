@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CBreakStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
@@ -31,39 +32,48 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
 
   private final MPOROptions options;
 
-  private final Optional<CLabelStatement> nextThreadLabel;
+  private final int threadId;
 
   /**
    * The goto label for the block, e.g. {@code T0_42;}. It is mandatory for all blocks, but may not
    * actually be targeted with a {@code goto}.
    */
-  private final SeqBlockLabelStatement label;
+  private final int labelNumber;
 
   private final ImmutableList<SeqThreadStatement> statements;
 
   private final boolean isLoopStart;
 
+  private final Optional<CLabelStatement> nextThreadLabel;
+
   public SeqThreadStatementBlock(
       MPOROptions pOptions,
-      Optional<CLabelStatement> pNextThreadLabel,
-      SeqBlockLabelStatement pLabel,
-      ImmutableList<SeqThreadStatement> pStatements) {
+      int pThreadId,
+      int pLabelNumber,
+      ImmutableList<SeqThreadStatement> pStatements,
+      Optional<CLabelStatement> pNextThreadLabel) {
 
     checkArgument(
         pStatements.size() == 1 || pStatements.size() == 2,
         "pStatements must have either 1 or 2 elements");
     options = pOptions;
-    nextThreadLabel = pNextThreadLabel;
-    label = pLabel;
+    threadId = pThreadId;
+    labelNumber = pLabelNumber;
     statements = pStatements;
     isLoopStart = SeqThreadStatementBlockUtil.isLoopStart(statements);
+    nextThreadLabel = pNextThreadLabel;
+  }
+
+  public CLabelStatement buildLabelStatement() {
+    return new CLabelStatement(
+        SeqNameUtil.buildThreadStatementBlockLabelName(threadId, labelNumber));
   }
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
     ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
 
-    exportStatements.add(label.toCLabelStatement());
+    exportStatements.add(buildLabelStatement());
 
     if (statements.size() == 1) {
       // 1 statement: add its respective export statements
@@ -120,8 +130,8 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
     };
   }
 
-  public SeqBlockLabelStatement getLabel() {
-    return label;
+  public int getLabelNumber() {
+    return labelNumber;
   }
 
   public SeqThreadStatement getFirstStatement() {
@@ -138,11 +148,12 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
 
   public SeqThreadStatementBlock withLabelNumber(int pLabelNumber) {
     return new SeqThreadStatementBlock(
-        options, nextThreadLabel, label.withLabelNumber(pLabelNumber), statements);
+        options, threadId, pLabelNumber, statements, nextThreadLabel);
   }
 
   public SeqThreadStatementBlock withStatements(ImmutableList<SeqThreadStatement> pStatements) {
-    return new SeqThreadStatementBlock(options, nextThreadLabel, label, pStatements);
+    return new SeqThreadStatementBlock(
+        options, threadId, labelNumber, pStatements, nextThreadLabel);
   }
 
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */

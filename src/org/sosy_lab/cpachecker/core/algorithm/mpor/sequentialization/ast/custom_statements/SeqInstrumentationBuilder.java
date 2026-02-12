@@ -43,11 +43,6 @@ public class SeqInstrumentationBuilder {
     return new SeqInstrumentation(SeqInstrumentationType.BIT_VECTOR_UPDATE, assignmentStatement);
   }
 
-  public static SeqInstrumentation buildBlockLabelStatement(String pName) {
-    CLabelStatement labelStatement = new CLabelStatement(pName);
-    return new SeqInstrumentation(SeqInstrumentationType.BLOCK_LABEL, labelStatement);
-  }
-
   public static SeqInstrumentation buildGotoBlockLabelStatement(
       CLabelStatement pBlockLabelStatement) {
 
@@ -72,22 +67,23 @@ public class SeqInstrumentationBuilder {
   }
 
   public static SeqInstrumentation buildIgnoreSleepReductionStatement(
-      CBinaryExpression roundMaxExpression,
-      CExportExpression bitVectorEvaluationExpression,
-      ImmutableList<SeqInstrumentation> reductionAssumptions,
-      SeqBlockLabelStatement targetGoto) {
+      CBinaryExpression pRoundMaxExpression,
+      CExportExpression pBitVectorEvaluationExpression,
+      ImmutableList<SeqInstrumentation> pReductionAssumptions,
+      CLabelStatement pTargetLabel) {
 
     // negate the evaluation expression
-    CLogicalNotExpression ifExpression = bitVectorEvaluationExpression.negate();
-    CGotoStatement gotoNext = new CGotoStatement(targetGoto.toCLabelStatement());
+    CLogicalNotExpression ifExpression = pBitVectorEvaluationExpression.negate();
+    CGotoStatement gotoNext = new CGotoStatement(pTargetLabel);
     CCompoundStatement compoundStatement = new CCompoundStatement(gotoNext);
     CIfStatement innerIfStatement = new CIfStatement(ifExpression, compoundStatement);
 
-    if (reductionAssumptions.isEmpty()) {
+    if (pReductionAssumptions.isEmpty()) {
       // no reduction assumptions -> just return outer if statement
       CIfStatement outerIfStatement =
           new CIfStatement(
-              new CExpressionWrapper(roundMaxExpression), new CCompoundStatement(innerIfStatement));
+              new CExpressionWrapper(pRoundMaxExpression),
+              new CCompoundStatement(innerIfStatement));
       return new SeqInstrumentation(
           SeqInstrumentationType.IGNORE_SLEEP_REDUCTION, outerIfStatement);
     }
@@ -95,11 +91,11 @@ public class SeqInstrumentationBuilder {
     // reduction assumptions are present -> build else branch with assumptions
     CIfStatement outerIfStatement =
         new CIfStatement(
-            new CExpressionWrapper(roundMaxExpression),
+            new CExpressionWrapper(pRoundMaxExpression),
             new CCompoundStatement(innerIfStatement),
             new CCompoundStatement(
                 transformedImmutableListCopy(
-                    reductionAssumptions, a -> checkNotNull(a).statement())));
+                    pReductionAssumptions, a -> checkNotNull(a).statement())));
     return new SeqInstrumentation(SeqInstrumentationType.IGNORE_SLEEP_REDUCTION, outerIfStatement);
   }
 

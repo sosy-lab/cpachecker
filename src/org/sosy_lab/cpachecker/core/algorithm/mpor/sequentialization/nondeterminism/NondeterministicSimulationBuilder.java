@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -41,10 +40,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
 
 /**
  * Contains methods that can be used to build thread simulations based on the specified {@link
@@ -221,8 +222,12 @@ public class NondeterministicSimulationBuilder {
     }
     if (pStatement.data().targetGoto().isPresent()) {
       // target goto present -> use goto label for injection
+      CLabelStatement labelStatement =
+          new CLabelStatement(
+              SeqNameUtil.buildThreadStatementBlockLabelName(
+                  pStatement.data().threadId(), pStatement.data().targetGoto().orElseThrow()));
       return injectRoundGotoIntoStatementByTargetGoto(
-          pStatement.data().targetGoto().orElseThrow(), pStatement, pBinaryExpressionBuilder);
+          labelStatement, pStatement, pBinaryExpressionBuilder);
     }
     // no int target pc -> no replacement
     return pStatement;
@@ -246,12 +251,12 @@ public class NondeterministicSimulationBuilder {
         SeqInstrumentationBuilder.buildGuardedGotoStatement(
             roundSmallerMax,
             ImmutableList.of(roundIncrement),
-            Objects.requireNonNull(target).getFirstBlock().getLabel().toCLabelStatement());
+            Objects.requireNonNull(target).getFirstBlock().buildLabelStatement());
     return SeqThreadStatementUtil.appendedInstrumentationStatement(pStatement, roundGoto);
   }
 
   private static SeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
-      SeqBlockLabelStatement pTargetGoto,
+      CLabelStatement pLabelStatement,
       SeqThreadStatement pStatement,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -264,7 +269,7 @@ public class NondeterministicSimulationBuilder {
             SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
     SeqInstrumentation roundGoto =
         SeqInstrumentationBuilder.buildGuardedGotoStatement(
-            roundSmallerMax, ImmutableList.of(roundIncrement), pTargetGoto.toCLabelStatement());
+            roundSmallerMax, ImmutableList.of(roundIncrement), pLabelStatement);
     return SeqThreadStatementUtil.appendedInstrumentationStatement(pStatement, roundGoto);
   }
 
@@ -327,7 +332,7 @@ public class NondeterministicSimulationBuilder {
               SeqInstrumentationBuilder.buildGuardedGotoStatement(
                   threadCountEqualsOne,
                   ImmutableList.of(),
-                  Objects.requireNonNull(target).getFirstBlock().getLabel().toCLabelStatement());
+                  Objects.requireNonNull(target).getFirstBlock().buildLabelStatement());
           newStatements.add(
               SeqThreadStatementUtil.appendedInstrumentationStatement(
                   statement, singleActiveThreadGoto));

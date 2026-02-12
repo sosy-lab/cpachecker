@@ -49,13 +49,13 @@ public record SeqThreadStatement(
   }
 
   /**
-   * Returns either the target {@code pc} or the number of the target {@link
-   * SeqBlockLabelStatement}, whichever is present.
+   * Returns either the target {@code pc} or the number of the target {@code goto} label, whichever
+   * is present.
    */
   public int getTargetNumber() {
     return data.targetPc().isPresent()
         ? data.targetPc().orElseThrow()
-        : data.targetGoto().orElseThrow().labelNumber();
+        : data.targetGoto().orElseThrow();
   }
 
   /**
@@ -70,7 +70,7 @@ public record SeqThreadStatement(
    * Clones this statement with the given label. This function should only be called when finalizing
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
-  public SeqThreadStatement withTargetGoto(SeqBlockLabelStatement pTargetGoto) {
+  public SeqThreadStatement withTargetGoto(int pTargetGoto) {
     return new SeqThreadStatement(data.withTargetGoto(pTargetGoto), exportStatements);
   }
 
@@ -97,7 +97,7 @@ public record SeqThreadStatement(
             ? SeqThreadStatementUtil.prepareInstrumentationByTargetPc(
                 data.pcLeftHandSide(), data.targetPc().orElseThrow(), data.instrumentation())
             : SeqThreadStatementUtil.prepareInstrumentationByTargetGoto(
-                data.targetGoto().orElseThrow(), data.instrumentation());
+                data.threadId(), data.targetGoto().orElseThrow(), data.instrumentation());
 
     ImmutableList<CExportStatement> injectedExportStatements =
         transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());

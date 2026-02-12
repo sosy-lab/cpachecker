@@ -42,13 +42,13 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
 
   public SeqThreadStatementClause(SeqThreadStatementBlock pBlock) {
     id = getNewId();
-    labelNumber = pBlock.getLabel().labelNumber();
+    labelNumber = pBlock.getLabelNumber();
     blocks = ImmutableList.of(pBlock);
   }
 
   public SeqThreadStatementClause(ImmutableList<SeqThreadStatementBlock> pBlocks) {
     id = getNewId();
-    labelNumber = pBlocks.getFirst().getLabel().labelNumber();
+    labelNumber = pBlocks.getFirst().getLabelNumber();
     blocks = pBlocks;
   }
 
@@ -104,7 +104,6 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   }
 
   public SeqThreadStatementClause withBlocks(ImmutableList<SeqThreadStatementBlock> pAllBlocks) {
-
     return new SeqThreadStatementClause(id, labelNumber, pAllBlocks);
   }
 

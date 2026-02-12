@@ -93,7 +93,7 @@ record ReduceIgnoreSleepInjector(
         roundMaxExpression,
         pBitVectorEvaluationExpression,
         reductionAssumptions.build(),
-        pTargetClause.getFirstBlock().getLabel());
+        pTargetClause.getFirstBlock().buildLabelStatement());
   }
 
   private static ImmutableList<SeqInstrumentation> replaceReductionAssumptions(

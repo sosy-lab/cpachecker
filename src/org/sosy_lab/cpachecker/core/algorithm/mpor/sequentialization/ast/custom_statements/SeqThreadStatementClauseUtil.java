@@ -115,7 +115,7 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap.Builder<Integer, SeqThreadStatementBlock> rMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        rMap.put(block.getLabel().labelNumber(), block);
+        rMap.put(block.getLabelNumber(), block);
       }
     }
     return rMap.buildOrThrow();
@@ -155,7 +155,7 @@ public class SeqThreadStatementClauseUtil {
         for (SeqThreadStatement mergedStatement : block.getStatements()) {
           newStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
-        int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().labelNumber()));
+        int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabelNumber()));
         newBlocks.add(block.withLabelNumber(blockIndex).withStatements(newStatements.build()));
       }
       int clauseIndex = Objects.requireNonNull(labelClauseMap.get(clause.labelNumber));
@@ -171,7 +171,7 @@ public class SeqThreadStatementClauseUtil {
     int index = ProgramCounterVariables.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        rLabelToIndex.put(block.getLabel().labelNumber(), index++);
+        rLabelToIndex.put(block.getLabelNumber(), index++);
       }
     }
     return rLabelToIndex.buildOrThrow();
@@ -200,10 +200,10 @@ public class SeqThreadStatementClauseUtil {
       return pCurrentStatement.withTargetPc(clauseIndex);
 
     } else if (pCurrentStatement.data().targetGoto().isPresent()) {
-      SeqBlockLabelStatement label = pCurrentStatement.data().targetGoto().orElseThrow();
+      int label = pCurrentStatement.data().targetGoto().orElseThrow();
       // for gotos, use block labels
-      int index = Objects.requireNonNull(pLabelBlockMap.get(label.labelNumber()));
-      return pCurrentStatement.withTargetGoto(label.withLabelNumber(index));
+      int index = Objects.requireNonNull(pLabelBlockMap.get(label));
+      return pCurrentStatement.withTargetGoto(index);
     }
     // no valid target pc or target goto -> no replacement
     return pCurrentStatement;
@@ -380,7 +380,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementBlock> pBlocks) {
 
     return ImmutableList.sortedCopyOf(
-        Comparator.comparingInt((SeqThreadStatementBlock block) -> block.getLabel().labelNumber())
+        Comparator.comparingInt((SeqThreadStatementBlock block) -> block.getLabelNumber())
             .reversed(),
         pBlocks);
   }
