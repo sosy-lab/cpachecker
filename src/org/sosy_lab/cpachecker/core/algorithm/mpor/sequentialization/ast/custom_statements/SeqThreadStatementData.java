@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
 /**
  * A record to keep the data that is linked to every {@link SeqThreadStatement}.
@@ -33,7 +34,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
  *     42;}, used only if there is no {@code targetGoto}
  * @param targetGoto The {@code goto stmt;} statement, used only if there is no {@code targetPc}.
  * @param instrumentation The list of {@link SeqInstrumentation}s, includes e.g. partial order
- *     reduction instrumentation.
+ *     reduction instrumentation. The instrumentation is updated dynamically during the
+ *     sequentialization process and is only converted to {@link CExportStatement} once no more
+ *     dynamic updates occur.
  * @param ifExpression The {@link CExpression} used in a {@link CAssumeEdge}, can only be present if
  *     this data instance is tied to {@link SeqThreadStatementType#ASSUME}
  */

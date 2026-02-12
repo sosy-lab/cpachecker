@@ -76,8 +76,12 @@ public record SeqThreadStatement(
 
   /**
    * Clones this statement and replaces all existing statements with {@code pInstrumentation}. This
-   * is necessary when a {@link SeqInstrumentation} contains a goto or pc that is replaced, e.g.
-   * when consecutive labels are enabled.
+   * is necessary e.g. when a specific combination of already added {@link SeqInstrumentation} can
+   * be simplified.
+   *
+   * <p>The instrumentation is thus kept separate from the {@link CExportStatement}s of this
+   * statement, but instead kept inside {@link SeqThreadStatementData} so that it easier to observe
+   * the specific combination of {@link SeqInstrumentation}s.
    */
   public SeqThreadStatement withInstrumentation(
       ImmutableList<SeqInstrumentation> pInstrumentation) {
