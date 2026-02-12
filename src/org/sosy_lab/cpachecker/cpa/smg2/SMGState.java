@@ -7034,12 +7034,11 @@ public class SMGState
       if (symValue instanceof ConstantSymbolicExpression constSymExpr
           && constSymExpr.getValue() instanceof SymbolicValue nestedSymValue) {
         symValue = nestedSymValue;
-        checkState(
-            !isPointer(symValue) || symValue.isNumericValue(),
-            "Error: assigned a concrete value to a non-null address");
       }
       if (symValue instanceof SymbolicIdentifier symIdent
-          && solverAssignments.containsKey(symIdent)) {
+          && solverAssignments.containsKey(symIdent)
+          && !isPointer(symValue)
+          && !isPointer(symIdent)) {
         Value assignedValue = solverAssignments.get(symIdent);
         if (assignedValue != null && assignedValue.isNumericValue()) {
           readValue = assignedValue;
