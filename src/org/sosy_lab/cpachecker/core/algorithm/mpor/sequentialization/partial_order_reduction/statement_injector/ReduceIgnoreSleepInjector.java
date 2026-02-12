@@ -43,8 +43,8 @@ record ReduceIgnoreSleepInjector(
       throws UnrecognizedCodeException {
 
     // if valid target pc found, inject bit vector write and evaluation statements
-    if (pStatement.data().targetPc().isPresent()) {
-      int targetPc = pStatement.data().targetPc().orElseThrow();
+    if (pStatement.targetPc().isPresent()) {
+      int targetPc = pStatement.targetPc().orElseThrow();
       // exclude exit pc, don't want 'assume(conflict)' there
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(labelClauseMap.get(targetPc));
@@ -62,7 +62,7 @@ record ReduceIgnoreSleepInjector(
                   pStatement, evaluationExpression.orElseThrow(), newTarget);
           return pStatement.withInstrumentation(
               replaceReductionAssumptions(
-                  pStatement.data().instrumentation(), ignoreSleepReductionStatement));
+                  pStatement.instrumentation(), ignoreSleepReductionStatement));
         }
       }
     }
@@ -77,7 +77,7 @@ record ReduceIgnoreSleepInjector(
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqInstrumentation> reductionAssumptions = ImmutableList.builder();
-    for (SeqInstrumentation instrumentation : pStatement.data().instrumentation()) {
+    for (SeqInstrumentation instrumentation : pStatement.instrumentation()) {
       if (instrumentation.type().equals(SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION)) {
         reductionAssumptions.add(instrumentation);
       }

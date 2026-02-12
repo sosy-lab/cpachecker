@@ -42,9 +42,9 @@ record ReduceUntilConflictInjector(
       throws UnrecognizedCodeException {
 
     // if valid target pc found, inject bit vector write and evaluation statements
-    if (pStatement.data().targetPc().isPresent()) {
+    if (pStatement.targetPc().isPresent()) {
       ImmutableList.Builder<SeqInstrumentation> newInstrumentation = ImmutableList.builder();
-      int targetPc = pStatement.data().targetPc().orElseThrow();
+      int targetPc = pStatement.targetPc().orElseThrow();
       // exclude exit pc, don't want 'assume(conflict)' there
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(labelClauseMap.get(targetPc));

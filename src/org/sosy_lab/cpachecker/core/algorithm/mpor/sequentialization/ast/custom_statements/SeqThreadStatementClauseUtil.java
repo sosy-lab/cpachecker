@@ -194,13 +194,13 @@ public class SeqThreadStatementClauseUtil {
       final ImmutableMap<Integer, Integer> pLabelClauseMap) {
 
     if (pCurrentStatement.isTargetPcValid()) {
-      int targetPc = pCurrentStatement.data().targetPc().orElseThrow();
+      int targetPc = pCurrentStatement.targetPc().orElseThrow();
       // for pc writes, use clause labels
       int clauseIndex = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       return pCurrentStatement.withTargetPc(clauseIndex);
 
-    } else if (pCurrentStatement.data().targetGoto().isPresent()) {
-      int label = pCurrentStatement.data().targetGoto().orElseThrow();
+    } else if (pCurrentStatement.targetGoto().isPresent()) {
+      int label = pCurrentStatement.targetGoto().orElseThrow();
       // for gotos, use block labels
       int index = Objects.requireNonNull(pLabelBlockMap.get(label));
       return pCurrentStatement.withTargetGoto(index);
@@ -233,8 +233,7 @@ public class SeqThreadStatementClauseUtil {
       return true;
     } else {
       SeqThreadStatement firstStatement = pCurrent.getFirstBlock().getFirstStatement();
-      SeqThreadStatementClause next =
-          pLabelClauseMap.get(firstStatement.data().targetPc().orElseThrow());
+      SeqThreadStatementClause next = pLabelClauseMap.get(firstStatement.targetPc().orElseThrow());
       assert next != null : "could not find target case clause";
       if (pCurrent.labelNumber + 1 == next.labelNumber) {
         return isConsecutiveLabelPath(next, pTarget, pLabelClauseMap);

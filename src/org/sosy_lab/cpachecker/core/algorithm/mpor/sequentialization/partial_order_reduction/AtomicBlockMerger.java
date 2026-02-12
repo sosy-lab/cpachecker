@@ -66,7 +66,7 @@ public class AtomicBlockMerger {
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     if (pStatement.isTargetPcValid()) {
-      int targetPc = pStatement.data().targetPc().orElseThrow();
+      int targetPc = pStatement.targetPc().orElseThrow();
       SeqThreadStatementBlock targetBlock = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
       SeqThreadStatement firstStatement = targetBlock.getFirstStatement();
       // only add goto when the target starts in an atomic block

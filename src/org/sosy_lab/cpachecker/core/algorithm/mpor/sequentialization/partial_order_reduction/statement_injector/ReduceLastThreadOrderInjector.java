@@ -129,8 +129,8 @@ public record ReduceLastThreadOrderInjector(
       SeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    if (pStatement.data().targetPc().isPresent()) {
-      int targetPc = pStatement.data().targetPc().orElseThrow();
+    if (pStatement.targetPc().isPresent()) {
+      int targetPc = pStatement.targetPc().orElseThrow();
       // if a thread exits, set last_thread to NUM_THREADS - 1.
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
         return injectLastThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());

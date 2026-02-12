@@ -208,9 +208,9 @@ public class NondeterministicSimulationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pStatement.data().targetPc().isPresent()) {
+    if (pStatement.targetPc().isPresent()) {
       // int target is present -> retrieve label by pc from map
-      int targetPc = pStatement.data().targetPc().orElseThrow();
+      int targetPc = pStatement.targetPc().orElseThrow();
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         // check if the target is a separate loop
@@ -220,12 +220,12 @@ public class NondeterministicSimulationBuilder {
         }
       }
     }
-    if (pStatement.data().targetGoto().isPresent()) {
+    if (pStatement.targetGoto().isPresent()) {
       // target goto present -> use goto label for injection
       CLabelStatement labelStatement =
           new CLabelStatement(
               SeqNameUtil.buildThreadStatementBlockLabelName(
-                  pStatement.data().threadId(), pStatement.data().targetGoto().orElseThrow()));
+                  pStatement.data().threadId(), pStatement.targetGoto().orElseThrow()));
       return injectRoundGotoIntoStatementByTargetGoto(
           labelStatement, pStatement, pBinaryExpressionBuilder);
     }
@@ -318,7 +318,7 @@ public class NondeterministicSimulationBuilder {
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       if (statement.isTargetPcValid()) {
-        int targetPc = statement.data().targetPc().orElseThrow();
+        int targetPc = statement.targetPc().orElseThrow();
         SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         // check if the target is a separate loop
         if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {
@@ -373,9 +373,9 @@ public class NondeterministicSimulationBuilder {
       CIdExpression pSyncVariable,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    if (pStatement.data().targetPc().isPresent()) {
+    if (pStatement.targetPc().isPresent()) {
       // int target is present -> retrieve label by pc from map
-      int targetPc = pStatement.data().targetPc().orElseThrow();
+      int targetPc = pStatement.targetPc().orElseThrow();
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause targetClause =
             Objects.requireNonNull(pLabelClauseMap.get(targetPc));

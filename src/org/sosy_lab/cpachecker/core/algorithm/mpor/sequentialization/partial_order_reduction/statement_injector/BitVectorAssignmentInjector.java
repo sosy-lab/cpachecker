@@ -47,9 +47,9 @@ public record BitVectorAssignmentInjector(
 
   SeqThreadStatement injectBitVectorAssignmentsIntoStatement(SeqThreadStatement pStatement) {
     // if valid target pc found, inject bit vector write and evaluation statements
-    if (pStatement.data().targetPc().isPresent()) {
+    if (pStatement.targetPc().isPresent()) {
       ImmutableList.Builder<SeqInstrumentation> newInstrumentation = ImmutableList.builder();
-      int targetPc = pStatement.data().targetPc().orElseThrow();
+      int targetPc = pStatement.targetPc().orElseThrow();
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
         // for the exit pc, reset the bit vector to just 0s
         newInstrumentation.addAll(buildBitVectorResets());

@@ -8,25 +8,71 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 
-/** A statement executed by a thread simulation in the sequentialization. */
+/**
+ * A statement executed by a thread simulation in the sequentialization.
+ *
+ * <p>The fields in this class are separate from the {@param exportStatements} because they are
+ * dynamically updated during the sequentialization process. These dynamic updates include merging
+ * atomic blocks, linking commuting statements or making the label numbers of statements
+ * consecutive, based on the specified {@link MPOROptions}. Meanwhile, the {@param exportStatements}
+ * are only created once based on the input programs {@link CFA}.
+ *
+ * <p>Once the data in this class is finalized, it is converted to {@link CExportStatement}s and
+ * placed together with the {@param exportStatements} to create the exported program.
+ *
+ * @param data The data that all statements must contain, e.g., their {@link
+ *     SeqThreadStatementType}.
+ * @param targetPc The value assigned to a threads {@code pc}, e.g. {@code 42} in {@code pc0 = 42;},
+ *     used only if there is no {@code targetGoto}.
+ * @param targetGoto The {@code goto stmt;} statement, used only if there is no {@code targetPc}.
+ * @param instrumentation The list of {@link SeqInstrumentation}s, includes e.g. partial order
+ *     reduction instrumentation. The instrumentation is updated dynamically during the
+ *     sequentialization process and is only converted to {@link CExportStatement} once no more
+ *     dynamic updates occur.
+ * @param exportStatements The list of {@link CExportStatement} as created from the input {@link
+ *     CFA}.
+ */
 public record SeqThreadStatement(
-    SeqThreadStatementData data, ImmutableList<CExportStatement> exportStatements)
+    SeqThreadStatementData data,
+    Optional<Integer> targetPc,
+    Optional<Integer> targetGoto,
+    ImmutableList<SeqInstrumentation> instrumentation,
+    ImmutableList<CExportStatement> exportStatements)
     implements SeqExportStatement {
+
+  public SeqThreadStatement {
+    checkArgument(
+        targetPc.isPresent() ^ targetGoto.isPresent(),
+        "Either targetPc or targetGoto must be present (exclusive or).");
+  }
+
+  public static SeqThreadStatement of(
+      SeqThreadStatementData pData,
+      int pTargetPc,
+      ImmutableList<CExportStatement> pExportStatements) {
+    // the targetGoto and instrumentation are always empty on initialization
+    return new SeqThreadStatement(
+        pData, Optional.of(pTargetPc), Optional.empty(), ImmutableList.of(), pExportStatements);
+  }
 
   /**
    * Returns true if the target {@code pc} is present and not equal to {@link
    * ProgramCounterVariables#EXIT_PC}, i.e. if it actually targets another statement.
    */
   public boolean isTargetPcValid() {
-    return data.targetPc().filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
+    return targetPc.filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /**
@@ -34,7 +80,7 @@ public record SeqThreadStatement(
    * ProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
    */
   public boolean isTargetPcExit() {
-    return data.targetPc().filter(pc -> pc == ProgramCounterVariables.EXIT_PC).isPresent();
+    return targetPc.filter(pc -> pc == ProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /**
@@ -44,8 +90,7 @@ public record SeqThreadStatement(
   public boolean isOnlyPcWrite() {
     // the only case where a statement writes only 'pc' is when it is a blank statement without
     // any injected statement
-    return data.type().equals(SeqThreadStatementType.GHOST_ONLY)
-        && data.instrumentation().isEmpty();
+    return data.type().equals(SeqThreadStatementType.GHOST_ONLY) && instrumentation.isEmpty();
   }
 
   /**
@@ -53,9 +98,7 @@ public record SeqThreadStatement(
    * is present.
    */
   public int getTargetNumber() {
-    return data.targetPc().isPresent()
-        ? data.targetPc().orElseThrow()
-        : data.targetGoto().orElseThrow();
+    return targetPc.isPresent() ? targetPc.orElseThrow() : targetGoto.orElseThrow();
   }
 
   /**
@@ -63,7 +106,15 @@ public record SeqThreadStatement(
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
   public SeqThreadStatement withTargetPc(int pTargetPc) {
-    return new SeqThreadStatement(data.withTargetPc(pTargetPc), exportStatements);
+    if (data.type().equals(SeqThreadStatementType.THREAD_EXIT)) {
+      checkArgument(
+          pTargetPc == ProgramCounterVariables.EXIT_PC,
+          "%s should only be cloned with exit pc %s",
+          SeqThreadStatementType.THREAD_EXIT,
+          ProgramCounterVariables.EXIT_PC);
+    }
+    return new SeqThreadStatement(
+        data, Optional.of(pTargetPc), Optional.empty(), instrumentation, exportStatements);
   }
 
   /**
@@ -71,7 +122,8 @@ public record SeqThreadStatement(
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
   public SeqThreadStatement withTargetGoto(int pTargetGoto) {
-    return new SeqThreadStatement(data.withTargetGoto(pTargetGoto), exportStatements);
+    return new SeqThreadStatement(
+        data, Optional.empty(), Optional.of(pTargetGoto), instrumentation, exportStatements);
   }
 
   /**
@@ -86,22 +138,22 @@ public record SeqThreadStatement(
   public SeqThreadStatement withInstrumentation(
       ImmutableList<SeqInstrumentation> pInstrumentation) {
 
-    return new SeqThreadStatement(data.withInstrumentation(pInstrumentation), exportStatements);
+    return new SeqThreadStatement(data, targetPc, targetGoto, pInstrumentation, exportStatements);
   }
 
   @Override
   public ImmutableList<CExportStatement> toCExportStatements() {
     checkState(
-        data.targetPc().isPresent() || data.targetGoto().isPresent(),
+        targetPc.isPresent() || targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present.");
 
     // first build the CExportStatements of the SeqInjectedStatement
     ImmutableList<SeqInstrumentation> preparedInstrumentation =
-        data.targetPc().isPresent()
+        targetPc.isPresent()
             ? SeqThreadStatementUtil.prepareInstrumentationByTargetPc(
-                data.pcLeftHandSide(), data.targetPc().orElseThrow(), data.instrumentation())
+                data.pcLeftHandSide(), targetPc.orElseThrow(), instrumentation)
             : SeqThreadStatementUtil.prepareInstrumentationByTargetGoto(
-                data.threadId(), data.targetGoto().orElseThrow(), data.instrumentation());
+                data.threadId(), targetGoto.orElseThrow(), instrumentation);
 
     ImmutableList<CExportStatement> injectedExportStatements =
         transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());

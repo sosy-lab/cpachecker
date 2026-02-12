@@ -104,7 +104,7 @@ public class SeqValidator {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
       for (SeqThreadStatement statement : clause.getAllStatements()) {
-        statement.data().targetPc().ifPresent(targetPcs::add);
+        statement.targetPc().ifPresent(targetPcs::add);
       }
       rPcMap.put(clause.labelNumber, targetPcs.build());
     }
@@ -186,9 +186,9 @@ public class SeqValidator {
 
     for (SeqThreadStatementBlock block : pLabelBlockMap.values()) {
       for (SeqThreadStatement statement : block.getStatements()) {
-        if (statement.data().targetGoto().isPresent()) {
+        if (statement.targetGoto().isPresent()) {
           int blockNumber = block.getLabelNumber();
-          int targetNumber = statement.data().targetGoto().orElseThrow();
+          int targetNumber = statement.targetGoto().orElseThrow();
           if (blockNumber > targetNumber) {
             SeqThreadStatementBlock targetBlock =
                 Objects.requireNonNull(pLabelBlockMap.get(targetNumber));

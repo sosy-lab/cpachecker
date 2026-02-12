@@ -56,7 +56,7 @@ public final class SeqThreadStatementUtil {
 
   public static boolean allHaveTargetGoto(ImmutableList<SeqThreadStatement> pStatements) {
     for (SeqThreadStatement statement : pStatements) {
-      if (statement.data().targetGoto().isEmpty()) {
+      if (statement.targetGoto().isEmpty()) {
         return false;
       }
     }
@@ -67,7 +67,7 @@ public final class SeqThreadStatementUtil {
       ImmutableList<SeqThreadStatement> pStatements) {
 
     for (SeqThreadStatement statement : pStatements) {
-      if (isAnyBitVectorEvaluationExpressionEmpty(statement.data().instrumentation())) {
+      if (isAnyBitVectorEvaluationExpressionEmpty(statement.instrumentation())) {
         return true;
       }
     }
@@ -138,7 +138,7 @@ public final class SeqThreadStatementUtil {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     if (pStatement.isTargetPcValid()) {
-      int targetNumber = pStatement.data().targetPc().orElseThrow();
+      int targetNumber = pStatement.targetPc().orElseThrow();
       SeqThreadStatementClause targetClause =
           Objects.requireNonNull(pLabelClauseMap.get(targetNumber));
       return targetClause.getFirstBlock().getStatements();
@@ -154,8 +154,8 @@ public final class SeqThreadStatementUtil {
       SeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    if (pStatement.data().targetGoto().isPresent()) {
-      int targetNumber = pStatement.data().targetGoto().orElseThrow();
+    if (pStatement.targetGoto().isPresent()) {
+      int targetNumber = pStatement.targetGoto().orElseThrow();
       SeqThreadStatementBlock targetBlock =
           Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
       return targetBlock.getStatements();
@@ -269,7 +269,7 @@ public final class SeqThreadStatementUtil {
       SeqThreadStatement pStatement, ImmutableList<SeqInstrumentation> pAppended) {
 
     return pStatement.withInstrumentation(
-        FluentIterable.concat(pStatement.data().instrumentation(), ImmutableList.copyOf(pAppended))
+        FluentIterable.concat(pStatement.instrumentation(), ImmutableList.copyOf(pAppended))
             .toList());
   }
 
@@ -277,7 +277,7 @@ public final class SeqThreadStatementUtil {
       SeqThreadStatement pStatement, SeqInstrumentation... pAppended) {
 
     return pStatement.withInstrumentation(
-        FluentIterable.concat(pStatement.data().instrumentation(), ImmutableList.copyOf(pAppended))
+        FluentIterable.concat(pStatement.instrumentation(), ImmutableList.copyOf(pAppended))
             .toList());
   }
 }
