@@ -2540,7 +2540,7 @@ public class SMGCPAExpressionEvaluator {
    * @param pCStringLiteralExpression a {@link CStringLiteralExpression}
    * @return a {@link String} that is the (global) variable name.
    */
-  public String getCStringLiteralExpressionVairableName(
+  public String getCStringLiteralExpressionVariableName(
       CStringLiteralExpression pCStringLiteralExpression) {
     return "_" + pCStringLiteralExpression.getContentWithoutNullTerminator() + "_STRING_LITERAL";
   }
@@ -2571,7 +2571,7 @@ public class SMGCPAExpressionEvaluator {
     if (pCurrentExpressionType instanceof CPointerType) {
       // create a new memory region for the string (right hand side)
       CArrayType stringArrayType = pExpression.getExpressionType();
-      String stringVarName = getCStringLiteralExpressionVairableName(pExpression);
+      String stringVarName = getCStringLiteralExpressionVariableName(pExpression);
 
       Value sizeOfString = getBitSizeof(pState, stringArrayType, pEdge);
       SMGState currentState =
