@@ -12,9 +12,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarBaseVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslCommentContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Function_contractContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Loop_invariantContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Statement_contractContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
 
 public class AntrlCommentToAnnotationVisitor extends AcslGrammarBaseVisitor<ParserRuleContext> {
 
@@ -29,17 +28,12 @@ public class AntrlCommentToAnnotationVisitor extends AcslGrammarBaseVisitor<Pars
   }
 
   @Override
-  public Loop_invariantContext visitLoop_invariant(Loop_invariantContext ctx) {
+  public LoopInvariantContext visitLoopInvariant(LoopInvariantContext ctx) {
     return ctx;
   }
 
   @Override
-  public Function_contractContext visitFunction_contract(Function_contractContext ctx) {
-    return ctx;
-  }
-
-  @Override
-  public Statement_contractContext visitStatement_contract(Statement_contractContext ctx) {
+  public FunctionContractContext visitFunctionContract(FunctionContractContext ctx) {
     return ctx;
   }
 }

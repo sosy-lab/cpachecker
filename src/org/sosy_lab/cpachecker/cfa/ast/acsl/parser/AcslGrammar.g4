@@ -219,11 +219,11 @@ variable_ident
     ;
 
 // fn_behavior.tex
-function_contract
-    : requires_clause* terminates_clause? decreases_clause? simple_clause* named_behavior* completeness_clause*
+functionContract
+    : requiresClause* terminates_clause? decreases_clause? simple_clause* named_behavior* completeness_clause*
     ;
 
-requires_clause
+requiresClause
     : 'requires' pred ';'
     ;
 
@@ -236,11 +236,11 @@ decreases_clause
     ;
 
 simple_clause
-    : assigns_clause | ensures_clause
+    : assignsClause | ensuresClause
     | allocation_clause | abrupt_clause
     ;
 
-assigns_clause
+assignsClause
     : 'assigns' locations ';'
     ;
 
@@ -256,7 +256,7 @@ location
     : tset
     ;
 
-ensures_clause
+ensuresClause
     : 'ensures' pred ';'
     ;
 
@@ -265,7 +265,7 @@ named_behavior
     ;
 
 behavior_body
-    : assumes_clause* requires_clause* simple_clause*
+    : assumes_clause* requiresClause* simple_clause*
     ;
 
 assumes_clause
@@ -381,10 +381,10 @@ loop_annot
     ;
 
 loop_clause
-    : loop_invariant | loop_assigns | loop_allocation
+    : loopInvariant | loop_assigns | loop_allocation
     ;
 
-loop_invariant
+loopInvariant
     : 'loop' 'invariant' pred ';'
     ;
 
@@ -403,7 +403,7 @@ loop_variant
 
 // st_contracts.tex
 statement_contract
-    : ('for' id (',' id)* ':')? requires_clause* simple_clause_stmt* named_behavior_stmt* completeness_clause*
+    : ('for' id (',' id)* ':')? requiresClause* simple_clause_stmt* named_behavior_stmt* completeness_clause*
     ;
 
 simple_clause_stmt
@@ -415,7 +415,7 @@ named_behavior_stmt
     ;
 
 behavior_body_stmt
-    : assumes_clause* requires_clause* simple_clause_stmt*
+    : assumes_clause* requiresClause* simple_clause_stmt*
     ;
 
 // logic.tex
@@ -460,11 +460,12 @@ lemmaDef
     : polyId ':' pred
     ;
 
+
 acslStatement
-    : assertion | ensures_clause | assigns_clause | requires_clause | loop_invariant
+    : assertion | ensuresClause | assignsClause | requiresClause | loopInvariant
     ;
 
 
 acslComment
-    :  assertion* | loop_invariant* | function_contract
+    :  assertion* | loopInvariant* | functionContract
     ;

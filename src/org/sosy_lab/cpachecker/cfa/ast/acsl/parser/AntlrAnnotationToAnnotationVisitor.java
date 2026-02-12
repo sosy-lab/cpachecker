@@ -19,9 +19,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Ensures_clauseContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Loop_invariantContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Requires_clauseContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.EnsuresClauseContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.RequiresClauseContext;
 
 public class AntlrAnnotationToAnnotationVisitor
     extends AntlrToInternalAbstractConverter<AAcslAnnotation> {
@@ -48,19 +48,19 @@ public class AntlrAnnotationToAnnotationVisitor
   }
 
   @Override
-  public AcslLoopInvariant visitLoop_invariant(Loop_invariantContext ctx) {
+  public AcslLoopInvariant visitLoopInvariant(LoopInvariantContext ctx) {
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
     return new AcslLoopInvariant(fileLocation, predicate);
   }
 
   @Override
-  public AcslEnsures visitEnsures_clause(Ensures_clauseContext ctx) {
+  public AcslEnsures visitEnsuresClause(EnsuresClauseContext ctx) {
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
     return new AcslEnsures(fileLocation, predicate);
   }
 
   @Override
-  public AcslRequires visitRequires_clause(Requires_clauseContext ctx) {
+  public AcslRequires visitRequiresClause(RequiresClauseContext ctx) {
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
     return new AcslRequires(fileLocation, predicate);
   }
