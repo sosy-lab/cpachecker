@@ -1464,10 +1464,6 @@ public class SMGCPABuiltins {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
-
-      if (cfaEdge.getFileLocation().getStartingLineInOrigin() == 97935) {
-        System.out.println();
-      }
       Value sizeValue = sizeAndState.getValue();
       SMGState currentState = sizeAndState.getState();
 
