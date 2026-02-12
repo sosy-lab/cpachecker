@@ -105,7 +105,7 @@ public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryM
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
-    return pStatement.data().type().isLinkable
+    return pStatement.data().getType().isLinkable
         // if the target is a loop start, then backward loop goto must be enabled for linking
         && !SeqThreadStatementClauseUtil.isSeparateLoopStart(options, pTarget)
         // do not link atomic blocks, this is handled by AtomicBlockMerger
@@ -124,7 +124,7 @@ public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryM
    */
   private static boolean isRelevantMemoryLocationIgnored(SeqThreadStatementClause pTarget) {
     SeqThreadStatement firstStatement = pTarget.getFirstBlock().getFirstStatement();
-    if (firstStatement.data().type().equals(SeqThreadStatementType.MUTEX_UNLOCK)) {
+    if (firstStatement.data().getType().equals(SeqThreadStatementType.MUTEX_UNLOCK)) {
       return true;
     }
     return false;

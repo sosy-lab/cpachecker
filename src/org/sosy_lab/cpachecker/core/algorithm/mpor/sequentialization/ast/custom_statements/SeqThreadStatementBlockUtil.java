@@ -20,7 +20,7 @@ public class SeqThreadStatementBlockUtil {
 
   static boolean isLoopStart(ImmutableList<SeqThreadStatement> pStatements) {
     for (SeqThreadStatement statement : pStatements) {
-      for (SubstituteEdge substituteEdge : statement.data().substituteEdges()) {
+      for (SubstituteEdge substituteEdge : statement.data().getSubstituteEdges()) {
         CFANode predecessor = substituteEdge.cfaEdge.getPredecessor();
         if (predecessor.isLoopStart()) {
           // simple for / while loop with predicate expression -> loop is in direct predecessor

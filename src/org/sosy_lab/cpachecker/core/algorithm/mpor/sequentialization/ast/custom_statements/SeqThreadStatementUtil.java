@@ -35,7 +35,7 @@ public final class SeqThreadStatementUtil {
    * actually start it.
    */
   public static boolean startsInAtomicBlock(SeqThreadStatement pStatement) {
-    for (SubstituteEdge substituteEdge : pStatement.data().substituteEdges()) {
+    for (SubstituteEdge substituteEdge : pStatement.data().getSubstituteEdges()) {
       CFAEdgeForThread threadEdge = substituteEdge.getThreadEdge();
       // use the predecessor, since we require information about this statement
       if (threadEdge.getPredecessor().isInAtomicBlock) {
@@ -47,7 +47,7 @@ public final class SeqThreadStatementUtil {
 
   public static boolean anySynchronizesThreads(ImmutableList<SeqThreadStatement> pStatements) {
     for (SeqThreadStatement statement : pStatements) {
-      if (statement.data().type().synchronizesThreads) {
+      if (statement.data().getType().synchronizesThreads) {
         return true;
       }
     }

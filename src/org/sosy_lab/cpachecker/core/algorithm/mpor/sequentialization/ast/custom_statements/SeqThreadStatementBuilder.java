@@ -134,7 +134,7 @@ public record SeqThreadStatementBuilder(
         if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
           if (substituteEdges.containsKey(threadEdge)) {
             SubstituteEdge substitute = Objects.requireNonNull(substituteEdges.get(threadEdge));
-            rStatements.add(buildStatementFromThreadEdge(i == 0, threadEdge, substitute));
+            rStatements.add(buildStatementFromThreadEdge(threadEdge, substitute));
           }
         }
       }
@@ -226,8 +226,7 @@ public record SeqThreadStatementBuilder(
             SeqThreadStatementType.CONST_CPACHECKER_TMP,
             pSubstituteEdges,
             thread.id(),
-            pcLeftHandSide,
-            Optional.empty());
+            pcLeftHandSide);
 
     // ensure that declaration is variable declaration and cast accordingly
     CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
@@ -327,7 +326,7 @@ public record SeqThreadStatementBuilder(
   // Statement build methods =======================================================================
 
   private SeqThreadStatement buildStatementFromThreadEdge(
-      boolean pFirstEdge, CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge)
+      CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge)
       throws UnsupportedCodeException {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
@@ -340,7 +339,7 @@ public record SeqThreadStatementBuilder(
 
     return switch (pSubstituteEdge.cfaEdge) {
       case CAssumeEdge assumeEdge ->
-          buildAssumeStatement(assumeEdge, pFirstEdge, pcLeftHandSide, pSubstituteEdge, targetPc);
+          buildAssumeStatement(assumeEdge, pcLeftHandSide, pSubstituteEdge, targetPc);
 
       case CDeclarationEdge declarationEdge -> {
         // "leftover" declarations should be local variables with an initializer
@@ -369,22 +368,17 @@ public record SeqThreadStatementBuilder(
 
   private SeqThreadStatement buildAssumeStatement(
       CAssumeEdge pAssumeEdge,
-      boolean pFirstEdge,
       CLeftHandSide pPcLeftHandSide,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc) {
 
-    // for the first assume edge, use "if (expression)", for second, use "else" (no expression)
-    Optional<CExpression> ifExpression =
-        pFirstEdge ? Optional.of(pAssumeEdge.getExpression()) : Optional.empty();
-
-    SeqThreadStatementData data =
-        new SeqThreadStatementData(
+    SeqThreadStatementDataWithIfExpression data =
+        new SeqThreadStatementDataWithIfExpression(
             SeqThreadStatementType.ASSUME,
             ImmutableSet.of(pSubstituteEdge),
             thread.id(),
             pPcLeftHandSide,
-            ifExpression);
+            pAssumeEdge.getExpression());
 
     // just return with empty statements, the block handles the if-else branch
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of());

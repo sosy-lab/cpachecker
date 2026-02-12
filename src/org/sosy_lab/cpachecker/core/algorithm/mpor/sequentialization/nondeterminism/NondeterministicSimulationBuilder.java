@@ -225,7 +225,7 @@ public class NondeterministicSimulationBuilder {
       CLabelStatement labelStatement =
           new CLabelStatement(
               SeqNameUtil.buildThreadStatementBlockLabelName(
-                  pStatement.data().threadId(), pStatement.targetGoto().orElseThrow()));
+                  pStatement.data().getThreadId(), pStatement.targetGoto().orElseThrow()));
       return injectRoundGotoIntoStatementByTargetGoto(
           labelStatement, pStatement, pBinaryExpressionBuilder);
     }
@@ -285,7 +285,7 @@ public class NondeterministicSimulationBuilder {
       // if the statement creates another thread but also terminates the current thread.
       List<CExpressionAssignmentStatement> countUpdates = new ArrayList<>();
       // if a thread is created -> thread_count = thread_count + 1
-      if (statement.data().type().equals(SeqThreadStatementType.THREAD_CREATION)) {
+      if (statement.data().getType().equals(SeqThreadStatementType.THREAD_CREATION)) {
         countUpdates.add(
             SeqStatementBuilder.buildIncrementStatement(
                 SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder));

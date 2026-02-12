@@ -49,7 +49,8 @@ public class SeqThreadStatementClauseUtil {
     return FluentIterable.from(Iterables.concat(pClauses.values()))
         .transformAndConcat(clause -> clause.getBlocks())
         .transformAndConcat(block -> Objects.requireNonNull(block).getStatements())
-        .transformAndConcat(statement -> Objects.requireNonNull(statement).data().substituteEdges())
+        .transformAndConcat(
+            statement -> Objects.requireNonNull(statement).data().getSubstituteEdges())
         .toSet();
   }
 

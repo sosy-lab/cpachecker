@@ -90,7 +90,7 @@ public record SeqThreadStatement(
   public boolean isOnlyPcWrite() {
     // the only case where a statement writes only 'pc' is when it is a blank statement without
     // any injected statement
-    return data.type().equals(SeqThreadStatementType.GHOST_ONLY) && instrumentation.isEmpty();
+    return data.getType().equals(SeqThreadStatementType.GHOST_ONLY) && instrumentation.isEmpty();
   }
 
   /**
@@ -106,7 +106,7 @@ public record SeqThreadStatement(
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
   public SeqThreadStatement withTargetPc(int pTargetPc) {
-    if (data.type().equals(SeqThreadStatementType.THREAD_EXIT)) {
+    if (data.getType().equals(SeqThreadStatementType.THREAD_EXIT)) {
       checkArgument(
           pTargetPc == ProgramCounterVariables.EXIT_PC,
           "%s should only be cloned with exit pc %s",
@@ -151,9 +151,9 @@ public record SeqThreadStatement(
     ImmutableList<SeqInstrumentation> preparedInstrumentation =
         targetPc.isPresent()
             ? SeqThreadStatementUtil.prepareInstrumentationByTargetPc(
-                data.pcLeftHandSide(), targetPc.orElseThrow(), instrumentation)
+                data.getPcLeftHandSide(), targetPc.orElseThrow(), instrumentation)
             : SeqThreadStatementUtil.prepareInstrumentationByTargetGoto(
-                data.threadId(), targetGoto.orElseThrow(), instrumentation);
+                data.getThreadId(), targetGoto.orElseThrow(), instrumentation);
 
     ImmutableList<CExportStatement> injectedExportStatements =
         transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());

@@ -232,7 +232,7 @@ public class SeqPruner {
     checkArgument(
         statement.isOnlyPcWrite(),
         "Prunable statement must be GHOST_ONLY, but got: %s",
-        statement.data().type());
+        statement.data().getType());
     checkArgument(statement.targetPc().isPresent(), "Prunable statement must contain a target pc.");
     return true;
   }
@@ -272,14 +272,14 @@ public class SeqPruner {
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     SeqThreadStatement singleStatement = pClause.getFirstBlock().getFirstStatement();
-    if (singleStatement.data().type().equals(SeqThreadStatementType.ATOMIC_BEGIN)) {
+    if (singleStatement.data().getType().equals(SeqThreadStatementType.ATOMIC_BEGIN)) {
       int targetPc = singleStatement.targetPc().orElseThrow();
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         assert Math.abs(pClause.getFirstBlock().getLabelNumber() - targetPc) == 1
             : "absolute difference of empty atomic block labels must be 1";
         SeqThreadStatementClause target = requireNonNull(pLabelClauseMap.get(targetPc));
         SeqThreadStatement targetFirstStatement = target.getFirstBlock().getFirstStatement();
-        return targetFirstStatement.data().type().equals(SeqThreadStatementType.ATOMIC_BEGIN);
+        return targetFirstStatement.data().getType().equals(SeqThreadStatementType.ATOMIC_BEGIN);
       }
     }
     return false;

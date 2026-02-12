@@ -8,40 +8,43 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableSet;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
-/**
- * A record to keep the data that is linked to every {@link SeqThreadStatement}.
- *
- * @param type The {@link SeqThreadStatementType} of this statement.
- * @param substituteEdges The set of {@link SubstituteEdge}s created from the input programs {@link
- *     CFA} that this statement represents.
- * @param threadId The ID of the thread that executes this statement.
- * @param pcLeftHandSide The {@link CLeftHandSide} of the thread simulation that executes the
- *     underlying statement. The {@link CLeftHandSide} is written to when updating the pc, e.g.
- *     {@code pc0 = 42;}.
- * @param ifExpression The {@link CExpression} used in a {@link CAssumeEdge}, can only be present if
- *     this data instance is tied to {@link SeqThreadStatementType#ASSUME}
- */
-public record SeqThreadStatementData(
-    SeqThreadStatementType type,
-    ImmutableSet<SubstituteEdge> substituteEdges,
-    int threadId,
-    CLeftHandSide pcLeftHandSide,
-    Optional<CExpression> ifExpression) {
+/** A class to keep the data that is linked to every {@link SeqThreadStatement}. */
+public class SeqThreadStatementData {
 
-  public SeqThreadStatementData {
-    checkArgument(
-        ifExpression.isEmpty() || type.equals(SeqThreadStatementType.ASSUME),
-        "If the ifExpression is present, then type must be SeqThreadStatementType.ASSUME");
+  private final SeqThreadStatementType type;
+
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
+
+  private final int threadId;
+
+  private final CLeftHandSide pcLeftHandSide;
+
+  /**
+   * Returns a new {@link SeqThreadStatementData} instance.
+   *
+   * @param pType The {@link SeqThreadStatementType} of this statement.
+   * @param pSubstituteEdges The set of {@link SubstituteEdge}s created from the input programs
+   *     {@link CFA} that this statement represents.
+   * @param pThreadId The ID of the thread that executes this statement.
+   * @param pPcLeftHandSide The {@link CLeftHandSide} of the thread simulation that executes the
+   *     underlying statement. The {@link CLeftHandSide} is written to when updating the pc, e.g.
+   *     {@code pc0 = 42;}.
+   */
+  public SeqThreadStatementData(
+      SeqThreadStatementType pType,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pThreadId,
+      CLeftHandSide pPcLeftHandSide) {
+
+    type = pType;
+    substituteEdges = pSubstituteEdges;
+    threadId = pThreadId;
+    pcLeftHandSide = pPcLeftHandSide;
   }
 
   public static SeqThreadStatementData of(
@@ -50,8 +53,7 @@ public record SeqThreadStatementData(
       int pThreadId,
       CLeftHandSide pPcLeftHandSide) {
 
-    return new SeqThreadStatementData(
-        pType, pSubstituteEdges, pThreadId, pPcLeftHandSide, Optional.empty());
+    return new SeqThreadStatementData(pType, pSubstituteEdges, pThreadId, pPcLeftHandSide);
   }
 
   public static SeqThreadStatementData of(
@@ -61,6 +63,22 @@ public record SeqThreadStatementData(
       CLeftHandSide pPcLeftHandSide) {
 
     return new SeqThreadStatementData(
-        pType, ImmutableSet.of(pSubstituteEdge), pThreadId, pPcLeftHandSide, Optional.empty());
+        pType, ImmutableSet.of(pSubstituteEdge), pThreadId, pPcLeftHandSide);
+  }
+
+  public SeqThreadStatementType getType() {
+    return type;
+  }
+
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
+  }
+
+  public int getThreadId() {
+    return threadId;
+  }
+
+  public CLeftHandSide getPcLeftHandSide() {
+    return pcLeftHandSide;
   }
 }

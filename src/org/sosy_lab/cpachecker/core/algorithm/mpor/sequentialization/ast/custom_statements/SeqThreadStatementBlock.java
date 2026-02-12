@@ -82,10 +82,12 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
     } else {
       // 2 statements (= assume statements): create if-else statement
       SeqThreadStatement firstAssume = statements.getFirst();
+      SeqThreadStatementDataWithIfExpression firstAssumeData =
+          (SeqThreadStatementDataWithIfExpression) firstAssume.data();
       SeqThreadStatement secondAssume = statements.getLast();
       CIfStatement ifStatement =
           new CIfStatement(
-              new CExpressionWrapper(firstAssume.data().ifExpression().orElseThrow()),
+              new CExpressionWrapper(firstAssumeData.getIfExpression()),
               new CCompoundStatement(firstAssume.toCExportStatements()),
               new CCompoundStatement(secondAssume.toCExportStatements()));
       exportStatements.add(ifStatement);
@@ -158,7 +160,7 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
 
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */
   public boolean startsAtomicBlock() {
-    return getFirstStatement().data().type().equals(SeqThreadStatementType.ATOMIC_BEGIN);
+    return getFirstStatement().data().getType().equals(SeqThreadStatementType.ATOMIC_BEGIN);
   }
 
   /**

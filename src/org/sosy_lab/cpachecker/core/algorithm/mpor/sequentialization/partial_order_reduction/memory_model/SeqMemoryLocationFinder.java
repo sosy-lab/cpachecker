@@ -112,7 +112,7 @@ public class SeqMemoryLocationFinder {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pStatements) {
-      for (SubstituteEdge substituteEdge : statement.data().substituteEdges()) {
+      for (SubstituteEdge substituteEdge : statement.data().getSubstituteEdges()) {
         rMemLocations.addAll(
             findMemoryLocationsBySubstituteEdge(substituteEdge, pMemoryModel, pAccessType));
       }
