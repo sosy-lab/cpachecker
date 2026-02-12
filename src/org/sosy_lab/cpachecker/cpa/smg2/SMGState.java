@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -158,6 +159,9 @@ public class SMGState
   @SuppressWarnings("unused")
   private static final Pattern externalAllocationRecursivePattern =
       Pattern.compile("^(r_)(\\d+)(_.*)$");
+
+  protected static final String INTERNAL_STRING_LITERAL_SUFFIX =
+      "__STRING_LITERAL_CPACHECKER_INTERNAL";
 
   // All memory models (SMGs) (heap/global/stack)
   private final SymbolicProgramConfiguration memoryModel;
@@ -981,10 +985,25 @@ public class SMGState
    */
   public SMGState copyAndAddGlobalVariable(Value pTypeSizeInBits, String pVarName, CType type) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO, pVarName);
-    if (pVarName.endsWith("_STRING_LITERAL")) {
+    if (pVarName.endsWith(INTERNAL_STRING_LITERAL_SUFFIX)) {
       newObject = newObject.copyAsConstStringInBinary();
     }
     return copyAndReplaceMemoryModel(memoryModel.copyAndAddGlobalObject(newObject, pVarName, type));
+  }
+
+  /**
+   * Returns the name of the global variable for an entered String literal. We expect all String
+   * literals to be global variables after the first usage, so that they can always be found by this
+   * variable name.
+   *
+   * @param pCStringLiteralExpression a {@link CStringLiteralExpression}
+   * @return a {@link String} that is the (global) variable name.
+   */
+  public String getCStringLiteralExpressionVariableName(
+      CStringLiteralExpression pCStringLiteralExpression) {
+    return "__"
+        + pCStringLiteralExpression.getContentWithoutNullTerminator()
+        + INTERNAL_STRING_LITERAL_SUFFIX;
   }
 
   /**

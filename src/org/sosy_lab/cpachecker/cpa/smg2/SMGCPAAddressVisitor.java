@@ -108,7 +108,7 @@ public class SMGCPAAddressVisitor
   @Override
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CStringLiteralExpression e)
       throws CPATransferException {
-    String globalVarName = evaluator.getCStringLiteralExpressionVariableName(e);
+    String globalVarName = state.getCStringLiteralExpressionVariableName(e);
     SMGState currentState = state;
     if (!currentState.isGlobalVariablePresent(globalVarName)) {
       Value sizeOfString = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);

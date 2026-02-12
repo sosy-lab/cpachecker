@@ -2532,19 +2532,6 @@ public class SMGCPAExpressionEvaluator {
     return ImmutableList.of(currentState);
   }
 
-  /**
-   * Returns the name of the global variable for an entered String literal. We expect all String
-   * literals to be global variables after the first usage, so that they can always be found by this
-   * variable name.
-   *
-   * @param pCStringLiteralExpression a {@link CStringLiteralExpression}
-   * @return a {@link String} that is the (global) variable name.
-   */
-  public String getCStringLiteralExpressionVariableName(
-      CStringLiteralExpression pCStringLiteralExpression) {
-    return "_" + pCStringLiteralExpression.getContentWithoutNullTerminator() + "_STRING_LITERAL";
-  }
-
   /*
    * Handle string literal expression initializer:
    * if a string initializer is used with a pointer:
@@ -2571,7 +2558,7 @@ public class SMGCPAExpressionEvaluator {
     if (pCurrentExpressionType instanceof CPointerType) {
       // create a new memory region for the string (right hand side)
       CArrayType stringArrayType = pExpression.getExpressionType();
-      String stringVarName = getCStringLiteralExpressionVariableName(pExpression);
+      String stringVarName = pState.getCStringLiteralExpressionVariableName(pExpression);
 
       Value sizeOfString = getBitSizeof(pState, stringArrayType, pEdge);
       SMGState currentState =
