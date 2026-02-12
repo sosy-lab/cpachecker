@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
@@ -60,9 +61,8 @@ public final class CExportFunctionDefinition {
     declaration = pDeclaration;
     body = pBody;
     ImmutableList<CExpression> dummyParameters =
-        declaration.getParameters().stream()
-            .map(p -> new CIdExpression(FileLocation.DUMMY, p))
-            .collect(ImmutableList.toImmutableList());
+        transformedImmutableListCopy(
+            declaration.getParameters(), p -> new CIdExpression(FileLocation.DUMMY, p));
     dummyFunctionCallExpression =
         new CFunctionCallExpression(
             FileLocation.DUMMY, declaration.getType(), name, dummyParameters, declaration);
