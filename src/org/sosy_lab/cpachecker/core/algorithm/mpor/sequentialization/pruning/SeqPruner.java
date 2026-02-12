@@ -29,13 +29,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqPruner {
 
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pruneClauses(
-      MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses)
-      throws UnrecognizedCodeException {
+      MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rPruned =
         ImmutableListMultimap.builder();
@@ -65,7 +63,7 @@ public class SeqPruner {
   }
 
   private static ImmutableList<SeqThreadStatementClause> pruneSingleThreadClauses(
-      ImmutableList<SeqThreadStatementClause> pClauses) throws UnrecognizedCodeException {
+      ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
@@ -84,8 +82,7 @@ public class SeqPruner {
    */
   private static ImmutableMap<Integer, Integer> createPrunedPcUpdates(
       ImmutableList<SeqThreadStatementClause> pClauses,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
-      throws UnrecognizedCodeException {
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     Set<Integer> visitedPrePrunePc = new HashSet<>();
     ImmutableMap.Builder<Integer, Integer> rMap = ImmutableMap.builder();
@@ -144,8 +141,7 @@ public class SeqPruner {
   private static Optional<Integer> findTargetPc(
       SeqThreadStatementClause pClause,
       SeqThreadStatement pStatement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
-      throws UnrecognizedCodeException {
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     if (pStatement.data().targetPc().isPresent()) {
       int targetPc = pStatement.data().targetPc().orElseThrow();
@@ -163,9 +159,7 @@ public class SeqPruner {
     return Optional.empty();
   }
 
-  private static int extractTargetPc(SeqThreadStatementClause pClause)
-      throws UnrecognizedCodeException {
-
+  private static int extractTargetPc(SeqThreadStatementClause pClause) {
     checkArgument(pClause.getBlocks().size() == 1, "pClause can only have a single block");
     SeqThreadStatement firstStatement = pClause.getFirstBlock().getFirstStatement();
     // the "non-blank" clause can still be blank, but only if it is an exit location
@@ -199,8 +193,7 @@ public class SeqPruner {
   public static SeqThreadStatementClause recursivelyFindNonBlankClause(
       final Optional<SeqThreadStatementClause> pInitial,
       SeqThreadStatementClause pCurrent,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
-      throws UnrecognizedCodeException {
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     // if pInitial is present, it should only write a pc
     checkArgument(

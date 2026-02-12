@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
 public class SequentializationBuilder {
 
@@ -286,9 +287,11 @@ public class SequentializationBuilder {
 
     // thread simulation functions, only enabled when loop is unrolled
     if (pOptions.loopUnrolling()) {
-      for (var entry : pFields.threadSimulationFunctions.orElseThrow().entrySet()) {
-        rDeclarations.add(entry.getValue().getDeclaration().toASTString());
-      }
+      pFields
+          .threadSimulationFunctions
+          .orElseThrow()
+          .values()
+          .forEach(f -> rDeclarations.add(f.getDeclaration().toASTString()));
     }
     // main should always be duplicate
     rDeclarations.add(SeqMainFunctionBuilder.MAIN_FUNCTION_DECLARATION.toASTString());
@@ -309,8 +312,9 @@ public class SequentializationBuilder {
             .toASTString());
     // create separate thread simulation function definitions, if enabled
     if (pOptions.loopUnrolling()) {
-      for (var entry : pFields.threadSimulationFunctions.orElseThrow().entrySet()) {
-        rDefinitions.add(entry.getValue().toASTString());
+      for (CExportFunctionDefinition functionDefinition :
+          pFields.threadSimulationFunctions.orElseThrow().values()) {
+        rDefinitions.add(functionDefinition.toASTString());
       }
     }
     // create clauses in main method
