@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement.CS
  * href="https://www.cppreference.com/w/c/language/statements.html">https://www.cppreference.com/w/c/language/statements.html</a>.
  */
 public sealed interface CExportStatement
-    permits CCommentStatement,
+    permits CComment,
         CCompoundStatement,
         CExpressionAssignmentStatementWrapper,
         CExpressionStatementWrapper,

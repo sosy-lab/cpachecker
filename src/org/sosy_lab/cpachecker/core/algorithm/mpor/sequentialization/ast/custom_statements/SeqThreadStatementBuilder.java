@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CInitializerWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCommentStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CComment;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionAssignmentStatementWrapper;
@@ -593,7 +593,7 @@ public record SeqThreadStatementBuilder(
             pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide, pTargetPc);
 
     // just add a comment with the function name for better overview in the output program
-    CCommentStatement commentStatement = new CCommentStatement(pFunctionType.name + ";");
+    CComment commentStatement = new CComment(pFunctionType.name + ";");
     return new SeqThreadStatement(data, ImmutableList.of(commentStatement));
   }
 
