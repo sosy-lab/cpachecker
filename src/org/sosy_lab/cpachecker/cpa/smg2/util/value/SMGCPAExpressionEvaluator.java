@@ -151,7 +151,7 @@ public class SMGCPAExpressionEvaluator {
     } else {
       // Offset known but not 0, search for/create the correct address
       List<ValueAndSMGState> pointers =
-          findOrcreateNewPointer(addressExpression.getMemoryAddress(), offset, currentState);
+          findOrCreateNewPointer(addressExpression.getMemoryAddress(), offset, currentState);
       checkArgument(pointers.size() == 1);
       // It is impossible for 0+ list abstractions to happen in this context -> only 1 return value
       return pointers.getFirst();
@@ -486,9 +486,9 @@ public class SMGCPAExpressionEvaluator {
    *     representing an address to the target.
    * @throws SMGException in case of critical abstract memory materilization errors.
    */
-  public List<ValueAndSMGState> findOrcreateNewPointer(
+  public List<ValueAndSMGState> findOrCreateNewPointer(
       Value targetAddress, BigInteger offsetInBits, SMGState pState) throws SMGException {
-    return findOrcreateNewPointer(targetAddress, new NumericValue(offsetInBits), pState);
+    return findOrCreateNewPointer(targetAddress, new NumericValue(offsetInBits), pState);
   }
 
   /**
@@ -505,7 +505,7 @@ public class SMGCPAExpressionEvaluator {
    *     representing an address to the target.
    * @throws SMGException in case of critical abstract memory materilization errors.
    */
-  public List<ValueAndSMGState> findOrcreateNewPointer(
+  public List<ValueAndSMGState> findOrCreateNewPointer(
       Value targetAddress, Value offsetInBits, SMGState pState) throws SMGException {
     checkArgument(!(targetAddress instanceof AddressExpression));
 

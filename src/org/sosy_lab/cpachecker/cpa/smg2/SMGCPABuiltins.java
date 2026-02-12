@@ -1893,7 +1893,7 @@ public class SMGCPABuiltins {
     } else {
       ValueAndSMGState newPointerAndState =
           evaluator
-              .findOrcreateNewPointer(bufferMemoryAddress, bufferOffsetInBits, currentState)
+              .findOrCreateNewPointer(bufferMemoryAddress, bufferOffsetInBits, currentState)
               .getFirst();
       return ValueAndSMGState.of(newPointerAndState.getValue(), newPointerAndState.getState());
     }
@@ -2134,7 +2134,7 @@ public class SMGCPABuiltins {
         }
 
         List<ValueAndSMGState> newTargetPointerAndStates =
-            evaluator.findOrcreateNewPointer(
+            evaluator.findOrCreateNewPointer(
                 targetAddressExpr.getMemoryAddress(),
                 numTargetAddressOffset.bigIntegerValue(),
                 currentState);
@@ -2272,7 +2272,7 @@ public class SMGCPABuiltins {
         }
 
         List<ValueAndSMGState> newSourcePointerAndStates =
-            evaluator.findOrcreateNewPointer(
+            evaluator.findOrCreateNewPointer(
                 sourceAddressExpr.getMemoryAddress(),
                 numSourceAddressExprOffset.bigIntegerValue(),
                 currentState);
@@ -2446,7 +2446,7 @@ public class SMGCPABuiltins {
         }
 
         List<ValueAndSMGState> newTargetPointerAndStates =
-            evaluator.findOrcreateNewPointer(
+            evaluator.findOrCreateNewPointer(
                 targetAddressExpr.getMemoryAddress(),
                 targetAddressExprOffset.bigIntegerValue(),
                 currentState);
@@ -2565,7 +2565,7 @@ public class SMGCPABuiltins {
         }
 
         List<ValueAndSMGState> newSourcePointerAndStates =
-            evaluator.findOrcreateNewPointer(
+            evaluator.findOrCreateNewPointer(
                 sourceAddressExpr.getMemoryAddress(),
                 sourceAddressExprOffset.bigIntegerValue(),
                 currentState);

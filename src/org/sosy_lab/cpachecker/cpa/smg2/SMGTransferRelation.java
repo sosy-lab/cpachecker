@@ -1325,7 +1325,7 @@ public class SMGTransferRelation
         } else {
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
-              evaluator.findOrcreateNewPointer(
+              evaluator.findOrCreateNewPointer(
                   addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
@@ -1365,7 +1365,7 @@ public class SMGTransferRelation
             || options.trackPredicates()) {
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
-              evaluator.findOrcreateNewPointer(
+              evaluator.findOrCreateNewPointer(
                   addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
