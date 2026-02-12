@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
@@ -24,11 +25,22 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 /**
  * A record to keep the data that is linked to every {@link SeqThreadStatement}.
  *
+ * <p>The fields in this class are separate from the {@link CExportStatement}s in the {@link
+ * SeqThreadStatement} because they are dynamically updated during the sequentialization process.
+ * These dynamic updates include merging atomic blocks, linking commuting statements or making the
+ * label numbers of statements consecutive, based on the specified {@link MPOROptions}. Meanwhile
+ * the {@link CExportStatement} are only created once based on the input programs {@link CFA}.
+ *
+ * <p>Once the data in this class is finalized, it is converted to {@link CExportStatement}s and
+ * placed together with the {@link CExportStatement}s from the input {@link CFA} to create the
+ * exported program.
+ *
  * @param type The {@link SeqThreadStatementType} of this statement.
  * @param substituteEdges The set of {@link SubstituteEdge}s created from the input programs {@link
  *     CFA} that this statement represents.
  * @param threadId The ID of the thread that executes this statement.
- * @param pcLeftHandSide The {@link CLeftHandSide} that is written to when updating the pc, e.g.
+ * @param pcLeftHandSide The {@link CLeftHandSide} of the thread simulation that executes the
+ *     underlying statement. The {@link CLeftHandSide} is written to when updating the pc, e.g.
  *     {@code pc0 = 42;}.
  * @param targetPc The value assigned to {@code pcLeftHandSide}, e.g. {@code 42} in {@code pc0 =
  *     42;}, used only if there is no {@code targetGoto}
