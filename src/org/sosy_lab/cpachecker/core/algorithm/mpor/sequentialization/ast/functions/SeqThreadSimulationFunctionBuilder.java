@@ -25,21 +25,16 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
  * {@code main()} function, but can also be placed in a separate function, e.g. when {@link
  * MPOROptions#loopUnrolling()} is enabled.
  */
-public final class SeqThreadSimulationFunction extends SeqFunctionDefinition {
+public final class SeqThreadSimulationFunctionBuilder {
 
-  public final MPORThread thread;
-
-  public SeqThreadSimulationFunction(
+  public static CExportFunctionDefinition buildFunctionDefinition(
       MPOROptions pOptions, CCompoundStatement pFunctionBody, MPORThread pThread) {
 
-    super(new CExportFunctionDefinition(buildDeclaration(pOptions, pThread.id()), pFunctionBody));
-    thread = pThread;
-  }
-
-  private static CFunctionDeclaration buildDeclaration(MPOROptions pOptions, int pThreadId) {
     CFunctionType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
-    String functionName = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId) + "_sequentialized";
-    return new CFunctionDeclaration(
-        FileLocation.DUMMY, functionType, functionName, ImmutableList.of(), ImmutableSet.of());
+    String functionName = SeqNameUtil.buildThreadPrefix(pOptions, pThread.id()) + "_sequentialized";
+    CFunctionDeclaration functionDeclaration =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY, functionType, functionName, ImmutableList.of(), ImmutableSet.of());
+    return new CExportFunctionDefinition(functionDeclaration, pFunctionBody);
   }
 }

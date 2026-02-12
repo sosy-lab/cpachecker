@@ -39,9 +39,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -280,21 +279,20 @@ public class SequentializationBuilder {
       rDeclarations.add(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
     }
     rDeclarations.add(SeqThreadStatementBuilder.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
-    rDeclarations.add(SeqAssumeFunction.ASSUME_FUNCTION_DECLARATION.toASTString());
-    rDeclarations.add(SeqAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqAssumeFunctionBuilder.ASSUME_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqAssumeFunctionBuilder.ABORT_FUNCTION_DECLARATION.toASTString());
 
     // malloc is required for valid-memsafety tasks
     rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
 
     // thread simulation functions, only enabled when loop is unrolled
     if (pOptions.loopUnrolling()) {
-      for (SeqThreadSimulationFunction threadFunction :
-          pFields.threadSimulationFunctions.orElseThrow()) {
-        rDeclarations.add(threadFunction.getFunctionDefinition().getDeclaration().toASTString());
+      for (var entry : pFields.threadSimulationFunctions.orElseThrow().entrySet()) {
+        rDeclarations.add(entry.getValue().getDeclaration().toASTString());
       }
     }
     // main should always be duplicate
-    rDeclarations.add(SeqMainFunction.MAIN_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqMainFunctionBuilder.MAIN_FUNCTION_DECLARATION.toASTString());
     return rDeclarations.toString();
   }
 
@@ -307,20 +305,18 @@ public class SequentializationBuilder {
       rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS.toASTString());
     }
     // custom function definitions: assume(), main()
-    SeqAssumeFunction assume = new SeqAssumeFunction(pUtils.binaryExpressionBuilder());
-    rDefinitions.add(assume.getFunctionDefinition().toASTString(AAstNodeRepresentation.DEFAULT));
+    rDefinitions.add(
+        SeqAssumeFunctionBuilder.buildFunctionDefinition(pUtils.binaryExpressionBuilder())
+            .toASTString());
     // create separate thread simulation function definitions, if enabled
     if (pOptions.loopUnrolling()) {
-      for (SeqThreadSimulationFunction threadFunction :
-          pFields.threadSimulationFunctions.orElseThrow()) {
-        rDefinitions.add(
-            threadFunction.getFunctionDefinition().toASTString(AAstNodeRepresentation.DEFAULT));
+      for (var entry : pFields.threadSimulationFunctions.orElseThrow().entrySet()) {
+        rDefinitions.add(entry.getValue().toASTString());
       }
     }
     // create clauses in main method
-    SeqMainFunction mainFunction = new SeqMainFunction(pOptions, pFields, pUtils);
     rDefinitions.add(
-        mainFunction.getFunctionDefinition().toASTString(AAstNodeRepresentation.DEFAULT));
+        SeqMainFunctionBuilder.buildFunctionDefinition(pOptions, pFields, pUtils).toASTString());
     return rDefinitions.toString();
   }
 

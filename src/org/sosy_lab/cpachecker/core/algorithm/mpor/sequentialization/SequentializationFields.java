@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
 public class SequentializationFields {
 
@@ -61,7 +61,8 @@ public class SequentializationFields {
 
   public final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
-  public final Optional<ImmutableList<SeqThreadSimulationFunction>> threadSimulationFunctions;
+  public final Optional<ImmutableMap<MPORThread, CExportFunctionDefinition>>
+      threadSimulationFunctions;
 
   // TODO split into separate function so that unit tests create only what they test
   SequentializationFields(MPOROptions pOptions, CFA pInputCfa, SequentializationUtils pUtils)

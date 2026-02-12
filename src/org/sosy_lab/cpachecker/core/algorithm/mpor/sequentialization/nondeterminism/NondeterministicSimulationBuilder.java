@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -37,13 +36,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionStatementWrapper;
 
 /**
  * Contains methods that can be used to build thread simulations based on the specified {@link
@@ -73,7 +74,7 @@ public class NondeterministicSimulationBuilder {
 
   // Thread Simulation Functions ===================================================================
 
-  public static ImmutableList<SeqThreadSimulationFunction> buildThreadSimulationFunctions(
+  public static ImmutableMap<MPORThread, CExportFunctionDefinition> buildThreadSimulationFunctions(
       MPOROptions pOptions,
       Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
@@ -81,35 +82,40 @@ public class NondeterministicSimulationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqThreadSimulationFunction> rFunctions = ImmutableList.builder();
+    ImmutableMap.Builder<MPORThread, CExportFunctionDefinition> rFunctions = ImmutableMap.builder();
     for (MPORThread thread : pClauses.keySet()) {
       CCompoundStatement threadSimulation =
           buildNondeterministicSimulationBySource(
                   pOptions, pMemoryModel, pGhostElements, pClauses, pUtils)
               .buildSingleThreadSimulation(thread);
-      rFunctions.add(new SeqThreadSimulationFunction(pOptions, threadSimulation, thread));
+      rFunctions.put(
+          thread,
+          SeqThreadSimulationFunctionBuilder.buildFunctionDefinition(
+              pOptions, threadSimulation, thread));
     }
-    return rFunctions.build();
+    return rFunctions.buildOrThrow();
   }
 
-  public static ImmutableList<CFunctionCallStatement> buildThreadSimulationFunctionCallStatements(
-      MPOROptions pOptions, ImmutableList<SeqThreadSimulationFunction> pThreadSimulationFunctions) {
+  public static ImmutableList<CExpressionStatementWrapper>
+      buildThreadSimulationFunctionCallStatements(
+          MPOROptions pOptions,
+          ImmutableMap<MPORThread, CExportFunctionDefinition> pThreadSimulationFunctions) {
 
-    ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
+    ImmutableList.Builder<CExpressionStatementWrapper> rFunctionCalls = ImmutableList.builder();
     // start with main thread function call
-    SeqThreadSimulationFunction mainThreadFunction =
+    CExportFunctionDefinition mainThreadFunction =
         Objects.requireNonNull(
-            Iterables.getOnlyElement(
-                pThreadSimulationFunctions.stream()
-                    .filter(Objects::nonNull)
-                    .filter(f -> f.thread.isMain())
-                    .toList()));
+                Iterables.getOnlyElement(
+                    pThreadSimulationFunctions.entrySet().stream()
+                        .filter(e -> e.getKey().isMain())
+                        .toList()))
+            .getValue();
     rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
     for (int i = 0; i < pOptions.loopIterations(); i++) {
-      for (SeqThreadSimulationFunction function : pThreadSimulationFunctions) {
-        if (!function.thread.isMain()) {
+      for (var entry : pThreadSimulationFunctions.entrySet()) {
+        if (!entry.getKey().isMain()) {
           // continue with all other threads
-          rFunctionCalls.add(function.buildFunctionCallStatement(ImmutableList.of()));
+          rFunctionCalls.add(entry.getValue().buildFunctionCallStatement(ImmutableList.of()));
         }
       }
       // end on main thread

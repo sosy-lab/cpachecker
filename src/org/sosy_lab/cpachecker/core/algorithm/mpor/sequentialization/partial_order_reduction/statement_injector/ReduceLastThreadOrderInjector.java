@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -112,13 +112,13 @@ public record ReduceLastThreadOrderInjector(
           ifCondition,
           // if the evaluation is empty, it results in assume(0) i.e. abort()
           new CCompoundStatement(
-              new CStatementWrapper(SeqAssumeFunction.ABORT_FUNCTION_CALL_STATEMENT)));
+              new CStatementWrapper(SeqAssumeFunctionBuilder.ABORT_FUNCTION_CALL_STATEMENT)));
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is in conflict with LAST_THREAD
       return new CIfStatement(
           ifCondition,
           new CCompoundStatement(
-              SeqAssumeFunction.buildAssumeFunctionCallStatement(
+              SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
                   lastBitVectorEvaluation.orElseThrow())));
     }
   }

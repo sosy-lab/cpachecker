@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
@@ -80,7 +80,7 @@ public record ProgramCounterVariables(
    * array {@code pc}.
    */
   public CFunctionCallStatement buildArrayPcUnequalExitPcAssumption() {
-    return SeqAssumeFunction.buildAssumeFunctionCallStatement(
+    return SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
         nextThreadActiveExpression.orElseThrow());
   }
 
@@ -90,6 +90,6 @@ public record ProgramCounterVariables(
    */
   public CFunctionCallStatement buildScalarPcUnequalExitPcAssumption(MPORThread pThread) {
     CBinaryExpression threadActiveExpression = threadActiveExpressions.get(pThread.id());
-    return SeqAssumeFunction.buildAssumeFunctionCallStatement(threadActiveExpression);
+    return SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(threadActiveExpression);
   }
 }

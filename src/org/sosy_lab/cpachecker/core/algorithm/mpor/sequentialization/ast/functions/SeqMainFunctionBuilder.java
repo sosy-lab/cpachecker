@@ -47,11 +47,12 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CWhileLoopStatement;
 
 /** A class to represent the {@code main()} function in the sequentialization. */
-public final class SeqMainFunction extends SeqFunctionDefinition {
+public final class SeqMainFunctionBuilder {
 
   // CFunctionType
 
@@ -64,13 +65,12 @@ public final class SeqMainFunction extends SeqFunctionDefinition {
       new CFunctionDeclaration(
           FileLocation.DUMMY, MAIN_FUNCTION_TYPE, "main", ImmutableList.of(), ImmutableSet.of());
 
-  public SeqMainFunction(
+  public static CExportFunctionDefinition buildFunctionDefinition(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    super(
-        new CExportFunctionDefinition(
-            MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils)));
+    return new CExportFunctionDefinition(
+        MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils));
   }
 
   private static CCompoundStatement buildBody(
@@ -84,10 +84,10 @@ public final class SeqMainFunction extends SeqFunctionDefinition {
 
     if (pOptions.loopUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
-      ImmutableList<CFunctionCallStatement> functionCallStatements =
+      ImmutableList<CExpressionStatementWrapper> functionCallStatements =
           NondeterministicSimulationBuilder.buildThreadSimulationFunctionCallStatements(
               pOptions, pFields.threadSimulationFunctions.orElseThrow());
-      functionCallStatements.forEach(statement -> rBody.add(new CStatementWrapper(statement)));
+      functionCallStatements.forEach(statement -> rBody.add(statement));
 
     } else {
       // otherwise include the thread simulations in the main function directly
@@ -116,7 +116,7 @@ public final class SeqMainFunction extends SeqFunctionDefinition {
 
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
         CExportStatement nextThreadAssumption =
-            SeqAssumeFunction.buildNextThreadAssumeCallFunctionCallStatement(
+            SeqAssumeFunctionBuilder.buildNextThreadAssumeCallFunctionCallStatement(
                 pOptions.nondeterminismSigned(),
                 pFields.numThreads,
                 pUtils.binaryExpressionBuilder());
@@ -147,7 +147,7 @@ public final class SeqMainFunction extends SeqFunctionDefinition {
                   SeqIntegerLiteralExpressions.INT_0,
                   BinaryOperator.GREATER_THAN);
       CFunctionCallStatement countAssumption =
-          SeqAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
+          SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
       loopBlock.add(new CStatementWrapper(countAssumption));
 
       // add all thread simulation control flow statements

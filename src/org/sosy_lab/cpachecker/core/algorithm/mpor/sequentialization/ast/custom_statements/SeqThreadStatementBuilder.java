@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
@@ -617,7 +617,8 @@ public record SeqThreadStatementBuilder(
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
     // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
     CFunctionCallStatement assumeSignaled =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(condSignaledFlag.isSignaledExpression());
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+            condSignaledFlag.isSignaledExpression());
     CExpressionAssignmentStatement setSignaledFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
@@ -700,7 +701,7 @@ public record SeqThreadStatementBuilder(
     MPORThread targetThread = MPORThreadUtil.getThreadByCFunctionCall(allThreads, pFunctionCall);
     CStatementWrapper assumeCall =
         new CStatementWrapper(
-            SeqAssumeFunction.buildAssumeFunctionCallStatement(
+            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
                 pcVariables.getThreadInactiveExpression(targetThread.id())));
 
     if (targetThread.startRoutineExitVariable().isPresent()) {
@@ -751,7 +752,8 @@ public record SeqThreadStatementBuilder(
     MutexLockedFlag mutexLockedFlag = threadSyncFlags.getMutexLockedFlag(pthreadMutexT);
 
     CFunctionCallStatement assumeCall =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(mutexLockedFlag.notLockedExpression());
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+            mutexLockedFlag.notLockedExpression());
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
@@ -816,7 +818,8 @@ public record SeqThreadStatementBuilder(
 
     CStatementWrapper assumption =
         new CStatementWrapper(
-            SeqAssumeFunction.buildAssumeFunctionCallStatement(pRwLockFlags.writerEqualsZero()));
+            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+                pRwLockFlags.writerEqualsZero()));
     CStatementWrapper rwLockReadersIncrement =
         new CStatementWrapper(pRwLockFlags.readersIncrement());
 
@@ -854,9 +857,9 @@ public record SeqThreadStatementBuilder(
             pRwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_1);
 
     CFunctionCallStatement assumptionWriters =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(pRwLockFlags.writerEqualsZero());
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(pRwLockFlags.writerEqualsZero());
     CFunctionCallStatement assumptionReaders =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(pRwLockFlags.readersEqualsZero());
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(pRwLockFlags.readersEqualsZero());
 
     return new SeqThreadStatement(
         data,

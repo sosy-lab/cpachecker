@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionStatemen
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 
-public final class SeqAssumeFunction extends SeqFunctionDefinition {
+public final class SeqAssumeFunctionBuilder {
 
   // CParameterDeclaration
 
@@ -76,7 +76,7 @@ public final class SeqAssumeFunction extends SeqFunctionDefinition {
 
   // CIdExpression
 
-  public static final CIdExpression COND_ID_EXPRESSION =
+  private static final CIdExpression COND_ID_EXPRESSION =
       new CIdExpression(FileLocation.DUMMY, COND_PARAMETER_ASSUME);
 
   private static final CIdExpression ASSUME_ID_EXPRESSION =
@@ -105,28 +105,24 @@ public final class SeqAssumeFunction extends SeqFunctionDefinition {
   public static final CFunctionCallStatement ABORT_FUNCTION_CALL_STATEMENT =
       new CFunctionCallStatement(FileLocation.DUMMY, ABORT_FUNCTION_CALL_EXPRESSION);
 
-  public SeqAssumeFunction(CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  // Builder Methods ===============================================================================
 
-    super(
-        new CExportFunctionDefinition(
-            ASSUME_FUNCTION_DECLARATION, buildBody(pBinaryExpressionBuilder)));
-  }
-
-  private static CCompoundStatement buildBody(CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  public static CExportFunctionDefinition buildFunctionDefinition(
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) throws UnrecognizedCodeException {
 
     // build the 'cond == 0' expression
     CBinaryExpression condEqualsZeroExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqAssumeFunction.COND_ID_EXPRESSION,
+            SeqAssumeFunctionBuilder.COND_ID_EXPRESSION,
             SeqIntegerLiteralExpressions.INT_0,
             BinaryOperator.EQUALS);
     CExpressionWrapper ifCondition = new CExpressionWrapper(condEqualsZeroExpression);
     // build the 'if (cond == 0) { abort(); }' statement
     ImmutableList<CExportStatement> ifBlock =
         ImmutableList.of(new CStatementWrapper(ABORT_FUNCTION_CALL_STATEMENT));
-    return new CCompoundStatement(new CIfStatement(ifCondition, new CCompoundStatement(ifBlock)));
+    CCompoundStatement functionBody =
+        new CCompoundStatement(new CIfStatement(ifCondition, new CCompoundStatement(ifBlock)));
+    return new CExportFunctionDefinition(ASSUME_FUNCTION_DECLARATION, functionBody);
   }
 
   /**
@@ -149,7 +145,6 @@ public final class SeqAssumeFunction extends SeqFunctionDefinition {
    * assume(pCondition);}.
    */
   public static CExportStatement buildAssumeFunctionCallStatement(CExportExpression pCondition) {
-
     ImmutableList<CExportExpression> parameter = ImmutableList.of(pCondition);
     CFunctionCallExpressionWrapper assumeCallExpression =
         new CFunctionCallExpressionWrapper(ASSUME_FUNCTION_CALL_EXPRESSION_DUMMY, parameter);

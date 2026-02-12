@@ -25,9 +25,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -116,7 +116,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
    * Returns the {@link CFunctionCallStatement} to {@code assume(pc{pThread.id} != 0);} if {@link
    * MPOROptions#scalarPc()} is enabled. In that case, the assumptions needs to be placed inside the
    * simulation. For array {@code pc}, it is placed at the loop head already (see {@link
-   * SeqMainFunction}).
+   * SeqMainFunctionBuilder}).
    */
   protected Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(MPORThread pThread) {
     return options.scalarPc()
@@ -127,7 +127,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   /**
    * Returns {@code next_thread = __VERIFIER_nondet_...(); assume(next_thread == {thread_id};}, but
    * only if {@link MPOROptions#loopUnrolling()} is enabled since choosing and assuming over {@code
-   * next_thread} is a preceding statement in the respective {@link SeqThreadSimulationFunction}.
+   * next_thread} is a preceding statement in the respective {@link
+   * SeqThreadSimulationFunctionBuilder}.
    */
   protected Optional<ImmutableList<CStatement>> tryBuildNextThreadStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
@@ -149,7 +150,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
                 BinaryOperator.EQUALS);
     CFunctionCallStatement nextThreadAssumption =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
     return Optional.of(ImmutableList.of(nextThreadAssignment, nextThreadAssumption));
   }
 }
