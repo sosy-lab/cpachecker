@@ -185,8 +185,8 @@ public class SymbolicProgramConfiguration {
     valueToTypeMap =
         PathCopyingPersistentTreeMap.<SMGValue, CType>of()
             .putAndCopy(SMGValue.zeroValue(), CNumericTypes.INT)
-            .putAndCopy(SMGValue.zeroDoubleValue(), CNumericTypes.INT)
-            .putAndCopy(SMGValue.zeroFloatValue(), CNumericTypes.INT);
+            .putAndCopy(SMGValue.zeroDoubleValue(), CNumericTypes.DOUBLE)
+            .putAndCopy(SMGValue.zeroFloatValue(), CNumericTypes.FLOAT);
     options = pOptions;
   }
 
@@ -2733,8 +2733,7 @@ public class SymbolicProgramConfiguration {
    */
   public CType getTypeForValue(SMGValue value) {
     CType type = valueToTypeMap.get(value);
-    checkNotNull(type);
-    return type.getCanonicalType();
+    return checkNotNull(type).getCanonicalType();
   }
 
   /**
