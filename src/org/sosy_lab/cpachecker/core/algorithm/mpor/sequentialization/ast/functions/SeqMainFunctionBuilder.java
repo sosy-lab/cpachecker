@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CWhileLoopStatement;
 
@@ -84,10 +83,10 @@ public final class SeqMainFunctionBuilder {
 
     if (pOptions.loopUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
-      ImmutableList<CExpressionStatementWrapper> functionCallStatements =
+      ImmutableList<CFunctionCallStatement> functionCallStatements =
           NondeterministicSimulationBuilder.buildThreadSimulationFunctionCallStatements(
               pOptions, pFields.threadSimulationFunctions.orElseThrow());
-      functionCallStatements.forEach(statement -> rBody.add(statement));
+      functionCallStatements.forEach(statement -> rBody.add(new CStatementWrapper(statement)));
 
     } else {
       // otherwise include the thread simulations in the main function directly

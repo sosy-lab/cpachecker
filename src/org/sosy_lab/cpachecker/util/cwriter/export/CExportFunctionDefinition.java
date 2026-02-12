@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -103,7 +104,20 @@ public final class CExportFunctionDefinition {
     return body;
   }
 
-  public CExpressionStatementWrapper buildFunctionCallStatement(
+  public CFunctionCallStatement buildFunctionCallStatementWithCExpressions(
+      ImmutableList<CExpression> pParameters) {
+
+    checkArgument(
+        pParameters.size() == declaration.getParameters().size(),
+        "pParameters.size() must be equal to the amount of parameters in declaration.");
+
+    CFunctionCallExpression functionCallExpression =
+        new CFunctionCallExpression(
+            FileLocation.DUMMY, declaration.getType(), name, pParameters, declaration);
+    return new CFunctionCallStatement(FileLocation.DUMMY, functionCallExpression);
+  }
+
+  public CExpressionStatementWrapper buildFunctionCallStatementWithCExportExpressions(
       ImmutableList<CExportExpression> pParameters) {
 
     checkArgument(

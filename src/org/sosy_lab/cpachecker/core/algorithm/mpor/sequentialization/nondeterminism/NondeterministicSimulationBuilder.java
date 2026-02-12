@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -44,7 +45,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionStatementWrapper;
 
 /**
  * Contains methods that can be used to build thread simulations based on the specified {@link
@@ -96,12 +96,11 @@ public class NondeterministicSimulationBuilder {
     return rFunctions.buildOrThrow();
   }
 
-  public static ImmutableList<CExpressionStatementWrapper>
-      buildThreadSimulationFunctionCallStatements(
-          MPOROptions pOptions,
-          ImmutableMap<MPORThread, CExportFunctionDefinition> pThreadSimulationFunctions) {
+  public static ImmutableList<CFunctionCallStatement> buildThreadSimulationFunctionCallStatements(
+      MPOROptions pOptions,
+      ImmutableMap<MPORThread, CExportFunctionDefinition> pThreadSimulationFunctions) {
 
-    ImmutableList.Builder<CExpressionStatementWrapper> rFunctionCalls = ImmutableList.builder();
+    ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
     // start with main thread function call
     CExportFunctionDefinition mainThreadFunction =
         Objects.requireNonNull(
@@ -110,16 +109,19 @@ public class NondeterministicSimulationBuilder {
                         .filter(e -> e.getKey().isMain())
                         .toList()))
             .getValue();
-    rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
+    rFunctionCalls.add(
+        mainThreadFunction.buildFunctionCallStatementWithCExpressions(ImmutableList.of()));
     for (int i = 0; i < pOptions.loopIterations(); i++) {
       for (var entry : pThreadSimulationFunctions.entrySet()) {
         if (!entry.getKey().isMain()) {
           // continue with all other threads
-          rFunctionCalls.add(entry.getValue().buildFunctionCallStatement(ImmutableList.of()));
+          rFunctionCalls.add(
+              entry.getValue().buildFunctionCallStatementWithCExpressions(ImmutableList.of()));
         }
       }
       // end on main thread
-      rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
+      rFunctionCalls.add(
+          mainThreadFunction.buildFunctionCallStatementWithCExpressions(ImmutableList.of()));
     }
     return rFunctionCalls.build();
   }
