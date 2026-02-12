@@ -546,7 +546,12 @@ public class SMGCPAExpressionEvaluator {
       }
       Value finalOffsetInBits = addBitOffsetValues(baseOffset, offsetInBits);
 
-      checkArgument(targetAddressType instanceof CPointerType);
+      // Casts can cause the type to not be CPointerType, but we don't want smaller types, as then
+      // some information about the pointer may be lost!
+      checkArgument(
+          targetAddressType instanceof CPointerType
+              || machineModel.getSizeof(targetAddressType).intValueExact()
+                  >= machineModel.getSizeof(machineModel.getPointerAsIntType()));
 
       // search for existing pointer first and return if found; else make a new one for the offset
       returnBuilder.add(
