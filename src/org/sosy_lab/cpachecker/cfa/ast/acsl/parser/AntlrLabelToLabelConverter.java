@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Label_idContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LabelIdContext;
 
 class AntlrLabelToLabelConverter extends AntlrToInternalAbstractConverter<AcslLabel> {
 
@@ -24,7 +24,7 @@ class AntlrLabelToLabelConverter extends AntlrToInternalAbstractConverter<AcslLa
   }
 
   @Override
-  public AcslLabel visitLabel_id(Label_idContext ctx) {
+  public AcslLabel visitLabelId(LabelIdContext ctx) {
     String identifierName = ctx.getText();
     if (FluentIterable.from(AcslBuiltinLabel.values())
         .transform(AcslBuiltinLabel::getLabel)

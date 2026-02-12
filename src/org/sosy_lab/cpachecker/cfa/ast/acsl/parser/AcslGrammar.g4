@@ -71,7 +71,7 @@ termTernaryConditionBody
   | '(' termTernaryConditionBody ')'                            # ParenthesesTermTernaryConditionBody
   | '\\result'                                                  # ResultTermTernaryConditionBody
   | '\\old' '(' termTernaryConditionBody ')'                    # OldTermTernaryConditionBody
-  | '\\at' '(' termTernaryConditionBody ',' label_id ')'        # AtTermTernaryConditionBody
+  | '\\at' '(' termTernaryConditionBody ',' labelId ')'        # AtTermTernaryConditionBody
   | ident '(' termTernaryConditionBody (',' termTernaryConditionBody)* ')'                              # FuncApplicationTermTernaryConditionBody
   ;
 
@@ -113,14 +113,14 @@ term
     | '\\result'                                        # ResultTerm
 // memory.tex:
     | '\\null'                                          # NullTerm
-    | '\\base_addr' one_label? '(' term ')'             # BaseAddrTerm
-    | '\\block_length' one_label? '(' term ')'          # BlockLengthTerm
-    | '\\offset' one_label?  '(' term ')'               # OffsetTerm
-    | '{' '\\allocation' '}' one_label?   '(' term ')'  # AllocationTerm
+    | '\\base_addr' oneLabel? '(' term ')'             # BaseAddrTerm
+    | '\\block_length' oneLabel? '(' term ')'          # BlockLengthTerm
+    | '\\offset' oneLabel?  '(' term ')'               # OffsetTerm
+    | '{' '\\allocation' '}' oneLabel?   '(' term ')'  # AllocationTerm
 // exitbehavior.tex
     | '\\exit_status'                                   # ExitStatusTerm
 // at.tex
-    | '\\at' '(' term ',' label_id ')'                  # AtTerm
+    | '\\at' '(' term ',' labelId ')'                  # AtTerm
     ;
 
 // predicate.tex
@@ -170,13 +170,13 @@ pred
     | '\\subset' '(' tset ',' tset ')'  # SetInclusionPred
     | term '\\in' tset                  # SetMembershipPred
 // memory.tex:
-    | '\\allocable' one_label? '(' term ')'                         # AllocablePred
-    | '\\freeable' one_label? '(' term ')'                          # FreeablePred
-    | '\\fresh'   two_labels? '(' term ',' term ')'                 # FreshPred
-    | '\\valid'  one_label?  '(' location_address ')'               # ValidPred
-    | '\\initialized'  one_label?  '(' location_address ')'         # InitializedPred
-    | '\\valid_read'  one_label? '(' location_address ')'           # ValidReadPred
-    | '\\separated' '(' location_address ',' location_addresses ')' # SeparatedPred
+    | '\\allocable' oneLabel? '(' term ')'                         # AllocablePred
+    | '\\freeable' oneLabel? '(' term ')'                          # FreeablePred
+    | '\\fresh'   twoLabels? '(' term ',' term ')'                 # FreshPred
+    | '\\valid'  oneLabel?  '(' locationAddress ')'               # ValidPred
+    | '\\initialized'  oneLabel?  '(' locationAddress ')'         # InitializedPred
+    | '\\valid_read'  oneLabel? '(' locationAddress ')'           # ValidReadPred
+    | '\\separated' '(' locationAddress ',' locationAddresses ')' # SeparatedPred
     ;
 
 ident
@@ -189,7 +189,7 @@ binders
     ;
 
 binder
-    : typeExpr variable_ident (',' variable_ident)*
+    : typeExpr variableIdent (',' variableIdent)*
     ;
 
 typeVar
@@ -211,33 +211,33 @@ builtInLogicType
     : 'boolean' | 'integer' | 'real'
     ;
 
-variable_ident
+variableIdent
     : id
-    | '*' variable_ident
-    | variable_ident '[]'
-    | '(' variable_ident ')'
+    | '*' variableIdent
+    | variableIdent '[]'
+    | '(' variableIdent ')'
     ;
 
 // fn_behavior.tex
 functionContract
-    : requiresClause* terminates_clause? decreases_clause? simple_clause* named_behavior* completeness_clause*
+    : requiresClause* terminatesClause? decreasesClause? simpleClause* namedBehavior* completenessClause*
     ;
 
 requiresClause
     : 'requires' pred ';'
     ;
 
-terminates_clause
+terminatesClause
     : 'terminates' pred ';'
     ;
 
-decreases_clause
+decreasesClause
     : 'decreases' term ('for' id)? ';'
     ;
 
-simple_clause
+simpleClause
     : assignsClause | ensuresClause
-    | allocation_clause | abrupt_clause
+    | allocationClause | abruptClause
     ;
 
 assignsClause
@@ -260,19 +260,19 @@ ensuresClause
     : 'ensures' pred ';'
     ;
 
-named_behavior
-    : 'behavior' id ':' behavior_body
+namedBehavior
+    : 'behavior' id ':' behaviorBody
     ;
 
-behavior_body
-    : assumes_clause* requiresClause* simple_clause*
+behaviorBody
+    : assumesClause* requiresClause* simpleClause*
     ;
 
-assumes_clause
+assumesClause
     : 'assumes' pred ';'
     ;
 
-completeness_clause
+completenessClause
     : 'complete' 'behaviors' (id ',' (',' id)*)? ';'
     | 'disjoint' 'behaviors' (id ',' (',' id)*)? ';'
     ;
@@ -296,12 +296,12 @@ tset
     | term                                  # TsetTerm
     ;
 
-c_compound_statement
+cCompoundStatement
     : '{' declaration* statement* assertion+ '}'
     ;
 
-c_statement
-    : assertion c_statement
+cStatement
+    : assertion cStatement
     ;
 
 assertion
@@ -311,111 +311,111 @@ assertion
 
 
 // allocation.tex
-allocation_clause
-    : 'allocates' dyn_allocation_addresses ';' # AllocatesClause
-    | 'frees' dyn_allocation_addresses ';'     # FreesClause
+allocationClause
+    : 'allocates' dynAllocationAddresses ';' # AllocatesClause
+    | 'frees' dynAllocationAddresses ';'     # FreesClause
     ;
 
-loop_allocation
-    : 'loop' 'allocates' dyn_allocation_addresses ';'
-    | 'loop' 'frees'  dyn_allocation_addresses ';'
+loopAllocation
+    : 'loop' 'allocates' dynAllocationAddresses ';'
+    | 'loop' 'frees'  dynAllocationAddresses ';'
     ;
 
-dyn_allocation_addresses
-    : location_addresses
+dynAllocationAddresses
+    : locationAddresses
     | '\\nothing'
     ;
 
 // memory.tex
-one_label
-    : '{' label_id '}'
+oneLabel
+    : '{' labelId '}'
     ;
 
-two_labels
-    : '{' label_id ',' label_id '}'
+twoLabels
+    : '{' labelId ',' labelId '}'
     ;
 
-location_addresses
-    : location_address (',' location_address)*
+locationAddresses
+    : locationAddress (',' locationAddress)*
     ;
 
-location_address
+locationAddress
     : tset
     ;
 
 // exitbehaviour.tex
-abrupt_clause
-    : exits_clause
+abruptClause
+    : exitsClause
     ;
 
-exits_clause
+exitsClause
     : 'exits' pred ';'
     ;
 
-abrupt_clause_stmt
-    : breaks_clause | continues_clause | returns_clause
+abruptClauseStmt
+    : breaksClause | continuesClause | returnsClause
     ;
 
-breaks_clause
+breaksClause
     : 'breaks' pred ';'
     ;
 
-continues_clause
+continuesClause
     : 'continues' pred ';'
     ;
 
-returns_clause
+returnsClause
     : 'returns' pred ';'
     ;
 
 // at.tex
-label_id
+labelId
     : 'Here' | 'Old' | 'Pre' | 'Post'
     | 'LoopEntry' | 'LoopCurrent' | 'Init'
     | id
     ;
 
 // loops.tex
-loop_annot
-    : loop_clause* loop_behavior* loop_variant?
+loopAnnot
+    : loopClause* loopBehavior* loopVariant?
     ;
 
-loop_clause
-    : loopInvariant | loop_assigns | loop_allocation
+loopClause
+    : loopInvariant | loopAssigns | loopAllocation
     ;
 
 loopInvariant
     : 'loop' 'invariant' pred ';'
     ;
 
-loop_assigns
+loopAssigns
     : 'loop' 'assigns' locations ';'
     ;
 
-loop_behavior
-    : 'for' id (',' id)* ':' loop_clause+
+loopBehavior
+    : 'for' id (',' id)* ':' loopClause+
     ;
 
-loop_variant
+loopVariant
     : 'loop' 'variant' term ';'
     | 'loop' 'variant' term 'for' id ';'
     ;
 
 // st_contracts.tex
-statement_contract
-    : ('for' id (',' id)* ':')? requiresClause* simple_clause_stmt* named_behavior_stmt* completeness_clause*
+statementContract
+    : ('for' id (',' id)* ':')? requiresClause* simpleClauseStmt* namedBehaviorStmt* completenessClause*
     ;
 
-simple_clause_stmt
-    : simple_clause | abrupt_clause_stmt
+simpleClauseStmt
+    : simpleClause | abruptClauseStmt
     ;
 
-named_behavior_stmt
-    : 'behavior' id ':' behavior_body_stmt
+namedBehaviorStmt
+    : 'behavior' id ':' behaviorBodyStmt
     ;
 
-behavior_body_stmt
-    : assumes_clause* requiresClause* simple_clause_stmt*
+behaviorBodyStmt
+    : assumesClause* requiresClause* simpleClauseStmt*
     ;
 
 // logic.tex
