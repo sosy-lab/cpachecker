@@ -522,21 +522,19 @@ public final class ValueAnalysisState
    */
   @Override
   public boolean isLessOrEqual(ValueAnalysisState other) {
-
     // also, this element is not less or equal than the other element, if it contains less elements
     if (constantsMapSize < other.constantsMapSize
         || numberOfGlobalConstants < other.numberOfGlobalConstants) {
       return false;
     }
 
-    // also, this element is not less or equal than the other element,
-    // if any one constant's value of the other element differs from the constant's value in this
-    // element
-
     if (constantsMap == other.constantsMap) {
       return true;
     }
 
+    // also, this element is not less or equal than the other element,
+    // if any one constant's value of the other element differs from the constant's value in this
+    // element
     Iterator<Entry<MemoryLocation, ValueAndType>> otherMapIter =
         other.constantsMap.entrySet().iterator();
     Iterator<Entry<MemoryLocation, ValueAndType>> thisMapIter = constantsMap.entrySet().iterator();
@@ -550,14 +548,15 @@ public final class ValueAnalysisState
         otherEntry = otherMapIter.next();
       }
 
+      // thisEntry always gets the next entry,
+      //  as the only case where it doesn't, we return the method.
       thisEntry = thisMapIter.next();
 
       int comp = otherEntry.getKey().compareTo(thisEntry.getKey());
 
       // All entries from other need to be in this
-      // otherEntry > thisEntry => forwards this iterator until this catches up with other iterator
       if (comp < 0) {
-        // otherEntry < thisEntry => otherEntry not in this iterator
+        // otherEntry < thisEntry => otherEntry not in thisMapIter
         return false;
 
       } else if (comp == 0) {
@@ -570,13 +569,17 @@ public final class ValueAnalysisState
           return false;
         }
 
-        // forward both iterators
+        // forward both iterators (thisEntry always gets a new element)
         otherEntry = null;
-
-      } else if (!otherMapIter.hasNext()) {
-        // The other map does not have the entry we are searching for
-        return false;
       }
+      // Else: otherEntry > thisEntry
+      //  => forwards "this" iterator until this catches up with "other" iterator
+    }
+
+    if (otherEntry != null || otherMapIter.hasNext()) {
+      // We searched for this entry until thisMapIter endet, i.e. it is not in this.constantsMap,
+      // or the thisMapIter endet already, but the otherMapIter still has things to process
+      return false;
     }
 
     return true;
