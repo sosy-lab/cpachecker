@@ -126,8 +126,7 @@ public record SeqThreadStatementClauseBuilder(
    * function call.
    */
   private ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reorderClauses(
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses)
-      throws UnrecognizedCodeException {
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rReordered =
         ImmutableListMultimap.builder();
