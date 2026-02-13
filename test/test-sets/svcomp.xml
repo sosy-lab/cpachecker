@@ -33,7 +33,7 @@ SPDX-License-Identifier: Apache-2.0
     https://gitlab.com/sosy-lab/sv-comp/bench-defs/-/blob/main/benchmark-defs/cpachecker.xml
   -->
 
-  <resultfiles>**/*.graphml</resultfiles>
+  <resultfiles>**/witness.*</resultfiles>
 
   <option name="--svcomp26"/>
   <option name="--heap">10000M</option>
