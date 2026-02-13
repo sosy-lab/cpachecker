@@ -166,6 +166,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           if (!isOverapproximating) {
             prefixFormula = bfmgr.makeFalse();
           }
+          if (containsOnlyIrrelevantVariables(interpolant.getFirst(), callstackState)) {
+            break;
+          }
           isOverapproximating = true;
           prefixFormula =
               bfmgr.or(
@@ -175,6 +178,20 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       }
     }
     return Optional.of(result);
+  }
+
+  /**
+   * It can happen that the transition invariant contains only variables outside the loop. In that
+   * case, we have to not use the invariant as it might be potentially unsound.
+   */
+  private boolean containsOnlyIrrelevantVariables(
+      BooleanFormula pInvariant, CallstackState pCallstackState) {
+    for (String varNames : fmgr.extractVariableNames(pInvariant)) {
+      if (varNames.startsWith(pCallstackState.getCurrentFunction())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
