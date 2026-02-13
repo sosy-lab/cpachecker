@@ -23,14 +23,14 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 /**
  * A statement executed by a thread simulation in the sequentialization.
  *
- * <p>The fields in this class are separate from the {@param exportStatements} because they are
+ * <p>The fields in this class are separate from the {@code exportStatements} because they are
  * dynamically updated during the sequentialization process. These dynamic updates include merging
  * atomic blocks, linking commuting statements or making the label numbers of statements
- * consecutive, based on the specified {@link MPOROptions}. Meanwhile, the {@param exportStatements}
+ * consecutive, based on the specified {@link MPOROptions}. Meanwhile, the {@code exportStatements}
  * are only created once based on the input programs {@link CFA}.
  *
  * <p>Once the data in this class is finalized, it is converted to {@link CExportStatement}s and
- * placed together with the {@param exportStatements} to create the exported program.
+ * placed together with the {@code exportStatements} to create the exported program.
  *
  * @param data The data that all statements must contain, e.g., their {@link
  *     SeqThreadStatementType}.
