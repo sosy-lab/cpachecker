@@ -15,13 +15,13 @@ SPDX-License-Identifier: Apache-2.0
 
   <option name="--no-output-files"/>
   <option name="--heap">11000M</option>
+  
 
   <rundefinition name="Overflow-Portfolio">
     <option name="--overflowAnalysis"/>
   </rundefinition>
 
   <tasks name="C.no-overflow.Main">
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
     <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
@@ -43,34 +43,28 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
   <tasks name="C.no-overflow.Juliet">
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/benchmarks/Juliet.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
 
   <tasks name="C.no-overflow.SoftwareSystems-BusyBox">
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
   <tasks name="C.no-overflow.SoftwareSystems-coreutils">
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
   <tasks name="C.no-overflow.SoftwareSystems-uthash">
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
 
   <tasks name="C.no-overflow.Concurrency">
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
   <tasks name="C.no-overflow.Huawei-Concurrency-Challenges">
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/benchmarks/Huawei-Concurrency-Challenges.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
@@ -78,14 +72,11 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="Overflow-Simple">
     <includesfile>../programs/simple/overflow/overflow.set</includesfile>
     <propertyfile>../config/properties/no-overflow.prp</propertyfile>
-    <!-- Some tasks in this set use malloc -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks name="OverflowWithPointers-Simple">
     <includesfile>../programs/simple/overflow/overflowWithPointers.set</includesfile>
     <propertyfile>../config/properties/no-overflow.prp</propertyfile>
     <!-- Some tasks in this set use malloc -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <option name="--option">overflow.trackPointers=true</option>
   </tasks>
 
