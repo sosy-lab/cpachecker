@@ -30,6 +30,7 @@ cp -a config/components/svcomp25* config/unmaintained/components/
 cp -a config/includes/svcomp25* config/unmaintained/includes/
 rename 's/svcomp25/svcomp26/' config/svcomp25* config/components/svcomp25* config/includes/svcomp25*
 sed -e "s/svcomp25/svcomp26/g" -e "s/SV-COMP'25/SV-COMP'26/g" -i config/**/svcomp26*
+sed -e "s/svcomp25/svcomp26/g" test/test-sets/*.xml
 ```
 
 Additional information: https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/347
