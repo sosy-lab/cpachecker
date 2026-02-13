@@ -64,10 +64,6 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
-  <tasks name="C.no-overflow.Huawei-Concurrency-Challenges">
-    <includesfile>../programs/benchmarks/Huawei-Concurrency-Challenges.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
-  </tasks>
 
   <tasks name="Overflow-Simple">
     <includesfile>../programs/simple/overflow/overflow.set</includesfile>

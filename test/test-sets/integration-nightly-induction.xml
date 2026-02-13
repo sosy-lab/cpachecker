@@ -23,89 +23,90 @@ SPDX-License-Identifier: Apache-2.0
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
-  <tasks name="ReachSafety-Arrays">
+  <tasks name="C.unreach-call.Arrays">
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-BitVectors">
+  <tasks name="C.unreach-call.BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-ControlFlow">
+  <tasks name="C.unreach-call.ControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/Sanity.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-ECA">
+  <tasks name="C.unreach-call.ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-Floats">
+  <tasks name="C.unreach-call.Floats">
     <includesfile>../programs/benchmarks/Floats.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-Heap">
+  <tasks name="C.unreach-call.Heap">
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-Loops">
+  <tasks name="C.unreach-call.Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
     <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-ProductLines">
+  <tasks name="C.unreach-call.ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-Sequentialized">
+  <tasks name="C.unreach-call.Recursive">
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-XCSP">
+  <tasks name="C.unreach-call.XCSP">
     <includesfile>../programs/benchmarks/XCSP.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-Combinations">
+  <tasks name="C.unreach-call.Combinations">
     <includesfile>../programs/benchmarks/Combinations.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-Hardware">
+  <tasks name="C.unreach-call.Hardware">
     <includesfile>../programs/benchmarks/Hardware.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-Hardness">
+  <tasks name="C.unreach-call.Hardness">
     <includesfile>../programs/benchmarks/Hardness.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="ReachSafety-Fuzzle">
-    <includesfile>../programs/benchmarks/Fuzzle.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-
-  <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
+  <tasks name="C.unreach-call.SoftwareSystems-AWS-C-Common">
     <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
+  <tasks name="C.unreach-call.SoftwareSystems-DeviceDriversLinux64">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="SoftwareSystems-DeviceDriversLinux64Large-ReachSafety">
+  <tasks name="C.unreach-call.SoftwareSystems-DeviceDriversLinux64Large">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="SoftwareSystems-Other-ReachSafety">
+  <tasks name="C.unreach-call.SoftwareSystems-Other">
     <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
     <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="SoftwareSystems-uthash-ReachSafety">
+  <tasks name="C.unreach-call.SoftwareSystems-uthash">
     <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="SoftwareSystems-Intel-TDX-Module-ReachSafety">
+  <tasks name="C.unreach-call.SoftwareSystems-Intel-TDX-Module">
     <includesfile>../programs/benchmarks/SoftwareSystems-Intel-TDX-Module.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
