@@ -27,9 +27,10 @@ Example commands to copy, rename and sanity check from svcomp25 to svcomp26:
 ```bash
 cp -a config/svcomp25* config/unmaintained/
 cp -a config/components/svcomp25* config/unmaintained/components/
+cp -a config/components/smg/svcomp25* config/unmaintained/components/smg/
 cp -a config/includes/svcomp25* config/unmaintained/includes/
-rename 's/svcomp25/svcomp26/' config/svcomp25* config/components/svcomp25* config/includes/svcomp25*
-sed -e "s/svcomp25/svcomp26/g" -e "s/SV-COMP'25/SV-COMP'26/g" -i config/**/svcomp26*
+rename 's/svcomp25/svcomp26/' config/svcomp25* config/components/svcomp25* config/components/smg/svcomp25* config/includes/svcomp25*
+sed -e "s/svcomp25/svcomp26/g" -e "s/SV-COMP'25/SV-COMP'26/g" -i config/**/svcomp26* config/describerr* config/components/describerr*
 sed -e "s/svcomp25/svcomp26/g" test/test-sets/*.xml
 ```
 
