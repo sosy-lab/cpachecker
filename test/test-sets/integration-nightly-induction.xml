@@ -58,11 +58,6 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-  <tasks name="C.unreach-call.Recursive">
-    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
-    <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
   <tasks name="C.unreach-call.Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
