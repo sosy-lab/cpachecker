@@ -12,6 +12,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -184,18 +185,19 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private BooleanFormula instantiateTransitionInvariant(
       BooleanFormula candidateTransitionInvariant, SSAMap prevSSAMap, SSAMap currSSAMap) {
     Map<String, Formula> varNamesToFormulas = fmgr.extractVariables(candidateTransitionInvariant);
-    int prevIndex = 0;
-    for (String varName : varNamesToFormulas.keySet()) {
-      int index = getSSAIndex(varName);
-      if (index < prevIndex || prevIndex == 0) {
-        prevIndex = index;
+    Map<Formula, Integer> prevIndex = new HashMap<>();
+    for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
+      int index = getSSAIndex(entry.getKey());
+      Formula pureVar = fmgr.uninstantiate(entry.getValue());
+      if (!prevIndex.containsKey(pureVar) || prevIndex.get(pureVar) > index) {
+        prevIndex.put(pureVar, index);
       }
     }
 
     ImmutableMap.Builder<Formula, Formula> prevSubMap = ImmutableMap.builder();
     ImmutableMap.Builder<Formula, Formula> currSubMap = ImmutableMap.builder();
     for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
-      if (prevIndex == getSSAIndex(entry.getKey())) {
+      if (prevIndex.get(fmgr.uninstantiate(entry.getValue())) == getSSAIndex(entry.getKey())) {
         prevSubMap.put(
             entry.getValue(), fmgr.instantiate(fmgr.uninstantiate(entry.getValue()), prevSSAMap));
       } else {
