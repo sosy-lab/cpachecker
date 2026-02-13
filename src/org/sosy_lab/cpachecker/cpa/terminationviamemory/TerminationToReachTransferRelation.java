@@ -115,7 +115,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newValues.putAll(terminationState.getStoredValues().get(pairKey));
         newValues.put(
             terminationState.getNumberOfIterationsAtLoopHead(pairKey),
-            extractLoopHeadVariables(newFullFormula.orElseThrow(), pairKey.getSecond()));
+            extractLoopHeadVariables(newFullFormula.orElseThrow()));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(
             pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
@@ -131,8 +131,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
           newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
         }
       } else {
-        newValues.put(
-            0, extractLoopHeadVariables(newFullFormula.orElseThrow(), pairKey.getSecond()));
+        newValues.put(0, extractLoopHeadVariables(newFullFormula.orElseThrow()));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
       }
@@ -147,15 +146,12 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     return ImmutableList.of(pState);
   }
 
-  private ImmutableSet<Formula> extractLoopHeadVariables(
-      PathFormula pPathFormula, CallstackState pCallstackState) {
+  private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
     SSAMap ssaMap = pPathFormula.getSsa();
     ImmutableSet.Builder<Formula> newStoredIndices = ImmutableSet.builder();
     for (Entry<String, Formula> variable :
         fmgr.extractVariables(pPathFormula.getFormula()).entrySet()) {
-      if (variable.getKey().startsWith(pCallstackState.getCurrentFunction())) {
-        newStoredIndices.add(fmgr.instantiate(fmgr.uninstantiate(variable.getValue()), ssaMap));
-      }
+      newStoredIndices.add(fmgr.instantiate(fmgr.uninstantiate(variable.getValue()), ssaMap));
     }
     return newStoredIndices.build();
   }
