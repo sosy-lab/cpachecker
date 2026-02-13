@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -90,15 +91,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
         boolean isTargetStateReachable;
         boolean isOverapproximating = false;
-        SSAMap smallestIndices = terminationState.getPathFormulasForPrefix().get(keyPair).getSsa();
+        PathFormula prefixPathFormula = terminationState.getPathFormulasForPrefix().orElseThrow();
+        SSAMap smallestIndices = prefixPathFormula.getSsa();
         SSAMap largestIndices =
             terminationState.getPathFormulasForIteration().get(keyPair).getSsa();
 
         SSAMap prevIndices = initializeSSAMapWithIndex(largestIndices, PREV_VARIABLES_INDEX);
         SSAMap currIndices = initializeSSAMapWithIndex(smallestIndices, CURR_VARIABLES_INDEX);
 
-        BooleanFormula prefixFormula =
-            terminationState.getPathFormulasForPrefix().get(keyPair).getFormula();
+        BooleanFormula prefixFormula = prefixPathFormula.getFormula();
         BooleanFormula iterationFormula =
             terminationState.getPathFormulasForIteration().get(keyPair).getFormula();
         ImmutableList<BooleanFormula> sameStateFormulas =
@@ -145,7 +146,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   prefixFormula, iterationFormula, prevIndices, smallestIndices, largestIndices)) {
             TerminationToReachState terminatingState =
                 new TerminationToReachState(
-                    ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
+                    ImmutableMap.of(),
+                    ImmutableMap.of(),
+                    ImmutableMap.of(),
+                    Optional.empty(),
+                    Optional.empty());
             terminatingState.setTerminating();
             return Optional.of(result.withAbstractState(terminatingState));
           }

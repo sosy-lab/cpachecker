@@ -97,7 +97,11 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new TerminationToReachState(
-        ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty(),
+        Optional.empty());
   }
 
   @Override

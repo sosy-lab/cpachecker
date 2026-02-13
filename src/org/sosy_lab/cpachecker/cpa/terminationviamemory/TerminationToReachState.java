@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -63,7 +64,9 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * For every loop-head (given by location and call-stack), we track the path formula until
    * reaching this abstract state. This is the part before reaching the loop.
    */
-  private ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForPrefix;
+  private Optional<PathFormula> pathFormulaForPrefix;
+
+  private Optional<PathFormula> pathFormulaFull;
 
   public TerminationToReachState(
       ImmutableMap<
@@ -71,12 +74,14 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
           pStoredValues,
       ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
-      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForPrefix) {
+      Optional<PathFormula> pPathFormulaForPrefix,
+      Optional<PathFormula> pPathFormulaFull) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     pathFormulaForPrefix = pPathFormulaForPrefix;
+    pathFormulaFull = pPathFormulaFull;
     isTarget = false;
     isTerminating = false;
   }
@@ -103,8 +108,12 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return pathFormulaForIteration;
   }
 
-  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> getPathFormulasForPrefix() {
+  public Optional<PathFormula> getPathFormulasForPrefix() {
     return pathFormulaForPrefix;
+  }
+
+  public Optional<PathFormula> getPathFormulaFull() {
+    return pathFormulaFull;
   }
 
   public void makeTarget() {
