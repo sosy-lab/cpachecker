@@ -51,6 +51,7 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">
@@ -98,10 +99,6 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
     <tasks name="C.unreach-call.Hardness">
       <includesfile>../programs/benchmarks/Hardness.set</includesfile>
-      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    </tasks>
-    <tasks name="C.unreach-call.Fuzzle">
-      <includesfile>../programs/benchmarks/Fuzzle.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
 
@@ -186,8 +183,6 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
     <tasks name="C.valid-memsafety.Juliet">
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
-      <!-- Exclude Juliet_test unsafe memsafety tasks without subproperty from competition. Originally excluded in commit 024bdad652 by @versokova -->
-      <exclude>../programs/benchmarks/Juliet_Test/*_bad.yml</exclude>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     </tasks>
 
@@ -285,12 +280,44 @@ SPDX-License-Identifier: Apache-2.0
       <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
       <includesfile>../programs/benchmarks/Recursive.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="C.termination.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="C.termination.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
-    <tasks name="C.unreach-call.SoftwareSystems-DeviceDriversLinux64-Termination">
-      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
-      <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP26_unreach-call_demo">
+    <tasks name="C.unreach-call.Huawei-Concurrency-Challenges">
+      <includesfile>../sv-benchmarks/c/Huawei-Concurrency-Challenges.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+
+  </rundefinition>
+
+  <rundefinition name="SV-COMP26_no-data-race_demo">
+    <tasks name="C.no-data-race.Huawei-Concurrency-Challenges">
+      <includesfile>../sv-benchmarks/c/Huawei-Concurrency-Challenges.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/no-data-race.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP26_valid-memsafety_demo">
+    <tasks name="C.valid-memsafety.Huawei-Concurrency-Challenges">
+      <includesfile>../sv-benchmarks/c/Huawei-Concurrency-Challenges.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP26_no-overflow_demo">
+    <tasks name="C.no-overflow.Huawei-Concurrency-Challenges">
+      <includesfile>../sv-benchmarks/c/Huawei-Concurrency-Challenges.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/no-overflow.prp</propertyfile>
     </tasks>
   </rundefinition>
 

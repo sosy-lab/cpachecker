@@ -38,12 +38,17 @@ SPDX-License-Identifier: Apache-2.0
       <propertyfile>../config/Assertion.spc</propertyfile>
     </tasks>
 
+    <tasks name="C.unreach-call.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    </tasks>
     <tasks name="C.unreach-call.BitVectors">
       <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">
@@ -86,10 +91,6 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
     <tasks name="C.unreach-call.Hardness">
       <includesfile>../programs/benchmarks/Hardness.set</includesfile>
-      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    </tasks>
-    <tasks name="C.unreach-call.Fuzzle">
-      <includesfile>../programs/benchmarks/Fuzzle.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
 
