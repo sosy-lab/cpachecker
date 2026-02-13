@@ -5311,6 +5311,9 @@ public class SMGState
   public List<ValueAndSMGState> findValueAssignmentsWithSolver(
       Value valueToAssign, CArraySubscriptExpression exprCurrentlyUnderEval, @Nullable CFAEdge edge)
       throws SMGSolverException {
+    // TODO: using this can cause StackOverflowErrors for large ranges.
+    //  Switch to picking some concrete values and then continue with the restricted symbolic
+
     // The constraint x + y - z == valueToAssign is assigned a concrete value with constraints only.
     // This is slow with the solver later on.
 
@@ -5361,6 +5364,8 @@ public class SMGState
             copyAndAddValueBlockingConstraint(
                 (SymbolicValue) valueToAssign, assignment, subscriptType, edge);
 
+        // TODO: this can cause StackOverflowErrors for large ranges
+        //  switch to picking some concrete values and then continue with the restricted symbolic
         List<ValueAndSMGState> recursiveAssignments =
             unEqualState.findValueAssignmentsWithSolver(
                 valueToAssign, exprCurrentlyUnderEval, edge);
