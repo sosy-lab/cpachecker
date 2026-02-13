@@ -219,7 +219,7 @@ public class SMGOptions {
     actualConcreteValueForSymbolicOffsetsAssignmentMaximum--;
   }
 
-  public boolean allowSymbolicvariableArrayLength() {
+  public boolean allowSymbolicVariableArrayLength() {
     return allowSymbolicVariableArrayLength;
   }
 

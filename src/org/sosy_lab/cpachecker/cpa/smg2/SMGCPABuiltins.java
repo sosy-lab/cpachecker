@@ -1464,7 +1464,6 @@ public class SMGCPABuiltins {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
-
       Value sizeValue = sizeAndState.getValue();
       SMGState currentState = sizeAndState.getState();
 
@@ -1787,6 +1786,11 @@ public class SMGCPABuiltins {
                   countAndState.getState(),
                   cfaEdge,
                   addressExpression,
+                  functionCall
+                      .getParameterExpressions()
+                      .getFirst()
+                      .getExpressionType()
+                      .getCanonicalType(),
                   charValueAndSMGState.getValue(),
                   countAndState.getValue()));
         }
@@ -1817,6 +1821,7 @@ public class SMGCPABuiltins {
       SMGState currentState,
       @SuppressWarnings("unused") CFAEdge cfaEdge,
       AddressExpression bufferAddressAndOffset,
+      CType addressType,
       Value charValue,
       Value countValue)
       throws CPATransferException {
@@ -1893,7 +1898,8 @@ public class SMGCPABuiltins {
     } else {
       ValueAndSMGState newPointerAndState =
           evaluator
-              .findOrcreateNewPointer(bufferMemoryAddress, bufferOffsetInBits, currentState)
+              .findOrCreateNewPointer(
+                  bufferMemoryAddress, bufferOffsetInBits, addressType, currentState)
               .getFirst();
       return ValueAndSMGState.of(newPointerAndState.getValue(), newPointerAndState.getState());
     }
@@ -2097,6 +2103,12 @@ public class SMGCPABuiltins {
       for (ValueAndSMGState targetAndState :
           getFunctionParameterValue(MEMCPY_TARGET_PARAMETER, functionCall, pState, cfaEdge)) {
         SMGState currentState = targetAndState.getState();
+        CType targetType =
+            functionCall
+                .getParameterExpressions()
+                .getFirst()
+                .getExpressionType()
+                .getCanonicalType();
 
         Value targetAddress = targetAndState.getValue();
         if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
@@ -2134,9 +2146,10 @@ public class SMGCPABuiltins {
         }
 
         List<ValueAndSMGState> newTargetPointerAndStates =
-            evaluator.findOrcreateNewPointer(
+            evaluator.findOrCreateNewPointer(
                 targetAddressExpr.getMemoryAddress(),
                 numTargetAddressOffset.bigIntegerValue(),
+                targetType,
                 currentState);
         for (ValueAndSMGState newTargetPointerAndState : newTargetPointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newTargetObjAndState :
@@ -2235,6 +2248,12 @@ public class SMGCPABuiltins {
           getFunctionParameterValue(
               MEMCPY_SOURCE_PARAMETER, functionCall, pCurrentState, pCFAEdge)) {
         SMGState currentState = sourceAndState.getState();
+        CType sourceType =
+            functionCall
+                .getParameterExpressions()
+                .get(MEMCPY_SOURCE_PARAMETER)
+                .getExpressionType()
+                .getCanonicalType();
 
         Value sourceAddress = sourceAndState.getValue();
         if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
@@ -2272,9 +2291,10 @@ public class SMGCPABuiltins {
         }
 
         List<ValueAndSMGState> newSourcePointerAndStates =
-            evaluator.findOrcreateNewPointer(
+            evaluator.findOrCreateNewPointer(
                 sourceAddressExpr.getMemoryAddress(),
                 numSourceAddressExprOffset.bigIntegerValue(),
+                sourceType,
                 currentState);
         for (ValueAndSMGState newSourcePointerAndState : newSourcePointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newSourceObjAndState :
@@ -2422,6 +2442,12 @@ public class SMGCPABuiltins {
       for (ValueAndSMGState targetAndState :
           getFunctionParameterValue(MEMCMP_CMP_TARGET1_PARAMETER, functionCall, pState, cfaEdge)) {
         SMGState currentState = targetAndState.getState();
+        CType target1Type =
+            functionCall
+                .getParameterExpressions()
+                .get(MEMCMP_CMP_TARGET1_PARAMETER)
+                .getExpressionType()
+                .getCanonicalType();
 
         Value targetAddress = targetAndState.getValue();
         if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
@@ -2446,9 +2472,10 @@ public class SMGCPABuiltins {
         }
 
         List<ValueAndSMGState> newTargetPointerAndStates =
-            evaluator.findOrcreateNewPointer(
+            evaluator.findOrCreateNewPointer(
                 targetAddressExpr.getMemoryAddress(),
                 targetAddressExprOffset.bigIntegerValue(),
+                target1Type,
                 currentState);
         for (ValueAndSMGState newTargetPointerAndState : newTargetPointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newTargetObjAndState :
@@ -2543,6 +2570,12 @@ public class SMGCPABuiltins {
           getFunctionParameterValue(
               MEMCMP_CMP_TARGET2_PARAMETER, functionCall, pCurrentState, pCFAEdge)) {
         SMGState currentState = sourceAndState.getState();
+        CType target2Type =
+            functionCall
+                .getParameterExpressions()
+                .get(MEMCMP_CMP_TARGET2_PARAMETER)
+                .getExpressionType()
+                .getCanonicalType();
 
         Value sourceAddress = sourceAndState.getValue();
         if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
@@ -2565,9 +2598,10 @@ public class SMGCPABuiltins {
         }
 
         List<ValueAndSMGState> newSourcePointerAndStates =
-            evaluator.findOrcreateNewPointer(
+            evaluator.findOrCreateNewPointer(
                 sourceAddressExpr.getMemoryAddress(),
                 sourceAddressExprOffset.bigIntegerValue(),
+                target2Type,
                 currentState);
         for (ValueAndSMGState newSourcePointerAndState : newSourcePointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newTargetObj2AndState :
