@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -403,29 +404,59 @@ public final class ValueAnalysisState
    */
   @Override
   public boolean isLessOrEqual(ValueAnalysisState other) {
-
-    // also, this element is not less or equal than the other element, if it contains less elements
-    if (constantsMap.size() < other.constantsMap.size()) {
-      return false;
-    }
+    // If this element contains fewer constants, it is not less or equal to the other
+    // if (constantsMap.size() < other.constantsMap.size()) {
+    //  return false;
+    // }
 
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this
     // element
+    Iterator<Entry<MemoryLocation, ValueAndType>> otherMapIter =
+        other.constantsMap.entrySet().iterator();
+    Iterator<Entry<MemoryLocation, ValueAndType>> thisMapIter = constantsMap.entrySet().iterator();
 
-    // the simple way
-    // if (other.constantsMap.entrySet().containsAll(constantsMap.entrySet())) {
-    //   return true;
-    // }
+    Entry<MemoryLocation, ValueAndType> otherEntry = null;
+    Entry<MemoryLocation, ValueAndType> thisEntry;
 
-    // the tolerant way: ignore all type information. TODO really correct?
-    for (Entry<MemoryLocation, ValueAndType> otherEntry : other.constantsMap.entrySet()) {
-      MemoryLocation key = otherEntry.getKey();
-      Value otherValue = otherEntry.getValue().getValue();
-      ValueAndType thisValueAndType = constantsMap.get(key);
-      if (thisValueAndType == null || !otherValue.equals(thisValueAndType.getValue())) {
-        return false;
+    while ((otherEntry != null || otherMapIter.hasNext()) && thisMapIter.hasNext()) {
+
+      if (otherEntry == null) {
+        otherEntry = otherMapIter.next();
       }
+
+      // thisEntry always gets the next entry,
+      //  as the only case where it doesn't, we return the method.
+      thisEntry = thisMapIter.next();
+
+      int comp = otherEntry.getKey().compareTo(thisEntry.getKey());
+
+      // All entries from other need to be in this
+      if (comp < 0) {
+        // otherEntry < thisEntry => otherEntry not in thisMapIter
+        return false;
+
+      } else if (comp == 0) {
+        // otherEntry == thisEntry
+        ValueAndType otherValueAndType = otherEntry.getValue();
+        ValueAndType thisValueAndType = thisEntry.getValue();
+
+        if (!otherValueAndType.getValue().equals(thisValueAndType.getValue())) {
+          // the tolerant way: ignore all type information. TODO really correct?
+          return false;
+        }
+
+        // forward both iterators (thisEntry always gets a new element)
+        otherEntry = null;
+      }
+      // Else: otherEntry > thisEntry
+      //  => forwards "this" iterator until this catches up with "other" iterator
+    }
+
+    if (otherEntry != null || otherMapIter.hasNext()) {
+      // We searched for this entry until thisMapIter endet, i.e. it is not in this.constantsMap,
+      // or the thisMapIter endet already, but the otherMapIter still has things to process
+      return false;
     }
 
     return true;
