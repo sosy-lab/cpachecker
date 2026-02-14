@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Optional;
@@ -90,6 +93,10 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return NULL_OBJECT;
   }
 
+  public int getMinLength() {
+    return 1;
+  }
+
   public static SMGObject of(int pNestingLevel, Value pSize, BigInteger pOffset) {
     return new SMGObject(pNestingLevel, pSize, pOffset);
   }
@@ -110,7 +117,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
    * @return a new object with the same size etc. as the old.
    */
   public static SMGObject of(SMGObject objectToCopy) {
-    Preconditions.checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
+    checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
     return new SMGObject(objectToCopy.nestingLevel, objectToCopy.size, objectToCopy.offset);
   }
 
@@ -144,9 +151,17 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return offset;
   }
 
-  @Override
   public int getNestingLevel() {
     return nestingLevel;
+  }
+
+  /**
+   * Internal name (label) of this memory that can optionally be used to identify memory. This
+   * should never be used as factual information about the memory, and is only meant as debug
+   * assistance. Does not have to exist.
+   */
+  public Optional<String> getName() {
+    return name;
   }
 
   @Override
@@ -182,8 +197,16 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return equals(NULL_OBJECT);
   }
 
-  public SMGObject copyWithNewLevel(int pNewLevel) {
-    Preconditions.checkArgument(pNewLevel >= 0);
+  public SMGObject copyWithNewNestingLevel(int pNewLevel) {
+    checkArgument(pNewLevel >= 0);
+    if (nestingLevel == pNewLevel) {
+      return this;
+    }
+    if (name.isPresent()) {
+      // Const binary strings in abstracted objects are VERY unlikely
+      checkState(!isConstBinaryString);
+      return of(pNewLevel, size, offset, name.orElseThrow());
+    }
     return of(pNewLevel, size, offset);
   }
 
@@ -199,8 +222,28 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return false;
   }
 
-  @Override
-  public SMGObject withNestingLevelAndCopy(int pNewLevel) {
-    return new SMGObject(pNewLevel, size, offset);
+  public SMGObject join(SMGObject otherObj) {
+    // From: Algorithm 6; joinTargetObjects()
+    // 7. Create new Object o.
+    // 8. Initialize labeling of o to match the labeling of o1 if kind(o1) = dls,
+    //      or to match the labeling of o2 if kind(o2) = dls,
+    //      otherwise take the labeling from any of them (since they are equal).
+    // 9. If LL, let min length = min of o1 or o2
+    // 10. Let level(o) = max level of o1 and o2
+    int newNestingLevel = Integer.max(nestingLevel, otherObj.nestingLevel);
+    int newMinLength = Integer.min(getMinLength(), otherObj.getMinLength());
+    if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
+      // This includes DLLs
+      return otherSLL
+          .copyWithNewMinimumLength(newMinLength)
+          .copyWithNewNestingLevel(newNestingLevel);
+    } else {
+      if (otherObj.nestingLevel == nestingLevel
+          && name.equals(otherObj.name)
+          && isConstBinaryString == otherObj.isConstBinaryString) {
+        return this;
+      }
+      return copyWithNewNestingLevel(newNestingLevel);
+    }
   }
 }
