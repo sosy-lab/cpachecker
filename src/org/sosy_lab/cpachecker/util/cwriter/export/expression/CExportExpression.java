@@ -21,8 +21,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * require adjustments to {@link CFA} handling and all visitors that handle {@link CExpression}.
  */
 public sealed interface CExportExpression
-    permits CBitVectorLiteralExpression,
-        CExpressionWrapper,
+    permits CExpressionWrapper,
         CFunctionCallExpressionWrapper,
         CInitializerWrapper,
         CLogicalExpression {
