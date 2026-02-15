@@ -47,7 +47,7 @@ class BitVectorAccessEvaluationBuilder {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build evaluation for encoding " + pOptions.bitVectorEncoding());
-      case BINARY, DECIMAL, HEXADECIMAL ->
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL ->
           Optional.of(
               buildFullDenseVariableOnlyEvaluation(
                   pActiveThread, pOtherThreads, pBitVectorVariables, pUtils));

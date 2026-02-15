@@ -117,7 +117,7 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> {
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
         LastDenseBitVector lastAccessBitVector =
             pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
         ImmutableSet<CExpression> otherAccessBitVectors =
@@ -149,7 +149,7 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> {
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
         LastDenseBitVector lastWriteBitVector =
             pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.WRITE);
         LastDenseBitVector lastAccessBitVector =
@@ -301,7 +301,7 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> {
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
         ImmutableSet<CExpression> otherBitVectors =
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
                 MemoryAccessType.ACCESS, pOtherThreads);
@@ -333,7 +333,7 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> {
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
         ImmutableSet<CExpression> otherWriteBitVectors =
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
                 MemoryAccessType.WRITE, pOtherThreads);

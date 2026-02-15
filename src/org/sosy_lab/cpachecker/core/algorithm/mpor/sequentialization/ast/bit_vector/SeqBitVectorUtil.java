@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.CIntegerLiteralBase;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -43,11 +44,11 @@ public class SeqBitVectorUtil {
   // Creation ======================================================================================
 
   public static CIntegerLiteralExpression buildBitVectorExpression(
-      SeqBitVectorEncoding pBitVectorEncoding,
+      SeqBitVectorEncoding pEncoding,
       MemoryModel pMemoryModel,
       ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
 
-    checkArgument(pBitVectorEncoding.isEnabled(), "no bit vector encoding specified");
+    checkArgument(pEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
         pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
@@ -55,7 +56,8 @@ public class SeqBitVectorUtil {
     SeqBitVectorDataType type =
         SeqBitVectorDataType.getTypeByBinaryLength(pMemoryModel.getRelevantMemoryLocationAmount());
     BigInteger mask = getRelevantMemoryLocationMask(pMemoryLocations, pMemoryModel);
-    return new CIntegerLiteralExpression(FileLocation.DUMMY, type.simpleType, mask);
+    CIntegerLiteralBase base = getIntegerLiteralBaseByEncoding(pEncoding);
+    return new CIntegerLiteralExpression(FileLocation.DUMMY, type.simpleType, mask, base);
   }
 
   public static CIntegerLiteralExpression buildDirectBitVectorExpression(
@@ -126,6 +128,20 @@ public class SeqBitVectorUtil {
   }
 
   // Helpers =======================================================================================
+
+  public static CIntegerLiteralBase getIntegerLiteralBaseByEncoding(
+      SeqBitVectorEncoding pEncoding) {
+
+    return switch (pEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "SeqBitVectorEncoding NONE does not have a corresponding CIntegerLiteralBase.");
+      case BINARY -> CIntegerLiteralBase.BINARY;
+      case OCTAL -> CIntegerLiteralBase.OCTAL;
+      case DECIMAL, SPARSE -> CIntegerLiteralBase.DECIMAL;
+      case HEXADECIMAL -> CIntegerLiteralBase.HEXADECIMAL;
+    };
+  }
 
   /**
    * Returns {@code true} if creating a bit vector with the given {@link MemoryAccessType} and

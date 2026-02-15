@@ -40,7 +40,7 @@ public enum SeqBitVectorDataType {
         FileLocation.DUMMY, true, simpleType, toASTString(), toASTString());
   }
 
-  public static SeqBitVectorDataType getTypeByBinaryLength(int pBinaryLength) {
+  static SeqBitVectorDataType getTypeByBinaryLength(int pBinaryLength) {
     checkArgument(pBinaryLength >= 0, "pBinaryLength cannot be negative, got %s", pBinaryLength);
 
     if (pBinaryLength <= SeqBitVectorDataType.UINT8_T.size) {

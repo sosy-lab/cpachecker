@@ -53,7 +53,7 @@ public record SeqBitVectorDeclarationBuilder(
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build bit vector declarations for encoding " + bitVectorEncoding);
-      case BINARY, DECIMAL, HEXADECIMAL -> buildDenseBitVectorDeclarationsByReductionMode();
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> buildDenseBitVectorDeclarationsByReductionMode();
       case SPARSE -> buildSparseBitVectorDeclarationsByReductionMode();
     };
   }

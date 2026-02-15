@@ -126,7 +126,7 @@ public record BitVectorAssignmentInjector(
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build bit vector assignments for encoding NONE");
-      case BINARY, DECIMAL, HEXADECIMAL ->
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL ->
           buildDenseBitVectorAssignment(pMemoryLocations, pAccessType, pReachType);
       case SPARSE -> buildSparseBitVectorAssignments(pMemoryLocations, pAccessType, pReachType);
     };

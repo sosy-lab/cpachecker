@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_ve
 public enum SeqBitVectorEncoding {
   NONE(false, false),
   BINARY(true, false),
+  OCTAL(true, false),
   DECIMAL(true, false),
   HEXADECIMAL(true, false),
   SPARSE(false, true);

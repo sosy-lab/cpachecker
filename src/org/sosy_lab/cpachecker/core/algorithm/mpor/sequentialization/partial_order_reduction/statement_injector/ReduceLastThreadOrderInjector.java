@@ -184,7 +184,7 @@ public record ReduceLastThreadOrderInjector(
           throw new IllegalArgumentException(
               String.format(
                   "cannot build updates for bitVectorEncoding %s", options.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> buildDenseLastBitVectorUpdates();
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> buildDenseLastBitVectorUpdates();
       case SPARSE -> buildSparseLastBitVectorUpdates();
     };
   }
