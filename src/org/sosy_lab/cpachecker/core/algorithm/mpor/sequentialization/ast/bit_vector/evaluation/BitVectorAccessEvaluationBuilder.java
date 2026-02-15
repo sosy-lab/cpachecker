@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -66,10 +67,19 @@ class BitVectorAccessEvaluationBuilder {
 
     if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedDenseEvaluation(
-          pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pUtils);
+          pOptions.bitVectorEncoding(),
+          pOtherBitVectors,
+          pDirectMemoryLocations,
+          pMemoryModel,
+          pUtils);
     } else {
       return Optional.of(
-          buildFullDenseEvaluation(pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pUtils));
+          buildFullDenseEvaluation(
+              pOptions.bitVectorEncoding(),
+              pOtherBitVectors,
+              pDirectMemoryLocations,
+              pMemoryModel,
+              pUtils));
     }
   }
 
@@ -91,6 +101,7 @@ class BitVectorAccessEvaluationBuilder {
   // Dense Access Bit Vectors ======================================================================
 
   private static Optional<CExportExpression> buildPrunedDenseEvaluation(
+      SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       MemoryModel pMemoryModel,
@@ -103,10 +114,11 @@ class BitVectorAccessEvaluationBuilder {
     }
     return Optional.of(
         buildFullDenseEvaluation(
-            pOtherBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pUtils));
+            pEncoding, pOtherBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pUtils));
   }
 
   private static CExpressionWrapper buildFullDenseEvaluation(
+      SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       MemoryModel pMemoryModel,
@@ -114,7 +126,7 @@ class BitVectorAccessEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directBitVector =
-        SeqBitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectMemoryLocations);
+        SeqBitVectorUtil.buildBitVectorExpression(pEncoding, pMemoryModel, pDirectMemoryLocations);
     return buildFullDenseBinaryAnd(directBitVector, pOtherBitVectors, pUtils);
   }
 

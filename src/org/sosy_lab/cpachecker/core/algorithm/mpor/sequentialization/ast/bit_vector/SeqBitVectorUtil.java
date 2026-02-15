@@ -42,24 +42,10 @@ public class SeqBitVectorUtil {
         pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
-    SeqBitVectorDataType type =
-        SeqBitVectorDataType.getTypeByBinaryLength(pMemoryModel.getRelevantMemoryLocationAmount());
+    CSimpleType type = SeqBitVectorUtil.getBitVectorTypeByMemoryModel(pMemoryModel);
     BigInteger mask = getRelevantMemoryLocationMask(pMemoryLocations, pMemoryModel);
     CIntegerLiteralBase base = getIntegerLiteralBaseByEncoding(pEncoding);
-    return new CIntegerLiteralExpression(FileLocation.DUMMY, type.simpleType, mask, base);
-  }
-
-  public static CIntegerLiteralExpression buildDirectBitVectorExpression(
-      MemoryModel pMemoryModel, ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
-
-    checkArgument(
-        pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
-        "pMemoryLocationIds must contain all pMemoryLocations as keys.");
-
-    // for decimal, use the sum of variable ids (starting from 1)
-    BigInteger mask = getRelevantMemoryLocationMask(pMemoryLocations, pMemoryModel);
-    return new CIntegerLiteralExpression(
-        FileLocation.DUMMY, getBitVectorTypeByMemoryModel(pMemoryModel), mask);
+    return new CIntegerLiteralExpression(FileLocation.DUMMY, type, mask, base);
   }
 
   private static BigInteger getRelevantMemoryLocationMask(

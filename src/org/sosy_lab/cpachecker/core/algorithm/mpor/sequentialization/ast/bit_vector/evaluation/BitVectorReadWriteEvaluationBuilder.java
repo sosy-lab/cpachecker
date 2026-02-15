@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.SparseBitVector;
@@ -77,6 +78,7 @@ class BitVectorReadWriteEvaluationBuilder {
 
     if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedDenseEvaluation(
+          pOptions.bitVectorEncoding(),
           pOtherWriteBitVectors,
           pOtherAccessBitVectors,
           pDirectReadMemoryLocations,
@@ -85,6 +87,7 @@ class BitVectorReadWriteEvaluationBuilder {
           pUtils);
     } else {
       return buildFullDenseEvaluation(
+          pOptions.bitVectorEncoding(),
           pOtherWriteBitVectors,
           pOtherAccessBitVectors,
           pDirectReadMemoryLocations,
@@ -122,6 +125,7 @@ class BitVectorReadWriteEvaluationBuilder {
   // Pruned Dense Evaluation =======================================================================
 
   private static Optional<CExportExpression> buildPrunedDenseEvaluation(
+      SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       ImmutableSet<CExpression> pOtherAccessBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
@@ -132,12 +136,14 @@ class BitVectorReadWriteEvaluationBuilder {
 
     Optional<CExpression> leftHandSide =
         buildPrunedDenseLeftHandSide(
+            pEncoding,
             pOtherWriteBitVectors,
             pDirectReadMemoryLocations,
             pMemoryModel,
             pUtils.binaryExpressionBuilder());
     Optional<CExpression> rightHandSide =
         buildPrunedDenseRightHandSide(
+            pEncoding,
             pOtherAccessBitVectors,
             pDirectWriteMemoryLocations,
             pMemoryModel,
@@ -158,6 +164,7 @@ class BitVectorReadWriteEvaluationBuilder {
   }
 
   private static Optional<CExpression> buildPrunedDenseLeftHandSide(
+      SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       MemoryModel pMemoryModel,
@@ -168,7 +175,8 @@ class BitVectorReadWriteEvaluationBuilder {
       return Optional.empty();
     } else {
       CIntegerLiteralExpression directReadBitVector =
-          SeqBitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectReadMemoryLocations);
+          SeqBitVectorUtil.buildBitVectorExpression(
+              pEncoding, pMemoryModel, pDirectReadMemoryLocations);
       CBinaryExpression leftHandSide =
           buildGeneralDenseLeftHandSide(
               directReadBitVector, pOtherWriteBitVectors, pBinaryExpressionBuilder);
@@ -177,6 +185,7 @@ class BitVectorReadWriteEvaluationBuilder {
   }
 
   private static Optional<CExpression> buildPrunedDenseRightHandSide(
+      SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherAccessBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
       MemoryModel pMemoryModel,
@@ -187,8 +196,8 @@ class BitVectorReadWriteEvaluationBuilder {
       return Optional.empty();
     } else {
       CIntegerLiteralExpression directWriteBitVector =
-          SeqBitVectorUtil.buildDirectBitVectorExpression(
-              pMemoryModel, pDirectWriteMemoryLocations);
+          SeqBitVectorUtil.buildBitVectorExpression(
+              pEncoding, pMemoryModel, pDirectWriteMemoryLocations);
       CBinaryExpression rRightHandSide =
           buildGeneralDenseRightHandSide(
               directWriteBitVector, pOtherAccessBitVectors, pBinaryExpressionBuilder);
@@ -199,6 +208,7 @@ class BitVectorReadWriteEvaluationBuilder {
   // Full Dense Evaluation =========================================================================
 
   private static Optional<CExportExpression> buildFullDenseEvaluation(
+      SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       ImmutableSet<CExpression> pOtherAccessBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
@@ -208,9 +218,11 @@ class BitVectorReadWriteEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directReadBitVector =
-        SeqBitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectReadMemoryLocations);
+        SeqBitVectorUtil.buildBitVectorExpression(
+            pEncoding, pMemoryModel, pDirectReadMemoryLocations);
     CIntegerLiteralExpression directWriteBitVector =
-        SeqBitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectWriteMemoryLocations);
+        SeqBitVectorUtil.buildBitVectorExpression(
+            pEncoding, pMemoryModel, pDirectWriteMemoryLocations);
     return Optional.of(
         buildFullDenseLogicalOr(
             directReadBitVector,

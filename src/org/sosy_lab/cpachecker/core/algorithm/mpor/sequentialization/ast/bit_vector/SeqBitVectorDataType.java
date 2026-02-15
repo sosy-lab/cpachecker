@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -38,27 +36,5 @@ public enum SeqBitVectorDataType {
   public CTypeDeclaration buildDeclaration() {
     return new CTypeDefDeclaration(
         FileLocation.DUMMY, true, simpleType, toASTString(), toASTString());
-  }
-
-  static SeqBitVectorDataType getTypeByBinaryLength(int pBinaryLength) {
-    checkArgument(pBinaryLength >= 0, "pBinaryLength cannot be negative, got %s", pBinaryLength);
-
-    if (pBinaryLength <= SeqBitVectorDataType.UINT8_T.size) {
-      return SeqBitVectorDataType.UINT8_T;
-    }
-    if (pBinaryLength <= SeqBitVectorDataType.UINT16_T.size) {
-      return SeqBitVectorDataType.UINT16_T;
-    }
-    if (pBinaryLength <= SeqBitVectorDataType.UINT32_T.size) {
-      return SeqBitVectorDataType.UINT32_T;
-    }
-    if (pBinaryLength <= SeqBitVectorDataType.UINT64_T.size) {
-      return SeqBitVectorDataType.UINT64_T;
-    }
-
-    throw new IllegalArgumentException(
-        String.format(
-            "pBinaryLength %s is too long, maximum is %s",
-            pBinaryLength, SeqBitVectorUtil.MAX_BINARY_LENGTH));
   }
 }
