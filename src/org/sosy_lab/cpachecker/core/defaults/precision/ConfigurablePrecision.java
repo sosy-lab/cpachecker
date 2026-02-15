@@ -10,12 +10,14 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -92,14 +94,44 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   private final Optional<VariableClassification> vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
+  // When isTracking() only returns a single static value for all variables, it is found here
+  private Optional<Boolean> staticTrackingResult = Optional.empty();
+
   ConfigurablePrecision(
       Configuration config,
       Optional<VariableClassification> pVc,
-      Class<? extends ConfigurableProgramAnalysis> cpaClass)
+      Class<? extends ConfigurableProgramAnalysis> pCpaClass)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.cpaClass = cpaClass;
+    this.cpaClass = pCpaClass;
     vc = pVc;
+    preCalculateStaticTracking();
+  }
+
+  // TODO: check whether we can get the info about static precision tracking results
+  //  sooner/cheaper (e.g. when vc is built)
+  public void preCalculateStaticTracking() {
+    if (vc.isEmpty()) {
+      return;
+    }
+
+    VariableClassification varClass = vc.orElseThrow();
+
+    // TODO: explore usage of this "not tracking" set, so that we may return false fast if the
+    //  difference in size to the tracking sets is large enough
+    ImmutableSet.Builder<String> isNotTrackingSetBuilder = ImmutableSet.builder();
+    for (String variable : varClass.getAllVariables()) {
+      if (!isInTrackedVarClass(variable)) {
+        isNotTrackingSetBuilder.add(variable);
+      }
+    }
+
+    Set<String> isNotTrackingSet = isNotTrackingSetBuilder.build();
+    if (isNotTrackingSet.size() == varClass.getAllVariables().size()) {
+      staticTrackingResult = Optional.of(false);
+    } else if (isNotTrackingSet.isEmpty()) {
+      staticTrackingResult = Optional.of(true);
+    }
   }
 
   @Override
@@ -115,6 +147,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
+    if (staticTrackingResult.isPresent()) {
+      return staticTrackingResult.orElseThrow();
+    }
+
     if (trackFloatVariables) {
       return isTracking(pVariable);
     } else {

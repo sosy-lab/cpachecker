@@ -39,6 +39,9 @@ public class VariableClassification {
   private final Set<String> intAddVars;
   private final Set<String> intOverflowVars;
 
+  // The set of all variables in the program
+  private final Set<String> allVariables;
+
   /**
    * These sets contain all variables even ones of array, pointer or structure types. Such variables
    * cannot be classified even as Int, so they are only kept in these sets in order not to break the
@@ -86,7 +89,8 @@ public class VariableClassification {
       Set<Partition> pIntAddPartitions,
       Table<CFAEdge, Integer, Partition> pEdgeToPartitions,
       Multiset<String> pAssumedVariables,
-      Multiset<String> pAssignedVariables) {
+      Multiset<String> pAssignedVariables,
+      Set<String> pAllVariables) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
@@ -103,6 +107,7 @@ public class VariableClassification {
     edgeToPartitions = ImmutableTable.copyOf(pEdgeToPartitions);
     assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
     assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
+    allVariables = ImmutableSet.copyOf(pAllVariables);
   }
 
   @VisibleForTesting
@@ -123,7 +128,8 @@ public class VariableClassification {
         ImmutableSet.of(),
         ImmutableTable.of(),
         ImmutableMultiset.of(),
-        ImmutableMultiset.of());
+        ImmutableMultiset.of(),
+        ImmutableSet.of());
   }
 
   public boolean hasRelevantNonIntAddVars() {
@@ -291,6 +297,11 @@ public class VariableClassification {
   private Partition getPartitionForEdge(CFAEdge edge, int index) {
     checkNotNull(edge);
     return edgeToPartitions.get(edge, index);
+  }
+
+  /** Returns the set of all variable names in the CFA. */
+  public Set<String> getAllVariables() {
+    return allVariables;
   }
 
   /**
