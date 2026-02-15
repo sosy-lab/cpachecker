@@ -79,7 +79,6 @@ public class Sequentialization {
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.add(
         SequentializationBuilder.buildInputFunctionAndTypeDeclarations(pOptions, pFields.threads));
-    rProgram.add(SequentializationBuilder.buildBitVectorTypeDeclarations());
     // add all variable and parameter declarations, but only if there are any
     Optional.of(
             SequentializationBuilder.buildInputGlobalVariableDeclarations(

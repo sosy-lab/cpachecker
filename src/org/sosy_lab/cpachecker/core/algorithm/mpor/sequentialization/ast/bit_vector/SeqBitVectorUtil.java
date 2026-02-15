@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_ve
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -21,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.CIntegerLiter
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -29,14 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 
 public class SeqBitVectorUtil {
-
-  public static final ImmutableList<CType> BIT_VECTOR_TYPES =
-      ImmutableList.of(
-          CNumericTypes.UNSIGNED_CHAR,
-          CNumericTypes.UNSIGNED_SHORT_INT,
-          CNumericTypes.UNSIGNED_INT,
-          CNumericTypes.UNSIGNED_LONG_INT,
-          CNumericTypes.UNSIGNED_LONG_LONG_INT);
 
   public static CIntegerLiteralExpression buildBitVectorExpression(
       SeqBitVectorEncoding pEncoding,
@@ -104,11 +94,11 @@ public class SeqBitVectorUtil {
   private static int getMinimumBitVectorLengthInBytes(
       MachineModel pMachineModel, MemoryModel pMemoryModel) {
 
-    int binaryLength = pMachineModel.getSizeofCharInBits();
-    while (binaryLength < pMemoryModel.getRelevantMemoryLocationAmount()) {
-      binaryLength *= 2;
+    int lengthInBit = pMachineModel.getSizeofCharInBits();
+    while (lengthInBit < pMemoryModel.getRelevantMemoryLocationAmount()) {
+      lengthInBit *= 2;
     }
-    return binaryLength / 4;
+    return lengthInBit / 4;
   }
 
   // Helpers =======================================================================================
