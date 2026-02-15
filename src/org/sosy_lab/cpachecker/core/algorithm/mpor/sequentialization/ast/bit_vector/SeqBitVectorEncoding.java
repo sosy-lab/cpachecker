@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector;
 
-public enum BitVectorEncoding {
+public enum SeqBitVectorEncoding {
   NONE(false, false),
   BINARY(true, false),
   DECIMAL(true, false),
@@ -19,7 +19,7 @@ public enum BitVectorEncoding {
 
   public final boolean isSparse;
 
-  BitVectorEncoding(boolean pIsDense, boolean pIsSparse) {
+  SeqBitVectorEncoding(boolean pIsDense, boolean pIsSparse) {
     isDense = pIsDense;
     isSparse = pIsSparse;
   }

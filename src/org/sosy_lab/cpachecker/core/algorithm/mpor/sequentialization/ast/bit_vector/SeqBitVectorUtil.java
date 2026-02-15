@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 
-public class BitVectorUtil {
+public class SeqBitVectorUtil {
 
   /** The right-most index is 0, with the left-most index being the length of the bit vector - 1. */
   public static final int RIGHT_INDEX = 0;
@@ -36,14 +36,14 @@ public class BitVectorUtil {
     return pBinaryLength + RIGHT_INDEX - 1;
   }
 
-  public static final int MIN_BINARY_LENGTH = BitVectorDataType.UINT8_T.size;
+  public static final int MIN_BINARY_LENGTH = SeqBitVectorDataType.UINT8_T.size;
 
-  public static final int MAX_BINARY_LENGTH = BitVectorDataType.UINT64_T.size;
+  public static final int MAX_BINARY_LENGTH = SeqBitVectorDataType.UINT64_T.size;
 
   // Creation ======================================================================================
 
   public static CIntegerLiteralExpression buildBitVectorExpression(
-      BitVectorEncoding pBitVectorEncoding,
+      SeqBitVectorEncoding pBitVectorEncoding,
       MemoryModel pMemoryModel,
       ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
 
@@ -52,8 +52,8 @@ public class BitVectorUtil {
         pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
-    BitVectorDataType type =
-        BitVectorDataType.getTypeByBinaryLength(pMemoryModel.getRelevantMemoryLocationAmount());
+    SeqBitVectorDataType type =
+        SeqBitVectorDataType.getTypeByBinaryLength(pMemoryModel.getRelevantMemoryLocationAmount());
     BigInteger mask = getRelevantMemoryLocationMask(pMemoryLocations, pMemoryModel);
     return new CIntegerLiteralExpression(FileLocation.DUMMY, type.simpleType, mask);
   }
@@ -72,7 +72,7 @@ public class BitVectorUtil {
   }
 
   private static CSimpleType getTypeByBinaryLength(int pBinaryLength) {
-    for (BitVectorDataType dataType : BitVectorDataType.values()) {
+    for (SeqBitVectorDataType dataType : SeqBitVectorDataType.values()) {
       if (dataType.size == pBinaryLength) {
         return dataType.simpleType;
       }
@@ -96,8 +96,8 @@ public class BitVectorUtil {
 
   // Vector Length =================================================================================
 
-  public static BitVectorDataType getDataTypeByLength(int pLength) {
-    for (BitVectorDataType type : BitVectorDataType.values()) {
+  public static SeqBitVectorDataType getDataTypeByLength(int pLength) {
+    for (SeqBitVectorDataType type : SeqBitVectorDataType.values()) {
       if (type.size == pLength) {
         return type;
       }
@@ -115,7 +115,7 @@ public class BitVectorUtil {
   }
 
   public static boolean isValidBinaryLength(int pBinaryLength) {
-    for (BitVectorDataType type : BitVectorDataType.values()) {
+    for (SeqBitVectorDataType type : SeqBitVectorDataType.values()) {
       if (type.size == pBinaryLength) {
         return true;
       }

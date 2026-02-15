@@ -29,9 +29,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorDataType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.declaration.SeqBitVectorDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorDataType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
@@ -54,7 +53,7 @@ public class SequentializationBuilder {
 
   public static String buildBitVectorTypeDeclarations() {
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    for (BitVectorDataType bitVectorType : BitVectorDataType.values()) {
+    for (SeqBitVectorDataType bitVectorType : SeqBitVectorDataType.values()) {
       CTypeDeclaration bitVectorTypeDeclaration = bitVectorType.buildDeclaration();
       rDeclarations.add(bitVectorTypeDeclaration.toASTString());
     }
@@ -389,9 +388,9 @@ public class SequentializationBuilder {
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
               pFields.memoryModel.orElseThrow());
-      ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
+      ImmutableList<CVariableDeclaration> bitVectorDeclarations =
           bitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding();
-      for (SeqBitVectorDeclaration bitVectorDeclaration : bitVectorDeclarations) {
+      for (CVariableDeclaration bitVectorDeclaration : bitVectorDeclarations) {
         rDeclarations.add(bitVectorDeclaration.toASTString());
       }
     }

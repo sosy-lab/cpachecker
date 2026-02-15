@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector;
 
-public enum BitVectorDirection {
+public enum SeqBitVectorDirection {
   /** For storing the current threads bit vectors. */
   CURRENT,
   /** For storing the previous threads bit vectors. */

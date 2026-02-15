@@ -16,7 +16,7 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public record PartialOrderReducer(
     MPOROptions options,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
-    Optional<BitVectorVariables> bitVectorVariables,
+    Optional<SeqBitVectorVariables> bitVectorVariables,
     Optional<MemoryModel> memoryModel,
     SequentializationUtils utils) {
 

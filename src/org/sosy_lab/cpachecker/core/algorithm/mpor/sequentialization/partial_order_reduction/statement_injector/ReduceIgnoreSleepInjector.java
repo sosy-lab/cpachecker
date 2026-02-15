@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
@@ -36,7 +36,7 @@ record ReduceIgnoreSleepInjector(
     MPORThread activeThread,
     ImmutableSet<MPORThread> otherThreads,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
-    BitVectorVariables bitVectorVariables,
+    SeqBitVectorVariables bitVectorVariables,
     SequentializationUtils utils) {
 
   SeqThreadStatement injectIgnoreSleepReductionIntoStatement(SeqThreadStatement pStatement)

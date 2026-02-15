@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -116,7 +116,7 @@ public class BitVectorEvaluationUtil {
   static ImmutableListMultimap<SeqMemoryLocation, CExpression>
       mapMemoryLocationsToSparseBitVectorsByAccessType(
           ImmutableSet<MPORThread> pOtherThreads,
-          BitVectorVariables pBitVectorVariables,
+          SeqBitVectorVariables pBitVectorVariables,
           MemoryAccessType pAccessType) {
 
     ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =

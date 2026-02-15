@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
@@ -30,7 +30,7 @@ public record StatementInjector(
     ImmutableList<SeqThreadStatementClause> clauses,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
-    BitVectorVariables bitVectorVariables,
+    SeqBitVectorVariables bitVectorVariables,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 

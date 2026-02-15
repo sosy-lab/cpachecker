@@ -13,8 +13,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariablesBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariableBuilder;
@@ -39,9 +39,10 @@ public record GhostElementBuilder(
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   public GhostElements buildGhostElements() throws UnrecognizedCodeException {
-    Optional<BitVectorVariables> bitVectorVariables =
+    Optional<SeqBitVectorVariables> bitVectorVariables =
         options.isAnyBitVectorReductionEnabled()
-            ? new BitVectorBuilder(options, threads, substituteEdges, memoryModel.orElseThrow())
+            ? new SeqBitVectorVariablesBuilder(
+                    options, threads, substituteEdges, memoryModel.orElseThrow())
                 .buildBitVectorVariables()
             : Optional.empty();
 

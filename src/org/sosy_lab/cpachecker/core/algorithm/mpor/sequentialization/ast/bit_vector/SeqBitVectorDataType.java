@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
-public enum BitVectorDataType {
+public enum SeqBitVectorDataType {
   UINT8_T(8, CNumericTypes.UNSIGNED_CHAR),
   UINT16_T(16, CNumericTypes.UNSIGNED_SHORT_INT),
   UINT32_T(32, CNumericTypes.UNSIGNED_INT),
@@ -26,7 +26,7 @@ public enum BitVectorDataType {
 
   public final CSimpleType simpleType;
 
-  BitVectorDataType(int pSize, CSimpleType pSimpleType) {
+  SeqBitVectorDataType(int pSize, CSimpleType pSimpleType) {
     size = pSize;
     simpleType = pSimpleType;
   }
@@ -40,25 +40,25 @@ public enum BitVectorDataType {
         FileLocation.DUMMY, true, simpleType, toASTString(), toASTString());
   }
 
-  public static BitVectorDataType getTypeByBinaryLength(int pBinaryLength) {
+  public static SeqBitVectorDataType getTypeByBinaryLength(int pBinaryLength) {
     checkArgument(pBinaryLength >= 0, "pBinaryLength cannot be negative, got %s", pBinaryLength);
 
-    if (pBinaryLength <= BitVectorDataType.UINT8_T.size) {
-      return BitVectorDataType.UINT8_T;
+    if (pBinaryLength <= SeqBitVectorDataType.UINT8_T.size) {
+      return SeqBitVectorDataType.UINT8_T;
     }
-    if (pBinaryLength <= BitVectorDataType.UINT16_T.size) {
-      return BitVectorDataType.UINT16_T;
+    if (pBinaryLength <= SeqBitVectorDataType.UINT16_T.size) {
+      return SeqBitVectorDataType.UINT16_T;
     }
-    if (pBinaryLength <= BitVectorDataType.UINT32_T.size) {
-      return BitVectorDataType.UINT32_T;
+    if (pBinaryLength <= SeqBitVectorDataType.UINT32_T.size) {
+      return SeqBitVectorDataType.UINT32_T;
     }
-    if (pBinaryLength <= BitVectorDataType.UINT64_T.size) {
-      return BitVectorDataType.UINT64_T;
+    if (pBinaryLength <= SeqBitVectorDataType.UINT64_T.size) {
+      return SeqBitVectorDataType.UINT64_T;
     }
 
     throw new IllegalArgumentException(
         String.format(
             "pBinaryLength %s is too long, maximum is %s",
-            pBinaryLength, BitVectorUtil.MAX_BINARY_LENGTH));
+            pBinaryLength, SeqBitVectorUtil.MAX_BINARY_LENGTH));
   }
 }

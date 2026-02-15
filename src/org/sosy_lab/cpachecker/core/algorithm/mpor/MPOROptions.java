@@ -12,7 +12,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
@@ -36,7 +36,7 @@ public class MPOROptions {
   private boolean atomicBlockMerge = true;
 
   @Option(secure = true, description = "the encoding of the partial order reduction bit vectors.")
-  private BitVectorEncoding bitVectorEncoding = BitVectorEncoding.NONE;
+  private SeqBitVectorEncoding bitVectorEncoding = SeqBitVectorEncoding.NONE;
 
   @Option(
       secure = false,
@@ -387,7 +387,7 @@ public class MPOROptions {
     return atomicBlockMerge;
   }
 
-  public BitVectorEncoding bitVectorEncoding() {
+  public SeqBitVectorEncoding bitVectorEncoding() {
     return bitVectorEncoding;
   }
 

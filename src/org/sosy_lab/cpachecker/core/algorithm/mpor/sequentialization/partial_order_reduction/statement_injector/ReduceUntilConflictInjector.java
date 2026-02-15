@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
@@ -34,7 +34,7 @@ record ReduceUntilConflictInjector(
     ImmutableSet<MPORThread> otherThreads,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
-    BitVectorVariables bitVectorVariables,
+    SeqBitVectorVariables bitVectorVariables,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 

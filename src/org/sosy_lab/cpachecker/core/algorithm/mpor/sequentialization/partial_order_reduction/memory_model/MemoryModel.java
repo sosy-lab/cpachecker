@@ -18,7 +18,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -97,12 +97,12 @@ public class MemoryModel {
       throws UnsupportedCodeException {
 
     if (pOptions.bitVectorEncoding().isDense) {
-      if (pRelevantMemoryLocationIds.size() > BitVectorUtil.MAX_BINARY_LENGTH) {
+      if (pRelevantMemoryLocationIds.size() > SeqBitVectorUtil.MAX_BINARY_LENGTH) {
         throw new UnsupportedCodeException(
             String.format(
                 "The input program contains too many relevant memory locations (> %s). Try setting"
                     + " bitVectorEncoding=SPARSE.",
-                BitVectorUtil.MAX_BINARY_LENGTH),
+                SeqBitVectorUtil.MAX_BINARY_LENGTH),
             null);
       }
     }

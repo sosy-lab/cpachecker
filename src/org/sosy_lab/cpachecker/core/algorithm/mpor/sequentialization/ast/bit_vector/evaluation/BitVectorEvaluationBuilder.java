@@ -17,9 +17,9 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.LastSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -38,7 +38,7 @@ public class BitVectorEvaluationBuilder {
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -63,7 +63,7 @@ public class BitVectorEvaluationBuilder {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pFirstBlock,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -107,7 +107,7 @@ public class BitVectorEvaluationBuilder {
   private static Optional<CExportExpression> buildLastAccessBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -139,7 +139,7 @@ public class BitVectorEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -183,7 +183,7 @@ public class BitVectorEvaluationBuilder {
 
   private static ImmutableListMultimap<SeqMemoryLocation, CExpression>
       mapMemoryLocationsToLastSparseBitVectorsByAccessType(
-          BitVectorVariables pBitVectorVariables, MemoryAccessType pAccessType) {
+          SeqBitVectorVariables pBitVectorVariables, MemoryAccessType pAccessType) {
 
     ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =
         ImmutableListMultimap.builder();
@@ -203,7 +203,7 @@ public class BitVectorEvaluationBuilder {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pTargetBlock,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -257,7 +257,7 @@ public class BitVectorEvaluationBuilder {
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -291,7 +291,7 @@ public class BitVectorEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -323,7 +323,7 @@ public class BitVectorEvaluationBuilder {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {

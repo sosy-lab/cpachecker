@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -39,7 +39,7 @@ class BitVectorAccessEvaluationBuilder {
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -77,7 +77,7 @@ class BitVectorAccessEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
-      BitVectorVariables pBitVectorVariables) {
+      SeqBitVectorVariables pBitVectorVariables) {
 
     if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedSparseEvaluation(
@@ -114,14 +114,14 @@ class BitVectorAccessEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directBitVector =
-        BitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectMemoryLocations);
+        SeqBitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectMemoryLocations);
     return buildFullDenseBinaryAnd(directBitVector, pOtherBitVectors, pUtils);
   }
 
   private static CExpressionWrapper buildFullDenseVariableOnlyEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -154,7 +154,7 @@ class BitVectorAccessEvaluationBuilder {
   private static Optional<CExportExpression> buildPrunedSparseEvaluation(
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
-      BitVectorVariables pBitVectorVariables) {
+      SeqBitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
       // no sparse variables (i.e. no global variables) -> no evaluation
@@ -183,7 +183,7 @@ class BitVectorAccessEvaluationBuilder {
   private static Optional<CExportExpression> buildFullSparseEvaluation(
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
-      BitVectorVariables pBitVectorVariables) {
+      SeqBitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
       // no sparse variables (i.e. no global variables) -> no evaluation
@@ -211,7 +211,7 @@ class BitVectorAccessEvaluationBuilder {
   private static Optional<CExportExpression> buildFullSparseVariableOnlyEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables) {
+      SeqBitVectorVariables pBitVectorVariables) {
 
     ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseBitVectorMap =
         BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(

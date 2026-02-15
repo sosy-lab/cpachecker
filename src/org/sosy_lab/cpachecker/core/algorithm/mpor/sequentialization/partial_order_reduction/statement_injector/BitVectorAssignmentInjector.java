@@ -18,8 +18,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -40,7 +40,7 @@ public record BitVectorAssignmentInjector(
     MPORThread activeThread,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
-    BitVectorVariables bitVectorVariables,
+    SeqBitVectorVariables bitVectorVariables,
     MemoryModel memoryModel) {
 
   SeqThreadStatement injectBitVectorAssignmentsIntoStatement(SeqThreadStatement pStatement) {
@@ -77,7 +77,7 @@ public record BitVectorAssignmentInjector(
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (BitVectorUtil.isAccessReachPairNeeded(
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(
             options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
           rAssignments.addAll(
               buildBitVectorAssignmentByEncoding(ImmutableSet.of(), accessType, reachType));
@@ -99,7 +99,7 @@ public record BitVectorAssignmentInjector(
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (BitVectorUtil.isAccessReachPairNeeded(
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(
             options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
@@ -137,14 +137,14 @@ public record BitVectorAssignmentInjector(
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    if (!BitVectorUtil.isAccessReachPairNeeded(
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
         options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     CIdExpression bitVectorVariable =
         bitVectorVariables.getDenseBitVector(activeThread, pAccessType, pReachType);
     CIntegerLiteralExpression bitVectorExpression =
-        BitVectorUtil.buildBitVectorExpression(
+        SeqBitVectorUtil.buildBitVectorExpression(
             options.bitVectorEncoding(), memoryModel, pMemoryLocations);
     return ImmutableList.of(
         SeqInstrumentationBuilder.buildBitVectorUpdateStatement(
@@ -156,7 +156,7 @@ public record BitVectorAssignmentInjector(
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    if (!BitVectorUtil.isAccessReachPairNeeded(
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
         options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
       return ImmutableList.of();
     }

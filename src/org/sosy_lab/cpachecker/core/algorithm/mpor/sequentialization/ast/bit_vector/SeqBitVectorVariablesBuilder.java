@@ -18,10 +18,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.DenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.LastSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.DenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
@@ -34,13 +34,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public record BitVectorBuilder(
+public record SeqBitVectorVariablesBuilder(
     MPOROptions options,
     ImmutableList<MPORThread> threads,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
     MemoryModel memoryModel) {
 
-  public Optional<BitVectorVariables> buildBitVectorVariables() {
+  public Optional<SeqBitVectorVariables> buildBitVectorVariables() {
     return switch (options.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
@@ -50,7 +50,7 @@ public record BitVectorBuilder(
     };
   }
 
-  private Optional<BitVectorVariables> buildAccessOnlyBitVectorVariables() {
+  private Optional<SeqBitVectorVariables> buildAccessOnlyBitVectorVariables() {
     // create bit vector access variables for all threads, e.g. __uint8_t ba0
     Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
         buildDenseBitVectorsByAccessType(MemoryAccessType.ACCESS);
@@ -63,7 +63,7 @@ public record BitVectorBuilder(
     Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseAccessBitVectors =
         tryBuildLastSparseBitVectorsByAccessType(MemoryAccessType.ACCESS);
     return Optional.of(
-        new BitVectorVariables(
+        new SeqBitVectorVariables(
             denseAccessBitVectors,
             Optional.empty(),
             Optional.empty(),
@@ -76,7 +76,7 @@ public record BitVectorBuilder(
             Optional.empty()));
   }
 
-  private Optional<BitVectorVariables> buildReadWriteBitVectorVariables() {
+  private Optional<SeqBitVectorVariables> buildReadWriteBitVectorVariables() {
 
     // create bit vector read + write variables for all threads, e.g. __uint8_t br0, bw0
     Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
@@ -105,7 +105,7 @@ public record BitVectorBuilder(
         tryBuildLastSparseBitVectorsByAccessType(MemoryAccessType.WRITE);
 
     return Optional.of(
-        new BitVectorVariables(
+        new SeqBitVectorVariables(
             denseAccessBitVectors,
             denseReadBitVectors,
             denseWriteBitVectors,
@@ -140,7 +140,7 @@ public record BitVectorBuilder(
   private Optional<CIdExpression> buildDenseBitVector(
       MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
 
-    if (!BitVectorUtil.isAccessReachPairNeeded(
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
         options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
       return Optional.empty();
     }
@@ -152,7 +152,7 @@ public record BitVectorBuilder(
                   Optional.empty(),
                   pAccessType,
                   ReachType.DIRECT,
-                  BitVectorDirection.CURRENT));
+                  SeqBitVectorDirection.CURRENT));
       case REACHABLE ->
           Optional.of(
               buildBitVectorIdExpression(
@@ -160,7 +160,7 @@ public record BitVectorBuilder(
                   Optional.empty(),
                   pAccessType,
                   ReachType.REACHABLE,
-                  BitVectorDirection.CURRENT));
+                  SeqBitVectorDirection.CURRENT));
     };
   }
 
@@ -186,7 +186,7 @@ public record BitVectorBuilder(
   private ImmutableMap<MPORThread, CIdExpression> buildSparseBitVectors(
       SeqMemoryLocation pMemoryLocation, MemoryAccessType pAccessType, ReachType pReachType) {
 
-    if (!BitVectorUtil.isAccessReachPairNeeded(
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
         options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
       return ImmutableMap.of();
     }
@@ -198,7 +198,7 @@ public record BitVectorBuilder(
               Optional.of(pMemoryLocation),
               pAccessType,
               pReachType,
-              BitVectorDirection.CURRENT);
+              SeqBitVectorDirection.CURRENT);
       if (options.pruneSparseBitVectors()) {
         boolean isReachable =
             memoryModel.isMemoryLocationReachableByThread(
@@ -227,7 +227,7 @@ public record BitVectorBuilder(
             Optional.empty(),
             pAccessType,
             ReachType.REACHABLE,
-            BitVectorDirection.LAST);
+            SeqBitVectorDirection.LAST);
     return Optional.of(new LastDenseBitVector(lastIdExpression));
   }
 
@@ -245,7 +245,7 @@ public record BitVectorBuilder(
               Optional.of(memoryLocation),
               pAccessType,
               ReachType.REACHABLE,
-              BitVectorDirection.LAST);
+              SeqBitVectorDirection.LAST);
       rMap.put(memoryLocation, new LastSparseBitVector(lastIdExpression));
     }
     return Optional.of(rMap.buildOrThrow());
@@ -258,7 +258,7 @@ public record BitVectorBuilder(
       Optional<SeqMemoryLocation> pMemoryLocation,
       MemoryAccessType pAccessType,
       ReachType pReachType,
-      BitVectorDirection pDirection) {
+      SeqBitVectorDirection pDirection) {
 
     checkArgument(
         !options.bitVectorEncoding().isSparse || pMemoryLocation.isPresent(),

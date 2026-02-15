@@ -20,9 +20,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -40,7 +40,7 @@ class BitVectorReadWriteEvaluationBuilder {
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -100,7 +100,7 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseAccessMap,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      BitVectorVariables pBitVectorVariables) {
+      SeqBitVectorVariables pBitVectorVariables) {
 
     if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedSparseEvaluation(
@@ -168,7 +168,7 @@ class BitVectorReadWriteEvaluationBuilder {
       return Optional.empty();
     } else {
       CIntegerLiteralExpression directReadBitVector =
-          BitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectReadMemoryLocations);
+          SeqBitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectReadMemoryLocations);
       CBinaryExpression leftHandSide =
           buildGeneralDenseLeftHandSide(
               directReadBitVector, pOtherWriteBitVectors, pBinaryExpressionBuilder);
@@ -187,7 +187,8 @@ class BitVectorReadWriteEvaluationBuilder {
       return Optional.empty();
     } else {
       CIntegerLiteralExpression directWriteBitVector =
-          BitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectWriteMemoryLocations);
+          SeqBitVectorUtil.buildDirectBitVectorExpression(
+              pMemoryModel, pDirectWriteMemoryLocations);
       CBinaryExpression rRightHandSide =
           buildGeneralDenseRightHandSide(
               directWriteBitVector, pOtherAccessBitVectors, pBinaryExpressionBuilder);
@@ -207,9 +208,9 @@ class BitVectorReadWriteEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directReadBitVector =
-        BitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectReadMemoryLocations);
+        SeqBitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectReadMemoryLocations);
     CIntegerLiteralExpression directWriteBitVector =
-        BitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectWriteMemoryLocations);
+        SeqBitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectWriteMemoryLocations);
     return Optional.of(
         buildFullDenseLogicalOr(
             directReadBitVector,
@@ -222,7 +223,7 @@ class BitVectorReadWriteEvaluationBuilder {
   private static CLogicalOrExpression buildFullDenseVariableOnlyEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -301,7 +302,7 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseAccessMap,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      BitVectorVariables pBitVectorVariables) {
+      SeqBitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseBitVectorsEmpty()) {
       // no bit vectors (e.g. no global variables) -> no evaluation
@@ -368,7 +369,7 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseAccessMap,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      BitVectorVariables pBitVectorVariables) {
+      SeqBitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseBitVectorsEmpty()) {
       return Optional.empty();
@@ -394,7 +395,7 @@ class BitVectorReadWriteEvaluationBuilder {
       MPORThread pActiveThread,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseWriteMap,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseAccessMap,
-      BitVectorVariables pBitVectorVariables) {
+      SeqBitVectorVariables pBitVectorVariables) {
 
     ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     ImmutableSet<SeqMemoryLocation> memoryLocations =
@@ -442,7 +443,7 @@ class BitVectorReadWriteEvaluationBuilder {
       SeqMemoryLocation pMemoryLocation,
       ImmutableList<CExpression> pOtherWriteVariables,
       ImmutableList<CExpression> pOtherAccessVariables,
-      BitVectorVariables pBitVectorVariables) {
+      SeqBitVectorVariables pBitVectorVariables) {
 
     SparseBitVector sparseReadBitVector =
         Objects.requireNonNull(pBitVectorVariables.getSparseReadBitVectors().get(pMemoryLocation));

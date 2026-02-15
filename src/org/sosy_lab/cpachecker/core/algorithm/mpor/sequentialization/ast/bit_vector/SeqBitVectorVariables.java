@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public record BitVectorVariables(
+public record SeqBitVectorVariables(
     Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors,
     Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors,
     Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors,

@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
  * Contains ghost elements not present in the input program, e.g. to simulate threads or functions.
  */
 public record GhostElements(
-    Optional<BitVectorVariables> bitVectorVariables,
+    Optional<SeqBitVectorVariables> bitVectorVariables,
     ImmutableMap<MPORThread, FunctionStatements> functionStatements,
     ProgramCounterVariables programCounterVariables,
     ImmutableMap<MPORThread, CLabelStatement> threadLabels,
