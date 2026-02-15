@@ -76,8 +76,8 @@ public class SeqBitVectorUtil {
   static CSimpleType getBitVectorTypeByMemoryModel(
       MachineModel pMachineModel, MemoryModel pMemoryModel) {
 
-    final int minimumLength = getMinimumRequiredBitVectorLength(pMachineModel, pMemoryModel);
-    if (minimumLength == pMachineModel.getSizeofCharInBits()) {
+    final int minimumLength = getMinimumBitVectorLengthInBytes(pMachineModel, pMemoryModel);
+    if (minimumLength == pMachineModel.getSizeofChar()) {
       return CNumericTypes.UNSIGNED_CHAR;
     }
     if (minimumLength == pMachineModel.getSizeofShortInt()) {
@@ -94,18 +94,21 @@ public class SeqBitVectorUtil {
     }
     throw new IllegalArgumentException(
         String.format(
-            "Could not find an appropriate CType based on pMachineModel for minimumLength %s",
-            minimumLength));
+            "Could not find an appropriate bit vector CType based on MachineModel %s for"
+                + " minimumLength %s. The input program probably contains too many global memory"
+                + " locations. Try setting bitVectorEncoding=SPARSE because it supports any amount"
+                + " of memory locations.",
+            pMachineModel, minimumLength));
   }
 
-  private static int getMinimumRequiredBitVectorLength(
+  private static int getMinimumBitVectorLengthInBytes(
       MachineModel pMachineModel, MemoryModel pMemoryModel) {
 
     int binaryLength = pMachineModel.getSizeofCharInBits();
     while (binaryLength < pMemoryModel.getRelevantMemoryLocationAmount()) {
       binaryLength *= 2;
     }
-    return binaryLength;
+    return binaryLength / 4;
   }
 
   // Helpers =======================================================================================
