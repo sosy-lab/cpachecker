@@ -17,6 +17,8 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.CIntegerLiteralBase;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -26,24 +28,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 
 public class SeqBitVectorUtil {
 
-  private static final int MIN_BINARY_LENGTH = 8;
-
-  public static final int MAX_BINARY_LENGTH = 64;
-
-  // Creation ======================================================================================
-
   public static CIntegerLiteralExpression buildBitVectorExpression(
       SeqBitVectorEncoding pEncoding,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
-      ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations) {
 
     checkArgument(pEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
-        pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
-        "pMemoryLocationIds must contain all pMemoryLocations as keys.");
+        pMemoryModel.getAllMemoryLocations().containsAll(pAccessedMemoryLocations),
+        "pMemoryLocationIds must contain all pAccessedMemoryLocations as keys.");
 
-    CSimpleType type = SeqBitVectorUtil.getBitVectorTypeByMemoryModel(pMemoryModel);
-    BigInteger mask = getRelevantMemoryLocationMask(pMemoryLocations, pMemoryModel);
+    CSimpleType type = SeqBitVectorUtil.getBitVectorTypeByMemoryModel(pMachineModel, pMemoryModel);
+    BigInteger mask = getRelevantMemoryLocationMask(pAccessedMemoryLocations, pMemoryModel);
     CIntegerLiteralBase base = getIntegerLiteralBaseByEncoding(pEncoding);
     return new CIntegerLiteralExpression(FileLocation.DUMMY, type, mask, base);
   }
@@ -66,22 +63,44 @@ public class SeqBitVectorUtil {
 
   // Vector Length =================================================================================
 
-  static CSimpleType getBitVectorTypeByMemoryModel(MemoryModel pMemoryModel) {
-    int binaryLength = MIN_BINARY_LENGTH;
+  static CSimpleType getBitVectorTypeByMemoryModel(
+      MachineModel pMachineModel, MemoryModel pMemoryModel) {
+
+    final int minimumLength = getMinimumRequiredBitVectorLength(pMachineModel, pMemoryModel);
+    if (minimumLength == pMachineModel.getSizeofCharInBits()) {
+      return CNumericTypes.UNSIGNED_CHAR;
+    }
+    if (minimumLength == pMachineModel.getSizeofShortInt()) {
+      return CNumericTypes.UNSIGNED_SHORT_INT;
+    }
+    if (minimumLength == pMachineModel.getSizeofInt()) {
+      return CNumericTypes.UNSIGNED_INT;
+    }
+    if (minimumLength == pMachineModel.getSizeofLongInt()) {
+      return CNumericTypes.UNSIGNED_LONG_INT;
+    }
+    if (minimumLength == pMachineModel.getSizeofLongLongInt()) {
+      return CNumericTypes.UNSIGNED_LONG_LONG_INT;
+    }
+    throw new IllegalArgumentException(
+        String.format(
+            "Could not find an appropriate CType based on pMachineModel for minimumLength %s",
+            minimumLength));
+  }
+
+  private static int getMinimumRequiredBitVectorLength(
+      MachineModel pMachineModel, MemoryModel pMemoryModel) {
+
+    int binaryLength = pMachineModel.getSizeofCharInBits();
     while (binaryLength < pMemoryModel.getRelevantMemoryLocationAmount()) {
       binaryLength *= 2;
     }
-    for (SeqBitVectorDataType dataType : SeqBitVectorDataType.values()) {
-      if (dataType.size == binaryLength) {
-        return dataType.simpleType;
-      }
-    }
-    throw new IllegalArgumentException(String.format("Invalid pBinaryLength %s", binaryLength));
+    return binaryLength;
   }
 
   // Helpers =======================================================================================
 
-  public static CIntegerLiteralBase getIntegerLiteralBaseByEncoding(
+  private static CIntegerLiteralBase getIntegerLiteralBaseByEncoding(
       SeqBitVectorEncoding pEncoding) {
 
     return switch (pEncoding) {

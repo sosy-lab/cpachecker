@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseBuilder;
@@ -55,6 +56,8 @@ public class SequentializationFields {
 
   public final ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges;
 
+  public final MachineModel machineModel;
+
   public final Optional<MemoryModel> memoryModel;
 
   public final GhostElements ghostElements;
@@ -80,11 +83,14 @@ public class SequentializationFields {
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
 
+    machineModel = pInputCfa.getMachineModel();
+
     MemoryModelBuilder memoryModelBuilder =
         new MemoryModelBuilder(
             pOptions,
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
-            substituteEdges.values());
+            substituteEdges.values(),
+            machineModel);
     memoryModel = memoryModelBuilder.tryBuildMemoryModel();
 
     GhostElementBuilder ghostElementBuilder =
@@ -99,7 +105,14 @@ public class SequentializationFields {
 
     SeqThreadStatementClauseBuilder clauseBuilder =
         new SeqThreadStatementClauseBuilder(
-            pOptions, threads, substitutions, substituteEdges, memoryModel, ghostElements, pUtils);
+            pOptions,
+            threads,
+            substitutions,
+            substituteEdges,
+            machineModel,
+            memoryModel,
+            ghostElements,
+            pUtils);
     clauses = clauseBuilder.buildClauses();
 
     threadSimulationFunctions =

@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
@@ -55,6 +56,7 @@ public record ReduceLastThreadOrderInjector(
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
     SeqBitVectorVariables bitVectorVariables,
+    MachineModel machineModel,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 
@@ -93,6 +95,7 @@ public record ReduceLastThreadOrderInjector(
             labelBlockMap,
             firstBlock,
             bitVectorVariables,
+            machineModel,
             memoryModel,
             utils);
 

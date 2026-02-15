@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
@@ -31,6 +32,7 @@ public record StatementInjector(
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
     SeqBitVectorVariables bitVectorVariables,
+    MachineModel machineModel,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 
@@ -83,6 +85,7 @@ public record StatementInjector(
               labelClauseMap,
               labelBlockMap,
               bitVectorVariables,
+              machineModel,
               memoryModel,
               utils);
       pStatement =
@@ -98,7 +101,13 @@ public record StatementInjector(
     // always inject bit vector assignments after evaluations i.e. reductions
     BitVectorAssignmentInjector bitVectorAssignmentInjector =
         new BitVectorAssignmentInjector(
-            options, activeThread, labelClauseMap, labelBlockMap, bitVectorVariables, memoryModel);
+            options,
+            activeThread,
+            labelClauseMap,
+            labelBlockMap,
+            bitVectorVariables,
+            machineModel,
+            memoryModel);
     pStatement = bitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(pStatement);
     return pStatement;
   }

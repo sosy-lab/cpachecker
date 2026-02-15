@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorEncoding;
@@ -72,6 +73,7 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableSet<CExpression> pOtherAccessBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -83,6 +85,7 @@ class BitVectorReadWriteEvaluationBuilder {
           pOtherAccessBitVectors,
           pDirectReadMemoryLocations,
           pDirectWriteMemoryLocations,
+          pMachineModel,
           pMemoryModel,
           pUtils);
     } else {
@@ -92,6 +95,7 @@ class BitVectorReadWriteEvaluationBuilder {
           pOtherAccessBitVectors,
           pDirectReadMemoryLocations,
           pDirectWriteMemoryLocations,
+          pMachineModel,
           pMemoryModel,
           pUtils);
     }
@@ -130,6 +134,7 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableSet<CExpression> pOtherAccessBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -139,6 +144,7 @@ class BitVectorReadWriteEvaluationBuilder {
             pEncoding,
             pOtherWriteBitVectors,
             pDirectReadMemoryLocations,
+            pMachineModel,
             pMemoryModel,
             pUtils.binaryExpressionBuilder());
     Optional<CExpression> rightHandSide =
@@ -146,6 +152,7 @@ class BitVectorReadWriteEvaluationBuilder {
             pEncoding,
             pOtherAccessBitVectors,
             pDirectWriteMemoryLocations,
+            pMachineModel,
             pMemoryModel,
             pUtils.binaryExpressionBuilder());
 
@@ -167,6 +174,7 @@ class BitVectorReadWriteEvaluationBuilder {
       SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -176,7 +184,7 @@ class BitVectorReadWriteEvaluationBuilder {
     } else {
       CIntegerLiteralExpression directReadBitVector =
           SeqBitVectorUtil.buildBitVectorExpression(
-              pEncoding, pMemoryModel, pDirectReadMemoryLocations);
+              pEncoding, pMachineModel, pMemoryModel, pDirectReadMemoryLocations);
       CBinaryExpression leftHandSide =
           buildGeneralDenseLeftHandSide(
               directReadBitVector, pOtherWriteBitVectors, pBinaryExpressionBuilder);
@@ -188,6 +196,7 @@ class BitVectorReadWriteEvaluationBuilder {
       SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherAccessBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -197,7 +206,7 @@ class BitVectorReadWriteEvaluationBuilder {
     } else {
       CIntegerLiteralExpression directWriteBitVector =
           SeqBitVectorUtil.buildBitVectorExpression(
-              pEncoding, pMemoryModel, pDirectWriteMemoryLocations);
+              pEncoding, pMachineModel, pMemoryModel, pDirectWriteMemoryLocations);
       CBinaryExpression rRightHandSide =
           buildGeneralDenseRightHandSide(
               directWriteBitVector, pOtherAccessBitVectors, pBinaryExpressionBuilder);
@@ -213,16 +222,17 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableSet<CExpression> pOtherAccessBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directReadBitVector =
         SeqBitVectorUtil.buildBitVectorExpression(
-            pEncoding, pMemoryModel, pDirectReadMemoryLocations);
+            pEncoding, pMachineModel, pMemoryModel, pDirectReadMemoryLocations);
     CIntegerLiteralExpression directWriteBitVector =
         SeqBitVectorUtil.buildBitVectorExpression(
-            pEncoding, pMemoryModel, pDirectWriteMemoryLocations);
+            pEncoding, pMachineModel, pMemoryModel, pDirectWriteMemoryLocations);
     return Optional.of(
         buildFullDenseLogicalOr(
             directReadBitVector,

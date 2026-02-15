@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorEncoding;
@@ -61,6 +62,7 @@ class BitVectorAccessEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -70,6 +72,7 @@ class BitVectorAccessEvaluationBuilder {
           pOptions.bitVectorEncoding(),
           pOtherBitVectors,
           pDirectMemoryLocations,
+          pMachineModel,
           pMemoryModel,
           pUtils);
     } else {
@@ -78,6 +81,7 @@ class BitVectorAccessEvaluationBuilder {
               pOptions.bitVectorEncoding(),
               pOtherBitVectors,
               pDirectMemoryLocations,
+              pMachineModel,
               pMemoryModel,
               pUtils));
     }
@@ -104,6 +108,7 @@ class BitVectorAccessEvaluationBuilder {
       SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -114,19 +119,26 @@ class BitVectorAccessEvaluationBuilder {
     }
     return Optional.of(
         buildFullDenseEvaluation(
-            pEncoding, pOtherBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pUtils));
+            pEncoding,
+            pOtherBitVectors,
+            pDirectAccessMemoryLocations,
+            pMachineModel,
+            pMemoryModel,
+            pUtils));
   }
 
   private static CExpressionWrapper buildFullDenseEvaluation(
       SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directBitVector =
-        SeqBitVectorUtil.buildBitVectorExpression(pEncoding, pMemoryModel, pDirectMemoryLocations);
+        SeqBitVectorUtil.buildBitVectorExpression(
+            pEncoding, pMachineModel, pMemoryModel, pDirectMemoryLocations);
     return buildFullDenseBinaryAnd(directBitVector, pOtherBitVectors, pUtils);
   }
 

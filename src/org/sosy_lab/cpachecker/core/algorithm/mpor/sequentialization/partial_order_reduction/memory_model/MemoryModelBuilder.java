@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -45,7 +46,8 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 public record MemoryModelBuilder(
     MPOROptions options,
     ImmutableList<SeqMemoryLocation> initialMemoryLocations,
-    ImmutableCollection<SubstituteEdge> substituteEdges) {
+    ImmutableCollection<SubstituteEdge> substituteEdges,
+    MachineModel machineModel) {
 
   private static final int INITIAL_MEMORY_LOCATION_ID = 0;
 
@@ -78,7 +80,8 @@ public record MemoryModelBuilder(
               startRoutineArgAssignments,
               parameterAssignments,
               pointerParameterAssignments,
-              pointerDereferences);
+              pointerDereferences,
+              machineModel);
       return Optional.of(memoryModel);
     } else {
       return Optional.empty();
@@ -91,7 +94,8 @@ public record MemoryModelBuilder(
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences,
+      MachineModel pMachineModel)
       throws UnsupportedCodeException {
 
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
@@ -109,7 +113,8 @@ public record MemoryModelBuilder(
         pStartRoutineArgAssignments,
         pParameterAssignments,
         pPointerParameterAssignments,
-        pPointerDereferences);
+        pPointerDereferences,
+        pMachineModel);
   }
 
   // All Memory Locations ==========================================================================

@@ -15,10 +15,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -69,7 +69,8 @@ public class MemoryModel {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences,
+      MachineModel pMachineModel)
       throws UnsupportedCodeException {
 
     checkArguments(
@@ -77,7 +78,8 @@ public class MemoryModel {
         pRelevantMemoryLocationIds,
         pPointerAssignments,
         pParameterAssignments,
-        pPointerParameterAssignments);
+        pPointerParameterAssignments,
+        pMachineModel);
     allMemoryLocations = pAllMemoryLocations;
     relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
     relevantMemoryLocations = pRelevantMemoryLocationIds;
@@ -93,16 +95,18 @@ public class MemoryModel {
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments)
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      MachineModel pMachineModel)
       throws UnsupportedCodeException {
 
     if (pOptions.bitVectorEncoding().isDense) {
-      if (pRelevantMemoryLocationIds.size() > SeqBitVectorUtil.MAX_BINARY_LENGTH) {
+      final int maximumBitVectorLength = pMachineModel.getSizeofLongLongInt() * 4;
+      if (pRelevantMemoryLocationIds.size() > maximumBitVectorLength) {
         throw new UnsupportedCodeException(
             String.format(
                 "The input program contains too many relevant memory locations (> %s). Try setting"
                     + " bitVectorEncoding=SPARSE.",
-                SeqBitVectorUtil.MAX_BINARY_LENGTH),
+                maximumBitVectorLength),
             null);
       }
     }

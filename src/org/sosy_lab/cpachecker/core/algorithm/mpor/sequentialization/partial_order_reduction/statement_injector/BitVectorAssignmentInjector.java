@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
@@ -41,6 +42,7 @@ public record BitVectorAssignmentInjector(
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
     SeqBitVectorVariables bitVectorVariables,
+    MachineModel machineModel,
     MemoryModel memoryModel) {
 
   SeqThreadStatement injectBitVectorAssignmentsIntoStatement(SeqThreadStatement pStatement) {
@@ -145,7 +147,7 @@ public record BitVectorAssignmentInjector(
         bitVectorVariables.getDenseBitVector(activeThread, pAccessType, pReachType);
     CIntegerLiteralExpression bitVectorExpression =
         SeqBitVectorUtil.buildBitVectorExpression(
-            options.bitVectorEncoding(), memoryModel, pMemoryLocations);
+            options.bitVectorEncoding(), machineModel, memoryModel, pMemoryLocations);
     return ImmutableList.of(
         SeqInstrumentationBuilder.buildBitVectorUpdateStatement(
             bitVectorVariable, bitVectorExpression));

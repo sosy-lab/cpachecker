@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -29,6 +30,7 @@ public record PartialOrderReducer(
     MPOROptions options,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
     Optional<SeqBitVectorVariables> bitVectorVariables,
+    MachineModel machineModel,
     Optional<MemoryModel> memoryModel,
     SequentializationUtils utils) {
 
@@ -82,6 +84,7 @@ public record PartialOrderReducer(
               labelClauseMap,
               labelBlockMap,
               bitVectorVariables.orElseThrow(),
+              machineModel,
               memoryModel.orElseThrow(),
               utils);
       rInjected.putAll(activeThread, statementInjector.injectStatementsIntoClauses());

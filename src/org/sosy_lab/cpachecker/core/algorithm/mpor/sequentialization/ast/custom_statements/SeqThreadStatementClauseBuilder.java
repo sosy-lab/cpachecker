@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -49,6 +50,7 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableList<MPORThread> allThreads,
     ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
+    MachineModel machineModel,
     Optional<MemoryModel> memoryModel,
     GhostElements ghostElements,
     SequentializationUtils utils) {
@@ -95,7 +97,12 @@ public record SeqThreadStatementClauseBuilder(
     // if enabled, apply partial order reduction and reduce number of clauses
     PartialOrderReducer partialOrderReducer =
         new PartialOrderReducer(
-            options, consecutiveLabels, ghostElements.bitVectorVariables(), memoryModel, utils);
+            options,
+            consecutiveLabels,
+            ghostElements.bitVectorVariables(),
+            machineModel,
+            memoryModel,
+            utils);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
         partialOrderReducer.reduceClauses();
 

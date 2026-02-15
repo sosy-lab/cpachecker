@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.DenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
@@ -42,6 +43,7 @@ public record SeqBitVectorDeclarationBuilder(
     ReductionMode reductionMode,
     SeqBitVectorVariables bitVectorVariables,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
+    MachineModel machineModel,
     MemoryModel memoryModel) {
 
   /**
@@ -79,7 +81,7 @@ public record SeqBitVectorDeclarationBuilder(
   private ImmutableList<CVariableDeclaration> buildDenseBitVectorDeclarationsByAccessType(
       MemoryAccessType pAccessType) {
 
-    CSimpleType type = SeqBitVectorUtil.getBitVectorTypeByMemoryModel(memoryModel);
+    CSimpleType type = SeqBitVectorUtil.getBitVectorTypeByMemoryModel(machineModel, memoryModel);
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
     rDeclarations.addAll(buildCurrentDenseBitVectorDeclarations(type, pAccessType));
     tryBuildLastDenseBitVectorDeclaration(type, pAccessType).ifPresent(rDeclarations::add);
@@ -110,7 +112,7 @@ public record SeqBitVectorDeclarationBuilder(
                   labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
           CIntegerLiteralExpression initializer =
               SeqBitVectorUtil.buildBitVectorExpression(
-                  bitVectorEncoding, memoryModel, memoryLocations);
+                  bitVectorEncoding, machineModel, memoryModel, memoryLocations);
           rDeclarations.add(
               SeqDeclarationBuilder.buildVariableDeclaration(
                   true,
@@ -132,7 +134,7 @@ public record SeqBitVectorDeclarationBuilder(
       // the last bv is initialized to 0, and assigned to something else in the last update later
       CIntegerLiteralExpression initializer =
           SeqBitVectorUtil.buildBitVectorExpression(
-              bitVectorEncoding, memoryModel, ImmutableSet.of());
+              bitVectorEncoding, machineModel, memoryModel, ImmutableSet.of());
       // reachable last bit vector
       return Optional.of(
           SeqDeclarationBuilder.buildVariableDeclaration(
