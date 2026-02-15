@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.DenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
@@ -78,16 +79,15 @@ public record SeqBitVectorDeclarationBuilder(
   private ImmutableList<CVariableDeclaration> buildDenseBitVectorDeclarationsByAccessType(
       MemoryAccessType pAccessType) {
 
-    int binaryLength = SeqBitVectorUtil.getBinaryLength(memoryModel);
-    SeqBitVectorDataType dataType = SeqBitVectorUtil.getDataTypeByLength(binaryLength);
+    CSimpleType type = SeqBitVectorUtil.getBitVectorTypeByMemoryModel(memoryModel);
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
-    rDeclarations.addAll(buildCurrentDenseBitVectorDeclarations(dataType, pAccessType));
-    tryBuildLastDenseBitVectorDeclaration(dataType, pAccessType).ifPresent(rDeclarations::add);
+    rDeclarations.addAll(buildCurrentDenseBitVectorDeclarations(type, pAccessType));
+    tryBuildLastDenseBitVectorDeclaration(type, pAccessType).ifPresent(rDeclarations::add);
     return rDeclarations.build();
   }
 
   private ImmutableList<CVariableDeclaration> buildCurrentDenseBitVectorDeclarations(
-      SeqBitVectorDataType pDataType, MemoryAccessType pAccessType) {
+      CSimpleType pType, MemoryAccessType pAccessType) {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
 
@@ -114,7 +114,7 @@ public record SeqBitVectorDeclarationBuilder(
           rDeclarations.add(
               SeqDeclarationBuilder.buildVariableDeclaration(
                   true,
-                  pDataType.simpleType,
+                  pType,
                   denseBitVector.getVariableByReachType(reachType).getName(),
                   new CInitializerExpression(FileLocation.DUMMY, initializer)));
         }
@@ -124,7 +124,7 @@ public record SeqBitVectorDeclarationBuilder(
   }
 
   private Optional<CVariableDeclaration> tryBuildLastDenseBitVectorDeclaration(
-      SeqBitVectorDataType pDataType, MemoryAccessType pAccessType) {
+      CSimpleType pType, MemoryAccessType pAccessType) {
 
     if (bitVectorVariables.isLastDenseBitVectorPresentByAccessType(pAccessType)) {
       LastDenseBitVector lastDenseBitVector =
@@ -137,7 +137,7 @@ public record SeqBitVectorDeclarationBuilder(
       return Optional.of(
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
-              pDataType.simpleType,
+              pType,
               lastDenseBitVector.reachableVariable().getName(),
               new CInitializerExpression(FileLocation.DUMMY, initializer)));
     }

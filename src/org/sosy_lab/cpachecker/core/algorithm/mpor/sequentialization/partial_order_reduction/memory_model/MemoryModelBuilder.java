@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -47,6 +46,8 @@ public record MemoryModelBuilder(
     MPOROptions options,
     ImmutableList<SeqMemoryLocation> initialMemoryLocations,
     ImmutableCollection<SubstituteEdge> substituteEdges) {
+
+  private static final int INITIAL_MEMORY_LOCATION_ID = 0;
 
   public Optional<MemoryModel> tryBuildMemoryModel() throws UnsupportedCodeException {
     if (options.linkReduction()) {
@@ -131,7 +132,7 @@ public record MemoryModelBuilder(
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     ImmutableMap.Builder<SeqMemoryLocation, Integer> rRelevantIds = ImmutableMap.builder();
-    int currentId = SeqBitVectorUtil.RIGHT_INDEX;
+    int currentId = INITIAL_MEMORY_LOCATION_ID;
     for (SeqMemoryLocation memoryLocation : pAllMemoryLocations) {
       if (isRelevantMemoryLocation(
           memoryLocation,

@@ -26,20 +26,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 
 public class SeqBitVectorUtil {
 
-  /** The right-most index is 0, with the left-most index being the length of the bit vector - 1. */
-  public static final int RIGHT_INDEX = 0;
+  private static final int MIN_BINARY_LENGTH = 8;
 
-  /**
-   * Returns the left index (i.e. the first index from left to right) of the bit vector based on its
-   * binary length.
-   */
-  public static int getLeftIndexByBinaryLength(int pBinaryLength) {
-    return pBinaryLength + RIGHT_INDEX - 1;
-  }
-
-  public static final int MIN_BINARY_LENGTH = SeqBitVectorDataType.UINT8_T.size;
-
-  public static final int MAX_BINARY_LENGTH = SeqBitVectorDataType.UINT64_T.size;
+  public static final int MAX_BINARY_LENGTH = 64;
 
   // Creation ======================================================================================
 
@@ -70,16 +59,7 @@ public class SeqBitVectorUtil {
     // for decimal, use the sum of variable ids (starting from 1)
     BigInteger mask = getRelevantMemoryLocationMask(pMemoryLocations, pMemoryModel);
     return new CIntegerLiteralExpression(
-        FileLocation.DUMMY, getTypeByBinaryLength(getBinaryLength(pMemoryModel)), mask);
-  }
-
-  private static CSimpleType getTypeByBinaryLength(int pBinaryLength) {
-    for (SeqBitVectorDataType dataType : SeqBitVectorDataType.values()) {
-      if (dataType.size == pBinaryLength) {
-        return dataType.simpleType;
-      }
-    }
-    throw new IllegalArgumentException("invalid pBinaryLength");
+        FileLocation.DUMMY, getBitVectorTypeByMemoryModel(pMemoryModel), mask);
   }
 
   private static BigInteger getRelevantMemoryLocationMask(
@@ -100,31 +80,17 @@ public class SeqBitVectorUtil {
 
   // Vector Length =================================================================================
 
-  public static SeqBitVectorDataType getDataTypeByLength(int pLength) {
-    for (SeqBitVectorDataType type : SeqBitVectorDataType.values()) {
-      if (type.size == pLength) {
-        return type;
+  static CSimpleType getBitVectorTypeByMemoryModel(MemoryModel pMemoryModel) {
+    int binaryLength = MIN_BINARY_LENGTH;
+    while (binaryLength < pMemoryModel.getRelevantMemoryLocationAmount()) {
+      binaryLength *= 2;
+    }
+    for (SeqBitVectorDataType dataType : SeqBitVectorDataType.values()) {
+      if (dataType.size == binaryLength) {
+        return dataType.simpleType;
       }
     }
-    throw new IllegalArgumentException("no bit vector type with given length found: " + pLength);
-  }
-
-  public static int getBinaryLength(MemoryModel pMemoryModel) {
-    int rLength = MIN_BINARY_LENGTH;
-    while (rLength < pMemoryModel.getRelevantMemoryLocationAmount()) {
-      rLength *= 2;
-    }
-    assert isValidBinaryLength(rLength) : "binary bit vector length is invalid: " + rLength;
-    return rLength;
-  }
-
-  public static boolean isValidBinaryLength(int pBinaryLength) {
-    for (SeqBitVectorDataType type : SeqBitVectorDataType.values()) {
-      if (type.size == pBinaryLength) {
-        return true;
-      }
-    }
-    return false;
+    throw new IllegalArgumentException(String.format("Invalid pBinaryLength %s", binaryLength));
   }
 
   // Helpers =======================================================================================
