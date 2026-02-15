@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement.CS
 public sealed interface CExportStatement
     permits CComment,
         CCompoundStatement,
-        CExpressionAssignmentStatementWrapper,
         CExpressionStatementWrapper,
         CIfStatement,
         CJumpStatement,

@@ -70,11 +70,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CInitializerWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CComment;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionAssignmentStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CVariableDeclarationWrapper;
@@ -409,12 +407,20 @@ public record SeqThreadStatementBuilder(
       CVariableDeclaration pVariableDeclaration,
       SubstituteEdge pSubstituteEdge,
       CLeftHandSide pPcLeftHandSide,
-      int pTargetPc) {
+      int pTargetPc)
+      throws UnsupportedCodeException {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
     checkArgument(
         pVariableDeclaration.getInitializer() != null,
         "pVariableDeclaration must have an initializer");
+
+    if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
+      throw new UnsupportedCodeException(
+          "The sequentialization does not support CInitializer other than CInitializerExpression"
+              + " for local variables.",
+          null);
+    }
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
@@ -427,12 +433,13 @@ public record SeqThreadStatementBuilder(
     // it is assigned the initializer e.g. 'x = 7;'
     CIdExpression idExpression =
         new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
-    CInitializerWrapper initializer =
-        new CInitializerWrapper(pVariableDeclaration.getInitializer());
-    CExpressionAssignmentStatementWrapper assignment =
-        new CExpressionAssignmentStatementWrapper(idExpression, initializer);
-
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assignment));
+    CExpressionAssignmentStatement assignmentStatement =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            idExpression,
+            ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
+    return SeqThreadStatement.of(
+        data, pTargetPc, ImmutableList.of(new CStatementWrapper(assignmentStatement)));
   }
 
   private SeqThreadStatement buildFunctionCallStatement(
