@@ -8,9 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement;
+
 /**
- * An enum for the different types of {@link CMultiSelectionStatementEncoding}, can be used e.g. in
- * options to define a specific encoding.
+ * An enum for the different encodings of 'multi' selection statements that can be created from the
+ * base selection statements {@link CIfStatement} and {@link CSwitchStatement}. The enum can be used
+ * e.g. in options to define a specific encoding.
  */
 public enum CMultiSelectionStatementEncoding {
   // NONE may be necessary when some other option defines that there is no multi control statement
