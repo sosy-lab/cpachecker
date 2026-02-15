@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CVariableDeclarationWrapper;
 
 public record SeqThreadStatementBuilder(
     MPORThread thread,
@@ -143,7 +142,8 @@ public record SeqThreadStatementBuilder(
   // const CPAchecker_TMP ==========================================================================
 
   private SeqThreadStatement buildConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes) {
+      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes)
+      throws UnsupportedCodeException {
 
     // ensure there are two single successors that are both statement edges
     CFANodeForThread firstSuccessor = pThreadEdge.getSuccessor();
@@ -172,7 +172,8 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildTwoPartConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge, CFAEdgeForThread pSuccessorEdge) {
+      CFAEdgeForThread pThreadEdge, CFAEdgeForThread pSuccessorEdge)
+      throws UnsupportedCodeException {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
@@ -192,7 +193,8 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildThreePartConstCpaCheckerTmpStatement(
       CFAEdgeForThread pThreadEdge,
       CFAEdgeForThread pFirstSuccessorEdge,
-      CFAEdgeForThread pSecondSuccessorEdge) {
+      CFAEdgeForThread pSecondSuccessorEdge)
+      throws UnsupportedCodeException {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
@@ -217,7 +219,8 @@ public record SeqThreadStatementBuilder(
       SubstituteEdge pFirstSuccessorEdge,
       Optional<SubstituteEdge> pSecondSuccessorEdge,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pNewTargetPc) {
+      int pNewTargetPc)
+      throws UnsupportedCodeException {
 
     SeqThreadStatementData data =
         new SeqThreadStatementData(
@@ -226,18 +229,17 @@ public record SeqThreadStatementBuilder(
             thread.id(),
             pcLeftHandSide);
 
-    // ensure that declaration is variable declaration and cast accordingly
+    // ensure that the declaration is a CVariableDeclaration and cast accordingly
     CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
-    CDeclaration declaration = declarationEdge.getDeclaration();
-    assert declaration instanceof CVariableDeclaration : "declarationEdge must declare variable";
-    CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
+    CVariableDeclaration variableDeclaration =
+        (CVariableDeclaration) declarationEdge.getDeclaration();
 
     checkConstCpaCheckerTmpArguments(
         variableDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
 
     ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
-
-    exportStatements.add(new CVariableDeclarationWrapper(variableDeclaration));
+    exportStatements.add(
+        buildExpressionAssignmentStatementFromVariableDeclaration(variableDeclaration));
     exportStatements.add(
         new CStatementWrapper(((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement()));
 
@@ -415,31 +417,15 @@ public record SeqThreadStatementBuilder(
         pVariableDeclaration.getInitializer() != null,
         "pVariableDeclaration must have an initializer");
 
-    if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
-      throw new UnsupportedCodeException(
-          "The sequentialization does not support CInitializer other than CInitializerExpression"
-              + " for local variables.",
-          null);
-    }
-
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.LOCAL_VARIABLE_INITIALIZATION,
             pSubstituteEdge,
             thread.id(),
             pPcLeftHandSide);
-
-    // the local variable is declared outside main() without an initializer e.g. 'int x;', and here
-    // it is assigned the initializer e.g. 'x = 7;'
-    CIdExpression idExpression =
-        new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
-    CExpressionAssignmentStatement assignmentStatement =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY,
-            idExpression,
-            ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
-    return SeqThreadStatement.of(
-        data, pTargetPc, ImmutableList.of(new CStatementWrapper(assignmentStatement)));
+    CStatementWrapper assignmentStatement =
+        buildExpressionAssignmentStatementFromVariableDeclaration(pVariableDeclaration);
+    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assignmentStatement));
   }
 
   private SeqThreadStatement buildFunctionCallStatement(
@@ -932,7 +918,28 @@ public record SeqThreadStatementBuilder(
     return false;
   }
 
-  private boolean isExcludedSummaryEdge(CFAEdge pCfaEdge) {
+  private static CStatementWrapper buildExpressionAssignmentStatementFromVariableDeclaration(
+      CVariableDeclaration pVariableDeclaration) throws UnsupportedCodeException {
+
+    if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
+      throw new UnsupportedCodeException(
+          "The sequentialization does not support CInitializer other than CInitializerExpression"
+              + " for local variables.",
+          null);
+    }
+    // the local variable is declared outside main() without an initializer e.g. 'int x;', and here
+    // it is assigned the initializer e.g. 'x = 7;'
+    CIdExpression idExpression =
+        new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
+    CExpressionAssignmentStatement assignmentStatement =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            idExpression,
+            ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
+    return new CStatementWrapper(assignmentStatement);
+  }
+
+  private static boolean isExcludedSummaryEdge(CFAEdge pCfaEdge) {
     return pCfaEdge instanceof CFunctionSummaryEdge
         || pCfaEdge instanceof CFunctionSummaryStatementEdge;
   }

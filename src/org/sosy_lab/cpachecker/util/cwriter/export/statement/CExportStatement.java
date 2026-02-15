@@ -36,7 +36,6 @@ public sealed interface CExportStatement
         CStatementWrapper,
         CSwitchStatement,
         CSwitchCaseStatement,
-        CVariableDeclarationWrapper,
         CWhileLoopStatement {
 
   default String toASTString() throws UnrecognizedCodeException {
