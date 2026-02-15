@@ -155,7 +155,12 @@ public final class SeqMainFunctionBuilder {
       }
       loopBlock.add(
           NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
-                  pOptions, pFields.memoryModel, pFields.ghostElements, pFields.clauses, pUtils)
+                  pOptions,
+                  pFields.machineModel,
+                  pFields.memoryModel,
+                  pFields.ghostElements,
+                  pFields.clauses,
+                  pUtils)
               .buildAllThreadSimulations());
 
       // build the loop depending on settings, and include all statements in it

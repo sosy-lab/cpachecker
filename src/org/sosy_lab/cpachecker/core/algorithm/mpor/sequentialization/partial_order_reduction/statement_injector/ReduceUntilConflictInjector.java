@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables;
@@ -35,6 +36,7 @@ record ReduceUntilConflictInjector(
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
     SeqBitVectorVariables bitVectorVariables,
+    MachineModel machineModel,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 
@@ -73,6 +75,7 @@ record ReduceUntilConflictInjector(
             labelBlockMap,
             pTargetBlock,
             bitVectorVariables,
+            machineModel,
             memoryModel,
             utils);
     return SeqInstrumentationBuilder.buildUntilConflictReductionStatement(

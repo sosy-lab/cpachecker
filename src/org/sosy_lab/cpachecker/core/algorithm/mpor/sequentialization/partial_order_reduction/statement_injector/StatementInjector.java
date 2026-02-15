@@ -71,6 +71,7 @@ public record StatementInjector(
               labelClauseMap,
               labelBlockMap,
               bitVectorVariables,
+              machineModel,
               memoryModel,
               utils);
       pStatement =

@@ -23,14 +23,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
@@ -53,9 +54,11 @@ public class SequentializationBuilder {
 
   public static String buildBitVectorTypeDeclarations() {
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    for (SeqBitVectorDataType bitVectorType : SeqBitVectorDataType.values()) {
-      CTypeDeclaration bitVectorTypeDeclaration = bitVectorType.buildDeclaration();
-      rDeclarations.add(bitVectorTypeDeclaration.toASTString());
+    for (CType bitVectorType : SeqBitVectorUtil.BIT_VECTOR_TYPES) {
+      String astString = bitVectorType.toASTString("");
+      CTypeDeclaration typeDeclaration =
+          new CTypeDefDeclaration(FileLocation.DUMMY, true, bitVectorType, astString, astString);
+      rDeclarations.add(typeDeclaration.toASTString());
     }
     return rDeclarations.toString();
   }

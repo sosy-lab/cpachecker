@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.DenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
@@ -227,7 +228,7 @@ public record SeqBitVectorDeclarationBuilder(
         rDeclarations.add(
             SeqDeclarationBuilder.buildVariableDeclaration(
                 true,
-                SeqBitVectorDataType.UINT8_T.simpleType,
+                CNumericTypes.UNSIGNED_CHAR,
                 sparseBitVector.reachableVariable().getName(),
                 new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO)));
       }
@@ -243,6 +244,6 @@ public record SeqBitVectorDeclarationBuilder(
             FileLocation.DUMMY,
             pValue ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO);
     return SeqDeclarationBuilder.buildVariableDeclaration(
-        true, SeqBitVectorDataType.UINT8_T.simpleType, pVariable.getName(), initializerExpression);
+        true, CNumericTypes.UNSIGNED_CHAR, pVariable.getName(), initializerExpression);
   }
 }
