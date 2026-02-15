@@ -34,9 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorLiteralExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 
 public record SeqBitVectorDeclarationBuilder(
     BitVectorEncoding bitVectorEncoding,
@@ -111,7 +108,7 @@ public record SeqBitVectorDeclarationBuilder(
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
-          CBitVectorLiteralExpression initializer =
+          CIntegerLiteralExpression initializer =
               BitVectorUtil.buildBitVectorExpression(
                   bitVectorEncoding, memoryModel, memoryLocations);
           rDeclarations.add(
@@ -130,7 +127,7 @@ public record SeqBitVectorDeclarationBuilder(
       LastDenseBitVector lastDenseBitVector =
           bitVectorVariables.getLastDenseBitVectorByAccessType(pAccessType);
       // the last bv is initialized to 0, and assigned to something else in the last update later
-      CBitVectorLiteralExpression initializer =
+      CIntegerLiteralExpression initializer =
           BitVectorUtil.buildBitVectorExpression(bitVectorEncoding, memoryModel, ImmutableSet.of());
       // reachable last bit vector
       return Optional.of(
@@ -222,7 +219,7 @@ public record SeqBitVectorDeclarationBuilder(
             new SeqBitVectorDeclaration(
                 BitVectorDataType.UINT8_T,
                 sparseBitVector.reachableVariable(),
-                new CExpressionWrapper(CIntegerLiteralExpression.ZERO)));
+                CIntegerLiteralExpression.ZERO));
       }
     }
     return rDeclarations.build();
@@ -231,9 +228,8 @@ public record SeqBitVectorDeclarationBuilder(
   private SeqBitVectorDeclaration buildSparseBitVectorDeclaration(
       CIdExpression pVariable, boolean pValue) {
 
-    CExportExpression initializer =
-        new CExpressionWrapper(
-            pValue ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO);
+    CIntegerLiteralExpression initializer =
+        pValue ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO;
     return new SeqBitVectorDeclaration(BitVectorDataType.UINT8_T, pVariable, initializer);
   }
 }

@@ -34,8 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorLiteralExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
 
 public record BitVectorAssignmentInjector(
     MPOROptions options,
@@ -145,7 +143,7 @@ public record BitVectorAssignmentInjector(
     }
     CIdExpression bitVectorVariable =
         bitVectorVariables.getDenseBitVector(activeThread, pAccessType, pReachType);
-    CBitVectorLiteralExpression bitVectorExpression =
+    CIntegerLiteralExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(
             options.bitVectorEncoding(), memoryModel, pMemoryLocations);
     return ImmutableList.of(
@@ -200,9 +198,8 @@ public record BitVectorAssignmentInjector(
     }
 
     CIdExpression sparseVariable = Objects.requireNonNull(pSparseVariables.get(activeThread));
-    CExpressionWrapper sparseBitVectorExpression =
-        new CExpressionWrapper(
-            rightHandSide ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO);
+    CIntegerLiteralExpression sparseBitVectorExpression =
+        rightHandSide ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO;
     return Optional.of(
         SeqInstrumentationBuilder.buildBitVectorUpdateStatement(
             sparseVariable, sparseBitVectorExpression));

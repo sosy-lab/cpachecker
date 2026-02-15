@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_ve
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
 public record SeqBitVectorDeclaration(
-    BitVectorDataType type, CExpression variable, CExportExpression initializer) {
+    BitVectorDataType type, CExpression variable, CIntegerLiteralExpression initializer) {
 
   public String toASTString() throws UnrecognizedCodeException {
     return toASTString(AAstNodeRepresentation.DEFAULT);

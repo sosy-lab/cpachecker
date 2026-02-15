@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -27,7 +28,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalNotExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExpressionAssignmentStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
@@ -36,11 +36,12 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
 public class SeqInstrumentationBuilder {
 
   public static SeqInstrumentation buildBitVectorUpdateStatement(
-      CIdExpression pBitVectorVariable, CExportExpression pValue) {
+      CIdExpression pBitVectorVariable, CIntegerLiteralExpression pValue) {
 
-    CExpressionAssignmentStatementWrapper assignmentStatement =
-        new CExpressionAssignmentStatementWrapper(pBitVectorVariable, pValue);
-    return new SeqInstrumentation(SeqInstrumentationType.BIT_VECTOR_UPDATE, assignmentStatement);
+    CExpressionAssignmentStatement assignmentStatement =
+        new CExpressionAssignmentStatement(FileLocation.DUMMY, pBitVectorVariable, pValue);
+    return new SeqInstrumentation(
+        SeqInstrumentationType.BIT_VECTOR_UPDATE, new CStatementWrapper(assignmentStatement));
   }
 
   public static SeqInstrumentation buildGotoBlockLabelStatement(

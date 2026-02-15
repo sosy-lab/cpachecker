@@ -9,11 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -22,10 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorBinaryLiteralExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorDecimalLiteralExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorHexadecimalLiteralExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CBitVectorLiteralExpression;
 
 public class BitVectorUtil {
 
@@ -46,7 +42,7 @@ public class BitVectorUtil {
 
   // Creation ======================================================================================
 
-  public static CBitVectorLiteralExpression buildBitVectorExpression(
+  public static CIntegerLiteralExpression buildBitVectorExpression(
       BitVectorEncoding pBitVectorEncoding,
       MemoryModel pMemoryModel,
       ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
@@ -56,29 +52,10 @@ public class BitVectorUtil {
         pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
-    // retrieve all relevant memory location IDs
-    ImmutableSet<Integer> setBits = getSetBits(pMemoryLocations, pMemoryModel);
-    return buildBitVectorExpressionByEncoding(pBitVectorEncoding, pMemoryModel, setBits);
-  }
-
-  /**
-   * Creates a bit vector expression based on {@code pSetBits} where the left most index is {@code
-   * 0} and the right most index is one smaller than the length of the bit vector.
-   */
-  private static CBitVectorLiteralExpression buildBitVectorExpressionByEncoding(
-      BitVectorEncoding pEncoding, MemoryModel pMemoryModel, ImmutableSet<Integer> pSetBits) {
-
     BitVectorDataType type =
         BitVectorDataType.getTypeByBinaryLength(pMemoryModel.getRelevantMemoryLocationAmount());
-    return switch (pEncoding) {
-      case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY -> new CBitVectorBinaryLiteralExpression(pSetBits, type.simpleType);
-      case DECIMAL -> new CBitVectorDecimalLiteralExpression(pSetBits, type.simpleType);
-      case HEXADECIMAL -> new CBitVectorHexadecimalLiteralExpression(pSetBits, type.simpleType);
-      // TODO this is not so nice ...
-      case SPARSE ->
-          throw new IllegalArgumentException("use constructor directly for sparse bit vectors");
-    };
+    BigInteger mask = getRelevantMemoryLocationMask(pMemoryLocations, pMemoryModel);
+    return new CIntegerLiteralExpression(FileLocation.DUMMY, type.simpleType, mask);
   }
 
   public static CIntegerLiteralExpression buildDirectBitVectorExpression(
@@ -89,21 +66,9 @@ public class BitVectorUtil {
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // for decimal, use the sum of variable ids (starting from 1)
-    ImmutableSet<Integer> setBits = getSetBits(pMemoryLocations, pMemoryModel);
+    BigInteger mask = getRelevantMemoryLocationMask(pMemoryLocations, pMemoryModel);
     return new CIntegerLiteralExpression(
-        FileLocation.DUMMY,
-        getTypeByBinaryLength(getBinaryLength(pMemoryModel)),
-        new BigInteger(String.valueOf(buildDecimalBitVector(setBits))));
-  }
-
-  public static long buildDecimalBitVector(ImmutableSet<Integer> pSetBits) {
-    // use long to support up to 64 bits
-    long rSum = 0;
-    for (int bit : pSetBits) {
-      // use shift expression, equivalent to 2^bit
-      rSum += 1L << (bit - BitVectorUtil.RIGHT_INDEX);
-    }
-    return rSum;
+        FileLocation.DUMMY, getTypeByBinaryLength(getBinaryLength(pMemoryModel)), mask);
   }
 
   private static CSimpleType getTypeByBinaryLength(int pBinaryLength) {
@@ -115,18 +80,18 @@ public class BitVectorUtil {
     throw new IllegalArgumentException("invalid pBinaryLength");
   }
 
-  private static ImmutableSet<Integer> getSetBits(
+  private static BigInteger getRelevantMemoryLocationMask(
       ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations, MemoryModel pMemoryModel) {
 
-    ImmutableSet.Builder<Integer> rSetBits = ImmutableSet.builder();
-    final ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocations =
+    BigInteger mask = BigInteger.ZERO;
+    final ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         pMemoryModel.getRelevantMemoryLocations();
     for (SeqMemoryLocation accessedMemoryLocation : pAccessedMemoryLocations) {
-      if (relevantMemoryLocations.containsKey(accessedMemoryLocation)) {
-        rSetBits.add(Objects.requireNonNull(relevantMemoryLocations.get(accessedMemoryLocation)));
-      }
+      Integer bitIndex = checkNotNull(relevantMemoryLocationIds.get(accessedMemoryLocation));
+      // setBit(i) returns a new BigInteger with the i-th bit set (2^i)
+      mask = mask.setBit(bitIndex);
     }
-    return rSetBits.build();
+    return mask;
   }
 
   // Vector Length =================================================================================
@@ -159,11 +124,6 @@ public class BitVectorUtil {
   }
 
   // Helpers =======================================================================================
-
-  public static int convertBinaryLengthToHex(int pBinaryLength) {
-    assert isValidBinaryLength(pBinaryLength) : "pBinaryLength is invalid";
-    return pBinaryLength / 4;
-  }
 
   /**
    * Returns {@code true} if creating a bit vector with the given {@link MemoryAccessType} and

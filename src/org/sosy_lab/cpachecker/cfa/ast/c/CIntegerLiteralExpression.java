@@ -93,7 +93,6 @@ public final class CIntegerLiteralExpression extends AIntegerLiteralExpression
     } else {
       // if there is a prefix, add the '-' sign before the prefix, if the number is negative
       if (getValue().signum() < 0) {
-        // append '-' before the base prefix
         result.append("-");
       }
       result.append(base.prefix);
