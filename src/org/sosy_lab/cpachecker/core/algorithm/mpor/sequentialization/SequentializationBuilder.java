@@ -131,12 +131,7 @@ public class SequentializationBuilder {
     checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
     // try remove const qualifier from variable
     if (pLocalVariableDeclaration.getType().getQualifiers().containsConst()) {
-      // const CPAchecker_TMP variables are declared and initialized in the statement
-      if (MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
-        return Optional.empty();
-      } else {
-        return tryBuildInputConstLocalVariableDeclaration(pOptions, pLocalVariableDeclaration);
-      }
+      return tryBuildInputConstLocalVariableDeclaration(pOptions, pLocalVariableDeclaration);
     }
     // otherwise, for non-const variables
     if (!PthreadUtil.isAnyPthreadObjectType(pLocalVariableDeclaration.getType())) {
