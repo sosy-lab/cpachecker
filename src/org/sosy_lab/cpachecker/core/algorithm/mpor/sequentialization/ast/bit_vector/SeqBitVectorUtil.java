@@ -87,9 +87,11 @@ public class SeqBitVectorUtil {
     final ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         pMemoryModel.getRelevantMemoryLocations();
     for (SeqMemoryLocation accessedMemoryLocation : pAccessedMemoryLocations) {
-      Integer bitIndex = checkNotNull(relevantMemoryLocationIds.get(accessedMemoryLocation));
-      // setBit(i) returns a new BigInteger with the i-th bit set (2^i)
-      mask = mask.setBit(bitIndex);
+      if (relevantMemoryLocationIds.containsKey(accessedMemoryLocation)) {
+        Integer bitIndex = checkNotNull(relevantMemoryLocationIds.get(accessedMemoryLocation));
+        // setBit(i) returns a new BigInteger with the i-th bit set (2^i)
+        mask = mask.setBit(bitIndex);
+      }
     }
     return mask;
   }
