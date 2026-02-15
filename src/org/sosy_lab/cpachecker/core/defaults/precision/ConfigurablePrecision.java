@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -108,9 +110,13 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     preCalculateStaticTracking();
   }
 
-  // TODO: check whether we can get the info about static precision tracking results
-  //  sooner/cheaper (e.g. when vc is built)
-  public void preCalculateStaticTracking() {
+  /**
+   * Tries to determine whether the tracking result of all variables in the used
+   * VariableClassification is equal (i.e. all return true or false) and caches that result to
+   * reduce lookups later. Should only ever be used on static precisions. Needs to be run only once
+   * for a static precision.
+   */
+  private void preCalculateStaticTracking() {
     if (vc.isEmpty()) {
       return;
     }
@@ -120,10 +126,15 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     // TODO: explore usage of this "not tracking" set, so that we may return false fast if the
     //  difference in size to the tracking sets is large enough
     ImmutableSet.Builder<String> isNotTrackingSetBuilder = ImmutableSet.builder();
-    for (String variable : varClass.getAllVariables()) {
-      if (!isInTrackedVarClass(variable)) {
-        isNotTrackingSetBuilder.add(variable);
+    try {
+      for (String variable : varClass.getAllVariables()) {
+        if (!isTracking(MemoryLocation.fromQualifiedName(variable), null)) {
+          isNotTrackingSetBuilder.add(variable);
+        }
       }
+    } catch (NullPointerException irrelevant) {
+      // Type information is needed to determine tracking
+      return;
     }
 
     Set<String> isNotTrackingSet = isNotTrackingSetBuilder.build();
@@ -151,9 +162,19 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       return staticTrackingResult.orElseThrow();
     }
 
+    return isTracking(pVariable, pType);
+  }
+
+  /**
+   * Checks whether the {@link MemoryLocation} argument pVariable is being tracked in this
+   * precision. The {@link Type} argument pType is only needed if not all types are tracked. Throws
+   * {@link NullPointerException} if argument pType is needed, but null.
+   */
+  private boolean isTracking(MemoryLocation pVariable, Type pType) {
     if (trackFloatVariables) {
       return isTracking(pVariable);
     } else {
+      checkNotNull(pType);
       return !((pType instanceof CSimpleType cSimpleType
                   && cSimpleType.getType().isFloatingPointType())
               || (pType instanceof JSimpleType jSimpleType && jSimpleType.isFloatingPointType()))
