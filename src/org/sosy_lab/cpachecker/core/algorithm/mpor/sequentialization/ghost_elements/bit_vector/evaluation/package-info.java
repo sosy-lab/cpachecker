@@ -7,10 +7,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Contains everything for representing bit vectors in the output program, which serve as our basis
- * to reason about memory location accesses by threads to apply partial order reduction.
+ * Package for the evaluation of bit vectors in binary and logical expressions, e.g. {@code !(a & (b
+ * | c))}.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.bit_vector;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
