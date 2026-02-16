@@ -94,11 +94,14 @@ public class SeqBitVectorUtil {
   private static int getMinimumBitVectorLengthInBytes(
       MachineModel pMachineModel, MemoryModel pMemoryModel) {
 
-    int lengthInBit = pMachineModel.getSizeofCharInBits();
-    while (lengthInBit < pMemoryModel.getRelevantMemoryLocationAmount()) {
+    final int memoryLocationAmount = pMemoryModel.getRelevantMemoryLocationAmount();
+    // a char is always a byte, but a byte doesn't have to be 8 bits
+    final int byteSize = pMachineModel.getSizeofCharInBits();
+    int lengthInBit = byteSize;
+    while (lengthInBit < memoryLocationAmount) {
       lengthInBit *= 2;
     }
-    return lengthInBit / 4;
+    return lengthInBit / byteSize;
   }
 
   // Helpers =======================================================================================
