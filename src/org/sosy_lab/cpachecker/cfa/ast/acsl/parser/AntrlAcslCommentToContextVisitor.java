@@ -13,9 +13,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarBaseVisi
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslCommentContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
 
-public class AntrlCommentToAnnotationVisitor extends AcslGrammarBaseVisitor<ParserRuleContext> {
+public class AntrlAcslCommentToContextVisitor extends AcslGrammarBaseVisitor<ParserRuleContext> {
 
   @Override
   public ParserRuleContext visitAcslComment(AcslCommentContext ctx) {
@@ -28,7 +28,7 @@ public class AntrlCommentToAnnotationVisitor extends AcslGrammarBaseVisitor<Pars
   }
 
   @Override
-  public LoopInvariantContext visitLoopInvariant(LoopInvariantContext ctx) {
+  public LoopAnnotContext visitLoopAnnot(LoopAnnotContext ctx) {
     return ctx;
   }
 

@@ -467,5 +467,5 @@ acslStatement
 
 
 acslComment
-    :  assertion* | loopInvariant* | functionContract
+    :  assertion* | loopAnnot | functionContract
     ;

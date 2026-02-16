@@ -67,6 +67,11 @@ public class AcslMetadataParsingTest {
     // Regular Annotations (assertions and loop invariants)
     b.add(
         task(
+            "double_loop_invariant.c",
+            ImmutableList.of("loop invariant  1 <= x <= 21;", "loop invariant  1 <= x <= 21"),
+            new CodeLoctation(22, 18)));
+    b.add(
+        task(
             "after_else.c",
             ImmutableList.of("assert a == 10 || a == 20;"),
             new CodeLoctation(17, 7)));

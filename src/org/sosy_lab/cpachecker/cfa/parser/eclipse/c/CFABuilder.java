@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -527,8 +527,8 @@ class CFABuilder extends ASTVisitor {
           n = nodeForAssertion(comment.getFileLocation(), pAstCfaRelation);
           comment.updateCfaNode(n.orElseThrow());
         }
-        case LoopInvariantContext ignored -> {
-          n = nodeForLoopInvariant(comment.getFileLocation(), pAstCfaRelation);
+        case LoopAnnotContext ignored -> {
+          n = nodeForLoopAnnotation(comment.getFileLocation(), pAstCfaRelation);
           comment.updateCfaNode(n.orElseThrow());
         }
         case FunctionContractContext ignored -> {
@@ -574,7 +574,7 @@ class CFABuilder extends ASTVisitor {
     return Optional.empty();
   }
 
-  private Optional<CFANode> nodeForLoopInvariant(
+  private Optional<CFANode> nodeForLoopAnnotation(
       FileLocation pLocation, AstCfaRelation pAstCfaRelation) {
 
     FileLocation nextStatement =

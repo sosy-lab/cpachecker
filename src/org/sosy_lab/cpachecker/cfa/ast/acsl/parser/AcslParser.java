@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
 
 public class AcslParser {
 
@@ -95,26 +96,33 @@ public class AcslParser {
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
     ParserRuleContext ctx = acslCommentToContext(pInput);
-    return ImmutableList.of(parseAcslContext(ctx, pFileLocation, pCProgramScope, pAcslScope));
+    return parseAcslContext(ctx, pFileLocation, pCProgramScope, pAcslScope);
   }
 
   public static ParserRuleContext acslCommentToContext(String pInput) throws AcslParseException {
     String comment = stripCommentMarker(pInput);
     ParseTree tree = generateParseTree(comment, pParser -> pParser.acslComment());
-    AntrlCommentToAnnotationVisitor converter = new AntrlCommentToAnnotationVisitor();
+    AntrlAcslCommentToContextVisitor converter = new AntrlAcslCommentToContextVisitor();
     ParserRuleContext ctx = converter.visit(tree);
     return ctx;
   }
 
-  public static AAcslAnnotation parseAcslContext(
+  public static ImmutableList<AAcslAnnotation> parseAcslContext(
       ParserRuleContext pContext,
       FileLocation pLocation,
       CProgramScope pCScope,
       AcslScope pAcslScope) {
+    ImmutableList.Builder<AAcslAnnotation> result = ImmutableList.builder();
     AntlrAnnotationToAnnotationVisitor parser =
         new AntlrAnnotationToAnnotationVisitor(pCScope, pAcslScope, pLocation);
-    AAcslAnnotation result = parser.visit(pContext);
-    return result;
+    if (pContext instanceof LoopAnnotContext) {
+      for (ParseTree child : pContext.children) {
+        result.add(parser.visit(child));
+      }
+    } else {
+      result.add(parser.visit(pContext));
+    }
+    return result.build();
   }
 
   /**
@@ -145,21 +153,6 @@ public class AcslParser {
               + " supported.");
     }
     return result;
-  }
-
-  /**
-   * @param pInput An acsl comment string that contains one or multiple acsl statements. Individual
-   *     acsl statements are seperated by semicolons
-   * @return A list of the individual acsl statement strings
-   */
-  private static ImmutableList<String> splitAnnotation(String pInput) {
-    ImmutableList.Builder<String> statements = ImmutableList.builder();
-    Pattern pattern = Pattern.compile("(?<statement>\\w+[^;]*;)");
-    Matcher matcher = pattern.matcher(pInput);
-    while (matcher.find()) {
-      statements.add(matcher.group("statement"));
-    }
-    return statements.build();
   }
 
   /**
