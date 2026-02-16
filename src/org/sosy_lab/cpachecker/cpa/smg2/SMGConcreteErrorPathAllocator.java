@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SMGState> {
 
@@ -86,19 +87,26 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   private ConcreteStatePath assignConcreteValuesBackwardsFromFinalAssignment(
       List<Pair<SMGState, List<CFAEdge>>> pForwardPath) {
     ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
-    // TODO: this is currently just a backwards assignment, and does not keep and reuse the last
-    //  model found before the found violation
+    List<ValueAssignment> assignmentToUse = ImmutableList.of();
     for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pForwardPath.reversed()) {
       SMGState state = checkNotNull(edgeStatePair.getFirst());
       List<CFAEdge> edges = checkNotNull(edgeStatePair.getSecond());
 
+      if (assignmentToUse.isEmpty() && !state.getModel().isEmpty()) {
+        // We want the "last" model (in forward direction) only
+        // TODO: the IDs to assign are extracted from this every time. Do it here once instead.
+        assignmentToUse = state.getModel();
+      }
+
       checkState(!edges.isEmpty());
       if (edges.size() == 1) {
         // a normal edge, no special handling required
-        pathBuilder.add(new SingleConcreteState(edges.getFirst(), createConcreteStateFrom(state)));
+        pathBuilder.add(
+            new SingleConcreteState(
+                edges.getFirst(), createConcreteStateFrom(state, assignmentToUse)));
       } else {
         // Multi-edge. E.g. in the beginning of the program declaring all the types etc.
-        handleMultiEdge(state, edges, pathBuilder);
+        handleMultiEdge(state, assignmentToUse, edges, pathBuilder);
       }
     }
     return new ConcreteStatePath(pathBuilder.build().reverse());
@@ -116,15 +124,18 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
     for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pForwardPath) {
       SMGState state = checkNotNull(edgeStatePair.getFirst());
+      List<ValueAssignment> assignmentsToUse = state.getModel();
       List<CFAEdge> edges = checkNotNull(edgeStatePair.getSecond());
 
       checkState(!edges.isEmpty());
       if (edges.size() == 1) {
         // a normal edge, no special handling required
-        pathBuilder.add(new SingleConcreteState(edges.getFirst(), createConcreteStateFrom(state)));
+        pathBuilder.add(
+            new SingleConcreteState(
+                edges.getFirst(), createConcreteStateFrom(state, assignmentsToUse)));
       } else {
         // Multi-edge. E.g. in the beginning of the program declaring all the types etc.
-        handleMultiEdge(state, edges, pathBuilder);
+        handleMultiEdge(state, assignmentsToUse, edges, pathBuilder);
       }
     }
     return new ConcreteStatePath(pathBuilder.build());
@@ -132,13 +143,15 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   private void handleMultiEdge(
       SMGState pState,
+      List<ValueAssignment> modelToUse,
       List<CFAEdge> edges,
       ImmutableList.Builder<ConcreteStatePathNode> pathBuilder) {
     ImmutableList.Builder<SingleConcreteState> intermediateStatesBuilder = ImmutableList.builder();
     Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
     boolean isFirstIteration = true;
     for (CFAEdge innerEdge : edges.reversed()) {
-      ConcreteState state = createConcreteStateForMultiEdge(pState, alreadyAssigned, innerEdge);
+      ConcreteState state =
+          createConcreteStateForMultiEdge(pState, modelToUse, alreadyAssigned, innerEdge);
 
       // intermediate edge
       if (isFirstIteration) {
@@ -154,12 +167,15 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   }
 
   private ConcreteState createConcreteStateForMultiEdge(
-      SMGState pState, Set<CLeftHandSide> alreadyAssigned, CFAEdge innerEdge) {
+      SMGState pState,
+      List<ValueAssignment> modelToUse,
+      Set<CLeftHandSide> alreadyAssigned,
+      CFAEdge innerEdge) {
     ConcreteState concreteState;
 
     // We know only values for LeftHandSides that have not yet been assigned.
     if (allValuesForLeftHandSideKnown(innerEdge, alreadyAssigned)) {
-      concreteState = createConcreteStateFrom(pState);
+      concreteState = createConcreteStateFrom(pState, modelToUse);
     } else {
       concreteState = ConcreteState.empty();
     }
@@ -177,19 +193,21 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     return concreteState;
   }
 
-  private ConcreteState createConcreteStateFrom(SMGState pSMGState) {
+  private ConcreteState createConcreteStateFrom(
+      SMGState pSMGState, List<ValueAssignment> modelToUse) {
     return new ConcreteState(
-        getConcreteValuesForVariables(pSMGState),
+        getConcreteValuesForVariables(pSMGState, modelToUse),
         ImmutableMap.of(),
         ImmutableMap.of(),
         exp -> MEMORY_NAME,
         pSMGState.getMachineModel());
   }
 
-  private static Map<LeftHandSide, Object> getConcreteValuesForVariables(SMGState state) {
+  private static Map<LeftHandSide, Object> getConcreteValuesForVariables(
+      SMGState state, List<ValueAssignment> modelToUse) {
     ImmutableMap.Builder<LeftHandSide, Object> result = ImmutableMap.builder();
     for (Entry<MemoryLocation, BigInteger> memLocsAndValues :
-        state.getVariablesWithConcreteValues().entrySet()) {
+        state.getVariablesWithConcreteValues(modelToUse).entrySet()) {
 
       MemoryLocation location = memLocsAndValues.getKey();
       BigInteger value = memLocsAndValues.getValue();
