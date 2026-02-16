@@ -157,6 +157,11 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
+  public Optional<Boolean> getStaticIsTrackingResult() {
+    return staticTrackingResult;
+  }
+
+  @Override
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
     if (staticTrackingResult.isPresent()) {
       return staticTrackingResult.orElseThrow();
