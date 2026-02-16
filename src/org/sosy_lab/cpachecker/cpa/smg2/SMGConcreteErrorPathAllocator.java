@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.HashSet;
@@ -59,6 +60,21 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   protected ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, List<CFAEdge>>> pPath) {
     ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
 
+    assignConcreteValuesLinearlyForwardAsFound(pPath, pathBuilder);
+
+    return new ConcreteStatePath(pathBuilder.build());
+  }
+
+  /**
+   * Assigns concrete values (this includes solver models/value assignments) of simple types (and
+   * numeric for pointer types) when known to the location. This method does not apply value
+   * assignments backwards if a later state finds concrete values that apply before this state.
+   *
+   * @param pPath path in linear fashion from start of the program to the error location.
+   * @param pathBuilder to add the concrete info in the order of the path to.
+   */
+  private void assignConcreteValuesLinearlyForwardAsFound(
+      List<Pair<SMGState, List<CFAEdge>>> pPath, Builder<ConcreteStatePathNode> pathBuilder) {
     for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pPath) {
       SMGState state = checkNotNull(edgeStatePair.getFirst());
       List<CFAEdge> edges = checkNotNull(edgeStatePair.getSecond());
@@ -72,8 +88,6 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         handleMultiEdge(state, edges, pathBuilder);
       }
     }
-
-    return new ConcreteStatePath(pathBuilder.build());
   }
 
   private void handleMultiEdge(
