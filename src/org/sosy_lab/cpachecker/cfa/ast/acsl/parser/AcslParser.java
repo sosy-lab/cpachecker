@@ -94,30 +94,27 @@ public class AcslParser {
   public static ImmutableList<AAcslAnnotation> parseAcslComment(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
-
-    ImmutableList.Builder<AAcslAnnotation> annotations = ImmutableList.builder();
-
-    String comment = stripCommentMarker(pInput);
-    ImmutableList<String> statements = splitAnnotation(comment);
-
-    for (String s : statements) {
-      AAcslAnnotation annotation;
-      try {
-        annotation = parseSingleAcslStatement(s, pFileLocation, pCProgramScope, pAcslScope);
-      } catch (AntlrToInternalNotImplementedException e) {
-        throw new AcslParseException(e.getMessage());
-      }
-      annotations.add(annotation);
-    }
-
-    return annotations.build();
+    ParserRuleContext ctx = acslCommentToContext(pInput);
+    return ImmutableList.of(parseAcslContext(ctx, pFileLocation, pCProgramScope, pAcslScope));
   }
 
   public static ParserRuleContext acslCommentToContext(String pInput) throws AcslParseException {
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.acslComment());
+    String comment = stripCommentMarker(pInput);
+    ParseTree tree = generateParseTree(comment, pParser -> pParser.acslComment());
     AntrlCommentToAnnotationVisitor converter = new AntrlCommentToAnnotationVisitor();
     ParserRuleContext ctx = converter.visit(tree);
     return ctx;
+  }
+
+  public static AAcslAnnotation parseAcslContext(
+      ParserRuleContext pContext,
+      FileLocation pLocation,
+      CProgramScope pCScope,
+      AcslScope pAcslScope) {
+    AntlrAnnotationToAnnotationVisitor parser =
+        new AntlrAnnotationToAnnotationVisitor(pCScope, pAcslScope, pLocation);
+    AAcslAnnotation result = parser.visit(pContext);
+    return result;
   }
 
   /**

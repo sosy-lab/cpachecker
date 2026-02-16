@@ -8,18 +8,25 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+import com.google.common.collect.FluentIterable;
+import java.util.ArrayList;
+import java.util.List;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.EnsuresClauseContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.RequiresClauseContext;
 
@@ -39,6 +46,24 @@ public class AntlrAnnotationToAnnotationVisitor
   @Override
   public AAcslAnnotation visitAcslStatement(AcslStatementContext ctx) {
     return super.visitAcslStatement(ctx);
+  }
+
+  @Override
+  public AcslFunctionContract visitFunctionContract(FunctionContractContext ctx) {
+    List<AAcslAnnotation> as = new ArrayList<>();
+    for (ParseTree c : ctx.children) {
+      as.add(super.visit(c));
+    }
+
+    FluentIterable<AAcslAnnotation> annotations = FluentIterable.from(as);
+    return new AcslFunctionContract(
+        fileLocation,
+        annotations.filter(a -> a instanceof AcslEnsures).transform(a -> (AcslEnsures) a).toSet(),
+        annotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a).toSet(),
+        annotations
+            .filter(a -> a instanceof AcslRequires)
+            .transform(a -> (AcslRequires) a)
+            .toSet());
   }
 
   @Override

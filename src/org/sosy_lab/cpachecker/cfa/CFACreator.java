@@ -23,6 +23,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.FileNotFoundException;
@@ -49,12 +50,14 @@ import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CParser.Factory;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -67,10 +70,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
@@ -244,7 +245,7 @@ public class CFACreator {
   private boolean exportCfaToC = false;
 
   @Option(secure = true, name = "cfa.exportToC.file", description = "export CFA as C file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private Path exportCfaToCFile = Path.of("cfa.c");
 
   @Option(secure = true, name = "cfa.callgraph.export", description = "dump a simple call graph")
@@ -254,18 +255,18 @@ public class CFACreator {
       secure = true,
       name = "cfa.callgraph.file",
       description = "file name for call graph as .dot file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private Path exportFunctionCallsFile = Path.of("functionCalls.dot");
 
   @Option(
       secure = true,
       name = "cfa.callgraph.fileUsed",
       description = "file name for call graph as .dot file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private Path exportFunctionCallsUsedFile = Path.of("functionCallsUsed.dot");
 
   @Option(secure = true, name = "cfa.file", description = "export CFA as .dot file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private Path exportCfaFile = Path.of("cfa.dot");
 
   @Option(
@@ -277,7 +278,7 @@ public class CFACreator {
               + " in scope and their type. Please be aware that this "
               + "is **not** a stable interface and the output format of "
               + "the file may change in future versions.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private Path pathForExportingVariablesInScopeWithTheirType = null;
 
   @Option(
@@ -288,7 +289,7 @@ public class CFACreator {
               + " corresponding"
               + " to the value of option pixelgraphic.export.format"
               + "If set to 'null', no pixel graphic is exported.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private Path exportCfaPixelFile = null;
 
   @Option(
@@ -470,8 +471,7 @@ public class CFACreator {
               "Entry function for c programs must match pattern " + regExPattern);
         }
         CParser outerParser =
-            CParser.Factory.getParser(
-                pLogger, CParser.Factory.getOptions(pConfig), machineModel, shutdownNotifier);
+            Factory.getParser(pLogger, Factory.getOptions(pConfig), machineModel, shutdownNotifier);
 
         if (usePreprocessor == PreprocessorUsage.TRUE) {
           // always preprocess, always read line directives
@@ -817,59 +817,36 @@ public class CFACreator {
     Preconditions.checkArgument(
         pParseResult.acslComments().isPresent(), "The parse result has no acsl comments");
 
-    ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
-        ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFANode, AcslLoopInvariant> loopInvariantBuilder =
-        ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFANode, AcslFunctionContract> functionContractBuilder =
-        ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFANode, AcslAssigns> assignsBuilder =
-        ImmutableSetMultimap.builder();
+    Builder<CFANode, AcslAssertion> assertionBuilder = ImmutableSetMultimap.builder();
+    Builder<CFANode, AcslLoopInvariant> loopInvariantBuilder = ImmutableSetMultimap.builder();
+    Builder<CFANode, AcslFunctionContract> functionContractBuilder = ImmutableSetMultimap.builder();
+    Builder<CFANode, AcslAssigns> assignsBuilder = ImmutableSetMultimap.builder();
 
     for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
-      Verify.verify(comment.getCfaNode() != null);
+      Verify.verify(comment.hasCfaNode());
+      CFANode node = comment.getCfaNode();
       // If the comment is a function contract, we need to tell the CProgramScope the function name.
-      if (comment.getCfaNode() instanceof FunctionEntryNode) {
+      if (node instanceof FunctionEntryNode) {
         pScope = pScope.withFunctionScope(comment.getCfaNode().getFunctionName());
       }
 
-      FluentIterable<AAcslAnnotation> allAnnotations =
-          FluentIterable.from(
-              AcslParser.parseAcslComment(
-                  comment.getComment(), comment.getFileLocation(), pScope, AcslScope.empty()));
+      AAcslAnnotation annotation =
+          AcslParser.parseAcslContext(
+              comment.getCommentContext(), comment.getFileLocation(), pScope, AcslScope.empty());
 
-      assertionBuilder.putAll(
-          comment.getCfaNode(),
-          allAnnotations.filter(a -> a instanceof AcslAssertion).transform(a -> (AcslAssertion) a));
-
-      loopInvariantBuilder.putAll(
-          comment.getCfaNode(),
-          allAnnotations
-              .filter(a -> a instanceof AcslLoopInvariant)
-              .transform(a -> (AcslLoopInvariant) a));
-
-      assignsBuilder.putAll(
-          comment.getCfaNode(),
-          allAnnotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a));
-
-      if (comment.getCfaNode() instanceof FunctionEntryNode) {
-        ImmutableSet.Builder<AcslEnsures> ensuresBuilder = ImmutableSet.builder();
-        ImmutableSet.Builder<AcslRequires> requiresBuilder = ImmutableSet.builder();
-        ImmutableSet.Builder<AcslAssigns> functionAssignsBuilder = ImmutableSet.builder();
-
-        ensuresBuilder.addAll(
-            allAnnotations.filter(a -> a instanceof AcslEnsures).transform(a -> (AcslEnsures) a));
-        functionAssignsBuilder.addAll(
-            allAnnotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a));
-        requiresBuilder.addAll(
-            allAnnotations.filter(a -> a instanceof AcslRequires).transform(a -> (AcslRequires) a));
-
-        ImmutableSet<AcslEnsures> ensures = ensuresBuilder.build();
-        ImmutableSet<AcslAssigns> assigns = functionAssignsBuilder.build();
-        ImmutableSet<AcslRequires> requires = requiresBuilder.build();
-        AcslFunctionContract contract =
-            new AcslFunctionContract(comment.getFileLocation(), ensures, assigns, requires);
-        functionContractBuilder.put(comment.getCfaNode(), contract);
+      switch (annotation) {
+        case AcslAssertion assertion -> assertionBuilder.put(node, assertion);
+        case AcslLoopInvariant loopInvariant -> loopInvariantBuilder.put(node, loopInvariant);
+        case AcslFunctionContract functionContract ->
+            functionContractBuilder.put(node, functionContract);
+        case AcslAssigns assigns -> assignsBuilder.put(node, assigns);
+        default ->
+            throw new IllegalStateException(
+                "Unexpected annotation: "
+                    + comment.getComment()
+                    + " at "
+                    + comment.getFileLocation()
+                    + ". Parsing is currently supported for assertions, loop invariants, function contracts and assigns.");
       }
     }
 

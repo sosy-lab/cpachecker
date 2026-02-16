@@ -204,7 +204,6 @@ class CFABuilder extends ASTVisitor {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
           try {
-            commentString = AcslParser.stripCommentMarker(commentString);
             ParserRuleContext commentContext = AcslParser.acslCommentToContext(commentString);
             acslComments.add(
                 new AcslComment(
@@ -538,7 +537,13 @@ class CFABuilder extends ASTVisitor {
                   comment, pAstCfaRelation, pResult.acslComments().orElseThrow());
           comment.updateCfaNode(n.orElseThrow());
         }
-        default -> throw new IllegalStateException("Unexpected Context: " + ctx);
+        default ->
+            throw new IllegalStateException(
+                "Unexpected annotation: "
+                    + comment.getComment()
+                    + " at "
+                    + comment.getFileLocation()
+                    + ". Parsing is currently supported for assertions, loop invariants, function contracts and assigns.");
       }
     }
     return pResult.withAcslComments(acslComments, blocks);
