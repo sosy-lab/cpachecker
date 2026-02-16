@@ -848,7 +848,8 @@ public class CFACreator {
                       + comment.getComment()
                       + " at "
                       + comment.getFileLocation()
-                      + ". Parsing is currently supported for assertions, loop invariants, function contracts and assigns.");
+                      + ". Parsing is currently supported for assertions, loop invariants, function"
+                      + " contracts and assigns.");
         }
       }
     }
