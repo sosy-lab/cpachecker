@@ -32,6 +32,20 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
 
+  enum DIRECTION {
+    FORWARD,
+    BACKWARD
+  }
+
+  @Option(
+      secure = true,
+      description =
+          "The direction in which values are assigned when a concrete error path is built (i.e. for"
+              + " a counterexample-check or a witness). Forward assigns concrete values only if"
+              + " they are known at the location. Backward does remember possible assignments from"
+              + " before and carries them over.")
+  private DIRECTION errorPathConcreteValueAssignmentDirection = DIRECTION.BACKWARD;
+
   private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
 
   @Option(
@@ -202,6 +216,10 @@ public class SMGOptions {
 
   public int getConcreteValueForSymbolicOffsetsAssignmentMaximum() {
     return concreteValueForSymbolicOffsetsAssignmentMaximum;
+  }
+
+  public DIRECTION getErrorPathConcreteValueAssignmentDirection() {
+    return errorPathConcreteValueAssignmentDirection;
   }
 
   public void incConcreteValueForSymbolicOffsetsAssignmentMaximum() throws SMGException {

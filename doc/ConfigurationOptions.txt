@@ -3634,6 +3634,13 @@ cpa.smg2.enableMallocFail = true
 # zeroing allocation functions like calloc().
 cpa.smg2.enableZeroingOfSymbolicMemorySize = false
 
+# The direction in which values are assigned when a concrete error path is
+# built (i.e. for a counterexample-check or a witness). Forward assigns
+# concrete values only if they are known at the location. Backward does
+# remember possible assignments from before and carries them over.
+cpa.smg2.errorPathConcreteValueAssignmentDirection = BACKWARD
+  enum:     [FORWARD, BACKWARD]
+
 # Filename format for SMG graph dumps
 cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 

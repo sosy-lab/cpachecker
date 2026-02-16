@@ -22,7 +22,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcr
 import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.DIRECTION;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -48,32 +48,21 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SMGState> {
 
-  enum DIRECTION {
-    FORWARD,
-    BACKWARD
-  }
-
-  @Option(
-      secure = true,
-      description =
-          "The direction in which values are assigned when a concrete error path is built (i.e. for"
-              + " a counterexample-check or a witness). Forward assigns concrete values only if"
-              + " they are known at the location. Backward does remember possible assignments from"
-              + " before and carries them over.")
-  private DIRECTION errorPathConcreteValueAssignmentDirection = DIRECTION.BACKWARD;
-
   // this analysis puts every object in the same heap
   private static final String MEMORY_NAME = "SMGv2_Analysis_Heap";
 
+  private final SMGOptions options;
+
   public SMGConcreteErrorPathAllocator(
-      Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
+      Configuration pConfig, LogManager pLogger, MachineModel pMachineModel, SMGOptions pOptions)
       throws InvalidConfigurationException {
     super(SMGState.class, AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel));
+    options = pOptions;
   }
 
   @Override
   protected ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, List<CFAEdge>>> pPath) {
-    return switch (errorPathConcreteValueAssignmentDirection) {
+    return switch (options.getErrorPathConcreteValueAssignmentDirection()) {
       case DIRECTION.BACKWARD -> assignConcreteValuesBackwardsFromFinalAssignment(pPath);
       case DIRECTION.FORWARD -> assignConcreteValuesLinearlyForwardAsFound(pPath);
     };
