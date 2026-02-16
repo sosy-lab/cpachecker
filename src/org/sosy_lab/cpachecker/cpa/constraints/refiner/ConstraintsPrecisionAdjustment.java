@@ -53,35 +53,49 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment {
       final ConstraintsPrecision pPrecision,
       final AbstractState pFullState) {
 
-    int constraintsBefore = 0;
-    int constraintsAfter = 0;
+    // Skip if the precision is tracking everything in all cases
+    if (!pPrecision.hasStaticIsTrackingResult()
+        || !pPrecision.getStaticIsTrackingResult().orElseThrow()) {
 
-    stats.adjustmentTime.start();
-    try {
-      Set<Constraint> adjustedConstraints = new HashSet<>(pStateToAdjust);
-      for (Constraint c : pStateToAdjust) {
-        constraintsBefore++;
-        CFANode currentLocation = AbstractStates.extractLocation(pFullState);
+      int constraintsBefore = 0;
+      int constraintsAfter = 0;
 
-        if (!pPrecision.isTracked(c, currentLocation)) {
-          adjustedConstraints.remove(c);
+      stats.adjustmentTime.start();
+      try {
+        Set<Constraint> adjustedConstraints = new HashSet<>(pStateToAdjust);
+        for (Constraint c : pStateToAdjust) {
+          constraintsBefore++;
+          CFANode currentLocation = AbstractStates.extractLocation(pFullState);
 
-        } else {
-          constraintsAfter++;
+          if (!pPrecision.isTracked(c, currentLocation)) {
+            adjustedConstraints.remove(c);
+
+          } else {
+            constraintsAfter++;
+          }
         }
+
+        stats.constraintNumberBeforeAdj.setNextValue(constraintsBefore);
+        stats.constraintNumberAfterAdj.setNextValue(constraintsAfter);
+
+        ConstraintsState result =
+            adjustedConstraints.size() == pStateToAdjust.size()
+                ? pStateToAdjust
+                : new ConstraintsState(adjustedConstraints)
+                    .copyWithSatisfyingModel(pStateToAdjust.getModel());
+
+        return Optional.of(new PrecisionAdjustmentResult(result, pPrecision, Action.CONTINUE));
+      } finally {
+        stats.adjustmentTime.stop();
       }
-      stats.constraintNumberBeforeAdj.setNextValue(constraintsBefore);
-      stats.constraintNumberAfterAdj.setNextValue(constraintsAfter);
 
-      ConstraintsState result =
-          adjustedConstraints.size() == pStateToAdjust.size()
-              ? pStateToAdjust
-              : new ConstraintsState(adjustedConstraints)
-                  .copyWithSatisfyingModel(pStateToAdjust.getModel());
-
-      return Optional.of(new PrecisionAdjustmentResult(result, pPrecision, Action.CONTINUE));
-    } finally {
-      stats.adjustmentTime.stop();
+    } else {
+      // We are tracking everything, hence no change to the state
+      int constraints = pStateToAdjust.size();
+      stats.constraintNumberBeforeAdj.setNextValue(constraints);
+      stats.constraintNumberAfterAdj.setNextValue(constraints);
+      return Optional.of(
+          new PrecisionAdjustmentResult(pStateToAdjust, pPrecision, Action.CONTINUE));
     }
   }
 }
