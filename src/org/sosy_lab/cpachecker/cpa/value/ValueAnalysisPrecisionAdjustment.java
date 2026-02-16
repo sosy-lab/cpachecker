@@ -311,12 +311,16 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
         || options.abstractAtFunction(location)
         || options.abstractAtLoop(location)) {
 
-      for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
-        MemoryLocation memoryLocation = e.getKey();
-        if (location != null
-            && !precision.isTracking(
-                memoryLocation, e.getValue().getType(), location.getLocationNode())) {
-          state.forget(memoryLocation);
+      // Skip if the precision is tracking everything in all cases
+      if (!precision.hasStaticIsTrackingResult()
+          || !precision.getStaticIsTrackingResult().orElseThrow()) {
+        for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
+          MemoryLocation memoryLocation = e.getKey();
+          if (location != null
+              && !precision.isTracking(
+                  memoryLocation, e.getValue().getType(), location.getLocationNode())) {
+            state.forget(memoryLocation);
+          }
         }
       }
 
