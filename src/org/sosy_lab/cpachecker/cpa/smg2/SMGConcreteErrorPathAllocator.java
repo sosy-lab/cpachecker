@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.HashSet;
@@ -23,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -47,6 +47,20 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SMGState> {
 
+  enum DIRECTION {
+    FORWARD,
+    BACKWARD
+  }
+
+  @Option(
+      secure = true,
+      description =
+          "The direction in which values are assigned when a concrete error path is built (i.e. for"
+              + " a counterexample-check or a witness). Forward assigns concrete values only if"
+              + " they are known at the location. Backward does remember possible assignments from"
+              + " before and carries them over.")
+  private DIRECTION errorPathConcreteValueAssignmentDirection = DIRECTION.BACKWARD;
+
   // this analysis puts every object in the same heap
   private static final String MEMORY_NAME = "SMGv2_Analysis_Heap";
 
@@ -58,24 +72,23 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   @Override
   protected ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, List<CFAEdge>>> pPath) {
-    ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
-
-    assignConcreteValuesLinearlyForwardAsFound(pPath, pathBuilder);
-
-    return new ConcreteStatePath(pathBuilder.build());
+    return switch (errorPathConcreteValueAssignmentDirection) {
+      case DIRECTION.BACKWARD -> assignConcreteValuesBackwardsFromFinalAssignment(pPath);
+      case DIRECTION.FORWARD -> assignConcreteValuesLinearlyForwardAsFound(pPath);
+    };
   }
 
   /**
-   * Assigns concrete values (this includes solver models/value assignments) of simple types (and
-   * numeric for pointer types) when known to the location. This method does not apply value
-   * assignments backwards if a later state finds concrete values that apply before this state.
-   *
-   * @param pPath path in linear fashion from start of the program to the error location.
-   * @param pathBuilder to add the concrete info in the order of the path to.
+   * Goes backwards through the given path (that is supposed to be in forward direction) and assigns
+   * concrete values to variables when known. This does remember the last value assignment (produced
+   * by a solver) and back-propagates the assignments as far as possible.
    */
-  private void assignConcreteValuesLinearlyForwardAsFound(
-      List<Pair<SMGState, List<CFAEdge>>> pPath, Builder<ConcreteStatePathNode> pathBuilder) {
-    for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pPath) {
+  private ConcreteStatePath assignConcreteValuesBackwardsFromFinalAssignment(
+      List<Pair<SMGState, List<CFAEdge>>> pForwardPath) {
+    ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
+    // TODO: this is currently just a backwards assignment, and does not keep and reuse the last
+    //  model found before the found violation
+    for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pForwardPath.reversed()) {
       SMGState state = checkNotNull(edgeStatePair.getFirst());
       List<CFAEdge> edges = checkNotNull(edgeStatePair.getSecond());
 
@@ -88,6 +101,33 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         handleMultiEdge(state, edges, pathBuilder);
       }
     }
+    return new ConcreteStatePath(pathBuilder.build().reverse());
+  }
+
+  /**
+   * Assigns concrete values (this includes solver models/value assignments) of simple types (and
+   * numeric for pointer types) when known to the location. This method does not apply value
+   * assignments backwards if a later state finds concrete values that apply before this state.
+   *
+   * @param pForwardPath path in linear fashion from start of the program to the error location.
+   */
+  private ConcreteStatePath assignConcreteValuesLinearlyForwardAsFound(
+      List<Pair<SMGState, List<CFAEdge>>> pForwardPath) {
+    ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
+    for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pForwardPath) {
+      SMGState state = checkNotNull(edgeStatePair.getFirst());
+      List<CFAEdge> edges = checkNotNull(edgeStatePair.getSecond());
+
+      checkState(!edges.isEmpty());
+      if (edges.size() == 1) {
+        // a normal edge, no special handling required
+        pathBuilder.add(new SingleConcreteState(edges.getFirst(), createConcreteStateFrom(state)));
+      } else {
+        // Multi-edge. E.g. in the beginning of the program declaring all the types etc.
+        handleMultiEdge(state, edges, pathBuilder);
+      }
+    }
+    return new ConcreteStatePath(pathBuilder.build());
   }
 
   private void handleMultiEdge(
