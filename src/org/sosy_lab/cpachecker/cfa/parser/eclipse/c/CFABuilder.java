@@ -388,9 +388,9 @@ class CFABuilder extends ASTVisitor {
       ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
-    Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope =
+    ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope =
         ImmutableMap.builder();
-    Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope =
+    ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope =
         ImmutableMap.builder();
     for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
       GlobalScope actScope = functionDeclaration.scope();
@@ -543,8 +543,8 @@ class CFABuilder extends ASTVisitor {
                     + comment.getComment()
                     + " at "
                     + comment.getFileLocation()
-                    + ". Parsing is currently supported for assertions, loop invariants, function"
-                    + " contracts and assigns.");
+                    + ". Parsing is currently supported for assertions, loop loopAnnotations,"
+                    + " function contracts.");
       }
     }
     return pResult.withAcslComments(acslComments, blocks);

@@ -21,14 +21,19 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AntlrToInternalNotImplementedException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.EnsuresClauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopClauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.RequiresClauseContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.SimpleClauseContext;
 
 public class AntlrAnnotationToAnnotationVisitor
     extends AntlrToInternalAbstractConverter<AAcslAnnotation> {
@@ -45,7 +50,13 @@ public class AntlrAnnotationToAnnotationVisitor
 
   @Override
   public AAcslAnnotation visitAcslStatement(AcslStatementContext ctx) {
-    return super.visitAcslStatement(ctx);
+    return super.visit(ctx.children.getFirst());
+  }
+
+  @Override
+  public AcslAssertion visitAssertion(AssertionContext ctx) {
+    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    return new AcslAssertion(fileLocation, predicate);
   }
 
   @Override
@@ -67,9 +78,23 @@ public class AntlrAnnotationToAnnotationVisitor
   }
 
   @Override
-  public AcslAssertion visitAssertion(AssertionContext ctx) {
-    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
-    return new AcslAssertion(fileLocation, predicate);
+  public AcslLoopAnnotation visitLoopAnnot(LoopAnnotContext ctx) {
+    List<AAcslAnnotation> ls = new ArrayList<>();
+    for (ParseTree c : ctx.children) {
+      ls.add(super.visit(c));
+    }
+    FluentIterable<AAcslAnnotation> annotations = FluentIterable.from(ls);
+    return new AcslLoopAnnotation(
+        fileLocation,
+        annotations
+            .filter(a -> a instanceof AcslLoopInvariant)
+            .transform(a -> (AcslLoopInvariant) a)
+            .toSet());
+  }
+
+  @Override
+  public AAcslAnnotation visitLoopClause(LoopClauseContext ctx) {
+    return super.visit(ctx.children.getFirst());
   }
 
   @Override
@@ -91,7 +116,15 @@ public class AntlrAnnotationToAnnotationVisitor
   }
 
   @Override
+  public AAcslAnnotation visitSimpleClause(SimpleClauseContext ctx) {
+    return super.visit(ctx.children.getFirst());
+  }
+
+  @Override
   protected AAcslAnnotation defaultResult() {
-    return super.defaultResult();
+    throw new AntlrToInternalNotImplementedException(
+        "Parsing of the Annotation at : "
+            + fileLocation
+            + " failed. Only 'assert', 'ensures', 'assigns' and 'loop invariant' are supported.");
   }
 }

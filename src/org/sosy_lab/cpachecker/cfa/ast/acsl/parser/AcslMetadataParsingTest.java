@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -64,11 +63,11 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    // Regular Annotations (assertions and loop invariants)
+    // Regular Annotations (assertions and loop loopAnnotations)
     b.add(
         task(
             "double_loop_invariant.c",
-            ImmutableList.of("loop invariant  1 <= x <= 21;", "loop invariant  1 <= x <= 21"),
+            ImmutableList.of("loop invariant  1 <= x <= 21; loop invariant  1 <= x <= 21"),
             new CodeLoctation(22, 18)));
     b.add(
         task(
@@ -177,7 +176,7 @@ public class AcslMetadataParsingTest {
 
       ImmutableList.Builder<AAcslAnnotation> expectedBuilder = ImmutableList.builder();
       for (String s : expectedComments) {
-        expectedBuilder.addAll(
+        expectedBuilder.add(
             AcslParser.parseAcslComment(s, FileLocation.DUMMY, programScope, AcslScope.empty()));
       }
       ImmutableList<AAcslAnnotation> expectedAnnotations = expectedBuilder.build();
@@ -187,16 +186,13 @@ public class AcslMetadataParsingTest {
 
       ImmutableSetMultimap<AcslAssertion, CFANode> actualAssertions =
           acslMetadata.assertions().inverse();
-      ImmutableSetMultimap<AcslLoopInvariant, CFANode> actualLoopInvariants =
-          acslMetadata.invariants().inverse();
+
       ImmutableSetMultimap<AcslAssigns, CFANode> actualAssigns =
           acslMetadata.modifiedMemoryLocations().inverse();
 
       for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
         switch (expectedAnnotation) {
           case AcslAssertion assertion -> assertThat(actualAssertions).containsKey(assertion);
-          case AcslLoopInvariant loopInvariant ->
-              assertThat(actualLoopInvariants).containsKey(loopInvariant);
           case null, default -> assertThat(actualAssigns).containsKey(expectedAnnotation);
         }
       }

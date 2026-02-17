@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
 /** This class is a representation of the Acsl ensuresClause of a function_contract */
-public final class AcslEnsures extends AAcslAnnotation {
+public final class AcslEnsures extends AcslSimpleClause {
   private final AcslPredicate predicate;
 
   public AcslEnsures(FileLocation pFileLocation, AcslPredicate pPredicate) {

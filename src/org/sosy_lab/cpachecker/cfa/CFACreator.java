@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
@@ -818,12 +818,13 @@ public class CFACreator {
 
     ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
         ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFANode, AcslLoopInvariant> loopInvariantBuilder =
+    ImmutableSetMultimap.Builder<CFANode, AcslLoopAnnotation> loopAnnotationBuilder =
         ImmutableSetMultimap.builder();
 
     ImmutableSetMultimap.Builder<CFANode, AcslFunctionContract> functionContractBuilder =
         ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFANode, AcslAssigns> assignsBuilder = ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<CFANode, AcslAssigns> assignsBuilder =
+        ImmutableSetMultimap.builder();
 
     for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
       Verify.verify(comment.hasCfaNode());
@@ -833,33 +834,32 @@ public class CFACreator {
         pScope = pScope.withFunctionScope(comment.getCfaNode().getFunctionName());
       }
 
-      ImmutableList<AAcslAnnotation> acslAnnotations =
+      AAcslAnnotation annotation =
           AcslParser.parseAcslContext(
               comment.getCommentContext(), comment.getFileLocation(), pScope, AcslScope.empty());
 
-      for (AAcslAnnotation annotation : acslAnnotations) {
-
-        switch (annotation) {
-          case AcslAssertion assertion -> assertionBuilder.put(node, assertion);
-          case AcslLoopInvariant loopInvariant -> loopInvariantBuilder.put(node, loopInvariant);
-          case AcslFunctionContract functionContract ->
-              functionContractBuilder.put(node, functionContract);
-          case AcslAssigns assigns -> assignsBuilder.put(node, assigns);
-          default ->
-              throw new IllegalStateException(
-                  "Unexpected annotation: "
-                      + comment.getComment()
-                      + " at "
-                      + comment.getFileLocation()
-                      + ". Parsing is currently supported for assertions, loop invariants, function"
-                      + " contracts and assigns.");
-        }
+      switch (annotation) {
+        case AcslAssertion assertion -> assertionBuilder.put(node, assertion);
+        case AcslLoopAnnotation loopAnnotation -> loopAnnotationBuilder.put(node, loopAnnotation);
+        case AcslFunctionContract functionContract ->
+            functionContractBuilder.put(node, functionContract);
+        case AcslAssigns assigns -> assignsBuilder.put(node, assigns);
+        default ->
+            throw new IllegalStateException(
+                "Unexpected annotation: "
+                    + comment.getComment()
+                    + " at "
+                    + comment.getFileLocation()
+                    + ". Parsing is currently supported for assertions, loop invariants, function"
+                    + " contracts and assigns.");
       }
     }
 
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions = assertionBuilder.build();
-    ImmutableSetMultimap<CFANode, AcslLoopInvariant> loopInvariants = loopInvariantBuilder.build();
-    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts = functionContractBuilder.build();
+    ImmutableSetMultimap<CFANode, AcslLoopAnnotation> loopAnnotations =
+        loopAnnotationBuilder.build();
+    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts =
+        functionContractBuilder.build();
     ImmutableSetMultimap<CFANode, AcslAssigns> assigns = assignsBuilder.build();
 
     AcslMetadata result =
@@ -867,7 +867,7 @@ public class CFACreator {
             ImmutableList.copyOf(pParseResult.acslComments().orElseThrow()),
             ImmutableSet.of(),
             assertions,
-            loopInvariants,
+            loopAnnotations,
             functionContracts,
             assigns);
     return result;

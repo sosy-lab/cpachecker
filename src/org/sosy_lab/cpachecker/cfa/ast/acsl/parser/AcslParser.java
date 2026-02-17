@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -30,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
 
 public class AcslParser {
 
@@ -92,7 +90,7 @@ public class AcslParser {
    * @throws AcslParseException when one of the acsl statements of the comment is not of type
    *     assertion, loop invariant, ensures or requires
    */
-  public static ImmutableList<AAcslAnnotation> parseAcslComment(
+  public static AAcslAnnotation parseAcslComment(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
     ParserRuleContext ctx = acslCommentToContext(pInput);
@@ -107,22 +105,15 @@ public class AcslParser {
     return ctx;
   }
 
-  public static ImmutableList<AAcslAnnotation> parseAcslContext(
+  public static AAcslAnnotation parseAcslContext(
       ParserRuleContext pContext,
       FileLocation pLocation,
       CProgramScope pCScope,
       AcslScope pAcslScope) {
-    ImmutableList.Builder<AAcslAnnotation> result = ImmutableList.builder();
     AntlrAnnotationToAnnotationVisitor parser =
         new AntlrAnnotationToAnnotationVisitor(pCScope, pAcslScope, pLocation);
-    if (pContext instanceof LoopAnnotContext) {
-      for (ParseTree child : pContext.children) {
-        result.add(parser.visit(child));
-      }
-    } else {
-      result.add(parser.visit(pContext));
-    }
-    return result.build();
+
+    return parser.visit(pContext);
   }
 
   /**
@@ -136,7 +127,7 @@ public class AcslParser {
    * @param pAcslScope The AcslScope of the source
    * @return An AAcslAnnotation from the input statement
    */
-  public static AAcslAnnotation parseSingleAcslStatement(
+  public static AAcslAnnotation parseAcslStatement(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.acslStatement());

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -25,6 +27,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
@@ -84,30 +88,10 @@ public class AcslAnnotationParsingTest {
 
     AcslAssertion expected = getAssertion();
 
-    String annotation = AcslParser.stripCommentMarker(input);
     AcslAssertion parsed =
         (AcslAssertion)
-            AcslParser.parseSingleAcslStatement(
-                annotation, FileLocation.DUMMY, cProgramScope, getAcslScope());
-    assert expected.equals(parsed);
-  }
-
-  @Test
-  public void parseAcslCommentTest() throws AcslParseException {
-    String input =
-"""
-/*@
-assert x == 10;
-loop invariant x <= 10;
-ensures x <= 10;
-requires x == 10;
-*/\
-""";
-    ImmutableList<AAcslAnnotation> expected =
-        ImmutableList.of(getAssertion(), getLoopInvariant(), getEnsures(), getRequires());
-    ImmutableList<AAcslAnnotation> parsed =
-        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
-    assert expected.equals(parsed);
+            AcslParser.parseAcslComment(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
+    assertThat(parsed).isEqualTo(expected);
   }
 
   @Test
@@ -116,9 +100,9 @@ requires x == 10;
 
     AcslAssertion expected = getAssertion();
     AAcslAnnotation parsed =
-        AcslParser.parseSingleAcslStatement(
+        AcslParser.parseAcslStatement(
             input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
-    assert expected.equals(parsed);
+    assertThat(parsed).isEqualTo(expected);
   }
 
   @Test
@@ -127,9 +111,9 @@ requires x == 10;
 
     AcslLoopInvariant expected = getLoopInvariant();
     AAcslAnnotation parsed =
-        AcslParser.parseSingleAcslStatement(
+        AcslParser.parseAcslStatement(
             input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
-    assert expected.equals(parsed);
+    assertThat(parsed).isEqualTo(expected);
   }
 
   @Test
@@ -137,9 +121,9 @@ requires x == 10;
     String input = "ensures x <= 10;";
     AcslEnsures expected = getEnsures();
     AAcslAnnotation parsed =
-        AcslParser.parseSingleAcslStatement(
+        AcslParser.parseAcslStatement(
             input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
-    assert expected.equals(parsed);
+    assertThat(parsed).isEqualTo(expected);
   }
 
   @Test
@@ -147,9 +131,27 @@ requires x == 10;
     String input = "requires x == 10;";
     AcslRequires expected = getRequires();
     AAcslAnnotation parsed =
-        AcslParser.parseSingleAcslStatement(
+        AcslParser.parseAcslStatement(
             input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
-    assert expected.equals(parsed);
+    assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void parseFunctionContractTest() throws AcslParseException {
+    String input = "/*@ requires x == 10; ensures x <= 10;*/";
+    AcslFunctionContract expected = getFunctionContract();
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void parseLoodAnnotationTest() throws AcslParseException {
+    String input = "loop invariant x <= 10;";
+    AcslLoopAnnotation expected = getLoopAnnotation();
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(expected);
   }
 
   private AcslAssertion getAssertion() {
@@ -216,12 +218,24 @@ requires x == 10;
             AcslBinaryTermExpressionOperator.EQUALS));
   }
 
+  private AcslFunctionContract getFunctionContract() {
+    return new AcslFunctionContract(
+        FileLocation.DUMMY,
+        ImmutableSet.of(getEnsures()),
+        ImmutableSet.of(),
+        ImmutableSet.of(getRequires()));
+  }
+
+  private AcslLoopAnnotation getLoopAnnotation() {
+    return new AcslLoopAnnotation(FileLocation.DUMMY, ImmutableSet.of(getLoopInvariant()));
+  }
+
   @Test
   public void testStripCommentMarker() {
     String lineComment = "//@ assert a == 20;";
     String lineCommentExpected = "assert a == 20;";
     String lineCommentStripped = AcslParser.stripCommentMarker(lineComment);
-    assert lineCommentStripped.equals(lineCommentExpected);
+    assertThat(lineCommentStripped).isEqualTo(lineCommentExpected);
   }
 
   @Test
@@ -242,6 +256,6 @@ requires x == 10;
         """;
 
     String blockCommentStripped = AcslParser.stripCommentMarker(blockComment);
-    assert blockCommentStripped.equals(blockCommentExpected);
+    assertThat(blockCommentStripped).isEqualTo(blockCommentExpected);
   }
 }

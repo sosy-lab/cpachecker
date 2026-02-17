@@ -13,7 +13,12 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-/** This class is a representation of Acsl function_contract */
+/**
+ * This class is a representation of Acsl function_contract
+ *
+ * <p>A loop annotation can have an arbirtary number of loop invariants and loop-assigns. A loop
+ * invariant is a loop-clause. (§2.4.2 Acsl standard v 1.23)
+ */
 public final class AcslFunctionContract extends AAcslAnnotation {
 
   private final @Nullable ImmutableSet<AcslEnsures> ensuresClauses;
