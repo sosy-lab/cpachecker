@@ -1798,7 +1798,8 @@ public class SMGState
         Constraint constraint = constraintIter.next();
         Set<SymbolicIdentifier> identsInConstraint = constraintsToIdentsInside.get(constraint);
         if (identsInConstraint == null) {
-          identsInConstraint = memoryModel.getSymbolicIdentifiersForValue(constraint);
+          identsInConstraint =
+              memoryModel.getSymbolicIdentifiersWithTypesForValue(constraint).keySet();
           constraintsToIdentsInside.put(constraint, identsInConstraint);
         }
 
@@ -4711,7 +4712,7 @@ public class SMGState
     checkArgument(!(valueToWrite instanceof AddressExpression));
     checkNotNull(numericOffsetInBits);
     checkArgument(sizeInBits.isNumericValue());
-    SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite, valueType);
+    SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(valueToWrite, valueType);
     SMGValue smgValue = valueAndState.getSMGValue();
     currentState = valueAndState.getSMGState();
     return ImmutableList.of(
@@ -4983,7 +4984,7 @@ public class SMGState
     // We don't know if the access is safe or if the values are only allowed to be in the range of
     // the object as we are just asking for an address!
     List<SMGState> assignedStates =
-        findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(valueToAssign, edge);
+        findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(valueToAssign, expr, edge);
 
     // (The concrete assignments don't invoke an SMT check anymore if there are no more symbolic
     // values in any of the size or offset expressions)
@@ -5171,14 +5172,19 @@ public class SMGState
   }
 
   private List<SMGState> findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(
-      SymbolicValue valueToAssign, @Nullable CFAEdge edge) throws SMGException, SMGSolverException {
+      SymbolicValue valueToAssign, CArraySubscriptExpression expr, @Nullable CFAEdge edge)
+      throws SMGException, SMGSolverException {
+    // The subscript type has to be taken from the expression,
+    //  as the type is not fixed (see C11 §6.5.2.1 Array subscripting).
+    CType arraySubscriptType = expr.getSubscriptExpression().getExpressionType().getCanonicalType();
+
     Map<SymbolicIdentifier, Value> assignments = new HashMap<>();
     // Get used variables
     Set<SymbolicIdentifier> identsToReplace;
     if (valueToAssign instanceof SymbolicIdentifier symIdenToReplace) {
       identsToReplace = ImmutableSet.of(symIdenToReplace);
     } else {
-      identsToReplace = memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+      identsToReplace = memoryModel.getSymbolicIdentifiersWithTypesForValue(valueToAssign).keySet();
     }
 
     ImmutableList.Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
@@ -5218,12 +5224,10 @@ public class SMGState
         }
 
         // Got all possible assignments. Now we need to assign them in all possible combinations.
-        // Subscript is always int
-        CType calcTypeForMemAccess = CNumericTypes.INT;
         for (Entry<SymbolicIdentifier, Value> assignment : assignments.entrySet()) {
           List<SMGState> simpleAssignedStates =
               currentState.assignSymbolicVariable(
-                  assignment.getKey(), assignment.getValue(), calcTypeForMemAccess, edge);
+                  assignment.getKey(), assignment.getValue(), arraySubscriptType, edge);
           // Each of those states now must be combined with each other possible assignment state
           assignedStatesBuilder.addAll(simpleAssignedStates);
         }
@@ -5233,11 +5237,10 @@ public class SMGState
       // valueToAssign is exactly a variable to assign, but consists of more than one variable.
       // Assign it, remember the constraints and then replace the var with the concrete.
       List<ValueAndSMGState> concreteValueAndNewStates =
-          findValueAssignmentsWithSolver(valueToAssign, edge);
+          findValueAssignmentsWithSolver(valueToAssign, expr, edge);
 
       // Got all possible assignments. Now we need to assign them in all possible combinations.
-      // Subscript is always int
-      CType calcTypeForMemAccess = CNumericTypes.INT;
+
       for (ValueAndSMGState assignmentAndState : concreteValueAndNewStates) {
         SMGState stateWithConstraints = assignmentAndState.getState();
         Value concreteAssignment = assignmentAndState.getValue();
@@ -5245,7 +5248,7 @@ public class SMGState
 
         List<SMGState> simpleAssignedStates =
             stateWithConstraints.assignSymbolicVariable(
-                valueToAssign, concreteAssignment, calcTypeForMemAccess, edge);
+                valueToAssign, concreteAssignment, arraySubscriptType, edge);
         // Each of those states now must be combined with each other possible assignment state
         assignedStatesBuilder.addAll(simpleAssignedStates);
       }
@@ -5256,12 +5259,14 @@ public class SMGState
   public boolean isConcreteAssignmentFeasible(SymbolicValue valueToAssign) {
     // Get used variables
     Set<SymbolicIdentifier> identsToReplace =
-        memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+        memoryModel.getSymbolicIdentifiersWithTypesForValue(valueToAssign).keySet();
 
     boolean isNotConstraints = true;
     for (Constraint constraint : getConstraints()) {
       if (identsToReplace.stream()
-          .anyMatch(i -> memoryModel.getSymbolicIdentifiersForValue(constraint).contains(i))) {
+          .anyMatch(
+              i ->
+                  memoryModel.getSymbolicIdentifiersWithTypesForValue(constraint).containsKey(i))) {
         isNotConstraints = false;
         break;
       }
@@ -5281,7 +5286,7 @@ public class SMGState
   public Optional<SymbolicValue> isVariableAssignmentFeasible(SymbolicValue valueToAssign) {
     // Get used variables
     Set<SymbolicIdentifier> identsToReplace =
-        memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+        memoryModel.getSymbolicIdentifiersWithTypesForValue(valueToAssign).keySet();
 
     if (identsToReplace.size() == 1) {
       for (SymbolicValue ident : identsToReplace) {
@@ -5291,7 +5296,8 @@ public class SMGState
       // A combining variable needs to include all identifiers
       SymbolicValue strippedValue = valueToAssign;
       while (memoryModel
-          .getSymbolicIdentifiersForValue(strippedValue)
+          .getSymbolicIdentifiersWithTypesForValue(strippedValue)
+          .keySet()
           .containsAll(identsToReplace)) {
         if (memoryModel.getSMGValueFromValue(strippedValue).isPresent()) {
           return Optional.of(strippedValue);
@@ -5322,7 +5328,11 @@ public class SMGState
    * @throws SMGSolverException in case of errors, e.g. interrupts.
    */
   public List<ValueAndSMGState> findValueAssignmentsWithSolver(
-      Value valueToAssign, @Nullable CFAEdge edge) throws SMGSolverException {
+      Value valueToAssign, CArraySubscriptExpression exprCurrentlyUnderEval, @Nullable CFAEdge edge)
+      throws SMGSolverException {
+    // TODO: using this can cause StackOverflowErrors for large ranges.
+    //  Switch to picking some concrete values and then continue with the restricted symbolic
+
     // The constraint x + y - z == valueToAssign is assigned a concrete value with constraints only.
     // This is slow with the solver later on.
 
@@ -5330,11 +5340,12 @@ public class SMGState
     SymbolicIdentifier newSymbolicToBeAssigned =
         SymbolicValueFactory.getInstance().newIdentifier(null);
     // Got all possible assignments. Now we need to assign them in all possible combinations.
-    // Subscript is always int
-    CType calcTypeForMemAccess = CNumericTypes.INT;
+    // Subscript can be many types. Always use it from the expression!
+    CType subscriptType =
+        exprCurrentlyUnderEval.getSubscriptExpression().getExpressionType().getCanonicalType();
     SMGState equalsState =
         copyAndAddValuesEqualConstraint(
-            valueToAssign, newSymbolicToBeAssigned, calcTypeForMemAccess, edge);
+            valueToAssign, newSymbolicToBeAssigned, subscriptType, edge);
 
     // Add the parameters for the memory access and check sat to get a model
     SatisfiabilityAndSMGState maybeAssignmentResultAndState =
@@ -5365,15 +5376,18 @@ public class SMGState
       if (assignment != null) {
         equalsState =
             equalsState.copyAndAddValuesEqualConstraint(
-                valueToAssign, assignment, calcTypeForMemAccess, edge);
+                valueToAssign, assignment, subscriptType, edge);
         assignedBuilder.add(ValueAndSMGState.of(assignment, equalsState));
 
         SMGState unEqualState =
             copyAndAddValueBlockingConstraint(
-                (SymbolicValue) valueToAssign, assignment, calcTypeForMemAccess, edge);
+                (SymbolicValue) valueToAssign, assignment, subscriptType, edge);
 
+        // TODO: this can cause StackOverflowErrors for large ranges
+        //  switch to picking some concrete values and then continue with the restricted symbolic
         List<ValueAndSMGState> recursiveAssignments =
-            unEqualState.findValueAssignmentsWithSolver(valueToAssign, edge);
+            unEqualState.findValueAssignmentsWithSolver(
+                valueToAssign, exprCurrentlyUnderEval, edge);
 
         assignedBuilder.addAll(recursiveAssignments);
       }
@@ -5656,12 +5670,14 @@ public class SMGState
       checkArgument(
           maybeRegion.getOffsetForObject() instanceof NumericValue maybeRegionOffset
               && maybeRegionOffset.bigIntegerValue().equals(BigInteger.ZERO));
+      // We write the entire memory size, and the edges are automatically merged into one big edge
       returnBuilder.add(
           currentState.writeValueWithChecks(
               memoryRegion,
               maybeRegion.getOffsetForObject(),
               memoryRegion.getSize(),
               new NumericValue(0),
+              // The type does not matter here
               CNumericTypes.INT,
               edge));
     }
@@ -7042,12 +7058,11 @@ public class SMGState
       if (symValue instanceof ConstantSymbolicExpression constSymExpr
           && constSymExpr.getValue() instanceof SymbolicValue nestedSymValue) {
         symValue = nestedSymValue;
-        checkState(
-            !isPointer(symValue) || symValue.isNumericValue(),
-            "Error: assigned a concrete value to a non-null address");
       }
       if (symValue instanceof SymbolicIdentifier symIdent
-          && solverAssignments.containsKey(symIdent)) {
+          && solverAssignments.containsKey(symIdent)
+          && !isPointer(symValue)
+          && !isPointer(symIdent)) {
         Value assignedValue = solverAssignments.get(symIdent);
         if (assignedValue != null && assignedValue.isNumericValue()) {
           readValue = assignedValue;

@@ -356,7 +356,8 @@ public class SMGCPAAddressVisitor
       // Assignment using the solver only. While we get the concrete value here,
       //  we can't assign it to a variable.
       List<ValueAndSMGState> assignedResults =
-          pCurrentState.findValueAssignmentsWithSolver(symOffsetToAssign, cfaEdge);
+          pCurrentState.findValueAssignmentsWithSolver(
+              symOffsetToAssign, exprCurrentlyUnderEval, cfaEdge);
       ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
           ImmutableList.builder();
       for (ValueAndSMGState assignedValueAndState : assignedResults) {

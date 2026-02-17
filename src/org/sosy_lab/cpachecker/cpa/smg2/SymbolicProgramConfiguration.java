@@ -185,8 +185,8 @@ public class SymbolicProgramConfiguration {
     valueToTypeMap =
         PathCopyingPersistentTreeMap.<SMGValue, CType>of()
             .putAndCopy(SMGValue.zeroValue(), CNumericTypes.INT)
-            .putAndCopy(SMGValue.zeroDoubleValue(), CNumericTypes.INT)
-            .putAndCopy(SMGValue.zeroFloatValue(), CNumericTypes.INT);
+            .putAndCopy(SMGValue.zeroDoubleValue(), CNumericTypes.DOUBLE)
+            .putAndCopy(SMGValue.zeroFloatValue(), CNumericTypes.FLOAT);
     options = pOptions;
   }
 
@@ -2733,8 +2733,7 @@ public class SymbolicProgramConfiguration {
    */
   public CType getTypeForValue(SMGValue value) {
     CType type = valueToTypeMap.get(value);
-    checkNotNull(type);
-    return type.getCanonicalType();
+    return checkNotNull(type).getCanonicalType();
   }
 
   /**
@@ -3717,8 +3716,10 @@ public class SymbolicProgramConfiguration {
         found = true;
         continue;
       }
-      Set<SymbolicIdentifier> identsInValue = getSymbolicIdentifiersForValue(mappedValue);
-      if (oldValue instanceof SymbolicIdentifier oldSymIden && identsInValue.contains(oldSymIden)) {
+
+      Set<SymbolicIdentifier> idValues =
+          getSymbolicIdentifiersWithTypesForValue(mappedValue).keySet();
+      if (oldValue instanceof SymbolicIdentifier oldSymIden && idValues.contains(oldSymIden)) {
         valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
       }
     }
@@ -3788,22 +3789,22 @@ public class SymbolicProgramConfiguration {
    * in the given value. Preserves type info in the const expr.
    */
   protected Map<SymbolicIdentifier, CType> getSymbolicIdentifiersWithTypesForValue(Value value) {
-    ConstantSymbolicExpressionLocator symIdentVisitor =
-        ConstantSymbolicExpressionLocator.getInstance();
     ImmutableMap.Builder<SymbolicIdentifier, CType> identsBuilder = ImmutableMap.builder();
-    // Get all symbolic values in sizes (they might not have an SMGValue mapping anymore below!)
-    if (value instanceof SymbolicValue symValue) {
-      for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
-        if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
-          identsBuilder.put(symIdent, (CType) constSym.getType());
-        }
+    for (ConstantSymbolicExpression constSym : getConstantSymbolicExpressionsForValue(value)) {
+      if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
+        identsBuilder.put(symIdent, (CType) constSym.getType());
       }
     }
     return identsBuilder.buildOrThrow();
   }
 
-  protected Set<SymbolicIdentifier> getSymbolicIdentifiersForValue(Value value) {
-    return getSymbolicIdentifiersWithTypesForValue(value).keySet();
+  protected Set<ConstantSymbolicExpression> getConstantSymbolicExpressionsForValue(Value value) {
+    ConstantSymbolicExpressionLocator constSymVisitor =
+        ConstantSymbolicExpressionLocator.getInstance();
+    if (value instanceof SymbolicValue symValue) {
+      return symValue.accept(constSymVisitor);
+    }
+    return ImmutableSet.of();
   }
 
   private boolean checkValueMappingConsistency() {
@@ -3862,7 +3863,7 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         mallocZeroMemory,
         readBlacklist,
-        valueToTypeMap.putAndCopy(smgValue, valueType),
+        valueToTypeMap.putAndCopy(smgValue, checkNotNull(valueType)),
         options);
   }
 
