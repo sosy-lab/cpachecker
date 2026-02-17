@@ -12,14 +12,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -125,11 +123,11 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
     // TODO: explore usage of this "not tracking" set, so that we may return false fast if the
     //  difference in size to the tracking sets is large enough
-    ImmutableSet.Builder<String> isNotTrackingSetBuilder = ImmutableSet.builder();
+    int notTrackedVariables = 0;
     try {
       for (String variable : varClass.getAllVariables()) {
         if (!isTracking(MemoryLocation.fromQualifiedName(variable), null)) {
-          isNotTrackingSetBuilder.add(variable);
+          notTrackedVariables++;
         }
       }
     } catch (NullPointerException irrelevant) {
@@ -137,11 +135,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       return Optional.empty();
     }
 
-    Set<String> isNotTrackingSet = isNotTrackingSetBuilder.build();
-    if (isNotTrackingSet.size() == varClass.getAllVariables().size()) {
-      return Optional.of(false);
-    } else if (isNotTrackingSet.isEmpty()) {
+    if (notTrackedVariables == 0) {
       return Optional.of(true);
+    } else if (notTrackedVariables == varClass.getAllVariables().size()) {
+      return Optional.of(false);
     }
     return Optional.empty();
   }
