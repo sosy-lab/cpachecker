@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 public final class CArraySubscriptExpression extends AArraySubscriptExpression
     implements CLeftHandSide {
@@ -35,8 +34,7 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression
     checkArgument(
         arrayType instanceof CArrayType
             || arrayType instanceof CPointerType
-            || arrayType instanceof CProblemType
-            || arrayType instanceof CTypedefType,
+            || arrayType instanceof CProblemType,
         "Array subscript of non-array type %s",
         arrayType);
   }
