@@ -16,6 +16,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSortedMultiset;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
@@ -88,21 +90,21 @@ public class VariableClassification {
       Multiset<String> pAssumedVariables,
       Multiset<String> pAssignedVariables) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
-    intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
-    intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
-    intAddVars = ImmutableSet.copyOf(pIntAddVars);
-    intOverflowVars = ImmutableSet.copyOf(pIntOverflowVars);
-    relevantVariables = ImmutableSet.copyOf(pRelevantVariables);
-    addressedVariables = ImmutableSet.copyOf(pAddressedVariables);
+    intBoolVars = ImmutableSortedSet.copyOf(pIntBoolVars);
+    intEqualVars = ImmutableSortedSet.copyOf(pIntEqualVars);
+    intAddVars = ImmutableSortedSet.copyOf(pIntAddVars);
+    intOverflowVars = ImmutableSortedSet.copyOf(pIntOverflowVars);
+    relevantVariables = ImmutableSortedSet.copyOf(pRelevantVariables);
+    addressedVariables = ImmutableSortedSet.copyOf(pAddressedVariables);
     relevantFields = ImmutableSetMultimap.copyOf(pRelevantFields);
     addressedFields = ImmutableSetMultimap.copyOf(pAddressedFields);
-    partitions = ImmutableSet.copyOf(pPartitions);
-    intBoolPartitions = ImmutableSet.copyOf(pIntBoolPartitions);
-    intEqualPartitions = ImmutableSet.copyOf(pIntEqualPartitions);
-    intAddPartitions = ImmutableSet.copyOf(pIntAddPartitions);
+    partitions = ImmutableSortedSet.copyOf(pPartitions);
+    intBoolPartitions = ImmutableSortedSet.copyOf(pIntBoolPartitions);
+    intEqualPartitions = ImmutableSortedSet.copyOf(pIntEqualPartitions);
+    intAddPartitions = ImmutableSortedSet.copyOf(pIntAddPartitions);
     edgeToPartitions = ImmutableTable.copyOf(pEdgeToPartitions);
-    assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
-    assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
+    assumedVariables = ImmutableSortedMultiset.copyOf(pAssumedVariables);
+    assignedVariables = ImmutableSortedMultiset.copyOf(pAssignedVariables);
   }
 
   @VisibleForTesting
