@@ -16,6 +16,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -207,35 +208,49 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   private Optional<PrecisionAdjustmentResult> prec(
-      ValueAnalysisState pState,
+      ValueAnalysisState pInitialState,
       VariableTrackingPrecision pPrecision,
       LocationState location,
       UniqueAssignmentsInPathConditionState assignments) {
-    ValueAnalysisState resultState = ValueAnalysisState.copyOf(pState);
+    // Do not eagerly copy the state if we don't prec-adjust!
+    @Nullable ValueAnalysisState resultState = null;
 
     if (options.doLivenessAbstraction && liveVariables.isPresent()) {
+      resultState = ValueAnalysisState.copyOf(pInitialState);
       totalLiveness.start();
-      enforceLiveness(pState, location, resultState);
+      enforceLiveness(pInitialState, location, resultState);
       totalLiveness.stop();
     }
 
     // compute the abstraction based on the value-analysis precision
     totalAbstraction.start();
     if (performPrecisionBasedAbstraction()) {
-      enforcePrecision(resultState, location, pPrecision);
+      ValueAnalysisState resultStateBeforePrecEnforcement = resultState;
+      resultState = enforcePrecision(resultState, pInitialState, location, pPrecision);
+      // resultState == null -> resultStateBeforePrecEnforcement == null
+      checkState(resultState != null || resultStateBeforePrecEnforcement == null);
+      // resultStateBeforePrecEnforcement != null -> resultState != null
+      checkState(resultStateBeforePrecEnforcement == null || resultState != null);
     }
     totalAbstraction.stop();
 
     // compute the abstraction for assignment thresholds
     if (assignments != null) {
+      if (resultState == null) {
+        resultState = ValueAnalysisState.copyOf(pInitialState);
+      }
       totalEnforcePath.start();
       enforcePathThreshold(resultState, assignments);
       totalEnforcePath.stop();
     }
 
-    resultState = resultState.equals(pState) ? pState : resultState;
-
-    return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
+    if (resultState == null) {
+      // No abstraction has been applied
+      return Optional.of(new PrecisionAdjustmentResult(pInitialState, pPrecision, Action.CONTINUE));
+    } else {
+      resultState = resultState.equals(pInitialState) ? pInitialState : resultState;
+      return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
+    }
   }
 
   /**
@@ -300,28 +315,42 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * This method performs an abstraction computation on the current value-analysis state.
    *
    * @param location the current location
-   * @param state the current state
+   * @param initialState the initial state before any prec-adjustments have been performed.
+   * @param resultState the current state that originates from initialState, but may already have
+   *     changed. May be null if no changes to the inital state have been done yet.
    * @param precision the current precision
+   * @return either null if the precision has not been enforced and the parameter resultState was
+   *     null initially, or a {@link ValueAnalysisState} that is the result of enforcing the
+   *     precision onto the parameter resultState if not null initially, or the modified copy of
+   *     initialState.
    */
-  private void enforcePrecision(
-      ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
+  private @Nullable ValueAnalysisState enforcePrecision(
+      @Nullable ValueAnalysisState resultState,
+      final ValueAnalysisState initialState,
+      LocationState location,
+      VariableTrackingPrecision precision) {
     if (options.abstractAtEachLocation()
         || options.abstractAtBranch(location)
         || options.abstractAtJoin(location)
         || options.abstractAtFunction(location)
         || options.abstractAtLoop(location)) {
 
-      for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
+      if (resultState == null) {
+        resultState = ValueAnalysisState.copyOf(initialState);
+      }
+
+      for (Entry<MemoryLocation, ValueAndType> e : resultState.getConstants()) {
         MemoryLocation memoryLocation = e.getKey();
         if (location != null
             && !precision.isTracking(
                 memoryLocation, e.getValue().getType(), location.getLocationNode())) {
-          state.forget(memoryLocation);
+          resultState.forget(memoryLocation);
         }
       }
 
       abstractions.inc();
     }
+    return resultState;
   }
 
   /**
