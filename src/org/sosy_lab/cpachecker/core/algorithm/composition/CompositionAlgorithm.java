@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgressReportingAlgorithm;
-import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurableVariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -677,7 +677,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         Precisions.extractPrecisionByType(resultPrec, VariableTrackingPrecision.class);
     if (varPrec != null) {
       try {
-        if (varPrec instanceof ConfigurablePrecision) {
+        if (varPrec instanceof ConfigurableVariableTrackingPrecision) {
           varPrec = VariableTrackingPrecision.createRefineablePrecision(pConfig, varPrec);
         }
         VariableTrackingPrecision varPrecInter;
@@ -689,7 +689,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
             for (Precision prec : previousReached.getPrecisions()) {
               varPrecInter =
                   Precisions.extractPrecisionByType(prec, VariableTrackingPrecision.class);
-              if (varPrecInter != null && !(varPrecInter instanceof ConfigurablePrecision)) {
+              if (varPrecInter != null
+                  && !(varPrecInter instanceof ConfigurableVariableTrackingPrecision)) {
                 varPrec = varPrec.join(varPrecInter);
                 changed = true;
               }

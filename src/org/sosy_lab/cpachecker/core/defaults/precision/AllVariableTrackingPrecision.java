@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * A {@link org.sosy_lab.cpachecker.core.interfaces.Precision} that tracks all variables per
  * default.
  */
-public class AllVariableTrackingPrecision extends ConfigurablePrecision {
+public class AllVariableTrackingPrecision extends ConfigurableVariableTrackingPrecision {
 
   AllVariableTrackingPrecision(
       Configuration config,
@@ -92,7 +92,7 @@ public class AllVariableTrackingPrecision extends ConfigurablePrecision {
 
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(ConfigurablePrecision.class)
+    return MoreObjects.toStringHelper(ConfigurableVariableTrackingPrecision.class)
         .add("CPA", cpaClass.getSimpleName())
         .add("tracking all variables:", vc.orElseThrow().getAllVariables())
         .toString();

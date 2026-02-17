@@ -39,7 +39,8 @@ public abstract class VariableTrackingPrecision implements Precision {
       Optional<VariableClassification> vc,
       Class<? extends ConfigurableProgramAnalysis> cpaClass)
       throws InvalidConfigurationException {
-    ConfigurablePrecision varTrackingPrec = new ConfigurablePrecision(config, vc, cpaClass);
+    ConfigurableVariableTrackingPrecision varTrackingPrec =
+        new ConfigurableVariableTrackingPrecision(config, vc, cpaClass);
     if (vc.isPresent()) {
       Optional<Boolean> maybeStaticIsTrackingRes =
           varTrackingPrec.isTrackingReturnsStaticValueFor(vc.orElseThrow().getAllVariables());

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
-
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
@@ -32,7 +31,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "precision")
-public class ConfigurablePrecision extends VariableTrackingPrecision {
+public class ConfigurableVariableTrackingPrecision extends VariableTrackingPrecision {
 
   @Option(
       secure = true,
@@ -88,18 +87,18 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Option(
       secure = true,
-      description = "If this option is used, variables that are irrelevantare also tracked.")
+      description = "If this option is used, variables that are irrelevant also tracked.")
   private boolean trackIrrelevantVariables = true;
 
   final Optional<VariableClassification> vc;
   final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
-  ConfigurablePrecision(
+  ConfigurableVariableTrackingPrecision(
       Configuration config,
       Optional<VariableClassification> pVc,
       Class<? extends ConfigurableProgramAnalysis> pCpaClass)
       throws InvalidConfigurationException {
-    config.inject(this, ConfigurablePrecision.class);
+    config.inject(this, ConfigurableVariableTrackingPrecision.class);
     this.cpaClass = pCpaClass;
     vc = pVc;
   }
@@ -284,7 +283,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   @Override
   public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
     if (pOtherPrecision.getClass().equals(getClass())) {
-      ConfigurablePrecision precisionCompare = (ConfigurablePrecision) pOtherPrecision;
+      ConfigurableVariableTrackingPrecision precisionCompare =
+          (ConfigurableVariableTrackingPrecision) pOtherPrecision;
       if (variableBlacklist.equals(precisionCompare.variableBlacklist)
           && variableWhitelist.equals(precisionCompare.variableWhitelist)
           && trackBooleanVariables == precisionCompare.trackBooleanVariables
@@ -304,7 +304,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public boolean equals(Object pObj) {
-    return pObj instanceof ConfigurablePrecision other && tracksTheSameVariablesAs(other);
+    return pObj instanceof ConfigurableVariableTrackingPrecision other
+        && tracksTheSameVariablesAs(other);
   }
 
   @Override
@@ -321,7 +322,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(ConfigurablePrecision.class)
+    return MoreObjects.toStringHelper(ConfigurableVariableTrackingPrecision.class)
         .add("CPA", cpaClass.getSimpleName())
         .add("blacklist", variableBlacklist)
         .add("whitelist", variableWhitelist)
