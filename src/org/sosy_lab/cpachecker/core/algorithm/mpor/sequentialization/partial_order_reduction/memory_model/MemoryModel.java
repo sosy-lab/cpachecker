@@ -80,6 +80,7 @@ public class MemoryModel {
         pParameterAssignments,
         pPointerParameterAssignments,
         pMachineModel);
+
     allMemoryLocations = pAllMemoryLocations;
     relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
     relevantMemoryLocations = pRelevantMemoryLocationIds;
@@ -100,7 +101,8 @@ public class MemoryModel {
       throws UnsupportedCodeException {
 
     if (pOptions.bitVectorEncoding().isDense) {
-      final int maximumBitVectorLength = pMachineModel.getSizeofLongLongInt() * 4;
+      final int maximumBitVectorLength =
+          pMachineModel.getSizeofLongLongInt() * pMachineModel.getSizeofCharInBits();
       if (pRelevantMemoryLocationIds.size() > maximumBitVectorLength) {
         throw new UnsupportedCodeException(
             String.format(
