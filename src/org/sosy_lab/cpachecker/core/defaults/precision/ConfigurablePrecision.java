@@ -97,7 +97,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   // When isTracking() only returns a single static value for all variables, it is found here
-  private final Optional<Boolean> staticTrackingResult = Optional.empty();
+  private final Optional<Boolean> staticTrackingResult;
 
   ConfigurablePrecision(
       Configuration config,
@@ -107,7 +107,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     config.inject(this);
     this.cpaClass = pCpaClass;
     vc = pVc;
-    preCalculateStaticTracking();
+    staticTrackingResult = preCalculateStaticTracking();
   }
 
   /**
@@ -116,9 +116,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
    * reduce lookups later. Should only ever be used on static precisions. Needs to be run only once
    * for a static precision.
    */
-  private void preCalculateStaticTracking() {
+  private Optional<Boolean> preCalculateStaticTracking() {
     if (vc.isEmpty()) {
-      return;
+      return Optional.empty();
     }
 
     VariableClassification varClass = vc.orElseThrow();
@@ -134,15 +134,16 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       }
     } catch (NullPointerException irrelevant) {
       // Type information is needed to determine tracking
-      return;
+      return Optional.empty();
     }
 
     Set<String> isNotTrackingSet = isNotTrackingSetBuilder.build();
     if (isNotTrackingSet.size() == varClass.getAllVariables().size()) {
-      staticTrackingResult = Optional.of(false);
+      return Optional.of(false);
     } else if (isNotTrackingSet.isEmpty()) {
-      staticTrackingResult = Optional.of(true);
+      return Optional.of(true);
     }
+    return Optional.empty();
   }
 
   @Override
