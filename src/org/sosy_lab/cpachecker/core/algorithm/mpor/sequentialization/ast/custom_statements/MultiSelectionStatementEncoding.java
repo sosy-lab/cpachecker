@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement;
@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement;
  * base selection statements {@link CIfStatement} and {@link CSwitchStatement}. The enum can be used
  * e.g. in options to define a specific encoding.
  */
-public enum CMultiSelectionStatementEncoding {
+public enum MultiSelectionStatementEncoding {
   // NONE may be necessary when some other option defines that there is no multi control statement
   // at all in the exported C code
   NONE,

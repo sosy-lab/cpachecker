@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.MultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
@@ -31,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementBuilder;
-import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
@@ -122,10 +122,10 @@ public abstract class NondeterministicSimulation {
 
   /**
    * Creates the {@link CExportStatement} based on the specified {@link
-   * CMultiSelectionStatementEncoding}.
+   * MultiSelectionStatementEncoding}.
    */
   static CExportStatement buildMultiSelectionStatementByEncoding(
-      CMultiSelectionStatementEncoding pEncoding,
+      MultiSelectionStatementEncoding pEncoding,
       CLeftHandSide pExpression,
       ImmutableListMultimap<CExportExpression, CExportStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -144,7 +144,7 @@ public abstract class NondeterministicSimulation {
   }
 
   /**
-   * Creates the core i.e. the {@link CMultiSelectionStatementEncoding} statement of a thread
+   * Creates the core i.e. the {@link MultiSelectionStatementEncoding} statement of a thread
    * simulation used for {@link NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}.
    * The logic is common for all {@link NondeterminismSource}s, so this is not tied to the separate
    * implementations of {@link NondeterministicSimulation}.
@@ -213,7 +213,7 @@ public abstract class NondeterministicSimulation {
 
   /**
    * Builds the {@link String} code of a single simulation for the given {@code pThread}, including
-   * the {@link CMultiSelectionStatementEncoding} statement.
+   * the {@link MultiSelectionStatementEncoding} statement.
    *
    * <p>The resulting {@link String} must make it possible for the simulation to be placed in a
    * separate function that can be called without any additional wrappers or preceding statements.
@@ -239,7 +239,7 @@ public abstract class NondeterministicSimulation {
 
   /**
    * Builds the list of statements, e.g. assumptions or assignments, that are placed directly before
-   * the {@link CMultiSelectionStatementEncoding} statement of a single {@code pThread}.
+   * the {@link MultiSelectionStatementEncoding} statement of a single {@code pThread}.
    */
   abstract CCompoundStatement buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException;

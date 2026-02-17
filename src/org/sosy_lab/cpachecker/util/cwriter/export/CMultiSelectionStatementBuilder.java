@@ -30,16 +30,14 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement;
 
 /**
- * A builder class for multi selection statements in C, see {@link
- * CMultiSelectionStatementEncoding}.
+ * A builder class for multi selection statements in C that can be created from the base selection
+ * statements {@link CIfStatement} and {@link CSwitchStatement}.
  */
 public class CMultiSelectionStatementBuilder {
 
-  // BINARY_SEARCH_TREE
-
   /**
-   * Returns a new {@link CExportStatement} that represents a {@link
-   * CMultiSelectionStatementEncoding#BINARY_SEARCH_TREE}. Example:
+   * Returns a new {@link CExportStatement} that represents a binary search tree constructed from
+   * {@link CIfStatement}s. Example:
    *
    * <pre>{@code
    * if (expr < 3) {
@@ -143,8 +141,6 @@ public class CMultiSelectionStatementBuilder {
     }
   }
 
-  // IF_ELSE_CHAIN
-
   /**
    * Represents a chain of {@code if-else} branches. Example for an {@code int expression} between
    * {@code 0} and {@code 2}:
@@ -163,9 +159,8 @@ public class CMultiSelectionStatementBuilder {
    * }
    * }</pre>
    *
-   * <p>For most verifiers, the {@link CMultiSelectionStatementEncoding#IF_ELSE_CHAIN} generally
-   * scales much worse with a growing number of statements compared to {@link CSwitchStatement} and
-   * {@link CMultiSelectionStatementEncoding#BINARY_SEARCH_TREE}.
+   * <p>For most verifiers, the if-else chain generally scales much worse with a growing number of
+   * statements compared to {@link CSwitchStatement} and a binary search tree.
    */
   public static CIfStatement buildIfElseChain(
       ImmutableListMultimap<CExportExpression, CExportStatement> pStatements) {
