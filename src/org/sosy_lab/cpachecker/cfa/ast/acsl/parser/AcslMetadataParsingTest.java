@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSetMultimap;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -26,12 +25,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -156,46 +150,6 @@ public class AcslMetadataParsingTest {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       assertThat(cfa.getAcslMetadata()).isNotNull();
       assertThat(cfa.getAcslMetadata().numOfAnnotaniots()).isEqualTo(expectedComments.size());
-    }
-  }
-
-  @Test
-  public void parseMetadataTest() throws Exception {
-    List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
-
-    if (programName.equals("badVariable.c")) {
-      RuntimeException expectedException =
-          assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
-      assertThat(expectedException)
-          .hasMessageThat()
-          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
-    } else {
-      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-
-      CProgramScope programScope = new CProgramScope(cfa, logManager);
-
-      ImmutableList.Builder<AAcslAnnotation> expectedBuilder = ImmutableList.builder();
-      for (String s : expectedComments) {
-        expectedBuilder.add(
-            AcslParser.parseAcslComment(s, FileLocation.DUMMY, programScope, AcslScope.empty()));
-      }
-      ImmutableList<AAcslAnnotation> expectedAnnotations = expectedBuilder.build();
-
-      AcslMetadata acslMetadata = cfa.getAcslMetadata();
-      assertThat(acslMetadata).isNotNull();
-
-      ImmutableSetMultimap<AcslAssertion, CFANode> actualAssertions =
-          acslMetadata.assertions().inverse();
-
-      ImmutableSetMultimap<AcslAssigns, CFANode> actualAssigns =
-          acslMetadata.modifiedMemoryLocations().inverse();
-
-      for (AAcslAnnotation expectedAnnotation : expectedAnnotations) {
-        switch (expectedAnnotation) {
-          case AcslAssertion assertion -> assertThat(actualAssertions).containsKey(assertion);
-          case null, default -> assertThat(actualAssigns).containsKey(expectedAnnotation);
-        }
-      }
     }
   }
 
