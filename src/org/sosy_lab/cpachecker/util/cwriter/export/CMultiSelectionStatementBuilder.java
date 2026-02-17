@@ -70,8 +70,8 @@ public class CMultiSelectionStatementBuilder {
       throws UnrecognizedCodeException {
 
     // use list<entry<,>> instead of map so that we can split it in the middle for the bin tree
-    ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
-        statementList = transformIntoListWithEntries(pStatements);
+    ImmutableList<Entry<CExportExpression, ImmutableList<CExportStatement>>> statementList =
+        transformIntoListWithEntries(pStatements);
     return recursivelyBuildTree(
         pStartIndex, pExpression, statementList, statementList, pBinaryExpressionBuilder);
   }
@@ -83,9 +83,8 @@ public class CMultiSelectionStatementBuilder {
   private static CExportStatement recursivelyBuildTree(
       final int pStartIndex,
       final CLeftHandSide pExpression,
-      final ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
-          pAllStatements,
-      List<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>> pCurrentStatements,
+      final ImmutableList<Entry<CExportExpression, ImmutableList<CExportStatement>>> pAllStatements,
+      List<Entry<CExportExpression, ImmutableList<CExportStatement>>> pCurrentStatements,
       final CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -93,23 +92,22 @@ public class CMultiSelectionStatementBuilder {
 
     if (size == 1) {
       // single element -> return the statement directly (this is the leaf)
-      return new CCompoundStatement(ImmutableList.copyOf(pCurrentStatements.getFirst().getValue()));
+      return new CCompoundStatement(pCurrentStatements.getFirst().getValue());
 
     } else if (size == 2) {
       // only two elements -> create the final if-else leaf statement
-      Entry<CExportExpression, ImmutableList<? extends CExportStatement>> ifEntry =
+      Entry<CExportExpression, ImmutableList<CExportStatement>> ifEntry =
           pCurrentStatements.getFirst();
-      ImmutableList<? extends CExportStatement> elseStatements =
-          pCurrentStatements.getLast().getValue();
+      ImmutableList<CExportStatement> elseStatements = pCurrentStatements.getLast().getValue();
       return new CIfStatement(
           ifEntry.getKey(),
-          new CCompoundStatement(ImmutableList.copyOf(ifEntry.getValue())),
-          new CCompoundStatement(ImmutableList.copyOf(elseStatements)));
+          new CCompoundStatement(ifEntry.getValue()),
+          new CCompoundStatement(elseStatements));
 
     } else {
       // more than two elements -> create if and else subtrees with <
       int middleIndex = size / 2;
-      Entry<CExportExpression, ImmutableList<? extends CExportStatement>> midEntry =
+      Entry<CExportExpression, ImmutableList<CExportStatement>> midEntry =
           pCurrentStatements.get(middleIndex);
       int midIndex = pAllStatements.indexOf(midEntry);
 
@@ -171,25 +169,24 @@ public class CMultiSelectionStatementBuilder {
   public static CIfStatement buildIfElseChain(
       ImmutableListMultimap<CExportExpression, CExportStatement> pStatements) {
 
-    ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
-        statementList = transformIntoListWithEntries(pStatements);
+    ImmutableList<Entry<CExportExpression, ImmutableList<CExportStatement>>> statementList =
+        transformIntoListWithEntries(pStatements);
 
     // start with the very last element (the innermost branch)
     CIfStatement chain =
         new CIfStatement(
             statementList.getLast().getKey(),
-            new CCompoundStatement(ImmutableList.copyOf(statementList.getLast().getValue())));
+            new CCompoundStatement(statementList.getLast().getValue()));
 
     // wrap it backwards
     for (int i = statementList.size() - 2; i >= 0; i--) {
-      Entry<CExportExpression, ImmutableList<? extends CExportStatement>> current =
-          statementList.get(i);
+      Entry<CExportExpression, ImmutableList<CExportStatement>> current = statementList.get(i);
       // nest the previous 'if' inside the 'else'
       chain =
           new CIfStatement(
               current.getKey(),
-              new CCompoundStatement(ImmutableList.copyOf(current.getValue())),
-              new CCompoundStatement(ImmutableList.of(chain)));
+              new CCompoundStatement(current.getValue()),
+              new CCompoundStatement(chain));
     }
     return chain;
   }
@@ -204,19 +201,16 @@ public class CMultiSelectionStatementBuilder {
    * e.g. {@link CMultiSelectionStatementEncoding#BINARY_SEARCH_TREE} that splits the statements in
    * the middle to build a tree.
    */
-  private static ImmutableList<Entry<CExportExpression, ImmutableList<? extends CExportStatement>>>
+  private static ImmutableList<Entry<CExportExpression, ImmutableList<CExportStatement>>>
       transformIntoListWithEntries(
           ImmutableListMultimap<CExportExpression, CExportStatement> pStatements) {
 
     return pStatements.asMap().entrySet().stream()
         .map(
             entry -> {
-              ImmutableList<? extends CExportStatement> values =
-                  ImmutableList.copyOf(entry.getValue());
+              ImmutableList<CExportStatement> values = ImmutableList.copyOf(entry.getValue());
               // explicitly define the types for the Entry to avoid capture errors
-              return Maps
-                  .<CExportExpression, ImmutableList<? extends CExportStatement>>immutableEntry(
-                      entry.getKey(), values);
+              return Maps.immutableEntry(entry.getKey(), values);
             })
         .collect(ImmutableList.toImmutableList());
   }
