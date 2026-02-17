@@ -40,7 +40,7 @@ public class VariableClassification {
   private final Set<String> intOverflowVars;
 
   // The set of all variables in the program
-  private final Set<String> allVariables;
+  private final ImmutableSet<String> allVariables;
 
   /**
    * These sets contain all variables even ones of array, pointer or structure types. Such variables
