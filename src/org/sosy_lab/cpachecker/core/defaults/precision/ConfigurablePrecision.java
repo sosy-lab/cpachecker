@@ -97,7 +97,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   // When isTracking() only returns a single static value for all variables, it is found here
-  private Optional<Boolean> staticTrackingResult = Optional.empty();
+  private final Optional<Boolean> staticTrackingResult = Optional.empty();
 
   ConfigurablePrecision(
       Configuration config,
