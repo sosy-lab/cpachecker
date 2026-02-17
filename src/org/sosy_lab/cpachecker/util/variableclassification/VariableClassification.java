@@ -23,6 +23,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -96,8 +97,16 @@ public class VariableClassification {
     intOverflowVars = ImmutableSortedSet.copyOf(pIntOverflowVars);
     relevantVariables = ImmutableSortedSet.copyOf(pRelevantVariables);
     addressedVariables = ImmutableSortedSet.copyOf(pAddressedVariables);
-    relevantFields = ImmutableSetMultimap.copyOf(pRelevantFields);
-    addressedFields = ImmutableSetMultimap.copyOf(pAddressedFields);
+    relevantFields =
+        ImmutableSetMultimap.<CCompositeType, String>builder()
+            .putAll(pRelevantFields)
+            .orderValuesBy(Comparator.naturalOrder())
+            .build();
+    addressedFields =
+        ImmutableSetMultimap.<CCompositeType, String>builder()
+            .putAll(pAddressedFields)
+            .orderValuesBy(Comparator.naturalOrder())
+            .build();
     partitions = ImmutableSortedSet.copyOf(pPartitions);
     intBoolPartitions = ImmutableSortedSet.copyOf(pIntBoolPartitions);
     intEqualPartitions = ImmutableSortedSet.copyOf(pIntEqualPartitions);
