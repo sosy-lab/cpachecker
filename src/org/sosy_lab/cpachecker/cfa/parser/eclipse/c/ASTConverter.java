@@ -716,7 +716,7 @@ class ASTConverter {
       resultType = arrayType.getType();
     } else if (resultType instanceof CPointerType pointerType) {
       resultType = pointerType.getType();
-    } else if (resultType instanceof CTypedefType || resultType instanceof CProblemType) {
+    } else if (resultType instanceof CProblemType) {
       // TODO probably we should throw exception,
       // but for now we delegate to Eclipse CDT and see whether it knows better than we do
       resultType = typeConverter.convert(e.getExpressionType());
