@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 public final class CArraySubscriptExpression extends AArraySubscriptExpression
     implements CLeftHandSide {
@@ -37,6 +38,12 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression
             || arrayType instanceof CProblemType,
         "Array subscript of non-array type %s",
         arrayType);
+    CType indexType = pSubscriptExpression.getExpressionType();
+    checkArgument(
+        CTypes.isIntegerType(indexType),
+        "Array subscript with non-integer index '%s' of type %s",
+        pSubscriptExpression,
+        indexType);
   }
 
   @Override
