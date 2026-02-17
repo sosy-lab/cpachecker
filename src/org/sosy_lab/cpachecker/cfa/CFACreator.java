@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -817,12 +816,14 @@ public class CFACreator {
     Preconditions.checkArgument(
         pParseResult.acslComments().isPresent(), "The parse result has no acsl comments");
 
-    ArrayListMultimap<CFANode, AcslAssertion> assertionBuilder = ArrayListMultimap.create();
-    ArrayListMultimap<CFANode, AcslLoopInvariant> loopInvariantBuilder = ArrayListMultimap.create();
+    ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
+        ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<CFANode, AcslLoopInvariant> loopInvariantBuilder =
+        ImmutableSetMultimap.builder();
 
-    ArrayListMultimap<CFANode, AcslFunctionContract> functionContractBuilder =
-        ArrayListMultimap.create();
-    ArrayListMultimap<CFANode, AcslAssigns> assignsBuilder = ArrayListMultimap.create();
+    ImmutableSetMultimap.Builder<CFANode, AcslFunctionContract> functionContractBuilder =
+        ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<CFANode, AcslAssigns> assignsBuilder = ImmutableSetMultimap.builder();
 
     for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
       Verify.verify(comment.hasCfaNode());
@@ -856,14 +857,10 @@ public class CFACreator {
       }
     }
 
-    ImmutableSetMultimap<CFANode, AcslAssertion> assertions =
-        ImmutableSetMultimap.copyOf(assertionBuilder);
-    ImmutableSetMultimap<CFANode, AcslLoopInvariant> loopInvariants =
-        ImmutableSetMultimap.copyOf(loopInvariantBuilder);
-    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts =
-        ImmutableSetMultimap.copyOf(functionContractBuilder);
-    ImmutableSetMultimap<CFANode, AcslAssigns> assigns =
-        ImmutableSetMultimap.copyOf(assignsBuilder);
+    ImmutableSetMultimap<CFANode, AcslAssertion> assertions = assertionBuilder.build();
+    ImmutableSetMultimap<CFANode, AcslLoopInvariant> loopInvariants = loopInvariantBuilder.build();
+    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts = functionContractBuilder.build();
+    ImmutableSetMultimap<CFANode, AcslAssigns> assigns = assignsBuilder.build();
 
     AcslMetadata result =
         new AcslMetadata(
