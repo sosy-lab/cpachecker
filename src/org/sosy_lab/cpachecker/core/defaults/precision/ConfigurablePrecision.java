@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -91,21 +92,17 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       description = "If this option is used, variables that are irrelevantare also tracked.")
   private boolean trackIrrelevantVariables = true;
 
-  private final Optional<VariableClassification> vc;
-  private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
-
-  // When isTracking() only returns a single static value for all variables, it is found here
-  private final Optional<Boolean> staticTrackingResult;
+  final Optional<VariableClassification> vc;
+  final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   ConfigurablePrecision(
       Configuration config,
       Optional<VariableClassification> pVc,
       Class<? extends ConfigurableProgramAnalysis> pCpaClass)
       throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, ConfigurablePrecision.class);
     this.cpaClass = pCpaClass;
     vc = pVc;
-    staticTrackingResult = preCalculateStaticTracking();
   }
 
   /**
@@ -114,18 +111,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
    * reduce lookups later. Should only ever be used on static precisions. Needs to be run only once
    * for a static precision.
    */
-  private Optional<Boolean> preCalculateStaticTracking() {
-    if (vc.isEmpty()) {
-      return Optional.empty();
-    }
-
-    VariableClassification varClass = vc.orElseThrow();
-
-    // TODO: explore usage of this "not tracking" set, so that we may return false fast if the
-    //  difference in size to the tracking sets is large enough
+  Optional<Boolean> isTrackingReturnsStaticValueFor(Set<String> variablesToCheck) {
     int notTrackedVariables = 0;
     try {
-      for (String variable : varClass.getAllVariables()) {
+      for (String variable : variablesToCheck) {
         if (!isTracking(MemoryLocation.fromQualifiedName(variable), null)) {
           notTrackedVariables++;
         }
@@ -137,7 +126,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
     if (notTrackedVariables == 0) {
       return Optional.of(true);
-    } else if (notTrackedVariables == varClass.getAllVariables().size()) {
+    } else if (notTrackedVariables == variablesToCheck.size()) {
       return Optional.of(false);
     }
     return Optional.empty();
@@ -156,10 +145,6 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
-    if (staticTrackingResult.isPresent()) {
-      return staticTrackingResult.orElseThrow();
-    }
-
     return isTracking(pVariable, pType);
   }
 
