@@ -43,14 +43,13 @@ public class AllVariableTrackingPrecision extends ConfigurableVariableTrackingPr
 
   @Override
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
-    // Check that we really have a variable that is known
-    if (pVariable.isReference()) {
-      MemoryLocation owner = pVariable.getReferenceStart();
-      checkArgument(vc.orElseThrow().getAllVariables().contains(owner.getExtendedQualifiedName()));
-    } else {
-      checkArgument(
-          vc.orElseThrow().getAllVariables().contains(pVariable.getExtendedQualifiedName()));
-    }
+    // Check that the variable is known in our variable classification
+    assert pVariable.isReference()
+        && vc.orElseThrow()
+            .getAllVariables()
+            .contains(pVariable.getReferenceStart().getExtendedQualifiedName());
+    assert !pVariable.isReference()
+        && vc.orElseThrow().getAllVariables().contains(pVariable.getExtendedQualifiedName());
 
     return true;
   }
