@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -112,16 +111,17 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
    * for a static precision.
    */
   Optional<Boolean> isTrackingReturnsStaticValueFor(Set<String> variablesToCheck) {
-    int notTrackedVariables = 0;
-    try {
-      for (String variable : variablesToCheck) {
-        if (!isTracking(MemoryLocation.fromQualifiedName(variable), null)) {
-          notTrackedVariables++;
-        }
-      }
-    } catch (NullPointerException irrelevant) {
-      // Type information is needed to determine tracking
+    if (!trackFloatVariables) {
+      // We can't get the type here, so we can't decide upon float types if needed
+      // TODO: track float vars in VariableClassification?
       return Optional.empty();
+    }
+
+    int notTrackedVariables = 0;
+    for (String variable : variablesToCheck) {
+      if (!isTracking(MemoryLocation.fromQualifiedName(variable))) {
+        notTrackedVariables++;
+      }
     }
 
     if (notTrackedVariables == 0) {
@@ -145,19 +145,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
-    return isTracking(pVariable, pType);
-  }
-
-  /**
-   * Checks whether the {@link MemoryLocation} argument pVariable is being tracked in this
-   * precision. The {@link Type} argument pType is only needed if not all types are tracked. Throws
-   * {@link NullPointerException} if argument pType is needed, but null.
-   */
-  private boolean isTracking(MemoryLocation pVariable, Type pType) {
     if (trackFloatVariables) {
       return isTracking(pVariable);
     } else {
-      checkNotNull(pType);
       return !((pType instanceof CSimpleType cSimpleType
                   && cSimpleType.getType().isFloatingPointType())
               || (pType instanceof JSimpleType jSimpleType && jSimpleType.isFloatingPointType()))
