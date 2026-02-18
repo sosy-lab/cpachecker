@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -34,7 +35,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
       SimpleTargetInformation.singleton("termination");
   private boolean isTarget;
-  private boolean isTerminating;
+  private Set<CFANode> possiblyNonterminatingLoopHeads;
 
   /**
    * The following map keeps track of all the variables as type of @Formula, so that they can be
@@ -75,15 +76,16 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
-      Optional<PathFormula> pPathFormulaFull) {
+      Optional<PathFormula> pPathFormulaFull,
+      Set<CFANode> pPossiblyNonterminatingLoopHeads) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     pathFormulaForPrefix = pPathFormulaForPrefix;
     pathFormulaFull = pPathFormulaFull;
+    possiblyNonterminatingLoopHeads = pPossiblyNonterminatingLoopHeads;
     isTarget = false;
-    isTerminating = false;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -120,12 +122,20 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = true;
   }
 
-  public void setTerminating() {
-    isTerminating = true;
+  public void setTerminating(CFANode loopHead) {
+    possiblyNonterminatingLoopHeads.remove(loopHead);
   }
 
   public boolean isTerminating() {
-    return isTerminating;
+    return possiblyNonterminatingLoopHeads.isEmpty();
+  }
+
+  public boolean isLoopTerminating(CFANode pLoopHead) {
+    return !possiblyNonterminatingLoopHeads.contains(pLoopHead);
+  }
+
+  public Set<CFANode> getPossiblyNonterminatingLoopHeads() {
+    return possiblyNonterminatingLoopHeads;
   }
 
   @Override

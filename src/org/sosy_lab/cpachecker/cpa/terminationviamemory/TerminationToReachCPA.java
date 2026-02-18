@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -101,7 +102,8 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableMap.of(),
         ImmutableMap.of(),
         Optional.empty(),
-        Optional.empty());
+        Optional.empty(),
+        new HashSet<>(cfa.getAllLoopHeads().orElseThrow()));
   }
 
   @Override

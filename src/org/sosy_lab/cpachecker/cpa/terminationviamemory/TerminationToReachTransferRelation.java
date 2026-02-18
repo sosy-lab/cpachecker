@@ -141,7 +141,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newNumberOfIterations.buildOrThrow(),
               newPathFormulaForIteration.buildOrThrow(),
               newPrefixFormula,
-              newFullFormula));
+              newFullFormula,
+              terminationState.getPossiblyNonterminatingLoopHeads()));
     }
     return ImmutableList.of(pState);
   }

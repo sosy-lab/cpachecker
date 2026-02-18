@@ -88,7 +88,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
     Pair<LocationState, CallstackState> keyPair = Pair.of(locationState, callstackState);
 
-    if (location.isLoopStart() && terminationState.getStoredValues().containsKey(keyPair)) {
+    if (location.isLoopStart()
+        && !terminationState.isLoopTerminating(locationState.getLocationNode())
+        && terminationState.getStoredValues().containsKey(keyPair)) {
       if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
         boolean isTargetStateReachable;
         boolean isOverapproximating = false;
@@ -149,15 +151,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           if (isOverapproximating
               && isTransitionInvariant(
                   prefixFormula, iterationFormula, prevIndices, smallestIndices, largestIndices)) {
-            TerminationToReachState terminatingState =
-                new TerminationToReachState(
-                    ImmutableMap.of(),
-                    ImmutableMap.of(),
-                    ImmutableMap.of(),
-                    Optional.empty(),
-                    Optional.empty());
-            terminatingState.setTerminating();
-            return Optional.of(result.withAbstractState(terminatingState));
+            terminationState.setTerminating(locationState.getLocationNode());
+            return Optional.of(result.withAbstractState(terminationState));
           }
 
           // If BMC check is UNSAT, try to overapproximate the transition invariant
