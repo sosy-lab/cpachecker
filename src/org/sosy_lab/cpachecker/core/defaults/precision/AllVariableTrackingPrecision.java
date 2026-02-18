@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Objects;
-import java.util.Optional;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -25,15 +25,15 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * A {@link org.sosy_lab.cpachecker.core.interfaces.Precision} that tracks all variables per
  * default.
  */
-public class AllVariableTrackingPrecision extends ConfigurableVariableTrackingPrecision {
+public class AllVariableTrackingPrecision extends VariableTrackingPrecision {
+
+  final VariableClassification vc;
+  final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   AllVariableTrackingPrecision(
-      Configuration config,
-      Optional<VariableClassification> pVc,
-      Class<? extends ConfigurableProgramAnalysis> pCpaClass)
-      throws InvalidConfigurationException {
-    super(config, pVc, pCpaClass);
-    checkArgument(pVc.isPresent());
+      VariableClassification pVc, Class<? extends ConfigurableProgramAnalysis> pCpaClass) {
+    this.cpaClass = pCpaClass;
+    vc = pVc;
   }
 
   @Override
@@ -46,23 +46,52 @@ public class AllVariableTrackingPrecision extends ConfigurableVariableTrackingPr
     // Check that the variable is known in our variable classification
     // Note: we want to ignore possible offsets when transforming MemoryLocation to a name string
     assert !pVariable.isReference()
-        || vc.orElseThrow()
-            .getAllVariables()
-            .contains(pVariable.getReferenceStart().getExtendedQualifiedName());
+        || vc.getAllVariables().contains(pVariable.getReferenceStart().getExtendedQualifiedName());
     assert pVariable.isReference()
-        || vc.orElseThrow().getAllVariables().contains(pVariable.getExtendedQualifiedName());
+        || vc.getAllVariables().contains(pVariable.getExtendedQualifiedName());
 
     return true;
   }
 
   @Override
   public boolean isEmpty() {
-    return vc.orElseThrow().getAllVariables().isEmpty();
+    return vc.getAllVariables().isEmpty();
+  }
+
+  @Override
+  protected Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
+    return cpaClass;
   }
 
   @Override
   public int getSize() {
-    return vc.orElseThrow().getAllVariables().size();
+    return vc.getAllVariables().size();
+  }
+
+  @Override
+  public void serialize(Writer writer) throws IOException {
+    writer.write("# all tracking precision used - nothing to show here");
+  }
+
+  @Override
+  public VariableTrackingPrecision withIncrement(Multimap<CFANode, MemoryLocation> increment) {
+    return this;
+  }
+
+  @Override
+  public VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision) {
+    if (otherPrecision instanceof AllVariableTrackingPrecision pAllVariableTrackingPrecision) {
+      checkArgument(pAllVariableTrackingPrecision.cpaClass == cpaClass);
+      return this;
+    } else if (otherPrecision
+        instanceof ConfigurableVariableTrackingPrecision pConfigurableVariableTrackingPrecision) {
+      checkArgument(pConfigurableVariableTrackingPrecision.cpaClass == cpaClass);
+      return pConfigurableVariableTrackingPrecision;
+    }
+    throw new UnsupportedOperationException(
+        "Joining AllVariableTrackingPrecision with "
+            + otherPrecision.getClass()
+            + " is currently not supported");
   }
 
   @Override
@@ -70,9 +99,7 @@ public class AllVariableTrackingPrecision extends ConfigurableVariableTrackingPr
     if (pOtherPrecision.getClass().equals(getClass())) {
       AllVariableTrackingPrecision precisionCompare =
           (AllVariableTrackingPrecision) pOtherPrecision;
-      if (vc.orElseThrow()
-              .getAllVariables()
-              .equals(precisionCompare.vc.orElseThrow().getAllVariables())
+      if (vc.getAllVariables().equals(precisionCompare.vc.getAllVariables())
           && cpaClass.equals(precisionCompare.cpaClass)) {
         return true;
       }
@@ -87,14 +114,14 @@ public class AllVariableTrackingPrecision extends ConfigurableVariableTrackingPr
 
   @Override
   public int hashCode() {
-    return Objects.hash(vc.orElseThrow().getAllVariables());
+    return Objects.hash(vc.getAllVariables());
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(ConfigurableVariableTrackingPrecision.class)
         .add("CPA", cpaClass.getSimpleName())
-        .add("tracking all variables:", vc.orElseThrow().getAllVariables())
+        .add("tracking all variables:", vc.getAllVariables())
         .toString();
   }
 }
