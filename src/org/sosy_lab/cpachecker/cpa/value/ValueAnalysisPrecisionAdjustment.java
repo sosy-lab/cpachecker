@@ -214,43 +214,31 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       LocationState location,
       UniqueAssignmentsInPathConditionState assignments) {
     // Do not eagerly copy the state if we don't prec-adjust!
-    @Nullable ValueAnalysisState resultState = null;
+    final ValueAnalysisStateCopyOnForgetBuilder resultStateBuilder =
+        new ValueAnalysisStateCopyOnForgetBuilder(pInitialState);
 
     if (options.doLivenessAbstraction && liveVariables.isPresent()) {
-      resultState = ValueAnalysisState.copyOf(pInitialState);
       totalLiveness.start();
-      enforceLiveness(pInitialState, location, resultState);
+      enforceLiveness(resultStateBuilder, location);
       totalLiveness.stop();
     }
 
     // compute the abstraction based on the value-analysis precision
     totalAbstraction.start();
     if (performPrecisionBasedAbstractionAt(location)) {
-
-      if (resultState == null) {
-        resultState = ValueAnalysisState.copyOf(pInitialState);
-      }
-      enforcePrecision(resultState, location, pPrecision);
+      enforcePrecision(resultStateBuilder, location, pPrecision);
     }
     totalAbstraction.stop();
 
     // compute the abstraction for assignment thresholds
     if (assignments != null) {
-      if (resultState == null) {
-        resultState = ValueAnalysisState.copyOf(pInitialState);
-      }
       totalEnforcePath.start();
-      enforcePathThreshold(resultState, assignments);
+      enforcePathThreshold(resultStateBuilder, assignments);
       totalEnforcePath.stop();
     }
 
-    if (resultState == null) {
-      // No abstraction has been applied
-      return Optional.of(new PrecisionAdjustmentResult(pInitialState, pPrecision, Action.CONTINUE));
-    } else {
-      resultState = resultState.equals(pInitialState) ? pInitialState : resultState;
-      return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
-    }
+    return Optional.of(
+        new PrecisionAdjustmentResult(resultStateBuilder.build(), pPrecision, Action.CONTINUE));
   }
 
   /**
@@ -294,7 +282,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   private void enforceLiveness(
-      ValueAnalysisState pState, LocationState location, ValueAnalysisState resultState) {
+      ValueAnalysisStateCopyOnForgetBuilder stateBuilder, LocationState location) {
     CFANode actNode = location.getLocationNode();
 
     boolean hasMoreThanOneEnteringLeavingEdge =
@@ -310,11 +298,11 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       // skip the abstraction, after a blank edge there cannot be a variable
       // less live
       if (!onlyBlankEdgesEntering) {
-        for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
+        for (MemoryLocation variable : stateBuilder.getCurrentState().getTrackedMemoryLocations()) {
           if (!liveVariables
               .orElseThrow()
               .isVariableLive(variable.getExtendedQualifiedName(), location.getLocationNode())) {
-            resultState.forget(variable);
+            stateBuilder.forget(variable);
           }
         }
       }
@@ -325,19 +313,21 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * This method performs an abstraction computation on the current value-analysis state.
    *
    * @param location the current location
-   * @param state the current state that originates from initialState, but may already have changed.
+   * @param stateBuilder the current state, wrapped in a {@link
+   *     ValueAnalysisStateCopyOnForgetBuilder}
    * @param precision the current precision
    */
   private void enforcePrecision(
-      ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
+      ValueAnalysisStateCopyOnForgetBuilder stateBuilder,
+      LocationState location,
+      VariableTrackingPrecision precision) {
 
-    checkNotNull(state);
     checkNotNull(location);
-    for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
+    for (Entry<MemoryLocation, ValueAndType> e : stateBuilder.getCurrentState().getConstants()) {
       MemoryLocation memoryLocation = e.getKey();
       if (!precision.isTracking(
           memoryLocation, e.getValue().getType(), location.getLocationNode())) {
-        state.forget(memoryLocation);
+        stateBuilder.forget(memoryLocation);
       }
     }
 
@@ -348,20 +338,94 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * This method abstracts variables that exceed the threshold of assignments along the current
    * path.
    *
-   * @param state the state to abstract
+   * @param stateBuilder the state-builder used to abstract the state
    * @param assignments the assignment information
    */
   private void enforcePathThreshold(
-      ValueAnalysisState state, UniqueAssignmentsInPathConditionState assignments) {
+      ValueAnalysisStateCopyOnForgetBuilder stateBuilder,
+      UniqueAssignmentsInPathConditionState assignments) {
 
     // forget the value for all variables that exceed their threshold
-    for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
+    for (Entry<MemoryLocation, ValueAndType> e : stateBuilder.getCurrentState().getConstants()) {
       MemoryLocation memoryLocation = e.getKey();
       assignments.updateAssignmentInformation(memoryLocation, e.getValue().getValue());
 
       if (assignments.exceedsThreshold(memoryLocation)) {
-        state.forget(memoryLocation);
+        stateBuilder.forget(memoryLocation);
       }
+    }
+  }
+
+  /**
+   * Wrapper for {@link ValueAnalysisState} that may be abstracted using {@link
+   * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)}. Upon using {@link
+   * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)} for the first time, the initial
+   * state is copied, and all abstractions are performed on the copy. If no abstraction has been
+   * performed (yet) {@link ValueAnalysisStateCopyOnForgetBuilder#getCurrentState()} returns the
+   * initial state, else the current state (that has been abstracted). {@link
+   * ValueAnalysisStateCopyOnForgetBuilder#build()} returns the initial state if {@link
+   * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)} has not been called, else the
+   * abstracted copy of the initial state.
+   */
+  public static class ValueAnalysisStateCopyOnForgetBuilder {
+
+    private final ValueAnalysisState initialState;
+    private ValueAnalysisState possibleResultState = null;
+    private boolean closed = false;
+
+    public ValueAnalysisStateCopyOnForgetBuilder(ValueAnalysisState pInitialState) {
+      initialState = pInitialState;
+    }
+
+    /**
+     * Returns the initial state iff {@link
+     * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)} has not been called on this
+     * builder, else the copied and abstracted state. This may only be called once, closing the
+     * {@link ValueAnalysisStateCopyOnForgetBuilder}, preventing any further use of any method of
+     * this class.
+     */
+    public ValueAnalysisState build() {
+      checkState(
+          !closed,
+          "The ValueAnalysisStateCopyOnForgetBuilder is already closed and can no longer be used");
+      closed = true;
+      if (possibleResultState == null) {
+        return initialState;
+      }
+      return possibleResultState;
+    }
+
+    /**
+     * If this method is called the first time for this builder, the initial state is copied and
+     * then {@link ValueAnalysisState#forget(MemoryLocation)} is executed on the copy. In all other
+     * cases, the previously copied and abstracted state is re-used, and no new copy is performed.
+     *
+     * @param variableToForget the {@link MemoryLocation} to use {@link
+     *     ValueAnalysisState#forget(MemoryLocation)} on.
+     */
+    public void forget(MemoryLocation variableToForget) {
+      checkState(
+          !closed,
+          "The ValueAnalysisStateCopyOnForgetBuilder is already closed and can no longer be used");
+      if (possibleResultState == null) {
+        possibleResultState = ValueAnalysisState.copyOf(initialState);
+      }
+      possibleResultState.forget(variableToForget);
+    }
+
+    /**
+     * Returns the initial state if {@link
+     * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)} has not yet been called, else
+     * the copied and abstracted state.
+     */
+    public ValueAnalysisState getCurrentState() {
+      checkState(
+          !closed,
+          "The ValueAnalysisStateCopyOnForgetBuilder is already closed and can no longer be used");
+      if (possibleResultState == null) {
+        return initialState;
+      }
+      return possibleResultState;
     }
   }
 }
