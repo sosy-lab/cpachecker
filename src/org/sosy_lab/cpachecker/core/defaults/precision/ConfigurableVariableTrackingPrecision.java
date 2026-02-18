@@ -116,17 +116,17 @@ public class ConfigurableVariableTrackingPrecision extends VariableTrackingPreci
       return Optional.empty();
     }
 
-    int notTrackedVariables = 0;
+    int trackedVariables = 0;
     for (String variable : variablesToCheck) {
-      if (!isTracking(MemoryLocation.fromQualifiedName(variable))) {
-        notTrackedVariables++;
+      if (isTracking(MemoryLocation.fromQualifiedName(variable))) {
+        trackedVariables++;
       }
     }
 
-    if (notTrackedVariables == 0) {
-      return Optional.of(true);
-    } else if (notTrackedVariables == variablesToCheck.size()) {
+    if (trackedVariables == 0) {
       return Optional.of(false);
+    } else if (trackedVariables == variablesToCheck.size()) {
+      return Optional.of(true);
     }
     return Optional.empty();
   }
