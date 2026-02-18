@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -175,7 +174,7 @@ public class VariableClassification {
    *     string order of {@link CCompositeType#getName()} and values are sorted by natural string
    *     order.
    */
-  public ImmutableMultimap<CCompositeType, String> getRelevantFields() {
+  public ImmutableSetMultimap<CCompositeType, String> getRelevantFields() {
     return relevantFields;
   }
 
@@ -187,7 +186,7 @@ public class VariableClassification {
    *     string order of {@link CCompositeType#getName()} and * values are sorted by natural string
    *     order.
    */
-  public ImmutableMultimap<CCompositeType, String> getAddressedFields() {
+  public ImmutableSetMultimap<CCompositeType, String> getAddressedFields() {
     return addressedFields;
   }
 
