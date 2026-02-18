@@ -40,6 +40,10 @@ public class AcslComment {
     return commentString;
   }
 
+  public String toString() {
+    return "'" + commentString + "'" + " at " + fileLocation;
+  }
+
   @Nullable
   public CFANode getCfaNode() {
     return cfaNode;

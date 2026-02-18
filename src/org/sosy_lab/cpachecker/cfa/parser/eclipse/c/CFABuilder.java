@@ -512,32 +512,55 @@ class CFABuilder extends ASTVisitor {
     Preconditions.checkArgument(
         pResult.acslComments().isPresent(), "The parse result has no acsl comments.");
 
-    for (AcslComment comment : pResult.acslComments().orElseThrow()) {
+    for (AcslComment comment :
+        pResult
+            .acslComments()
+            .orElseThrow(
+                () -> new IllegalStateException("The parse result has no acsl comments."))) {
       ParserRuleContext ctx = AcslParser.acslCommentToContext(comment.getComment());
 
       Optional<CFANode> n;
       switch (ctx) {
         case AssertionContext ignored -> {
           n = nodeForAssertion(comment.getFileLocation(), pAstCfaRelation);
-          comment.updateCfaNode(n.orElseThrow());
+          comment.updateCfaNode(
+              n.orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "Could not find CFA node for assertion " + comment)));
         }
         case LoopAnnotContext ignored -> {
           n = nodeForLoopAnnotation(comment.getFileLocation(), pAstCfaRelation);
-          comment.updateCfaNode(n.orElseThrow());
+          comment.updateCfaNode(
+              n.orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "Could not find loop head Cfa node for loop annotation "
+                              + comment)));
         }
         case FunctionContractContext ignored -> {
           n =
               nodeForFunctionContract(
-                  comment, pAstCfaRelation, pResult.acslComments().orElseThrow());
-          comment.updateCfaNode(n.orElseThrow());
+                  comment,
+                  pAstCfaRelation,
+                  pResult
+                      .acslComments()
+                      .orElseThrow(
+                          () ->
+                              new IllegalStateException("The parse result has no acsl comments.")));
+
+          comment.updateCfaNode(
+              n.orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "Could not find function entry node for function contract "
+                              + comment)));
         }
         default ->
-            throw new IllegalStateException(
+            throw new IllegalArgumentException(
                 "Unexpected annotation: "
-                    + comment.getComment()
-                    + " at "
-                    + comment.getFileLocation()
-                    + ". Parsing is currently supported for assertions, loop loopAnnotations,"
+                    + comment
+                    + ". Parsing is currently supported for assertions, loop annotations,"
                     + " function contracts.");
       }
     }
