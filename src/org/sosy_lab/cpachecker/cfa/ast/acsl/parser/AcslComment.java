@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.base.Verify;
 import java.util.List;
-import org.antlr.v4.runtime.ParserRuleContext;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -21,8 +20,7 @@ public class AcslComment {
   private final String commentString;
   @Nullable private CFANode cfaNode;
 
-  public AcslComment(
-      FileLocation pFileLocation, String pCommentString) {
+  public AcslComment(FileLocation pFileLocation, String pCommentString) {
     fileLocation = pFileLocation;
     commentString = pCommentString;
     cfaNode = null;

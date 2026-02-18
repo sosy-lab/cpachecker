@@ -205,8 +205,7 @@ class CFABuilder extends ASTVisitor {
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
           acslComments.add(
               new AcslComment(
-                  astCreator.getLocation(comment),
-                  AcslParser.stripCommentMarker(commentString)));
+                  astCreator.getLocation(comment), AcslParser.stripCommentMarker(commentString)));
         }
       }
     }
