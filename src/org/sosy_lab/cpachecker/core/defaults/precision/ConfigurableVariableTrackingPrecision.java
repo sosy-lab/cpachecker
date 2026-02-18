@@ -163,7 +163,9 @@ public class ConfigurableVariableTrackingPrecision extends VariableTrackingPreci
       return false;
     }
 
+    // We ignore offsets in both cases
     if (pVariable.isReference()) {
+      // We need to strip the offset
       MemoryLocation owner = pVariable.getReferenceStart();
       return isInTrackedVarClass(owner.getExtendedQualifiedName());
     } else {
