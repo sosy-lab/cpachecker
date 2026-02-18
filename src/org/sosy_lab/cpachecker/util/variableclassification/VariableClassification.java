@@ -100,11 +100,13 @@ public class VariableClassification {
     relevantFields =
         ImmutableSetMultimap.<CCompositeType, String>builder()
             .putAll(pRelevantFields)
+            .orderKeysBy(Comparator.comparing(c -> c.getName()))
             .orderValuesBy(Comparator.naturalOrder())
             .build();
     addressedFields =
         ImmutableSetMultimap.<CCompositeType, String>builder()
             .putAll(pAddressedFields)
+            .orderKeysBy(Comparator.comparing(c -> c.getName()))
             .orderValuesBy(Comparator.naturalOrder())
             .build();
     partitions = ImmutableSortedSet.copyOf(pPartitions);
