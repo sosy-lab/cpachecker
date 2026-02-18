@@ -765,7 +765,16 @@ public class CFACreator {
     if (pParseResult.acslComments().isPresent()) {
       CProgramScope cScope = new CProgramScope(cfa, logger);
       try {
-        cfa.setAcslMetadata(createAcslMetadata(cScope, pParseResult));
+        cfa.setAcslMetadata(
+            createAcslMetadata(
+                cScope,
+                ImmutableList.copyOf(
+                    pParseResult
+                        .acslComments()
+                        .orElseThrow(
+                            () ->
+                                new IllegalStateException(
+                                    "The parse result has no acsl comments.")))));
       } catch (AcslParseException e) {
         logger.log(Level.WARNING, e);
       }
@@ -811,10 +820,8 @@ public class CFACreator {
    * @return A new Acsl Metadata from the Acsl Comments in pParseResult
    * @throws AcslParseException When one of the acsl statements is of an unknown type.
    */
-  private AcslMetadata createAcslMetadata(CProgramScope pScope, ParseResult pParseResult)
-      throws AcslParseException {
-    Preconditions.checkArgument(
-        pParseResult.acslComments().isPresent(), "The parse result has no acsl comments");
+  private AcslMetadata createAcslMetadata(
+      CProgramScope pScope, ImmutableList<AcslComment> pComments) throws AcslParseException {
 
     ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
         ImmutableSetMultimap.builder();
@@ -826,7 +833,7 @@ public class CFACreator {
     ImmutableSetMultimap.Builder<CFANode, AcslAssigns> assignsBuilder =
         ImmutableSetMultimap.builder();
 
-    for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
+    for (AcslComment comment : pComments) {
       Verify.verify(comment.hasCfaNode());
       CFANode node = comment.getCfaNode();
       // If the comment is a function contract, we need to tell the CProgramScope the function name.
@@ -845,12 +852,10 @@ public class CFACreator {
             functionContractBuilder.put(node, functionContract);
         case AcslAssigns assigns -> assignsBuilder.put(node, assigns);
         default ->
-            throw new IllegalStateException(
+            throw new IllegalArgumentException(
                 "Unexpected annotation: "
-                    + comment.getComment()
-                    + " at "
-                    + comment.getFileLocation()
-                    + ". Parsing is currently supported for assertions, loop invariants, function"
+                    + comment
+                    + ". Parsing is currently supported for assertions, loop annotations, function"
                     + " contracts and assigns.");
       }
     }
@@ -862,15 +867,8 @@ public class CFACreator {
         functionContractBuilder.build();
     ImmutableSetMultimap<CFANode, AcslAssigns> assigns = assignsBuilder.build();
 
-    AcslMetadata result =
-        new AcslMetadata(
-            ImmutableList.copyOf(pParseResult.acslComments().orElseThrow()),
-            ImmutableSet.of(),
-            assertions,
-            loopAnnotations,
-            functionContracts,
-            assigns);
-    return result;
+    return new AcslMetadata(
+        pComments, ImmutableSet.of(), assertions, loopAnnotations, functionContracts, assigns);
   }
 
   /**
