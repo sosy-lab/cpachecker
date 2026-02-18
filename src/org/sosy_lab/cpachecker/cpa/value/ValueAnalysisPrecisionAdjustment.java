@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
@@ -224,13 +225,12 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
 
     // compute the abstraction based on the value-analysis precision
     totalAbstraction.start();
-    if (performPrecisionBasedAbstraction()) {
-      ValueAnalysisState resultStateBeforePrecEnforcement = resultState;
-      resultState = enforcePrecision(resultState, pInitialState, location, pPrecision);
-      // resultState == null -> resultStateBeforePrecEnforcement == null
-      checkState(resultState != null || resultStateBeforePrecEnforcement == null);
-      // resultStateBeforePrecEnforcement != null -> resultState != null
-      checkState(resultStateBeforePrecEnforcement == null || resultState != null);
+    if (performPrecisionBasedAbstractionAt(location)) {
+
+      if (resultState == null) {
+        resultState = ValueAnalysisState.copyOf(pInitialState);
+      }
+      enforcePrecision(resultState, location, pPrecision);
     }
     totalAbstraction.stop();
 
@@ -283,6 +283,16 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     return performPrecisionBasedAbstraction;
   }
 
+  private boolean performPrecisionBasedAbstractionAt(@Nullable LocationState location) {
+    return performPrecisionBasedAbstraction
+        && location != null
+        && (options.abstractAtEachLocation()
+            || options.abstractAtBranch(location)
+            || options.abstractAtJoin(location)
+            || options.abstractAtFunction(location)
+            || options.abstractAtLoop(location));
+  }
+
   private void enforceLiveness(
       ValueAnalysisState pState, LocationState location, ValueAnalysisState resultState) {
     CFANode actNode = location.getLocationNode();
@@ -315,42 +325,23 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * This method performs an abstraction computation on the current value-analysis state.
    *
    * @param location the current location
-   * @param initialState the initial state before any prec-adjustments have been performed.
-   * @param resultState the current state that originates from initialState, but may already have
-   *     changed. May be null if no changes to the inital state have been done yet.
+   * @param state the current state that originates from initialState, but may already have changed.
    * @param precision the current precision
-   * @return either null if the precision has not been enforced and the parameter resultState was
-   *     null initially, or a {@link ValueAnalysisState} that is the result of enforcing the
-   *     precision onto the parameter resultState if not null initially, or the modified copy of
-   *     initialState.
    */
-  private @Nullable ValueAnalysisState enforcePrecision(
-      @Nullable ValueAnalysisState resultState,
-      final ValueAnalysisState initialState,
-      LocationState location,
-      VariableTrackingPrecision precision) {
-    if (options.abstractAtEachLocation()
-        || options.abstractAtBranch(location)
-        || options.abstractAtJoin(location)
-        || options.abstractAtFunction(location)
-        || options.abstractAtLoop(location)) {
+  private void enforcePrecision(
+      ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
 
-      if (resultState == null) {
-        resultState = ValueAnalysisState.copyOf(initialState);
+    checkNotNull(state);
+    checkNotNull(location);
+    for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
+      MemoryLocation memoryLocation = e.getKey();
+      if (!precision.isTracking(
+          memoryLocation, e.getValue().getType(), location.getLocationNode())) {
+        state.forget(memoryLocation);
       }
-
-      for (Entry<MemoryLocation, ValueAndType> e : resultState.getConstants()) {
-        MemoryLocation memoryLocation = e.getKey();
-        if (location != null
-            && !precision.isTracking(
-                memoryLocation, e.getValue().getType(), location.getLocationNode())) {
-          resultState.forget(memoryLocation);
-        }
-      }
-
-      abstractions.inc();
     }
-    return resultState;
+
+    abstractions.inc();
   }
 
   /**
