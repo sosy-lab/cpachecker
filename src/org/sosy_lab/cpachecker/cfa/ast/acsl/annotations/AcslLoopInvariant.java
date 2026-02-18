@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
 /** This class is a representation of Acsl loopInvariant */
-public final class AcslLoopInvariant extends AcslLoopClause {
+public final class AcslLoopInvariant extends AAcslAnnotation {
   private final AcslPredicate predicate;
 
   public AcslLoopInvariant(FileLocation pFileLocation, AcslPredicate pPredicate) {

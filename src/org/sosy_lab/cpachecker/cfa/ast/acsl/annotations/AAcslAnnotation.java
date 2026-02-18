@@ -27,9 +27,10 @@ public abstract sealed class AAcslAnnotation
     permits AcslAssertion,
         AcslFunctionContract,
         AcslLoopAnnotation,
-        AcslLoopClause,
+        AcslLoopInvariant,
         AcslRequires,
-        AcslSimpleClause {
+        AcslEnsures,
+        AcslAssigns {
 
   private final FileLocation fileLocation;
 
