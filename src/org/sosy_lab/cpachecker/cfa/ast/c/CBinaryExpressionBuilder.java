@@ -76,11 +76,12 @@ public class CBinaryExpressionBuilder {
 
   @SuppressWarnings("unused")
   private static final ImmutableSet<BinaryOperator> multiplicativeOperators =
-      Sets.immutableEnumSet(BinaryOperator.MULTIPLY, BinaryOperator.MODULO, BinaryOperator.DIVIDE);
+      Sets.immutableEnumSet(
+          BinaryOperator.MULTIPLY, BinaryOperator.REMAINDER, BinaryOperator.DIVIDE);
 
   private static final ImmutableSet<BinaryOperator> bitwiseOperators =
       Sets.immutableEnumSet(
-          BinaryOperator.BINARY_AND, BinaryOperator.BINARY_OR, BinaryOperator.BINARY_XOR);
+          BinaryOperator.BITWISE_AND, BinaryOperator.BITWISE_OR, BinaryOperator.BITWISE_XOR);
 
   private final MachineModel machineModel;
   private final LogManager logger;
@@ -172,16 +173,16 @@ public class CBinaryExpressionBuilder {
         return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
       }
       // others can be negated using De Morgan's law:
-      if (binOp.equals(BinaryOperator.BINARY_AND) || binOp.equals(BinaryOperator.BINARY_OR)) {
+      if (binOp.equals(BinaryOperator.BITWISE_AND) || binOp.equals(BinaryOperator.BITWISE_OR)) {
         if (binExpr.getOperand1() instanceof CBinaryExpression binExpr1
             && binExpr.getOperand2() instanceof CBinaryExpression binExpr2) {
 
           if (binExpr1.getOperator().isLogicalOperator()
               && binExpr2.getOperator().isLogicalOperator()) {
             BinaryOperator negatedOperator =
-                binOp.equals(BinaryOperator.BINARY_AND)
-                    ? BinaryOperator.BINARY_OR
-                    : BinaryOperator.BINARY_AND;
+                binOp.equals(BinaryOperator.BITWISE_AND)
+                    ? BinaryOperator.BITWISE_OR
+                    : BinaryOperator.BITWISE_AND;
             CBinaryExpression newOp1 =
                 buildBinaryExpression(
                     binExpr1.getOperand1(),

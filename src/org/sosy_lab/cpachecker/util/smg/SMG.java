@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
@@ -37,6 +38,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
@@ -44,8 +46,10 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGNode;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
@@ -74,8 +78,10 @@ public class SMG {
   // The bool is the validity of the SMGObject, not being in the map -> not valid (false)
   private final PersistentMap<SMGObject, Boolean> smgObjects;
 
-  // TODO: we use the nesting level only for pointers at the moment
-  //  (as we don't merge) -> move to points-to-edges
+  // Nesting level is used to determine how memory is materialized out of abstracted memory.
+  // E.g. a value/object with a level higher than its parent is materialized into a fresh copy. A
+  // value/object with the same nesting level as the parent is simply copied, i.e. a pointer points
+  // to the same memory as before.
   private final PersistentMap<SMGValue, Integer> smgValuesAndNestingLvl;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
   private final PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>>
@@ -126,18 +132,6 @@ public class SMG {
     pointsToEdges = pPointsToEdges;
     sizeOfPointer = pSizeOfPointer;
     objectsAndPointersPointingAtThem = pObjectsAndPointersPointingAtThem;
-  }
-
-  private SMG copyWithNewValuesAndNestingLvl(
-      PersistentMap<SMGValue, Integer> pSMGValuesAndNestingLvl) {
-    return new SMG(
-        smgObjects,
-        pSMGValuesAndNestingLvl,
-        hasValueEdges,
-        valuesToRegionsTheyAreSavedIn,
-        pointsToEdges,
-        objectsAndPointersPointingAtThem,
-        sizeOfPointer);
   }
 
   private SMG of(ImmutableMap<SMGValue, SMGPointsToEdge> pPointsToEdges) {
@@ -408,7 +402,8 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG an adds/replaces the given points to edge.
+   * Creates a copy of the SMG an adds/replaces the given points to edge. Does NOT increment the
+   * pointer to object map of the SMG.
    *
    * @param edge - The edge to be added/replaced.
    * @param source - The source value.
@@ -437,8 +432,32 @@ public class SMG {
     // Don't increment the pointer to target obj map, as this might add pointers that are not really
     // saved in an object yet. Increment when they are saved in an obj.
     // SMG newSMG = incrementPointerToObjectMap(source, edge.pointsTo());
+    return of(pointsToEdgesBuilder.buildOrThrow());
+  }
+
+  /**
+   * Creates a copy of the SMG an adds/replaces the given points to edge and increments the pointer
+   * to object map of the SMG.
+   *
+   * @param edge - The edge to be added/replaced.
+   * @param source - The source value.
+   * @return A modified copy of the SMG.
+   */
+  public SMG copyAndAddPTEdgeWithInternalMapping(SMGPointsToEdge edge, SMGValue source) {
+    if (pointsToEdges.containsKey(source)) {
+      if (Objects.equals(pointsToEdges.get(source), edge)) {
+        return this;
+      }
+      throw new RuntimeException("A SMG-points-to-edge can have only 1 target!");
+    }
+
+    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableMap.builder();
+    pointsToEdgesBuilder.putAll(pointsToEdges);
+    pointsToEdgesBuilder.put(source, edge);
+    // Don't increment the pointer to target obj map, as this might add pointers that are not really
+    // saved in an object yet. Increment when they are saved in an obj.
     SMG newSMG = of(pointsToEdgesBuilder.buildOrThrow());
-    return newSMG;
+    return newSMG.incrementPointerToObjectMap(source, edge.pointsTo());
   }
 
   /**
@@ -540,30 +559,25 @@ public class SMG {
   /**
    * Returns a new SMG with the HVEdges replaced by the given.
    *
-   * @param objectToReplace the object whose edges are supposed to be changed.
+   * @param objectToReplaceIn the object whose edges are supposed to be changed.
    * @param newHVEdges the new HVedges.
    */
   public SMG copyAndReplaceHVEdgesAt(
-      SMGObject objectToReplace, PersistentSet<SMGHasValueEdge> newHVEdges) {
+      SMGObject objectToReplaceIn, PersistentSet<SMGHasValueEdge> newHVEdges) {
     if (newHVEdges.isEmpty()) {
-      if (hasValueEdges.get(objectToReplace) == null) {
+      if (hasValueEdges.get(objectToReplaceIn) == null) {
         return this;
       }
-      return copyAndRemoveHVEdges(hasValueEdges.get(objectToReplace), objectToReplace);
+      return copyAndRemoveHVEdges(hasValueEdges.get(objectToReplaceIn), objectToReplaceIn);
     }
-    // TODO: this might change pointers
-    for (SMGHasValueEdge edge : newHVEdges) {
-      assert !pointsToEdges.containsKey(edge.hasValue());
+
+    SMG newSMG = copyAndRemoveHVEdges(hasValueEdges.get(objectToReplaceIn), objectToReplaceIn);
+
+    for (SMGHasValueEdge newEdge : newHVEdges) {
+      // TODO: a loop is inefficient here
+      newSMG = newSMG.copyAndAddHVEdge(newEdge, objectToReplaceIn);
     }
-    // TODO: valuesToRegionsTheyAreSavedIn is not updated
-    throw new RuntimeException("Implement me (CEGAR ONLY currently)");
-    /*
-    return new SMG(
-        smgObjects,
-        smgValues,
-        hasValueEdges.removeAndCopy(objectToReplace).putAndCopy(objectToReplace, newHVEdges), valuesToRegionsTheyAreSavedIn,
-        pointsToEdges, objectsAndPointersPointingAtThem,
-        sizeOfPointer);*/
+    return newSMG;
   }
 
   /**
@@ -843,21 +857,25 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG and replaces given object by a given new. This also switches pointers
-   * towards the old obj to the new. If the newTarget is a region, specifiers are set to region. All
-   * other specifiers are retained.
+   * Creates a copy of the SMG and replaces given object by a given new. ALL HVEs are copied to the
+   * new object. All HVEs in the old are deleted. The value in object and pointer to source maps are
+   * updated. The old obj is deleted. The new is added to the objects and the validity is retained
+   * from the old obj. This also switches pointers towards the old obj to the new. If the newTarget
+   * is a region, specifiers are set to region. All other specifiers are retained.
    *
    * @param pOldObject - The object to be replaced.
    * @param pNewObject - The replacement object.
-   * @return A modified copy.
+   * @return A modified copy with the pOldObject removed from the SMG and all pointers towards it
+   *     switched to pNewObject and all HVEs copied to pNewObject.
    */
   public SMG copyAndReplaceObject(SMGObject pOldObject, SMGObject pNewObject) {
-    PersistentSet<SMGHasValueEdge> hvEdges = hasValueEdges.get(pOldObject);
+    PersistentSet<SMGHasValueEdge> oldHVEdges =
+        hasValueEdges.getOrDefault(pOldObject, PersistentSet.of());
     // replace has value edges
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
-        hasValueEdges.removeAndCopy(pOldObject).putAndCopy(pNewObject, hvEdges);
+        hasValueEdges.removeAndCopy(pOldObject).putAndCopy(pNewObject, oldHVEdges);
     SMG newSMG = this;
-    for (SMGHasValueEdge hve : hvEdges) {
+    for (SMGHasValueEdge hve : oldHVEdges) {
       // Switch values from the old obj towards the new
       SMGValue value = hve.hasValue();
       newSMG = newSMG.decrementValueToMemoryMapEntry(pOldObject, value);
@@ -866,11 +884,11 @@ public class SMG {
 
     // replace points to edges pointing towards the old obj
     // If the newTarget is a region, specifiers are set to region. All other specifiers are retained
-    newSMG = replaceAllPointersTowardsWith(pOldObject, pNewObject);
+    newSMG = newSMG.replaceAllPointersTowardsWith(pOldObject, pNewObject);
 
     // replace object
     PersistentMap<SMGObject, Boolean> newObjects =
-        smgObjects.removeAndCopy(pOldObject).putAndCopy(pNewObject, true);
+        smgObjects.removeAndCopy(pOldObject).putAndCopy(pNewObject, smgObjects.get(pOldObject));
 
     return newSMG.of(newObjects, newHVEdges);
   }
@@ -965,9 +983,8 @@ public class SMG {
 
   public SMG copyAndRemoveAbstractedObjectFromHeap(SMGObject pUnreachableObject) {
     assert objectsAndPointersPointingAtThem
-            .getOrDefault(pUnreachableObject, PathCopyingPersistentTreeMap.of())
-            .size()
-        == 0;
+        .getOrDefault(pUnreachableObject, PathCopyingPersistentTreeMap.of())
+        .isEmpty();
     PersistentMap<SMGObject, Boolean> newObjects = smgObjects.removeAndCopy(pUnreachableObject);
     PersistentSet<SMGHasValueEdge> values =
         hasValueEdges.getOrDefault(pUnreachableObject, PersistentSet.of());
@@ -977,72 +994,152 @@ public class SMG {
   }
 
   /**
-   * Removes e.g. a 0+ object from the SMG. This assumed that no valid pointers to the object exist
-   * and removes all pointers TOWARDS the object and all objects that are connected to those
-   * pointers (removes the subgraph). Also deleted the object in the end. This does not check for
-   * pointers that point away from the object!
+   * Removes all objects of the sub-SMG rooted below the given object, including the given object,
+   * that are not reachable from outside the sub-SMG of the root object. E.g. a 0+ object from the
+   * SMG. I.e. if the given object and its sub-SMG has no external pointers towards it, the sub-SMG
+   * is completely removed. If there is external pointers that lead to an object, it's not removed.
    *
-   * @param objectToRemove the object to remove and start the subgraph removal.
-   * @return a new SMG with the object and its subgraphs removed + the all removed objects.
+   * @param objectToRemove the object to start the subgraph removal.
+   * @return a new SMG with as many objects in the sub-SMG removed as possible, as well as all
+   *     removed objects.
    */
   public SMGAndSMGObjects copyAndRemoveObjectAndSubSMG(SMGObject objectToRemove) {
-    // TODO: use for both DLL and SLL
-    // TODO: remwork as this is shit! Needs to remove the
     if (!smgObjects.containsKey(objectToRemove) || !isValid(objectToRemove)) {
       return SMGAndSMGObjects.ofEmptyObjects(this);
     }
-    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> newPointers = ImmutableMap.builder();
-    ImmutableSet.Builder<SMGObject> objectsToRemoveBuilder = ImmutableSet.builder();
-    ImmutableSet.Builder<SMGValue> valuesToRemoveBuilder = ImmutableSet.builder();
-    // We expect there to be very few, if any objects towards a 0+ element as we don't join
-    // TODO: use pointersTowardsObjectsMap
-    // Find all pointers towards the object
-    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry : pointsToEdges.entrySet()) {
-      if (pointsToEntry.getValue().pointsTo().equals(objectToRemove)) {
-        valuesToRemoveBuilder.add(pointsToEntry.getKey());
-      } else {
-        newPointers.put(pointsToEntry);
-      }
-    }
 
-    ImmutableSet<SMGValue> valuesToRemove = valuesToRemoveBuilder.build();
-    // Find all objects w pointers pointing towards the object
-    // TODO: use pointersTowardsObjectsMap
-    if (!valuesToRemove.isEmpty()) {
-      for (PersistentSet<SMGHasValueEdge> hasValueEntryValue : hasValueEdges.values()) {
-        for (SMGHasValueEdge valueEdge : hasValueEntryValue) {
-          if (valuesToRemove.contains(valueEdge.hasValue())) {
-            objectsToRemoveBuilder.add(objectToRemove);
+    // TODO: this could be solved MUCH more efficiently with a UNION-find.
+
+    // Explore the complete sub-SMG, gather all memory connected by PTEs (objsInSubSMG) and all
+    // memory that is pointing towards the sub-SMG (ptrsToSubSMG).
+    // If: the external pointers are a subset of the found reached -> remove all reached, done.
+    // Else: go through the sub-SMG again from the root and find all objects with pointers from
+    // outside the sub-SMG (objectsReachableDirectlyFromOutside).
+    //  Then, explore their sub-SMGs and gather their objects (objectsReachableFromOutside).
+    //  All those are not allowed to be removed.
+    Set<SMGObject> objsPointingAtInitialObjToRemove =
+        getAllSourcesForPointersPointingTowards(objectToRemove);
+    Set<SMGObject> objsInSubSMG = new HashSet<>();
+    objsInSubSMG.add(objectToRemove);
+    Set<SMGObject> waitlist = new HashSet<>(objsInSubSMG);
+    Set<SMGObject> ptrsToSubSMG = new HashSet<>(objsPointingAtInitialObjToRemove);
+
+    while (!waitlist.isEmpty()) {
+      Set<SMGObject> newObjsInSubSMG = new HashSet<>();
+      for (SMGObject obj : waitlist) {
+        ptrsToSubSMG.addAll(getAllSourcesForPointersPointingTowards(obj));
+        for (SMGHasValueEdge hve :
+            getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of())) {
+          Optional<SMGPointsToEdge> pte = getPTEdge(hve.hasValue());
+          if (pte.isPresent()) {
+            if (pte.orElseThrow().pointsTo().isZero()) {
+              continue;
+            }
+            newObjsInSubSMG.add(pte.orElseThrow().pointsTo());
           }
         }
       }
+      waitlist.addAll(newObjsInSubSMG);
+      waitlist.removeAll(objsInSubSMG);
+      objsInSubSMG.addAll(newObjsInSubSMG);
     }
 
-    SMG newSMG = decrementHVEdgesInValueToMemoryMap(objectToRemove, true);
+    Set<SMGObject> objsToRemove;
+    if (objsInSubSMG.containsAll(ptrsToSubSMG)) {
+      // Remove them all
+      objsToRemove = objsInSubSMG;
+    } else {
+      // There are external pointers towards the sub-SMG, only remove those that need it.
+      // First we collect all sub-SMGs that are reachable from outside the sub-SMG, by collecting
+      // all objects reachable from the outside, and then expanding their sub-SMGs.
+      Set<SMGObject> objectsReachableDirectlyFromOutside = new HashSet<>();
+      Set<SMGObject> reached = new HashSet<>();
+      reached.add(objectToRemove);
+      waitlist = new HashSet<>();
+      waitlist.add(objectToRemove);
+      while (!waitlist.isEmpty()) {
+        Set<SMGObject> newObjsInSubSMG = new HashSet<>();
+        for (SMGObject obj : waitlist) {
+          if (!objsInSubSMG.containsAll(getAllSourcesForPointersPointingTowards(obj))) {
+            objectsReachableDirectlyFromOutside.add(obj);
+          }
+          for (SMGHasValueEdge hve :
+              getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of())) {
+            Optional<SMGPointsToEdge> pte = getPTEdge(hve.hasValue());
+            if (pte.isPresent()) {
+              if (obj.isZero()) {
+                continue;
+              }
+              newObjsInSubSMG.add(pte.orElseThrow().pointsTo());
+            }
+          }
+        }
+        waitlist.addAll(newObjsInSubSMG);
+        waitlist.removeAll(reached);
+        reached.addAll(newObjsInSubSMG);
+      }
+
+      Set<SMGObject> objectsReachableFromOutside = new HashSet<>();
+      for (SMGObject objReachableFromOutside : objectsReachableDirectlyFromOutside) {
+        reached = new HashSet<>();
+        reached.add(objReachableFromOutside);
+        waitlist = new HashSet<>();
+        waitlist.add(objReachableFromOutside);
+        while (!waitlist.isEmpty()) {
+          Set<SMGObject> newObjsInSubSMG = new HashSet<>();
+          for (SMGObject obj : waitlist) {
+            if (obj.isZero()) {
+              continue;
+            }
+            if (objectsReachableFromOutside.contains(obj)) {
+              continue;
+            }
+            objectsReachableFromOutside.add(obj);
+            for (SMGHasValueEdge hve :
+                getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of())) {
+              Optional<SMGPointsToEdge> pte = getPTEdge(hve.hasValue());
+              if (pte.isPresent()) {
+                if (obj.isZero()) {
+                  continue;
+                }
+                newObjsInSubSMG.add(pte.orElseThrow().pointsTo());
+              }
+            }
+          }
+          waitlist.addAll(newObjsInSubSMG);
+          waitlist.removeAll(reached);
+          reached.addAll(newObjsInSubSMG);
+        }
+      }
+
+      objsToRemove = objsInSubSMG;
+      objsToRemove.removeAll(objectsReachableFromOutside);
+    }
+
+    SMG newSMG = this;
+    PersistentMap<SMGObject, Boolean> newSMGObjects = newSMG.smgObjects;
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEs = newSMG.hasValueEdges;
+    for (SMGObject objToRemove : objsToRemove) {
+      if (objToRemove.isZero()) {
+        continue;
+      }
+      newSMG = newSMG.decrementHVEdgesInValueToMemoryMap(objToRemove, true);
+      newSMGObjects = newSMGObjects.removeAndCopy(objToRemove);
+      newHVEs = newHVEs.removeAndCopy(objToRemove);
+    }
 
     // Remove object from the SMG and remove all values inside from the SMG
     SMG currentSMG =
         new SMG(
-            newSMG.smgObjects.removeAndCopy(objectToRemove),
+            newSMGObjects,
             newSMG.smgValuesAndNestingLvl,
-            newSMG.hasValueEdges.removeAndCopy(objectToRemove),
+            newHVEs,
             newSMG.valuesToRegionsTheyAreSavedIn,
-            newPointers.buildOrThrow(),
+            newSMG.pointsToEdges,
             newSMG.objectsAndPointersPointingAtThem,
             newSMG.sizeOfPointer);
-    ImmutableSet<SMGObject> objectsToRemove = objectsToRemoveBuilder.build();
-    ImmutableSet.Builder<SMGObject> objectsThatHaveBeenRemovedBuilder = ImmutableSet.builder();
-    objectsThatHaveBeenRemovedBuilder.add(objectToRemove);
-    // Remove transitive objects
-    if (!objectsToRemove.isEmpty()) {
-      for (SMGObject toRemove : objectsToRemove) {
-        SMGAndSMGObjects newSMGAndRemoved = currentSMG.copyAndRemoveObjectAndSubSMG(toRemove);
-        objectsThatHaveBeenRemovedBuilder.addAll(newSMGAndRemoved.getSMGObjects());
-        currentSMG = newSMGAndRemoved.getSMG();
-      }
-    }
 
-    return SMGAndSMGObjects.of(currentSMG, objectsThatHaveBeenRemovedBuilder.build());
+    return SMGAndSMGObjects.of(currentSMG, objsToRemove);
   }
 
   /**
@@ -1146,7 +1243,7 @@ public class SMG {
   public SMGAndHasValueEdges readValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, boolean readMultipleEdges) {
     // let v := H(o, of, t)
-    // TODO: Currently, getHasValueEdgeByOffsetAndSize returns any edge it finds.
+    // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
     // Check if multiple edges may exists for the same offset and size! -> There should never be
     // multiple edges for the exact same offset/size
     // TODO: We only check for the exact matches to offset + size, what if one reads
@@ -1329,7 +1426,7 @@ public class SMG {
     // the new SMG and return it.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(value, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
-    // assert newSMG.checkValueInConcreteMemorySanity();
+    assert newSMG.checkValueInConcreteMemorySanity();
     return newSMG;
   }
 
@@ -1749,10 +1846,16 @@ public class SMG {
     return new SMGObjectsAndValues(visitedObjects, visitedValues);
   }
 
-  public Set<SMGObject> getTargetsForPointersIn(SMGObject pTarget) {
+  /**
+   * Returns all pointer targets for pointers in the given object. Invalid objects return an empty
+   * set.
+   *
+   * @param pSourceOfPointers the object searched for pointers.
+   */
+  public Set<SMGObject> getTargetsForPointersIn(SMGObject pSourceOfPointers) {
     ImmutableSet.Builder<SMGObject> results = ImmutableSet.builder();
-    PersistentSet<SMGHasValueEdge> hves = hasValueEdges.get(pTarget);
-    if (!isValid(pTarget) || hves == null) {
+    PersistentSet<SMGHasValueEdge> hves = hasValueEdges.get(pSourceOfPointers);
+    if (!isValid(pSourceOfPointers) || hves == null) {
       return ImmutableSet.of();
     }
     for (SMGHasValueEdge hve : hves) {
@@ -1785,7 +1888,6 @@ public class SMG {
     return results.build();
   }
 
-  @SuppressWarnings("Unused")
   public Map<SMGObject, Integer> getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(
       SMGObject pTarget) {
     if (!isValid(pTarget)) {
@@ -1802,12 +1904,13 @@ public class SMG {
             valuesToRegionsTheyAreSavedIn
                 .getOrDefault(ptrPointingAt, PathCopyingPersistentTreeMap.of())
                 .entrySet()) {
-          if (results.containsKey(sourceObjsAndOcc.getKey())) {
-            results.put(
-                sourceObjsAndOcc.getKey(),
-                results.get(sourceObjsAndOcc.getKey()) + sourceObjsAndOcc.getValue());
+          SMGObject sourceObj = sourceObjsAndOcc.getKey();
+          Integer occ = sourceObjsAndOcc.getValue();
+          if (results.containsKey(sourceObj)) {
+            Integer oldNum = results.get(sourceObj);
+            results.put(sourceObj, oldNum + occ);
           } else {
-            results.put(sourceObjsAndOcc.getKey(), results.get(sourceObjsAndOcc.getKey()));
+            results.put(sourceObj, occ);
           }
         }
       }
@@ -1845,17 +1948,6 @@ public class SMG {
   public PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>>
       getSMGObjectsWithSMGHasValueEdges() {
     return hasValueEdges;
-  }
-
-  // Replace the pointer behind value with a new pointer with the new SMGObject target
-  public SMG replaceAllPointersTowardsWith(SMGValue pointerValue, SMGObject newTarget) {
-    SMGPointsToEdge oldEdge = getPTEdge(pointerValue).orElseThrow();
-    SMG newSMG =
-        copyAndSetPTEdges(
-            new SMGPointsToEdge(newTarget, oldEdge.getOffset(), oldEdge.targetSpecifier()),
-            pointerValue);
-    assert newSMG.checkSMGSanity();
-    return newSMG;
   }
 
   /**
@@ -1910,53 +2002,6 @@ public class SMG {
               new SMGPointsToEdge(newTarget, pointsToEdge.getOffset(), specifier), pointerValue);
     }
 
-    assert newSMG.checkSMGSanity();
-    return newSMG;
-  }
-
-  /**
-   * Search for all pointers towards the object old and replaces them with pointers pointing towards
-   * the new object. Also decrements the nesting level of all pointers switched by 1. If the
-   * newTarget is a region, specifiers are set to region. All other specifiers are retained.
-   *
-   * @param oldObj old object.
-   * @param newTarget new target object.
-   * @return a new SMG with the replacement.
-   */
-  public SMG replaceAllPointersTowardsWithAndDecrementNestingLevel(
-      SMGObject oldObj, SMGObject newTarget) {
-    SMG newSMG = this;
-    if (newTarget.isZero() || oldObj.isZero()) {
-      throw new AssertionError("Can't replace a 0 value!");
-    }
-
-    for (Entry<SMGValue, Integer> pointerValueAndNum :
-        objectsAndPointersPointingAtThem
-            .getOrDefault(oldObj, PathCopyingPersistentTreeMap.of())
-            .entrySet()) {
-      // Replace the PTEdge for the value
-      SMGValue pointerValue = pointerValueAndNum.getKey();
-      SMGPointsToEdge pointsToEdge = pointsToEdges.get(pointerValue);
-      assert pointsToEdge.pointsTo().equals(oldObj);
-      SMGTargetSpecifier specifier = pointsToEdge.targetSpecifier();
-      // If the new target is an abstracted list we switch to all
-      if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {
-        specifier = SMGTargetSpecifier.IS_REGION;
-      }
-      newSMG =
-          newSMG.copyAndSetPTEdges(
-              new SMGPointsToEdge(newTarget, pointsToEdge.getOffset(), specifier), pointerValue);
-
-      // Update the nesting level
-      // The nesting always needs to be >= 0
-      int newNestingLvl = Integer.max(smgValuesAndNestingLvl.get(pointerValue) - 1, 0);
-
-      newSMG =
-          newSMG.copyWithNewValuesAndNestingLvl(
-              newSMG.smgValuesAndNestingLvl.putAndCopy(pointerValue, newNestingLvl));
-    }
-
-    assert newSMG.checkSMGSanity();
     return newSMG;
   }
 
@@ -2009,23 +2054,17 @@ public class SMG {
   }
 
   /**
-   * Search for all pointers towards the oldObj and switch them to newTarget. Then increments the
-   * nesting level of the values of the changed pointers by 1. We expect that the newTarget does not
-   * have any pointers towards it. Sets the specifiers for pointers so that if oldObj is not
-   * abstracted, it's a first, all others become all. Self-pointers of oldObj to themselves are not
-   * switched and need to be deleted separately.
+   * Search for all pointers towards the oldObj and switch them to newTarget. We expect that the
+   * newTarget does not have any pointers towards it. Sets the specifiers to the one given.
+   * Self-pointers of oldObj to themselves are not switched and need to be deleted separately.
    *
    * @param oldObj old object.
    * @param newTarget new target object.
    * @return a new SMG with the replacement.
    */
-  public SMG replaceAllPointersTowardsWithAndIncrementNestingLevel(
-      SMGObject oldObj, SMGObject newTarget, int incrementAmount) {
+  public SMG replaceAllPointersTowardsWithAndSetSpecifier(
+      SMGObject oldObj, SMGObject newTarget, SMGTargetSpecifier newSpecifier) {
 
-    int minListLen = 0;
-    if (newTarget instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
-      minListLen = sMGSinglyLinkedListSegment.getMinLength();
-    }
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
       throw new AssertionError("Can't replace a 0 value!");
@@ -2045,31 +2084,18 @@ public class SMG {
         // Self-pointer, does not need switching
         continue;
       }
-      // Assert that there is no selfedge with outside sources as we can't handle that atm
+      // Assert that there is no self-edge with outside sources as we can't handle that atm
       assert !sources.containsKey(oldObj);
 
       assert oldPTEdge.pointsTo().equals(oldObj);
-      SMGTargetSpecifier specifier = oldPTEdge.targetSpecifier();
-      if (!(oldObj instanceof SMGSinglyLinkedListSegment)) {
-        specifier = SMGTargetSpecifier.IS_FIRST_POINTER;
-      } else if (!specifier.equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
-        specifier = SMGTargetSpecifier.IS_ALL_POINTER;
-      }
+
+      assert (newTarget instanceof SMGSinglyLinkedListSegment
+              && !newSpecifier.equals(SMGTargetSpecifier.IS_REGION))
+          || newSpecifier.equals(SMGTargetSpecifier.IS_REGION);
+
       newSMG =
           newSMG.copyAndSetPTEdges(
-              new SMGPointsToEdge(newTarget, oldPTEdge.getOffset(), specifier), pointerValue);
-
-      // Update the nesting level
-      int newNestingLvl = smgValuesAndNestingLvl.get(pointerValue) + incrementAmount;
-      // If there is an abstracted list, the min length is always larger than the nesting level.
-      // The pointer to the first element is minListLen - 1.
-      // The nesting always needs to be >= 0
-      Preconditions.checkArgument(
-          (minListLen > newNestingLvl || (newNestingLvl == 0 && minListLen == 0))
-              && newNestingLvl >= 0);
-      newSMG =
-          newSMG.copyWithNewValuesAndNestingLvl(
-              newSMG.smgValuesAndNestingLvl.putAndCopy(pointerValue, newNestingLvl));
+              new SMGPointsToEdge(newTarget, oldPTEdge.getOffset(), newSpecifier), pointerValue);
     }
 
     // Switch pointer targets
@@ -2077,25 +2103,24 @@ public class SMG {
     return newSMG;
   }
 
-  /**
-   * Search for all pointers towards the object old and replaces them with pointers pointing towards
-   * the new object only if their nesting level is equal to the given. Then switches the nesting
-   * level of the switched to 0.
-   *
-   * @param oldObj old object.
-   * @param newTarget new target object.
-   * @param levelToReplace the nesting level we want to replace with 0.
-   * @param specifierToSwitch specifier that will be switched. All others remain to point towards
-   *     oldObj.
-   * @return a new SMG with the replacement.
-   */
-  public SMG replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-      SMGObject oldObj,
-      SMGObject newTarget,
-      int levelToReplace,
-      Set<SMGTargetSpecifier> specifierToSwitch) {
-    return replaceSpecificPointersTowardsWithAndSetNestingLevel(
-        oldObj, newTarget, levelToReplace, 0, specifierToSwitch);
+  public SMG replaceAllSelfPointersWithNewSpecifier(
+      SMGObject object, Set<BigInteger> exemptOffsets) {
+    SMG newSMG = this;
+    for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(object, PersistentSet.of())) {
+      @Nullable SMGPointsToEdge pte = pointsToEdges.get(hve.hasValue());
+      if (!exemptOffsets.contains(hve.getOffset())
+          && pte != null
+          && pte.pointsTo().equals(object)) {
+        SMGTargetSpecifier specififer =
+            object instanceof SMGSinglyLinkedListSegment
+                ? SMGTargetSpecifier.IS_ALL_POINTER
+                : SMGTargetSpecifier.IS_REGION;
+        newSMG =
+            newSMG.copyAndSetPTEdges(
+                new SMGPointsToEdge(object, pte.getOffset(), specififer), hve.hasValue());
+      }
+    }
+    return newSMG;
   }
 
   public SMG replaceValueWithAndCopy(Value oldValue, SMGValue oldSMGValue, SMGValue newSMGValue)
@@ -2140,23 +2165,17 @@ public class SMG {
 
   /**
    * Search for all pointers towards the object old and replaces them with pointers pointing towards
-   * the new object only if their nesting level is equal to the given. Then switches the nesting
-   * level of the switched to the value given.
+   * the new object only if their specifier is equal to the given. Then switches the nesting level
+   * of the switched to the value given.
    *
    * @param oldObj old object.
    * @param newTarget new target object.
-   * @param levelToReplace the nesting level we want to replace with the given.
-   * @param newLevel new nesting level
    * @param specifierToSwitch specifier that will be switched. All others remain to point towards
    *     oldObj.
    * @return a new SMG with the replacement.
    */
-  public SMG replaceSpecificPointersTowardsWithAndSetNestingLevel(
-      SMGObject oldObj,
-      SMGObject newTarget,
-      int levelToReplace,
-      int newLevel,
-      Set<SMGTargetSpecifier> specifierToSwitch) {
+  public SMG replaceSpecificPointersTowardsWith(
+      SMGObject oldObj, SMGObject newTarget, Set<SMGTargetSpecifier> specifierToSwitch) {
 
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
@@ -2170,10 +2189,8 @@ public class SMG {
       SMGValue pointerValue = pointerValueAndOcc.getKey();
       SMGPointsToEdge pointsToEdge = newSMG.pointsToEdges.get(pointerValue);
       assert pointsToEdge.pointsTo().equals(oldObj);
-      // Since we decrement the nesting level afterward, we check for 1 instead of 0
-      int currentNestingLevel = newSMG.smgValuesAndNestingLvl.get(pointerValue);
       SMGTargetSpecifier pteSpecifier = pointsToEdge.targetSpecifier();
-      if (currentNestingLevel == levelToReplace && specifierToSwitch.contains(pteSpecifier)) {
+      if (specifierToSwitch.contains(pteSpecifier)) {
         SMGTargetSpecifier targetSpec = pointsToEdge.targetSpecifier();
         if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {
           targetSpec = SMGTargetSpecifier.IS_REGION;
@@ -2182,18 +2199,12 @@ public class SMG {
             new SMGPointsToEdge(newTarget, pointsToEdge.getOffset(), targetSpec);
         // Update the points-to-edges to new targets, this also includes the reverse map
         newSMG = newSMG.copyAndSetPTEdges(newPTEdge, pointerValue);
-
-        // Update nesting level
-        newSMG =
-            newSMG.copyWithNewValuesAndNestingLvl(
-                newSMG.smgValuesAndNestingLvl.putAndCopy(pointerValue, newLevel));
       }
     }
 
     return newSMG;
   }
 
-  // Needed for tests only
   public SMG replaceSMGValueNestingLevel(SMGValue value, int newNestingLevel) {
     Preconditions.checkArgument(newNestingLevel >= 0);
     // We only change the nesting level, all values are the same
@@ -2232,55 +2243,103 @@ public class SMG {
    *
    * @return false if anything is violated.
    */
-  public boolean checkSMGSanity() {
-    return checkCorrectObjectsToPointersMapSanity()
+  public boolean checkSMGSanity(
+      PersistentStack<StackFrame> stackVariableMapping,
+      PersistentMap<String, SMGObject> globalVariableMapping) {
+    return checkCorrectReverseMapSanity(stackVariableMapping, globalVariableMapping)
         && checkValueInConcreteMemorySanity()
-        && verifyPointsToEdgeSanity();
+        && verifyPointsToEdgeSanity()
+        && checkPointerNestingLevelConsistency();
   }
 
-  // Only every use this after all operations are done. I.e. at the beginning and end of abstracting
-  // a list segment for example.
-  private boolean checkCorrectObjectsToPointersMapSanity() {
-    for (Entry<SMGObject, PersistentMap<SMGValue, Integer>> realTargetAndPointers :
-        objectsAndPointersPointingAtThem.entrySet()) {
-      SMGObject target = realTargetAndPointers.getKey();
-      if (target.isZero() || !isValid(target)) {
+  public boolean checkSMGSanity() {
+    return checkValueInConcreteMemorySanity()
+        && verifyPointsToEdgeSanity()
+        && checkPointerNestingLevelConsistency();
+  }
+
+  // Check sanity of the 2 maps:
+  // 1. objects and pointers pointing at them
+  // 2. values and objects with them in it
+  private boolean checkCorrectReverseMapSanity(
+      PersistentStack<StackFrame> stackVariableMapping,
+      PersistentMap<String, SMGObject> globalVariableMapping) {
+    PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> objectsAndPointersPointingAtThemRef =
+        objectsAndPointersPointingAtThem;
+    PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>> valuesToRegionsTheyAreSavedInRef =
+        valuesToRegionsTheyAreSavedIn;
+    Set<SMGObject> stackObjs = new HashSet<>(globalVariableMapping.values());
+    stackVariableMapping
+        .iterator()
+        .forEachRemaining(sf -> stackObjs.addAll(sf.getAllObjects().stream().toList()));
+    Set<SMGNode> alreadyProcessed = new HashSet<>();
+    List<SMGObject> waitlist = new ArrayList<>(stackObjs);
+    for (int i = 0; i < waitlist.size(); i++) {
+      SMGObject obj = waitlist.get(i);
+      if (alreadyProcessed.contains(obj)) {
         continue;
       }
-      PersistentMap<SMGValue, Integer> realPointersAndOcc = realTargetAndPointers.getValue();
-      // now check the SMG for this obj
-      Map<SMGValue, Integer> pointersTowardsTarget = new HashMap<>();
-      for (PersistentSet<SMGHasValueEdge> hves : hasValueEdges.values()) {
-        for (SMGHasValueEdge hve : hves) {
-          SMGValue value = hve.hasValue();
-          if (pointsToEdges.containsKey(value)
-              && pointsToEdges.get(value).pointsTo().equals(target)) {
-            if (pointersTowardsTarget.containsKey(value)) {
-              pointersTowardsTarget.replace(
-                  value, pointersTowardsTarget.getOrDefault(value, 0) + 1);
-            } else {
-              pointersTowardsTarget.put(value, pointersTowardsTarget.getOrDefault(value, 0) + 1);
-            }
+      alreadyProcessed.add(obj);
+      PersistentSet<SMGHasValueEdge> allHVEInStackObj =
+          getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of());
+      for (SMGHasValueEdge hve : allHVEInStackObj) {
+        SMGValue value = hve.hasValue();
+
+        PersistentMap<SMGObject, Integer> inner = valuesToRegionsTheyAreSavedInRef.get(value);
+        assert inner != null;
+        Integer num = inner.get(obj);
+        assert num != null;
+        assert num - 1 >= 0;
+        if (num - 1 != 0) {
+          inner = inner.putAndCopy(obj, num - 1);
+          valuesToRegionsTheyAreSavedInRef =
+              valuesToRegionsTheyAreSavedInRef.putAndCopy(value, inner);
+        } else {
+          inner = inner.removeAndCopy(obj);
+          if (inner.isEmpty()) {
+            valuesToRegionsTheyAreSavedInRef =
+                valuesToRegionsTheyAreSavedInRef.removeAndCopy(value);
+          } else {
+            valuesToRegionsTheyAreSavedInRef =
+                valuesToRegionsTheyAreSavedInRef.putAndCopy(value, inner);
           }
         }
-      }
-      if (pointersTowardsTarget.size() != realPointersAndOcc.size()) {
-        return false;
-      } else {
-        for (Entry<SMGValue, Integer> realEntry : realPointersAndOcc.entrySet()) {
-          SMGValue realValue = realEntry.getKey();
-          int realNumOfOcc = realEntry.getValue();
-          if (!pointersTowardsTarget.containsKey(realValue)) {
-            return false;
+
+        if (value.isZero()) {
+          continue;
+        }
+
+        Optional<SMGPointsToEdge> maybePte = getPTEdge(value);
+        if (maybePte.isPresent()) {
+          SMGObject target = maybePte.orElseThrow().pointsTo();
+
+          PersistentMap<SMGValue, Integer> innerPointer =
+              objectsAndPointersPointingAtThemRef.get(target);
+          assert innerPointer != null;
+          Integer numPointer = innerPointer.get(value);
+          assert numPointer != null;
+          assert numPointer - 1 >= 0;
+          if (numPointer - 1 != 0) {
+            innerPointer = innerPointer.putAndCopy(value, numPointer - 1);
+            objectsAndPointersPointingAtThemRef =
+                objectsAndPointersPointingAtThemRef.putAndCopy(target, innerPointer);
           } else {
-            int smgOcc = pointersTowardsTarget.get(realValue); // reference map created here
-            if (smgOcc != realNumOfOcc) {
-              return false;
+            innerPointer = innerPointer.removeAndCopy(value);
+            if (innerPointer.isEmpty()) {
+              objectsAndPointersPointingAtThemRef =
+                  objectsAndPointersPointingAtThemRef.removeAndCopy(target);
+            } else {
+              objectsAndPointersPointingAtThemRef =
+                  objectsAndPointersPointingAtThemRef.putAndCopy(target, innerPointer);
             }
           }
+
+          waitlist.add(target);
         }
       }
     }
+    assert valuesToRegionsTheyAreSavedInRef.isEmpty();
+    assert objectsAndPointersPointingAtThemRef.isEmpty();
     return true;
   }
 
@@ -2333,10 +2392,20 @@ public class SMG {
    * a list segment for example.
    *
    * @return false if there is more than 1 value with the exact same points-to-edge pointing to the
-   *     same object/offset with the same nesting level.
+   *     same object/offset with the same nesting level. Or if there is a pointer with an obviously
+   *     wrong specifier.
    */
   private boolean verifyPointsToEdgeSanity() {
     for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry1 : pointsToEdges.entrySet()) {
+      if (pointsToEntry1.getValue().pointsTo() instanceof SMGSinglyLinkedListSegment) {
+        if (pointsToEntry1.getValue().targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
+          return false;
+        }
+      } else {
+        if (!pointsToEntry1.getValue().targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
+          return false;
+        }
+      }
       for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry2 : pointsToEdges.entrySet()) {
         if (pointsToEntry1.getValue().equals(pointsToEntry2.getValue())
             && !pointsToEntry1.getKey().equals(pointsToEntry2.getKey())
@@ -2345,7 +2414,7 @@ public class SMG {
           int nestingLevel2 = smgValuesAndNestingLvl.get(pointsToEntry2.getKey());
           SMGTargetSpecifier tspec1 = pointsToEntry1.getValue().targetSpecifier();
           SMGTargetSpecifier tspec2 = pointsToEntry2.getValue().targetSpecifier();
-          if (nestingLevel1 == nestingLevel2 && !tspec1.equals(tspec2)) {
+          if (nestingLevel1 == nestingLevel2 && tspec1.equals(tspec2)) {
             // Both ptEdges have the same target, but different values, are none zero, and have the
             // same nesting level
             return false;
@@ -2363,13 +2432,39 @@ public class SMG {
   }
 
   /**
-   * Returns the nesting level for existing SMGValues. Does crash for non-existent SMGValues.
+   * Returns the nesting level for existing SMGValues.
    *
-   * @param pSMGValue the {@link SMGValue}
+   * <p>The nesting level is used to determine nesting and therefore materialization of abstracted
+   * memory. I.e. all nested objects are materialized such that a fresh copy is used, while
+   * non-nested objects remain. E.g. an abstracted linked-list has a pointer (not next/prev)
+   * pointing towards a memory region with nesting level equal to the abstract linked-list. When
+   * materializing, all list segments point towards the same object. If however, the nesting of the
+   * memory region would be +1 compared to the abstracted object, we create a copy of the region
+   * (sub-SMG) for every materialization. We say that the region with nesting level +1 is nested
+   * below the abstract list. There can only ever be exactly 1 abstracted object as parent.
+   *
+   * @param pSMGValue the {@link SMGValue} for which the nesting level is requested.
    * @return the nesting level.
    */
   public int getNestingLevel(SMGValue pSMGValue) {
-    return smgValuesAndNestingLvl.get(pSMGValue);
+    assert smgValuesAndNestingLvl.containsKey(pSMGValue);
+    @Nullable SMGPointsToEdge pte = pointsToEdges.get(pSMGValue);
+    if (pte == null) {
+      return smgValuesAndNestingLvl.getOrDefault(pSMGValue, 0);
+    }
+    if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
+      assert pte.pointsTo() instanceof SMGSinglyLinkedListSegment;
+      return pte.pointsTo().getNestingLevel() + 1;
+    }
+    assert pte.targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)
+        || pte.pointsTo() instanceof SMGSinglyLinkedListSegment;
+    assert !pte.targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)
+        || !(pte.pointsTo() instanceof SMGSinglyLinkedListSegment);
+    return pte.pointsTo().getNestingLevel();
+  }
+
+  public boolean hasValue(SMGValue pSMGValue) {
+    return smgValuesAndNestingLvl.containsKey(pSMGValue);
   }
 
   public SMG copyAndSetTargetSpecifierForPointer(
@@ -2400,10 +2495,9 @@ public class SMG {
   }
 
   public SMG copyAndSetTargetSpecifierForPtrsTowards(
-      SMGObject pTarget, int nestingLevelToChange, SMGTargetSpecifier pSpecifierToSet) {
+      SMGObject pTarget, SMGTargetSpecifier pSpecifierToSet) {
     return copyAndSetTargetSpecifierForPtrsTowards(
         pTarget,
-        nestingLevelToChange,
         pSpecifierToSet,
         ImmutableSet.of(
             SMGTargetSpecifier.IS_FIRST_POINTER,
@@ -2414,17 +2508,13 @@ public class SMG {
 
   public SMG copyAndSetTargetSpecifierForPtrsTowards(
       SMGObject pTarget,
-      int nestingLevelToChange,
       SMGTargetSpecifier pSpecifierToSet,
       Set<SMGTargetSpecifier> specifierToSwitch) {
     Preconditions.checkArgument(pTarget instanceof SMGSinglyLinkedListSegment);
     Set<SMGValue> pointersTowardsTarget =
         objectsAndPointersPointingAtThem
             .getOrDefault(pTarget, PathCopyingPersistentTreeMap.of())
-            .keySet()
-            .stream()
-            .filter(v -> getNestingLevel(v) == nestingLevelToChange)
-            .collect(ImmutableSet.toImmutableSet());
+            .keySet();
     ImmutableMap.Builder<SMGValue, SMGPointsToEdge> newPTEs = ImmutableMap.builder();
     // We assume that there is only 1 pointer (value) in the set above
     if (pointersTowardsTarget.isEmpty()) {
@@ -2515,7 +2605,7 @@ public class SMG {
   // Switch all HVEs everywhere that are pointers w the fitting specifier towards oldTarget with
   // existing or newly created HVEs that are pointers towards newTarget.
   // Important: all target offsets are retained here
-  // Returned SMGValues need NEW mapping in the SPC
+  // Returned SMGValues needing NEW mapping in the SPC in a map oldValue -> newValue
   public SMGAndSMGValues replaceHVEPointersWithExistingHVEPointers(
       SMGObject pOldTargetObj,
       SMGObject pNewTargetObj,
@@ -2542,7 +2632,7 @@ public class SMG {
               .build();
     }
 
-    ImmutableSet.Builder<SMGValue> newValuesWithNeedOfMapping = ImmutableSet.builder();
+    ImmutableMap.Builder<SMGValue, SMGValue> newValuesWithNeedOfMapping = ImmutableMap.builder();
 
     // Replace HVEs (automatically increments reverse maps)
     for (SMGObject valueSource : sourcesOfPointersTowardsOld) {
@@ -2576,7 +2666,7 @@ public class SMG {
               // ALL of these need to be mapped to new symbolic values in the SPC!!!!
               // Use: copyAndPutValue()
               replacementValue = SMGValue.of();
-              newValuesWithNeedOfMapping.add(replacementValue);
+              newValuesWithNeedOfMapping.put(oldHve.hasValue(), replacementValue);
             }
           }
 
@@ -2587,95 +2677,42 @@ public class SMG {
       }
     }
 
-    return SMGAndSMGValues.of(newSMG, newValuesWithNeedOfMapping.build());
+    return SMGAndSMGValues.of(newSMG, newValuesWithNeedOfMapping.buildOrThrow());
   }
 
-  public SMG replacePointersWithSMGValue(
-      SMGObject pOldTargetObj,
-      SMGValue pReplacementValue,
-      int pNestingLevelToSwitch,
-      Set<SMGTargetSpecifier> pSpecifierToSwitch) {
-
-    // First pointers need to be switched so that they have level = min length - 1 and not 0!
-    if (isPointer(pReplacementValue) && !pReplacementValue.isZero()) {
-      SMGObject newTarget = pointsToEdges.get(pReplacementValue).pointsTo();
-
-      if (pSpecifierToSwitch.contains(SMGTargetSpecifier.IS_FIRST_POINTER)
-          && newTarget instanceof SMGSinglyLinkedListSegment ll) {
-        Set<SMGTargetSpecifier> specWoFirst =
-            pSpecifierToSwitch.stream()
-                .filter(spec -> !spec.equals(SMGTargetSpecifier.IS_FIRST_POINTER))
-                .collect(ImmutableSet.toImmutableSet());
-
-        SMG newSMG =
-            replaceSpecificPointersTowardsWithAndSetNestingLevel(
-                pOldTargetObj,
-                newTarget,
-                pNestingLevelToSwitch,
-                Integer.max(ll.getMinLength() - 1, 0),
-                ImmutableSet.of(SMGTargetSpecifier.IS_FIRST_POINTER));
-
-        if (specWoFirst.isEmpty()) {
-          return newSMG;
-        }
-
-        return newSMG.replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-            pOldTargetObj, newTarget, pNestingLevelToSwitch, specWoFirst);
-      }
-
-      return replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-          pOldTargetObj,
-          pointsToEdges.get(pReplacementValue).pointsTo(),
-          pNestingLevelToSwitch,
-          pSpecifierToSwitch);
-    }
-    SMG newSMG = this;
-    Set<SMGValue> pointersTowardsOld =
-        objectsAndPointersPointingAtThem
-            .getOrDefault(pOldTargetObj, PathCopyingPersistentTreeMap.of())
-            .keySet()
-            .stream()
-            .filter(
-                v ->
-                    pSpecifierToSwitch.contains(pointsToEdges.get(v).targetSpecifier())
-                        && getNestingLevel(v) == pNestingLevelToSwitch)
-            .collect(ImmutableSet.toImmutableSet());
-    Set<SMGObject> sourcesOfPointersTowardsOld = ImmutableSet.of();
-    for (SMGValue ptrToRemove : pointersTowardsOld) {
-      sourcesOfPointersTowardsOld =
-          ImmutableSet.<SMGObject>builder()
-              .addAll(
-                  valuesToRegionsTheyAreSavedIn
-                      .getOrDefault(ptrToRemove, PathCopyingPersistentTreeMap.of())
-                      .keySet())
-              .addAll(sourcesOfPointersTowardsOld)
-              .build();
-    }
-
-    // Replace HVEs (automatically increments reverse maps)
-    for (SMGObject valueSource : sourcesOfPointersTowardsOld) {
-      for (SMGHasValueEdge oldHve : hasValueEdges.get(valueSource)) {
-        if (pointersTowardsOld.contains(oldHve.hasValue())) {
-          SMGHasValueEdge newHVE =
-              new SMGHasValueEdge(pReplacementValue, oldHve.getOffset(), oldHve.getSizeInBits());
-          newSMG = newSMG.copyAndReplaceHVEdge(valueSource, oldHve, newHVE);
-        }
-      }
-    }
-
-    return newSMG;
-  }
-
-  public boolean checkFirstPointerNestingLevelConsistency() {
+  public boolean checkPointerNestingLevelConsistency() {
     for (Entry<SMGObject, PersistentMap<SMGValue, Integer>> entry :
         objectsAndPointersPointingAtThem.entrySet()) {
-      if (entry.getKey() instanceof SMGSinglyLinkedListSegment sll) {
+      if (entry.getKey() instanceof SMGSinglyLinkedListSegment sllTarget) {
         for (SMGValue ptr : entry.getValue().keySet()) {
           SMGPointsToEdge pte = pointsToEdges.get(ptr);
           int ptrNestingLevel = getNestingLevel(ptr);
-          if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)
-              && ptrNestingLevel != Integer.max(0, sll.getMinLength() - 1)) {
-            return false;
+          if (!pte.targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
+            Set<SMGObject> ptrSources =
+                valuesToRegionsTheyAreSavedIn
+                    .getOrDefault(ptr, PathCopyingPersistentTreeMap.of())
+                    .keySet();
+            for (SMGObject source : ptrSources) {
+              if (source instanceof SMGSinglyLinkedListSegment sllSource) {
+                if (hasValueEdges.get(source).stream()
+                        .anyMatch(
+                            h ->
+                                h.hasValue().equals(ptr)
+                                    && !h.getOffset().equals(sllSource.getNextOffset())
+                                    && (!(sllSource instanceof SMGDoublyLinkedListSegment dllSource)
+                                        || !h.getOffset().equals(dllSource.getPrevOffset())))
+                    && !sllTarget.equals(sllSource)
+                    && sllSource.getNestingLevel() >= sllTarget.getNestingLevel()) {
+                  assert pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER);
+                  // A nested linked list has a wrong nesting level
+                  return false;
+                } else if (ptrNestingLevel != sllTarget.getNestingLevel()) {
+                  assert pte.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER)
+                      && pte.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER);
+                  return false;
+                }
+              }
+            }
           }
         }
       }
@@ -2684,16 +2721,7 @@ public class SMG {
   }
 
   public boolean checkNotAbstractedNestingLevelConsistency() {
-    for (Entry<SMGObject, PersistentMap<SMGValue, Integer>> entry :
-        objectsAndPointersPointingAtThem.entrySet()) {
-      if (!(entry.getKey() instanceof SMGSinglyLinkedListSegment)) {
-        for (SMGValue ptr : entry.getValue().keySet()) {
-          if (getNestingLevel(ptr) != 0) {
-            return false;
-          }
-        }
-      }
-    }
+    // TODO:
     return true;
   }
 

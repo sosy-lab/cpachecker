@@ -29,9 +29,11 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -56,8 +58,6 @@ public class ConstraintFactory {
   // checks)
   @Nullable private final CFAEdge edge;
 
-  private SymbolicValueFactory expressionFactory;
-
   private final CBinaryExpressionBuilder exprBuilder;
 
   private ConstraintFactory(
@@ -71,7 +71,6 @@ public class ConstraintFactory {
     machineModel = pMachineModel;
     logger = pLogger;
     smgState = pSmgState;
-    expressionFactory = SymbolicValueFactory.getInstance();
     options = pOptions;
     evaluator = pEvaluator;
     edge = pEdge;
@@ -123,7 +122,7 @@ public class ConstraintFactory {
     final ExpressionTransformer transformer = getCTransformer();
 
     CBinaryExpression expression = pExpression;
-    if (!isConstraint(pExpression)) {
+    if (!binaryExpressionIsConstraint(pExpression)) {
       // Make non-logical constraints logical, so that SMT can be used for C
       // Example: an expression (x | y) in C returns a number, which can be interpreted as bool with
       // (x | y) != 0
@@ -132,17 +131,18 @@ public class ConstraintFactory {
               exprBuilder.buildBinaryExpression(
                   expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS));
     }
-    assert isConstraint(expression); // Non-logical expressions WILL fail in the transformer!
+    assert binaryExpressionIsConstraint(
+        expression); // Non-logical expressions WILL fail in the transformer!
 
     return transformedImmutableListCopy(
         transformer.transform(expression),
         n -> ConstraintAndSMGState.of((Constraint) n.getSymbolicExpression(), n.getState()));
   }
 
-  private boolean isConstraint(CBinaryExpression pExpression) {
+  public static boolean binaryExpressionIsConstraint(CBinaryExpression pExpression) {
     return switch (pExpression.getOperator()) {
       case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> true;
-      default -> false;
+      default -> false; // Expressions of this kind
     };
   }
 
@@ -156,6 +156,7 @@ public class ConstraintFactory {
       SymbolicExpression symbolicExpression = symbolicExpressionAndState.getSymbolicExpression();
       SMGState currentState = symbolicExpressionAndState.getState();
 
+      // TODO: this is always false!
       if (symbolicExpression == null) {
         return null;
       } else if (symbolicExpression instanceof Constraint constraint) {
@@ -211,7 +212,7 @@ public class ConstraintFactory {
   }
 
   private SymbolicExpression getOneConstant(Type pType) {
-    return expressionFactory.asConstant(new NumericValue(1L), pType);
+    return ConstantSymbolicExpression.of(new NumericValue(1L), pType);
   }
 
   private Constraint createNot(Constraint pConstraint) {
@@ -220,8 +221,7 @@ public class ConstraintFactory {
   }
 
   private Constraint createNot(SymbolicExpression pSymbolicExpression) {
-    return (Constraint)
-        expressionFactory.logicalNot(pSymbolicExpression, pSymbolicExpression.getType());
+    return (Constraint) LogicalNotExpression.of(pSymbolicExpression, pSymbolicExpression.getType());
   }
 
   private Constraint createEqual(
@@ -230,7 +230,7 @@ public class ConstraintFactory {
       Type pExpressionType,
       Type pCalculationType) {
 
-    return expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
+    return EqualsExpression.of(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }
 
   public Collection<Constraint> checkValidMemoryAccess(

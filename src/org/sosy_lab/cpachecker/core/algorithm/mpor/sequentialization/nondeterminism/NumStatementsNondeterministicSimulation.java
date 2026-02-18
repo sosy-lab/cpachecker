@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -32,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.V
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -43,11 +43,12 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
 
   NumStatementsNondeterministicSimulation(
       MPOROptions pOptions,
+      Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
-    super(pOptions, pGhostElements, pClauses, pUtils);
+    super(pOptions, pMemoryModel, pGhostElements, pClauses, pUtils);
   }
 
   @Override
@@ -99,10 +100,10 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   }
 
   @Override
-  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pThread) {
+  public ImmutableList<String> buildPrecedingStatements(MPORThread pThread) {
     // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
-    return ImmutableList.<CStatement>builder().add(roundReset).build();
+    return ImmutableList.<String>builder().add(roundReset.toASTString()).build();
   }
 
   private String buildRoundMaxGreaterZeroExpression(

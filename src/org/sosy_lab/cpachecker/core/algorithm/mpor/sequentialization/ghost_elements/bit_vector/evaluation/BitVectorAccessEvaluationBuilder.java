@@ -150,7 +150,7 @@ class BitVectorAccessEvaluationBuilder {
         BitVectorEvaluationUtil.binaryDisjunction(pOtherBitVectors, binaryExpressionBuilder);
     CBinaryExpression binaryExpression =
         binaryExpressionBuilder.buildBinaryExpression(
-            pDirectBitVector, rightHandSide, BinaryOperator.BINARY_AND);
+            pDirectBitVector, rightHandSide, BinaryOperator.BITWISE_AND);
     return new BitVectorEvaluationExpression(LeafExpression.of(binaryExpression));
   }
 
