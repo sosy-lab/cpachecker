@@ -54,7 +54,7 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment {
       final AbstractState pFullState) {
 
     // Skip if the precision is tracking everything in all cases
-    if (!pPrecision.hasStaticIsTrackingResult()
+    if (pPrecision.getStaticIsTrackingResult().isEmpty()
         || !pPrecision.getStaticIsTrackingResult().orElseThrow()) {
 
       int constraintsBefore = 0;

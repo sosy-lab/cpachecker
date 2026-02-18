@@ -335,7 +335,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
         || options.abstractAtLoop(location)) {
 
       // Skip if the precision is tracking everything in all cases
-      if (!precision.hasStaticIsTrackingResult()
+      if (precision.getStaticIsTrackingResult().isEmpty()
           || !precision.getStaticIsTrackingResult().orElseThrow()) {
         if (resultState == null) {
           resultState = ValueAnalysisState.copyOf(initialState);

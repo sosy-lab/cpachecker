@@ -23,13 +23,4 @@ public interface Precision {
   default Optional<Boolean> getStaticIsTrackingResult() {
     return Optional.empty();
   }
-
-  /**
-   * Returns true iff an immutable precision always returns the same result when asked whether
-   * something is tracked or not. This result can then be acquired using {@link
-   * Precision#getStaticIsTrackingResult()}. False in all other cases.
-   */
-  default boolean hasStaticIsTrackingResult() {
-    return getStaticIsTrackingResult().isPresent();
-  }
 }
