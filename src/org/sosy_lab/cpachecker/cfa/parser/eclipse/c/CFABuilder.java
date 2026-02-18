@@ -535,8 +535,7 @@ class CFABuilder extends ASTVisitor {
               n.orElseThrow(
                   () ->
                       new IllegalStateException(
-                          "Could not find loop head Cfa node for loop annotation "
-                              + comment)));
+                          "Could not find loop head Cfa node for loop annotation " + comment)));
         }
         case FunctionContractContext ignored -> {
           n =
@@ -553,9 +552,12 @@ class CFABuilder extends ASTVisitor {
               n.orElseThrow(
                   () ->
                       new IllegalStateException(
-                          "Could not find function entry node for function contract "
-                              + comment)));
+                          "Could not find function entry node for function contract\n"
+                              + comment
+                              + "\nStatement contracts are not supported.")));
         }
+        case null ->
+            throw new IllegalStateException("Annotation " + comment + " has no Antlr context.");
         default ->
             throw new IllegalArgumentException(
                 "Unexpected annotation: "

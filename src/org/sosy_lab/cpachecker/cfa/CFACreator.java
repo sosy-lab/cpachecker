@@ -850,6 +850,9 @@ public class CFACreator {
         case AcslFunctionContract functionContract ->
             functionContractBuilder.put(node, functionContract);
         case AcslAssigns assigns -> assignsBuilder.put(node, assigns);
+        case null ->
+            throw new IllegalStateException(
+                "The comment " + comment + "could not be parsed into an acsl annotation object.");
         default ->
             throw new IllegalArgumentException(
                 "Unexpected annotation: "
