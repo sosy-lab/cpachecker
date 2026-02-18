@@ -21,11 +21,13 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.SortedMultiset;
 import com.google.common.collect.Table;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -37,10 +39,10 @@ public class VariableClassification {
 
   private final boolean hasRelevantNonIntAddVars;
 
-  private final Set<String> intBoolVars;
-  private final Set<String> intEqualVars;
-  private final Set<String> intAddVars;
-  private final Set<String> intOverflowVars;
+  private final SortedSet<String> intBoolVars;
+  private final SortedSet<String> intEqualVars;
+  private final SortedSet<String> intAddVars;
+  private final SortedSet<String> intOverflowVars;
 
   /**
    * These sets contain all variables even ones of array, pointer or structure types. Such variables
@@ -49,27 +51,28 @@ public class VariableClassification {
    */
   // Initially contains variables used in assumes and assigned to pointer dereferences,
   // then all essential variables (by propagation)
-  private final Set<String> relevantVariables;
+  private final SortedSet<String> relevantVariables;
 
-  private final Set<String> addressedVariables;
+  private final SortedSet<String> addressedVariables;
 
-  private final Multiset<String> assumedVariables;
-  private final Multiset<String> assignedVariables;
+  private final SortedMultiset<String> assumedVariables;
+  private final SortedMultiset<String> assignedVariables;
 
   /**
    * Fields information doesn't take any aliasing information into account, fields are considered
    * per type, not per composite instance
    */
   // Initially contains fields used in assumes and assigned to pointer dereferences,
-  // then all essential fields (by propagation)
+  // then all essential fields (by propagation).
+  // relevant and addressed fields are sorted by name for keys and naturally for values.
   private final Multimap<CCompositeType, String> relevantFields;
 
   private final Multimap<CCompositeType, String> addressedFields;
 
-  private final Set<Partition> partitions;
-  private final Set<Partition> intBoolPartitions;
-  private final Set<Partition> intEqualPartitions;
-  private final Set<Partition> intAddPartitions;
+  private final SortedSet<Partition> partitions;
+  private final SortedSet<Partition> intBoolPartitions;
+  private final SortedSet<Partition> intEqualPartitions;
+  private final SortedSet<Partition> intAddPartitions;
 
   private final Table<CFAEdge, Integer, Partition> edgeToPartitions;
 
