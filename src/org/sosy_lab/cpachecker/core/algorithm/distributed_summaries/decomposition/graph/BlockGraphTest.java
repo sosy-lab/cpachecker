@@ -49,8 +49,6 @@ public class BlockGraphTest {
     BlockGraph blockGraphFromOriginalCfa = generateBlockGraph(originalCFA, tempFolderPath);
     BlockGraph blockGraphFromShiftedCfa = generateBlockGraph(shiftedCFA, tempFolderPath);
 
-    assumeTrue(!blockGraphFromOriginalCfa.equals(blockGraphFromShiftedCfa));
-
     Path exportPathForOriginalCfa = tempFolderPath.resolve(EXPORT_BLOCKS_JSON_PATH_1);
     Path exportPathForShiftedCfa = tempFolderPath.resolve(EXPORT_BLOCKS_JSON_PATH_2);
 
