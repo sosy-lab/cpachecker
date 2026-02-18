@@ -284,7 +284,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   private boolean performPrecisionBasedAbstractionAt(@Nullable LocationState location) {
-    return performPrecisionBasedAbstraction
+    return performPrecisionBasedAbstraction()
         && location != null
         && (options.abstractAtEachLocation()
             || options.abstractAtBranch(location)
