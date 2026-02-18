@@ -16,7 +16,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -448,8 +447,8 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CComplexTypeDeclaration> types,
       ImmutableMap<String, CTypeDefDeclaration> typedefs,
       ImmutableMap<String, CSimpleDeclaration> globalVars,
-      Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
-      Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope)
+      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope)
       throws InterruptedException {
 
     FunctionScope localScope =
