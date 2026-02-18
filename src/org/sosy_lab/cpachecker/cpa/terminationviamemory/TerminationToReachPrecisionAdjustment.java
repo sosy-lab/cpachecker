@@ -116,11 +116,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               if (isOverapproximating) {
                 sameStateFormula =
                     instantiateTransitionInvariant(sameStateFormula, prevIndices, largestIndices);
-                prefixFormula =
+                BooleanFormula firstStepFormula =
                     instantiateTransitionInvariant(prefixFormula, prevIndices, smallestIndices);
+                isTargetStateReachable =
+                    !solver.isUnsat(
+                        bfmgr.and(firstStepFormula, iterationFormula, sameStateFormula));
+              } else {
+                isTargetStateReachable =
+                    !solver.isUnsat(bfmgr.and(prefixFormula, iterationFormula, sameStateFormula));
               }
-              isTargetStateReachable =
-                  !solver.isUnsat(bfmgr.and(prefixFormula, iterationFormula, sameStateFormula));
             } catch (SolverException e) {
               logger.logDebugException(e);
               return Optional.of(result);
@@ -254,9 +258,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     BooleanFormula secondStepInTransInv =
         instantiateTransitionInvariant(
             candidateTransitionInvariant, mapForIndexTwo, largestIndicesInIteration);
+
+    BooleanFormula transInvForIterationFormula =
+        instantiateTransitionInvariant(
+            candidateTransitionInvariant, smallestIndicesInIteration, largestIndicesInIteration);
     try {
       isTransitionInvariant =
           solver.implies(bfmgr.and(firstStepInTransInv, iterationFormula), secondStepInTransInv);
+      isTransitionInvariant =
+          isTransitionInvariant && solver.implies(iterationFormula, transInvForIterationFormula);
     } catch (SolverException | InterruptedException e) {
       logger.logDebugException(e);
       return false;
