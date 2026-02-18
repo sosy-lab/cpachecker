@@ -64,9 +64,9 @@ public class VariableClassification {
   // Initially contains fields used in assumes and assigned to pointer dereferences,
   // then all essential fields (by propagation).
   // relevant and addressed fields are sorted by name for keys and naturally for values.
-  private final ImmutableMultimap<CCompositeType, String> relevantFields;
+  private final ImmutableSetMultimap<CCompositeType, String> relevantFields;
 
-  private final ImmutableMultimap<CCompositeType, String> addressedFields;
+  private final ImmutableSetMultimap<CCompositeType, String> addressedFields;
 
   private final ImmutableSortedSet<Partition> partitions;
   private final ImmutableSortedSet<Partition> intBoolPartitions;
