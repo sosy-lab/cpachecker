@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -21,13 +22,11 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.SortedMultiset;
 import com.google.common.collect.Table;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -39,10 +38,10 @@ public class VariableClassification {
 
   private final boolean hasRelevantNonIntAddVars;
 
-  private final SortedSet<String> intBoolVars;
-  private final SortedSet<String> intEqualVars;
-  private final SortedSet<String> intAddVars;
-  private final SortedSet<String> intOverflowVars;
+  private final ImmutableSortedSet<String> intBoolVars;
+  private final ImmutableSortedSet<String> intEqualVars;
+  private final ImmutableSortedSet<String> intAddVars;
+  private final ImmutableSortedSet<String> intOverflowVars;
 
   /**
    * These sets contain all variables even ones of array, pointer or structure types. Such variables
@@ -51,12 +50,12 @@ public class VariableClassification {
    */
   // Initially contains variables used in assumes and assigned to pointer dereferences,
   // then all essential variables (by propagation)
-  private final SortedSet<String> relevantVariables;
+  private final ImmutableSortedSet<String> relevantVariables;
 
-  private final SortedSet<String> addressedVariables;
+  private final ImmutableSortedSet<String> addressedVariables;
 
-  private final SortedMultiset<String> assumedVariables;
-  private final SortedMultiset<String> assignedVariables;
+  private final ImmutableSortedMultiset<String> assumedVariables;
+  private final ImmutableSortedMultiset<String> assignedVariables;
 
   /**
    * Fields information doesn't take any aliasing information into account, fields are considered
@@ -65,14 +64,14 @@ public class VariableClassification {
   // Initially contains fields used in assumes and assigned to pointer dereferences,
   // then all essential fields (by propagation).
   // relevant and addressed fields are sorted by name for keys and naturally for values.
-  private final Multimap<CCompositeType, String> relevantFields;
+  private final ImmutableMultimap<CCompositeType, String> relevantFields;
 
-  private final Multimap<CCompositeType, String> addressedFields;
+  private final ImmutableMultimap<CCompositeType, String> addressedFields;
 
-  private final SortedSet<Partition> partitions;
-  private final SortedSet<Partition> intBoolPartitions;
-  private final SortedSet<Partition> intEqualPartitions;
-  private final SortedSet<Partition> intAddPartitions;
+  private final ImmutableSortedSet<Partition> partitions;
+  private final ImmutableSortedSet<Partition> intBoolPartitions;
+  private final ImmutableSortedSet<Partition> intEqualPartitions;
+  private final ImmutableSortedSet<Partition> intAddPartitions;
 
   private final Table<CFAEdge, Integer, Partition> edgeToPartitions;
 
@@ -172,9 +171,11 @@ public class VariableClassification {
    * All fields that may be essential for reachability properties (only fields accessed explicitly
    * through either dot (.) or arrow (->) operator count).
    *
-   * @return A collection of (CCompositeType, fieldName) mappings.
+   * @return A collection of (CCompositeType, fieldName) mappings, whose keys are sorted by natural
+   *     string order of {@link CCompositeType#getName()} and values are sorted by natural string
+   *     order.
    */
-  public Multimap<CCompositeType, String> getRelevantFields() {
+  public ImmutableMultimap<CCompositeType, String> getRelevantFields() {
     return relevantFields;
   }
 
@@ -182,9 +183,11 @@ public class VariableClassification {
    * All fields that have their addresses taken somewhere in the source code. (only fields accessed
    * explicitly through either dot (.) or arrow (->) operator count).
    *
-   * @return A collection of (CCompositeType, fieldName) mappings.
+   * @return A collection of (CCompositeType, fieldName) mappings, whose keys are sorted by natural
+   *     string order of {@link CCompositeType#getName()} and * values are sorted by natural string
+   *     order.
    */
-  public Multimap<CCompositeType, String> getAddressedFields() {
+  public ImmutableMultimap<CCompositeType, String> getAddressedFields() {
     return addressedFields;
   }
 
@@ -192,14 +195,14 @@ public class VariableClassification {
    * This function returns a collection of scoped names. This collection contains all vars, that are
    * boolean, i.e. the value is 0 or 1.
    */
-  public Set<String> getIntBoolVars() {
+  public ImmutableSortedSet<String> getIntBoolVars() {
     return intBoolVars;
   }
 
   /**
    * This function returns a collection of partitions. Each partition contains only boolean vars.
    */
-  public Set<Partition> getIntBoolPartitions() {
+  public ImmutableSortedSet<Partition> getIntBoolPartitions() {
     return intBoolPartitions;
   }
 
@@ -209,7 +212,7 @@ public class VariableClassification {
    * calculations (add, sub, mult) with these vars. This collection does not contain any variable
    * from "IntBool" or "IntAdd".
    */
-  public Set<String> getIntEqualVars() {
+  public ImmutableSortedSet<String> getIntEqualVars() {
     return intEqualVars;
   }
 
@@ -218,7 +221,7 @@ public class VariableClassification {
    * only assigned or compared for equality with integer values. This collection does not contains
    * anypartition from "IntBool" or "IntAdd".
    */
-  public Set<Partition> getIntEqualPartitions() {
+  public ImmutableSortedSet<Partition> getIntEqualPartitions() {
     return intEqualPartitions;
   }
 
@@ -227,7 +230,7 @@ public class VariableClassification {
    * only used in simple calculations (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^). This collection
    * does not contain any variable from "IntBool" or "IntEq".
    */
-  public Set<String> getIntAddVars() {
+  public ImmutableSortedSet<String> getIntAddVars() {
     return intAddVars;
   }
 
@@ -236,7 +239,7 @@ public class VariableClassification {
    * used in calculations that can lead to an overflow (+, -, *, /, %, <<). This collection may
    * contain any variable from "IntBool", "IntEq" or "IntAdd".
    */
-  public Set<String> getIntOverflowVars() {
+  public ImmutableSortedSet<String> getIntOverflowVars() {
     return intOverflowVars;
   }
 
@@ -245,7 +248,7 @@ public class VariableClassification {
    * used in simple calculations. This collection does not contains anypartition from "IntBool" or
    * "IntEq".
    */
-  public Set<Partition> getIntAddPartitions() {
+  public ImmutableSortedSet<Partition> getIntAddPartitions() {
     return intAddPartitions;
   }
 
@@ -253,12 +256,12 @@ public class VariableClassification {
    * This function returns a collection of partitions. A partition contains all vars, that are
    * dependent from each other.
    */
-  public Set<Partition> getPartitions() {
+  public ImmutableSortedSet<Partition> getPartitions() {
     return partitions;
   }
 
   /** This method return all variables (i.e., their qualified name), that occur in an assumption. */
-  public Multiset<String> getAssumedVariables() {
+  public ImmutableSortedMultiset<String> getAssumedVariables() {
     return assumedVariables;
   }
 
@@ -266,7 +269,7 @@ public class VariableClassification {
    * This method return all variables (i.e., their qualified name), that occur as left-hand side in
    * an assignment.
    */
-  public Multiset<String> getAssignedVariables() {
+  public ImmutableSortedMultiset<String> getAssignedVariables() {
     return assignedVariables;
   }
 
