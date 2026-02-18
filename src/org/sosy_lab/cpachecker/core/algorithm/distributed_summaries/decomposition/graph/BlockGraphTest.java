@@ -57,8 +57,8 @@ public class BlockGraphTest {
     blockGraphFromOriginalCfa.export(exportPathForOriginalCfa, originalCFA);
     blockGraphFromShiftedCfa.export(exportPathForShiftedCfa, shiftedCFA);
 
-    assertThat(Files.exists(exportPathForOriginalCfa));
-    assertThat(Files.exists(exportPathForShiftedCfa));
+    assertThat(Files.exists(exportPathForOriginalCfa)).isTrue();
+    assertThat(Files.exists(exportPathForShiftedCfa)).isTrue();
 
     assertThat(Files.readString(exportPathForOriginalCfa))
         .isEqualTo(Files.readString(exportPathForShiftedCfa));
