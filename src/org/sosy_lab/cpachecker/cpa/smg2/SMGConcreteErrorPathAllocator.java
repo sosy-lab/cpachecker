@@ -95,7 +95,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
                 edges.getFirst(), createConcreteStateFrom(state, assignmentToUse)));
       } else {
         // Multi-edge. E.g. in the beginning of the program declaring all the types etc.
-        handleMultiEdge(state, assignmentToUse, edges, pathBuilder);
+        pathBuilder.addAll(handleMultiEdge(state, assignmentToUse, edges));
       }
     }
     return new ConcreteStatePath(pathBuilder.build().reverse());
@@ -124,17 +124,18 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
                 edges.getFirst(), createConcreteStateFrom(state, assignmentsToUse)));
       } else {
         // Multi-edge. E.g. in the beginning of the program declaring all the types etc.
-        handleMultiEdge(state, assignmentsToUse, edges, pathBuilder);
+        pathBuilder.addAll(handleMultiEdge(state, assignmentsToUse, edges));
       }
     }
     return new ConcreteStatePath(pathBuilder.build());
   }
 
-  private void handleMultiEdge(
-      SMGState pState,
-      List<ValueAssignment> modelToUse,
-      List<CFAEdge> edges,
-      ImmutableList.Builder<ConcreteStatePathNode> pathBuilder) {
+  /**
+   * Iterates over the edges provided in a reversed order and tries to assign concrete values from
+   * the state and model given to the returned states
+   */
+  private List<SingleConcreteState> handleMultiEdge(
+      SMGState pState, List<ValueAssignment> modelToUse, List<CFAEdge> edges) {
     ImmutableList.Builder<SingleConcreteState> intermediateStatesBuilder = ImmutableList.builder();
     Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
     boolean isFirstIteration = true;
@@ -152,7 +153,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         intermediateStatesBuilder.add(new IntermediateConcreteState(innerEdge, state));
       }
     }
-    pathBuilder.addAll(intermediateStatesBuilder.build().reverse());
+    return intermediateStatesBuilder.build().reverse();
   }
 
   private ConcreteState createConcreteStateForMultiEdge(
