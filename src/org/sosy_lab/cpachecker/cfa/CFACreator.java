@@ -835,8 +835,8 @@ public class CFACreator {
       }
 
       AAcslAnnotation annotation =
-          AcslParser.parseAcslContext(
-              comment.getCommentContext(), comment.getFileLocation(), pScope, AcslScope.empty());
+          AcslParser.parseAcslComment(
+              comment.getComment(), comment.getFileLocation(), pScope, AcslScope.empty());
 
       switch (annotation) {
         case AcslAssertion assertion -> assertionBuilder.put(node, assertion);

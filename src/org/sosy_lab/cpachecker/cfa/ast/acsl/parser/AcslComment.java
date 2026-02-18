@@ -19,14 +19,12 @@ public class AcslComment {
 
   private final FileLocation fileLocation;
   private final String commentString;
-  private final ParserRuleContext commentContext;
   @Nullable private CFANode cfaNode;
 
   public AcslComment(
-      FileLocation pFileLocation, String pCommentString, ParserRuleContext pCommentContext) {
+      FileLocation pFileLocation, String pCommentString) {
     fileLocation = pFileLocation;
     commentString = pCommentString;
-    commentContext = pCommentContext;
     cfaNode = null;
   }
 
@@ -42,10 +40,6 @@ public class AcslComment {
 
   public String getComment() {
     return commentString;
-  }
-
-  public ParserRuleContext getCommentContext() {
-    return commentContext;
   }
 
   @Nullable

@@ -203,16 +203,10 @@ class CFABuilder extends ASTVisitor {
       for (IASTComment comment : ast.getComments()) {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          try {
-            ParserRuleContext commentContext = AcslParser.acslCommentToContext(commentString);
-            acslComments.add(
-                new AcslComment(
-                    astCreator.getLocation(comment),
-                    AcslParser.stripCommentMarker(commentString),
-                    commentContext));
-          } catch (AcslParseException e) {
-            throw new CFAGenerationRuntimeException(e);
-          }
+          acslComments.add(
+              new AcslComment(
+                  astCreator.getLocation(comment),
+                  AcslParser.stripCommentMarker(commentString)));
         }
       }
     }
@@ -514,13 +508,15 @@ class CFABuilder extends ASTVisitor {
    * @return An updated version of pResult where each acsl comment now has a Cfa node that
    *     represents the comment location in the Cfa.
    */
-  public ParseResult addAcslToNodeMapping(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
+  public ParseResult addAcslToNodeMapping(ParseResult pResult, AstCfaRelation pAstCfaRelation)
+      throws AcslParseException {
 
     Preconditions.checkArgument(
         pResult.acslComments().isPresent(), "The parse result has no acsl comments.");
 
     for (AcslComment comment : pResult.acslComments().orElseThrow()) {
-      ParserRuleContext ctx = comment.getCommentContext();
+      ParserRuleContext ctx = AcslParser.acslCommentToContext(comment.getComment());
+
       Optional<CFANode> n;
       switch (ctx) {
         case AssertionContext ignored -> {
