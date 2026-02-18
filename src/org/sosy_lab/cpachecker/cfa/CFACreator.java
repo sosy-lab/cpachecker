@@ -816,7 +816,6 @@ public class CFACreator {
    * CFA already exists.
    *
    * @param pScope The CProgramScope of the source file
-   * @param pParseResult A Parse Result with Acsl Comments
    * @return A new Acsl Metadata from the Acsl Comments in pParseResult
    * @throws AcslParseException When one of the acsl statements is of an unknown type.
    */
