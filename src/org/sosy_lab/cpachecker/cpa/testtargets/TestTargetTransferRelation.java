@@ -15,10 +15,13 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA.TestTargetOptions;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState.Status;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -26,8 +29,9 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
 
   private final Set<CFAEdge> testTargets;
 
-  TestTargetTransferRelation(final Set<CFAEdge> pTestTargets) {
-    testTargets = pTestTargets;
+  TestTargetTransferRelation(
+      final TestTargetOptions pTargetOptions, final CFA pCfa, final LogManager pLogger) {
+    testTargets = pTargetOptions.getTargetEdges(pCfa, pLogger);
   }
 
   @Override

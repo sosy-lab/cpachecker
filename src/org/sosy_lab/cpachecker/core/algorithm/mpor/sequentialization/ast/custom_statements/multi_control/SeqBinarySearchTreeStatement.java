@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
@@ -29,7 +28,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /** Represents a binary search tree with {@code if-else} branches. */
 public record SeqBinarySearchTreeStatement(
     CLeftHandSide expression,
-    ImmutableList<CStatement> precedingStatements,
+    ImmutableList<String> precedingStatements,
     ImmutableMap<CExpression, ? extends SeqStatement> statements,
     CBinaryExpressionBuilder binaryExpressionBuilder)
     implements SeqMultiControlStatement {
@@ -37,7 +36,7 @@ public record SeqBinarySearchTreeStatement(
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner tree = new StringJoiner(SeqSyntax.NEWLINE);
-    precedingStatements.forEach(statement -> tree.add(statement.toASTString()));
+    precedingStatements.forEach(statement -> tree.add(statement));
     // use list<entry<,>> instead of map so that we can split it in the middle for the bin tree
     ImmutableList<Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());

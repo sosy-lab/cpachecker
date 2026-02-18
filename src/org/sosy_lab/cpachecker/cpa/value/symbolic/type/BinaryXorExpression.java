@@ -44,6 +44,16 @@ public final class BinaryXorExpression extends BinarySymbolicExpression {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
   }
 
+  public static SymbolicExpression of(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pType,
+      Type pCalculationType) {
+
+    return new BinaryXorExpression(
+        pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
+  }
+
   @Override
   public SymbolicExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new BinaryXorExpression(

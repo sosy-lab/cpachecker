@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -205,7 +206,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pEvaluator,
             pStatistics),
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig),
+            new SMGOptions(pConfig, pCfa),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
