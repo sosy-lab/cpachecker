@@ -170,10 +170,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           if (!isOverapproximating) {
             prefixFormula = bfmgr.makeFalse();
           }
-          if (containsOnlyIrrelevantVariables(interpolant.getFirst(), callstackState)) {
+          isOverapproximating = true;
+          BooleanFormula newInterpolant =
+              instantiateTransitionInvariant(interpolant.getFirst(), prevIndices, currIndices);
+
+          try {
+            if (containsOnlyIrrelevantVariables(interpolant.getFirst(), callstackState)
+                || solver.implies(newInterpolant, prefixFormula)) {
+              break;
+            }
+          } catch (SolverException | InterruptedException e) {
             break;
           }
-          isOverapproximating = true;
           prefixFormula =
               bfmgr.or(
                   prefixFormula,
