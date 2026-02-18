@@ -53,7 +53,8 @@ public class ImportDecompositionTest {
     TestResults runWithShiftedCfa = CPATestRunner.run(configToGenerateCfa, PROGRAM);
     CFA shiftedCFA = runWithShiftedCfa.getCheckerResult().getCfa();
 
-    assumeTrue(originalCFA.nodes() != shiftedCFA.nodes());
+    // If the CFAs have the same nodes, then they were not shifted and this test is not valid
+    assumeTrue(!originalCFA.nodes().equals(shiftedCFA.nodes()));
 
     ImportDecomposition decomposition = new ImportDecomposition(expectedBlocksJson);
     BlockGraph blockGraphWithOriginalCFA = decomposition.decompose(originalCFA);

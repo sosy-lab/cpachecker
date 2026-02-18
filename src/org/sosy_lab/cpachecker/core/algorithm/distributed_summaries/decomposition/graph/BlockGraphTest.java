@@ -43,12 +43,13 @@ public class BlockGraphTest {
     CFA originalCFA = generateCfa(tempFolderPath);
     CFA shiftedCFA = generateCfa(tempFolderPath);
 
-    assumeTrue(originalCFA.nodes() != shiftedCFA.nodes());
+    // If the CFAs have the same nodes, then they were not shifted and this test is not valid
+    assumeTrue(!originalCFA.nodes().equals(shiftedCFA.nodes()));
 
     BlockGraph blockGraphFromOriginalCfa = generateBlockGraph(originalCFA, tempFolderPath);
     BlockGraph blockGraphFromShiftedCfa = generateBlockGraph(shiftedCFA, tempFolderPath);
 
-    assumeTrue(blockGraphFromOriginalCfa != blockGraphFromShiftedCfa);
+    assumeTrue(!blockGraphFromOriginalCfa.equals(blockGraphFromShiftedCfa));
 
     Path exportPathForOriginalCfa = tempFolderPath.resolve(EXPORT_BLOCKS_JSON_PATH_1);
     Path exportPathForShiftedCfa = tempFolderPath.resolve(EXPORT_BLOCKS_JSON_PATH_2);
@@ -56,8 +57,8 @@ public class BlockGraphTest {
     blockGraphFromOriginalCfa.export(exportPathForOriginalCfa, originalCFA);
     blockGraphFromShiftedCfa.export(exportPathForShiftedCfa, shiftedCFA);
 
-    assumeTrue(Files.exists(exportPathForOriginalCfa));
-    assumeTrue(Files.exists(exportPathForShiftedCfa));
+    assertThat(Files.exists(exportPathForOriginalCfa));
+    assertThat(Files.exists(exportPathForShiftedCfa));
 
     assertThat(Files.readString(exportPathForOriginalCfa))
         .isEqualTo(Files.readString(exportPathForShiftedCfa));

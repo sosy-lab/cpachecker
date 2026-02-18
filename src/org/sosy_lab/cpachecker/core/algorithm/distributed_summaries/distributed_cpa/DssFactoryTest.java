@@ -35,7 +35,8 @@ public class DssFactoryTest {
     CFA originalCFA = generateCfa(tempFolderPath);
     CFA shiftedCFA = generateCfa(tempFolderPath);
 
-    assumeTrue(originalCFA.nodes() != shiftedCFA.nodes());
+    // If the CFAs have the same nodes, then they were not shifted and this test is not valid
+    assumeTrue(!originalCFA.nodes().equals(shiftedCFA.nodes()));
 
     BiMap<Integer, CFANode> cfaNodeIdMapWithOriginalCFA =
         DssFactory.createCfaNodeIdMap(originalCFA);
