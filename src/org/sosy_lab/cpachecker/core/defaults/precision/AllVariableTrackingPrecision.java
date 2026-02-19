@@ -44,11 +44,9 @@ public class AllVariableTrackingPrecision extends VariableTrackingPrecision {
   @Override
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
     // Check that the variable is known in our variable classification
-    // Note: we want to ignore possible offsets when transforming MemoryLocation to a name string
-    assert !pVariable.isReference()
-        || vc.getAllVariables().contains(pVariable.getReferenceStart().getExtendedQualifiedName());
-    assert pVariable.isReference()
-        || vc.getAllVariables().contains(pVariable.getExtendedQualifiedName());
+    // Note: we want to ignore possible offsets when transforming MemoryLocation to a name string,
+    // as VariableClassification never returns those
+    assert vc.getAllVariables().contains(pVariable.getQualifiedName());
 
     return true;
   }
