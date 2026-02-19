@@ -361,9 +361,11 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * Wrapper for {@link ValueAnalysisState} that may be abstracted using {@link
    * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)}. Upon using {@link
    * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)} for the first time, the initial
-   * state is copied, and all abstractions are performed on the copy. If no abstraction has been
-   * performed (yet) {@link ValueAnalysisStateCopyOnForgetBuilder#getCurrentState()} returns the
-   * initial state, else the current state (that has been abstracted). {@link
+   * state is copied, and all abstractions are performed on the copy. Calling {@link
+   * ValueAnalysisStateCopyOnForgetBuilder#getTrackedMemoryLocations()} or {@link
+   * ValueAnalysisStateCopyOnForgetBuilder#getConstants()} returns the result of the same methods on
+   * the current {@link ValueAnalysisState}, i.e. either the initial state if forget() has not been
+   * used, or the copied and abstracted state else. {@link
    * ValueAnalysisStateCopyOnForgetBuilder#build()} returns the initial state if {@link
    * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)} has not been called, else the
    * abstracted copy of the initial state.
