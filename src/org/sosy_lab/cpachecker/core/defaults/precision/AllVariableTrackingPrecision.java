@@ -63,7 +63,7 @@ final class AllVariableTrackingPrecision extends VariableTrackingPrecision {
 
   @Override
   public int getSize() {
-    return vc.getAllVariables().size();
+    return -1;
   }
 
   @Override
