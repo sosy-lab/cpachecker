@@ -17,6 +17,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -298,7 +299,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       // skip the abstraction, after a blank edge there cannot be a variable
       // less live
       if (!onlyBlankEdgesEntering) {
-        for (MemoryLocation variable : stateBuilder.getCurrentState().getTrackedMemoryLocations()) {
+        for (MemoryLocation variable : stateBuilder.getTrackedMemoryLocations()) {
           if (!liveVariables
               .orElseThrow()
               .isVariableLive(variable.getExtendedQualifiedName(), location.getLocationNode())) {
@@ -323,7 +324,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       VariableTrackingPrecision precision) {
 
     checkNotNull(location);
-    for (Entry<MemoryLocation, ValueAndType> e : stateBuilder.getCurrentState().getConstants()) {
+    for (Entry<MemoryLocation, ValueAndType> e : stateBuilder.getConstants()) {
       MemoryLocation memoryLocation = e.getKey();
       if (!precision.isTracking(
           memoryLocation, e.getValue().getType(), location.getLocationNode())) {
@@ -346,7 +347,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       UniqueAssignmentsInPathConditionState assignments) {
 
     // forget the value for all variables that exceed their threshold
-    for (Entry<MemoryLocation, ValueAndType> e : stateBuilder.getCurrentState().getConstants()) {
+    for (Entry<MemoryLocation, ValueAndType> e : stateBuilder.getConstants()) {
       MemoryLocation memoryLocation = e.getKey();
       assignments.updateAssignmentInformation(memoryLocation, e.getValue().getValue());
 
@@ -414,18 +415,34 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     /**
-     * Returns the initial state if {@link
-     * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)} has not yet been called, else
-     * the copied and abstracted state.
+     * Returns the result of {@link ValueAnalysisState#getConstants()} on either the initial {@link
+     * ValueAnalysisState} if {@link ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)}
+     * has not yet been called, else the copied and abstracted {@link ValueAnalysisState}.
      */
-    public ValueAnalysisState getCurrentState() {
+    public Set<Entry<MemoryLocation, ValueAndType>> getConstants() {
       checkState(
           !closed,
           "The ValueAnalysisStateCopyOnForgetBuilder is already closed and can no longer be used");
       if (possibleResultState == null) {
-        return initialState;
+        return initialState.getConstants();
       }
-      return possibleResultState;
+      return possibleResultState.getConstants();
+    }
+
+    /**
+     * Returns the result of {@link ValueAnalysisState#getTrackedMemoryLocations()} on either the
+     * initial {@link ValueAnalysisState} if {@link
+     * ValueAnalysisStateCopyOnForgetBuilder#forget(MemoryLocation)} has not yet been called, else
+     * the copied and abstracted {@link ValueAnalysisState}.
+     */
+    public Set<MemoryLocation> getTrackedMemoryLocations() {
+      checkState(
+          !closed,
+          "The ValueAnalysisStateCopyOnForgetBuilder is already closed and can no longer be used");
+      if (possibleResultState == null) {
+        return initialState.getTrackedMemoryLocations();
+      }
+      return possibleResultState.getTrackedMemoryLocations();
     }
   }
 }
