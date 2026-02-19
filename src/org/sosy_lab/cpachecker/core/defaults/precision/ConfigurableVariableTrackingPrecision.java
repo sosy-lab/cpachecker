@@ -104,12 +104,15 @@ public class ConfigurableVariableTrackingPrecision extends VariableTrackingPreci
   }
 
   /**
-   * Tries to determine whether the tracking result of all variables in the used
-   * VariableClassification is equal (i.e. all return true or false) and caches that result to
-   * reduce lookups later. Should only ever be used on static precisions. Needs to be run only once
-   * for a static precision.
+   * Tries to determine whether this precision tracks all or none of the variables in the used
+   * variable input set (i.e. all return true XOR false for {@link
+   * ConfigurableVariableTrackingPrecision#isTracking(MemoryLocation, Type, CFANode)}) and returns
+   * this result in an {@link Optional}. If there is no constant return value for {@link
+   * ConfigurableVariableTrackingPrecision#isTracking(MemoryLocation, Type, CFANode)} on the current
+   * input set, this method returns an empty {@link Optional}. Should only ever be used on immutable
+   * precisions. Needs to be run only once for an immutable precision.
    */
-  Optional<Boolean> isTrackingReturnsStaticValueFor(Set<String> variablesToCheck) {
+  Optional<Boolean> isTrackingReturnsConstantResultFor(Set<String> variablesToCheck) {
     if (!trackFloatVariables) {
       // We can't get the type here, so we can't decide upon float types if needed
       // TODO: track float vars in VariableClassification?

@@ -43,7 +43,7 @@ public abstract class VariableTrackingPrecision implements Precision {
         new ConfigurableVariableTrackingPrecision(config, vc, cpaClass);
     if (vc.isPresent()) {
       Optional<Boolean> maybeStaticIsTrackingRes =
-          varTrackingPrec.isTrackingReturnsStaticValueFor(vc.orElseThrow().getAllVariables());
+          varTrackingPrec.isTrackingReturnsConstantResultFor(vc.orElseThrow().getAllVariables());
       if (maybeStaticIsTrackingRes.orElse(false)) {
         return new AllVariableTrackingPrecision(vc.orElseThrow(), cpaClass);
       }
