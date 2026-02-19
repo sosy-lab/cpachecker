@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -142,7 +143,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newPathFormulaForIteration.buildOrThrow(),
               newPrefixFormula,
               newFullFormula,
-              terminationState.getPossiblyNonterminatingLoopHeads()));
+              new HashSet<>(terminationState.getPossiblyNonterminatingLoopHeads())));
     }
     return ImmutableList.of(pState);
   }
