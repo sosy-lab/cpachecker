@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Multimap;
-import com.google.errorprone.annotations.ForOverride;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
@@ -170,7 +169,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    *
    * @return the owner CPA of this precision
    */
-  @ForOverride
   protected abstract Class<? extends ConfigurableProgramAnalysis> getCPAClass();
 
   @Override

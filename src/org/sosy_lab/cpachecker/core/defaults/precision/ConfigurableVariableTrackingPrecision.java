@@ -90,8 +90,8 @@ public class ConfigurableVariableTrackingPrecision extends VariableTrackingPreci
       description = "If this option is used, variables that are irrelevant also tracked.")
   private boolean trackIrrelevantVariables = true;
 
-  final Optional<VariableClassification> vc;
-  final Class<? extends ConfigurableProgramAnalysis> cpaClass;
+  private final Optional<VariableClassification> vc;
+  private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   ConfigurableVariableTrackingPrecision(
       Configuration config,

@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  */
 public class AllVariableTrackingPrecision extends VariableTrackingPrecision {
 
-  final VariableClassification vc;
-  final Class<? extends ConfigurableProgramAnalysis> cpaClass;
+  private final VariableClassification vc;
+  private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   AllVariableTrackingPrecision(
       VariableClassification pVc, Class<? extends ConfigurableProgramAnalysis> pCpaClass) {
@@ -83,7 +83,7 @@ public class AllVariableTrackingPrecision extends VariableTrackingPrecision {
       return this;
     } else if (otherPrecision
         instanceof ConfigurableVariableTrackingPrecision pConfigurableVariableTrackingPrecision) {
-      checkArgument(pConfigurableVariableTrackingPrecision.cpaClass == cpaClass);
+      checkArgument(pConfigurableVariableTrackingPrecision.getCPAClass() == cpaClass);
       return pConfigurableVariableTrackingPrecision;
     }
     throw new UnsupportedOperationException(
