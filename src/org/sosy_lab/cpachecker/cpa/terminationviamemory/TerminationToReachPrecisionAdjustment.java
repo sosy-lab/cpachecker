@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -113,12 +114,13 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         while (true) {
           // First, check that the BMC check is UNSATs
           BooleanFormula latestSameStateFormula = bfmgr.makeTrue();
+          BooleanFormula firstStepFormula = prefixFormula;
           for (BooleanFormula sameStateFormula : sameStateFormulas) {
             try {
               if (isOverapproximating) {
                 sameStateFormula =
                     instantiateTransitionInvariant(sameStateFormula, prevIndices, largestIndices);
-                BooleanFormula firstStepFormula =
+                firstStepFormula =
                     instantiateTransitionInvariant(prefixFormula, prevIndices, smallestIndices);
                 isTargetStateReachable =
                     !solver.isUnsat(
@@ -160,7 +162,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               itpMgr
                   .interpolate(
                       ImmutableList.of(
-                          bfmgr.and(prefixFormula, iterationFormula), latestSameStateFormula))
+                          bfmgr.and(firstStepFormula, iterationFormula), latestSameStateFormula))
                   .orElseThrow();
           if (!isOverapproximating) {
             prefixFormula = bfmgr.makeFalse();
