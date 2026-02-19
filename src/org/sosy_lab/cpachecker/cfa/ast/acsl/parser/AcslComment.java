@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.base.Verify;
 import java.util.List;
+import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -18,18 +20,18 @@ public class AcslComment {
 
   private final FileLocation fileLocation;
   private final String commentString;
-  @Nullable private CFANode cfaNode;
+  private @NonNull Optional<CFANode> cfaNode;
 
   public AcslComment(FileLocation pFileLocation, String pCommentString) {
     fileLocation = pFileLocation;
     commentString = pCommentString;
-    cfaNode = null;
+    cfaNode = Optional.empty();
   }
 
-  public void updateCfaNode(@Nullable CFANode pCfaNode) {
+  public void updateCfaNode(@NonNull CFANode pCfaNode) {
     // Ensure the Cfa Node for an Acsl Comment can only be set once
-    Verify.verify(cfaNode == null);
-    cfaNode = pCfaNode;
+    Verify.verify(cfaNode.isEmpty());
+    cfaNode = Optional.of(pCfaNode);
   }
 
   public FileLocation getFileLocation() {
@@ -46,12 +48,12 @@ public class AcslComment {
   }
 
   @Nullable
-  public CFANode getCfaNode() {
+  public Optional<CFANode> getCfaNode() {
     return cfaNode;
   }
 
   public Boolean hasCfaNode() {
-    return cfaNode != null;
+    return cfaNode.isPresent();
   }
 
   public boolean noCommentInBetween(FileLocation nextStatement, List<AcslComment> otherComments) {

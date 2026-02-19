@@ -18,7 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -65,6 +64,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMetadataCreationException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMetadataException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
@@ -546,6 +547,33 @@ public class CFACreator {
     }
   }
 
+  public AcslMetadata parseFilesAndCreateAcslMetadata(List<String> program)
+      throws ParserException,
+          InterruptedException,
+          InvalidConfigurationException,
+          AcslParseException,
+          AcslMetadataCreationException,
+          IOException {
+    AcslMetadata acslMetadata = null;
+    stats.totalTime.start();
+    try {
+      ParseResult parseResult = parseToCFAs(program);
+      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
+      assert mainFunction != null : "program lacks main function.";
+
+      CFA cfa = createCFA(parseResult, mainFunction);
+      if (parseResult.acslComments().isPresent()) {
+        CProgramScope scope = new CProgramScope(cfa, logger);
+        acslMetadata =
+            createAcslMetadata(
+                scope, ImmutableList.copyOf(parseResult.acslComments().orElseThrow()));
+      }
+    } finally {
+      stats.totalTime.stop();
+    }
+    return acslMetadata;
+  }
+
   /**
    * Parse some files and create a CFA, including all post-processing etc.
    *
@@ -764,19 +792,17 @@ public class CFACreator {
 
     if (pParseResult.acslComments().isPresent()) {
       CProgramScope cScope = new CProgramScope(cfa, logger);
+      AcslMetadata acslMetadata = null;
       try {
-        cfa.setAcslMetadata(
+        acslMetadata =
             createAcslMetadata(
-                cScope,
-                ImmutableList.copyOf(
-                    pParseResult
-                        .acslComments()
-                        .orElseThrow(
-                            () ->
-                                new IllegalStateException(
-                                    "The parse result has no acsl comments.")))));
-      } catch (AcslParseException e) {
+                cScope, ImmutableList.copyOf(pParseResult.acslComments().orElseThrow()));
+      } catch (AcslParseException | AcslMetadataException e) {
         logger.log(Level.WARNING, e);
+      }
+
+      if (acslMetadata != null) {
+        cfa.setAcslMetadata(acslMetadata);
       }
     }
 
@@ -820,7 +846,8 @@ public class CFACreator {
    * @throws AcslParseException When one of the acsl statements is of an unknown type.
    */
   private AcslMetadata createAcslMetadata(
-      CProgramScope pScope, ImmutableList<AcslComment> pComments) throws AcslParseException {
+      CProgramScope pScope, ImmutableList<AcslComment> pComments)
+      throws AcslParseException, AcslMetadataCreationException {
 
     ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
         ImmutableSetMultimap.builder();
@@ -833,11 +860,16 @@ public class CFACreator {
         ImmutableSetMultimap.builder();
 
     for (AcslComment comment : pComments) {
-      Verify.verify(comment.hasCfaNode());
-      CFANode node = comment.getCfaNode();
+      CFANode node =
+          comment
+              .getCfaNode()
+              .orElseThrow(
+                  () ->
+                      new AcslMetadataCreationException(
+                          "Annotation " + comment + " has no CFA node."));
       // If the comment is a function contract, we need to tell the CProgramScope the function name.
       if (node instanceof FunctionEntryNode) {
-        pScope = pScope.withFunctionScope(comment.getCfaNode().getFunctionName());
+        pScope = pScope.withFunctionScope(node.getFunctionName());
       }
 
       AAcslAnnotation annotation =
@@ -851,10 +883,10 @@ public class CFACreator {
             functionContractBuilder.put(node, functionContract);
         case AcslAssigns assigns -> assignsBuilder.put(node, assigns);
         case null ->
-            throw new IllegalStateException(
+            throw new AcslMetadataCreationException(
                 "The comment " + comment + "could not be parsed into an acsl annotation object.");
         default ->
-            throw new IllegalArgumentException(
+            throw new AcslMetadataCreationException(
                 "Unexpected annotation: "
                     + comment
                     + ". Parsing is currently supported for assertions, loop annotations, function"

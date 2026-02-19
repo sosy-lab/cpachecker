@@ -23,7 +23,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
@@ -142,14 +141,15 @@ public class AcslMetadataParsingTest {
 
     if (programName.equals("badVariable.c")) {
       RuntimeException expectedException =
-          assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+          assertThrows(
+              RuntimeException.class, () -> cfaCreator.parseFilesAndCreateAcslMetadata(files));
       assertThat(expectedException)
           .hasMessageThat()
           .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
     } else {
-      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-      assertThat(cfa.getAcslMetadata()).isNotNull();
-      assertThat(cfa.getAcslMetadata().numOfAnnotaniots()).isEqualTo(expectedComments.size());
+      AcslMetadata acslMetadata = cfaCreator.parseFilesAndCreateAcslMetadata(files);
+      assertThat(acslMetadata).isNotNull();
+      assertThat(acslMetadata.numOfAnnotaniots()).isEqualTo(expectedComments.size());
     }
   }
 
@@ -159,19 +159,20 @@ public class AcslMetadataParsingTest {
 
     if (programName.equals("badVariable.c")) {
       RuntimeException expectedException =
-          assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+          assertThrows(
+              RuntimeException.class, () -> cfaCreator.parseFilesAndCreateAcslMetadata(files));
       assertThat(expectedException)
           .hasMessageThat()
           .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
     } else {
-      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-      assertThat(cfa.getAcslMetadata()).isNotNull();
-      assertThat(cfa.getAcslMetadata().pAcslComments()).isNotEmpty();
+      AcslMetadata metadata = cfaCreator.parseFilesAndCreateAcslMetadata(files);
+      assertThat(metadata).isNotNull();
+      assertThat(metadata.pAcslComments()).isNotEmpty();
 
-      AcslComment comment = cfa.getAcslMetadata().pAcslComments().getFirst();
+      AcslComment comment = metadata.pAcslComments().getFirst();
       assertThat(comment.getCfaNode()).isNotNull();
 
-      FileLocation nodeLoc = describeFileLocation(comment.getCfaNode());
+      FileLocation nodeLoc = describeFileLocation(comment.getCfaNode().orElseThrow());
       assertThat(nodeLoc.getStartingLineNumber()).isEqualTo(expectedLoc.expectedLine);
       assertThat(nodeLoc.getStartColumnInLine()).isEqualTo(expectedLoc.expectedCol);
     }

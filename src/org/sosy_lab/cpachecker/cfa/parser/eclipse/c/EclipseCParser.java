@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslNodeMappingException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -364,7 +366,11 @@ class EclipseCParser implements CParser {
       result = result.withASTStructure(astCfaRelation);
 
       if (result.acslComments().isPresent()) {
-        result = builder.addAcslToNodeMapping(result, astCfaRelation);
+        try {
+          result = builder.addAcslToNodeMapping(result, astCfaRelation);
+        } catch (AcslNodeMappingException e) {
+          logger.log(Level.ALL, e);
+        }
       }
 
       return result;

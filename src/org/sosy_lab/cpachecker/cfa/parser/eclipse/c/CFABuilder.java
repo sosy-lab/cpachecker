@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslNodeMappingException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
@@ -507,7 +508,7 @@ class CFABuilder extends ASTVisitor {
    *     represents the comment location in the Cfa.
    */
   public ParseResult addAcslToNodeMapping(ParseResult pResult, AstCfaRelation pAstCfaRelation)
-      throws AcslParseException {
+      throws AcslParseException, AcslNodeMappingException {
 
     Preconditions.checkArgument(
         pResult.acslComments().isPresent(), "The parse result has no acsl comments.");
@@ -526,7 +527,7 @@ class CFABuilder extends ASTVisitor {
           comment.updateCfaNode(
               n.orElseThrow(
                   () ->
-                      new IllegalStateException(
+                      new AcslNodeMappingException(
                           "Could not find CFA node for assertion " + comment)));
         }
         case LoopAnnotContext ignored -> {
@@ -534,7 +535,7 @@ class CFABuilder extends ASTVisitor {
           comment.updateCfaNode(
               n.orElseThrow(
                   () ->
-                      new IllegalStateException(
+                      new AcslNodeMappingException(
                           "Could not find loop head Cfa node for loop annotation " + comment)));
         }
         case FunctionContractContext ignored -> {
@@ -546,20 +547,21 @@ class CFABuilder extends ASTVisitor {
                       .acslComments()
                       .orElseThrow(
                           () ->
-                              new IllegalStateException("The parse result has no acsl comments.")));
+                              new AcslNodeMappingException(
+                                  "The parse result has no acsl comments.")));
 
           comment.updateCfaNode(
               n.orElseThrow(
                   () ->
-                      new IllegalStateException(
+                      new AcslNodeMappingException(
                           "Could not find function entry node for function contract\n"
                               + comment
                               + "\nStatement contracts are not supported.")));
         }
         case null ->
-            throw new IllegalStateException("Annotation " + comment + " has no Antlr context.");
+            throw new AcslNodeMappingException("Annotation " + comment + " has no Antlr context.");
         default ->
-            throw new IllegalArgumentException(
+            throw new AcslNodeMappingException(
                 "Unexpected annotation: "
                     + comment
                     + ". Parsing is currently supported for assertions, loop annotations,"
