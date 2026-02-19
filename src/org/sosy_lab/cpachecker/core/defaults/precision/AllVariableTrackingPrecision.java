@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * A {@link org.sosy_lab.cpachecker.core.interfaces.Precision} that tracks all variables per
  * default.
  */
-public class AllVariableTrackingPrecision extends VariableTrackingPrecision {
+final class AllVariableTrackingPrecision extends VariableTrackingPrecision {
 
   private final VariableClassification vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
