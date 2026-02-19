@@ -12,7 +12,6 @@ import com.google.common.base.Verify;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -47,7 +46,7 @@ public class AcslComment {
     return "'" + commentString + "'" + " at " + fileLocation;
   }
 
-  @Nullable
+  @NonNull
   public Optional<CFANode> getCfaNode() {
     return cfaNode;
   }
