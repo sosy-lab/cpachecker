@@ -345,12 +345,13 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
           MemoryLocation memoryLocation = e.getKey();
           if (location != null
               && !precision.isTracking(
-              memoryLocation, e.getValue().getType(), location.getLocationNode())) {
+                  memoryLocation, e.getValue().getType(), location.getLocationNode())) {
             resultState.forget(memoryLocation);
           }
         }
 
-      abstractions.inc();
+        abstractions.inc();
+      }
     }
     return resultState;
   }
