@@ -10,12 +10,10 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.ForOverride;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -116,11 +114,6 @@ public abstract class VariableTrackingPrecision implements TrackingPrecision {
    * @return whether the variable has to be tracked
    */
   public abstract boolean isTracking(MemoryLocation variable, Type pType, CFANode location);
-
-  public Iterable<Entry<MemoryLocation, Type>> getNotTrackedFrom(
-      FluentIterable<Entry<MemoryLocation, Type>> variablesAndTypesToFilter, CFANode location) {
-    return variablesAndTypesToFilter.filter(e -> !isTracking(e.getKey(), e.getValue(), location));
-  }
 
   /**
    * This method refines the precision with the given increment.

@@ -11,11 +11,9 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -28,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -331,12 +328,11 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       final ValueAnalysisState initialState,
       LocationState location,
       VariableTrackingPrecision precision) {
-    if (location != null
-        && (options.abstractAtEachLocation()
-            || options.abstractAtBranch(location)
-            || options.abstractAtJoin(location)
-            || options.abstractAtFunction(location)
-            || options.abstractAtLoop(location))) {
+    if (options.abstractAtEachLocation()
+        || options.abstractAtBranch(location)
+        || options.abstractAtJoin(location)
+        || options.abstractAtFunction(location)
+        || options.abstractAtLoop(location)) {
 
       // If we track everything, we can skip this adjustment
       if (!precision.isAlwaysTracking()) {
@@ -345,17 +341,17 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
           resultState = ValueAnalysisState.copyOf(initialState);
         }
 
-        for (Entry<MemoryLocation, Type> varAndTypeToForget :
-            precision.getNotTrackedFrom(
-                FluentIterable.from(resultState.getConstants())
-                    .transform(e -> new SimpleEntry<>(e.getKey(), e.getValue().getType())),
-                location.getLocationNode())) {
-          resultState.forget(varAndTypeToForget.getKey());
+        for (Entry<MemoryLocation, ValueAndType> e : resultState.getConstants()) {
+          MemoryLocation memoryLocation = e.getKey();
+          if (location != null
+              && !precision.isTracking(
+              memoryLocation, e.getValue().getType(), location.getLocationNode())) {
+            resultState.forget(memoryLocation);
+          }
         }
-      }
-    }
 
-    abstractions.inc();
+      abstractions.inc();
+    }
     return resultState;
   }
 

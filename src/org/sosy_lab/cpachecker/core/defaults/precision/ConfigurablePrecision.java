@@ -12,13 +12,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -170,21 +168,6 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     }
 
     return isTracking(pVariable, pType);
-  }
-
-  @Override
-  public Iterable<Entry<MemoryLocation, Type>> getNotTrackedFrom(
-      FluentIterable<Entry<MemoryLocation, Type>> variablesAndTypes, CFANode location) {
-    if (staticTrackingResult.isPresent()) {
-      if (staticTrackingResult.orElseThrow()) {
-        // We track everything
-        return ImmutableSet.of();
-      } else {
-        // We track nothing
-        return variablesAndTypes;
-      }
-    }
-    return super.getNotTrackedFrom(variablesAndTypes, location);
   }
 
   /**
