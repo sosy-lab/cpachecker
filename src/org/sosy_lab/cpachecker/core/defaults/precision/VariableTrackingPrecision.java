@@ -23,13 +23,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TrackingPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-public abstract class VariableTrackingPrecision implements TrackingPrecision {
+public abstract class VariableTrackingPrecision implements Precision {
 
   /**
    * This method creates a precision which cannot be refined, all decisions about the tracking of
@@ -100,6 +99,17 @@ public abstract class VariableTrackingPrecision implements TrackingPrecision {
    * @return whether this precision allows for abstraction
    */
   public abstract boolean allowsAbstraction();
+
+  /**
+   * If an immutable precision tracks all possibly tracked elements, this method returns true. False
+   * else.
+   *
+   * @implSpec this should only every be overwritten if a precision can guarantee that it only ever
+   *     returns true for methods that determine whether something is tracked like isTracking().
+   */
+  public boolean isAlwaysTracking() {
+    return false;
+  }
 
   /**
    * This method tells if the precision demands the given variable to be tracked.

@@ -15,11 +15,22 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.TrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
 /** Precision for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}. */
-public interface ConstraintsPrecision extends TrackingPrecision {
+public interface ConstraintsPrecision extends Precision {
+
+  /**
+   * If an immutable precision tracks all possibly tracked elements, this method returns true. False
+   * else.
+   *
+   * @implSpec this should only every be overwritten if a precision can guarantee that it only ever
+   *     returns true for methods that determine whether something is tracked like isTracking().
+   */
+  default boolean isAlwaysTracking() {
+    return false;
+  }
 
   /** Returns whether the given <code>Constraint</code> is tracked by this precision. */
   boolean isTracked(Constraint pConstraint, CFANode pLocation);
