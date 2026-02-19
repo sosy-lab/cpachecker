@@ -15,11 +15,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
 /** Precision for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}. */
-public interface ConstraintsPrecision extends Precision {
+public interface ConstraintsPrecision extends TrackingPrecision {
 
   /** Returns whether the given <code>Constraint</code> is tracked by this precision. */
   boolean isTracked(Constraint pConstraint, CFANode pLocation);

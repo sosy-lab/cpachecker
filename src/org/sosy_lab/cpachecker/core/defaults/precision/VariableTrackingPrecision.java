@@ -25,12 +25,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TrackingPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-public abstract class VariableTrackingPrecision implements Precision {
+public abstract class VariableTrackingPrecision implements TrackingPrecision {
 
   /**
    * This method creates a precision which cannot be refined, all decisions about the tracking of

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
@@ -24,8 +23,8 @@ public class FullConstraintsPrecision implements ConstraintsPrecision {
   }
 
   @Override
-  public Optional<Boolean> getStaticIsTrackingResult() {
-    return Optional.of(true);
+  public boolean isAlwaysTracking() {
+    return true;
   }
 
   @Override

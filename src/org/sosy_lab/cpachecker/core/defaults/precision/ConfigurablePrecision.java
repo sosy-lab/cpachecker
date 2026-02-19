@@ -159,8 +159,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public Optional<Boolean> getStaticIsTrackingResult() {
-    return staticTrackingResult;
+  public boolean isAlwaysTracking() {
+    return staticTrackingResult.orElse(false);
   }
 
   @Override

@@ -53,9 +53,16 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment {
       final ConstraintsPrecision pPrecision,
       final AbstractState pFullState) {
 
-    // Skip if the precision is tracking everything in all cases
-    if (pPrecision.getStaticIsTrackingResult().isEmpty()
-        || !pPrecision.getStaticIsTrackingResult().orElseThrow()) {
+    // Skip if the precision-adjustment, if the precision is tracking everything in all cases
+    if (pPrecision.isAlwaysTracking()) {
+      // We are tracking everything, hence no change to the state
+      int constraints = pStateToAdjust.size();
+      stats.constraintNumberBeforeAdj.setNextValue(constraints);
+      stats.constraintNumberAfterAdj.setNextValue(constraints);
+      return Optional.of(
+          new PrecisionAdjustmentResult(pStateToAdjust, pPrecision, Action.CONTINUE));
+
+    } else {
 
       int constraintsBefore = 0;
       int constraintsAfter = 0;
@@ -88,14 +95,6 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment {
       } finally {
         stats.adjustmentTime.stop();
       }
-
-    } else {
-      // We are tracking everything, hence no change to the state
-      int constraints = pStateToAdjust.size();
-      stats.constraintNumberBeforeAdj.setNextValue(constraints);
-      stats.constraintNumberAfterAdj.setNextValue(constraints);
-      return Optional.of(
-          new PrecisionAdjustmentResult(pStateToAdjust, pPrecision, Action.CONTINUE));
     }
   }
 }

@@ -338,16 +338,20 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
             || options.abstractAtFunction(location)
             || options.abstractAtLoop(location))) {
 
-      if (resultState == null) {
-        resultState = ValueAnalysisState.copyOf(initialState);
-      }
+      // If we track everything, we can skip this adjustment
+      if (!precision.isAlwaysTracking()) {
 
-      for (Entry<MemoryLocation, Type> varAndTypeToForget :
-          precision.getNotTrackedFrom(
-              FluentIterable.from(resultState.getConstants())
-                  .transform(e -> new SimpleEntry<>(e.getKey(), e.getValue().getType())),
-              location.getLocationNode())) {
-        resultState.forget(varAndTypeToForget.getKey());
+        if (resultState == null) {
+          resultState = ValueAnalysisState.copyOf(initialState);
+        }
+
+        for (Entry<MemoryLocation, Type> varAndTypeToForget :
+            precision.getNotTrackedFrom(
+                FluentIterable.from(resultState.getConstants())
+                    .transform(e -> new SimpleEntry<>(e.getKey(), e.getValue().getType())),
+                location.getLocationNode())) {
+          resultState.forget(varAndTypeToForget.getKey());
+        }
       }
     }
 
