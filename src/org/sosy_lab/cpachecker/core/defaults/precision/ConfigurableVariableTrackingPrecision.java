@@ -104,19 +104,16 @@ public class ConfigurableVariableTrackingPrecision extends VariableTrackingPreci
   }
 
   /**
-   * Tries to determine whether this precision tracks all or none of the variables in the used
-   * variable input set (i.e. all return true XOR false for {@link
+   * Tries to determine whether this precision tracks all the variables in the used variable input
+   * set (i.e. all return true for {@link
    * ConfigurableVariableTrackingPrecision#isTracking(MemoryLocation, Type, CFANode)}) and returns
-   * this result in an {@link Optional}. If there is no constant return value for {@link
-   * ConfigurableVariableTrackingPrecision#isTracking(MemoryLocation, Type, CFANode)} on the current
-   * input set, this method returns an empty {@link Optional}. Should only ever be used on immutable
-   * precisions. Needs to be run only once for an immutable precision.
+   * only if it does. Should only ever be used on immutable precisions.
    */
-  Optional<Boolean> isTrackingReturnsConstantResultFor(Set<String> variablesToCheck) {
+  boolean tracksAllVariables(Set<String> variablesToCheck) {
     if (!trackFloatVariables) {
       // We can't get the type here, so we can't decide upon float types if needed
       // TODO: track float vars in VariableClassification?
-      return Optional.empty();
+      return false;
     }
 
     if (variableWhitelist.toString().isEmpty() && variableBlacklist.toString().isEmpty()) {
@@ -130,23 +127,17 @@ public class ConfigurableVariableTrackingPrecision extends VariableTrackingPreci
         // Shortcut for cases in which we know we track all classified variables
         assert variablesToCheck.stream()
             .allMatch(var -> isTracking(MemoryLocation.fromQualifiedName(var)));
-        return Optional.of(true);
+        return true;
       }
     }
 
-    int trackedVariables = 0;
     for (String variable : variablesToCheck) {
-      if (isTracking(MemoryLocation.fromQualifiedName(variable))) {
-        trackedVariables++;
+      if (!isTracking(MemoryLocation.fromQualifiedName(variable))) {
+        return false;
       }
     }
 
-    if (trackedVariables == 0) {
-      return Optional.of(false);
-    } else if (trackedVariables == variablesToCheck.size()) {
-      return Optional.of(true);
-    }
-    return Optional.empty();
+    return true;
   }
 
   @Override
