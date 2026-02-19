@@ -401,7 +401,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   /**
    * This function iterates over all edges of the cfa, collects all variables and orders them into
-   * different sets, i.e. nonBoolean and nonIntEuqalNumber.
+   * different sets, i.e. nonBoolean and nonIntEqualNumber.
    */
   private void collectVars(CFA cfa) throws UnrecognizedCodeException {
     Collection<CFANode> nodes = cfa.nodes();
