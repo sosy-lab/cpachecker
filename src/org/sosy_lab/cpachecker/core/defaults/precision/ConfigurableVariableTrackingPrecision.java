@@ -116,19 +116,11 @@ public class ConfigurableVariableTrackingPrecision extends VariableTrackingPreci
       return false;
     }
 
-    if (variableWhitelist.toString().isEmpty() && variableBlacklist.toString().isEmpty()) {
-      if (vc.isEmpty()
-          || (trackAddressedVariables
-              && trackIrrelevantVariables
-              && trackBooleanVariables
-              && trackIntEqualVariables
-              && trackIntAddVariables
-              && trackVariablesBesidesEqAddBool)) {
-        // Shortcut for cases in which we know we track all classified variables
-        assert variablesToCheck.stream()
-            .allMatch(var -> isTracking(MemoryLocation.fromQualifiedName(var)));
-        return true;
-      }
+    if (vc.isEmpty() || !allowsAbstraction()) {
+      // Shortcut for cases in which we know we track all classified variables
+      assert variablesToCheck.stream()
+          .allMatch(var -> isTracking(MemoryLocation.fromQualifiedName(var)));
+      return true;
     }
 
     for (String variable : variablesToCheck) {
