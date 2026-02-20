@@ -61,12 +61,12 @@ public record SeqThreadStatement(
       checkArgument(
           exportAstNodes.stream().anyMatch(n -> n instanceof CVariableDeclarationWrapper),
           "If the statement type is CONST_CPACHECKER_TMP, then at least one CExportAstNode must be"
-              + " a CVariableDeclarationWrapper");
+              + " a CVariableDeclarationWrapper.");
     } else {
       checkArgument(
           exportAstNodes.stream().noneMatch(n -> n instanceof CVariableDeclarationWrapper),
           "If the statement type is not CONST_CPACHECKER_TMP, then no CExportAstNode is allowed to"
-              + " be a CVariableDeclarationWrapper");
+              + " be a CVariableDeclarationWrapper.");
     }
   }
 

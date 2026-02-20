@@ -12,8 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * An interface that forms the common base for {@link CExportExpression}, {@link
- * CVariableDeclarationWrapper} and {@link CExportStatement}.
+ * An interface that forms the common base for {@link CVariableDeclarationWrapper} and {@link
+ * CExportStatement} so that they can be used e.g. in a {@link CCompoundStatement}.
  */
 public sealed interface CExportAstNode permits CExportStatement, CVariableDeclarationWrapper {
 
