@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.oc;
+package org.sosy_lab.cpachecker.cpa.por;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -46,17 +47,16 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelation {
+public class PORTransferRelation extends SingleEdgeTransferRelation {
   private final LocationCPA locationCPA;
   private final CallstackCPA callstackCPA;
   private final Solver solver;
   private final PathFormulaManager pathFormulaManager;
   private final CFA cfa;
 
-  public OrderingConsistencyTransferRelation(
+  public PORTransferRelation(
       Configuration pConfig, CFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    //    pConfig.inject(this);
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
     cfa = pCfa;
@@ -71,7 +71,15 @@ public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelat
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    if (state instanceof OrderingConsistencyState prevState) {
+    if (state instanceof PORState originalState) {
+      // Determine which thread this edge belongs to (populated by getOutgoingEdges)
+      final Integer pid = originalState.getEdgePid(cfaEdge);
+      if (pid == null) {
+        return ImmutableList.of();
+      }
+
+      PORState prevState = originalState;
+
       switch (cfaEdge.getEdgeType()) {
         case StatementEdge -> {
           AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
@@ -97,11 +105,7 @@ public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelat
                       ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
                       "Malformed pthread_create (Thread not CIdExpression): %s",
                       ((CUnaryExpression) params.get(2)).getOperand());
-                  final var eventList =
-                      prevState
-                          .waitingThreads()
-                          .get(prevState.nextThreadToStep().map(i -> i.getFirstNotNull()).orElse(0))
-                          .pMemoryEvents();
+                  final var eventList = prevState.threads().get(pid).pMemoryEvents();
                   final var lastEvent = eventList.get(eventList.size() - 1);
                   prevState =
                       addNewThread(
@@ -120,15 +124,14 @@ public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelat
         default -> {}
       }
 
-      final var old = prevState;
+      final PORState old = prevState;
+      final PORThreadState threadState = old.threads().get(pid);
 
-      final var nextThreadToStep = old.nextThreadToStep();
-      if (nextThreadToStep.isPresent()) {
-        final var pid = nextThreadToStep.get().getFirstNotNull();
-        final var loc = nextThreadToStep.get().getSecondNotNull().pLocationState();
-        final var stack = nextThreadToStep.get().getSecondNotNull().pCallstackState();
-        final var pathFormula = nextThreadToStep.get().getSecondNotNull().pPathFormula();
-        final var accesses = nextThreadToStep.get().getSecondNotNull().pMemoryEvents();
+      if (threadState != null) {
+        final var loc = threadState.pLocationState();
+        final var stack = threadState.pCallstackState();
+        final var pathFormula = threadState.pPathFormula();
+        final var accesses = threadState.pMemoryEvents();
 
         final var nextLocs =
             locationCPA.getTransferRelation().getAbstractSuccessorsForEdge(loc, precision, cfaEdge);
@@ -141,7 +144,7 @@ public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelat
             ImmutableList.copyOf(
                 Iterables.concat(
                     accesses,
-                    EdgeCloner.getAccesses(cfaEdge).stream()
+                    PorEdgeCloner.getAccesses(cfaEdge).stream()
                         .map(pMemoryEvent -> pMemoryEvent.withGuard(nextFormula))
                         .toList()));
 
@@ -165,12 +168,12 @@ public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelat
     return ImmutableList.of();
   }
 
-  OrderingConsistencyState initial() {
-    return addNewThread(OrderingConsistencyState.empty(), "main", Optional.empty());
+  PORState initial() {
+    return addNewThread(PORState.empty(), "main", Optional.empty());
   }
 
-  OrderingConsistencyState addNewThread(
-      final OrderingConsistencyState old,
+  PORState addNewThread(
+      final PORState old,
       final String functionName,
       final Optional<MemoryEvent> hbBeforeEvent) {
     CFANode functioncallNode =
