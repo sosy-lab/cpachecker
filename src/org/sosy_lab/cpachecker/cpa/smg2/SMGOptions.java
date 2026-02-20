@@ -46,6 +46,16 @@ public class SMGOptions {
               + " before and carries them over.")
   private DIRECTION errorPathConcreteValueAssignmentDirection = DIRECTION.BACKWARD;
 
+  @Option(
+      secure = true,
+      description =
+          "Exports concrete variable assignments for internally created CPAchecker variables (e.g."
+              + " '__CPAchecker_TMP_X') if true. Note: Those internal variables are used e.g. to"
+              + " safe results of sub-expressions that are split up, including assumptions, and are"
+              + " always used and exported. This options only controls whether this CPA exports"
+              + " known concrete values for these variables in counterexamples and witnesses.")
+  private boolean exportInternalVariableAssignments = true;
+
   private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
 
   @Option(
@@ -703,6 +713,10 @@ public class SMGOptions {
 
   boolean isTreatSymbolicValuesAsUnknown() {
     return treatSymbolicValuesAsUnknown;
+  }
+
+  public boolean exportInternalVariableAssignments() {
+    return exportInternalVariableAssignments;
   }
 
   public boolean isSatCheckStrategyAtAssume() {

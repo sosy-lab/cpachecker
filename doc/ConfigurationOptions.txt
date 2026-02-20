@@ -3641,6 +3641,14 @@ cpa.smg2.enableZeroingOfSymbolicMemorySize = false
 cpa.smg2.errorPathConcreteValueAssignmentDirection = BACKWARD
   enum:     [FORWARD, BACKWARD]
 
+# Exports concrete variable assignments for internally created CPAchecker
+# variables (e.g. '__CPAchecker_TMP_X') if true. Note: Those internal
+# variables are used e.g. to safe results of sub-expressions that are split
+# up, including assumptions, and are always used and exported. This options
+# only controls whether this CPA exports known concrete values for these
+# variables in counterexamples and witnesses.
+cpa.smg2.exportInternalVariableAssignments = true
+
 # Filename format for SMG graph dumps
 cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 
