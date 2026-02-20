@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement.CSwitchCaseStatement;
 
 /**
@@ -36,12 +34,4 @@ public sealed interface CExportStatement extends CExportAstNode
         CStatementWrapper,
         CSwitchStatement,
         CSwitchCaseStatement,
-        CWhileLoopStatement {
-
-  default String toASTString() throws UnrecognizedCodeException {
-    return toASTString(AAstNodeRepresentation.DEFAULT);
-  }
-
-  String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException;
-}
+        CWhileLoopStatement {}
