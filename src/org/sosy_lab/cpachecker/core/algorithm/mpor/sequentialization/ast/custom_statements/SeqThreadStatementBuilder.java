@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 public record SeqThreadStatementBuilder(
     MPORThread thread,
@@ -238,8 +239,7 @@ public record SeqThreadStatementBuilder(
         variableDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
 
     ImmutableList.Builder<CExportAstNode> exportStatements = ImmutableList.builder();
-    exportStatements.add(
-        buildExpressionAssignmentStatementFromVariableDeclaration(variableDeclaration));
+    exportStatements.add(new CVariableDeclarationWrapper(variableDeclaration));
     exportStatements.add(
         new CStatementWrapper(((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement()));
 
