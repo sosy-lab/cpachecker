@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 /**
  * A statement executed by a thread simulation in the sequentialization.
@@ -56,6 +57,17 @@ public record SeqThreadStatement(
     checkArgument(
         targetPc.isPresent() ^ targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present (exclusive or).");
+    if (data.getType().equals(SeqThreadStatementType.CONST_CPACHECKER_TMP)) {
+      checkArgument(
+          exportAstNodes.stream().anyMatch(n -> n instanceof CVariableDeclarationWrapper),
+          "If the statement type is CONST_CPACHECKER_TMP, then at least one CExportAstNode must be"
+              + " a CVariableDeclarationWrapper");
+    } else {
+      checkArgument(
+          exportAstNodes.stream().noneMatch(n -> n instanceof CVariableDeclarationWrapper),
+          "If the statement type is not CONST_CPACHECKER_TMP, then no CExportAstNode is allowed to"
+              + " be a CVariableDeclarationWrapper");
+    }
   }
 
   public static SeqThreadStatement of(
