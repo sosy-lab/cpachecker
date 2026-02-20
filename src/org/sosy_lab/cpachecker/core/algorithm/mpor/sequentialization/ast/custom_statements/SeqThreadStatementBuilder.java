@@ -143,8 +143,7 @@ public record SeqThreadStatementBuilder(
   // const CPAchecker_TMP ==========================================================================
 
   private SeqThreadStatement buildConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes)
-      throws UnsupportedCodeException {
+      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes) {
 
     // ensure there are two single successors that are both statement edges
     CFANodeForThread firstSuccessor = pThreadEdge.getSuccessor();
@@ -173,8 +172,7 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildTwoPartConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge, CFAEdgeForThread pSuccessorEdge)
-      throws UnsupportedCodeException {
+      CFAEdgeForThread pThreadEdge, CFAEdgeForThread pSuccessorEdge) {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
@@ -194,8 +192,7 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildThreePartConstCpaCheckerTmpStatement(
       CFAEdgeForThread pThreadEdge,
       CFAEdgeForThread pFirstSuccessorEdge,
-      CFAEdgeForThread pSecondSuccessorEdge)
-      throws UnsupportedCodeException {
+      CFAEdgeForThread pSecondSuccessorEdge) {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
@@ -220,8 +217,7 @@ public record SeqThreadStatementBuilder(
       SubstituteEdge pFirstSuccessorEdge,
       Optional<SubstituteEdge> pSecondSuccessorEdge,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pNewTargetPc)
-      throws UnsupportedCodeException {
+      int pNewTargetPc) {
 
     SeqThreadStatementData data =
         new SeqThreadStatementData(
