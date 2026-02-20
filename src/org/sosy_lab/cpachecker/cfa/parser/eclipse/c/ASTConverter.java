@@ -709,13 +709,13 @@ class ASTConverter {
 
     // Eclipse CDT has a bug in determining the result type if the array type is a typedef.
     CType resultType = arrayExpr.getExpressionType();
-    while (resultType instanceof CTypedefType) {
-      resultType = ((CTypedefType) resultType).getRealType();
+    while (resultType instanceof CTypedefType typedefType) {
+      resultType = typedefType.getRealType();
     }
-    if (resultType instanceof CArrayType) {
-      resultType = ((CArrayType) resultType).getType();
-    } else if (resultType instanceof CPointerType) {
-      resultType = ((CPointerType) resultType).getType();
+    if (resultType instanceof CArrayType arrayType) {
+      resultType = arrayType.getType();
+    } else if (resultType instanceof CPointerType pointerType) {
+      resultType = pointerType.getType();
     } else if (resultType instanceof CTypedefType || resultType instanceof CProblemType) {
       // TODO probably we should throw exception,
       // but for now we delegate to Eclipse CDT and see whether it knows better than we do
