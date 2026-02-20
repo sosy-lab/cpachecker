@@ -6,12 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
 public record CReturnStatementWrapper(Optional<CExportExpression> expression)
     implements CJumpStatement {

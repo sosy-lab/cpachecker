@@ -6,13 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement.CSwitchCaseStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement.CSwitchCaseStatement;
 
 /**
  * Provides a common interface for {@link CStatement} (via {@link CStatementWrapper}) and statements
@@ -26,7 +24,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CSwitchStatement.CS
  * <p>For a reference of the C standard, see <a
  * href="https://www.cppreference.com/w/c/language/statements.html">https://www.cppreference.com/w/c/language/statements.html</a>.
  */
-public sealed interface CExportStatement
+public sealed interface CExportStatement extends CCompoundStatementElement
     permits CComment,
         CCompoundStatement,
         CExpressionStatementWrapper,
@@ -36,12 +34,4 @@ public sealed interface CExportStatement
         CStatementWrapper,
         CSwitchStatement,
         CSwitchCaseStatement,
-        CWhileLoopStatement {
-
-  default String toASTString() throws UnrecognizedCodeException {
-    return toASTString(AAstNodeRepresentation.DEFAULT);
-  }
-
-  String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
-      throws UnrecognizedCodeException;
-}
+        CWhileLoopStatement {}

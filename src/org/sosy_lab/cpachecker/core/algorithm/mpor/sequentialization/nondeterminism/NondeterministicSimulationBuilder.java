@@ -44,9 +44,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
 /**
  * Contains methods that can be used to build thread simulations based on the specified {@link

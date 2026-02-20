@@ -18,19 +18,21 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 /**
  * A statement executed by a thread simulation in the sequentialization.
  *
- * <p>The fields in this class are separate from the {@code exportStatements} because they are
+ * <p>The fields in this class are separate from the {@code exportAstNodes} because they are
  * dynamically updated during the sequentialization process. These dynamic updates include merging
  * atomic blocks, linking commuting statements or making the label numbers of statements
- * consecutive, based on the specified {@link MPOROptions}. Meanwhile, the {@code exportStatements}
+ * consecutive, based on the specified {@link MPOROptions}. Meanwhile, the {@code exportAstNodes}
  * are only created once based on the input programs {@link CFA}.
  *
  * <p>Once the data in this class is finalized, it is converted to {@link CExportStatement}s and
- * placed together with the {@code exportStatements} to create the exported program.
+ * placed together with the {@code exportAstNodes} to create the exported program.
  *
  * @param data The data that all statements must contain, e.g., their {@link
  *     SeqThreadStatementType}.
@@ -41,27 +43,38 @@ import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
  *     reduction instrumentation. The instrumentation is updated dynamically during the
  *     sequentialization process and is only converted to {@link CExportStatement} once no more
  *     dynamic updates occur.
- * @param exportStatements The list of {@link CExportStatement} as created from the input {@link
- *     CFA}.
+ * @param exportAstNodes The list of {@link CCompoundStatementElement} as created from the input
+ *     {@link CFA}.
  */
 public record SeqThreadStatement(
     SeqThreadStatementData data,
     Optional<Integer> targetPc,
     Optional<Integer> targetGoto,
     ImmutableList<SeqInstrumentation> instrumentation,
-    ImmutableList<CExportStatement> exportStatements)
+    ImmutableList<CCompoundStatementElement> exportAstNodes)
     implements SeqExportStatement {
 
   public SeqThreadStatement {
     checkArgument(
         targetPc.isPresent() ^ targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present (exclusive or).");
+    if (data.getType().equals(SeqThreadStatementType.CONST_CPACHECKER_TMP)) {
+      checkArgument(
+          exportAstNodes.stream().anyMatch(n -> n instanceof CVariableDeclarationWrapper),
+          "If the statement type is CONST_CPACHECKER_TMP, then at least one CExportAstNode must be"
+              + " a CVariableDeclarationWrapper.");
+    } else {
+      checkArgument(
+          exportAstNodes.stream().noneMatch(n -> n instanceof CVariableDeclarationWrapper),
+          "If the statement type is not CONST_CPACHECKER_TMP, then no CExportAstNode is allowed to"
+              + " be a CVariableDeclarationWrapper.");
+    }
   }
 
   public static SeqThreadStatement of(
       SeqThreadStatementData pData,
       int pTargetPc,
-      ImmutableList<CExportStatement> pExportStatements) {
+      ImmutableList<CCompoundStatementElement> pExportStatements) {
     // the targetGoto and instrumentation are always empty on initialization
     return new SeqThreadStatement(
         pData, Optional.of(pTargetPc), Optional.empty(), ImmutableList.of(), pExportStatements);
@@ -114,7 +127,7 @@ public record SeqThreadStatement(
           ProgramCounterVariables.EXIT_PC);
     }
     return new SeqThreadStatement(
-        data, Optional.of(pTargetPc), Optional.empty(), instrumentation, exportStatements);
+        data, Optional.of(pTargetPc), Optional.empty(), instrumentation, exportAstNodes);
   }
 
   /**
@@ -123,7 +136,7 @@ public record SeqThreadStatement(
    */
   public SeqThreadStatement withTargetGoto(int pTargetGoto) {
     return new SeqThreadStatement(
-        data, Optional.empty(), Optional.of(pTargetGoto), instrumentation, exportStatements);
+        data, Optional.empty(), Optional.of(pTargetGoto), instrumentation, exportAstNodes);
   }
 
   /**
@@ -138,11 +151,11 @@ public record SeqThreadStatement(
   public SeqThreadStatement withInstrumentation(
       ImmutableList<SeqInstrumentation> pInstrumentation) {
 
-    return new SeqThreadStatement(data, targetPc, targetGoto, pInstrumentation, exportStatements);
+    return new SeqThreadStatement(data, targetPc, targetGoto, pInstrumentation, exportAstNodes);
   }
 
   @Override
-  public ImmutableList<CExportStatement> toCExportStatements() {
+  public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
     checkState(
         targetPc.isPresent() || targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present.");
@@ -158,8 +171,8 @@ public record SeqThreadStatement(
     ImmutableList<CExportStatement> injectedExportStatements =
         transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());
 
-    return ImmutableList.<CExportStatement>builder()
-        .addAll(exportStatements)
+    return ImmutableList.<CCompoundStatementElement>builder()
+        .addAll(exportAstNodes)
         .addAll(injectedExportStatements)
         .build();
   }

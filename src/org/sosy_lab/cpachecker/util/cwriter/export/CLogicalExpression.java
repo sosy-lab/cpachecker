@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
-public sealed interface CJumpStatement extends CExportStatement
-    permits CBreakStatement, CContinueStatement, CGotoStatement, CReturnStatementWrapper {}
+public sealed interface CLogicalExpression extends CExportExpression
+    permits CLogicalAndExpression, CLogicalNotExpression, CLogicalOrExpression {}

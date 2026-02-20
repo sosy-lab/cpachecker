@@ -43,12 +43,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CWhileLoopStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CWhileLoopStatement;
 
 /** A class to represent the {@code main()} function in the sequentialization. */
 public final class SeqMainFunctionBuilder {
@@ -76,7 +77,7 @@ public final class SeqMainFunctionBuilder {
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CExportStatement> rBody = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> rBody = ImmutableList.builder();
 
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(pFields, pUtils.logger()));
@@ -90,7 +91,7 @@ public final class SeqMainFunctionBuilder {
 
     } else {
       // otherwise include the thread simulations in the main function directly
-      ImmutableList.Builder<CExportStatement> loopBlock = ImmutableList.builder();
+      ImmutableList.Builder<CCompoundStatementElement> loopBlock = ImmutableList.builder();
 
       if (pOptions.reduceLastThreadOrder()) {
         // add LAST_THREAD = next_thread assignment (before setting next_thread)

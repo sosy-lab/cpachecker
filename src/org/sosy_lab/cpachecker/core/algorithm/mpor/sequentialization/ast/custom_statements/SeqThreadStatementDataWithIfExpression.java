@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 
 /**
  * A special case for a {@link SeqThreadStatementData} with a {@link CExportExpression} used in an

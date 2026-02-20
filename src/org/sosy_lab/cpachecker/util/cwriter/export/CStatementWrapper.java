@@ -6,19 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.expression;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 
 /**
- * A wrapper class for {@link CExpression} so that it can be treated like a {@link
- * CExportExpression}.
+ * A wrapper class for {@link CStatement} so that it can be treated like a {@link CExportStatement}.
  */
-public record CExpressionWrapper(CExpression expression) implements CExportExpression {
+public record CStatementWrapper(CStatement statement) implements CExportStatement {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return expression.toASTString(pAAstNodeRepresentation);
+    return statement.toASTString(pAAstNodeRepresentation);
   }
 }

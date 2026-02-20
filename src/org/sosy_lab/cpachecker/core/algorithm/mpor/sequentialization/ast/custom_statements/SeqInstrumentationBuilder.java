@@ -23,15 +23,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalNotExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CGotoStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalNotExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 public class SeqInstrumentationBuilder {
 
@@ -56,8 +56,8 @@ public class SeqInstrumentationBuilder {
       ImmutableList<CStatement> pPrecedingStatements,
       CLabelStatement pLabelStatement) {
 
-    ImmutableList<CExportStatement> ifStatements =
-        ImmutableList.<CExportStatement>builder()
+    ImmutableList<CCompoundStatementElement> ifStatements =
+        ImmutableList.<CCompoundStatementElement>builder()
             .addAll(pPrecedingStatements.stream().map(s -> new CStatementWrapper(s)).iterator())
             .add(new CGotoStatement(pLabelStatement))
             .build();
@@ -110,7 +110,7 @@ public class SeqInstrumentationBuilder {
   public static SeqInstrumentation buildLastBitVectorUpdateStatement(
       ImmutableList<CExpressionAssignmentStatement> pLastBitVectorUpdates) {
 
-    ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
     for (CExpressionAssignmentStatement lastBitVectorUpdate : pLastBitVectorUpdates) {
       exportStatements.add(new CStatementWrapper(lastBitVectorUpdate));
     }

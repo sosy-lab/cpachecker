@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
@@ -24,10 +24,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * }
  * }</pre>
  */
-public record CCompoundStatement(ImmutableList<CExportStatement> statements)
+public record CCompoundStatement(ImmutableList<CCompoundStatementElement> statements)
     implements CExportStatement {
 
-  public CCompoundStatement(CExportStatement... pStatements) {
+  public CCompoundStatement(CCompoundStatementElement... pStatements) {
     this(ImmutableList.copyOf(pStatements));
   }
 
@@ -37,8 +37,8 @@ public record CCompoundStatement(ImmutableList<CExportStatement> statements)
 
     StringJoiner joiner = new StringJoiner(System.lineSeparator());
     joiner.add("{");
-    for (CExportStatement statement : statements) {
-      joiner.add(statement.toASTString(pAAstNodeRepresentation));
+    for (CCompoundStatementElement astNode : statements) {
+      joiner.add(astNode.toASTString(pAAstNodeRepresentation));
     }
     joiner.add("}");
     return joiner.toString();

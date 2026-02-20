@@ -6,17 +6,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public final class CBreakStatement implements CJumpStatement {
+public final class CContinueStatement implements CJumpStatement {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    return "break;";
+    return "continue;";
   }
 }

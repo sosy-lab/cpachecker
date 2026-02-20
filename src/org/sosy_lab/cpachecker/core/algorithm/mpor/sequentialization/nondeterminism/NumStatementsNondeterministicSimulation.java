@@ -30,15 +30,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalAndExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CLogicalOrExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CIfStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CLabelStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NumStatementsNondeterministicSimulation extends NondeterministicSimulation {
 
@@ -56,7 +56,8 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   @Override
   public CCompoundStatement buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException {
-    ImmutableList.Builder<CExportStatement> rSimulation = ImmutableList.builder();
+
+    ImmutableList.Builder<CCompoundStatementElement> rSimulation = ImmutableList.builder();
 
     // add "T{thread_id}: label", if present
     Optional<CLabelStatement> threadLabel =
@@ -68,7 +69,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
         ghostElements.getPcVariables().getThreadActiveExpression(pThread.id());
-    ImmutableList.Builder<CExportStatement> ifBlock = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> ifBlock = ImmutableList.builder();
 
     // add the round_max = nondet assignment for this thread
     ifBlock.add(
@@ -79,7 +80,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     // if (round_max > 0) ...
     ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
     CExportExpression innerIfCondition = buildRoundMaxGreaterZeroExpression(pThread, otherThreads);
-    ImmutableList.Builder<CExportStatement> innerIfBlock = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> innerIfBlock = ImmutableList.builder();
 
     // add the thread simulation statements
     innerIfBlock.addAll(buildAllPrecedingStatements(pThread));
@@ -97,7 +98,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   @Override
   public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CExportStatement> rThreadSimulations = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> rThreadSimulations = ImmutableList.builder();
     for (MPORThread thread : clauses.keySet()) {
       rThreadSimulations.add(buildSingleThreadSimulation(thread));
     }
@@ -109,7 +110,9 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
     return new CCompoundStatement(
-        ImmutableList.<CExportStatement>builder().add(new CStatementWrapper(roundReset)).build());
+        ImmutableList.<CCompoundStatementElement>builder()
+            .add(new CStatementWrapper(roundReset))
+            .build());
   }
 
   private CExportExpression buildRoundMaxGreaterZeroExpression(
