@@ -224,7 +224,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     // MachineModel machineModel = state.getMachineModel();
 
     String variableName = memLoc.getIdentifier();
-    if (options.exportInternalVariableAssignments() && variableName.contains("__CPAchecker_TMP_")) {
+    if (!options.exportInternalVariableAssignments()
+        && variableName.contains("__CPAchecker_TMP_")) {
       return Optional.empty();
     }
     if (!memLoc.isReference()) { // offset == null
