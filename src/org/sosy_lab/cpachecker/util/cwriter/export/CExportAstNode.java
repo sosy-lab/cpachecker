@@ -13,11 +13,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * An interface that forms the common base for {@link CExportExpression}, {@link
- * org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper} and {@link
- * CExportStatement}.
+ * CVariableDeclarationWrapper} and {@link CExportStatement}.
  */
-public sealed interface CExportAstNode
-    permits CExportExpression, CExportStatement, CVariableDeclarationWrapper {
+public sealed interface CExportAstNode permits CExportStatement, CVariableDeclarationWrapper {
 
   default String toASTString() throws UnrecognizedCodeException {
     return toASTString(AAstNodeRepresentation.DEFAULT);

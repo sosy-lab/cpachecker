@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
@@ -67,7 +68,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
 
     // the inner multi control statements choose the next statement, e.g. "pc == 1"
-    ImmutableListMultimap<CExportExpression, CExportStatement> innerMultiControlStatements =
+    ImmutableListMultimap<CExportExpression, CExportAstNode> innerMultiControlStatements =
         buildInnerMultiControlStatements();
     // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
     CExportStatement outerMultiControlStatement =
@@ -79,10 +80,10 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     return new CCompoundStatement(ImmutableList.of(outerMultiControlStatement));
   }
 
-  private ImmutableListMultimap<CExportExpression, CExportStatement>
+  private ImmutableListMultimap<CExportExpression, CExportAstNode>
       buildInnerMultiControlStatements() throws UnrecognizedCodeException {
 
-    ImmutableListMultimap.Builder<CExportExpression, CExportStatement> rStatements =
+    ImmutableListMultimap.Builder<CExportExpression, CExportAstNode> rStatements =
         ImmutableListMultimap.builder();
     for (MPORThread thread : clauses.keySet()) {
       CExpression clauseExpression =
@@ -109,7 +110,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     Optional<ImmutableList<CStatement>> nextThreadStatements =
         tryBuildNextThreadStatements(pThread);
 
-    ImmutableList.Builder<CExportStatement> rStatements = ImmutableList.builder();
+    ImmutableList.Builder<CExportAstNode> rStatements = ImmutableList.builder();
     pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
     nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(new CStatementWrapper(s))));
     return new CCompoundStatement(rStatements.build());

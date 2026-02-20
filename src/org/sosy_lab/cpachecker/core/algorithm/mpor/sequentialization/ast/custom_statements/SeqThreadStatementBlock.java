@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.util.cwriter.export.CBreakStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CContinueStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
@@ -70,14 +71,14 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   }
 
   @Override
-  public ImmutableList<CExportStatement> toCExportStatements() {
-    ImmutableList.Builder<CExportStatement> exportStatements = ImmutableList.builder();
+  public ImmutableList<CExportAstNode> toCExportAstNodes() {
+    ImmutableList.Builder<CExportAstNode> exportStatements = ImmutableList.builder();
 
     exportStatements.add(buildLabelStatement());
 
     if (statements.size() == 1) {
       // 1 statement: add its respective export statements
-      exportStatements.addAll(statements.getFirst().toCExportStatements());
+      exportStatements.addAll(statements.getFirst().toCExportAstNodes());
 
     } else {
       // 2 statements (= assume statements): create if-else statement
@@ -88,8 +89,8 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
       CIfStatement ifStatement =
           new CIfStatement(
               new CExpressionWrapper(firstAssumeData.getIfExpression()),
-              new CCompoundStatement(firstAssume.toCExportStatements()),
-              new CCompoundStatement(secondAssume.toCExportStatements()));
+              new CCompoundStatement(firstAssume.toCExportAstNodes()),
+              new CCompoundStatement(secondAssume.toCExportAstNodes()));
       exportStatements.add(ifStatement);
     }
 

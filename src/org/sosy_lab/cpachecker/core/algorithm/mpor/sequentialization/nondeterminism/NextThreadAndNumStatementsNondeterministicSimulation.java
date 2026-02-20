@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NextThreadAndNumStatementsNondeterministicSimulation
@@ -68,7 +68,7 @@ class NextThreadAndNumStatementsNondeterministicSimulation
                     BinaryOperator.GREATER_THAN));
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
 
-    ImmutableList.Builder<CExportStatement> rStatements = ImmutableList.builder();
+    ImmutableList.Builder<CExportAstNode> rStatements = ImmutableList.builder();
     pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
     nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(new CStatementWrapper(s))));
     rStatements.add(new CStatementWrapper(roundMaxNondetAssignment));

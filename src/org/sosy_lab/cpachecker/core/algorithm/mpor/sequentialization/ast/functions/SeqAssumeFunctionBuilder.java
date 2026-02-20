@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
@@ -118,7 +119,7 @@ public final class SeqAssumeFunctionBuilder {
             BinaryOperator.EQUALS);
     CExpressionWrapper ifCondition = new CExpressionWrapper(condEqualsZeroExpression);
     // build the 'if (cond == 0) { abort(); }' statement
-    ImmutableList<CExportStatement> ifBlock =
+    ImmutableList<CExportAstNode> ifBlock =
         ImmutableList.of(new CStatementWrapper(ABORT_FUNCTION_CALL_STATEMENT));
     CCompoundStatement functionBody =
         new CCompoundStatement(new CIfStatement(ifCondition, new CCompoundStatement(ifBlock)));

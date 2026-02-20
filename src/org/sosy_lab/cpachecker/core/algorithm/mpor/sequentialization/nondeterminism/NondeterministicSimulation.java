@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
@@ -127,7 +128,7 @@ public abstract class NondeterministicSimulation {
   static CExportStatement buildMultiSelectionStatementByEncoding(
       MultiSelectionStatementEncoding pEncoding,
       CLeftHandSide pExpression,
-      ImmutableListMultimap<CExportExpression, CExportStatement> pStatements,
+      ImmutableListMultimap<CExportExpression, CExportAstNode> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -158,7 +159,7 @@ public abstract class NondeterministicSimulation {
             options, syncFlag, clauses.get(pThread), utils.binaryExpressionBuilder());
 
     CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
-    ImmutableListMultimap<CExportExpression, CExportStatement> expressionClauseMap =
+    ImmutableListMultimap<CExportExpression, CExportAstNode> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
 

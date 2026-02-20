@@ -24,10 +24,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * }
  * }</pre>
  */
-public record CCompoundStatement(ImmutableList<CExportStatement> statements)
+public record CCompoundStatement(ImmutableList<CExportAstNode> statements)
     implements CExportStatement {
 
-  public CCompoundStatement(CExportStatement... pStatements) {
+  public CCompoundStatement(CExportAstNode... pStatements) {
     this(ImmutableList.copyOf(pStatements));
   }
 
@@ -37,8 +37,8 @@ public record CCompoundStatement(ImmutableList<CExportStatement> statements)
 
     StringJoiner joiner = new StringJoiner(System.lineSeparator());
     joiner.add("{");
-    for (CExportStatement statement : statements) {
-      joiner.add(statement.toASTString(pAAstNodeRepresentation));
+    for (CExportAstNode astNode : statements) {
+      joiner.add(astNode.toASTString(pAAstNodeRepresentation));
     }
     joiner.add("}");
     return joiner.toString();

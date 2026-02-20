@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public final class CSwitchStatement implements CExportStatement {
 
   record CSwitchCaseStatement(
-      CExportExpression expression, ImmutableList<? extends CExportStatement> statements)
+      CExportExpression expression, ImmutableList<CExportAstNode> statements)
       implements CExportStatement {
 
     @Override
@@ -50,7 +50,7 @@ public final class CSwitchStatement implements CExportStatement {
 
       StringJoiner caseStatement = new StringJoiner(System.lineSeparator());
       caseStatement.add("case " + expression.toASTString(pAAstNodeRepresentation) + ":");
-      for (CExportStatement statement : statements) {
+      for (CExportAstNode statement : statements) {
         caseStatement.add(statement.toASTString(pAAstNodeRepresentation));
       }
       caseStatement.add("break;");
@@ -60,11 +60,11 @@ public final class CSwitchStatement implements CExportStatement {
 
   private final CExpression switchExpression;
 
-  private final ImmutableListMultimap<CExportExpression, CExportStatement> statements;
+  private final ImmutableListMultimap<CExportExpression, CExportAstNode> statements;
 
   public CSwitchStatement(
       CExpression pSwitchExpression,
-      ImmutableListMultimap<CExportExpression, CExportStatement> pStatements) {
+      ImmutableListMultimap<CExportExpression, CExportAstNode> pStatements) {
 
     switchExpression = pSwitchExpression;
     statements = pStatements;
@@ -78,7 +78,7 @@ public final class CSwitchStatement implements CExportStatement {
 
     // add switch (expression) ...
     switchCase.add("switch (" + switchExpression.toASTString(pAAstNodeRepresentation) + ")");
-    ImmutableList.Builder<CExportStatement> caseStatements = ImmutableList.builder();
+    ImmutableList.Builder<CExportAstNode> caseStatements = ImmutableList.builder();
     // add all case expression: stmt1; ... break;
     for (CExportExpression expression : statements.keySet()) {
       caseStatements.add(new CSwitchCaseStatement(expression, statements.get(expression)));
