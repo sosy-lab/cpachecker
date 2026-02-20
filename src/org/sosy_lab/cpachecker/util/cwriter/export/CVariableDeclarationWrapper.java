@@ -6,24 +6,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.statement;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.expression.CExportExpression;
 
-public record CReturnStatementWrapper(Optional<CExportExpression> expression)
-    implements CJumpStatement {
+public record CVariableDeclarationWrapper(CVariableDeclaration pVariableDeclaration)
+    implements CExportAstNode {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 
-    return "return"
-        + (expression.isPresent()
-            ? " " + expression.orElseThrow().toASTString(pAAstNodeRepresentation)
-            : "")
-        + ";";
+    return pVariableDeclaration.toASTString(pAAstNodeRepresentation);
   }
 }

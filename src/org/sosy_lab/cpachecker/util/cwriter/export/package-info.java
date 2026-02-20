@@ -6,7 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Contains common base classes to export C expressions and statements into actual C programs. */
+/**
+ * Contains common base classes to export C expressions, declarations and statements into actual C
+ * programs.
+ */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

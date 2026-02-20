@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 
 public sealed interface SeqExportStatement
     permits SeqThreadStatement, SeqThreadStatementBlock, SeqThreadStatementClause {

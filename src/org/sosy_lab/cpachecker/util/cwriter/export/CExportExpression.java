@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.cwriter.export.expression;
+package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <p>This extra interface is added because using {@link CExpression} as the common base would
  * require adjustments to {@link CFA} handling and all visitors that handle {@link CExpression}.
  */
-public sealed interface CExportExpression
+public sealed interface CExportExpression extends CExportAstNode
     permits CExpressionWrapper, CFunctionCallExpressionWrapper, CLogicalExpression {
 
   /**

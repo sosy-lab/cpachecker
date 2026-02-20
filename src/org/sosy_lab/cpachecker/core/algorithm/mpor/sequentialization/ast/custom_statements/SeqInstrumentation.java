@@ -8,6 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import org.sosy_lab.cpachecker.util.cwriter.export.statement.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 
 public record SeqInstrumentation(SeqInstrumentationType type, CExportStatement statement) {}
