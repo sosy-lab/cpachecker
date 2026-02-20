@@ -3899,6 +3899,11 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
+# There might be programs with unsigned integer overflow, anddue to the
+# overflow, they are non-terminating.This option enforces the transition
+# invariants to have constraints to limit the mathematical integers.
+cpa.terminationviamemory.addConstraintsToPreventOverflows = false
+
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
 
