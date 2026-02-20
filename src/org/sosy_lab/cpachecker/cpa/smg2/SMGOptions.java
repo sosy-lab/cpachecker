@@ -56,6 +56,14 @@ public class SMGOptions {
               + " known concrete values for these variables in counterexamples and witnesses.")
   private boolean exportInternalVariableAssignments = true;
 
+  @Option(
+      secure = true,
+      description =
+          "If true, exports concrete variable assignments along the found path towards errors for"
+              + " counterexamples and violation witnesses. If false, only the found path is"
+              + " exported.")
+  private boolean exportVariableAssignmentsForViolations = true;
+
   private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
 
   @Option(
@@ -717,6 +725,10 @@ public class SMGOptions {
 
   public boolean exportInternalVariableAssignments() {
     return exportInternalVariableAssignments;
+  }
+
+  public boolean exportVariableAssignmentsForViolations() {
+    return exportVariableAssignmentsForViolations;
   }
 
   public boolean isSatCheckStrategyAtAssume() {

@@ -197,21 +197,24 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   private static Map<LeftHandSide, Object> getConcreteValuesForVariables(
       SMGState state, List<ValueAssignment> modelToUse, SMGOptions options) {
     ImmutableMap.Builder<LeftHandSide, Object> result = ImmutableMap.builder();
-    for (Entry<MemoryLocation, BigInteger> memLocsAndValues :
-        state.getVariablesWithConcreteValues(modelToUse).entrySet()) {
 
-      MemoryLocation location = memLocsAndValues.getKey();
-      BigInteger value = memLocsAndValues.getValue();
+    if (options.exportVariableAssignmentsForViolations()) {
+      for (Entry<MemoryLocation, BigInteger> memLocsAndValues :
+          state.getVariablesWithConcreteValues(modelToUse).entrySet()) {
 
-      Optional<LeftHandSide> maybeLhs = createLeftHandSideFor(location, options);
-      // We can't handle local arrays or field references currently, as we only have an offset,
-      // and someone decided that THE ONE INFORMATION THAT C NEEDS TO DETERMINE WHERE WE ARE IN
-      // MEMORY IS NOT NEEDED IN CPACHECKER
-      if (maybeLhs.isPresent()) {
-        LeftHandSide lhs = maybeLhs.orElseThrow();
-        checkState(lhs.isGlobal() == !location.isOnFunctionStack());
-        checkState(!location.isReference() || lhs instanceof FieldReference);
-        result.put(lhs, value);
+        MemoryLocation location = memLocsAndValues.getKey();
+        BigInteger value = memLocsAndValues.getValue();
+
+        Optional<LeftHandSide> maybeLhs = createLeftHandSideFor(location, options);
+        // We can't handle local arrays or field references currently, as we only have an offset,
+        // and someone decided that THE ONE INFORMATION THAT C NEEDS TO DETERMINE WHERE WE ARE IN
+        // MEMORY IS NOT NEEDED IN CPACHECKER
+        if (maybeLhs.isPresent()) {
+          LeftHandSide lhs = maybeLhs.orElseThrow();
+          checkState(lhs.isGlobal() == !location.isOnFunctionStack());
+          checkState(!location.isReference() || lhs instanceof FieldReference);
+          result.put(lhs, value);
+        }
       }
     }
 

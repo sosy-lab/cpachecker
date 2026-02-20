@@ -3656,6 +3656,11 @@ cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 cpa.smg2.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
 
+# If true, exports concrete variable assignments along the found path towards
+# errors for counterexamples and violation witnesses. If false, only the
+# found path is exported.
+cpa.smg2.exportVariableAssignmentsForViolations = true
+
 # Functions which return externally allocated memory with bit size defined by
 # option externalAllocationSize
 cpa.smg2.externalAllocationFunction = {"ext_allocation"}
