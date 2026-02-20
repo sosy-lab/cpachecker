@@ -16,6 +16,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,8 +43,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
+@Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustment {
   private final Solver solver;
   private final BooleanFormulaManagerView bfmgr;
@@ -52,6 +58,17 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
   private final int PREV_VARIABLES_INDEX = 1;
   private final int CURR_VARIABLES_INDEX = 2;
+  private static final long MAX_INT = 4294967295L;
+  private static final long MIN_INT = -4294967295L;
+
+  @Option(
+      secure = true,
+      description =
+          "There might be programs with unsigned integer overflow, and"
+              + "due to the overflow, they are non-terminating."
+              + "This option enforces the transition invariants to "
+              + "have constraints to limit the mathematical integers.")
+  private boolean addConstraintsToPreventOverflows = false;
 
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
@@ -60,7 +77,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
       FormulaManagerView pFmgr,
-      InterpolationManager pItpMgr) {
+      InterpolationManager pItpMgr,
+      Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     solver = pSolver;
     statistics = pStatistics;
     cfa = pCFA;
@@ -157,21 +177,22 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           }
 
           // If BMC check is UNSAT, try to overapproximate the transition invariant
-          ImmutableList<BooleanFormula> interpolant =
+          BooleanFormula interpolant =
               itpMgr
                   .interpolate(
                       ImmutableList.of(
                           bfmgr.and(firstStepFormula, iterationFormula), latestSameStateFormula))
-                  .orElseThrow();
+                  .orElseThrow()
+                  .getFirst();
           if (!isOverapproximating) {
             prefixFormula = bfmgr.makeFalse();
           }
           isOverapproximating = true;
           BooleanFormula newInterpolant =
-              instantiateTransitionInvariant(interpolant.getFirst(), prevIndices, currIndices);
+              instantiateTransitionInvariant(interpolant, prevIndices, currIndices);
 
           try {
-            if (containsOnlyIrrelevantVariables(interpolant.getFirst(), callstackState)
+            if (containsOnlyIrrelevantVariables(interpolant, callstackState)
                 || solver.implies(newInterpolant, prefixFormula)) {
               break;
             }
@@ -181,11 +202,27 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           prefixFormula =
               bfmgr.or(
                   prefixFormula,
-                  instantiateTransitionInvariant(interpolant.getFirst(), prevIndices, currIndices));
+                  instantiateTransitionInvariant(interpolant, prevIndices, currIndices));
         }
       }
     }
     return Optional.of(result);
+  }
+
+  private BooleanFormula restrictFormulaVariablesWithIntRange(BooleanFormula pFormula) {
+    for (Formula variable : fmgr.extractVariables(pFormula).values()) {
+      pFormula =
+          bfmgr.and(
+              pFormula,
+              fmgr.makeGreaterOrEqual(
+                  fmgr.makeNumber(FormulaType.IntegerType, MAX_INT), variable, true));
+      pFormula =
+          bfmgr.and(
+              pFormula,
+              fmgr.makeLessOrEqual(
+                  fmgr.makeNumber(FormulaType.IntegerType, MIN_INT), variable, true));
+    }
+    return pFormula;
   }
 
   /**
@@ -262,6 +299,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     BooleanFormula secondStepInTransInv =
         instantiateTransitionInvariant(
             candidateTransitionInvariant, mapForIndexTwo, largestIndicesInIteration);
+    if (addConstraintsToPreventOverflows) {
+      firstStepInTransInv = restrictFormulaVariablesWithIntRange(firstStepInTransInv);
+      secondStepInTransInv = restrictFormulaVariablesWithIntRange(secondStepInTransInv);
+    }
 
     BooleanFormula transInvForIterationFormula =
         instantiateTransitionInvariant(
