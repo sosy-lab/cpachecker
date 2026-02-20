@@ -40,7 +40,7 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression
         arrayType);
     CType indexType = pSubscriptExpression.getExpressionType();
     checkArgument(
-        CTypes.isIntegerType(indexType),
+        CTypes.isIntegerType(indexType) || indexType instanceof CProblemType,
         "Array subscript with non-integer index '%s' of type %s",
         pSubscriptExpression,
         indexType);

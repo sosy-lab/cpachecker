@@ -713,7 +713,7 @@ class ASTConverter {
         CExpression tmp = arrayExpr;
         arrayExpr = subscriptExpr;
         subscriptExpr = tmp;
-      } else {
+      } else if (!(subscriptExpr.getExpressionType() instanceof CProblemType)) {
         parseContext.parseError(
             "Array subscript with non-integer type " + subscriptExpr.getExpressionType(), e);
       }
