@@ -145,6 +145,9 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildConstCpaCheckerTmpStatement(
       CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes) {
 
+    SubstituteEdge constCpaCheckerTmpEdge =
+        Objects.requireNonNull(substituteEdges.get(pThreadEdge));
+
     // ensure there are two single successors that are both statement edges
     CFANodeForThread firstSuccessor = pThreadEdge.getSuccessor();
     pCoveredNodes.add(firstSuccessor);
@@ -162,42 +165,36 @@ public record SeqThreadStatementBuilder(
     // there are programs where a const CPAchecker_TMP statement has only two parts.
     // in the tested programs, this only happened when the statement was followed by a function call
     if (secondSuccessorStatement.getStatement() instanceof CFunctionCallStatement) {
-      return buildTwoPartConstCpaCheckerTmpStatement(pThreadEdge, firstSuccessorEdge);
+      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
     } else {
       // cover second successor only when it is a three part const CPAchecker_TMP statement
       pCoveredNodes.add(secondSuccessor);
       return buildThreePartConstCpaCheckerTmpStatement(
-          pThreadEdge, firstSuccessorEdge, secondSuccessorEdge);
+          constCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge);
     }
   }
 
   private SeqThreadStatement buildTwoPartConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge, CFAEdgeForThread pSuccessorEdge) {
+      SubstituteEdge pConstCpaCheckerTmpEdge, CFAEdgeForThread pSuccessorEdge) {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-    SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
-    CFAEdge cfaEdge = substituteEdge.cfaEdge;
-    assert cfaEdge instanceof CDeclarationEdge : "cfaEdge must declare const CPAchecker_TMP";
     SubstituteEdge substituteEdgeA = Objects.requireNonNull(substituteEdges.get(pSuccessorEdge));
     int newTargetPc = pSuccessorEdge.getSuccessor().pc;
 
     return buildConstCpaCheckerTmpStatement(
-        cfaEdge,
+        pConstCpaCheckerTmpEdge,
         substituteEdgeA,
         Optional.empty(),
-        ImmutableSet.of(substituteEdge, substituteEdgeA),
+        ImmutableSet.of(pConstCpaCheckerTmpEdge, substituteEdgeA),
         newTargetPc);
   }
 
   private SeqThreadStatement buildThreePartConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge,
+      SubstituteEdge pConstCpaCheckerTmpEdge,
       CFAEdgeForThread pFirstSuccessorEdge,
       CFAEdgeForThread pSecondSuccessorEdge) {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-    SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
-    CFAEdge cfaEdge = substituteEdge.cfaEdge;
-    assert cfaEdge instanceof CDeclarationEdge : "cfaEdge must declare const CPAchecker_TMP";
     SubstituteEdge firstSuccessorEdge =
         Objects.requireNonNull(substituteEdges.get(pFirstSuccessorEdge));
     SubstituteEdge secondSuccessorEdge =
@@ -205,15 +202,15 @@ public record SeqThreadStatementBuilder(
     int newTargetPc = pSecondSuccessorEdge.getSuccessor().pc;
 
     return buildConstCpaCheckerTmpStatement(
-        cfaEdge,
+        pConstCpaCheckerTmpEdge,
         firstSuccessorEdge,
         Optional.of(secondSuccessorEdge),
-        ImmutableSet.of(substituteEdge, firstSuccessorEdge, secondSuccessorEdge),
+        ImmutableSet.of(pConstCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge),
         newTargetPc);
   }
 
   private SeqThreadStatement buildConstCpaCheckerTmpStatement(
-      CFAEdge pCfaEdge,
+      SubstituteEdge pConstCpaCheckerTmpEdge,
       SubstituteEdge pFirstSuccessorEdge,
       Optional<SubstituteEdge> pSecondSuccessorEdge,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -227,7 +224,7 @@ public record SeqThreadStatementBuilder(
             pcLeftHandSide);
 
     // ensure that the declaration is a CVariableDeclaration and cast accordingly
-    CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
+    CDeclarationEdge declarationEdge = (CDeclarationEdge) pConstCpaCheckerTmpEdge.cfaEdge;
     CVariableDeclaration variableDeclaration =
         (CVariableDeclaration) declarationEdge.getDeclaration();
 
