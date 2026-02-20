@@ -226,7 +226,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
 
     // compute the abstraction based on the value-analysis precision
     totalAbstraction.start();
-    if (performPrecisionBasedAbstractionAt(location)) {
+    if (pPrecision.allowsAbstraction() && performPrecisionBasedAbstractionAt(location)) {
       enforcePrecision(resultStateBuilder, location, pPrecision);
     }
     totalAbstraction.stop();
