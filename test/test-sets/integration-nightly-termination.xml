@@ -43,19 +43,19 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
   <option name="--option">termination.violation.witness.graphml=witness.graphml</option>
 
-  <tasks name="Termination-BitVectors">
+  <tasks name="C.termination.BitVectors">
     <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
-  <tasks name="Termination-MainControlFlow">
+  <tasks name="C.termination.MainControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
-  <tasks name="Termination-MainHeap">
+  <tasks name="C.termination.MainHeap">
     <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
-  <tasks name="Termination-Other">
+  <tasks name="C.termination.Other">
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
@@ -66,11 +66,14 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
     <includesfile>../programs/benchmarks/Recursive.set</includesfile>
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-    <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
-  <tasks name="SoftwareSystems-DeviceDriversLinux64-Termination">
+  <tasks name="C.termination.SoftwareSystems-DeviceDriversLinux64">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
+  <tasks name="C.termination.SoftwareSystems-uthash">
+    <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
 </benchmark>

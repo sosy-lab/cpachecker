@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Multimap;
-import com.google.errorprone.annotations.ForOverride;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
@@ -39,7 +38,12 @@ public abstract class VariableTrackingPrecision implements Precision {
       Optional<VariableClassification> vc,
       Class<? extends ConfigurableProgramAnalysis> cpaClass)
       throws InvalidConfigurationException {
-    return new ConfigurablePrecision(config, vc, cpaClass);
+    ConfigurableVariableTrackingPrecision varTrackingPrec =
+        new ConfigurableVariableTrackingPrecision(config, vc, cpaClass);
+    if (vc.isPresent() && varTrackingPrec.tracksAllVariables(vc.orElseThrow().getAllVariables())) {
+      return new AllVariableTrackingPrecision(vc.orElseThrow(), cpaClass);
+    }
+    return varTrackingPrec;
   }
 
   /**
@@ -176,7 +180,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    *
    * @return the owner CPA of this precision
    */
-  @ForOverride
   protected abstract Class<? extends ConfigurableProgramAnalysis> getCPAClass();
 
   @Override

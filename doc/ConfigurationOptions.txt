@@ -5264,7 +5264,7 @@ precision.trackIntAddVariables = true
 # tracked.
 precision.trackIntEqualVariables = true
 
-# If this option is used, variables that are irrelevantare also tracked.
+# If this option is used, variables that are irrelevant also tracked.
 precision.trackIrrelevantVariables = true
 
 # If this option is used, all variables that are of a different

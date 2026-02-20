@@ -14,6 +14,8 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -23,6 +25,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class SerializePredicatePrecisionOperator implements SerializePrecisionOperator {
 
+  private final Map<CFANode, Integer> nodeToId;
   private final FormulaManagerView formulaManagerView;
 
   /** Keys used in the serialized message for global predicates. */
@@ -37,7 +40,9 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
   /** Key used in the serialized message for function specific predicates. */
   public static final String DSS_MESSAGE_FUNCTION_PREDICATES_KEY = "functionPredicates";
 
-  public SerializePredicatePrecisionOperator(final FormulaManagerView pFormulaManagerView) {
+  public SerializePredicatePrecisionOperator(
+      final FormulaManagerView pFormulaManagerView, Map<CFANode, Integer> pNodeToId) {
+    nodeToId = pNodeToId;
     formulaManagerView = pFormulaManagerView;
   }
 
@@ -65,7 +70,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
         .forEach(
             (l, p) ->
                 locationInstancePredicates.put(
-                    l.getLocation().getNodeNumber() + "," + l.getInstance(),
+                    nodeToId.get(l.getLocation()) + "," + l.getInstance(),
                     serializeAbstractionPredicate(p)));
     for (String key : locationInstancePredicates.keySet()) {
       contentBuilder.put(key, Joiner.on(" , ").join(locationInstancePredicates.get(key)));
@@ -79,7 +84,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
         .forEach(
             (l, p) ->
                 localPredicates.put(
-                    Integer.toString(l.getNodeNumber()), serializeAbstractionPredicate(p)));
+                    Integer.toString(nodeToId.get(l)), serializeAbstractionPredicate(p)));
     for (String key : localPredicates.keySet()) {
       contentBuilder.put(key, Joiner.on(" , ").join(localPredicates.get(key)));
     }

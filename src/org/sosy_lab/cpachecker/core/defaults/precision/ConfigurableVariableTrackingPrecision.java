@@ -8,11 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
@@ -34,7 +31,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "precision")
-public class ConfigurablePrecision extends VariableTrackingPrecision {
+public class ConfigurableVariableTrackingPrecision extends VariableTrackingPrecision {
 
   @Option(
       secure = true,
@@ -90,59 +87,49 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Option(
       secure = true,
-      description = "If this option is used, variables that are irrelevantare also tracked.")
+      description = "If this option is used, variables that are irrelevant also tracked.")
   private boolean trackIrrelevantVariables = true;
 
   private final Optional<VariableClassification> vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
-  // When isTracking() only returns a single static value for all variables, it is found here
-  private Optional<Boolean> staticTrackingResult = Optional.empty();
-
-  ConfigurablePrecision(
+  ConfigurableVariableTrackingPrecision(
       Configuration config,
       Optional<VariableClassification> pVc,
       Class<? extends ConfigurableProgramAnalysis> pCpaClass)
       throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, ConfigurableVariableTrackingPrecision.class);
     this.cpaClass = pCpaClass;
     vc = pVc;
-    preCalculateStaticTracking();
   }
 
   /**
-   * Tries to determine whether the tracking result of all variables in the used
-   * VariableClassification is equal (i.e. all return true or false) and caches that result to
-   * reduce lookups later. Should only ever be used on static precisions. Needs to be run only once
-   * for a static precision.
+   * Tries to determine whether this precision tracks all the variables in the used variable input
+   * set (i.e. all return true for {@link
+   * ConfigurableVariableTrackingPrecision#isTracking(MemoryLocation, Type, CFANode)}) and returns
+   * only if it does. Should only ever be used on immutable precisions.
    */
-  private void preCalculateStaticTracking() {
-    if (vc.isEmpty()) {
-      return;
+  boolean tracksAllVariables(Set<String> variablesToCheck) {
+    if (!trackFloatVariables) {
+      // We can't get the type here, so we can't decide upon float types if needed
+      // TODO: track float vars in VariableClassification?
+      return false;
     }
 
-    VariableClassification varClass = vc.orElseThrow();
+    if (vc.isEmpty() || !allowsAbstraction()) {
+      // Shortcut for cases in which we know we track all classified variables
+      assert variablesToCheck.stream()
+          .allMatch(var -> isTracking(MemoryLocation.fromQualifiedName(var)));
+      return true;
+    }
 
-    // TODO: explore usage of this "not tracking" set, so that we may return false fast if the
-    //  difference in size to the tracking sets is large enough
-    ImmutableSet.Builder<String> isNotTrackingSetBuilder = ImmutableSet.builder();
-    try {
-      for (String variable : varClass.getAllVariables()) {
-        if (!isTracking(MemoryLocation.fromQualifiedName(variable), null)) {
-          isNotTrackingSetBuilder.add(variable);
-        }
+    for (String variable : variablesToCheck) {
+      if (!isTracking(MemoryLocation.fromQualifiedName(variable))) {
+        return false;
       }
-    } catch (NullPointerException irrelevant) {
-      // Type information is needed to determine tracking
-      return;
     }
 
-    Set<String> isNotTrackingSet = isNotTrackingSetBuilder.build();
-    if (isNotTrackingSet.size() == varClass.getAllVariables().size()) {
-      staticTrackingResult = Optional.of(false);
-    } else if (isNotTrackingSet.isEmpty()) {
-      staticTrackingResult = Optional.of(true);
-    }
+    return true;
   }
 
   @Override
@@ -157,29 +144,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public boolean isAlwaysTracking() {
-    return staticTrackingResult.orElse(false);
-  }
-
-  @Override
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
-    if (staticTrackingResult.isPresent()) {
-      return staticTrackingResult.orElseThrow();
-    }
-
-    return isTracking(pVariable, pType);
-  }
-
-  /**
-   * Checks whether the {@link MemoryLocation} argument pVariable is being tracked in this
-   * precision. The {@link Type} argument pType is only needed if not all types are tracked. Throws
-   * {@link NullPointerException} if argument pType is needed, but null.
-   */
-  private boolean isTracking(MemoryLocation pVariable, Type pType) {
     if (trackFloatVariables) {
       return isTracking(pVariable);
     } else {
-      checkNotNull(pType);
       return !((pType instanceof CSimpleType cSimpleType
                   && cSimpleType.getType().isFloatingPointType())
               || (pType instanceof JSimpleType jSimpleType && jSimpleType.isFloatingPointType()))
@@ -196,12 +164,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       return false;
     }
 
-    if (pVariable.isReference()) {
-      MemoryLocation owner = pVariable.getReferenceStart();
-      return isInTrackedVarClass(owner.getExtendedQualifiedName());
-    } else {
-      return isInTrackedVarClass(pVariable.getExtendedQualifiedName());
-    }
+    // We ignore offsets in both cases, as VariableClassification does not contain them
+    return isInTrackedVarClass(pVariable.getQualifiedName());
   }
 
   private boolean isOnBlacklist(String variable) {
@@ -316,7 +280,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   @Override
   public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
     if (pOtherPrecision.getClass().equals(getClass())) {
-      ConfigurablePrecision precisionCompare = (ConfigurablePrecision) pOtherPrecision;
+      ConfigurableVariableTrackingPrecision precisionCompare =
+          (ConfigurableVariableTrackingPrecision) pOtherPrecision;
       if (variableBlacklist.equals(precisionCompare.variableBlacklist)
           && variableWhitelist.equals(precisionCompare.variableWhitelist)
           && trackBooleanVariables == precisionCompare.trackBooleanVariables
@@ -336,7 +301,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public boolean equals(Object pObj) {
-    return pObj instanceof ConfigurablePrecision other && tracksTheSameVariablesAs(other);
+    return pObj instanceof ConfigurableVariableTrackingPrecision other
+        && tracksTheSameVariablesAs(other);
   }
 
   @Override
@@ -353,7 +319,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(ConfigurablePrecision.class)
+    return MoreObjects.toStringHelper(ConfigurableVariableTrackingPrecision.class)
         .add("CPA", cpaClass.getSimpleName())
         .add("blacklist", variableBlacklist)
         .add("whitelist", variableWhitelist)
