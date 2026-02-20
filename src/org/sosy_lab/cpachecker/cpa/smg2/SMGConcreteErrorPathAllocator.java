@@ -220,9 +220,6 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   private static Optional<LeftHandSide> createLeftHandSideFor(
       MemoryLocation memLoc, SMGOptions options) {
-    // CType maybeType = state.getMemoryModel().getTypeOfVariable(memLoc).getCanonicalType();
-    // MachineModel machineModel = state.getMachineModel();
-
     String variableName = memLoc.getIdentifier();
     if (!options.exportInternalVariableAssignments()
         && variableName.contains("__CPAchecker_TMP_")) {
