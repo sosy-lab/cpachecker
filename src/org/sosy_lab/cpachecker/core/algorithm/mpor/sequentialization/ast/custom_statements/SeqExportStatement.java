@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 
 public sealed interface SeqExportStatement
     permits SeqThreadStatement, SeqThreadStatementBlock, SeqThreadStatementClause {
 
-  ImmutableList<CExportAstNode> toCExportAstNodes();
+  ImmutableList<CCompoundStatementElement> toCExportAstNodes();
 }

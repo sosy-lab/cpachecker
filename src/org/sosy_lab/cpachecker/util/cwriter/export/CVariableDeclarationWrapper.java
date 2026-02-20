@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record CVariableDeclarationWrapper(CVariableDeclaration pVariableDeclaration)
-    implements CExportAstNode {
+    implements CCompoundStatementElement {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)

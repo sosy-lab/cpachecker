@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement.CSwitchCaseS
  * <p>For a reference of the C standard, see <a
  * href="https://www.cppreference.com/w/c/language/statements.html">https://www.cppreference.com/w/c/language/statements.html</a>.
  */
-public sealed interface CExportStatement extends CExportAstNode
+public sealed interface CExportStatement extends CCompoundStatementElement
     permits CComment,
         CCompoundStatement,
         CExpressionStatementWrapper,

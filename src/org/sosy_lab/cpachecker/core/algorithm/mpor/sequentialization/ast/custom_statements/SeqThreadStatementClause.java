@@ -12,7 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 
 /**
  * A clause features an {@code int} label and a list of {@link SeqThreadStatementBlock}. A clause is
@@ -124,8 +124,8 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   }
 
   @Override
-  public ImmutableList<CExportAstNode> toCExportAstNodes() {
-    ImmutableList.Builder<CExportAstNode> exportedStatements = ImmutableList.builder();
+  public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
+    ImmutableList.Builder<CCompoundStatementElement> exportedStatements = ImmutableList.builder();
     for (SeqThreadStatementBlock block : blocks) {
       exportedStatements.addAll(block.toCExportAstNodes());
     }

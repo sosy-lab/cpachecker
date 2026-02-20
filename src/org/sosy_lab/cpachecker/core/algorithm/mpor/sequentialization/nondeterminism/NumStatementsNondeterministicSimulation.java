@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
@@ -57,7 +57,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   public CCompoundStatement buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CExportAstNode> rSimulation = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> rSimulation = ImmutableList.builder();
 
     // add "T{thread_id}: label", if present
     Optional<CLabelStatement> threadLabel =
@@ -69,7 +69,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
         ghostElements.getPcVariables().getThreadActiveExpression(pThread.id());
-    ImmutableList.Builder<CExportAstNode> ifBlock = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> ifBlock = ImmutableList.builder();
 
     // add the round_max = nondet assignment for this thread
     ifBlock.add(
@@ -80,7 +80,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     // if (round_max > 0) ...
     ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
     CExportExpression innerIfCondition = buildRoundMaxGreaterZeroExpression(pThread, otherThreads);
-    ImmutableList.Builder<CExportAstNode> innerIfBlock = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> innerIfBlock = ImmutableList.builder();
 
     // add the thread simulation statements
     innerIfBlock.addAll(buildAllPrecedingStatements(pThread));
@@ -98,7 +98,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   @Override
   public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CExportAstNode> rThreadSimulations = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> rThreadSimulations = ImmutableList.builder();
     for (MPORThread thread : clauses.keySet()) {
       rThreadSimulations.add(buildSingleThreadSimulation(thread));
     }
@@ -110,7 +110,9 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
     return new CCompoundStatement(
-        ImmutableList.<CExportAstNode>builder().add(new CStatementWrapper(roundReset)).build());
+        ImmutableList.<CCompoundStatementElement>builder()
+            .add(new CStatementWrapper(roundReset))
+            .build());
   }
 
   private CExportExpression buildRoundMaxGreaterZeroExpression(

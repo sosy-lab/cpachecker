@@ -18,7 +18,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
@@ -43,14 +43,15 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
  *     reduction instrumentation. The instrumentation is updated dynamically during the
  *     sequentialization process and is only converted to {@link CExportStatement} once no more
  *     dynamic updates occur.
- * @param exportAstNodes The list of {@link CExportAstNode} as created from the input {@link CFA}.
+ * @param exportAstNodes The list of {@link CCompoundStatementElement} as created from the input
+ *     {@link CFA}.
  */
 public record SeqThreadStatement(
     SeqThreadStatementData data,
     Optional<Integer> targetPc,
     Optional<Integer> targetGoto,
     ImmutableList<SeqInstrumentation> instrumentation,
-    ImmutableList<CExportAstNode> exportAstNodes)
+    ImmutableList<CCompoundStatementElement> exportAstNodes)
     implements SeqExportStatement {
 
   public SeqThreadStatement {
@@ -73,7 +74,7 @@ public record SeqThreadStatement(
   public static SeqThreadStatement of(
       SeqThreadStatementData pData,
       int pTargetPc,
-      ImmutableList<CExportAstNode> pExportStatements) {
+      ImmutableList<CCompoundStatementElement> pExportStatements) {
     // the targetGoto and instrumentation are always empty on initialization
     return new SeqThreadStatement(
         pData, Optional.of(pTargetPc), Optional.empty(), ImmutableList.of(), pExportStatements);
@@ -154,7 +155,7 @@ public record SeqThreadStatement(
   }
 
   @Override
-  public ImmutableList<CExportAstNode> toCExportAstNodes() {
+  public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
     checkState(
         targetPc.isPresent() || targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present.");
@@ -170,7 +171,7 @@ public record SeqThreadStatement(
     ImmutableList<CExportStatement> injectedExportStatements =
         transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());
 
-    return ImmutableList.<CExportAstNode>builder()
+    return ImmutableList.<CCompoundStatementElement>builder()
         .addAll(exportAstNodes)
         .addAll(injectedExportStatements)
         .build();

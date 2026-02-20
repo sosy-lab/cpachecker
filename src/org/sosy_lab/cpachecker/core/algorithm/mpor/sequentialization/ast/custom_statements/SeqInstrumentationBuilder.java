@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
@@ -56,8 +56,8 @@ public class SeqInstrumentationBuilder {
       ImmutableList<CStatement> pPrecedingStatements,
       CLabelStatement pLabelStatement) {
 
-    ImmutableList<CExportAstNode> ifStatements =
-        ImmutableList.<CExportAstNode>builder()
+    ImmutableList<CCompoundStatementElement> ifStatements =
+        ImmutableList.<CCompoundStatementElement>builder()
             .addAll(pPrecedingStatements.stream().map(s -> new CStatementWrapper(s)).iterator())
             .add(new CGotoStatement(pLabelStatement))
             .build();
@@ -110,7 +110,7 @@ public class SeqInstrumentationBuilder {
   public static SeqInstrumentation buildLastBitVectorUpdateStatement(
       ImmutableList<CExpressionAssignmentStatement> pLastBitVectorUpdates) {
 
-    ImmutableList.Builder<CExportAstNode> exportStatements = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
     for (CExpressionAssignmentStatement lastBitVectorUpdate : pLastBitVectorUpdates) {
       exportStatements.add(new CStatementWrapper(lastBitVectorUpdate));
     }

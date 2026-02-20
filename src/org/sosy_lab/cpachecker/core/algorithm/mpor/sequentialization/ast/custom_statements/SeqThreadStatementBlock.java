@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.util.cwriter.export.CBreakStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CContinueStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
@@ -71,8 +71,8 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   }
 
   @Override
-  public ImmutableList<CExportAstNode> toCExportAstNodes() {
-    ImmutableList.Builder<CExportAstNode> exportStatements = ImmutableList.builder();
+  public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
+    ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
 
     exportStatements.add(buildLabelStatement());
 

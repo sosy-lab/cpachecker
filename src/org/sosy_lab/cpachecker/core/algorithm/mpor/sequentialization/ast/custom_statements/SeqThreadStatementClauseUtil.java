@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 
@@ -73,14 +73,15 @@ public class SeqThreadStatementClauseUtil {
     };
   }
 
-  public static ImmutableListMultimap<CExportExpression, CExportAstNode> mapExpressionToClause(
-      MPOROptions pOptions,
-      CLeftHandSide pPcLeftHandSide,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  public static ImmutableListMultimap<CExportExpression, CCompoundStatementElement>
+      mapExpressionToClause(
+          MPOROptions pOptions,
+          CLeftHandSide pPcLeftHandSide,
+          ImmutableList<SeqThreadStatementClause> pClauses,
+          CBinaryExpressionBuilder pBinaryExpressionBuilder)
+          throws UnrecognizedCodeException {
 
-    ImmutableListMultimap.Builder<CExportExpression, CExportAstNode> rOriginPcs =
+    ImmutableListMultimap.Builder<CExportExpression, CCompoundStatementElement> rOriginPcs =
         ImmutableListMultimap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       CExpression labelExpression =

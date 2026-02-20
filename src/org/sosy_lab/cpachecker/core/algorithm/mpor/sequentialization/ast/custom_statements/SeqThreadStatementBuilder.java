@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CComment;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportAstNode;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
@@ -231,7 +231,7 @@ public record SeqThreadStatementBuilder(
     checkConstCpaCheckerTmpArguments(
         variableDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
 
-    ImmutableList.Builder<CExportAstNode> exportStatements = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
     exportStatements.add(new CVariableDeclarationWrapper(variableDeclaration));
     exportStatements.add(
         new CStatementWrapper(((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement()));
@@ -469,7 +469,7 @@ public record SeqThreadStatementBuilder(
         !pFunctionParameterAssignments.isEmpty() || pFunctionName.equals(REACH_ERROR_FUNCTION_NAME),
         "If pAssignments is empty, then the function name must be reach_error.");
 
-    ImmutableList.Builder<CExportAstNode> functionStatements = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> functionStatements = ImmutableList.builder();
     // if the function name is "reach_error", inject a "reach_error()" call for reachability
     if (pFunctionName.equals(REACH_ERROR_FUNCTION_NAME)) {
       functionStatements.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
@@ -639,7 +639,7 @@ public record SeqThreadStatementBuilder(
     Optional<FunctionParameterAssignment> startRoutineArgAssignment =
         functionStatements.tryGetStartRoutineArgAssignmentByThreadEdge(pThreadEdge);
 
-    ImmutableList.Builder<CExportAstNode> exportStatements = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
     if (startRoutineArgAssignment.isPresent()) {
       exportStatements.add(
           new CStatementWrapper(
