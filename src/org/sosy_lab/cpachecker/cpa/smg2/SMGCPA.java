@@ -201,7 +201,7 @@ public class SMGCPA
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
     try {
-      return new SMGConcreteErrorPathAllocator(config, logger, machineModel, options)
+      return new SMGConcreteErrorPathAllocator(config, logger, machineModel, options, statistics)
           .allocateAssignmentsToPath(pPath);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

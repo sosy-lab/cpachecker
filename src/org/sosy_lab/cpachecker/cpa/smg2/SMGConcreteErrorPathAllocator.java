@@ -53,19 +53,32 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   private final SMGOptions options;
 
+  private final SMGCPAStatistics statistics;
+
   public SMGConcreteErrorPathAllocator(
-      Configuration pConfig, LogManager pLogger, MachineModel pMachineModel, SMGOptions pOptions)
+      Configuration pConfig,
+      LogManager pLogger,
+      MachineModel pMachineModel,
+      SMGOptions pOptions,
+      SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
     super(SMGState.class, AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel));
     options = pOptions;
+    statistics = pStatistics;
   }
 
   @Override
   protected ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, List<CFAEdge>>> pPath) {
-    return switch (options.getErrorPathConcreteValueAssignmentDirection()) {
-      case DIRECTION.BACKWARD -> assignConcreteValuesBackwardsFromFinalAssignment(pPath);
-      case DIRECTION.FORWARD -> assignConcreteValuesLinearlyForwardAsFound(pPath);
-    };
+    statistics.incrementConcreteErrorPathsAllocated();
+    statistics.startTotalConcreteErrorPathsAllocationTime();
+    try {
+      return switch (options.getErrorPathConcreteValueAssignmentDirection()) {
+        case DIRECTION.BACKWARD -> assignConcreteValuesBackwardsFromFinalAssignment(pPath);
+        case DIRECTION.FORWARD -> assignConcreteValuesLinearlyForwardAsFound(pPath);
+      };
+    } finally {
+      statistics.stopTotalConcreteErrorPathsAllocationTime();
+    }
   }
 
   /**

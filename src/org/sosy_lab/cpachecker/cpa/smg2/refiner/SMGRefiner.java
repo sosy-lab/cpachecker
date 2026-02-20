@@ -223,7 +223,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
     checker = pFeasibilityChecker;
     concreteErrorPathAllocator =
-        new SMGConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel(), pOptions);
+        new SMGConcreteErrorPathAllocator(
+            pConfig, logger, pCfa.getMachineModel(), pOptions, pStatistics);
     shutdownNotifier = pShutdownNotifier;
   }
 
