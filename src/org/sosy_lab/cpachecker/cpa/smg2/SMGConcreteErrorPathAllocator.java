@@ -77,7 +77,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       List<Pair<SMGState, List<CFAEdge>>> pForwardPath) {
     ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
     List<ValueAssignment> assignmentToUse = ImmutableList.of();
-    for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pForwardPath.reversed()) {
+    List<Pair<SMGState, List<CFAEdge>>> backwardsPath = pForwardPath.reversed();
+    for (Pair<SMGState, List<CFAEdge>> edgeStatePair : backwardsPath) {
       SMGState state = checkNotNull(edgeStatePair.getFirst());
       List<CFAEdge> edges = checkNotNull(edgeStatePair.getSecond());
 
@@ -95,7 +96,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
                 edges.getFirst(), createConcreteStateFrom(state, assignmentToUse)));
       } else {
         // Multi-edge. E.g. in the beginning of the program declaring all the types etc.
-        pathBuilder.addAll(handleMultiEdge(state, assignmentToUse, edges));
+        pathBuilder.addAll(handleMultiEdge(state, assignmentToUse, edges).reversed());
       }
     }
     return new ConcreteStatePath(pathBuilder.build().reverse());
@@ -186,7 +187,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   private ConcreteState createConcreteStateFrom(
       SMGState pSMGState, List<ValueAssignment> modelToUse) {
     return new ConcreteState(
-        getConcreteValuesForVariables(pSMGState, modelToUse),
+        getConcreteValuesForVariables(pSMGState, modelToUse, options),
         ImmutableMap.of(),
         ImmutableMap.of(),
         exp -> MEMORY_NAME,
@@ -194,7 +195,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   }
 
   private static Map<LeftHandSide, Object> getConcreteValuesForVariables(
-      SMGState state, List<ValueAssignment> modelToUse) {
+      SMGState state, List<ValueAssignment> modelToUse, SMGOptions options) {
     ImmutableMap.Builder<LeftHandSide, Object> result = ImmutableMap.builder();
     for (Entry<MemoryLocation, BigInteger> memLocsAndValues :
         state.getVariablesWithConcreteValues(modelToUse).entrySet()) {
@@ -202,7 +203,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       MemoryLocation location = memLocsAndValues.getKey();
       BigInteger value = memLocsAndValues.getValue();
 
-      Optional<LeftHandSide> maybeLhs = createLeftHandSideFor(location);
+      Optional<LeftHandSide> maybeLhs = createLeftHandSideFor(location, options);
       // We can't handle local arrays or field references currently, as we only have an offset,
       // and someone decided that THE ONE INFORMATION THAT C NEEDS TO DETERMINE WHERE WE ARE IN
       // MEMORY IS NOT NEEDED IN CPACHECKER
@@ -217,15 +218,20 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     return result.buildOrThrow();
   }
 
-  private static Optional<LeftHandSide> createLeftHandSideFor(MemoryLocation memLoc) {
+  private static Optional<LeftHandSide> createLeftHandSideFor(
+      MemoryLocation memLoc, SMGOptions options) {
     // CType maybeType = state.getMemoryModel().getTypeOfVariable(memLoc).getCanonicalType();
     // MachineModel machineModel = state.getMachineModel();
 
+    String variableName = memLoc.getIdentifier();
+    if (options.exportInternalVariableAssignments() && variableName.contains("__CPAchecker_TMP_")) {
+      return Optional.empty();
+    }
     if (!memLoc.isReference()) { // offset == null
       if (memLoc.isOnFunctionStack()) {
-        return Optional.of(new IDExpression(memLoc.getIdentifier(), memLoc.getFunctionName()));
+        return Optional.of(new IDExpression(variableName, memLoc.getFunctionName()));
       } else {
-        return Optional.of(new IDExpression(memLoc.getIdentifier()));
+        return Optional.of(new IDExpression(variableName));
       }
     } else {
       // Has offset -> is a reference
