@@ -47,7 +47,9 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
-    if (terminationState.isTerminating()) {
+
+    // We have proved that all the loops on the path are terminating and there was at least one
+    if (terminationState.isTerminating() && !terminationState.getStoredValues().isEmpty()) {
       return ImmutableList.of();
     }
     return ImmutableList.of(state);
