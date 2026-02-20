@@ -251,8 +251,7 @@ public class SeqThreadStatementClauseUtil {
    * i.e. higher up in the program. This is done by reordering blocks via a dependence graph.
    */
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> removeBackwardGoto(
-      boolean pValidateNoBackwardGoto,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
+      MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rNoBackwardGoto =
         ImmutableListMultimap.builder();
@@ -264,10 +263,11 @@ public class SeqThreadStatementClauseUtil {
       // create set to track which blocks were placed already
       ImmutableList<SeqThreadStatementBlock> reorderedBlocks =
           reorderBlocks(firstBlocks.getFirst(), labelBlockMap);
-      if (pValidateNoBackwardGoto) {
+      if (pOptions.validateNoBackwardGoto()) {
         SeqValidator.validateEqualBlocks(thread.id(), allBlocks, reorderedBlocks);
       }
-      rNoBackwardGoto.putAll(thread, buildClausesFromReorderedBlocks(reorderedBlocks, firstBlocks));
+      rNoBackwardGoto.putAll(
+          thread, buildClausesFromReorderedBlocks(pOptions, reorderedBlocks, firstBlocks));
     }
     return rNoBackwardGoto.build();
   }
@@ -415,6 +415,7 @@ public class SeqThreadStatementClauseUtil {
   }
 
   private static ImmutableList<SeqThreadStatementClause> buildClausesFromReorderedBlocks(
+      MPOROptions pOptions,
       ImmutableList<SeqThreadStatementBlock> pReorderedBlocks,
       ImmutableList<SeqThreadStatementBlock> pFirstBlocks) {
 
@@ -428,11 +429,12 @@ public class SeqThreadStatementClauseUtil {
         if (nextFirstBlockIndex.isPresent()) {
           int target = nextFirstBlockIndex.orElseThrow();
           // use the index of the next first block, since to is exclusive
-          rClauses.add(new SeqThreadStatementClause(pReorderedBlocks.subList(start, target)));
+          rClauses.add(
+              new SeqThreadStatementClause(pOptions, pReorderedBlocks.subList(start, target)));
         } else {
           rClauses.add(
               new SeqThreadStatementClause(
-                  pReorderedBlocks.subList(start, pReorderedBlocks.size())));
+                  pOptions, pReorderedBlocks.subList(start, pReorderedBlocks.size())));
         }
       }
     }

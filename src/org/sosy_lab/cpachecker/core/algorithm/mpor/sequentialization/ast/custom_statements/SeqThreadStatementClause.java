@@ -11,8 +11,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.util.cwriter.export.CBreakStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CContinueStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CReturnStatementWrapper;
 
 /**
  * A clause features an {@code int} label and a list of {@link SeqThreadStatementBlock}. A clause is
@@ -32,6 +39,8 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   /** The ID of a clause, used to find out which statements were linked already. */
   public final int id;
 
+  private final MPOROptions options;
+
   public final int labelNumber;
 
   /**
@@ -40,14 +49,18 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
    */
   private final ImmutableList<SeqThreadStatementBlock> blocks;
 
-  public SeqThreadStatementClause(SeqThreadStatementBlock pBlock) {
+  public SeqThreadStatementClause(MPOROptions pOptions, SeqThreadStatementBlock pBlock) {
     id = getNewId();
+    options = pOptions;
     labelNumber = pBlock.getLabelNumber();
     blocks = ImmutableList.of(pBlock);
   }
 
-  public SeqThreadStatementClause(ImmutableList<SeqThreadStatementBlock> pBlocks) {
+  public SeqThreadStatementClause(
+      MPOROptions pOptions, ImmutableList<SeqThreadStatementBlock> pBlocks) {
+
     id = getNewId();
+    options = pOptions;
     labelNumber = pBlocks.getFirst().getLabelNumber();
     blocks = pBlocks;
   }
@@ -55,20 +68,26 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   /** Private constructor, only used during cloning process to keep the same id. */
   private SeqThreadStatementClause(
       int pId,
+      MPOROptions pOptions,
       int pLabelNumber,
       SeqThreadStatementBlock pBlock,
       ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
     id = pId;
+    options = pOptions;
     labelNumber = pLabelNumber;
     blocks = elementAndList(pBlock, pMergedBlocks);
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
   private SeqThreadStatementClause(
-      int pId, int pLabelNumber, ImmutableList<SeqThreadStatementBlock> pBlocks) {
+      int pId,
+      MPOROptions pOptions,
+      int pLabelNumber,
+      ImmutableList<SeqThreadStatementBlock> pBlocks) {
 
     id = pId;
+    options = pOptions;
     labelNumber = pLabelNumber;
     blocks = pBlocks;
   }
@@ -94,21 +113,21 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   }
 
   public SeqThreadStatementClause withFirstBlock(SeqThreadStatementBlock pBlock) {
-    return new SeqThreadStatementClause(id, labelNumber, pBlock, getMergedBlocks());
+    return new SeqThreadStatementClause(id, options, labelNumber, pBlock, getMergedBlocks());
   }
 
   public SeqThreadStatementClause withMergedBlocks(
       ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
-    return new SeqThreadStatementClause(id, labelNumber, getFirstBlock(), pMergedBlocks);
+    return new SeqThreadStatementClause(id, options, labelNumber, getFirstBlock(), pMergedBlocks);
   }
 
   public SeqThreadStatementClause withBlocks(ImmutableList<SeqThreadStatementBlock> pAllBlocks) {
-    return new SeqThreadStatementClause(id, labelNumber, pAllBlocks);
+    return new SeqThreadStatementClause(id, options, labelNumber, pAllBlocks);
   }
 
   public SeqThreadStatementClause withLabelNumber(int pLabelNumber) {
-    return new SeqThreadStatementClause(id, pLabelNumber, blocks);
+    return new SeqThreadStatementClause(id, options, pLabelNumber, blocks);
   }
 
   /** Returns true if all statements in all blocks are blank. */
@@ -126,9 +145,53 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   @Override
   public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
     ImmutableList.Builder<CCompoundStatementElement> exportedStatements = ImmutableList.builder();
-    for (SeqThreadStatementBlock block : blocks) {
+    for (int i = 0; i < blocks.size(); i++) {
+      SeqThreadStatementBlock block = blocks.get(i);
       exportedStatements.addAll(block.toCExportAstNodes());
+      tryBuildBlockSuffix(block, i == blocks.size() - 1).ifPresent(s -> exportedStatements.add(s));
     }
     return exportedStatements.build();
+  }
+
+  private Optional<CExportStatement> tryBuildBlockSuffix(
+      SeqThreadStatementBlock pBlock, boolean pIsLastBlock) {
+
+    // if all statements have a 'goto', then the suffix is never reached
+    if (SeqThreadStatementUtil.allHaveTargetGoto(pBlock.getStatements())) {
+      return Optional.empty();
+    }
+
+    // if the bit vector evaluation is empty, 'abort();' is called and the suffix is never reached
+    if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(
+        pBlock.getStatements())) {
+      return Optional.empty();
+    }
+
+    // use control encoding of the statement since we append the suffix to the statement
+    return switch (options.controlEncodingStatement()) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build suffix for control encoding " + options.controlEncodingStatement());
+      case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
+        if (options.loopUnrolling()) {
+          // with loop unrolling (and separate thread functions) enabled, always return to main()
+          yield Optional.of(new CReturnStatementWrapper(Optional.empty()));
+        }
+        // if this is not the last thread, add "goto T{next_thread_ID};"
+        if (pBlock.getNextThreadLabel().isPresent()) {
+          yield Optional.of(new CGotoStatement(pBlock.getNextThreadLabel().orElseThrow()));
+        }
+        // otherwise, continue i.e. go to next loop iteration
+        yield Optional.of(new CContinueStatement());
+      }
+      case SWITCH_CASE -> {
+        // do not add 'break;' for the last block, because CSwitchStatement will add it anyway
+        if (pIsLastBlock) {
+          yield Optional.empty();
+        }
+        // for all other blocks, add additional 'break;' in between
+        yield Optional.of(new CBreakStatement());
+      }
+    };
   }
 }

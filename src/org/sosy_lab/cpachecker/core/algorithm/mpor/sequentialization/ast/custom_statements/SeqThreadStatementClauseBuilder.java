@@ -82,8 +82,7 @@ public record SeqThreadStatementClauseBuilder(
     // should therefore be done before making labels consecutive.
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noBackwardGoto =
         options.noBackwardGoto()
-            ? SeqThreadStatementClauseUtil.removeBackwardGoto(
-                options.validateNoBackwardGoto(), linked)
+            ? SeqThreadStatementClauseUtil.removeBackwardGoto(options, linked)
             : linked;
 
     // ensure label numbers are consecutive (start at 0, end at clauseNum - 1). this must be done
@@ -327,7 +326,7 @@ public record SeqThreadStatementClauseBuilder(
       ImmutableList<SeqThreadStatement> pStatements) {
 
     SeqThreadStatementBlock block =
-        new SeqThreadStatementBlock(options, pThread.id(), pLabelPc, pStatements, pNextThreadLabel);
-    return new SeqThreadStatementClause(block);
+        new SeqThreadStatementBlock(pThread.id(), pLabelPc, pStatements, pNextThreadLabel);
+    return new SeqThreadStatementClause(options, block);
   }
 }
