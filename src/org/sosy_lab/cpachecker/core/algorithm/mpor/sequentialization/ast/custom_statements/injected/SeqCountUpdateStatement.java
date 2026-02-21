@@ -18,4 +18,14 @@ public record SeqCountUpdateStatement(CExpressionAssignmentStatement countUpdate
   public String toASTString() throws UnrecognizedCodeException {
     return countUpdate.toASTString();
   }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return false;
+  }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return false;
+  }
 }

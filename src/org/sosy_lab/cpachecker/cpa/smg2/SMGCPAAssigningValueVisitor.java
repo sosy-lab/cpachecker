@@ -210,7 +210,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         if (isAssignable(leftHandSideAssignments)) {
 
           CType lType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-          Value size = new NumericValue(evaluator.getBitSizeof(currentState, lType));
+          Value size = evaluator.getBitSizeof(currentState, lType, edge);
           if (!SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp).equals(lType)) {
             // Cast first
             ValueAndSMGState newRightValueAndState = castCValue(rightValue, lType, currentState);
@@ -241,7 +241,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           if (isAssignable(rightHandSideAssignments)) {
 
             CType rType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-            Value size = new NumericValue(evaluator.getBitSizeof(currentState, rType));
+            Value size = evaluator.getBitSizeof(currentState, rType, edge);
 
             if (!SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp).equals(rType)) {
               // Cast first
@@ -331,7 +331,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               }
 
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(stateToAssign, type));
+              Value size = evaluator.getBitSizeof(stateToAssign, type, edge);
               stateToAssign =
                   stateToAssign.writeValueWithChecks(
                       leftHandSideAssignment.getSMGObject(),
@@ -386,7 +386,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               }
 
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(stateToAssign, type));
+              Value size = evaluator.getBitSizeof(stateToAssign, type, edge);
               stateToAssign =
                   stateToAssign.writeValueWithChecks(
                       rightHandSideAssignment.getSMGObject(),
@@ -495,7 +495,10 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
     // if (true == (unknown == concrete_value)) we set the value (for true left and right)
     if (leftValue.isExplicitlyKnown()) {
-      Number lNum = leftValue.asNumericValue().getNumber();
+      if (!(leftValue instanceof NumericValue numLeft)) {
+        throw new SMGException("Error: explicit number for assignment not numeric");
+      }
+      Number lNum = numLeft.getNumber();
       if (BigInteger.ONE.equals(lNum)) {
         updatedStates =
             rVarInBinaryExp.accept(
@@ -511,7 +514,10 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                     callerFunctionName));
       }
     } else if (rightValue.isExplicitlyKnown()) {
-      Number rNum = rightValue.asNumericValue().bigIntegerValue();
+      if (!(rightValue instanceof NumericValue numRight)) {
+        throw new SMGException("Error: explicit number for assignment not numeric");
+      }
+      Number rNum = numRight.bigIntegerValue();
       if (BigInteger.ONE.equals(rNum)) {
         updatedStates =
             lVarInBinaryExp.accept(
@@ -705,6 +711,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       final boolean pTruthAssumption,
       CFAEdge pEdge)
       throws CPATransferException, SolverException, InterruptedException {
+
+    if (pExpression instanceof CBinaryExpression binExpr
+        && !ConstraintFactory.binaryExpressionIsConstraint(binExpr)) {
+      // For example an expression of the kind array[i] % 2 == 1 is split and array[i] % 2 ends up
+      // here and would fail below.
+      return ImmutableList.of(pOldState);
+    }
 
     final ConstraintFactory constraintFactory =
         ConstraintFactory.getInstance(

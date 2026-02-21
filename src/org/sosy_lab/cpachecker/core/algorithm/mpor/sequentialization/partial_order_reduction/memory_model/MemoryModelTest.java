@@ -250,8 +250,8 @@ public class MemoryModelTest {
 
     // test that local_Z is now an implicit global memory location, because the global pointer
     // 'global_ptr_A' gets its address, and can be dereferenced by other threads
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isExplicitGlobal()).isTrue();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
@@ -275,10 +275,10 @@ public class MemoryModelTest {
 
     // test that local_Z is now an implicit global memory location, because of transitivity:
     // 'global_ptr_A -> local_ptr_D -> local_ptr_C', and can then be dereferenced by other threads
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isExplicitGlobal()).isTrue();
-    assertThat(LOCAL_POINTER_C_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(LOCAL_POINTER_D_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();
+    assertThat(LOCAL_POINTER_C_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(LOCAL_POINTER_D_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,

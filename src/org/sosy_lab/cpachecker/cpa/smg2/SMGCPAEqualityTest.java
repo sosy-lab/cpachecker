@@ -16,6 +16,9 @@ import java.math.BigInteger;
 import java.util.List;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
@@ -318,7 +321,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isFalse();
     assertThat(
             currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -327,7 +331,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isFalse();
 
     // If the nfo is restricted, they are equal
@@ -342,7 +347,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                     ImmutableList.of(nfo)),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isTrue();
     assertThat(
             currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -355,7 +361,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                     ImmutableList.of(nfo)),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isTrue();
 
     SMGObject concreteObjEnd =
@@ -371,7 +378,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isTrue();
     assertThat(
             currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -380,7 +388,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isTrue();
   }
 
@@ -427,7 +436,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                     ImmutableList.of(nfo)),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isFalse();
 
     assertThat(
@@ -441,7 +451,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                     ImmutableList.of(nfo)),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isFalse();
   }
 
@@ -488,7 +499,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
             // Change NFO for list
             Value nextPtr =
                 currentState
-                    .readValueWithoutMaterialization(obj, nfo, pointerSizeInBits, null)
+                    .readValueWithoutMaterialization(
+                        obj, nfo, pointerSizeInBits, CPointerType.POINTER_TO_VOID)
                     .getValue();
             assertThat(currentState.getMemoryModel().isPointer(nextPtr)).isTrue();
             currentState =
@@ -516,7 +528,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, offsetsForPointers.getFirst());
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, offsetsForPointers.getFirst());
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -529,7 +542,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, offsetsForPointers.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, offsetsForPointers.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -565,7 +579,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableMap.of(),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -575,7 +590,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableMap.of(),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -586,7 +602,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           obj1, ImmutableList.of(changingNfo), obj2, ImmutableList.of(changingNfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isTrue();
 
           assertThat(
@@ -597,7 +614,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           obj1, ImmutableList.of(changingNfo), obj2, ImmutableList.of(changingNfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isTrue();
         }
       }
@@ -648,7 +666,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
             // Change NFO for list
             Value nextPtr =
                 currentState
-                    .readValueWithoutMaterialization(obj, nfo, pointerSizeInBits, null)
+                    .readValueWithoutMaterialization(
+                        obj, nfo, pointerSizeInBits, CPointerType.POINTER_TO_VOID)
                     .getValue();
             assertThat(currentState.getMemoryModel().isPointer(nextPtr)).isTrue();
             currentState =
@@ -661,7 +680,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
             // Prev pointer
             Value prevPtr =
                 currentState
-                    .readValueWithoutMaterialization(obj, pfo, pointerSizeInBits, null)
+                    .readValueWithoutMaterialization(
+                        obj, pfo, pointerSizeInBits, CPointerType.POINTER_TO_VOID)
                     .getValue();
             assertThat(currentState.getMemoryModel().isPointer(prevPtr)).isTrue();
             currentState =
@@ -691,7 +711,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, offsetsForPointers.getFirst());
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, offsetsForPointers.getFirst());
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -704,7 +725,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, offsetsForPointers.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, offsetsForPointers.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -740,7 +762,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableMap.of(),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -750,7 +773,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableMap.of(),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -761,7 +785,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           obj1, ImmutableList.of(changingNfo), obj2, ImmutableList.of(changingNfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -772,7 +797,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           obj1, ImmutableList.of(changingNfo), obj2, ImmutableList.of(changingNfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -786,7 +812,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           ImmutableList.of(changingNfo, changingPfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isTrue();
 
           assertThat(
@@ -800,7 +827,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           ImmutableList.of(changingNfo, changingPfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isTrue();
         }
       }
@@ -820,7 +848,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   @Test
   public void abstractedListWSublistLessOrEqualTest() throws SMGException, SMGSolverException {
     Value[] pointersSmallerAbstractedList = buildConcreteList(false, sllSize, listLength - 1);
-    addSubListsToList(listLength, pointersSmallerAbstractedList, false);
+    addSubListsToList(listLength, pointersSmallerAbstractedList, false, false);
     SMGCPAAbstractionManager absFinder =
         new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
@@ -835,8 +863,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
             .orElseThrow()
             .getSMGObject();
 
-    Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
-    addSubListsToList(listLength, pointersAbstractedList, false);
+    Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength, false);
+    addSubListsToList(listLength, pointersAbstractedList, false, false);
     absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     // Check that there is no more abstraction found
@@ -850,8 +878,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
             .orElseThrow()
             .getSMGObject();
 
-    Value[] pointersAbstractedList2 = buildConcreteList(false, sllSize, listLength);
-    addSubListsToList(listLength, pointersAbstractedList2, false);
+    Value[] pointersAbstractedList2 = buildConcreteList(false, sllSize, listLength, false);
+    addSubListsToList(listLength, pointersAbstractedList2, false, false);
     absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     // Check that there is no more abstraction found
@@ -872,7 +900,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                true))
         .isTrue();
 
     assertThat(
@@ -882,7 +911,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                true))
         .isTrue();
 
     // Comparing the abstracted objects returns TRUE as they both have the same sublists/values
@@ -893,7 +923,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                true))
         .isTrue();
 
     assertThat(
@@ -903,7 +934,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                true))
         .isTrue();
 
     // Compare the length of the top lists by comparing the shape
@@ -915,7 +947,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 pointersAbstractedList[0],
                 EqualityCache.<Value>of(),
                 EqualityCache.of(),
-                false))
+                false,
+                true))
         .isFalse();
     assertThat(
             currentState.areValuesEqual(
@@ -925,7 +958,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 pointersSmallerAbstractedList[0],
                 EqualityCache.<Value>of(),
                 EqualityCache.of(),
-                false))
+                false,
+                true))
         .isTrue();
   }
 
@@ -939,16 +973,35 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   public void abstractedListWSublistNotLessOrEqualTest() throws SMGException, SMGSolverException {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
-      Value[] pointersAbstractedShortList = buildConcreteList(false, sllSize, listLength);
+      Value[] pointersAbstractedShortList = buildConcreteList(false, sllSize, listLength, false);
+
+      SMGObjectAndSMGState stackObjAndState =
+          currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      SMGObject stackObj = stackObjAndState.getSMGObject();
+      currentState = currentState.copyAndAddDummyStackFrame();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var", CPointerType.POINTER_TO_VOID);
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersAbstractedShortList[0])
+                  .orElseThrow());
+
       int counter = 0;
       for (Value pointer : pointersAbstractedShortList) {
         // Generate the same list for each top list segment and save the first pointer as data
         Value[] pointersNested;
         if (i == counter) {
           // Make 1 list shorter
-          pointersNested = buildConcreteList(false, sllSize, listLength / 2);
+          pointersNested = buildConcreteList(false, sllSize, listLength / 2, false);
         } else {
-          pointersNested = buildConcreteList(false, sllSize, listLength);
+          pointersNested = buildConcreteList(false, sllSize, listLength, false);
         }
         // We care only about the first pointer here
         SMGStateAndOptionalSMGObjectAndOffset topListSegmentAndState =
@@ -979,8 +1032,26 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(abstractedObjShort instanceof SMGSinglyLinkedListSegment).isFalse();
 
       // Abstracted complete list
-      Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
-      addSubListsToList(listLength, pointersAbstractedList, false);
+      Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength, false);
+
+      stackObjAndState = currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      stackObj = stackObjAndState.getSMGObject();
+      currentState = currentState.copyAndAddDummyStackFrame();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var2", CPointerType.POINTER_TO_VOID);
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersAbstractedList[0])
+                  .orElseThrow());
+
+      addSubListsToList(listLength, pointersAbstractedList, false, false);
       absFinder = new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       SMGObject abstractedObj =
@@ -990,8 +1061,26 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               .getSMGObject();
 
       // Concrete complete list
-      Value[] pointersOtherList = buildConcreteList(false, sllSize, listLength);
-      addSubListsToList(listLength, pointersOtherList, false);
+      Value[] pointersOtherList = buildConcreteList(false, sllSize, listLength, false);
+
+      stackObjAndState = currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      stackObj = stackObjAndState.getSMGObject();
+      currentState = currentState.copyAndAddDummyStackFrame();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var3", CPointerType.POINTER_TO_VOID);
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersOtherList[0])
+                  .orElseThrow());
+
+      addSubListsToList(listLength, pointersOtherList, false, false);
       absFinder = new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       SMGObject concreteObjBeginning =
@@ -1008,7 +1097,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                   ImmutableMap.of(),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
 
       assertThat(
@@ -1018,7 +1108,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                   ImmutableMap.of(),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
     }
   }
@@ -1035,10 +1126,30 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   public void abstractedListWSublistNotLessOrEqualTest2() throws SMGException, SMGSolverException {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
-      Value[] pointersConcreteDifferentList = buildConcreteList(false, sllSize, listLength);
+      Value[] pointersConcreteDifferentList = buildConcreteList(false, sllSize, listLength, false);
+
+      currentState = currentState.copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
+      SMGObjectAndSMGState stackObjAndState =
+          currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var", CPointerType.POINTER_TO_VOID);
+      SMGObject stackObj =
+          currentState.getMemoryModel().getObjectForVisibleVariable("var").orElseThrow();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersConcreteDifferentList[0])
+                  .orElseThrow());
+
       // Adds sublists equal sublists (0 value in all)
       Value[][] nestedDifferentLists =
-          addSubListsToList(listLength, pointersConcreteDifferentList, false);
+          addSubListsToList(listLength, pointersConcreteDifferentList, false, false);
       SMGObject ithObj =
           currentState
               .dereferencePointerWithoutMaterilization(nestedDifferentLists[i][i])
@@ -1051,11 +1162,12 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               new NumericValue(BigInteger.ZERO),
               new NumericValue(pointerSizeInBits),
               new NumericValue(-1),
-              null,
+              CNumericTypes.INT,
               dummyCFAEdge);
 
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+      assert currentState.getMemoryModel().checkSMGSanity();
       currentState = absFinder.findAndAbstractLists();
       SMGObject notAbstractedListDifferentObj =
           currentState
@@ -1067,8 +1179,25 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(notAbstractedListDifferentObj instanceof SMGSinglyLinkedListSegment).isFalse();
 
       // Abstracted complete list
-      Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
-      addSubListsToList(listLength, pointersAbstractedList, false);
+      Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength, false);
+
+      stackObjAndState = currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var2", CPointerType.POINTER_TO_VOID);
+      stackObj = currentState.getMemoryModel().getObjectForVisibleVariable("var2").orElseThrow();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersAbstractedList[0])
+                  .orElseThrow());
+
+      addSubListsToList(listLength, pointersAbstractedList, false, false);
       absFinder =
           new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
@@ -1079,8 +1208,25 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               .getSMGObject();
 
       // Concrete complete list
-      Value[] pointersConcreteList = buildConcreteList(false, sllSize, listLength);
-      addSubListsToList(listLength, pointersConcreteList, false);
+      Value[] pointersConcreteList = buildConcreteList(false, sllSize, listLength, false);
+
+      stackObjAndState = currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var3", CPointerType.POINTER_TO_VOID);
+      stackObj = currentState.getMemoryModel().getObjectForVisibleVariable("var3").orElseThrow();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersConcreteList[0])
+                  .orElseThrow());
+
+      addSubListsToList(listLength, pointersConcreteList, false, false);
       absFinder =
           new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
@@ -1102,7 +1248,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableList.of(nfo)),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
       assertThat(
               currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -1115,7 +1262,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableList.of(nfo)),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
 
       assertThat(
@@ -1129,7 +1277,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableList.of(nfo)),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
       assertThat(
               currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -1142,7 +1291,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableList.of(nfo)),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
     }
   }
@@ -1174,14 +1324,18 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(deref).hasSize(1);
       currentState = deref.getFirst().getSMGState();
       assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-      assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+      assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       List<ValueAndSMGState> readNexts;
       if (i == listLength - 1) {
         // Don't use the last ptr in the end of the array
         readNexts =
             evaluator.readValueWithPointerDereference(
-                currentState, lastNextPointer, new NumericValue(nfo), pointerSizeInBits, null);
+                currentState,
+                lastNextPointer,
+                new NumericValue(nfo),
+                pointerSizeInBits,
+                CPointerType.POINTER_TO_VOID);
       } else {
         readNexts =
             evaluator.readValueWithPointerDereference(
@@ -1189,7 +1343,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 pointersConcreteDifferentList[i],
                 new NumericValue(nfo),
                 pointerSizeInBits,
-                null);
+                CPointerType.POINTER_TO_VOID);
       }
       ValueAndSMGState readNext;
       if (i < listLength - 1) {
@@ -1237,7 +1391,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         assertThat(arrayPTE.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_LAST_POINTER);
         ValueAndSMGState ptrToZeroPlusAndSt =
             currentState.readValueWithoutMaterialization(
-                readPTE.pointsTo(), nfo, pointerSizeInBits, null);
+                readPTE.pointsTo(), nfo, pointerSizeInBits, CPointerType.POINTER_TO_VOID);
         currentState = ptrToZeroPlusAndSt.getState();
         Value ptrToZeroPlus = ptrToZeroPlusAndSt.getValue();
         SMGPointsToEdge ptrToZeroPlusPTE =
@@ -1305,16 +1459,20 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(deref).hasSize(1);
     currentState = deref.getFirst().getSMGState();
     assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+    assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     List<ValueAndSMGState> readNextsInLast =
         evaluator.readValueWithPointerDereference(
-            currentState, lastNextPointer, new NumericValue(nfo), pointerSizeInBits, null);
+            currentState,
+            lastNextPointer,
+            new NumericValue(nfo),
+            pointerSizeInBits,
+            CPointerType.POINTER_TO_VOID);
     // Should only be 1 list element
     assertThat(readNextsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readNextsInLast.getFirst().getValue().isNumericValue()).isTrue();
-    assertThat(readNextsInLast.getFirst().getValue().asNumericValue().bigIntegerValue())
+    assertThat(readNextsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) readNextsInLast.getFirst().getValue()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Confirm that the other is materialized correctly
     currentState = readNextsInLast.get(1).getState();
@@ -1327,7 +1485,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(materializedList.isSLL()).isFalse();
     ValueAndSMGState pointerToZeroPlus =
         currentState.readValueWithoutMaterialization(
-            materializedList, nfo, pointerSizeInBits, null);
+            materializedList, nfo, pointerSizeInBits, CPointerType.POINTER_TO_VOID);
     assertThat(currentState.getMemoryModel().pointsToZeroPlus(pointerToZeroPlus.getValue()))
         .isTrue();
     // Now we free the list element from before
@@ -1365,14 +1523,18 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(deref).hasSize(1);
       currentState = deref.getFirst().getSMGState();
       assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-      assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+      assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       List<ValueAndSMGState> readNexts;
       if (i == listLength - 1) {
         // Don't use the last ptr in the end of the array
         readNexts =
             evaluator.readValueWithPointerDereference(
-                currentState, lastNextPointer, new NumericValue(nfo), pointerSizeInBits, null);
+                currentState,
+                lastNextPointer,
+                new NumericValue(nfo),
+                pointerSizeInBits,
+                CPointerType.POINTER_TO_VOID);
       } else {
         readNexts =
             evaluator.readValueWithPointerDereference(
@@ -1380,7 +1542,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 pointersConcreteDifferentList[i],
                 new NumericValue(nfo),
                 pointerSizeInBits,
-                null);
+                CPointerType.POINTER_TO_VOID);
       }
       ValueAndSMGState readNext;
       if (i < listLength - 1) {
@@ -1428,7 +1590,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         assertThat(arrayPTE.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_LAST_POINTER);
         ValueAndSMGState ptrToZeroPlusAndSt =
             currentState.readValueWithoutMaterialization(
-                readPTE.pointsTo(), nfo, pointerSizeInBits, null);
+                readPTE.pointsTo(), nfo, pointerSizeInBits, CPointerType.POINTER_TO_VOID);
         currentState = ptrToZeroPlusAndSt.getState();
         Value ptrToZeroPlus = ptrToZeroPlusAndSt.getValue();
         SMGPointsToEdge ptrToZeroPlusPTE =
@@ -1486,16 +1648,20 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(deref).hasSize(1);
     currentState = deref.getFirst().getSMGState();
     assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+    assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     List<ValueAndSMGState> readNextsInLast =
         evaluator.readValueWithPointerDereference(
-            currentState, lastNextPointer, new NumericValue(nfo), pointerSizeInBits, null);
+            currentState,
+            lastNextPointer,
+            new NumericValue(nfo),
+            pointerSizeInBits,
+            CPointerType.POINTER_TO_VOID);
     // Should only be 1 list element
     assertThat(readNextsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readNextsInLast.getFirst().getValue().isNumericValue()).isTrue();
-    assertThat(readNextsInLast.getFirst().getValue().asNumericValue().bigIntegerValue())
+    assertThat(readNextsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) readNextsInLast.getFirst().getValue()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Confirm that the other is materialized correctly
     currentState = readNextsInLast.get(1).getState();
@@ -1508,7 +1674,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(materializedList.isSLL()).isFalse();
     ValueAndSMGState pointerToZeroPlus =
         currentState.readValueWithoutMaterialization(
-            materializedList, nfo, pointerSizeInBits, null);
+            materializedList, nfo, pointerSizeInBits, CPointerType.POINTER_TO_VOID);
     assertThat(currentState.getMemoryModel().pointsToZeroPlus(pointerToZeroPlus.getValue()))
         .isTrue();
     // Now we free the list element from before
@@ -1550,7 +1716,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(currentDeref).hasSize(1);
       currentState = currentDeref.getFirst().getSMGState();
       assertThat(currentDeref.getFirst().hasSMGObjectAndOffset()).isTrue();
-      assertThat(currentDeref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+      assertThat(((NumericValue) currentDeref.getFirst().getOffsetForObject()).bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       // currentDeref is based on prev pointers, check that its equal to a deref of the external
       // pointer at that location (except the first case)
@@ -1571,10 +1737,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         currentState = currentDerefFromExternal.getFirst().getSMGState();
         assertThat(currentDerefFromExternal.getFirst().hasSMGObjectAndOffset()).isTrue();
         assertThat(
-                currentDerefFromExternal
-                    .getFirst()
-                    .getOffsetForObject()
-                    .asNumericValue()
+                ((NumericValue) currentDerefFromExternal.getFirst().getOffsetForObject())
                     .bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         assertThat(currentDerefFromExternal.getFirst().getSMGObject())
@@ -1595,7 +1758,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               runningListElementPointer,
               new NumericValue(pfo),
               pointerSizeInBits,
-              null);
+              CPointerType.POINTER_TO_VOID);
 
       ValueAndSMGState readPrevPointerAndState;
       if (i != 0) {
@@ -1643,7 +1806,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         assertThat(firstPTE.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
         ValueAndSMGState readPtrToZeroPlusAndSt =
             currentState.readValueWithoutMaterialization(
-                readPrevPTE.pointsTo(), pfo, pointerSizeInBits, null);
+                readPrevPTE.pointsTo(), pfo, pointerSizeInBits, CPointerType.POINTER_TO_VOID);
         currentState = readPtrToZeroPlusAndSt.getState();
         Value readPtrToZeroPlus = readPtrToZeroPlusAndSt.getValue();
         SMGPointsToEdge readPtrToZeroPlusPTE =
@@ -1703,7 +1866,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(deref).hasSize(1);
     currentState = deref.getFirst().getSMGState();
     assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+    assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Read prev of current list segment (reads into 0+, causes materialization)
     List<ValueAndSMGState> readPrevsInLast =
@@ -1712,12 +1875,12 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
             runningListElementPointer,
             new NumericValue(pfo),
             pointerSizeInBits,
-            null);
+            CPointerType.POINTER_TO_VOID);
     // Should only be 1 list element
     assertThat(readPrevsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readPrevsInLast.getFirst().getValue().isNumericValue()).isTrue();
-    assertThat(readPrevsInLast.getFirst().getValue().asNumericValue().bigIntegerValue())
+    assertThat(readPrevsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) readPrevsInLast.getFirst().getValue()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Confirm that the other is materialized correctly
     currentState = readPrevsInLast.get(1).getState();
@@ -1730,7 +1893,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(newlyMaterializedListSegment.isSLL()).isFalse();
     ValueAndSMGState pointerToZeroPlus =
         currentState.readValueWithoutMaterialization(
-            newlyMaterializedListSegment, pfo, pointerSizeInBits, null);
+            newlyMaterializedListSegment, pfo, pointerSizeInBits, CPointerType.POINTER_TO_VOID);
     assertThat(currentState.getMemoryModel().pointsToZeroPlus(pointerToZeroPlus.getValue()))
         .isTrue();
     // Now we free the list element from before

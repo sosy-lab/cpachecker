@@ -72,12 +72,13 @@ public class SeqNameUtil {
             buildCallSuffix(pOptions, pCallNumber));
   }
 
-  public static String buildParameterName(
+  public static String buildSubstituteParameterDeclarationName(
       MPOROptions pOptions,
       CParameterDeclaration pParameterDeclaration,
       int pThreadId,
       String pFunctionName,
-      int pCallNumber) {
+      int pCallNumber,
+      int pArgumentIndex) {
 
     return Joiner.on(SeqSyntax.UNDERSCORE)
         .join(
@@ -85,7 +86,8 @@ public class SeqNameUtil {
             pFunctionName,
             buildThreadPrefix(pOptions, pThreadId),
             buildCallSuffix(pOptions, pCallNumber),
-            pParameterDeclaration.getName());
+            pParameterDeclaration.getName(),
+            (pOptions.shortVariableNames() ? "A" : "ARGUMENT") + pArgumentIndex);
   }
 
   public static String buildMainFunctionArgName(

@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -171,6 +170,16 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
+          "Continue executing the current thread if it is the only active thread. This option"
+              + " utilizes a thread_count ghost variable which is incremented for each created"
+              + " thread and decremented for each terminated thread. These increments and decrement"
+              + " are placed inside a possibly infinite loop, so when analyzing for overflows, it"
+              + " may be more efficient to disable this option.")
+  private boolean reduceSingleActiveThread = true;
+
+  @Option(
+      secure = true,
+      description =
           "continue executing the current thread until it is in conflict with at least another"
               + " thread?")
   private boolean reduceUntilConflict = false;
@@ -182,13 +191,6 @@ public class MPOROptions {
               + " state space more than ACCESS_ONLY, but introduces additional overhead (i.e."
               + " number of variables, assignments, and expression evaluations)")
   private ReductionMode reductionMode = ReductionMode.NONE;
-
-  @Option(
-      secure = true,
-      description =
-          "if both reduceLastThreadOrder and reduceUntilConflict are enabled, define the order"
-              + " in which their statements are placed in the output program.")
-  private ReductionOrder reductionOrder = ReductionOrder.NONE;
 
   @Option(
       secure = true,
@@ -278,13 +280,6 @@ public class MPOROptions {
             "loopUnrolling can only be enabled when loopIterations > 0");
       }
     }
-    if (reduceLastThreadOrder && reduceUntilConflict) {
-      if (!reductionOrder.isEnabled()) {
-        throw new InvalidConfigurationException(
-            "both reduceLastThreadOrder and reduceUntilConflict are enabled, but no reductionOrder"
-                + " is specified.");
-      }
-    }
     if (!noBackwardGoto) {
       if (validateNoBackwardGoto) {
         throw new InvalidConfigurationException(
@@ -359,10 +354,6 @@ public class MPOROptions {
 
   public boolean isAnyBitVectorReductionEnabled() {
     return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
-  }
-
-  public boolean isThreadCountRequired() {
-    return nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS) && loopIterations == 0;
   }
 
   public boolean isThreadLabelRequired() {
@@ -473,16 +464,16 @@ public class MPOROptions {
     return reduceLastThreadOrder;
   }
 
+  public boolean reduceSingleActiveThread() {
+    return reduceSingleActiveThread;
+  }
+
   public boolean reduceUntilConflict() {
     return reduceUntilConflict;
   }
 
   public ReductionMode reductionMode() {
     return reductionMode;
-  }
-
-  public ReductionOrder reductionOrder() {
-    return reductionOrder;
   }
 
   public boolean scalarPc() {

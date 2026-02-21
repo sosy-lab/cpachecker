@@ -32,7 +32,6 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
 
   public PredicateViolationConditionOperator(
       PathFormulaManagerImpl pBackwardManager, PredicateCPA pCpa, boolean pHasRootAsPredecessor) {
-
     backwardManager = pBackwardManager;
     cpa = pCpa;
     hasRootAsPredecessor = pHasRootAsPredecessor;

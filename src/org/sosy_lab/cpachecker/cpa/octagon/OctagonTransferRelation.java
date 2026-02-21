@@ -266,7 +266,7 @@ public class OctagonTransferRelation
     // IMPORTANT: for this switch we assume that in each conditional statement, there is only one
     // condition, (this simplification is added in the CFA creation phase)
     return switch (binExp.getOperator()) {
-      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO ->
+      case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT, REMAINDER ->
           // TODO check which cases can be handled
           Collections.singleton(pState);
 
@@ -1114,7 +1114,7 @@ public class OctagonTransferRelation
       // do not even evaluate the members of this binary expression if we cannot
       // handle the operator
       switch (e.getOperator()) {
-        case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO -> {
+        case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT, REMAINDER -> {
           return ImmutableSet.of(Pair.of(OctagonUniversalCoefficients.INSTANCE, visitorState));
         }
         default -> {

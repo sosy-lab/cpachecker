@@ -613,7 +613,7 @@ public final class CInitializers {
         from(indexSet)
             .<CExpression>transform(
                 pInput -> {
-                  CExpression index =
+                  CIntegerLiteralExpression index =
                       new CIntegerLiteralExpression(
                           loc, CNumericTypes.INT, BigInteger.valueOf(pInput));
 

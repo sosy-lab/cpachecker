@@ -44,7 +44,7 @@ public final class SvLibGotoStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(goto " + label + ")";
   }
 

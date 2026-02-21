@@ -14,11 +14,14 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
  * Used to store the program counter i.e. {@code pc} and related expressions for each thread. A
@@ -70,5 +73,23 @@ public record ProgramCounterVariables(
         FileLocation.DUMMY,
         pPcLeftHandSide,
         SeqExpressionBuilder.buildIntegerLiteralExpression(pTargetPc));
+  }
+
+  /**
+   * Returns the {@link CFunctionCallStatement} of {@code assume(pc[next_thread] != 0);}, i.e. for
+   * array {@code pc}.
+   */
+  public CFunctionCallStatement buildArrayPcUnequalExitPcAssumption() {
+    return SeqAssumeFunction.buildAssumeFunctionCallStatement(
+        nextThreadActiveExpression.orElseThrow());
+  }
+
+  /**
+   * Returns the {@link CFunctionCallStatement} of {@code assume(pc{pThread.id} != 0);} i.e. for
+   * scalar {@code pc}.
+   */
+  public CFunctionCallStatement buildScalarPcUnequalExitPcAssumption(MPORThread pThread) {
+    CBinaryExpression threadActiveExpression = threadActiveExpressions.get(pThread.id());
+    return SeqAssumeFunction.buildAssumeFunctionCallStatement(threadActiveExpression);
   }
 }

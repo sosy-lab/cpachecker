@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -28,8 +29,6 @@ public class Sequentialization {
           "// This sequentialization (transformation of a concurrent program into an"
               + " equivalent",
           "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker.");
-
-  static final int FIRST_LINE = 1;
 
   @CanIgnoreReturnValue
   public static String tryBuildProgramString(
@@ -82,23 +81,36 @@ public class Sequentialization {
     rProgram.add(
         SequentializationBuilder.buildInputFunctionAndTypeDeclarations(pOptions, pFields.threads));
     rProgram.add(SequentializationBuilder.buildBitVectorTypeDeclarations());
-    // add struct and variable declarations
-    rProgram.add(
-        SequentializationBuilder.buildInputGlobalVariableDeclarations(
-            pOptions, pFields.mainSubstitution));
-    rProgram.add(
-        SequentializationBuilder.buildInputLocalVariableDeclarations(
-            pOptions, pFields.substitutions));
-    rProgram.add(
-        SequentializationBuilder.buildInputParameterDeclarations(pOptions, pFields.substitutions));
-    rProgram.add(
-        SequentializationBuilder.buildMainFunctionArgDeclarations(
-            pOptions, pFields.mainSubstitution));
-    rProgram.add(
-        SequentializationBuilder.buildStartRoutineArgDeclarations(
-            pOptions, pFields.mainSubstitution));
-    rProgram.add(
-        SequentializationBuilder.buildStartRoutineExitDeclarations(pOptions, pFields.threads));
+    // add all variable and parameter declarations, but only if there are any
+    Optional.of(
+            SequentializationBuilder.buildInputGlobalVariableDeclarations(
+                pOptions, pFields.mainSubstitution))
+        .filter(s -> !s.isEmpty())
+        .ifPresent(rProgram::add);
+    Optional.of(
+            SequentializationBuilder.buildInputLocalVariableDeclarations(
+                pOptions, pFields.substitutions))
+        .filter(s -> !s.isEmpty())
+        .ifPresent(rProgram::add);
+    Optional.of(
+            SequentializationBuilder.buildInputParameterDeclarations(
+                pOptions, pFields.substitutions))
+        .filter(s -> !s.isEmpty())
+        .ifPresent(rProgram::add);
+    Optional.of(
+            SequentializationBuilder.buildMainFunctionArgDeclarations(
+                pOptions, pFields.mainSubstitution))
+        .filter(s -> !s.isEmpty())
+        .ifPresent(rProgram::add);
+    Optional.of(
+            SequentializationBuilder.buildStartRoutineArgDeclarations(
+                pOptions, pFields.mainSubstitution))
+        .filter(s -> !s.isEmpty())
+        .ifPresent(rProgram::add);
+    Optional.of(
+            SequentializationBuilder.buildStartRoutineExitDeclarations(pOptions, pFields.threads))
+        .filter(s -> !s.isEmpty())
+        .ifPresent(rProgram::add);
 
     // add thread simulation variables (i.e. ghost elements)
     rProgram.add(

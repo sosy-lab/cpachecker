@@ -59,11 +59,11 @@ public class CacheTransferRelation extends SingleEdgeTransferRelation {
       lLevel1Cache.put(pElement, lLevel2Cache);
     }
 
-    Collection<? extends AbstractState> lSuccessors = lLevel2Cache.get(pPrecision);
+    Collection<? extends AbstractState> lSuccessors = lLevel2Cache.get(precision);
 
     if (lSuccessors == null) {
-      lSuccessors = mCachedTransferRelation.getAbstractSuccessors(pElement, pPrecision, pCfaEdge);
-      lLevel2Cache.put(pPrecision, lSuccessors);
+      lSuccessors = mCachedTransferRelation.getAbstractSuccessors(pElement, precision, pCfaEdge);
+      lLevel2Cache.put(precision, lSuccessors);
 
       lCacheMisses++;
     } else {

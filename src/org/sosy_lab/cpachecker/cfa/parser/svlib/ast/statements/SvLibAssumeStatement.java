@@ -41,7 +41,7 @@ public final class SvLibAssumeStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(assume " + term.toASTString() + ")";
   }
 

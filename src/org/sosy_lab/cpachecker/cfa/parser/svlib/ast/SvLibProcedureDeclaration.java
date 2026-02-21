@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -82,7 +83,26 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
 
   @Override
   public String toASTString() {
-    throw new UnsupportedOperationException("Not implemented yet");
+    return name
+        + variablesToString(parameters)
+        + " "
+        + variablesToString(returnValues)
+        + " "
+        + variablesToString(localVariables);
+  }
+
+  private String variablesToString(List<SvLibParsingParameterDeclaration> variableList) {
+    if (variableList.isEmpty()) {
+      return "()";
+    } else {
+      return "(("
+          + Joiner.on(") (")
+              .join(
+                  variableList.stream()
+                      .map(var -> var.getName() + " " + var.getType().toASTString())
+                      .toList())
+          + "))";
+    }
   }
 
   public ImmutableList<SvLibParsingParameterDeclaration> getParameters() {

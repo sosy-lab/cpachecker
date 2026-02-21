@@ -109,10 +109,10 @@ public class MemoryModel {
 
     // check that all left hand sides in pointer assignments are CPointerType
     for (SeqMemoryLocation memoryLocation : pPointerAssignments.keySet()) {
-      if (memoryLocation.fieldMember.isPresent()) {
+      if (memoryLocation.fieldMember().isPresent()) {
         // for field owner / members: only the member must be CPointerType
         CCompositeTypeMemberDeclaration memberDeclaration =
-            memoryLocation.fieldMember.orElseThrow();
+            memoryLocation.fieldMember().orElseThrow();
         checkArgument(
             memberDeclaration.getType() instanceof CPointerType,
             "memberDeclaration must be CPointerType, got %s",
@@ -120,9 +120,9 @@ public class MemoryModel {
       } else {
         // for all else: the variable itself must be CPointerType
         checkArgument(
-            memoryLocation.declaration.getType() instanceof CPointerType,
+            memoryLocation.declaration().getType() instanceof CPointerType,
             "variableDeclaration must be CPointerType, got %s",
-            memoryLocation.declaration.getType());
+            memoryLocation.declaration().getType());
       }
     }
 
