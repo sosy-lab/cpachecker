@@ -177,6 +177,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         smgCpa.getShutdownNotifier(),
         cfa,
         smgCpa.getEvaluator(),
+        smgCpa.getSMGOptions(),
         smgCpa.getStatistics());
   }
 
@@ -190,6 +191,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
       SMGCPAExpressionEvaluator pEvaluator,
+      SMGOptions pOptions,
       SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
@@ -221,7 +223,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
     checker = pFeasibilityChecker;
     concreteErrorPathAllocator =
-        new SMGConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
+        new SMGConcreteErrorPathAllocator(
+            pConfig, logger, pCfa.getMachineModel(), pOptions, pStatistics);
     shutdownNotifier = pShutdownNotifier;
   }
 

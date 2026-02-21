@@ -6822,8 +6822,10 @@ public class SMGState
    * returned for it. Only returns values for simple types (int, long etc.) or null for pointers
    * currently.
    */
-  public Map<MemoryLocation, BigInteger> getVariablesWithConcreteValues() {
-    Map<SymbolicIdentifier, Value> solverAssignments = getSolverAssignments();
+  public Map<MemoryLocation, BigInteger> getVariablesWithConcreteValues(
+      List<ValueAssignment> modelToUse) {
+    Map<SymbolicIdentifier, Value> solverAssignments =
+        extractSolverAssignmentsFromModel(modelToUse);
 
     ImmutableMap.Builder<MemoryLocation, BigInteger> memLocAndValueBuilder = ImmutableMap.builder();
 
@@ -7037,9 +7039,10 @@ public class SMGState
     return memLocAndValueBuilder.buildOrThrow();
   }
 
-  private Map<SymbolicIdentifier, Value> getSolverAssignments() {
+  private Map<SymbolicIdentifier, Value> extractSolverAssignmentsFromModel(
+      List<ValueAssignment> modelToUse) {
     ImmutableMap.Builder<SymbolicIdentifier, Value> assignmentBuilder = ImmutableMap.builder();
-    for (ValueAssignment va : getModel()) {
+    for (ValueAssignment va : modelToUse) {
       if (SymbolicValues.isSymbolicTerm(va.getName())) {
         SymbolicIdentifier identifier =
             SymbolicValues.convertTermToSymbolicIdentifier(va.getName());

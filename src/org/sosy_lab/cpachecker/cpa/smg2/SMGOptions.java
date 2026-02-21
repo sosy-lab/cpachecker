@@ -32,6 +32,38 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
 
+  enum DIRECTION {
+    FORWARD,
+    BACKWARD
+  }
+
+  @Option(
+      secure = true,
+      description =
+          "The direction in which values are assigned when a concrete error path is built (i.e. for"
+              + " a counterexample-check or a witness). Forward assigns concrete values only if"
+              + " they are known at the location. Backward does remember possible assignments from"
+              + " before and carries them over.")
+  private DIRECTION errorPathConcreteValueAssignmentDirection = DIRECTION.BACKWARD;
+
+  @Option(
+      secure = true,
+      description =
+          "Exports concrete variable assignments for internally created CPAchecker variables (e.g."
+              + " '__CPAchecker_TMP_X') if true. Note: Those internal variables are used e.g. to"
+              + " safe results of sub-expressions that are split up, including assumptions, and are"
+              + " always used and exported. This options only controls whether this CPA exports"
+              + " known concrete values for these variables in counterexamples and witnesses.")
+  private boolean exportInternalVariableAssignments = true;
+
+  @Option(
+      secure = true,
+      description =
+          "If true, exports concrete variable assignments along the found path towards errors for"
+              + " counterexamples and violation witnesses. If false, only the found path is"
+              + " exported.")
+  private boolean exportVariableAssignmentsForViolations = true;
+
   private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
 
   @Option(
@@ -202,6 +234,10 @@ public class SMGOptions {
 
   public int getConcreteValueForSymbolicOffsetsAssignmentMaximum() {
     return concreteValueForSymbolicOffsetsAssignmentMaximum;
+  }
+
+  public DIRECTION getErrorPathConcreteValueAssignmentDirection() {
+    return errorPathConcreteValueAssignmentDirection;
   }
 
   public void incConcreteValueForSymbolicOffsetsAssignmentMaximum() throws SMGException {
@@ -685,6 +721,14 @@ public class SMGOptions {
 
   boolean isTreatSymbolicValuesAsUnknown() {
     return treatSymbolicValuesAsUnknown;
+  }
+
+  public boolean exportInternalVariableAssignments() {
+    return exportInternalVariableAssignments;
+  }
+
+  public boolean exportVariableAssignmentsForViolations() {
+    return exportVariableAssignmentsForViolations;
   }
 
   public boolean isSatCheckStrategyAtAssume() {

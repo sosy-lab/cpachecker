@@ -3634,12 +3634,32 @@ cpa.smg2.enableMallocFail = true
 # zeroing allocation functions like calloc().
 cpa.smg2.enableZeroingOfSymbolicMemorySize = false
 
+# The direction in which values are assigned when a concrete error path is
+# built (i.e. for a counterexample-check or a witness). Forward assigns
+# concrete values only if they are known at the location. Backward does
+# remember possible assignments from before and carries them over.
+cpa.smg2.errorPathConcreteValueAssignmentDirection = BACKWARD
+  enum:     [FORWARD, BACKWARD]
+
+# Exports concrete variable assignments for internally created CPAchecker
+# variables (e.g. '__CPAchecker_TMP_X') if true. Note: Those internal
+# variables are used e.g. to safe results of sub-expressions that are split
+# up, including assumptions, and are always used and exported. This options
+# only controls whether this CPA exports known concrete values for these
+# variables in counterexamples and witnesses.
+cpa.smg2.exportInternalVariableAssignments = true
+
 # Filename format for SMG graph dumps
 cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 
 # Describes when SMG graphs should be dumped.
 cpa.smg2.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
+
+# If true, exports concrete variable assignments along the found path towards
+# errors for counterexamples and violation witnesses. If false, only the
+# found path is exported.
+cpa.smg2.exportVariableAssignmentsForViolations = true
 
 # Functions which return externally allocated memory with bit size defined by
 # option externalAllocationSize
