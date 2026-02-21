@@ -63,7 +63,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
-    <rundefinition name="imc-opensmt2-mathsat5">
+  <rundefinition name="imc-opensmt2-mathsat5">
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>

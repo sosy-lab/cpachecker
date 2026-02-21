@@ -45,7 +45,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.interpolationSolver=cvc5</option>
   </rundefinition>
 
-  <rundefinition name="imc-cvc5-mathsat5">
+  <rundefinition name="imc-cvc5-cvc5">
     <option name="--option">solver.solver=cvc5</option>
   </rundefinition>
 
