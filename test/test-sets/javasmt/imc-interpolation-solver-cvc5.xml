@@ -1,0 +1,189 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- Interpolating Model Checking test-set used to compare/test interpolation in different SMT solvers, using CVC5 as interpolating solver for all -->
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="4">
+
+  <!-- Use Apollon by default, override if desired -->
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
+
+  <option name="--heap">13000M</option>
+  <option name="--stack" reason="CVC4 needs a larger stack">50M</option>
+  <option name="--no-output-files"/>
+  <option name="--benchmark"/>
+   <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+
+  <option name="--bmc-interpolation"/>
+  <!-- Disable fallback to BMC, as we want to test interpolation -->
+  <option name="--option">imc.fallBack=false</option>
+
+
+  <rundefinition name="imc-mathsat5-cvc5">
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="imc-z3-cvc5">
+    <option name="--option">solver.solver=z3</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="imc-cvc4-cvc5">
+    <option name="--option">solver.solver=cvc4</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="imc-cvc5-mathsat5">
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="imc-smtinterpol-cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="imc-princess-cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+    <rundefinition name="imc-opensmt2-cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="imc-boolector-cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.handlePointerAliasing=false</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+    <rundefinition name="imc-bitwuzla-cvc5">
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licensed parts of JavaSMT. -->
+  <rundefinition name="imc-yices2-cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+  
+
+  <!-- SV-COMP26 unreach-call benchmark-set -->
+  <tasks name="C.unreach-call.Arrays">
+    <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.BitVectors">
+    <includesfile>../sv-benchmarks/c/BitVectors.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.ControlFlow">
+    <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+    <includesfile>../sv-benchmarks/c/Sanity.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.ECA">
+    <includesfile>../sv-benchmarks/c/ECA.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Floats">
+    <includesfile>../sv-benchmarks/c/Floats.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Heap">
+    <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+    <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Loops">
+    <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+    <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.ProductLines">
+    <includesfile>../sv-benchmarks/c/ProductLines.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Recursive">
+    <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+    <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Sequentialized">
+    <includesfile>../sv-benchmarks/c/Sequentialized.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.XCSP">
+    <includesfile>../sv-benchmarks/c/XCSP.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Combinations">
+    <includesfile>../sv-benchmarks/c/Combinations.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Hardware">
+    <includesfile>../sv-benchmarks/c/Hardware.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Hardness">
+    <includesfile>../sv-benchmarks/c/Hardness.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Concurrency">
+    <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.SoftwareSystems-AWS-C-Common">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-AWS-C-Common.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.SoftwareSystems-DeviceDriversLinux64">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+    <excludesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large.set</excludesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.SoftwareSystems-DeviceDriversLinux64Large">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.SoftwareSystems-Other">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-coreutils.set</includesfile>
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-BusyBox.set</includesfile>
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-OpenBSD.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.SoftwareSystems-uthash">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.SoftwareSystems-Intel-TDX-Module">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-Intel-TDX-Module.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+</benchmark>
