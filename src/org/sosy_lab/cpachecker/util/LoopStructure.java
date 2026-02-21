@@ -26,6 +26,7 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -112,6 +113,16 @@ public final class LoopStructure {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
 
+    // For representing recursive functions as loops, which is not really a loop but we want to have
+    // it in the same format for the LoopBoundCPA
+    private boolean isDummy = false;
+
+    private Loop(CFANode pLoopHeads, Set<CFANode> pNodes, boolean pIsDummy) {
+      loopHeads = ImmutableSet.of(pLoopHeads);
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(pLoopHeads).build();
+      isDummy = pIsDummy;
+    }
+
     private Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.copyOf(pLoopHeads);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).addAll(pLoopHeads).build();
@@ -123,6 +134,10 @@ public final class LoopStructure {
 
     public static Loop fromLoopHeadsAndNodes(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
       return new Loop(pLoopHeads, pNodes);
+    }
+
+    public boolean isDummy() {
+      return isDummy;
     }
 
     private void computeSets() {
@@ -1447,5 +1462,9 @@ public final class LoopStructure {
 
       return sectionExit;
     }
+  }
+
+  public static Loop dummyLoopForNode(CFANode pNode) {
+    return new Loop(pNode, Collections.singleton(pNode), true);
   }
 }

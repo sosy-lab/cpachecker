@@ -75,7 +75,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -654,7 +656,10 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException, CPAException {
     if (pReached.size() <= 1 && cfa.getLoopStructure().isPresent()) {
       Stream<CFANode> relevantLoopHeads =
-          cfa.getLoopStructure().orElseThrow().getAllLoops().stream()
+          FluentIterable.concat(
+                  cfa.getLoopStructure().orElseThrow().getAllLoops(),
+                  LoopStructure.getRecursions(cfa))
+              .stream()
               .filter(loop -> !BMCHelper.isTrivialSelfLoop(loop))
               .map(Loop::getLoopHeads)
               .flatMap(Collection::stream)
@@ -663,11 +668,15 @@ class KInductionProver implements AutoCloseable {
       Iterator<CFANode> relevantLoopHeadIterator = relevantLoopHeads.iterator();
       while (relevantLoopHeadIterator.hasNext()) {
         CFANode relevantLoopHead = relevantLoopHeadIterator.next();
-        Precision precision =
-            pCPA.getInitialPrecision(relevantLoopHead, StateSpacePartition.getDefaultPartition());
-        AbstractState initialState =
-            pCPA.getInitialState(relevantLoopHead, StateSpacePartition.getDefaultPartition());
-        pReached.add(initialState, precision);
+        // Check all successors to make wildcard callstack states when
+        // abstracting at function calls
+        for (CFANode pSuccessor : CFAUtils.successorsOf(relevantLoopHead)) {
+          Precision precision =
+              pCPA.getInitialPrecision(pSuccessor, StateSpacePartition.getDefaultPartition());
+          AbstractState initialState =
+              pCPA.getInitialState(pSuccessor, StateSpacePartition.getDefaultPartition());
+          pReached.add(initialState, precision);
+        }
       }
       if (pReached.isEmpty()) {
         return AlgorithmStatus.SOUND_AND_PRECISE;

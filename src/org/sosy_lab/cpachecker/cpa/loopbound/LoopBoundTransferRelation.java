@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 @Options(prefix = "cpa.loopbound")
@@ -71,7 +74,10 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges = ImmutableMap.builder();
     ImmutableListMultimap.Builder<CFANode, Loop> heads = ImmutableListMultimap.builder();
 
-    for (Loop l : pCFA.getLoopStructure().orElseThrow().getAllLoops()) {
+    for (Loop l :
+        FluentIterable.concat(
+            pCFA.getLoopStructure().orElseThrow().getAllLoops(),
+            LoopStructure.getRecursions(pCFA))) {
       // function edges do not count as incoming/outgoing edges
       Stream<CFAEdge> incomingEdges =
           l.getIncomingEdges().stream()
@@ -82,7 +88,16 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
       incomingEdges.forEach(e -> entryEdges.put(e, l));
       outgoingEdges.forEach(e -> exitEdges.put(e, l));
-      l.getLoopHeads().forEach(h -> heads.put(h, l));
+      l.getLoopHeads()
+          .forEach(
+              h -> {
+                heads.put(h, l);
+                if (h instanceof FunctionEntryNode pFunctionEntryNode
+                    && pFunctionEntryNode.getExitNode().isPresent()) {
+                  CFANode hExit = pFunctionEntryNode.getExitNode().orElseThrow();
+                  heads.put(hExit, LoopStructure.dummyLoopForNode(hExit));
+                }
+              });
     }
     loopEntryEdges = entryEdges.buildOrThrow();
     loopExitEdges = exitEdges.buildOrThrow();
@@ -96,10 +111,10 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     LoopBoundState state = (LoopBoundState) pState;
     LoopBoundPrecision precision = (LoopBoundPrecision) pPrecision;
 
-    if (pCfaEdge instanceof FunctionCallEdge) {
-      // such edges do never change loop status
-      return Collections.singleton(pState);
-    }
+    // if (pCfaEdge instanceof FunctionCallEdge) {
+    //   // such edges do never change loop status
+    //   return Collections.singleton(pState);
+    // }
 
     CFANode loc = pCfaEdge.getSuccessor();
 
@@ -108,12 +123,12 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       state = state.exit(oldLoop);
     }
 
-    if (pCfaEdge instanceof FunctionReturnEdge) {
-      // Such edges may be real loop-exit edges "while () { return; }",
-      // but never loop-entry edges.
-      // Return here because they might be mis-classified as entry edges.
-      return Collections.singleton(state);
-    }
+    // if (pCfaEdge instanceof FunctionReturnEdge) {
+    //   // Such edges may be real loop-exit edges "while () { return; }",
+    //   // but never loop-entry edges.
+    //   // Return here because they might be mis-classified as entry edges.
+    //   return Collections.singleton(state);
+    // }
 
     Loop newLoop = null;
     if (precision.shouldTrackStack()) {

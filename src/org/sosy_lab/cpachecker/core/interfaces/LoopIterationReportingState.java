@@ -17,5 +17,7 @@ public interface LoopIterationReportingState extends AbstractState, Partitionabl
 
   int getDeepestIteration();
 
+  int getDeepestIterationIgnoringDummyLoops();
+
   Set<Loop> getDeepestIterationLoops();
 }
