@@ -24,6 +24,8 @@ interface LoopIterationState {
 
   int getMaxIterationCount();
 
+  int getMaxIterationCountIgnoringDummy();
+
   int getLoopIterationCount(Loop pLoop);
 
   Set<Loop> getDeepestIterationLoops();
@@ -75,6 +77,17 @@ interface LoopIterationState {
     @Override
     public int getMaxIterationCount() {
       return maxLoopIteration;
+    }
+
+    @Override
+    public int getMaxIterationCountIgnoringDummy() {
+      int maxIteration = 0;
+      for (LoopIteration iteration : iterations.values()) {
+        if (!iteration.getLoop().isDummy()) {
+          maxIteration = Math.max(maxIteration, iteration.getCount());
+        }
+      }
+      return maxIteration;
     }
 
     @Override
@@ -257,6 +270,14 @@ interface LoopIterationState {
 
     @Override
     public int getMaxIterationCount() {
+      return iteration;
+    }
+
+    @Override
+    public int getMaxIterationCountIgnoringDummy() {
+      if (loop.isDummy()) {
+        return 0;
+      }
       return iteration;
     }
 

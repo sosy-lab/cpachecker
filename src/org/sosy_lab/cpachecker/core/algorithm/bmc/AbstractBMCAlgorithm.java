@@ -296,10 +296,7 @@ abstract class AbstractBMCAlgorithm
     if (induction) {
       induction = checkIfInductionIsPossible(pCFA, pLogger);
       // if there is no loop we do not need induction, although loop information is available
-      induction =
-          induction
-              && cfa.getLoopStructure().orElseThrow().getCount() > 0
-              && !getLoopHeads().isEmpty();
+      induction = induction && !getLoopHeads().isEmpty();
     }
 
     if (induction) {
@@ -1098,7 +1095,7 @@ abstract class AbstractBMCAlgorithm
    * @return the loop heads.
    */
   private Set<CFANode> getLoopHeads() {
-    return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
+    return BMCHelper.getLoopHeads(cfa);
   }
 
   public enum InvariantGeneratorFactory {

@@ -985,7 +985,7 @@ public class PdrAlgorithm implements Algorithm {
    * @return the loop heads.
    */
   private Set<CFANode> getLoopHeads() {
-    return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
+    return BMCHelper.getLoopHeads(cfa);
   }
 
   private Stream<CFANode> getNonTrivialLoopHeads() {

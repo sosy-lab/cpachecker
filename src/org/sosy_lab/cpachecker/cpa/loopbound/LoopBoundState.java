@@ -171,6 +171,16 @@ public class LoopBoundState
   }
 
   @Override
+  public int getDeepestIterationIgnoringDummyLoops() {
+    int deepestIteration = 0;
+    for (LoopIterationState loopIterationState : loopStack) {
+      deepestIteration =
+          Math.max(deepestIteration, loopIterationState.getMaxIterationCountIgnoringDummy());
+    }
+    return deepestIteration + 1;
+  }
+
+  @Override
   public Set<Loop> getDeepestIterationLoops() {
     if (loopStack.isEmpty()) {
       return ImmutableSet.of();
