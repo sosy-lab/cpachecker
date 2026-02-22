@@ -316,7 +316,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public FloatingPointRoundingModeFormula makeRoundingMode(FloatingPointRoundingMode pFloatingPointRoundingMode) {
+  public FloatingPointRoundingModeFormula makeRoundingMode(
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
     throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 

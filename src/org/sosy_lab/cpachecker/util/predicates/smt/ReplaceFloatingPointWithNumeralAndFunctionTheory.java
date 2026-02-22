@@ -315,7 +315,8 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
-  public FloatingPointRoundingModeFormula makeRoundingMode(FloatingPointRoundingMode pFloatingPointRoundingMode) {
+  public FloatingPointRoundingModeFormula makeRoundingMode(
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
     throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 
@@ -373,9 +374,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       BigInteger exponent, BigInteger mantissa, Sign sign, FloatingPointType type) {
     // Create a FloatValue from the individual fields
     FloatValue value =
-        FloatValue.fromFloatingPointNumber(
-            FloatingPointNumber.of(
-                sign, exponent, mantissa, type.getExponentSize(), type.getMantissaSize()));
+        FloatValue.fromFloatingPointNumber(FloatingPointNumber.of(sign, exponent, mantissa, type));
 
     // Cover special cases for Infinity and NaN
     if (value.isInfinite()) {
