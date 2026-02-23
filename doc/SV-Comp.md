@@ -29,7 +29,7 @@ cp -a config/svcomp27* config/unmaintained/
 cp -a config/components/smg/svcomp27* config/unmaintained/components/smg/
 cp -a config/components/svcomp27* config/unmaintained/components/
 cp -a config/includes/svcomp27* config/unmaintained/includes/
-rename 's/svcomp27/svcomp28/' config/svcomp27* config/components/svcomp27* config/includes/svcomp27*
+rename 's/svcomp27/svcomp28/' config/svcomp27* config/components/svcomp27* config/includes/svcomp27* config/components/smg/svcomp27*
 sed -e "s/svcomp27/svcomp28/g" -e "s/SV-COMP'27/SV-COMP'28/g" e "s/SV-COMP27/SV-COMP28/g" -i config/**/svcomp28*
 ```
 
