@@ -897,7 +897,7 @@ public class CFACreator {
         functionContractBuilder.build();
 
     return new AcslMetadata(
-        pComments, ImmutableSet.of(), assertions, loopAnnotations, functionContracts);
+        ImmutableSet.of(), assertions, loopAnnotations, functionContracts);
   }
 
   /**
