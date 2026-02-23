@@ -529,7 +529,7 @@ class WebInterface:
                 print("\n=== BenchCloud Maintenance Info ===")
                 print(banner_text)
                 print("===================================\n")
-                sleep(5) 
+                sleep(5)
 
         except Exception as e:
             logging.debug("Could not fetch banner: %s", e)
