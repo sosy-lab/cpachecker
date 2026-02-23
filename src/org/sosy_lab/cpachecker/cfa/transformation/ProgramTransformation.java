@@ -8,11 +8,25 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public abstract class ProgramTransformation {
   private ProgramTransformationBehaviour behaviour;
 
-  public abstract SubCFA transform(CFA pCFA, CFANode pEntryNode, CFANode pExitNode);
+  /**
+   * Checks if a specific ProgramTransformation can be applied on a CFA.
+   *
+   * @param pCFA CFA
+   * @return Either the information needed for the program transformation is present or empty.
+   */
+  public abstract Optional<ProgramTransformationInformation> canBeApplied(CFA pCFA);
+
+  /**
+   * Perform the program transformation and return the resulting SubCFA.
+   * @param pCFA CFA
+   * @param pInfo ProgramTransformationInformation
+   * @return SubCFA
+   */
+  public abstract SubCFA transform(CFA pCFA, ProgramTransformationInformation pInfo);
 }

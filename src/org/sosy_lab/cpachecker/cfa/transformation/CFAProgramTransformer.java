@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 
 /**
@@ -20,9 +21,14 @@ public class CFAProgramTransformer {
     boolean finished = false;
 
     while (!finished) {
-      SubCFA subCFAToBeAdded =  SubCFA.createSubCFA(pCFA, null, null, ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION);
-      modifiedCFA = subCFAToBeAdded.insertSubCFA(pCFA);
-      break;
+
+      Optional<ProgramTransformationInformation> info = new TailRecursionEliminationProgramTransformation().canBeApplied(pCFA);
+      if (info.isPresent()){
+        SubCFA subCFAToBeAdded =  SubCFA.createSubCFA(pCFA, info.get());
+        modifiedCFA = subCFAToBeAdded.insertSubCFA(pCFA);
+      } else {
+        finished = true;
+      }
     }
 
     return modifiedCFA;

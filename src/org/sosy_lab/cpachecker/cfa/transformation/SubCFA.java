@@ -28,12 +28,21 @@ public record SubCFA (
     ImmutableSet<CFAEdge> allEdges
   ) {
 
-  public static SubCFA createSubCFA(CFA pCFA, CFANode pEntryNode, CFANode pExitNode, ProgramTransformationEnum pTransformation) {
+  /**
+   * Apply the given program transformation on the given nodes and return the resulting SubCFA.
+   *
+   * @param pCFA MutableCFA
+   * @param pEntryNode CFANode
+   * @param pExitNode CFANode
+   * @param pTransformation ProgramTransformationEnum
+   * @return SubCFA after applying the program transformation
+   */
+  public static SubCFA createSubCFA(CFA pCFA, ProgramTransformationInformation pInfo) {
 
-    return switch (pTransformation) {
+    return switch (pInfo.programTransformation()) {
       case JUMP_THREADING -> null;
       case TAIL_RECURSION_ELIMINATION ->
-        new TailRecursionEliminationProgramTransformation().transform(pCFA, pEntryNode, pExitNode);
+        new TailRecursionEliminationProgramTransformation().transform(pCFA, pInfo);
       default -> null;
     };
   }
