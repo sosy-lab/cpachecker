@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
@@ -735,20 +736,20 @@ public class AcslParserLogicalDefinitionsTest {
                 // If branch: start->next == 0 && start == end
                 new AcslBinaryPredicate(
                     FileLocation.DUMMY,
-                    sllNextEqualsZeroTerm,
-                    startEqualsEndTerm,
+                    new AcslPredicateTerm(sllNextEqualsZeroTerm),
+                    new AcslPredicateTerm(startEqualsEndTerm),
                     AcslBinaryPredicateOperator.AND),
                 // Else branch: start != 0 && start->next != start && start->next != 0
                 //               && pred_sll(start->next, end, size - 1)
                 new AcslBinaryPredicate(
                     FileLocation.DUMMY,
-                    startNotEqualsZeroTerm,
+                    new AcslPredicateTerm(startNotEqualsZeroTerm),
                     new AcslBinaryPredicate(
                         FileLocation.DUMMY, /* start->next != start */
-                        sllNextNotEqualsStartTerm,
+                        new AcslPredicateTerm(sllNextNotEqualsStartTerm),
                         new AcslBinaryPredicate(
                             FileLocation.DUMMY, /* start->next != 0 */
-                            sllNextNotEqualsZeroTerm,
+                            new AcslPredicateTerm(sllNextNotEqualsZeroTerm),
                             /* pred_sll(start->next, end, size - 1) */
                             new AcslFunctionCallPredicate(
                                 FileLocation.DUMMY,
