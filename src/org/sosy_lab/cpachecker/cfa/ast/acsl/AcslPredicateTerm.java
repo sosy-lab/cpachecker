@@ -10,11 +10,14 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public final class AcslPredicateTerm extends AbstractExpression implements AcslPredicate {
+
+  @Serial private static final long serialVersionUID = 3859242312435196727L;
 
   private AcslTerm term;
 

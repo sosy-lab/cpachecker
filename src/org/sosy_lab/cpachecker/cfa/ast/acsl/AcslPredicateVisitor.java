@@ -32,5 +32,5 @@ public interface AcslPredicateVisitor<R, X extends Exception> {
 
   R visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate);
 
-  <R> R visit(AcslPredicateTerm pAcslPredicateTerm);
+  R visit(AcslPredicateTerm pAcslPredicateTerm);
 }

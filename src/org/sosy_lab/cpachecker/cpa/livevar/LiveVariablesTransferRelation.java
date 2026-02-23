@@ -69,8 +69,10 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -897,6 +899,16 @@ public class LiveVariablesTransferRelation
     @Override
     public Boolean visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
       return false;
+    }
+
+    @Override
+    public Boolean visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate) {
+      throw new UnsupportedOperationException("AcslFunctionCallPredicate needs to be implemented");
+    }
+
+    @Override
+    public Boolean visit(AcslPredicateTerm pAcslPredicateTerm) {
+      throw new UnsupportedOperationException("AcslPredicateTerm needs to be implemented");
     }
   }
 }

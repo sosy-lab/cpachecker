@@ -76,9 +76,12 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTe
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
@@ -92,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
@@ -1388,6 +1392,16 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<? extends AAstNode> visit(AcslCLeftHandSideTerm pAcslCLeftHandSideTerm) {
+      return null;
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslCExpressionTerm pAcslCExpressionTerm) {
+      return null;
+    }
+
+    @Override
     public Iterable<? extends AAstNode> visit(AcslTernaryPredicate pAcslTernaryPredicate)
         throws NoException {
       return ImmutableList.of();
@@ -1409,6 +1423,17 @@ public class CFAUtils {
     public Iterable<? extends AAstNode> visit(AcslExistsPredicate pAcslExistsPredicate)
         throws NoException {
       return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        AcslFunctionCallPredicate pAcslFunctionCallPredicate) {
+      throw new UnsupportedOperationException("AcslFunctionCallPredicate needs to be implemented");
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslPredicateTerm pAcslPredicateTerm) {
+      throw new UnsupportedOperationException("AcslPredicateTerm needs to be implemented");
     }
 
     @Override
