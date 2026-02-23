@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMetadataException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
@@ -856,8 +855,6 @@ public class CFACreator {
 
     ImmutableSetMultimap.Builder<CFANode, AcslFunctionContract> functionContractBuilder =
         ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFANode, AcslAssigns> assignsBuilder =
-        ImmutableSetMultimap.builder();
 
     for (AcslComment comment : pComments) {
       CFANode node =
@@ -881,7 +878,6 @@ public class CFACreator {
         case AcslLoopAnnotation loopAnnotation -> loopAnnotationBuilder.put(node, loopAnnotation);
         case AcslFunctionContract functionContract ->
             functionContractBuilder.put(node, functionContract);
-        case AcslAssigns assigns -> assignsBuilder.put(node, assigns);
         case null ->
             throw new AcslMetadataCreationException(
                 "The comment " + comment + "could not be parsed into an acsl annotation object.");
@@ -899,10 +895,9 @@ public class CFACreator {
         loopAnnotationBuilder.build();
     ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts =
         functionContractBuilder.build();
-    ImmutableSetMultimap<CFANode, AcslAssigns> assigns = assignsBuilder.build();
 
     return new AcslMetadata(
-        pComments, ImmutableSet.of(), assertions, loopAnnotations, functionContracts, assigns);
+        pComments, ImmutableSet.of(), assertions, loopAnnotations, functionContracts);
   }
 
   /**

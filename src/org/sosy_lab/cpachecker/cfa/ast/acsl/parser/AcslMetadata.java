@@ -30,15 +30,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * @param assertions A mapping of Cfa Nodes to Acsl assertion_clauses
  * @param loopAnnotations A mapping of Cfa Nodes to Acsl loop_invariants
  * @param functionContracts A mapping of Cfa Nodes to Acsl function_contracts
- * @param modifiedMemoryLocations A mapping of Cfa Nodes to Acsl assigns_clauses
  */
 public record AcslMetadata(
     ImmutableList<AcslComment> pAcslComments,
     ImmutableSet<AcslDeclaration> globalAcslDeclarations,
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions,
     ImmutableSetMultimap<CFANode, AcslLoopAnnotation> loopAnnotations,
-    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts,
-    ImmutableSetMultimap<CFANode, AcslAssigns> modifiedMemoryLocations) {
+    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts) {
 
   public static AcslMetadata empty() {
     return new AcslMetadata(
@@ -46,14 +44,13 @@ public record AcslMetadata(
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of());
+        ImmutableSetMultimap.of()
+    );
   }
 
   public int numOfAnnotaniots() {
     return assertions.size()
         + loopAnnotations.size()
-        + functionContracts.size()
-        + modifiedMemoryLocations.size();
+        + functionContracts.size();
   }
 }
