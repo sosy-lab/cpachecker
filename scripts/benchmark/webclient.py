@@ -424,6 +424,7 @@ class WebInterface:
         self._unfinished_runs_lock = threading.Lock()
         self._downloading_result_futures = {}
         self._download_attempts = {}
+        self._banner_printed = False
         self.thread_count = thread_count
         self._executor = ThreadPoolExecutor(thread_count)
         self._thread_local = threading.local()
@@ -449,7 +450,6 @@ class WebInterface:
             self._result_downloader = PollingResultDownloader(
                 self, result_poll_interval
             )
-        self._print_banner()
 
     def getUserAndPassword(self, user_pwd):
         # split only once, password might contain special char ':'
@@ -533,6 +533,11 @@ class WebInterface:
 
         except Exception as e:
             logging.debug("Could not fetch banner: %s", e)
+
+    def _ensure_banner_printed_once(self):
+        if not self._banner_printed:
+            self._print_banner()
+            self._banner_printed = True
 
     def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
@@ -675,6 +680,7 @@ class WebInterface:
         revision,
         counter=0,
     ):
+        self._ensure_banner_printed_once()
         params = []
         opened_files = []  # open file handles are passed to the request library
 
