@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -658,7 +657,7 @@ class KInductionProver implements AutoCloseable {
       Stream<CFANode> relevantLoopHeads =
           FluentIterable.concat(
                   cfa.getLoopStructure().orElseThrow().getAllLoops(),
-                  LoopStructure.getRecursions(cfa))
+                  cfa.getLoopStructure().orElseThrow().getRecursiveProcedureLoops())
               .stream()
               .filter(loop -> !BMCHelper.isTrivialSelfLoop(loop))
               .map(Loop::getLoopHeads)

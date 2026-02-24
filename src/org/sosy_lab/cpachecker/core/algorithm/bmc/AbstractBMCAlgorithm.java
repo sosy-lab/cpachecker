@@ -1095,7 +1095,7 @@ abstract class AbstractBMCAlgorithm
    * @return the loop heads.
    */
   private Set<CFANode> getLoopHeads() {
-    return BMCHelper.getLoopHeads(cfa);
+    return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 
   public enum InvariantGeneratorFactory {

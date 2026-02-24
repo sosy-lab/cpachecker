@@ -111,10 +111,10 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     LoopBoundState state = (LoopBoundState) pState;
     LoopBoundPrecision precision = (LoopBoundPrecision) pPrecision;
 
-    // if (pCfaEdge instanceof FunctionCallEdge) {
-    //   // such edges do never change loop status
-    //   return Collections.singleton(pState);
-    // }
+    if (pCfaEdge instanceof FunctionCallEdge && !loopHeads.containsKey(pCfaEdge.getSuccessor())) {
+      // such edges do never change loop status
+      return Collections.singleton(pState);
+    }
 
     CFANode loc = pCfaEdge.getSuccessor();
 
@@ -123,12 +123,13 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       state = state.exit(oldLoop);
     }
 
-    // if (pCfaEdge instanceof FunctionReturnEdge) {
-    //   // Such edges may be real loop-exit edges "while () { return; }",
-    //   // but never loop-entry edges.
-    //   // Return here because they might be mis-classified as entry edges.
-    //   return Collections.singleton(state);
-    // }
+    if (pCfaEdge instanceof FunctionReturnEdge
+        && !loopHeads.containsKey(pCfaEdge.getPredecessor())) {
+      // Such edges may be real loop-exit edges "while () { return; }",
+      // but never loop-entry edges.
+      // Return here because they might be mis-classified as entry edges.
+      return Collections.singleton(state);
+    }
 
     Loop newLoop = null;
     if (precision.shouldTrackStack()) {
