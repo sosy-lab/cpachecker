@@ -19,8 +19,6 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class BMCAlgorithmTest {
 
-  private static final String configPath = "config/bmc-rec.properties";
-
   private String getProgramPath(String programName) {
     return "test/programs/recursion/" + programName;
   }
