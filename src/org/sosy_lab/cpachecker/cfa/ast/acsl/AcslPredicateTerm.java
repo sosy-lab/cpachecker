@@ -27,6 +27,10 @@ public final class AcslPredicateTerm extends AbstractExpression implements AcslP
     term = pTerm;
   }
 
+  public AcslTerm getTerm() {
+    return term;
+  }
+
   @Override
   public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
