@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -21,10 +22,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceLastThreadOrderInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -77,6 +82,8 @@ public abstract class NondeterministicSimulation {
 
   final MPOROptions options;
 
+  final Optional<MemoryModel> memoryModel;
+
   final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
   final GhostElements ghostElements;
@@ -85,6 +92,7 @@ public abstract class NondeterministicSimulation {
 
   NondeterministicSimulation(
       MPOROptions pOptions,
+      Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
@@ -97,6 +105,7 @@ public abstract class NondeterministicSimulation {
       case NUM_STATEMENTS -> checkArgument(this instanceof NumStatementsNondeterministicSimulation);
     }
     options = pOptions;
+    memoryModel = pMemoryModel;
     ghostElements = pGhostElements;
     clauses = pClauses;
     utils = pUtils;
@@ -121,12 +130,52 @@ public abstract class NondeterministicSimulation {
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
 
+    ImmutableList<String> precedingStatements =
+        ImmutableList.<String>builder()
+            .addAll(buildPrecedingReductionStatements(pThread))
+            .addAll(buildPrecedingStatements(pThread))
+            .build();
+
     return SeqMultiControlStatement.buildMultiControlStatementByEncoding(
         options.controlEncodingStatement(),
         pcLeftHandSide,
-        buildPrecedingStatements(pThread),
+        precedingStatements,
         expressionClauseMap,
         utils.binaryExpressionBuilder());
+  }
+
+  /**
+   * Builds the core reduction instrumentation of {@link MPOROptions#reduceLastThreadOrder()} that
+   * precedes all thread simulations, if enabled.
+   */
+  private ImmutableList<String> buildPrecedingReductionStatements(MPORThread pThread)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<String> rStatements = ImmutableList.builder();
+
+    if (options.reduceLastThreadOrder()) {
+      // do not create the statement for the main thread, since LAST_THREAD < 0 never holds
+      if (!pThread.isMain()) {
+        ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+            SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));
+        ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
+            SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses.get(pThread));
+        SeqBranchStatement lastThreadOrderStatement =
+            new ReduceLastThreadOrderInjector(
+                    options,
+                    clauses.size(),
+                    pThread,
+                    labelClauseMap,
+                    labelBlockMap,
+                    ghostElements.bitVectorVariables().orElseThrow(),
+                    memoryModel.orElseThrow(),
+                    utils)
+                .buildLastThreadOrderStatement(pThread);
+        rStatements.add(lastThreadOrderStatement.toASTString());
+      }
+    }
+
+    return rStatements.build();
   }
 
   /**
@@ -166,6 +215,6 @@ public abstract class NondeterministicSimulation {
    * here to combine the common functionality for use in {@link
    * NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}.
    */
-  abstract ImmutableList<CStatement> buildPrecedingStatements(MPORThread pThread)
+  abstract ImmutableList<String> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException;
 }

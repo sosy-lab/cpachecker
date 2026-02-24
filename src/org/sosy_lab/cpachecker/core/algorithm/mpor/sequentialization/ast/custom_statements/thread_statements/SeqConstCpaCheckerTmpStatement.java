@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -127,7 +126,6 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
   }
 
   SeqConstCpaCheckerTmpStatement(
-      ReductionOrder pReductionOrder,
       CVariableDeclaration pDeclaration,
       SubstituteEdge pFirstSuccessorEdge,
       Optional<SubstituteEdge> pSecondSuccessorEdge,
@@ -135,7 +133,7 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     checkArguments(pDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
     firstSuccessorEdge = pFirstSuccessorEdge;
     secondSuccessorEdge = pSecondSuccessorEdge;
@@ -143,7 +141,6 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
   }
 
   private SeqConstCpaCheckerTmpStatement(
-      ReductionOrder pReductionOrder,
       CVariableDeclaration pConstCpaCheckerTmpDeclaration,
       SubstituteEdge pFirstSuccessorEdge,
       Optional<SubstituteEdge> pSecondSuccessorEdge,
@@ -153,13 +150,7 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(
-        pReductionOrder,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        pTargetPc,
-        pTargetGoto,
-        pInjectedStatements);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     checkArguments(pConstCpaCheckerTmpDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
     firstSuccessorEdge = pFirstSuccessorEdge;
     secondSuccessorEdge = pSecondSuccessorEdge;
@@ -175,7 +166,7 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
 
     String targetStatements =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return Joiner.on(SeqSyntax.SPACE)
         .join(
@@ -188,7 +179,6 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
   @Override
   public SeqConstCpaCheckerTmpStatement withTargetPc(int pTargetPc) {
     return new SeqConstCpaCheckerTmpStatement(
-        reductionOrder,
         constCpaCheckerTmpDeclaration,
         firstSuccessorEdge,
         secondSuccessorEdge,
@@ -202,7 +192,6 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqConstCpaCheckerTmpStatement(
-        reductionOrder,
         constCpaCheckerTmpDeclaration,
         firstSuccessorEdge,
         secondSuccessorEdge,
@@ -218,7 +207,6 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqConstCpaCheckerTmpStatement(
-        reductionOrder,
         constCpaCheckerTmpDeclaration,
         firstSuccessorEdge,
         secondSuccessorEdge,

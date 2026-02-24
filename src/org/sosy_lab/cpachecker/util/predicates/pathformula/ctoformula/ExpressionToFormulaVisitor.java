@@ -237,15 +237,15 @@ public class ExpressionToFormulaVisitor
       }
       case MULTIPLY -> ret = mgr.makeMultiply(f1, f2);
       case DIVIDE -> ret = mgr.makeDivide(f1, f2, signed);
-      case MODULO -> {
+      case REMAINDER -> {
         // Modulo in C is remainder in SMTLIB2
         ret = mgr.makeRemainder(f1, f2, signed);
 
         addModuloConstraints(exp, f1, f2, signed, ret);
       }
-      case BINARY_AND -> ret = mgr.makeAnd(f1, f2);
-      case BINARY_OR -> ret = mgr.makeOr(f1, f2);
-      case BINARY_XOR -> ret = mgr.makeXor(f1, f2);
+      case BITWISE_AND -> ret = mgr.makeAnd(f1, f2);
+      case BITWISE_OR -> ret = mgr.makeOr(f1, f2);
+      case BITWISE_XOR -> ret = mgr.makeXor(f1, f2);
       case SHIFT_LEFT ->
           // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
           ret = mgr.makeShiftLeft(f1, f2);
@@ -289,7 +289,7 @@ public class ExpressionToFormulaVisitor
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
         && e1 instanceof CBinaryExpression or
-        && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BINARY_OR) {
+        && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BITWISE_OR) {
       // This is code like "(a | b) == 0".
       // According to LDV, GCC sometimes produces this during weaving,
       // but for non-bitprecise analysis it can be handled in a better way as (a == 0) || (b == 0).

@@ -61,7 +61,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
-            .setOption("analysis.algorithm.MPOR.reductionOrder", "LAST_THREAD_THEN_CONFLICT")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -156,7 +155,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
-            .setOption("analysis.algorithm.MPOR.reductionOrder", "CONFLICT_THEN_LAST_THREAD")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -274,7 +272,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
-            .setOption("analysis.algorithm.MPOR.reductionOrder", "LAST_THREAD_THEN_CONFLICT")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();

@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastSparseBitVector;
@@ -58,8 +59,9 @@ public class BitVectorEvaluationBuilder {
 
   public static Optional<BitVectorEvaluationExpression> buildLastBitVectorEvaluation(
       MPOROptions pOptions,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      SeqThreadStatementBlock pTargetBlock,
+      SeqThreadStatementBlock pFirstBlock,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
@@ -73,23 +75,27 @@ public class BitVectorEvaluationBuilder {
               String.format(
                   "cannot build evaluation for reductionMode %s", pOptions.reductionMode()));
       case ACCESS_ONLY -> {
-        ImmutableSet<SeqMemoryLocation> directAccessMemoryLocations =
-            SeqMemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.ACCESS);
+        ImmutableSet<SeqMemoryLocation> reachableAccessMemoryLocations =
+            SeqMemoryLocationFinder.findReachableMemoryLocationsByAccessType(
+                pLabelClauseMap,
+                pLabelBlockMap,
+                pFirstBlock,
+                pMemoryModel,
+                MemoryAccessType.ACCESS);
         yield buildLastAccessBitVectorEvaluationByEncoding(
-            pOptions, directAccessMemoryLocations, pBitVectorVariables, pMemoryModel, pUtils);
+            pOptions, reachableAccessMemoryLocations, pBitVectorVariables, pMemoryModel, pUtils);
       }
       case READ_AND_WRITE -> {
-        ImmutableSet<SeqMemoryLocation> directReadMemoryLocations =
-            SeqMemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.READ);
-        ImmutableSet<SeqMemoryLocation> directWriteMemoryLocations =
-            SeqMemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.WRITE);
+        ImmutableSet<SeqMemoryLocation> reachableReadMemoryLocations =
+            SeqMemoryLocationFinder.findReachableMemoryLocationsByAccessType(
+                pLabelClauseMap, pLabelBlockMap, pFirstBlock, pMemoryModel, MemoryAccessType.READ);
+        ImmutableSet<SeqMemoryLocation> reachableWriteMemoryLocations =
+            SeqMemoryLocationFinder.findReachableMemoryLocationsByAccessType(
+                pLabelClauseMap, pLabelBlockMap, pFirstBlock, pMemoryModel, MemoryAccessType.WRITE);
         yield buildLastReadWriteBitVectorEvaluationByEncoding(
             pOptions,
-            directReadMemoryLocations,
-            directWriteMemoryLocations,
+            reachableReadMemoryLocations,
+            reachableWriteMemoryLocations,
             pBitVectorVariables,
             pMemoryModel,
             pUtils);

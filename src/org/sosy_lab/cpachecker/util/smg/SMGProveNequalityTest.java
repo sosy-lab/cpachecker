@@ -39,7 +39,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    options = new SMGOptions(Configuration.defaultConfiguration());
+    options = new SMGOptions(Configuration.defaultConfiguration(), null);
     smg = new SMG(mockType4bSize);
     smg =
         smg.copyAndAddValueWithNestingLevelZero(value1)

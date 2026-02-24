@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_AND;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_XOR;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_AND;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_OR;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_XOR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.DIVIDE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
@@ -21,10 +21,10 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MINUS;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MODULO;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.NOT_EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.REMAINDER;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.SHIFT_LEFT;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
 
@@ -231,7 +231,13 @@ public class SMGCPAValueVisitor
           CFieldReference explicitFieldRef = fieldRef.withExplicitPointerDereference();
           CType returnType =
               SMGCPAExpressionEvaluator.getCanonicalType(explicitFieldRef.getExpressionType());
-          BigInteger readSize = evaluator.getBitSizeof(currentState, returnType);
+          Value readSizeValue = evaluator.getBitSizeof(currentState, returnType, cfaEdge);
+          // If this fails, hand through Value instead of BigInt
+          checkState(
+              readSizeValue.isNumericValue(),
+              "Expected concrete value, but found symbolic value for type size");
+          BigInteger readSize = readSizeValue.asNumericValue().bigIntegerValue();
+
           BigInteger fieldOffset =
               evaluator.getFieldOffsetInBits(
                   SMGCPAExpressionEvaluator.getCanonicalType(explicitFieldRef),
@@ -343,7 +349,7 @@ public class SMGCPAValueVisitor
         }
 
         // Calculate the offset out of the subscript value and the type
-        BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
+        Value typeSizeInBits = evaluator.getBitSizeof(newState, returnType, cfaEdge);
         Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
@@ -381,7 +387,13 @@ public class SMGCPAValueVisitor
       throws CPATransferException {
     SMGState newState = pCurrentState;
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(pReturnType);
-    BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
+    Value typeSizeInBitsValue = evaluator.getBitSizeof(newState, returnType, cfaEdge);
+    // If this fails, hand through Value instead of BigInt
+    checkState(
+        typeSizeInBitsValue.isNumericValue(),
+        "Expected concrete value, but found symbolic value for type size");
+    BigInteger typeSizeInBits = typeSizeInBitsValue.asNumericValue().bigIntegerValue();
+
     if (arrayValue instanceof AddressExpression arrayAddr) {
       Value addrOffsetValue = arrayAddr.getOffset();
 
@@ -772,18 +784,6 @@ public class SMGCPAValueVisitor
       }
     }
 
-    // Interpret address as numeric, try to calculate the operation based on the numeric
-    // A pointer deref on a numeric (or a cast) should return it to an address expr or pointer
-    if (targetType instanceof CSimpleType cSimpleType && !cSimpleType.hasComplexSpecifier()) {
-      if (((value instanceof AddressExpression) || evaluator.isPointerValue(value, currentState))
-          && options.isCastMemoryAddressesToNumeric()) {
-
-        logger.logf(Level.FINE, "Memory address '%s' interpreted as numeric value.", value);
-        return ValueAndSMGState.of(
-            currentState.transformAddressIntoNumericValue(value).orElseThrow(), currentState);
-      }
-    }
-
     if (!value.isExplicitlyKnown()) {
       // TODO: Unknowns end up here, NOT below!
       return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
@@ -799,7 +799,12 @@ public class SMGCPAValueVisitor
     CType type = targetType.getCanonicalType();
     final int size;
     if (type instanceof CSimpleType) {
-      size = evaluator.getBitSizeof(currentState, type).intValue();
+      size =
+          evaluator
+              .getBitSizeof(currentState, type, cfaEdge)
+              .asNumericValue()
+              .bigIntegerValue()
+              .intValueExact();
     } else if (type instanceof CBitFieldType) {
       size = ((CBitFieldType) type).getBitFieldSize();
       type = ((CBitFieldType) type).getType();
@@ -896,11 +901,12 @@ public class SMGCPAValueVisitor
         && !state.isLocalVariablePresentOnPreviousStackFrame(variableName)) {
       if (varDecl instanceof CVariableDeclaration cVariableDeclaration) {
         creationBuilder.addAll(
-            evaluator.handleVariableDeclarationWithoutInizializer(state, cVariableDeclaration));
+            evaluator.handleVariableDeclarationWithoutInitializer(
+                state, cVariableDeclaration, cfaEdge));
       } else if (varDecl instanceof CParameterDeclaration cParameterDeclaration) {
         creationBuilder.addAll(
-            evaluator.handleVariableDeclarationWithoutInizializer(
-                state, cParameterDeclaration.asVariableDeclaration()));
+            evaluator.handleVariableDeclarationWithoutInitializer(
+                state, cParameterDeclaration.asVariableDeclaration(), cfaEdge));
       } else {
         throw new SMGException("Unhandled on-the-fly variable creation type: " + varDecl);
       }
@@ -915,7 +921,8 @@ public class SMGCPAValueVisitor
 
         // if the variable is an array, create/search new pointer to the array and return that
         finalStatesBuilder.add(
-            evaluator.createAddressForLocalOrGlobalVariable(variableName, currentState));
+            evaluator.createAddressForLocalOrGlobalVariable(
+                variableName, returnType, currentState));
 
       } else if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
         // Struct/Unions on the stack/global; return the memory location in a
@@ -936,7 +943,13 @@ public class SMGCPAValueVisitor
         // offsets inside the points to edge). These have to be packaged into an AddressExpression
         // with a 0 offset. Modifications of the offset of the address can be done by subsequent
         // methods. (The check is fine because we already filtered out structs/unions)
-        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
+        Value sizeInBitsValue =
+            evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
+        BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
+        // If this fails, hand through Value instead of BigInt
+        checkState(
+            sizeInBitsValue.isNumericValue(),
+            "Expected concrete value, but found symbolic value for type size");
         // Now use the qualified name to get the actual global/stack memory location
         for (ValueAndSMGState readValueAndState :
             evaluator.readStackOrGlobalVariable(
@@ -970,7 +983,11 @@ public class SMGCPAValueVisitor
 
       } else {
         // Everything else should be readable and returnable directly; just return the Value
-        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
+        Value sizeInBitsValue =
+            evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
+        // If this fails hand through Value
+        checkState(sizeInBitsValue.isNumericValue());
+        BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
         // Now use the qualified name to get the actual global/stack memory location
         finalStatesBuilder.addAll(
             evaluator.readStackOrGlobalVariable(
@@ -1034,10 +1051,10 @@ public class SMGCPAValueVisitor
     final CType innerType = e.getType();
 
     return switch (idOperator) {
-      case SIZEOF -> {
-        BigInteger size = evaluator.getBitSizeof(state, innerType);
-        yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(size), state));
-      }
+      case SIZEOF ->
+          ImmutableList.of(
+              ValueAndSMGState.of(evaluator.getBitSizeof(state, innerType, cfaEdge), state));
+
       case ALIGNOF -> {
         BigInteger align = evaluator.getAlignOf(innerType);
         yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
@@ -1066,7 +1083,10 @@ public class SMGCPAValueVisitor
 
     switch (unaryOperator) {
       case SIZEOF -> {
-        BigInteger sizeInBits = evaluator.getBitSizeof(state, operandType);
+        Value sizeInBitsValue = evaluator.getBitSizeof(state, operandType, cfaEdge);
+        // If this fails hand through Value
+        checkState(sizeInBitsValue.isNumericValue());
+        BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
         return ImmutableList.of(
             ValueAndSMGState.of(new NumericValue(sizeInBits.divide(BigInteger.valueOf(8))), state));
       }
@@ -1179,7 +1199,10 @@ public class SMGCPAValueVisitor
         continue;
       }
 
-      BigInteger sizeInBits = evaluator.getBitSizeof(currentState, returnType);
+      Value sizeInBitsValue = evaluator.getBitSizeof(currentState, returnType, cfaEdge);
+      // If this fails hand through Value
+      checkState(sizeInBitsValue.isNumericValue());
+      BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
         if (!(offset instanceof NumericValue)) {
@@ -1491,13 +1514,13 @@ public class SMGCPAValueVisitor
       SMGState pState,
       Function<FloatValue, Value> pOperation) {
     final Value parameter = Iterables.getOnlyElement(pArguments);
-    if (parameter.isExplicitlyKnown()) {
+    if (parameter instanceof NumericValue numParameter) {
       // Cast the argument to match the function type
       FloatValue value =
           castToFloat(
               machineModel,
               BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
-              (NumericValue) parameter);
+              numParameter);
 
       return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value), pState));
     } else {
@@ -2001,13 +2024,12 @@ public class SMGCPAValueVisitor
 
         // distance in bits / type size = distance
         // The type in both pointers is the same, we need the return type from one of them
-        NumericValue size;
+        Value size;
         if (leftValueType instanceof CPointerType cPointerType) {
-          size = new NumericValue(evaluator.getBitSizeof(currentState, cPointerType.getType()));
+          size = evaluator.getBitSizeof(currentState, cPointerType.getType(), cfaEdge);
         } else if (rightValueType.getCanonicalType() instanceof CArrayType) {
           size =
-              new NumericValue(
-                  evaluator.getBitSizeof(currentState, ((CArrayType) leftValueType).getType()));
+              evaluator.getBitSizeof(currentState, ((CArrayType) leftValueType).getType(), cfaEdge);
         } else {
           returnBuilder.add(
               ValueAndSMGState.ofUnknownValue(
@@ -2075,16 +2097,18 @@ public class SMGCPAValueVisitor
               cfaEdge));
     }
 
-    NumericValue bitSize;
+    Value bitSize;
     if (calculationType instanceof CPointerType) {
       // This is the pointer++; case for example.
       // We need the correct types here; the types of the returned value after the pointer
       // expression!
-      bitSize = new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType));
+      // TODO: is the type correct?
+      bitSize = evaluator.getBitSizeof(currentState, canonicalReturnType, cfaEdge);
     } else {
       // If it's a cast pointer, i.e. ((unsigned int) pointer) + 8;
-      // then this is just the numeric value * 8 (i.e. 8 bit == 1 byte) and then the operation.
-      bitSize = new NumericValue(BigInteger.valueOf(8));
+      // then this is just the numeric value * char size (i.e. char size is always 1 byte, but 1
+      // byte is not always 8 bits) and then the operation.
+      bitSize = new NumericValue(machineModel.getSizeofCharInBits());
     }
     // Transform the numeric byte value into bits, as we calculate with bits internally
     // (e.g. a "pointer + 3" becomes "pointer + (3*8)" for an int pointer)
@@ -2134,7 +2158,8 @@ public class SMGCPAValueVisitor
       checkArgument(newOffsetTypeBits >= (pointerTypeInBits + 3));
     }
 
-    return ImmutableList.of(evaluator.searchOrCreatePointer(pointerTarget, newOffsetInBits, state));
+    return ImmutableList.of(
+        evaluator.searchOrCreatePointer(pointerTarget, leftValueType, newOffsetInBits, state));
   }
 
   /**
@@ -2295,7 +2320,7 @@ public class SMGCPAValueVisitor
               simpleCalculationType,
               returnType,
               originalExpressionForErrorMessages);
-      case MODULO ->
+      case REMAINDER ->
           handleRemainder(
               leftValue,
               leftType,
@@ -2322,7 +2347,7 @@ public class SMGCPAValueVisitor
               simpleCalculationType,
               returnType,
               originalExpressionForErrorMessages);
-      case BINARY_AND ->
+      case BITWISE_AND ->
           handleBitwiseAnd(
               leftValue,
               leftType,
@@ -2331,7 +2356,7 @@ public class SMGCPAValueVisitor
               simpleCalculationType,
               returnType,
               originalExpressionForErrorMessages);
-      case BINARY_XOR ->
+      case BITWISE_XOR ->
           handleBitwiseXOR(
               leftValue,
               leftType,
@@ -2340,7 +2365,7 @@ public class SMGCPAValueVisitor
               simpleCalculationType,
               returnType,
               originalExpressionForErrorMessages);
-      case BINARY_OR ->
+      case BITWISE_OR ->
           handleBitwiseOR(
               leftValue,
               leftType,
@@ -2772,7 +2797,7 @@ public class SMGCPAValueVisitor
     }
   }
 
-  /** % operator in C. (Which is called remainder, NOT modulo!) */
+  /** % operator in C. (Which is called remainder, NOT REMAINDER!) */
   private Value handleRemainder(
       Value leftValue,
       CType leftType,
@@ -2841,20 +2866,20 @@ public class SMGCPAValueVisitor
             // so we can cast to Java long.
             long lVal = leftNumeric.getNumber().longValue();
             long rVal = rightNumeric.getNumber().longValue();
-            long result = arithmeticOperation(lVal, rVal, MODULO, calculationType);
+            long result = arithmeticOperation(lVal, rVal, REMAINDER, calculationType);
             yield new NumericValue(result);
           }
           case INT128 -> {
             // Typeless calculation! This needs to be cast afterward!
             BigInteger lVal = leftNumeric.bigIntegerValue();
             BigInteger rVal = rightNumeric.bigIntegerValue();
-            BigInteger result = arithmeticOperation(lVal, rVal, MODULO);
+            BigInteger result = arithmeticOperation(lVal, rVal, REMAINDER);
             yield new NumericValue(result);
           }
           case FLOAT, DOUBLE, FLOAT128 ->
               new NumericValue(
                   arithmeticOperation(
-                      MODULO,
+                      REMAINDER,
                       castToFloat(machineModel, calculationType, leftNumeric),
                       castToFloat(machineModel, calculationType, rightNumeric)));
           default ->
@@ -2864,7 +2889,7 @@ public class SMGCPAValueVisitor
                       calculationType,
                       leftNumeric,
                       leftType,
-                      MODULO.getOperator(),
+                      REMAINDER.getOperator(),
                       rightNumeric,
                       rightType),
                   cfaEdge);
@@ -2876,7 +2901,7 @@ public class SMGCPAValueVisitor
                 e.getMessage(),
                 leftNumeric,
                 leftType,
-                MODULO.getOperator(),
+                REMAINDER.getOperator(),
                 rightNumeric,
                 rightType),
             cfaEdge);
@@ -2888,7 +2913,7 @@ public class SMGCPAValueVisitor
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
       return createBinarySymbolicExpression(
-          leftValue, leftType, rightValue, rightType, MODULO, returnType, calculationType);
+          leftValue, leftType, rightValue, rightType, REMAINDER, returnType, calculationType);
     }
   }
 
@@ -2908,7 +2933,7 @@ public class SMGCPAValueVisitor
     // greater than or equal to the width of the promoted left operand, the behavior is undefined.
 
     // The result of E1 << E2 is E1 left-shifted E2 bit positions; vacated bits are filled with
-    // zeros. If E1 has an unsigned type, the value of the result is E1 × 2E2, reduced modulo
+    // zeros. If E1 has an unsigned type, the value of the result is E1 × 2E2, reduced REMAINDER
     // one more than the maximum value representable in the result type. If E1 has a signed
     // type and nonnegative value, and E1 × 2E2 is representable in the result type, then that is
     // the resulting value; otherwise, the behavior is undefined.
@@ -3151,19 +3176,19 @@ public class SMGCPAValueVisitor
             // so we can cast to Java long.
             long lVal = leftNumeric.getNumber().longValue();
             long rVal = rightNumeric.getNumber().longValue();
-            long result = arithmeticOperation(lVal, rVal, BINARY_AND, calculationType);
+            long result = arithmeticOperation(lVal, rVal, BITWISE_AND, calculationType);
             yield new NumericValue(result);
           }
           case INT128 -> {
             // Typeless calculation! This needs to be cast afterward!
             BigInteger lVal = leftNumeric.bigIntegerValue();
             BigInteger rVal = rightNumeric.bigIntegerValue();
-            BigInteger result = arithmeticOperation(lVal, rVal, BINARY_AND);
+            BigInteger result = arithmeticOperation(lVal, rVal, BITWISE_AND);
             yield new NumericValue(result);
           }
           case FLOAT, DOUBLE, FLOAT128 ->
               throw new UnsupportedOperationException(
-                  BINARY_AND.getOperator()
+                  BITWISE_AND.getOperator()
                       + " operator in expression "
                       + expression
                       + " on floating point numbers is not supported. "
@@ -3175,7 +3200,7 @@ public class SMGCPAValueVisitor
                       calculationType,
                       leftNumeric,
                       leftType,
-                      BINARY_AND.getOperator(),
+                      BITWISE_AND.getOperator(),
                       rightNumeric,
                       rightType),
                   cfaEdge);
@@ -3187,7 +3212,7 @@ public class SMGCPAValueVisitor
                 e.getMessage(),
                 leftNumeric,
                 leftType,
-                BINARY_AND.getOperator(),
+                BITWISE_AND.getOperator(),
                 rightNumeric,
                 rightType),
             cfaEdge);
@@ -3199,7 +3224,7 @@ public class SMGCPAValueVisitor
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
       return createBinarySymbolicExpression(
-          leftValue, leftType, rightValue, rightType, BINARY_AND, returnType, calculationType);
+          leftValue, leftType, rightValue, rightType, BITWISE_AND, returnType, calculationType);
     }
   }
 
@@ -3247,19 +3272,19 @@ public class SMGCPAValueVisitor
             // so we can cast to Java long.
             long lVal = leftNumeric.getNumber().longValue();
             long rVal = rightNumeric.getNumber().longValue();
-            long result = arithmeticOperation(lVal, rVal, BINARY_XOR, calculationType);
+            long result = arithmeticOperation(lVal, rVal, BITWISE_XOR, calculationType);
             yield new NumericValue(result);
           }
           case INT128 -> {
             // Typeless calculation! This needs to be cast afterward!
             BigInteger lVal = leftNumeric.bigIntegerValue();
             BigInteger rVal = rightNumeric.bigIntegerValue();
-            BigInteger result = arithmeticOperation(lVal, rVal, BINARY_XOR);
+            BigInteger result = arithmeticOperation(lVal, rVal, BITWISE_XOR);
             yield new NumericValue(result);
           }
           case FLOAT, DOUBLE, FLOAT128 ->
               throw new UnsupportedOperationException(
-                  BINARY_XOR.getOperator()
+                  BITWISE_XOR.getOperator()
                       + " operator in expression "
                       + expression
                       + " on floating point numbers is not supported. "
@@ -3271,7 +3296,7 @@ public class SMGCPAValueVisitor
                       calculationType,
                       leftNumeric,
                       leftType,
-                      BINARY_XOR.getOperator(),
+                      BITWISE_XOR.getOperator(),
                       rightNumeric,
                       rightType),
                   cfaEdge);
@@ -3283,7 +3308,7 @@ public class SMGCPAValueVisitor
                 e.getMessage(),
                 leftNumeric,
                 leftType,
-                BINARY_XOR.getOperator(),
+                BITWISE_XOR.getOperator(),
                 rightNumeric,
                 rightType),
             cfaEdge);
@@ -3295,7 +3320,7 @@ public class SMGCPAValueVisitor
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
       return createBinarySymbolicExpression(
-          leftValue, leftType, rightValue, rightType, BINARY_XOR, returnType, calculationType);
+          leftValue, leftType, rightValue, rightType, BITWISE_XOR, returnType, calculationType);
     }
   }
 
@@ -3346,19 +3371,19 @@ public class SMGCPAValueVisitor
             // so we can cast to Java long.
             long lVal = leftNumeric.getNumber().longValue();
             long rVal = rightNumeric.getNumber().longValue();
-            long result = arithmeticOperation(lVal, rVal, BINARY_OR, calculationType);
+            long result = arithmeticOperation(lVal, rVal, BITWISE_OR, calculationType);
             yield new NumericValue(result);
           }
           case INT128 -> {
             // Typeless calculation! This needs to be cast afterward!
             BigInteger lVal = leftNumeric.bigIntegerValue();
             BigInteger rVal = rightNumeric.bigIntegerValue();
-            BigInteger result = arithmeticOperation(lVal, rVal, BINARY_OR);
+            BigInteger result = arithmeticOperation(lVal, rVal, BITWISE_OR);
             yield new NumericValue(result);
           }
           case FLOAT, DOUBLE, FLOAT128 ->
               throw new UnsupportedOperationException(
-                  BINARY_OR.getOperator()
+                  BITWISE_OR.getOperator()
                       + " operator in expression "
                       + expression
                       + " on floating point numbers is not supported. "
@@ -3370,7 +3395,7 @@ public class SMGCPAValueVisitor
                       calculationType,
                       leftNumeric,
                       leftType,
-                      BINARY_OR.getOperator(),
+                      BITWISE_OR.getOperator(),
                       rightNumeric,
                       rightType),
                   cfaEdge);
@@ -3382,7 +3407,7 @@ public class SMGCPAValueVisitor
                 e.getMessage(),
                 leftNumeric,
                 leftType,
-                BINARY_OR.getOperator(),
+                BITWISE_OR.getOperator(),
                 rightNumeric,
                 rightType),
             cfaEdge);
@@ -3394,7 +3419,7 @@ public class SMGCPAValueVisitor
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
       return createBinarySymbolicExpression(
-          leftValue, leftType, rightValue, rightType, BINARY_OR, returnType, calculationType);
+          leftValue, leftType, rightValue, rightType, BITWISE_OR, returnType, calculationType);
     }
   }
 
@@ -3404,7 +3429,7 @@ public class SMGCPAValueVisitor
    *
    * @param left left hand side value
    * @param right right hand side value. Not allowed to be zero for division operations (including
-   *     the modulo operator %).
+   *     the REMAINDER operator %).
    * @param op the binary operator
    * @param calculationType the type the result of the calculation should have
    * @return the resulting value
@@ -3424,7 +3449,7 @@ public class SMGCPAValueVisitor
           checkArgument(right != 0);
           return UnsignedLongs.divide(left, right);
         }
-        case MODULO -> {
+        case REMAINDER -> {
           checkArgument(right != 0);
           return UnsignedLongs.remainder(left, right);
         }
@@ -3453,7 +3478,7 @@ public class SMGCPAValueVisitor
         checkArgument(right != 0);
         return left / right;
       }
-      case MODULO -> {
+      case REMAINDER -> {
         checkArgument(right != 0);
         return left % right;
       }
@@ -3477,13 +3502,13 @@ public class SMGCPAValueVisitor
       case SHIFT_RIGHT -> {
         return left >> right;
       }
-      case BINARY_AND -> {
+      case BITWISE_AND -> {
         return left & right;
       }
-      case BINARY_OR -> {
+      case BITWISE_OR -> {
         return left | right;
       }
-      case BINARY_XOR -> {
+      case BITWISE_XOR -> {
         return left ^ right;
       }
       default -> throw new AssertionError("unknown binary operation: " + op);
@@ -3506,7 +3531,7 @@ public class SMGCPAValueVisitor
   }
 
   /**
-   * To be called for handling of division or modulo with second operand equal to zero. Either
+   * To be called for handling of division or REMAINDER with second operand equal to zero. Either
    * throws {@link UnsupportedCodeException}, or returns a {@link UnknownValue}, or a {@link
    * NumericValue}, depending on the set option for how this is handled.
    */
@@ -3549,7 +3574,7 @@ public class SMGCPAValueVisitor
    *
    * @param l left hand side value
    * @param r right hand side value. Not allowed to be zero for division operations (including the
-   *     modulo operator %).
+   *     REMAINDER operator %).
    * @param op the binary operator
    * @return the resulting value
    */
@@ -3567,7 +3592,7 @@ public class SMGCPAValueVisitor
         checkArgument(!r.equals(BigInteger.ZERO));
         return l.divide(r);
       }
-      case MODULO -> {
+      case REMAINDER -> {
         checkArgument(!r.equals(BigInteger.ZERO));
         return l.mod(r);
       }
@@ -3595,13 +3620,13 @@ public class SMGCPAValueVisitor
           return BigInteger.ZERO;
         }
       }
-      case BINARY_AND -> {
+      case BITWISE_AND -> {
         return l.and(r);
       }
-      case BINARY_OR -> {
+      case BITWISE_OR -> {
         return l.or(r);
       }
-      case BINARY_XOR -> {
+      case BITWISE_XOR -> {
         return l.xor(r);
       }
       default -> throw new AssertionError("Unknown binary operation: " + op);
@@ -3610,7 +3635,7 @@ public class SMGCPAValueVisitor
 
   /**
    * Calculate an arithmetic operation on two floating point values. Supported arithmetic operations
-   * are PLUS, MINUS, DIVIDE, MODULO, and MULTIPLY.
+   * are PLUS, MINUS, DIVIDE, REMAINDER, and MULTIPLY.
    *
    * @param pOperation the binary operator, either +, -, *, /, or %.
    * @param pArg1 left hand side value
@@ -3624,9 +3649,9 @@ public class SMGCPAValueVisitor
       case PLUS -> pArg1.add(pArg2);
       case MINUS -> pArg1.subtract(pArg2);
       case DIVIDE -> pArg1.divide(pArg2);
-      case MODULO -> pArg1.modulo(pArg2);
+      case REMAINDER -> pArg1.modulo(pArg2);
       case MULTIPLY -> pArg1.multiply(pArg2);
-      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+      case SHIFT_LEFT, SHIFT_RIGHT, BITWISE_AND, BITWISE_OR, BITWISE_XOR ->
           throw new UnsupportedOperationException(
               "Trying to perform " + pOperation + " on floating point operands");
       default -> throw new IllegalArgumentException("Unknown binary operation: " + pOperation);

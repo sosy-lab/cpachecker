@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 
 public sealed interface SeqMultiControlStatement extends SeqStatement
@@ -28,7 +27,7 @@ public sealed interface SeqMultiControlStatement extends SeqStatement
   static SeqMultiControlStatement buildMultiControlStatementByEncoding(
       MultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
-      ImmutableList<CStatement> pPrecedingStatements,
+      ImmutableList<String> pPrecedingStatements,
       // ImmutableMap retains insertion order when using ImmutableMap.Builder
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
