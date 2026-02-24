@@ -44,6 +44,11 @@ public sealed interface AcslType extends Type
         && canBePromotedToReal(pCtype)) {
       return AcslBuiltinLogicType.REAL;
 
+    } else if (pType1.equals(pType2)
+        && pType1 instanceof AcslCType pCtype
+        && canBePromotedToInteger(pCtype)) {
+      return AcslBuiltinLogicType.INTEGER;
+
     } else if (anyPermutationOf(
         (x, y) -> x == AcslBuiltinLogicType.REAL && y == AcslBuiltinLogicType.INTEGER,
         pType1,
