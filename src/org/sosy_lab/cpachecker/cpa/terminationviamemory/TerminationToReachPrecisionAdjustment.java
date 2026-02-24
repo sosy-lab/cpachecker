@@ -22,7 +22,10 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -109,7 +112,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     Pair<LocationState, CallstackState> keyPair = Pair.of(locationState, callstackState);
 
     if (location.isLoopStart()
-        && !terminationState.isLoopTerminating(locationState.getLocationNode())
+        && !terminationState.isLoopTerminating(location)
         && terminationState.getStoredValues().containsKey(keyPair)) {
       if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
         boolean isTargetStateReachable;
@@ -171,7 +174,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
           if (isOverapproximating
               && isTransitionInvariant(
-                  prefixFormula, iterationFormula, prevIndices, smallestIndices, largestIndices)) {
+                  prefixFormula,
+                  iterationFormula,
+                  prevIndices,
+                  smallestIndices,
+                  largestIndices,
+                  location)) {
             terminationState.setTerminating(locationState.getLocationNode());
             return Optional.of(result.withAbstractState(terminationState));
           }
@@ -209,18 +217,34 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return Optional.of(result);
   }
 
-  private BooleanFormula restrictFormulaVariablesWithIntRange(BooleanFormula pFormula) {
-    for (Formula variable : fmgr.extractVariables(pFormula).values()) {
-      pFormula =
-          bfmgr.and(
-              pFormula,
-              fmgr.makeGreaterOrEqual(
-                  fmgr.makeNumber(FormulaType.IntegerType, MAX_INT), variable, true));
-      pFormula =
-          bfmgr.and(
-              pFormula,
-              fmgr.makeLessOrEqual(
-                  fmgr.makeNumber(FormulaType.IntegerType, MIN_INT), variable, true));
+  private BooleanFormula restrictFormulaVariablesWithIntRange(
+      BooleanFormula pFormula, CFANode pLocation) {
+    for (Entry<String, Formula> variable : fmgr.extractVariables(pFormula).entrySet()) {
+      String pureVarName =
+          TransitionInvariantUtils.removeFunctionFromVarsName(
+              fmgr.extractVariableNames(fmgr.uninstantiate(variable.getValue())).stream()
+                  .findAny()
+                  .orElseThrow());
+      for (AbstractSimpleDeclaration varDecl :
+          cfa.getAstCfaRelation().getVariablesAndParametersInScope(pLocation).orElseThrow()) {
+        if (!cfa.getMachineModel().isSigned(((CSimpleType) varDecl.getType()))
+            && varDecl.getName().equals(pureVarName)) {
+          pFormula =
+              bfmgr.and(
+                  pFormula,
+                  fmgr.makeGreaterOrEqual(
+                      fmgr.makeNumber(FormulaType.IntegerType, MAX_INT),
+                      variable.getValue(),
+                      true));
+          pFormula =
+              bfmgr.and(
+                  pFormula,
+                  fmgr.makeLessOrEqual(
+                      fmgr.makeNumber(FormulaType.IntegerType, MIN_INT),
+                      variable.getValue(),
+                      true));
+        }
+      }
     }
     return pFormula;
   }
@@ -291,7 +315,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       BooleanFormula iterationFormula,
       SSAMap mapForIndexTwo,
       SSAMap smallestIndicesInIteration,
-      SSAMap largestIndicesInIteration) {
+      SSAMap largestIndicesInIteration,
+      CFANode pLocation) {
     boolean isTransitionInvariant;
     BooleanFormula firstStepInTransInv =
         instantiateTransitionInvariant(
@@ -300,8 +325,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         instantiateTransitionInvariant(
             candidateTransitionInvariant, mapForIndexTwo, largestIndicesInIteration);
     if (addConstraintsToPreventOverflows) {
-      firstStepInTransInv = restrictFormulaVariablesWithIntRange(firstStepInTransInv);
-      secondStepInTransInv = restrictFormulaVariablesWithIntRange(secondStepInTransInv);
+      firstStepInTransInv = restrictFormulaVariablesWithIntRange(firstStepInTransInv, pLocation);
+      secondStepInTransInv = restrictFormulaVariablesWithIntRange(secondStepInTransInv, pLocation);
     }
 
     BooleanFormula transInvForIterationFormula =
