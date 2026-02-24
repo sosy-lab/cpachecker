@@ -10,8 +10,11 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -127,17 +130,41 @@ public abstract class LanguageToSmtConverter<T extends Type> {
 
         ImmutableList.Builder<BooleanFormula> constraintsBuilder = ImmutableList.builder();
         for (String var : callerSsa.allVariables()) {
+
+          // Compute the representation of the return term as a string. This is the easiest
+          // way to commonly handle C and SV-LIB, since SV-LIB can return a tuple and C
+          // only returns a single variable. One could change the interface, but that seems
+          // unnecessarily complex, since the variable in the SSAMap is still definitely a string.
+          String leftHandSide = "";
+          if (((FunctionReturnEdge) pEdge).getFunctionCall()
+              instanceof AFunctionCallAssignmentStatement pAssignmentStatement) {
+            leftHandSide =
+                pAssignmentStatement
+                    .getLeftHandSide()
+                    .toASTString(AAstNodeRepresentation.QUALIFIED);
+          }
+
+          if (
           // Only reset the variables of the caller function, which we can identify
           // by the variable name starting with the function name of the caller function (which
           // is the successor function of the return edge).
-          if (var.startsWith(pEdge.getSuccessor().getFunctionName() + "::")) {
+          var.startsWith(pEdge.getSuccessor().getFunctionName() + "::")
+              // In addition, we should only update those which are not being
+              // written by the return function, for example for `a = f(a);`,
+              // we do not want to reset the index of the `a` to the state before the call, since
+              // it is being written by the return function, and thus we need to keep the new index
+              // for`a`
+              && !leftHandSide.contains(var.replace("::", "__"))
+              // If we are not in a recursive call, then we do not need to reset the index, we know
+              // this since if the same variable has not been written we are not in a recursive call
+              && newSsa.getIndex(var) != callerSsa.getIndex(var)) {
             functionReturnSsaBuilder.setIndex(
                 var,
                 callerSsa.getType(var),
                 // we need to guarantee that we are monotonically increasing in the SSA indices,
                 // because otherwise we can return from a recursive call into a previous state
                 // making the whole formula unsat.
-                functionReturnSsaBuilder.build().getIndex(var) + 1);
+                newSsa.getIndex(var) + 1);
             // Now make it such that the new variable is equal to the old one
             constraintsBuilder.add(
                 fmgr.makeEqual(
