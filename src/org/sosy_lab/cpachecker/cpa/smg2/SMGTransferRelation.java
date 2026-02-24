@@ -1116,6 +1116,11 @@ public class SMGTransferRelation
     toStrengthen.add((SMGState) element);
     result.add((SMGState) element);
 
+    // TODO: we get an AutomatonState with assumptions for v2 correctness witnesses
+    // TODO: build a new state using the current SMGState using the assumptions (predicates) and
+    //  merge the 2 states. The merge result can lead to failure (i.e. invalid witness).
+    //  Return merged state to continue analysis with.
+
     for (AbstractState ae : elements) {
       if (ae instanceof RTTState) {
         result.clear();
