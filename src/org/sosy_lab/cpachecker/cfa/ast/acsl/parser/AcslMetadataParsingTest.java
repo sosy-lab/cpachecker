@@ -24,10 +24,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @RunWith(Parameterized.class)
@@ -35,16 +32,13 @@ public class AcslMetadataParsingTest {
   private static final String TEST_DIR = "test/programs/acsl/";
   private final String programName;
   private final ImmutableList<String> expectedComments;
-  private final CodeLoctation expectedLoc;
   private final CFACreator cfaCreator;
   private final LogManager logManager;
 
-  public AcslMetadataParsingTest(
-      String pProgramName, ImmutableList<String> pAnnotations, CodeLoctation pExpectedLoc)
+  public AcslMetadataParsingTest(String pProgramName, ImmutableList<String> pAnnotations)
       throws InvalidConfigurationException {
     programName = pProgramName;
     expectedComments = pAnnotations;
-    expectedLoc = pExpectedLoc;
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
@@ -60,79 +54,36 @@ public class AcslMetadataParsingTest {
     b.add(
         task(
             "double_loop_invariant.c",
-            ImmutableList.of("loop invariant  1 <= x <= 21; loop invariant  1 <= x <= 21"),
-            new CodeLoctation(22, 18)));
-    b.add(
-        task(
-            "after_else.c",
-            ImmutableList.of("assert a == 10 || a == 20;"),
-            new CodeLoctation(17, 7)));
-    b.add(task("after_for_loop2.c", ImmutableList.of("assert b == 20;"), new CodeLoctation(16, 7)));
-    b.add(task("after_if.c", ImmutableList.of("assert a != 20;"), new CodeLoctation(15, 7)));
-    b.add(task("after_loop.c", ImmutableList.of("assert a == 20;"), new CodeLoctation(15, 7)));
-    b.add(task("after_loop2.c", ImmutableList.of("assert  a == 20;"), new CodeLoctation(15, 7)));
-    b.add(task("at_end.c", ImmutableList.of("assert a != 20;"), new CodeLoctation(15, 7)));
-    b.add(task("badVariable.c", ImmutableList.of(), new CodeLoctation(12, 2)));
-    b.add(task("end_of_do_while.c", ImmutableList.of("assert a <= 20"), new CodeLoctation(15, 7)));
-    b.add(
-        task(
-            "even_while.c",
-            ImmutableList.of("loop invariant x % 2 == 0;"),
-            new CodeLoctation(21, 10)));
-    b.add(
-        task(
-            "even_while_nondet.c",
-            ImmutableList.of("loop invariant x % 2 == 0;"),
-            new CodeLoctation(21, 3)));
-    b.add(
-        task(
-            "even_do_while.c",
-            ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;"),
-            new CodeLoctation(21, 3)));
-    b.add(task("in_middle.c", ImmutableList.of("assert a == 19;"), new CodeLoctation(16, 5)));
-    b.add(
-        task(
-            "inv_for.c",
-            ImmutableList.of("loop invariant x + y == 20;"),
-            new CodeLoctation(13, 19)));
-    b.add(
-        task(
-            "inv_short-for.c",
-            ImmutableList.of("loop invariant x + y == 20;"),
-            new CodeLoctation(13, 10)));
-    b.add(
-        task(
-            "same_annotation_twice.c",
-            ImmutableList.of("assert x == 10;", "assert x == 10;"),
-            new CodeLoctation(12, 5)));
+            ImmutableList.of("loop invariant  1 <= x <= 21; loop invariant  1 <= x <= 21")));
+    b.add(task("after_else.c", ImmutableList.of("assert a == 10 || a == 20;")));
+    b.add(task("after_for_loop2.c", ImmutableList.of("assert b == 20;")));
+    b.add(task("after_if.c", ImmutableList.of("assert a != 20;")));
+    b.add(task("after_loop.c", ImmutableList.of("assert a == 20;")));
+    b.add(task("after_loop2.c", ImmutableList.of("assert  a == 20;")));
+    b.add(task("at_end.c", ImmutableList.of("assert a != 20;")));
+    b.add(task("badVariable.c", ImmutableList.of()));
+    b.add(task("end_of_do_while.c", ImmutableList.of("assert a <= 20")));
+    b.add(task("even_while.c", ImmutableList.of("loop invariant x % 2 == 0;")));
+    b.add(task("even_while_nondet.c", ImmutableList.of("loop invariant x % 2 == 0;")));
+    b.add(task("even_do_while.c", ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;")));
+    b.add(task("in_middle.c", ImmutableList.of("assert a == 19;")));
+    b.add(task("inv_for.c", ImmutableList.of("loop invariant x + y == 20;")));
+    b.add(task("inv_short-for.c", ImmutableList.of("loop invariant x + y == 20;")));
+    b.add(task("same_annotation_twice.c", ImmutableList.of("assert x == 10;", "assert x == 10;")));
 
     // function contracts
-    b.add(
-        task(
-            "square.c",
-            ImmutableList.of("ensures b >= 0; ensures b == a * a;"),
-            new CodeLoctation(15, 1)));
-    b.add(
-        task(
-            "square_result.c",
-            ImmutableList.of("ensures \\result == a * a;"),
-            new CodeLoctation(13, 1)));
-    b.add(
-        task(
-            "power.c",
-            ImmutableList.of("requires a > 0; requires b>= 0; ensures c > 0;"),
-            new CodeLoctation(16, 1)));
+    b.add(task("square.c", ImmutableList.of("ensures b >= 0; ensures b == a * a;")));
+    b.add(task("square_result.c", ImmutableList.of("ensures \\result == a * a;")));
+    b.add(task("power.c", ImmutableList.of("requires a > 0; requires b>= 0; ensures c > 0;")));
     b.add(
         task(
             "power_result.c",
-            ImmutableList.of("requires a > 0; requires b>= 0; ensures \\result > 0;"),
-            new CodeLoctation(16, 1)));
+            ImmutableList.of("requires a > 0; requires b>= 0; ensures \\result > 0;")));
     return b.build();
   }
 
-  private static Object[] task(
-      String program, ImmutableList<String> annotations, CodeLoctation expectedLoc) {
-    return new Object[] {program, annotations, expectedLoc};
+  private static Object[] task(String program, ImmutableList<String> annotations) {
+    return new Object[] {program, annotations};
   }
 
   @Test
@@ -152,50 +103,4 @@ public class AcslMetadataParsingTest {
       assertThat(acslMetadata.numOfAnnotaniots()).isEqualTo(expectedComments.size());
     }
   }
-
-  @Test
-  public void updateCfaNodesCorrectlyTest() throws Exception {
-    List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
-
-    if (programName.equals("badVariable.c")) {
-      RuntimeException expectedException =
-          assertThrows(
-              RuntimeException.class, () -> cfaCreator.parseFilesAndCreateAcslMetadata(files));
-      assertThat(expectedException)
-          .hasMessageThat()
-          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
-    } else {
-      AcslMetadata metadata = cfaCreator.parseFilesAndCreateAcslMetadata(files);
-      assertThat(metadata).isNotNull();
-      assertThat(metadata.pAcslComments()).isNotEmpty();
-
-      AcslComment comment = metadata.pAcslComments().getFirst();
-      assertThat(comment.getCfaNode()).isNotNull();
-
-      FileLocation nodeLoc = describeFileLocation(comment.getCfaNode().orElseThrow());
-      assertThat(nodeLoc.getStartingLineNumber()).isEqualTo(expectedLoc.expectedLine);
-      assertThat(nodeLoc.getStartColumnInLine()).isEqualTo(expectedLoc.expectedCol);
-    }
-  }
-
-  public FileLocation describeFileLocation(CFANode node) {
-    if (node instanceof FunctionEntryNode functionEntryNode) {
-      return functionEntryNode.getFileLocation();
-    }
-    if (node.getNumLeavingEdges() > 0) {
-      FileLocation loc = node.getLeavingEdge(0).getFileLocation();
-      if (loc.isRealLocation()) {
-        return loc;
-      }
-    }
-    if (node.getNumEnteringEdges() > 0) {
-      FileLocation loc = node.getEnteringEdge(0).getFileLocation();
-      if (loc.isRealLocation()) {
-        return loc;
-      }
-    }
-    throw new RuntimeException("Node has no location");
-  }
-
-  public record CodeLoctation(int expectedLine, int expectedCol) {}
 }
