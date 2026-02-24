@@ -14,8 +14,11 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -42,7 +45,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.automaton.Automata;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -53,6 +58,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -220,10 +226,37 @@ public final class BMCHelper {
     }
   }
 
-  public static Set<CFANode> getLoopHeads(CFA pCFA) {
+  public static Set<CFANode> getLoopHeads(
+      CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
+
+    if (pCFA.getLoopStructure().isPresent()
+        && pCFA.getLoopStructure().orElseThrow().getAllLoops().isEmpty()
+        && pCFA.getLoopStructure().orElseThrow().getRecursiveProcedureLoops().isEmpty()) {
+      return ImmutableSet.of();
+    }
+
+    final Set<CFANode> loopHeads =
+        pTargetLocationProvider.tryGetAutomatonTargetLocations(
+            pCFA.getMainFunction(),
+            Specification.fromAutomata(ImmutableList.of(Automata.getLoopHeadTargetAutomaton())));
+    if (pCFA.getLoopStructure().isEmpty()) {
+      return loopHeads;
+    }
+
+    LoopStructure loopStructure = pCFA.getLoopStructure().orElseThrow();
+
     return FluentIterable.concat(
-            pCFA.getLoopStructure().orElseThrow().getAllLoopHeads(),
-            FluentIterable.from(LoopStructure.getRecursions(pCFA))
+            // Normal loop heads
+            FluentIterable.from(loopStructure.getAllLoops())
+                .transformAndConcat(
+                    pLoop -> {
+                      if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
+                        return ImmutableSet.of();
+                      }
+                      return pLoop.getLoopHeads();
+                    }),
+            // Recursion loop heads
+            FluentIterable.from(loopStructure.getRecursiveProcedureLoops())
                 .transformAndConcat(Loop::getLoopHeads))
         .toSet();
   }

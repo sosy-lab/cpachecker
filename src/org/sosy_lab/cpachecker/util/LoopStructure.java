@@ -304,6 +304,7 @@ public final class LoopStructure {
   }
 
   private final ImmutableListMultimap<String, Loop> loops;
+  private final ImmutableList<Loop> recursiveProcedureLoops;
 
   private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
 
@@ -311,8 +312,10 @@ public final class LoopStructure {
   private @Nullable ImmutableSet<String> loopExitConditionVariables;
   private @Nullable ImmutableSet<String> loopIncDecVariables;
 
-  private LoopStructure(ImmutableListMultimap<String, Loop> pLoops) {
+  private LoopStructure(
+      ImmutableListMultimap<String, Loop> pLoops, ImmutableList<Loop> pRecursiveProcedureLoops) {
     loops = pLoops;
+    recursiveProcedureLoops = pRecursiveProcedureLoops;
   }
 
   /** Get the total number of loops in the program. */
@@ -328,6 +331,10 @@ public final class LoopStructure {
   /** Get all {@link Loop}s in the program. */
   public ImmutableCollection<Loop> getAllLoops() {
     return loops.values();
+  }
+
+  public ImmutableList<Loop> getRecursiveProcedureLoops() {
+    return recursiveProcedureLoops;
   }
 
   /**
@@ -466,11 +473,14 @@ public final class LoopStructure {
       Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage());
       loops.putAll(functionName, functionLoops);
     }
-    return new LoopStructure(loops.build());
+
+    ImmutableList<Loop> recursiveProcedureLoops = ImmutableList.copyOf(getRecursions(cfa));
+
+    return new LoopStructure(loops.build(), recursiveProcedureLoops);
   }
 
   public static LoopStructure of(ImmutableListMultimap<String, Loop> pLoops) {
-    return new LoopStructure(pLoops);
+    return new LoopStructure(pLoops, ImmutableList.of());
   }
 
   /**
