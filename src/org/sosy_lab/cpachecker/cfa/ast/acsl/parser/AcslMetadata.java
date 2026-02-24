@@ -40,13 +40,10 @@ public record AcslMetadata(
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of()
-    );
+        ImmutableSetMultimap.of());
   }
 
   public int numOfAnnotaniots() {
-    return assertions.size()
-        + loopAnnotations.size()
-        + functionContracts.size();
+    return assertions.size() + loopAnnotations.size() + functionContracts.size();
   }
 }

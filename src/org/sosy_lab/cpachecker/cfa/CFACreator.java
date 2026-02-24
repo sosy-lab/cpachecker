@@ -896,8 +896,7 @@ public class CFACreator {
     ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts =
         functionContractBuilder.build();
 
-    return new AcslMetadata(
-        ImmutableSet.of(), assertions, loopAnnotations, functionContracts);
+    return new AcslMetadata(ImmutableSet.of(), assertions, loopAnnotations, functionContracts);
   }
 
   /**
