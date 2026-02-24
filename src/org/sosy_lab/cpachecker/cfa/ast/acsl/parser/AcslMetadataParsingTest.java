@@ -31,14 +31,14 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class AcslMetadataParsingTest {
   private static final String TEST_DIR = "test/programs/acsl/";
   private final String programName;
-  private final ImmutableList<String> expectedComments;
+  private final int expectedNumOfAnnotations;
   private final CFACreator cfaCreator;
   private final LogManager logManager;
 
-  public AcslMetadataParsingTest(String pProgramName, ImmutableList<String> pAnnotations)
+  public AcslMetadataParsingTest(String pProgramName, int pExpectedNumOfAnnotations)
       throws InvalidConfigurationException {
     programName = pProgramName;
-    expectedComments = pAnnotations;
+    expectedNumOfAnnotations = pExpectedNumOfAnnotations;
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
@@ -51,39 +51,33 @@ public class AcslMetadataParsingTest {
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
     // Regular Annotations (assertions and loop loopAnnotations)
-    b.add(
-        task(
-            "double_loop_invariant.c",
-            ImmutableList.of("loop invariant  1 <= x <= 21; loop invariant  1 <= x <= 21")));
-    b.add(task("after_else.c", ImmutableList.of("assert a == 10 || a == 20;")));
-    b.add(task("after_for_loop2.c", ImmutableList.of("assert b == 20;")));
-    b.add(task("after_if.c", ImmutableList.of("assert a != 20;")));
-    b.add(task("after_loop.c", ImmutableList.of("assert a == 20;")));
-    b.add(task("after_loop2.c", ImmutableList.of("assert  a == 20;")));
-    b.add(task("at_end.c", ImmutableList.of("assert a != 20;")));
-    b.add(task("badVariable.c", ImmutableList.of()));
-    b.add(task("end_of_do_while.c", ImmutableList.of("assert a <= 20")));
-    b.add(task("even_while.c", ImmutableList.of("loop invariant x % 2 == 0;")));
-    b.add(task("even_while_nondet.c", ImmutableList.of("loop invariant x % 2 == 0;")));
-    b.add(task("even_do_while.c", ImmutableList.of("loop invariant  1 <= x <= 10 && x % 2 == 1;")));
-    b.add(task("in_middle.c", ImmutableList.of("assert a == 19;")));
-    b.add(task("inv_for.c", ImmutableList.of("loop invariant x + y == 20;")));
-    b.add(task("inv_short-for.c", ImmutableList.of("loop invariant x + y == 20;")));
-    b.add(task("same_annotation_twice.c", ImmutableList.of("assert x == 10;", "assert x == 10;")));
+    b.add(task("double_loop_invariant.c", 1));
+    b.add(task("after_else.c", 1));
+    b.add(task("after_for_loop2.c", 1));
+    b.add(task("after_if.c", 1));
+    b.add(task("after_loop.c", 1));
+    b.add(task("after_loop2.c", 1));
+    b.add(task("at_end.c", 1));
+    b.add(task("badVariable.c", 0));
+    b.add(task("end_of_do_while.c", 1));
+    b.add(task("even_while.c", 1));
+    b.add(task("even_while_nondet.c", 1));
+    b.add(task("even_do_while.c", 1));
+    b.add(task("in_middle.c", 1));
+    b.add(task("inv_for.c", 1));
+    b.add(task("inv_short-for.c", 1));
+    b.add(task("same_annotation_twice.c", 2));
 
     // function contracts
-    b.add(task("square.c", ImmutableList.of("ensures b >= 0; ensures b == a * a;")));
-    b.add(task("square_result.c", ImmutableList.of("ensures \\result == a * a;")));
-    b.add(task("power.c", ImmutableList.of("requires a > 0; requires b>= 0; ensures c > 0;")));
-    b.add(
-        task(
-            "power_result.c",
-            ImmutableList.of("requires a > 0; requires b>= 0; ensures \\result > 0;")));
+    b.add(task("square.c", 1));
+    b.add(task("square_result.c", 1));
+    b.add(task("power.c", 1));
+    b.add(task("power_result.c", 1));
     return b.build();
   }
 
-  private static Object[] task(String program, ImmutableList<String> annotations) {
-    return new Object[] {program, annotations};
+  private static Object[] task(String program, int expectedNumOfAnnotations) {
+    return new Object[] {program, expectedNumOfAnnotations};
   }
 
   @Test
@@ -100,7 +94,7 @@ public class AcslMetadataParsingTest {
     } else {
       AcslMetadata acslMetadata = cfaCreator.parseFilesAndCreateAcslMetadata(files);
       assertThat(acslMetadata).isNotNull();
-      assertThat(acslMetadata.numOfAnnotaniots()).isEqualTo(expectedComments.size());
+      assertThat(acslMetadata.numOfAnnotaniots()).isEqualTo(expectedNumOfAnnotations);
     }
   }
 }
