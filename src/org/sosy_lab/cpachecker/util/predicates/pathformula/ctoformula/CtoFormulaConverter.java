@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.FormatMethod;
@@ -104,6 +105,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -1053,20 +1055,18 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     SSAMap newSsa = ssa.build();
     PointerTargetSet newPts = pts.build();
 
-    if (bfmgr.isTrue(edgeFormula)
-        && (newSsa == oldFormula.getSsa())
-        && newPts.equals(oldFormula.getPointerTargetSet())) {
-      // formula is just "true" and rest is equal
-      // i.e. no writes to SSAMap, no branching and length should stay the same
-      return oldFormula;
-    }
-
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
 
+    Pair<PersistentStack<SSAMap>, ImmutableList<BooleanFormula>> newSsaStackWithConstraints =
+        handleSsaStackForFunctionReturn(edge, oldFormula, newSsa, newPts, fmgr);
+
+    PersistentStack<SSAMap> newSsaStack = newSsaStackWithConstraints.getFirst();
+    newFormula = fmgr.makeAnd(newFormula, bfmgr.and(newSsaStackWithConstraints.getSecond()));
+
     @SuppressWarnings("deprecation")
     // This is an intended use, CtoFormulaConverter just does not have access to the constructor
-    PathFormula result = PathFormula.createManually(newFormula, newSsa, newPts, newLength);
+    PathFormula result = PathFormula.createManually(newFormula, newSsaStack, newPts, newLength);
     return result;
   }
 

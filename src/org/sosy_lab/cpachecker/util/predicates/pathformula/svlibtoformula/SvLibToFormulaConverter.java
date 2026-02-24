@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.List;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -55,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -169,24 +172,22 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
     SSAMap newSsa = ssa.build();
-
-    // There are no pointers in SV-LIB, so the pointer target set remains unchanged, and can
-    // therefore
-    // be ignored.
-    if (bfmgr.isTrue(edgeFormula) && (newSsa == pOldFormula.getSsa())) {
-      // formula is just "true" and rest is equal
-      // i.e. no writes to SSAMap, no branching and length should stay the same
-      return pOldFormula;
-    }
-
     BooleanFormula newFormula = bfmgr.and(pOldFormula.getFormula(), edgeFormula);
+
+    Pair<PersistentStack<SSAMap>, ImmutableList<BooleanFormula>> newSsaStackWithConstraints =
+        handleSsaStackForFunctionReturn(
+            pEdge, pOldFormula, newSsa, pOldFormula.getPointerTargetSet(), fmgr);
+
+    PersistentStack<SSAMap> newSsaStack = newSsaStackWithConstraints.getFirst();
+    newFormula = fmgr.makeAnd(newFormula, bfmgr.and(newSsaStackWithConstraints.getSecond()));
+
     int newLength = pOldFormula.getLength() + 1;
 
     @SuppressWarnings("deprecation")
     // This is an intended use, SvLibToFormulaConverter just does not have access to the constructor
     PathFormula result =
         PathFormula.createManually(
-            newFormula, newSsa, pOldFormula.getPointerTargetSet(), newLength);
+            newFormula, newSsaStack, pOldFormula.getPointerTargetSet(), newLength);
     return result;
   }
 

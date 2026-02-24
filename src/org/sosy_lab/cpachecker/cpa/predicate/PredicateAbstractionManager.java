@@ -297,7 +297,8 @@ public final class PredicateAbstractionManager {
 
     @SuppressWarnings("deprecation") // just faking a PF to be able to reuse one of our methods
     PathFormula pf =
-        PathFormula.createManually(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
+        PathFormula.createManually(
+            f, blockFormula.getSsaStack(), blockFormula.getPointerTargetSet(), 0);
 
     AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
     AbstractionFormula newAbstraction =

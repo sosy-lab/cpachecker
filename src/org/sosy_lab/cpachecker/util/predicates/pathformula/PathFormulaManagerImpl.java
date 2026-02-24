@@ -12,6 +12,7 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
+import com.google.common.base.Verify;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -373,7 +374,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula) {
     return new PathFormula(
-        bfmgr.makeTrue(), oldFormula.getSsa(), oldFormula.getPointerTargetSet(), 0);
+        bfmgr.makeTrue(), oldFormula.getSsaStack(), oldFormula.getPointerTargetSet(), 0);
   }
 
   @Override
@@ -415,7 +416,18 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.result();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    Verify.verify(
+        pathFormula1.getSsaStack().popAndCopy().equals(pathFormula2.getSsaStack().popAndCopy()),
+        "SSAMap stacks differ in their prefix before the last element, cannot merge: %s vs %s",
+        pathFormula1,
+        pathFormula2);
+
+    PathFormula out =
+        new PathFormula(
+            newFormula,
+            pathFormula1.getSsaStack().popAndCopy().pushAndCopy(newSSA.build()),
+            newPTS,
+            newLength);
     if (simplifyGeneratedPathFormulas) {
       out = out.withFormula(fmgr.simplify(out.getFormula()));
     }
@@ -435,7 +447,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     BooleanFormula otherFormula = fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
-    return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
+    return new PathFormula(
+        resultFormula,
+        pPathFormula.getSsaStack().popAndCopy().pushAndCopy(ssa),
+        pts,
+        pPathFormula.getLength());
   }
 
   @Override

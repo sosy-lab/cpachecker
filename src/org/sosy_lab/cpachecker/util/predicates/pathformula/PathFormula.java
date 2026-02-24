@@ -19,6 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -36,14 +37,22 @@ public final class PathFormula implements Serializable {
 
   @Serial private static final long serialVersionUID = -7716850731790578620L;
   private final BooleanFormula formula;
-  private final SSAMap ssa;
+  private final PersistentStack<SSAMap> ssaStack;
   private final int length;
   private final PointerTargetSet pts;
 
-  // Do not make public, cf. createManually()
   PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts, int pLength) {
     formula = checkNotNull(pf);
-    this.ssa = checkNotNull(ssa);
+    this.ssaStack = PersistentStack.<SSAMap>of().pushAndCopy(checkNotNull(ssa));
+    this.pts = checkNotNull(pts);
+    length = pLength;
+  }
+
+  // Do not make public, cf. createManually()
+  PathFormula(
+      BooleanFormula pf, PersistentStack<SSAMap> pSsaStack, PointerTargetSet pts, int pLength) {
+    formula = checkNotNull(pf);
+    this.ssaStack = checkNotNull(pSsaStack);
     this.pts = checkNotNull(pts);
     length = pLength;
   }
@@ -63,12 +72,24 @@ public final class PathFormula implements Serializable {
     return new PathFormula(pf, ssa, pts, pLength);
   }
 
+  // See the other createManually() method for the rationale behind this method.
+  @Deprecated
+  public static PathFormula createManually(
+      BooleanFormula pf, PersistentStack<SSAMap> ssa, PointerTargetSet pts, int pLength) {
+
+    return new PathFormula(pf, ssa, pts, pLength);
+  }
+
   public BooleanFormula getFormula() {
     return formula;
   }
 
   public SSAMap getSsa() {
-    return ssa;
+    return ssaStack.peek();
+  }
+
+  public PersistentStack<SSAMap> getSsaStack() {
+    return ssaStack;
   }
 
   public PointerTargetSet getPointerTargetSet() {
@@ -92,7 +113,7 @@ public final class PathFormula implements Serializable {
    * should be used instead.
    */
   public PathFormula withFormula(BooleanFormula newConstraint) {
-    return new PathFormula(newConstraint, ssa, pts, length);
+    return new PathFormula(newConstraint, ssaStack, pts, length);
   }
 
   /**
@@ -119,7 +140,7 @@ public final class PathFormula implements Serializable {
     return obj instanceof PathFormula other
         && (length == other.length)
         && formula.equals(other.formula)
-        && ssa.equals(other.ssa)
+        && ssaStack.equals(other.ssaStack)
         && pts.equals(other.pts);
   }
 
@@ -130,7 +151,7 @@ public final class PathFormula implements Serializable {
     result = prime * result + formula.hashCode();
     result = prime * result + length;
     result = prime * result + pts.hashCode();
-    result = prime * result + ssa.hashCode();
+    result = prime * result + ssaStack.hashCode();
     return result;
   }
 
@@ -156,7 +177,7 @@ public final class PathFormula implements Serializable {
     @Serial private static final long serialVersionUID = 309890892L;
 
     private final String formulaDump;
-    private final SSAMap ssa;
+    private final PersistentStack<SSAMap> ssaStack;
     private final int length;
     private final PointerTargetSet pts;
 
@@ -164,7 +185,7 @@ public final class PathFormula implements Serializable {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       formulaDump = mgr.dumpFormula(pPathFormula.formula).toString();
-      ssa = pPathFormula.ssa;
+      ssaStack = pPathFormula.ssaStack;
       length = pPathFormula.length;
       pts = pPathFormula.pts;
     }
@@ -174,7 +195,7 @@ public final class PathFormula implements Serializable {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       BooleanFormula formula = mgr.parse(formulaDump);
-      return new PathFormula(formula, ssa, pts, length);
+      return new PathFormula(formula, ssaStack, pts, length);
     }
   }
 }
