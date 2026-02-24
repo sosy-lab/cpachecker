@@ -37,8 +37,13 @@ public sealed interface AcslType extends Type
 
   static AcslType mostGeneralType(AcslType pType1, AcslType pType2) {
 
-    if (pType1.equals(pType2)) {
+    if (pType1.equals(pType2) && pType1 instanceof AcslBuiltinLogicType) {
       return pType1;
+    } else if (pType1.equals(pType2)
+        && pType1 instanceof AcslCType pCtype
+        && canBePromotedToReal(pCtype)) {
+      return AcslBuiltinLogicType.REAL;
+
     } else if (anyPermutationOf(
         (x, y) -> x == AcslBuiltinLogicType.REAL && y == AcslBuiltinLogicType.INTEGER,
         pType1,
@@ -63,6 +68,14 @@ public sealed interface AcslType extends Type
         pType2)) {
       // We are dealing with a some type of float, so we cast it up to an Real, as in §2.2.3 of
       // the ACSL spec
+      return AcslBuiltinLogicType.REAL;
+    } else if (anyPermutationOf(
+        (x, y) ->
+            x == AcslBuiltinLogicType.INTEGER
+                && y instanceof AcslCType pCType
+                && canBePromotedToReal(pCType),
+        pType1,
+        pType2)) {
       return AcslBuiltinLogicType.REAL;
     }
 

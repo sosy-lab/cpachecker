@@ -51,6 +51,7 @@ public class AcslMetadataParsingTest {
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
     // Regular Annotations (assertions and loop loopAnnotations)
+    b.add(task("square_root.c", 1));
     b.add(task("double_loop_invariant.c", 1));
     b.add(task("after_else.c", 1));
     b.add(task("after_for_loop2.c", 1));
