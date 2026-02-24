@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_AND;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_XOR;
@@ -407,18 +408,21 @@ public class SMGCPAValueVisitor
                 exprThatCalledThis)) {
 
           newState = readPointerAndState.getState();
-          if (readPointerAndState.getValue().isUnknown()) {
+          Value readValue = readPointerAndState.getValue();
+          if (readValue.isUnknown()) {
             returnBuilder.add(
                 ValueAndSMGState.ofUnknownValue(
                     newState,
                     "Returned unknown value due to an invalid address or offset in read expression"
                         + " with dereference in ",
                     cfaEdge));
+          } else if (readValue instanceof NumericValue numValue) {
+            verify(numValue.bigIntegerValue().equals(BigInteger.ZERO));
+            returnBuilder.add(ValueAndSMGState.of(numValue, newState));
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
-                    AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
-                    newState));
+                    AddressExpression.withZeroOffset(readValue, returnType), newState));
           }
         }
         return returnBuilder.build();
