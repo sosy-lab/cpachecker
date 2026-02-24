@@ -64,6 +64,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private static final long MAX_INT = 4294967295L;
   private static final long MIN_INT = -4294967295L;
 
+  private final ImmutableSet<String> UFs =
+      ImmutableSet.of("_%_", "_>>_", "_<<_", "_&_", "_!!_", "_~_", "_^_");
+
   @Option(
       secure = true,
       description =
@@ -72,6 +75,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               + "This option enforces the transition invariants to "
               + "have constraints to limit the mathematical integers.")
   private boolean addConstraintsToPreventOverflows = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Some bitwise operations or modulo are UFs in integer encoding, and"
+              + "they might lead to unsound results. If integer encoding is set,"
+              + "we also have to use this option.")
+  private boolean checkUFsInIntegerEncoding = false;
 
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
@@ -156,7 +167,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               return Optional.of(result);
             }
             if (isTargetStateReachable) {
-              if (!isOverapproximating) {
+              if (!isOverapproximating && isSound(iterationFormula)) {
                 terminationState.makeTarget();
                 result = result.withAbstractState(terminationState);
                 statistics.setNonterminatingLoop(
@@ -215,6 +226,19 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       }
     }
     return Optional.of(result);
+  }
+
+  private boolean isSound(Formula pFormula) {
+    if (!checkUFsInIntegerEncoding) {
+      return true;
+    }
+
+    for (String function : fmgr.extractFunctionNames(pFormula)) {
+      if (UFs.contains(function)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private BooleanFormula restrictFormulaVariablesWithIntRange(

@@ -3978,6 +3978,11 @@ cpa.termination.refiner = no default value
 # invariants to have constraints to limit the mathematical integers.
 cpa.terminationviamemory.addConstraintsToPreventOverflows = false
 
+# Some bitwise operations or modulo are UFs in integer encoding, andthey
+# might lead to unsound results. If integer encoding is set,we also have to
+# use this option.
+cpa.terminationviamemory.checkUFsInIntegerEncoding = false
+
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
 
