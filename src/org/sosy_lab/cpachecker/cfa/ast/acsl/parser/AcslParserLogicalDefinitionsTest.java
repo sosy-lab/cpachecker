@@ -572,18 +572,26 @@ public class AcslParserLogicalDefinitionsTest {
      *   return sll;
      * }
      *
-     * pred_sll(sll * start, sll * end, int size)
+     * TODO: switch CIdExpressions to now and sll
+     * pred_sll(sll *start, sll *end, int size)
      *   match size:
-     *     case 1: start->next == 0 && start == end // End of list,
+     *     case 1: start != 0 && start->next == 0 && start == end // End of list,
      *                                             // i.e. end address reached and next pointer is 0
      *     case n + 1: start != 0 && start->next != start && start->next != 0 &&
      *                 pred_sll(start->next, end, size - 1)
      *
      * Translates to:
      * pred_sll(sll * start, sll * end, int size):
-     *   size == 1 ? start->next == 0 && start == end
+     *   size == 1 ? start != 0 && start->next == 0 && start == end
      *   : start != 0 && start->next != start && start->next != 0
      *     && pred_sll(start->next, end, size - 1)
+     *
+     * TODO: add start != 0 in size == 1 case
+     *
+     * TODO: can't we replace the size (that is only used implicitly here) with:
+     *   start != 0 && start == end  (equal to size == 1)
+     *   or
+     *   start != 0 && start != end  (equal to size > 1)
      */
 
     CCompositeType sllCType =
