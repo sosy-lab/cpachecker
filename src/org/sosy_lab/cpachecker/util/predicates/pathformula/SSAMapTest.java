@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 
 /** Testing the custom SSA implementation. */
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
@@ -52,7 +53,11 @@ public class SSAMapTest {
             SSAMap.emptySSAMap(),
             SSAMap.emptySSAMap().builder().setIndex("a", CVoidType.VOID, 1).build())
         .setDistinctValues(
-            PointerTargetSet.class, PointerTargetSet.emptyPointerTargetSet(), dummyPTS);
+            PointerTargetSet.class, PointerTargetSet.emptyPointerTargetSet(), dummyPTS)
+        .setDistinctValues(
+            PersistentStack.class,
+            PersistentStack.<SSAMap>of(),
+            PersistentStack.<SSAMap>of().pushAndCopy(SSAMap.emptySSAMap()));
   }
 
   private SSAMapBuilder builder;
