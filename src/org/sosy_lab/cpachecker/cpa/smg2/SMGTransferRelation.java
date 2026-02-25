@@ -942,7 +942,7 @@ public class SMGTransferRelation
    *    * representsTrue(NullValue.getInstance(), false)    = false
    *
    */
-  private boolean representsBoolean(Value value, boolean bool) {
+  static boolean representsBoolean(Value value, boolean bool) {
     if (value instanceof BooleanValue booleanValue) {
       return booleanValue.isTrue() == bool;
 
