@@ -693,6 +693,7 @@ public class SMGCPAValueVisitor
 
       case PLUS, MINUS ->
           // TODO: make sure this handled normal pointers only (no addressExpr)!
+          // Only arithmetic operators are allowed here
           calculatePointerArithmetics(
               nonConstLeftValue,
               nonConstRightValue,
