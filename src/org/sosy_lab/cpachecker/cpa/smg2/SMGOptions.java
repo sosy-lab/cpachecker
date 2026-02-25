@@ -41,6 +41,16 @@ public class SMGOptions {
               + " or pointer arithmetics.")
   private boolean overapproximatePointerArithmeticsOutOfBoundsEquality = true;
 
+  @Option(
+      secure = true,
+      description =
+          "Overapproximates all logical C pointer comparisons that require (unknown) address"
+              + " relations that are currently not handled. E.g. casting two distinct pointers that"
+              + " are not equal to integer and then comparing both against a constant integer"
+              + " literal that may be equal to both (the relation between the pointers says that"
+              + " they can't be both equal to the same constant integer literal).")
+  private boolean overapproximateMemoryAddressRelations = true;
+
   enum DIRECTION {
     FORWARD,
     BACKWARD
@@ -582,6 +592,10 @@ public class SMGOptions {
 
   private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
     return handleUnknownMemoryAllocation;
+  }
+
+  public boolean overapproximateMemoryAddressRelations() {
+    return overapproximateMemoryAddressRelations;
   }
 
   ArithmeticUndefinedBehaviorHandling getArithmeticUndefinedBehaviorHandling() {

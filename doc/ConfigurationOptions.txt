@@ -3792,6 +3792,14 @@ cpa.smg2.minimalSatCheck = true
 # one.
 cpa.smg2.optimizeBooleanVariables = true
 
+# Overapproximates all logical C pointer comparisons that require (unknown)
+# address relations that are currently not handled. E.g. casting two distinct
+# pointers that are not equal to integer and then comparing both against a
+# constant integer literal that may be equal to both (the relation between
+# the pointers says that they can't be both equal to the same constant
+# integer literal).
+cpa.smg2.overapproximateMemoryAddressRelations = true
+
 # Overapproximates all C pointers that point out of bounds to their
 # originating memory to also point towards all other pointers when comparing
 # pointers using (in)equality operators (== and !=). No effect on other
@@ -4335,27 +4343,6 @@ cpa.value.reuse.precision.converter.strategy = CONVERT_ONLY
 
 # also consider control dependencies during adaption of predicate precision
 cpa.value.reuse.precision.converter.useControl = false
-
-# Overall timelimit for computing initial value precision from given
-# predicate precision(use seconds or specify a unit; 0 for infinite)
-cpa.value.reuse.precision.predicate.adaptionLimit = no default value
-
-# also consider other binary operators then ==, !== when considering control
-# dependencies while adapting predicate precision
-cpa.value.reuse.precision.predicate.includeControlNonEquiv = no default value
-
-# comma-separated list of files with property specifications that should be
-# considered when determining the relevant edges for predicate precision
-# adaption
-cpa.value.reuse.precision.predicate.relevantProperties = no default value
-
-# which strategy to use to convert predicate to value precision
-cpa.value.reuse.precision.predicate.strategy = no default value
-  enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
-             CONVERT_AND_ADD_FLOW_BIDIRECTED]
-
-# also consider control dependencies during adaption of predicate precision
-cpa.value.reuse.precision.predicate.useControl = no default value
 
 # configure whether to export all loop invariants into one file or to split
 # the export into one file per type
