@@ -817,12 +817,8 @@ public class SMGTransferRelation
     // always be a CBinaryExpression.
     // We also might learn something by assuming symbolic or unknown values based on known values
     try {
-      Collection<SMGState> handledAssumptions =
-          handleAssumption(expression, cfaEdge, truthAssumption);
-      if (handledAssumptions == null || handledAssumptions.isEmpty()) {
-        return null;
-      }
-      return handledAssumptions;
+      return handleAssumption(expression, cfaEdge, truthAssumption);
+
     } catch (SMGSolverException e) {
       if (e.isSolverException()) {
         throw new CPATransferException(
@@ -841,7 +837,7 @@ public class SMGTransferRelation
     }
   }
 
-  private @Nullable Collection<SMGState> handleAssumption(
+  private Collection<SMGState> handleAssumption(
       AExpression expression, CFAEdge cfaEdge, boolean truthValue)
       throws CPATransferException, SolverException, InterruptedException {
 
@@ -900,12 +896,16 @@ public class SMGTransferRelation
                 functionName);
         try {
           List<ValueAndSMGState> maybeFeasiblePaths = cExpression.accept(avv);
-          if (maybeFeasiblePaths == null) {
-            // Infeasible
-            return null;
+          if (maybeFeasiblePaths != null && !maybeFeasiblePaths.isEmpty()) {
+            // Feasible
+            resultStateBuilder.addAll(
+                transformedImmutableListCopy(maybeFeasiblePaths, ValueAndSMGState::getState));
           }
-          return transformedImmutableListCopy(maybeFeasiblePaths, ValueAndSMGState::getState);
+          // } else { Assumption not fulfilled }
+
         } catch (SMGSolverException e) {
+          // This might happen while we already have valid result states
+          // TODO: how to handle these cases? Option that allows/disallows?
           if (e.isSolverException()) {
             throw e.getSolverException();
           } else {
@@ -915,15 +915,12 @@ public class SMGTransferRelation
         }
 
       } else if (representsBoolean(value, truthValue)) {
-        // We do not know more than before, and the assumption is fulfilled, so return the state
-        // from the value visitor (we don't need a copy as every state operation generates a new
-        // state and never modifies the old state)
+        // The assumption is fulfilled, but we do not know more than before, return the state
+        // from the value visitor
         resultStateBuilder.add(currentState);
-
-      } else {
-        // Assumption not fulfilled
-        return null;
       }
+      // } else { Assumption not fulfilled }
+
     }
     return resultStateBuilder.build();
   }
