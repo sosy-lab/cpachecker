@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -550,6 +551,8 @@ public class SMGCPAValueVisitor
       throws CPATransferException {
     final BinaryOperator binaryOperator = e.getOperator();
     final CType calculationType = e.getCalculationType();
+    final CType leftType = e.getOperand1().getExpressionType().getCanonicalType();
+    final CType rightType = e.getOperand2().getExpressionType().getCanonicalType();
 
     ValueAndSMGState castLeftValue = castCValue(leftValue, calculationType, currentState);
     leftValue = castLeftValue.getValue();
@@ -581,7 +584,14 @@ public class SMGCPAValueVisitor
             || !(leftValue.isUnknown() || rightValue.isUnknown()));
     if (isPointerArithmetics(leftValue, rightValue, e, currentState)) {
       return handlePointerArithmetics(
-          leftValue, rightValue, e, currentState, binaryOperator, calculationType);
+          leftValue,
+          leftType,
+          rightValue,
+          rightType,
+          e,
+          currentState,
+          binaryOperator,
+          calculationType);
     }
 
     // Function pointers
@@ -626,7 +636,9 @@ public class SMGCPAValueVisitor
 
   private List<ValueAndSMGState> handlePointerArithmetics(
       Value leftValue,
+      CType leftValueType,
       Value rightValue,
+      CType rightValueType,
       CBinaryExpression e,
       SMGState currentState,
       BinaryOperator binaryOperator,
@@ -675,13 +687,39 @@ public class SMGCPAValueVisitor
     checkState(!(leftIsNumeric && rightIsNumeric));
 
     return switch (binaryOperator) {
-      case EQUALS ->
-          // address == address or address == not address
-          ImmutableList.of(
+      case EQUALS -> {
+        // address == address or address == not address
+        if (leftIsNumeric) {
+          yield ImmutableList.of(
               ValueAndSMGState.of(
-                  evaluator.checkEqualityForAddresses(
-                      nonConstLeftValue, nonConstRightValue, currentState),
+                  getAddressEqualityWithNumber(
+                      nonConstRightValue,
+                      rightValueType,
+                      nonConstLeftValue,
+                      leftValueType,
+                      currentState,
+                      calculationType),
                   currentState));
+        } else if (rightIsNumeric) {
+          yield ImmutableList.of(
+              ValueAndSMGState.of(
+                  getAddressEqualityWithNumber(
+                      nonConstLeftValue,
+                      leftValueType,
+                      nonConstRightValue,
+                      rightValueType,
+                      currentState,
+                      calculationType),
+                  currentState));
+        }
+
+        // only address == address
+        yield ImmutableList.of(
+            ValueAndSMGState.of(
+                evaluator.checkEqualityForAddresses(
+                    nonConstLeftValue, nonConstRightValue, currentState),
+                currentState));
+      }
 
       case NOT_EQUALS ->
           // address != address or address != not address
@@ -739,6 +777,110 @@ public class SMGCPAValueVisitor
           throw new IllegalStateException(
               "Unexpected binary operator " + binaryOperator + " for pointer arithmetics");
     };
+  }
+
+  /**
+   * Calculates the equality (==) between an address and a non-address (symbolic of numeric number).
+   * Returns either numeric true/false, unknown or throws (instead of unknown, depending on
+   * options). This method guarantees that if true or false is returned, the negation also holds
+   * (i.e. that !(ptr == 123) == ptr != 123)
+   */
+  @SuppressWarnings("UnusedVariable")
+  private Value getAddressEqualityWithNumber(
+      Value address,
+      CType addressType,
+      Value nonAddressValue,
+      CType nonAddressValueType,
+      SMGState pCurrentState,
+      CType calculationType)
+      throws SMGException, SMGSolverException {
+    checkArgument(pCurrentState.isPointer(address));
+    if (pCurrentState.isPointer(nonAddressValue)) {
+      return evaluator.checkEqualityForAddresses(address, nonAddressValue, pCurrentState);
+    }
+
+    if (nonAddressValue instanceof NumericValue numericValue
+        && numericValue.bigIntegerValue().equals(BigInteger.ZERO)) {
+      // We generally expect that not both are numeric and the address is non-zero (as that would
+      // mean they are actually 2 numbers)
+      checkArgument(!address.isNumericValue());
+      checkArgument(
+          pCurrentState.getMemoryModel().getSMGValueFromValue(address).isEmpty()
+              || !pCurrentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(address)
+                  .orElseThrow()
+                  .isZero());
+      // Known to be false
+      return new NumericValue(0);
+    }
+
+    // Suppose you have a memory region with size 4 bytes. It can not be allocated at 0,
+    // but possibly at 1, hence [1, 5). If we compare the initial pointer to this region with
+    // the number 1 or 100, we find that they can be equal, but does not have to.
+    // However, suppose we increment the pointer to the memory region by 1, we now know that
+    // comparing the pointer for equality with the number 1 can never yield true.
+
+    // Types are relevant, as truly negative values in the numeric can never be equal.
+    // Also, if the non-address value (and the used calculation type allows it) is larger than the
+    // possible address-range, they can never be equal.
+    if (!(calculationType.getCanonicalType() instanceof CSimpleType simpleCalcType)
+        || machineModel.isSigned(simpleCalcType)
+        || machineModel.getSizeof(simpleCalcType) > machineModel.getSizeofPtr()) {
+      // TODO: handle
+      // TODO: most cases are trivial and may just be handed to below
+    }
+
+    // Simple check whether the number of bytes fits in between zero and the offset of the address
+    // to its origin
+    Optional<SMGStateAndOptionalSMGObjectAndOffset> deref =
+        pCurrentState.dereferencePointerWithoutMaterilization(address);
+    checkState(deref.isPresent());
+    checkState(deref.orElseThrow().hasSMGObjectAndOffset());
+    // SMGObject obj = deref.orElseThrow().getSMGObject();
+    Value offsetToObjectSourceInBits = deref.orElseThrow().getOffsetForObject();
+
+    // We already know that nonAddressValue is either numeric and > 0 or symbolic (no restrictions)
+    if (offsetToObjectSourceInBits instanceof NumericValue numericOffsetToObjectSourceInBits
+        && nonAddressValue instanceof NumericValue numericValue) {
+      // Note: numericValue is in Bytes here!
+      BigInteger numericOffsetToObjectSourceInBytes =
+          numericOffsetToObjectSourceInBits
+              .bigIntegerValue()
+              .divide(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
+      if (numericValue
+              .bigIntegerValue()
+              .compareTo(numericOffsetToObjectSourceInBytes.add(BigInteger.ONE))
+          < 0) {
+        // Guaranteed to be not-equal
+        return new NumericValue(0);
+      }
+      // Fallthrough for Unknown (can be equal or inequal)
+
+    } else if (options.trackPredicates()) {
+      // TODO: handle
+      throw new SMGException(
+          "Complex relations between addresses and their locations are currently not supported");
+    }
+
+    // Unknown (can be equal or inequal)
+    return handleOverapproximatedMemoryAddressRelation();
+  }
+
+  /**
+   * Complex cases of pointer relations (e.g. pointer equals some number: ptr1 == 1234 && ptr2 ==
+   * 1234 so that ptr1 != ptr2) may need to remember relation to found values and to other
+   * addresses, or simple cases need to be overapproximated (e.g. ptr == 1234, with results true and
+   * false possible). This method either returns UNKNOWN or throws, depending on options.
+   */
+  private UnknownValue handleOverapproximatedMemoryAddressRelation() throws SMGException {
+    if (options.overapproximateMemoryAddressRelations()) {
+      // TODO: return a list with 1 and 0? This is guaranteed boolean.
+      return UnknownValue.getInstance();
+    } else {
+      throw new SMGException(
+          "Complex relations between addresses and their locations are currently not supported");
+    }
   }
 
   /**
