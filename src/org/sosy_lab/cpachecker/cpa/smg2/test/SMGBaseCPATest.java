@@ -163,17 +163,17 @@ public class SMGBaseCPATest {
 
     /** heck that the analysis result of the program is SAFE in the current analysis. */
     public void isSafe() throws Exception {
-      isExpectedResult(Result.TRUE, "safe");
+      isExpectedResult(Result.TRUE, "TRUE (safe program for chosen specification)");
     }
 
     /** heck that the analysis result of the program is UNSAFE in the current analysis. */
     public void isUnsafe() throws Exception {
-      isExpectedResult(Result.FALSE, "unsafe");
+      isExpectedResult(Result.FALSE, "FALSE (violation found in program for chosen specification)");
     }
 
     /** Check that the analysis result of the program is UNKNOWN in the current analysis. */
     public void isUnknown() throws Exception {
-      isExpectedResult(Result.UNKNOWN, "unknown");
+      isExpectedResult(Result.UNKNOWN, "UNKNOWN");
     }
 
     /**
