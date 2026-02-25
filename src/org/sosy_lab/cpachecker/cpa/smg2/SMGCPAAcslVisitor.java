@@ -8,16 +8,22 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation.simplifyAssumption;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation.representsBoolean;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
@@ -92,10 +98,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -127,7 +131,12 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /*
  * Abstraction predicate 'pred_sll' for a Singly-Linked-List (SLL) of type 'sll' defined as:
@@ -187,31 +196,46 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * SMG-CPA visitor for ACSL based predicates, e.g. in witnesses.
  *
- * We start with the current {@link SMGState} of the analyses and confirm that all predicates hold.
- * The only thing we add is potentially information about the abstraction via the recursiveness.
- * We return an empty list if we find that a predicate does not hold,
- * else the potentially updated (or old) state.
- * 
- * TODO: maybe we don't even need a list, then we could switch to an optional.
+ * <p>We start with the current {@link SMGState} of the analyses and confirm that all predicates
+ * hold. The only thing we add is potentially information about the abstraction via the
+ * recursiveness. We return an empty list if we find that a predicate does not hold, else the
+ * potentially updated (or old) state.
+ *
+ * <p>TODO: maybe we don't even need a list, then we could switch to an optional.
  */
-public class SMGCPAAcslVisitor
-      extends AAstNodeVisitor<List<SMGState>, CPATransferException> {
+public class SMGCPAAcslVisitor extends AAstNodeVisitor<List<SMGState>, CPATransferException> {
+
+  // Are we in a negated case or not
+  private final boolean truthAssumption;
+
+  private final SMGState initialState;
+
+  private final LogManagerWithoutDuplicates logger;
+  private final SMGOptions options;
+
+  private SMGCPAAcslVisitor(
+      SMGState pInitialState,
+      boolean pTruthAssumption,
+      SMGOptions pOptions,
+      LogManagerWithoutDuplicates pLogger) {
+    initialState = checkNotNull(pInitialState);
+    logger = checkNotNull(pLogger);
+    options = checkNotNull(pOptions);
+    truthAssumption = pTruthAssumption;
+  }
 
   @Override
-  protected List<SMGState> visit(AFunctionCallExpression exp)
-      throws CPATransferException {
+  protected List<SMGState> visit(AFunctionCallExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  protected List<SMGState> visit(AInitializerExpression exp)
-      throws CPATransferException {
+  protected List<SMGState> visit(AInitializerExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  protected List<SMGState> visit(AFunctionCallStatement stmt)
-      throws CPATransferException {
+  protected List<SMGState> visit(AFunctionCallStatement stmt) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -222,92 +246,84 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  protected List<SMGState> visit(AExpressionStatement stmt)
-      throws CPATransferException {
+  protected List<SMGState> visit(AExpressionStatement stmt) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  protected List<SMGState> visit(AExpressionAssignmentStatement stmt)
-      throws CPATransferException {
+  protected List<SMGState> visit(AExpressionAssignmentStatement stmt) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  protected List<SMGState> visit(AReturnStatement stmt)
-      throws CPATransferException {
+  protected List<SMGState> visit(AReturnStatement stmt) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  protected List<SMGState> visit(AFunctionDeclaration decl)
-      throws CPATransferException {
+  protected List<SMGState> visit(AFunctionDeclaration decl) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  protected List<SMGState> visit(AParameterDeclaration decl)
-      throws CPATransferException {
+  protected List<SMGState> visit(AParameterDeclaration decl) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  protected List<SMGState> visit(AVariableDeclaration decl)
-      throws CPATransferException {
+  protected List<SMGState> visit(AVariableDeclaration decl) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AArraySubscriptExpression exp)
-      throws CPATransferException {
+  public List<SMGState> visit(AArraySubscriptExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AIdExpression exp)
-      throws CPATransferException {
+  public List<SMGState> visit(AIdExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(ABinaryExpression exp)
-      throws CPATransferException {
+  public List<SMGState> visit(ABinaryExpression exp) throws CPATransferException {
+    // Check that the assumptions posed are correct (reject non-logical operators)
+    if (exp instanceof CBinaryExpression cExpr && cExpr.getOperator().isLogicalOperator()) {
+      handleAssumption();
+    }
+
+    // Witness rejected
+    logger.log(Level.FINEST, () -> "Binary expression " + exp + " not fulfilled in ACSL visitor");
+    return ImmutableList.of();
+  }
+
+  @Override
+  public List<SMGState> visit(ACastExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(ACastExpression exp)
-      throws CPATransferException {
+  public List<SMGState> visit(ACharLiteralExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(ACharLiteralExpression exp)
-      throws CPATransferException {
+  public List<SMGState> visit(AFloatLiteralExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AFloatLiteralExpression exp)
-      throws CPATransferException {
+  public List<SMGState> visit(AIntegerLiteralExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AIntegerLiteralExpression exp)
-      throws CPATransferException {
+  public List<SMGState> visit(AStringLiteralExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AStringLiteralExpression exp)
-      throws CPATransferException {
-    throw new UnsupportedOperationException("not implemented");
-  }
-
-  @Override
-  public List<SMGState> visit(AUnaryExpression exp)
-      throws CPATransferException {
+  public List<SMGState> visit(AUnaryExpression exp) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -325,29 +341,51 @@ public class SMGCPAAcslVisitor
 
     // We only need && currently, and don't expect others.
     if (!exp.getOperator().equals(AcslBinaryPredicateOperator.AND)) {
-      throw new IllegalStateException("Unhandled binary operator: " + exp.getOperator() + " in ACSL predicate");
+      throw new IllegalStateException(
+          "Unhandled binary operator: " + exp.getOperator() + " in ACSL predicate");
     }
 
-     List<AcslPredicate> flattenedArgumentForOperator = flattenNestedBinaryPredicatesByGivenOperator(exp,
-          (AcslBinaryPredicateOperator) exp.getOperator());
+    List<AcslPredicate> flattenedArgumentForOperator =
+        flattenNestedBinaryPredicatesByGivenOperator(
+            exp, (AcslBinaryPredicateOperator) exp.getOperator());
 
-     // Add handling if it fails.
-     checkState(flattenedArgumentForOperator.stream().noneMatch(p -> p instanceof AcslBinaryPredicate));
+    // Add handling if it fails.
+    checkState(
+        flattenedArgumentForOperator.stream().noneMatch(p -> p instanceof AcslBinaryPredicate));
 
     // TODO: simplify into one once we know this works
-    List<AcslPredicateTerm> allTermsInPredicates = flattenedArgumentForOperator.stream().filter(p -> p instanceof AcslPredicateTerm).map(p -> (AcslPredicateTerm) p).collect(ImmutableList.toImmutableList());
-    List<CExpression> allCExprsInTerms = allTermsInPredicates.stream().filter(t -> t.getTerm() instanceof AcslCExpressionTerm).map(t -> ((AcslCExpressionTerm) t.getTerm()).getCExpression()).collect(ImmutableList.toImmutableList());
+    List<AcslPredicateTerm> allTermsInPredicates =
+        flattenedArgumentForOperator.stream()
+            .filter(p -> p instanceof AcslPredicateTerm)
+            .map(p -> (AcslPredicateTerm) p)
+            .collect(ImmutableList.toImmutableList());
+    List<CExpression> allCExprsInTerms =
+        allTermsInPredicates.stream()
+            .filter(t -> t.getTerm() instanceof AcslCExpressionTerm)
+            .map(t -> ((AcslCExpressionTerm) t.getTerm()).getCExpression())
+            .collect(ImmutableList.toImmutableList());
     // We only expect at max 1 recursive function call (that is processed last)
     checkState(allTermsInPredicates.size() - 1 == allCExprsInTerms.size());
-    List<CBinaryExpression> allCBinExprsInCExprs = allCExprsInTerms.stream().filter(t -> t instanceof CBinaryExpression).map(t -> (CBinaryExpression) t).collect(ImmutableList.toImmutableList());
+    List<CBinaryExpression> allCBinExprsInCExprs =
+        allCExprsInTerms.stream()
+            .filter(t -> t instanceof CBinaryExpression)
+            .map(t -> (CBinaryExpression) t)
+            .collect(ImmutableList.toImmutableList());
     checkState(allCExprsInTerms.size() == allCBinExprsInCExprs.size());
 
     // TODO: order and process
 
     // We want to process start != 0 or start == 0 predicates first! If there is none,
     // we need to add both.
-    List<CBinaryExpression> allCBinExprsComparingIdExprAgainstLiterals = allCBinExprsInCExprs.stream().filter(t -> (t.getOperand1() instanceof CIntegerLiteralExpression && t.getOperand2() instanceof CIdExpression)
-        || (t.getOperand2() instanceof CIntegerLiteralExpression && t.getOperand1() instanceof CIdExpression)).collect(ImmutableList.toImmutableList());
+    List<CBinaryExpression> allCBinExprsComparingIdExprAgainstLiterals =
+        allCBinExprsInCExprs.stream()
+            .filter(
+                t ->
+                    (t.getOperand1() instanceof CIntegerLiteralExpression
+                            && t.getOperand2() instanceof CIdExpression)
+                        || (t.getOperand2() instanceof CIntegerLiteralExpression
+                            && t.getOperand1() instanceof CIdExpression))
+            .collect(ImmutableList.toImmutableList());
     // Lets assume one of the 2 is always present for now (fix one it fails)
     checkState(allCBinExprsComparingIdExprAgainstLiterals.size() == 1);
     CBinaryExpression isItZeroOrNotExpr = allCBinExprsComparingIdExprAgainstLiterals.getFirst();
@@ -355,10 +393,14 @@ public class SMGCPAAcslVisitor
     CIdExpression listElement;
     // Confirm that we are comparing to 0
     if (isItZeroOrNotExpr.getOperand1() instanceof CIntegerLiteralExpression litLeftExpr) {
-      checkState(0 ==  litLeftExpr.getValue().intValueExact());
+      checkState(0 == litLeftExpr.getValue().intValueExact());
       listElement = (CIdExpression) isItZeroOrNotExpr.getOperand2();
     } else {
-      checkState(0 == ((CIntegerLiteralExpression)isItZeroOrNotExpr.getOperand2()).getValue().intValueExact());
+      checkState(
+          0
+              == ((CIntegerLiteralExpression) isItZeroOrNotExpr.getOperand2())
+                  .getValue()
+                  .intValueExact());
       listElement = (CIdExpression) isItZeroOrNotExpr.getOperand1();
     }
 
@@ -376,44 +418,53 @@ public class SMGCPAAcslVisitor
     // (filter out already processed before executing)
 
     // Start with something like start == end, start != end
-    List<CBinaryExpression> allCBinExprsComparingIdExprAgainstIdExprs = allCBinExprsInCExprs.stream().filter(t -> (t.getOperand1() instanceof CIdExpression && t.getOperand2() instanceof CIdExpression)
-        ).collect(ImmutableList.toImmutableList());
+    List<CBinaryExpression> allCBinExprsComparingIdExprAgainstIdExprs =
+        allCBinExprsInCExprs.stream()
+            .filter(
+                t ->
+                    (t.getOperand1() instanceof CIdExpression
+                        && t.getOperand2() instanceof CIdExpression))
+            .collect(ImmutableList.toImmutableList());
     checkState(allCBinExprsComparingIdExprAgainstIdExprs.size() == 1);
     CBinaryExpression idCmpId = allCBinExprsComparingIdExprAgainstIdExprs.getFirst();
 
-
     // Recursive function call (there may be one, or none)
-    Optional<AcslPredicate> recFunCall = flattenedArgumentForOperator.stream().filter(p -> p instanceof AcslFunctionCallPredicate).findFirst();
-    if (recFunCall.isPresent()) {
-
-    }
+    Optional<AcslPredicate> recFunCall =
+        flattenedArgumentForOperator.stream()
+            .filter(p -> p instanceof AcslFunctionCallPredicate)
+            .findFirst();
+    if (recFunCall.isPresent()) {}
 
     // Return built things
 
   }
 
-  private List<AcslPredicate> flattenNestedBinaryPredicatesByGivenOperator(AcslBinaryPredicate exp, AcslBinaryPredicateOperator opToFlatten) {
+  private List<AcslPredicate> flattenNestedBinaryPredicatesByGivenOperator(
+      AcslBinaryPredicate exp, AcslBinaryPredicateOperator opToFlatten) {
     if (opToFlatten.equals(exp.getOperator())) {
-        ImmutableList.Builder<AcslPredicate> flattenedListBuilder = ImmutableList.builder();
-        if (exp.getOperand1() instanceof AcslBinaryPredicate op1 && op1.getOperator().equals(opToFlatten)) {
-          List<AcslPredicate> nestedFlattened1 = flattenNestedBinaryPredicatesByGivenOperator(op1, opToFlatten);
-          checkState(nestedFlattened1.size() >= 2);
-          flattenedListBuilder.addAll(nestedFlattened1);
-        } else {
-          flattenedListBuilder.add((AcslPredicate) exp.getOperand1());
-        }
-        if (exp.getOperand2() instanceof AcslBinaryPredicate op2 && op2.getOperator().equals(opToFlatten)) {
-          List<AcslPredicate> nestedFlattened2 =
-              flattenNestedBinaryPredicatesByGivenOperator(op2, opToFlatten);
-          checkState(nestedFlattened2.size() >= 2);
-          flattenedListBuilder.addAll(nestedFlattened2);
-        } else {
-          flattenedListBuilder.add((AcslPredicate) exp.getOperand2());
-        }
-        return flattenedListBuilder.build();
+      ImmutableList.Builder<AcslPredicate> flattenedListBuilder = ImmutableList.builder();
+      if (exp.getOperand1() instanceof AcslBinaryPredicate op1
+          && op1.getOperator().equals(opToFlatten)) {
+        List<AcslPredicate> nestedFlattened1 =
+            flattenNestedBinaryPredicatesByGivenOperator(op1, opToFlatten);
+        checkState(nestedFlattened1.size() >= 2);
+        flattenedListBuilder.addAll(nestedFlattened1);
+      } else {
+        flattenedListBuilder.add((AcslPredicate) exp.getOperand1());
       }
+      if (exp.getOperand2() instanceof AcslBinaryPredicate op2
+          && op2.getOperator().equals(opToFlatten)) {
+        List<AcslPredicate> nestedFlattened2 =
+            flattenNestedBinaryPredicatesByGivenOperator(op2, opToFlatten);
+        checkState(nestedFlattened2.size() >= 2);
+        flattenedListBuilder.addAll(nestedFlattened2);
+      } else {
+        flattenedListBuilder.add((AcslPredicate) exp.getOperand2());
+      }
+      return flattenedListBuilder.build();
+    }
 
-      return ImmutableList.of();
+    return ImmutableList.of();
   }
 
   @Override
@@ -439,7 +490,8 @@ public class SMGCPAAcslVisitor
      *   : start != 0 && start->next != start && start->next != 0
      *     && pred_sll(start->next, end, size - 1)
      */
-    // TODO: identify end condition (size == 1 etc.); if we can fulfill the end condition, start there (go from start to infinity), else go to recursive step
+    // TODO: identify end condition (size == 1 etc.); if we can fulfill the end condition, start
+    // there (go from start to infinity), else go to recursive step
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -456,8 +508,7 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(AcslIdPredicate pAcslIdPredicate)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslIdPredicate pAcslIdPredicate) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -468,8 +519,7 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(AcslOldPredicate pAcslOldPredicate)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslOldPredicate pAcslOldPredicate) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -492,14 +542,12 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(AcslValidPredicate pAcslValidPredicate)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslValidPredicate pAcslValidPredicate) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AcslForallPredicate pForallPredicate)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslForallPredicate pForallPredicate) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -520,8 +568,7 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(AcslTypeVariableDeclaration pDecl)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslTypeVariableDeclaration pDecl) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -532,8 +579,7 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(AcslUnaryTerm pAcslUnaryTerm)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslUnaryTerm pAcslUnaryTerm) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -567,38 +613,32 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(AcslBinaryTerm pAcslBinaryTerm)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslBinaryTerm pAcslBinaryTerm) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AcslIdTerm pAcslBinaryTerm)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslIdTerm pAcslBinaryTerm) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AcslOldTerm pAcslOldTerm)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslOldTerm pAcslOldTerm) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AcslResultTerm pAcslResultTerm)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslResultTerm pAcslResultTerm) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AcslAtTerm pAcslAtTerm)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslAtTerm pAcslAtTerm) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(AcslTernaryTerm pAcslTernaryTerm)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslTernaryTerm pAcslTernaryTerm) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -624,11 +664,8 @@ public class SMGCPAAcslVisitor
     throw new UnsupportedOperationException("not implemented");
   }
 
-
-
   @Override
-  public List<SMGState> visit(CArrayDesignator pArrayDesignator)
-      throws CPATransferException {
+  public List<SMGState> visit(CArrayDesignator pArrayDesignator) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -639,14 +676,12 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(CFieldDesignator pFieldDesignator)
-      throws CPATransferException {
+  public List<SMGState> visit(CFieldDesignator pFieldDesignator) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(CTypeIdExpression pIastTypeIdExpression)
-      throws CPATransferException {
+  public List<SMGState> visit(CTypeIdExpression pIastTypeIdExpression) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -663,8 +698,7 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(CInitializerList pInitializerList)
-      throws CPATransferException {
+  public List<SMGState> visit(CInitializerList pInitializerList) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -675,14 +709,12 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(CFieldReference pIastFieldReference)
-      throws CPATransferException {
+  public List<SMGState> visit(CFieldReference pIastFieldReference) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(CPointerExpression pointerExpression)
-      throws CPATransferException {
+  public List<SMGState> visit(CPointerExpression pointerExpression) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -693,24 +725,19 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(CComplexTypeDeclaration pDecl)
-      throws CPATransferException {
+  public List<SMGState> visit(CComplexTypeDeclaration pDecl) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(CTypeDefDeclaration pDecl)
-      throws CPATransferException {
+  public List<SMGState> visit(CTypeDefDeclaration pDecl) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public List<SMGState> visit(CEnumerator pDecl)
-      throws CPATransferException {
+  public List<SMGState> visit(CEnumerator pDecl) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
-
-
 
   @Override
   public List<SMGState> visit(JClassInstanceCreation pJClassInstanceCreation)
@@ -731,8 +758,7 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(JArrayInitializer pJArrayInitializer)
-      throws CPATransferException {
+  public List<SMGState> visit(JArrayInitializer pJArrayInitializer) throws CPATransferException {
     throw new UnsupportedOperationException("Java is not supported by the SMG-CPA");
   }
 
@@ -743,8 +769,7 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(JVariableRunTimeType pJThisRunTimeType)
-      throws CPATransferException {
+  public List<SMGState> visit(JVariableRunTimeType pJThisRunTimeType) throws CPATransferException {
     throw new UnsupportedOperationException("Java is not supported by the SMG-CPA");
   }
 
@@ -767,8 +792,7 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> visit(JThisExpression pThisExpression)
-      throws CPATransferException {
+  public List<SMGState> visit(JThisExpression pThisExpression) throws CPATransferException {
     throw new UnsupportedOperationException("Java is not supported by the SMG-CPA");
   }
 
@@ -777,8 +801,6 @@ public class SMGCPAAcslVisitor
       throws CPATransferException {
     throw new UnsupportedOperationException("Java is not supported by the SMG-CPA");
   }
-
-
 
   @Override
   public List<SMGState> visit(SvLibVariableDeclaration pSvLibVariableDeclaration)
@@ -823,20 +845,19 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> accept(SvLibFunctionCallAssignmentStatement pSvLibFunctionCallAssignmentStatement)
+  public List<SMGState> accept(
+      SvLibFunctionCallAssignmentStatement pSvLibFunctionCallAssignmentStatement)
       throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
   @Override
-  public List<SMGState> accept(SvLibIdTermTuple pSvLibIdTermTuple)
-      throws CPATransferException {
+  public List<SMGState> accept(SvLibIdTermTuple pSvLibIdTermTuple) throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
   @Override
-  public List<SMGState> accept(SvLibAtTerm pSvLibAtTerm)
-      throws CPATransferException {
+  public List<SMGState> accept(SvLibAtTerm pSvLibAtTerm) throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
@@ -847,8 +868,7 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> accept(SvLibIdTerm pSvLibIdTerm)
-      throws CPATransferException {
+  public List<SMGState> accept(SvLibIdTerm pSvLibIdTerm) throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
@@ -859,7 +879,8 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> accept(SvLibSymbolApplicationRelationalTerm pSvLibSymbolApplicationRelationalTerm)
+  public List<SMGState> accept(
+      SvLibSymbolApplicationRelationalTerm pSvLibSymbolApplicationRelationalTerm)
       throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
@@ -877,74 +898,97 @@ public class SMGCPAAcslVisitor
   }
 
   @Override
-  public List<SMGState> accept(SvLibTagReference pSvLibTagReference)
-      throws CPATransferException {
+  public List<SMGState> accept(SvLibTagReference pSvLibTagReference) throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
   @Override
-  public List<SMGState> accept(SvLibCheckTrueTag pSvLibCheckTrueTag)
-      throws CPATransferException {
+  public List<SMGState> accept(SvLibCheckTrueTag pSvLibCheckTrueTag) throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
   @Override
-  public List<SMGState> accept(SvLibRequiresTag pSvLibRequiresTag)
-      throws CPATransferException {
+  public List<SMGState> accept(SvLibRequiresTag pSvLibRequiresTag) throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
   @Override
-  public List<SMGState> accept(SvLibEnsuresTag pSvLibEnsuresTag)
-      throws CPATransferException {
+  public List<SMGState> accept(SvLibEnsuresTag pSvLibEnsuresTag) throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
   @Override
-  public List<SMGState> accept(SvLibInvariantTag pSvLibInvariantTag)
-      throws CPATransferException {
+  public List<SMGState> accept(SvLibInvariantTag pSvLibInvariantTag) throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
   @Override
-  public List<SMGState> visit(AcslBinaryPredicateOperator pDecl)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslBinaryPredicateOperator pDecl) throws CPATransferException {
     throw new UnsupportedOperationException("Operators should not be visited!");
   }
 
   @Override
-  public List<SMGState> visit(AcslBinaryTermOperator pDecl)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslBinaryTermOperator pDecl) throws CPATransferException {
     throw new UnsupportedOperationException("Operators should not be visited!");
   }
 
   @Override
-  public List<SMGState> visit(AcslBinaryTermExpressionOperator pDecl)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslBinaryTermExpressionOperator pDecl) throws CPATransferException {
     throw new UnsupportedOperationException("Operators should not be visited!");
   }
 
   @Override
-  public List<SMGState> visit(AcslUnaryTermOperator pDecl)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslUnaryTermOperator pDecl) throws CPATransferException {
     throw new UnsupportedOperationException("Operators should not be visited!");
   }
 
   @Override
-  public List<SMGState> visit(AcslUnaryExpressionOperator pDecl)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslUnaryExpressionOperator pDecl) throws CPATransferException {
     throw new UnsupportedOperationException("Operators should not be visited!");
   }
 
   @Override
-  public List<SMGState> visit(AcslBuiltinLabel pAcslBuiltinLabel)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslBuiltinLabel pAcslBuiltinLabel) throws CPATransferException {
     throw new UnsupportedOperationException("Labels should not be visited!");
   }
 
   @Override
-  public List<SMGState> visit(AcslProgramLabel pAcslProgramLabel)
-      throws CPATransferException {
+  public List<SMGState> visit(AcslProgramLabel pAcslProgramLabel) throws CPATransferException {
     throw new UnsupportedOperationException("Labels should not be visited!");
+  }
+
+  /**
+   * Evaluates C assumptions in the SMGCPA and returns no elements of not fulfilled, else the
+   * fullfilling states. This might materialize list elements (e.g. more than one returned element).
+   */
+  private List<SMGState> handleAssumptionWithSimplification(
+      SMGState state, AssumeEdge cfaEdge, CExpression expression)
+      throws CPATransferException, InterruptedException {
+
+    Pair<AExpression, Boolean> simplifiedExpression =
+        simplifyAssumption(expression, truthAssumption);
+    expression = (CExpression) simplifiedExpression.getFirst();
+    final boolean updatedTruthValue = simplifiedExpression.getSecond();
+
+    ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
+    // Get the value of the expression (either true[1], false[0], or unknown)
+    // Note: this might materialize a abstracted linked-list (more than 1 element in the
+    //  resultStateBuilder)
+    for (ValueAndSMGState valueAndState :
+        vv.evaluate(
+            expression, SMGCPAExpressionEvaluator.getCanonicalType((CExpression) expression))) {
+      Value value = valueAndState.getValue();
+      SMGState currentState = valueAndState.getState();
+
+      if (representsBoolean(value, updatedTruthValue)) {
+        // We do not know more than before, and the assumption is fulfilled.
+        // Return the state from the value visitor.
+        // This state might be materialized. It might happen that e.g. 2 materialized states are
+        // returned and one is rejected, while the other fulfills.
+        resultStateBuilder.add(currentState);
+      }
+    }
+    return resultStateBuilder.build();
   }
 }
