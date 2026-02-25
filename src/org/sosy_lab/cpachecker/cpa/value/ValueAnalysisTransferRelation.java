@@ -1649,6 +1649,11 @@ public class ValueAnalysisTransferRelation
       CFAEdge pCfaEdge)
       throws CPATransferException {
 
+    // We do not want to strengthen with our own state
+    if (pStateWithAssumptions instanceof ValueAnalysisState) {
+      return ImmutableList.of(pState);
+    }
+
     ValueAnalysisState newState = pState;
 
     for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
