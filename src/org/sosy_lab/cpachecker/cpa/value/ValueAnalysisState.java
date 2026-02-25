@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -100,8 +99,7 @@ public final class ValueAnalysisState
         Serializable,
         Graphable,
         LatticeAbstractState<ValueAnalysisState>,
-        PseudoPartitionable,
-        AbstractStateWithAssumptions {
+        PseudoPartitionable {
 
   @Serial private static final long serialVersionUID = -3152134511524554358L;
 
@@ -1011,7 +1009,9 @@ public final class ValueAnalysisState
     return result;
   }
 
-  @Override
+  // Do not implement AbstractStateWithAssumptions!!!!!
+  // This is inprecise, since the value analysis is inprecise
+  // Only implemented for the sampling algorithm to get distinct assumptions
   public List<? extends AExpression> getAssumptions() {
     ImmutableList.Builder<AExpression> assumptions = ImmutableList.builder();
     for (Entry<MemoryLocation, ValueAndType> locationAndValue : constantsMap.entrySet()) {

@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.overflow.OverflowState;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -102,6 +103,14 @@ public class PathChecker {
               + " This means that no information like variable assignments will be added and"
               + " imprecise or potentially wrong program paths will be exported as counterexample.")
   private boolean alwaysUseImpreciseCounterexamples = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Use the information in the value analysis state to replac the CEX. "
+              + "This is imprecise since our value analysis is imprecise, "
+              + "which is why it is deactivated by default. ")
+  private boolean useAssumptionsFromValueAnalysis = false;
 
   private final LogManager logger;
   private final PathFormulaManager pmgr;
@@ -366,6 +375,24 @@ public class PathChecker {
         }
       }
     }
+
+    FluentIterable<ValueAnalysisState> valueAnalysis =
+        AbstractStates.asIterable(nextState).filter(ValueAnalysisState.class);
+    if (useAssumptionsFromValueAnalysis) {
+      for (ValueAnalysisState valueState : valueAnalysis) {
+        for (AExpression expr : valueState.getAssumptions()) {
+          if (expr instanceof CExpression pCExpression) {
+            pathFormula = pmgr.makeAnd(pathFormula, pCExpression);
+          } else if (expr instanceof SvLibRelationalTerm pTerm) {
+            pathFormula = pmgr.makeAnd(pathFormula, pTerm);
+          } else {
+            throw new CPATransferException(
+                "Expected a CExpression or a SvLibFinalRelationalTerm as assumption!");
+          }
+        }
+      }
+    }
+
     return pathFormula;
   }
 

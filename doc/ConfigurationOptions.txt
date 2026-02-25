@@ -3276,6 +3276,11 @@ cpa.predicate.useQuantifiersOnArrays = false
 # deprecated name for cpa.predicate.invariants.useStrongInvariantsOnly
 cpa.predicate.useStrongInvariantsOnly = true
 
+# use the assumptions from the ValueAnalysisCPA for strengthening. This is
+# disabled by default because it can be unsound, since the value analysis is
+# unsound.
+cpa.predicate.useValueAnalysisAssumptions = false
+
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
 
