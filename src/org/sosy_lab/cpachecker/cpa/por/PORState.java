@@ -8,14 +8,20 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -30,7 +36,9 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
 
   private final ImmutableMap<Integer, PORThreadState> threads;
 
-  /** Transient mapping from cloned outgoing edges to their originating thread PID. */
+  /**
+   * Transient mapping from cloned outgoing edges to their originating thread PID.
+   */
   private final Map<CFAEdge, Integer> edgePidMap = new HashMap<>();
 
   PORState(ImmutableMap<Integer, PORThreadState> threads) {
@@ -112,20 +120,7 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
    */
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    edgePidMap.clear();
-    ImmutableList.Builder<CFAEdge> ret = ImmutableList.builder();
-    for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
-      int pid = entry.getKey();
-      PORThreadState threadState = entry.getValue();
-      if (!threadState.pLocationState().getLocationNode().getAllLeavingEdges().isEmpty()) {
-        for (CFAEdge outgoingEdge : threadState.pLocationState().getOutgoingEdges()) {
-          CFAEdge cloned = PorEdgeCloner.clone(outgoingEdge, pid, this);
-          edgePidMap.put(cloned, pid);
-          ret.add(cloned);
-        }
-      }
-    }
-    return ret.build();
+    return getAllThreadOutgoingEdges();
   }
 
   @Override
@@ -163,5 +158,166 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
   @Override
   public int hashCode() {
     return threads.hashCode();
+  }
+
+
+  // POR algorithm
+
+  private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() {
+    edgePidMap.clear();
+    ImmutableList.Builder<CFAEdge> ret = ImmutableList.builder();
+    for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
+      int pid = entry.getKey();
+      PORThreadState threadState = entry.getValue();
+      if (!threadState.pLocationState().getLocationNode().getAllLeavingEdges().isEmpty()) {
+        for (CFAEdge outgoingEdge : threadState.pLocationState().getOutgoingEdges()) {
+          CFAEdge cloned = PorEdgeCloner.clone(outgoingEdge, pid, this);
+          edgePidMap.put(cloned, pid);
+          ret.add(cloned);
+        }
+      }
+    }
+    return ret.build();
+  }
+
+  private ImmutableCollection<CFAEdge> getMinimalSourceSet() {
+    ImmutableCollection<CFAEdge> minimalSourceSet = null;
+    final var allOutgoingEdges = getAllThreadOutgoingEdges();
+    final var sourceSetFirstActions = getSourceSetFirstActions(allOutgoingEdges);
+    for (final var firstActions : sourceSetFirstActions) {
+      final var sourceSet = calculateSourceSet(allOutgoingEdges, firstActions);
+      if (minimalSourceSet == null || sourceSet.size() < minimalSourceSet.size()) {
+        minimalSourceSet = sourceSet;
+      }
+    }
+    return minimalSourceSet;
+  }
+
+  private ImmutableCollection<ImmutableCollection<CFAEdge>> getSourceSetFirstActions(Iterable<CFAEdge> allOutgoingEdges) {
+    final var enabledThreads = threads.entrySet().stream()
+        .filter(entry -> !entry.getValue().pLocationState().getLocationNode().getAllLeavingEdges()
+            .isEmpty())
+        .map(Entry::getKey)
+        .collect(Collectors.toCollection(ArrayList::new));
+    Collections.shuffle(enabledThreads);
+    final ImmutableList.Builder<ImmutableCollection<CFAEdge>> sourceSetFirstActions =
+        ImmutableList.builder();
+    for (final var pid : enabledThreads) {
+      final ImmutableList.Builder<CFAEdge> firstActions = ImmutableList.builder();
+      for (final var edge : allOutgoingEdges) {
+        if (pid.equals(edgePidMap.get(edge))) {
+          firstActions.add(edge);
+        }
+      }
+      // TODO check mutex blocks
+      sourceSetFirstActions.add(firstActions.build());
+    }
+    return sourceSetFirstActions.build();
+  }
+
+  private ImmutableCollection<CFAEdge> calculateSourceSet(
+      ImmutableCollection<CFAEdge> allOutgoingEdges,
+      ImmutableCollection<CFAEdge> firstActions) {
+    final var sourceSet = new ArrayList<CFAEdge>();
+    final var otherEdges = new ArrayList<CFAEdge>();
+    for (final var edge : allOutgoingEdges) {
+      if (firstActions.contains(edge)) {
+        sourceSet.add(edge);
+      } else {
+        otherEdges.add(edge);
+      }
+    }
+
+    var addedNewEdge = true;
+    while (addedNewEdge) {
+      addedNewEdge = false;
+      final ImmutableSet.Builder<CFAEdge> edgesToRemove = ImmutableSet.builder();
+      for (final var edge : otherEdges) {
+        if (sourceSet.stream().anyMatch(s -> dependent(s, edge))) {
+          sourceSet.add(edge);
+          edgesToRemove.add(edge);
+          addedNewEdge = true;
+        }
+      }
+      otherEdges.removeAll(edgesToRemove.build());
+    }
+
+    // TODO is any action in the source set a backward edge?
+    return ImmutableList.copyOf(sourceSet);
+  }
+
+  private boolean dependent(CFAEdge sourceSetEdge, CFAEdge edge) {
+    if (edgePidMap.get(sourceSetEdge).equals(edgePidMap.get(edge))) {
+      return true;
+    }
+
+    final var sourceSetVars = getUsedGlobalVars(sourceSetEdge);
+    final var influencedVars = getInfluencedGlobalVars(edge);
+    if (intersects(sourceSetVars, influencedVars)) {
+      return true;
+    }
+
+    // TODO handle pointers
+    // first simple solution could be that we return true if any dereference is involved
+
+    return false;
+  }
+
+  private Collection<?> getDirectlyUsedGlobalVars(CFAEdge edge) {
+    // TODO implement
+    // collect directly used vars by the cfa edge
+    return ImmutableList.of();
+  }
+
+  private Collection<?> getUsedGlobalVars(CFAEdge edge) {
+    // TODO implement
+    // collect directly used vars by the cfa edge
+    // plus continue to successor edges until the current thread obtains any mutexes
+    return ImmutableList.of();
+  }
+
+  private Collection<?> getInfluencedGlobalVars(CFAEdge edge) {
+    // TODO implement
+    // get vars of all edges statically reachable in the cfa from the given cfa edge
+    // at thread start edges, also process all edges reachable from the started thread's initial location
+    return getVarsWithTraversal(edge);
+  }
+
+  private Collection<?> getVarsWithTraversal(CFAEdge startEdge) {
+    final var vars = new ArrayList<>();
+    final var exploredEdges = new ArrayList<CFAEdge>();
+    final var edgesToExplore = new ArrayList<>(List.of(startEdge));
+    while (!edgesToExplore.isEmpty()) {
+      final var edge = edgesToExplore.removeFirst();
+      exploredEdges.add(edge);
+      vars.addAll(getDirectlyUsedGlobalVars(edge));
+      final var successorEdges = getSuccessorEdges(edge);
+      for (final var successorEdge : successorEdges) {
+        if (!exploredEdges.contains(successorEdge)) {
+          edgesToExplore.add(successorEdge);
+        }
+      }
+    }
+    return vars;
+  }
+
+  private Iterable<CFAEdge> getSuccessorEdges(CFAEdge edge) {
+    final var allLeavingEdges = edge.getSuccessor().getAllLeavingEdges();
+    final var startedThreadEdges = new ArrayList<CFAEdge>();
+    for (final var leavingEdge : allLeavingEdges) {
+      // TODO if leaving edge starts a new thread, add the first edges of the started thread as well
+    }
+    return allLeavingEdges.append(startedThreadEdges);
+  }
+
+  private boolean intersects(Iterable<?> i1, Iterable<?> i2) {
+    for (var o1 : i1) {
+      for (var o2 : i2) {
+        if (o1.equals(o2)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
