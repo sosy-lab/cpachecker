@@ -45,6 +45,10 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
     return hash;
   }
 
+  public int numOfLoopInvariants() {
+    return loopInvariants.size();
+  }
+
   @Override
   public String toAstString() {
     StringBuilder astString = new StringBuilder();
