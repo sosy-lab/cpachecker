@@ -181,12 +181,14 @@ public class SMGCPAExpressionEvaluator {
     checkArgument(!(rightValue instanceof AddressExpression));
     Value isNotEqual = checkNonEqualityForAddresses(leftValue, rightValue, state);
     if (!(isNotEqual instanceof NumericValue knownInequality)) {
-      checkArgument(isNotEqual.isUnknown()); // Guaranteed from checkNonEqualityForAddresses()
       return isNotEqual;
     }
-    return knownInequality.bigIntegerValue().compareTo(BigInteger.ZERO) == 0
-        ? new NumericValue(1)
-        : new NumericValue(0);
+    if (knownInequality.bigIntegerValue().equals(BigInteger.ZERO)) {
+      return new NumericValue(1);
+    } else if (knownInequality.bigIntegerValue().equals(BigInteger.ONE)) {
+      return new NumericValue(0);
+    }
+    throw new SMGException("Disallowed C style numeric boolean value found: " + knownInequality);
   }
 
   /**
@@ -209,6 +211,7 @@ public class SMGCPAExpressionEvaluator {
         unpackAddressExpression(rightValue, leftValueAndState.getState());
     rightValue = rightValueAndState.getValue();
     SMGState currentState = rightValueAndState.getState();
+
     // Check that both Values are truly addresses
     if (!isPointerValue(rightValue, currentState) || !isPointerValue(leftValue, currentState)) {
       return UnknownValue.getInstance();
