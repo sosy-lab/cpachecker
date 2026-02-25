@@ -21,15 +21,15 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  */
 public final class AcslFunctionContract extends AAcslAnnotation {
 
-  private final @Nullable ImmutableSet<AcslEnsures> ensuresClauses;
-  private final @Nullable ImmutableSet<AcslAssigns> assignsClauses;
-  private final @Nullable ImmutableSet<AcslRequires> requiresClauses;
+  private final ImmutableSet<AcslEnsures> ensuresClauses;
+  private final ImmutableSet<AcslAssigns> assignsClauses;
+  private final ImmutableSet<AcslRequires> requiresClauses;
 
   public AcslFunctionContract(
       FileLocation pFileLocation,
-      @Nullable ImmutableSet<AcslEnsures> pEnsuresClauses,
-      @Nullable ImmutableSet<AcslAssigns> pAssignsClauses,
-      @Nullable ImmutableSet<AcslRequires> pRequiresClauses1) {
+      ImmutableSet<AcslEnsures> pEnsuresClauses,
+      ImmutableSet<AcslAssigns> pAssignsClauses,
+      ImmutableSet<AcslRequires> pRequiresClauses1) {
     super(pFileLocation);
     ensuresClauses = pEnsuresClauses;
     assignsClauses = pAssignsClauses;
@@ -58,58 +58,34 @@ public final class AcslFunctionContract extends AAcslAnnotation {
   @Override
   public String toAstString() {
     StringBuilder astString = new StringBuilder();
-    if (ensuresClauses != null) {
-      for (AcslEnsures e : ensuresClauses) {
-        astString.append(e.toAstString()).append("\n");
-      }
+    for (AcslEnsures e : ensuresClauses) {
+      astString.append(e.toAstString()).append("\n");
     }
-    if (assignsClauses != null) {
-      for (AcslAssigns a : assignsClauses) {
-        astString.append(a.toAstString()).append("\n");
-      }
+
+    for (AcslAssigns a : assignsClauses) {
+      astString.append(a.toAstString()).append("\n");
     }
-    if (requiresClauses != null) {
-      for (AcslRequires r : requiresClauses) {
-        astString.append(r.toAstString()).append("\n");
-      }
+    for (AcslRequires r : requiresClauses) {
+      astString.append(r.toAstString()).append("\n");
     }
 
     return astString.toString();
   }
 
   public int numOfEnsures() {
-    if (ensuresClauses == null) {
-      return 0;
-    }
     return ensuresClauses.size();
   }
 
   public int numOfRequires() {
-    if (requiresClauses == null) {
-      return 0;
-    }
     return requiresClauses.size();
   }
 
   public int numOfAssigns() {
-    if (assignsClauses == null) {
-      return 0;
-    }
     return assignsClauses.size();
   }
 
   public int numOfAnnotations() {
-    int num = 0;
-    if (ensuresClauses != null) {
-      num += ensuresClauses.size();
-    }
-    if (requiresClauses != null) {
-      num += requiresClauses.size();
-    }
-    if (assignsClauses != null) {
-      num += assignsClauses.size();
-    }
-    return num;
+    return ensuresClauses.size() + requiresClauses.size() + assignsClauses.size();
   }
 
   public @Nullable ImmutableSet<AcslEnsures> getEnsuresClauses() {
