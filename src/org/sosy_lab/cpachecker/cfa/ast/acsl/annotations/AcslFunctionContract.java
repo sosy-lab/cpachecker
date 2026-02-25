@@ -77,6 +77,41 @@ public final class AcslFunctionContract extends AAcslAnnotation {
     return astString.toString();
   }
 
+  public int numOfEnsures() {
+    if (ensuresClauses == null) {
+      return 0;
+    }
+    return ensuresClauses.size();
+  }
+
+  public int numOfRequires() {
+    if (requiresClauses == null) {
+      return 0;
+    }
+    return requiresClauses.size();
+  }
+
+  public int numOfAssigns() {
+    if (assignsClauses == null) {
+      return 0;
+    }
+    return assignsClauses.size();
+  }
+
+  public int numOfAnnotations() {
+    int num = 0;
+    if (ensuresClauses != null) {
+      num += ensuresClauses.size();
+    }
+    if (requiresClauses != null) {
+      num += requiresClauses.size();
+    }
+    if (assignsClauses != null) {
+      num += assignsClauses.size();
+    }
+    return num;
+  }
+
   public @Nullable ImmutableSet<AcslEnsures> getEnsuresClauses() {
     return ensuresClauses;
   }

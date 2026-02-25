@@ -27,7 +27,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * @param globalAcslDeclarations A set of global Acsl Declarations
  * @param assertions A mapping of Cfa Nodes to Acsl assertion_clauses
  * @param loopAnnotations A mapping of Cfa Nodes to Acsl loop_invariants
- * @param functionContracts A mapping of Cfa Nodes to Acsl function_contracts
+ * @param functionContracts A mapping of Cfa Nodes to Acsl function_contracts. "A C function can be
+ *     defined only once but declared several times. It is allowed to annotate each of these
+ *     declarations with contracts. Those contracts are seen as a single contract with the union of
+ *     the requires clauses and behaviors." (see ANSI/ISO C Specification Language Version 1.23
+ *     §2.3.5)
  */
 public record AcslMetadata(
     ImmutableSet<AcslDeclaration> globalAcslDeclarations,
