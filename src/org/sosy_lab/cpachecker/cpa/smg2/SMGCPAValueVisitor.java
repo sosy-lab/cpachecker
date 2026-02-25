@@ -721,13 +721,49 @@ public class SMGCPAValueVisitor
                 currentState));
       }
 
-      case NOT_EQUALS ->
-          // address != address or address != not address
-          ImmutableList.of(
-              ValueAndSMGState.of(
-                  evaluator.checkNonEqualityForAddresses(
-                      nonConstLeftValue, nonConstRightValue, currentState),
-                  currentState));
+      case NOT_EQUALS -> {
+        // address != address or address != not address
+        if (leftIsNumeric || rightIsNumeric) {
+          Value equalityRes;
+          if (leftIsNumeric) {
+            equalityRes =
+                getAddressEqualityWithNumber(
+                    nonConstRightValue,
+                    rightValueType,
+                    nonConstLeftValue,
+                    leftValueType,
+                    currentState,
+                    calculationType);
+          } else {
+            equalityRes =
+                getAddressEqualityWithNumber(
+                    nonConstLeftValue,
+                    leftValueType,
+                    nonConstRightValue,
+                    rightValueType,
+                    currentState,
+                    calculationType);
+          }
+          Value inequalityRes = equalityRes;
+          if (equalityRes instanceof NumericValue numEqualityRes) {
+            if (numEqualityRes.bigIntegerValue().equals(BigInteger.ZERO)) {
+              inequalityRes = new NumericValue(BigInteger.ONE);
+            } else {
+              checkState(numEqualityRes.bigIntegerValue().equals(BigInteger.ONE));
+              inequalityRes = new NumericValue(BigInteger.ZERO);
+            }
+          } else {
+            checkState(equalityRes.isUnknown());
+          }
+          yield ImmutableList.of(ValueAndSMGState.of(inequalityRes, currentState));
+        }
+
+        yield ImmutableList.of(
+            ValueAndSMGState.of(
+                evaluator.checkNonEqualityForAddresses(
+                    nonConstLeftValue, nonConstRightValue, currentState),
+                currentState));
+      }
 
       case PLUS, MINUS ->
           // TODO: make sure this handled normal pointers only (no addressExpr)!
