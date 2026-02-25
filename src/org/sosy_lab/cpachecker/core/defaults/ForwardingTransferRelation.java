@@ -582,7 +582,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return false;
   }
 
-  protected static Pair<AExpression, Boolean> simplifyAssumption(
+  public static Pair<AExpression, Boolean> simplifyAssumption(
       AExpression pExpression, boolean pAssumeTruth) {
     if (isBooleanExpression(pExpression)) {
       if (pExpression instanceof CBinaryExpression binExp) {
