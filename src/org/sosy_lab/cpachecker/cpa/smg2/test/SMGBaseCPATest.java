@@ -195,6 +195,7 @@ public class SMGBaseCPATest {
       failWithActual(
           Fact.fact("analysis result expected to be", expectedResultString),
           Fact.fact("but was", verdict),
+          Fact.fact("due to", results.getCheckerResult().getTargetDescription()),
           Fact.fact("which has log", results.getLog().trim()));
     }
 
