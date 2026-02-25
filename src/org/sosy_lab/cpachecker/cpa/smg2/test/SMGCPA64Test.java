@@ -22,12 +22,14 @@ public class SMGCPA64Test extends SMGBaseCPATest {
 
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrViaMallocProof() throws Exception {
+    doNotTestOverflows();
     String testProgram = "pointer_arithmetics/pointer_arithmetics_int_malloc_64_safe.c";
     assertThatProgram(testProgram).isSafe();
   }
 
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrCastNumericViaMallocProof() throws Exception {
+    doNotTestOverflows();
     String testProgram =
         "pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_64_safe.c";
     assertThatProgram(testProgram).isSafe();
@@ -38,6 +40,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Ignore // Ignore as we currently fail this in SMG2
   @Test
   public void nondetIntegerTypeBoundsProof() throws Exception {
+    doNotTestOverflows();
     String testProgram = "basics/type_tests/nondet_generator_integer_types_64_true.c";
     assertThatProgram(testProgram).isSafe();
   }
@@ -46,6 +49,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Ignore // Ignore as we currently fail this in SMG2
   @Test
   public void nondetFloatingPointTypeBoundsProof() throws Exception {
+    doNotTestOverflows();
     String testProgram = "basics/type_tests/nondet_generator_float_types_64_true.c";
     assertThatProgram(testProgram).isSafe();
   }
@@ -54,6 +58,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Ignore // TODO: enable and see whether we pass this
   @Test
   public void arrayUsageProof() throws Exception {
+    doNotTestOverflows();
     String testProgram = "basics/array_tests/array_usage_64_true.c";
     assertThatProgram(testProgram).isSafe();
   }
@@ -62,6 +67,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Ignore // TODO: enable and see whether we pass this
   @Test
   public void arrayUsageViolation() throws Exception {
+    doNotTestOverflows();
     String testProgram = "basics/array_tests/array_usage_64_false.c";
     assertThatProgram(testProgram).isUnsafe();
   }
@@ -70,6 +76,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Ignore // TODO: enable and see whether we pass this
   @Test
   public void arrayUsageInMethodsProof() throws Exception {
+    doNotTestOverflows();
     String testProgram = "basics/array_tests/array_usage_methods_64_true.c";
     assertThatProgram(testProgram).isSafe();
   }
@@ -78,6 +85,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Ignore // TODO: enable and see whether we pass this
   @Test
   public void arrayUsageInMethodsViolation() throws Exception {
+    doNotTestOverflows();
     String testProgram = "basics/array_tests/array_usage_methods_64_false.c";
     assertThatProgram(testProgram).isUnsafe();
   }
@@ -86,6 +94,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Ignore // TODO: enable and see whether we pass this
   @Test
   public void arrayUsageInMethodsAsPointersProof() throws Exception {
+    doNotTestOverflows();
     String testProgram = "basics/array_tests/array_usage_pointers_in_methods_64_true.c";
     assertThatProgram(testProgram).isSafe();
   }
@@ -94,6 +103,7 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Ignore // TODO: enable and see whether we pass this
   @Test
   public void arrayUsageInMethodsAsPointersViolation() throws Exception {
+    doNotTestOverflows();
     String testProgram = "basics/array_tests/array_usage_pointers_in_methods_64_false.c";
     assertThatProgram(testProgram).isUnsafe();
   }

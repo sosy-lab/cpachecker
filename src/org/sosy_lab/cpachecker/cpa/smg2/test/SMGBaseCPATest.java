@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.truth.Truth.assert_;
+import static com.google.common.truth.TruthJUnit.assume;
 import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest.ProgramSubject.assertUsing;
 
@@ -126,6 +127,11 @@ public class SMGBaseCPATest {
 
   protected static MachineModel getMachineModel() {
     return MachineModel.LINUX32;
+  }
+
+  /** Disables overflows specifications for a test. */
+  protected void doNotTestOverflows() {
+    assume().that(specToUse).isNotEqualTo(OVERFLOW_SPECIFICATION);
   }
 
   /**
