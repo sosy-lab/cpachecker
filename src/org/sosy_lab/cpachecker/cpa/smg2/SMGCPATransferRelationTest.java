@@ -1821,7 +1821,7 @@ public class SMGCPATransferRelationTest {
         Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
 
         // False statement with true truth -> false -> null
-        assertThat(statesAfter).isNull();
+        assertThat(statesAfter).isEmpty();
       }
     }
   }
