@@ -906,6 +906,14 @@ public class SMGTransferRelation
         } catch (SMGSolverException e) {
           // This might happen while we already have valid result states
           // TODO: how to handle these cases? Option that allows/disallows?
+          if (!resultStateBuilder.build().isEmpty()) {
+            // This only checks fulfilled assumptions, but ignores not-fulfilled
+            logger.log(
+                Level.WARNING,
+                () ->
+                    "Exception when handling assumptions, but fulfilled assumptions have been found"
+                        + " already");
+          }
           if (e.isSolverException()) {
             throw e.getSolverException();
           } else {
