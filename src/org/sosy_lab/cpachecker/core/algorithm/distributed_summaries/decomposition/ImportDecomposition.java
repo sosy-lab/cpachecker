@@ -43,16 +43,28 @@ public class ImportDecomposition implements DssBlockDecomposition {
     }
   }
 
-  private String edgeToString(CFAEdge edge) {
-    return edge.getPredecessor().getNodeNumber() + " " + edge.getSuccessor().getNodeNumber();
+  // All node IDs are shifted such that they start from 0
+  private int shiftedNodeNumber(int originalNodeNumber, int shift) {
+    return originalNodeNumber - shift;
+  }
+
+  private String edgeToString(CFAEdge edge, int minCfaNodeNumber) {
+    return shiftedNodeNumber(edge.getPredecessor().getNodeNumber(), minCfaNodeNumber)
+        + " "
+        + shiftedNodeNumber(edge.getSuccessor().getNodeNumber(), minCfaNodeNumber);
   }
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
     ImmutableSet.Builder<BlockNodeWithoutGraphInformation> nodes =
         ImmutableSet.builderWithExpectedSize(blocks.size());
-    Map<Integer, CFANode> nodeIdMap = Maps.uniqueIndex(cfa.nodes(), CFANode::getNodeNumber);
-    Map<String, CFAEdge> edgeIdsMap = Maps.uniqueIndex(cfa.edges(), this::edgeToString);
+    int minCfaNodeNumber =
+        cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().orElseThrow();
+    Map<Integer, CFANode> nodeIdMap =
+        Maps.uniqueIndex(cfa.nodes(), n -> shiftedNodeNumber(n.getNodeNumber(), minCfaNodeNumber));
+    Map<String, CFAEdge> edgeIdsMap =
+        Maps.uniqueIndex(cfa.edges(), e -> edgeToString(e, minCfaNodeNumber));
+
     for (Entry<String, ImportedBlock> importedBlock : blocks.entrySet()) {
       FluentIterable<List<Integer>> edges = FluentIterable.from(importedBlock.getValue().edges());
       ImmutableSet<CFANode> cfaNodes =

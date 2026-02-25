@@ -119,7 +119,7 @@ public class ExpandFunctionPointerArrayAssignments {
       cfa.addNode(trueNode);
       cfa.addNode(falseNode);
 
-      CExpression index =
+      CIntegerLiteralExpression index =
           new CIntegerLiteralExpression(
               subscript.getFileLocation(), CNumericTypes.INT, BigInteger.valueOf(i));
       CExpression assumeExp =

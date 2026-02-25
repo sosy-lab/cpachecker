@@ -152,7 +152,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       targetFound = Iterables.any(resultStates, AbstractStates::isTargetState);
       if (targetFound) {
         // not really a fixpoint, but we return and let CEGAR check the target-state
-        logger.log(Level.INFO, "fixpoint-iteration aborted, because there was a target state.");
+        logger.log(Level.FINEST, "fixpoint-iteration aborted, because there was a target state.");
         break;
       }
 

@@ -16,8 +16,10 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
-import java.io.FileNotFoundException;
+import com.google.common.graph.Traverser;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -43,6 +45,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -71,6 +74,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
@@ -80,6 +84,9 @@ import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilde
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.BackwardsVisitOnceVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -90,6 +97,8 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 
 @Options(prefix = "cpa.value.reuse.precision.converter")
 public class ToValuePrecisionConverter implements Statistics {
@@ -172,7 +181,7 @@ public class ToValuePrecisionConverter implements Statistics {
     Multimap<CFANode, MemoryLocation> result = null;
     conversionTime.start();
     try {
-      result = witnesssToVariableTrackingPrec(pWitnessFile);
+      result = witnesssToVariableTrackingPrec(pWitnessFile, conversionShutdownNotifier);
       addAdditionalVariables(result, conversionShutdownNotifier);
     } catch (InterruptedException e) {
       logger.logException(Level.INFO, e, "Precision adaption was interrupted.");
@@ -190,7 +199,8 @@ public class ToValuePrecisionConverter implements Statistics {
     return ImmutableListMultimap.copyOf(result);
   }
 
-  private Multimap<CFANode, MemoryLocation> witnesssToVariableTrackingPrec(final Path pWitnessFile)
+  private Multimap<CFANode, MemoryLocation> witnesssToVariableTrackingPrec(
+      final Path pWitnessFile, final ShutdownNotifier pConversionShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
     try {
       IO.checkReadableFile(pWitnessFile);
@@ -199,7 +209,21 @@ public class ToValuePrecisionConverter implements Statistics {
         if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(pWitnessFile)
             .orElseThrow()
             .equals(WitnessType.CORRECTNESS_WITNESS)) {
-          // TODO
+          try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream()) {
+            InvariantExchangeFormatTransformer transformer =
+                new InvariantExchangeFormatTransformer(
+                    config, logger, pConversionShutdownNotifier, cfa);
+            SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
+
+            for (Invariant inv :
+                transformer.generateInvariantsFromEntries(
+                    AutomatonWitnessV2ParserUtils.parseYAML(witness))) {
+              trackedVariables.putAll(
+                  dummyNode, extractMemoryLocationsFromLeaves(inv.getFormula()));
+            }
+
+            return trackedVariables;
+          }
         } else {
           logger.log(
               Level.WARNING,
@@ -208,11 +232,24 @@ public class ToValuePrecisionConverter implements Statistics {
       } else {
         logger.log(Level.WARNING, "File " + pWitnessFile + " does not represent a YAML witness.");
       }
-    } catch (FileNotFoundException e) {
+    } catch (IOException e) {
       logger.logUserException(
           Level.WARNING, e, "Could not read witness from file named " + pWitnessFile);
     }
     return ImmutableListMultimap.of();
+  }
+
+  private Iterable<MemoryLocation> extractMemoryLocationsFromLeaves(
+      final ExpressionTree<AExpression> pExpressionTree) {
+    return FluentIterable.from(
+            Traverser.<ExpressionTree<AExpression>>forTree(ExpressionTrees::getChildren)
+                .depthFirstPreOrder(pExpressionTree))
+        .filter(node -> node instanceof LeafExpression)
+        .transform(leaf -> ((LeafExpression<AExpression>) leaf).getExpression())
+        .transformAndConcat(
+            expr ->
+                CFAUtils.getIdExpressionsOfExpression(expr)
+                    .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration())));
   }
 
   public Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(

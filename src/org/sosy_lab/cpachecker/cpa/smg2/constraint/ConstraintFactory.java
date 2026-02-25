@@ -122,7 +122,7 @@ public class ConstraintFactory {
     final ExpressionTransformer transformer = getCTransformer();
 
     CBinaryExpression expression = pExpression;
-    if (!isConstraint(pExpression)) {
+    if (!binaryExpressionIsConstraint(pExpression)) {
       // Make non-logical constraints logical, so that SMT can be used for C
       // Example: an expression (x | y) in C returns a number, which can be interpreted as bool with
       // (x | y) != 0
@@ -131,17 +131,18 @@ public class ConstraintFactory {
               exprBuilder.buildBinaryExpression(
                   expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS));
     }
-    assert isConstraint(expression); // Non-logical expressions WILL fail in the transformer!
+    assert binaryExpressionIsConstraint(
+        expression); // Non-logical expressions WILL fail in the transformer!
 
     return transformedImmutableListCopy(
         transformer.transform(expression),
         n -> ConstraintAndSMGState.of((Constraint) n.getSymbolicExpression(), n.getState()));
   }
 
-  private boolean isConstraint(CBinaryExpression pExpression) {
+  public static boolean binaryExpressionIsConstraint(CBinaryExpression pExpression) {
     return switch (pExpression.getOperator()) {
       case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> true;
-      default -> false;
+      default -> false; // Expressions of this kind
     };
   }
 
