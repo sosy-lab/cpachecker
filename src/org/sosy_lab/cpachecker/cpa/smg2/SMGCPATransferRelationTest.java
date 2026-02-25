@@ -1632,7 +1632,7 @@ public class SMGCPATransferRelationTest {
         Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, false);
 
         // The truth assumption is false -> the true assumption gets turned to false -> null return
-        assertThat(statesAfter).isNull();
+        assertThat(statesAfter).isEmpty();
       }
     }
   }
@@ -1708,7 +1708,7 @@ public class SMGCPATransferRelationTest {
       // The truth assumption is false -> the true assumption gets turned to false -> null return
       // The reason is that these are 2 distinct addresses, and it's not allowed to assume them
       // equal!
-      assertThat(statesAfter).isNull();
+      assertThat(statesAfter).isEmpty();
     }
   }
 
@@ -1776,7 +1776,7 @@ public class SMGCPATransferRelationTest {
       // The truth assumption is false -> null return (because true truth assumption)
       // The reason is that these are 2 distinct addresses, and it's not allowed to assume them
       // equal!
-      assertThat(statesAfter).isNull();
+      assertThat(statesAfter).isEmpty();
     }
   }
 
