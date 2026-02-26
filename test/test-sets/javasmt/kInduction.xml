@@ -22,7 +22,8 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
 
   <option name="--heap">13000M</option>
-  <option name="--stack" reason="CVC4 needs a larger stack">50M</option>
+  <!-- CVC4 needs a larger stack -->
+  <option name="--stack">50M</option>
   <option name="--no-output-files"/>
   <option name="--benchmark"/>
    <!-- SV-Comp files assume that malloc always succeeds -->
