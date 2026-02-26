@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record FunctionStatementBuilder(
     ImmutableList<MPORThread> threads,
@@ -269,32 +270,30 @@ public record FunctionStatementBuilder(
    * can be retrieved by other threads calling {@code pthread_join}.
    */
   private ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment>
-      buildStartRoutineExitAssignments(MPORThread pThread) {
+      buildStartRoutineExitAssignments(MPORThread pThread) throws UnsupportedCodeException {
 
     ImmutableMap.Builder<CFAEdgeForThread, FunctionReturnValueAssignment>
         rStartRoutineExitAssignments = ImmutableMap.builder();
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
-      PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge)
-          .ifPresent(
-              functionCall -> {
-                if (PthreadUtil.isCallToPthreadFunction(
-                    functionCall, PthreadFunctionType.PTHREAD_EXIT)) {
-                  assert pThread.startRoutineExitVariable().isPresent()
-                      : "thread calls pthread_exit but has no intermediateExitVariable";
-                  SubstituteEdge substituteEdge =
-                      Objects.requireNonNull(substituteEdges.get(threadEdge));
-                  CFunctionCall substituteFunctionCall =
-                      PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge)
-                          .orElseThrow();
-                  CExpressionAssignmentStatement assignmentStatement =
-                      SeqStatementBuilder.buildExpressionAssignmentStatement(
-                          pThread.startRoutineExitVariable().orElseThrow(),
-                          PthreadUtil.extractExitReturnValue(substituteFunctionCall));
-                  FunctionReturnValueAssignment assignment =
-                      new FunctionReturnValueAssignment(assignmentStatement);
-                  rStartRoutineExitAssignments.put(threadEdge, assignment);
-                }
-              });
+      Optional<CFunctionCall> functionCall =
+          PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToPthreadFunction(
+            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_EXIT)) {
+          assert pThread.startRoutineExitVariable().isPresent()
+              : "thread calls pthread_exit but has no intermediateExitVariable";
+          SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
+          CFunctionCall substituteFunctionCall =
+              PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
+          CExpressionAssignmentStatement assignmentStatement =
+              SeqStatementBuilder.buildExpressionAssignmentStatement(
+                  pThread.startRoutineExitVariable().orElseThrow(),
+                  PthreadUtil.extractExitReturnValue(substituteFunctionCall));
+          FunctionReturnValueAssignment assignment =
+              new FunctionReturnValueAssignment(assignmentStatement);
+          rStartRoutineExitAssignments.put(threadEdge, assignment);
+        }
+      }
     }
     return rStartRoutineExitAssignments.buildOrThrow();
   }

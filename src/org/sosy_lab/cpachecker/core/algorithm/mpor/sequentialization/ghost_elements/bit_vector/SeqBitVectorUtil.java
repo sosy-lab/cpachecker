@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SeqBitVectorUtil {
 
@@ -32,7 +33,8 @@ public class SeqBitVectorUtil {
       SeqBitVectorEncoding pEncoding,
       MachineModel pMachineModel,
       MemoryModel pMemoryModel,
-      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations) {
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations)
+      throws UnsupportedCodeException {
 
     checkArgument(pEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
@@ -64,7 +66,7 @@ public class SeqBitVectorUtil {
   // Vector Length =================================================================================
 
   static CSimpleType getBitVectorTypeByMemoryModel(
-      MachineModel pMachineModel, MemoryModel pMemoryModel) {
+      MachineModel pMachineModel, MemoryModel pMemoryModel) throws UnsupportedCodeException {
 
     final int minimumLength = getMinimumBitVectorLengthInBytes(pMachineModel, pMemoryModel);
     if (minimumLength == pMachineModel.getSizeofChar()) {
@@ -82,13 +84,14 @@ public class SeqBitVectorUtil {
     if (minimumLength == pMachineModel.getSizeofLongLongInt()) {
       return CNumericTypes.UNSIGNED_LONG_LONG_INT;
     }
-    throw new IllegalArgumentException(
+    throw new UnsupportedCodeException(
         String.format(
             "Could not find an appropriate bit vector CType based on MachineModel %s for"
                 + " minimumLength %s. The input program probably contains too many global memory"
                 + " locations. Try setting bitVectorEncoding=SPARSE because it supports any amount"
                 + " of memory locations.",
-            pMachineModel, minimumLength));
+            pMachineModel, minimumLength),
+        null);
   }
 
   private static int getMinimumBitVectorLengthInBytes(

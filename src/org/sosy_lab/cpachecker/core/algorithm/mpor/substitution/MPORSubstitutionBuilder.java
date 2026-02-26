@@ -306,7 +306,8 @@ public record MPORSubstitutionBuilder(
   }
 
   private Optional<Entry<CParameterDeclaration, CIdExpression>> tryBuildStartRoutineArgSubstitute(
-      CFunctionCall pFunctionCall, CIdExpression pPthreadT, MPORThread pCreatedThread) {
+      CFunctionCall pFunctionCall, CIdExpression pPthreadT, MPORThread pCreatedThread)
+      throws UnsupportedCodeException {
 
     // pthread_t matches
     if (pPthreadT.equals(pCreatedThread.threadObject().orElseThrow())) {

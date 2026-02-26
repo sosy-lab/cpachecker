@@ -143,7 +143,8 @@ public record SeqThreadStatementBuilder(
   // const CPAchecker_TMP ==========================================================================
 
   private SeqThreadStatement buildConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes) {
+      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes)
+      throws UnsupportedCodeException {
 
     SubstituteEdge constCpaCheckerTmpEdge =
         Objects.requireNonNull(substituteEdges.get(pThreadEdge));
@@ -175,7 +176,8 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildTwoPartConstCpaCheckerTmpStatement(
-      SubstituteEdge pConstCpaCheckerTmpEdge, CFAEdgeForThread pSuccessorEdge) {
+      SubstituteEdge pConstCpaCheckerTmpEdge, CFAEdgeForThread pSuccessorEdge)
+      throws UnsupportedCodeException {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge substituteEdgeA = Objects.requireNonNull(substituteEdges.get(pSuccessorEdge));
@@ -192,7 +194,8 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildThreePartConstCpaCheckerTmpStatement(
       SubstituteEdge pConstCpaCheckerTmpEdge,
       CFAEdgeForThread pFirstSuccessorEdge,
-      CFAEdgeForThread pSecondSuccessorEdge) {
+      CFAEdgeForThread pSecondSuccessorEdge)
+      throws UnsupportedCodeException {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge firstSuccessorEdge =
@@ -214,7 +217,8 @@ public record SeqThreadStatementBuilder(
       SubstituteEdge pFirstSuccessorEdge,
       Optional<SubstituteEdge> pSecondSuccessorEdge,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pNewTargetPc) {
+      int pNewTargetPc)
+      throws UnsupportedCodeException {
 
     SeqThreadStatementData data =
         new SeqThreadStatementData(
@@ -247,7 +251,8 @@ public record SeqThreadStatementBuilder(
   private void checkConstCpaCheckerTmpArguments(
       CVariableDeclaration pVariableDeclaration,
       SubstituteEdge pFirstSuccessorEdge,
-      Optional<SubstituteEdge> pSecondSuccessorEdge) {
+      Optional<SubstituteEdge> pSecondSuccessorEdge)
+      throws UnsupportedCodeException {
 
     checkArgument(
         MPORUtil.isConstCpaCheckerTmp(pVariableDeclaration),
@@ -304,7 +309,9 @@ public record SeqThreadStatementBuilder(
     }
   }
 
-  private CIdExpression getIdExpressionFromSecondSuccessor(CExpression pExpression) {
+  private CIdExpression getIdExpressionFromSecondSuccessor(CExpression pExpression)
+      throws UnsupportedCodeException {
+
     if (pExpression instanceof CIdExpression idExpression) {
       return idExpression;
     } else if (pExpression instanceof CPointerExpression pointerExpression) {
@@ -312,8 +319,11 @@ public record SeqThreadStatementBuilder(
         return idExpression;
       }
     }
-    throw new IllegalArgumentException(
-        "pExpression must be either CIdExpression or CPointerExpression");
+    throw new UnsupportedCodeException(
+        String.format(
+            "pExpression must be either CIdExpression or CPointerExpression %s",
+            pExpression.toASTString()),
+        null);
   }
 
   // Statement build methods =======================================================================
@@ -872,7 +882,9 @@ public record SeqThreadStatementBuilder(
    *       handled.
    * </ul>
    */
-  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor) {
+  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor)
+      throws UnsupportedCodeException {
+
     // exiting start_routine of thread -> blank, just set pc = EXIT_PC;
     if (pSuccessor instanceof FunctionExitNode
         && pSuccessor.getFunction().equals(thread.startRoutine())) {

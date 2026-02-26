@@ -44,7 +44,9 @@ public class PthreadUtil {
     return Optional.empty();
   }
 
-  public static PthreadFunctionType getPthreadFunctionType(CFunctionCall pFunctionCall) {
+  public static PthreadFunctionType getPthreadFunctionType(CFunctionCall pFunctionCall)
+      throws UnsupportedCodeException {
+
     String functionName =
         pFunctionCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
@@ -52,9 +54,10 @@ public class PthreadUtil {
         return functionType;
       }
     }
-    throw new IllegalArgumentException(
-        "could not extract any PthreadFunctionType from pFunctionCall: "
-            + pFunctionCall.toASTString());
+    throw new UnsupportedCodeException(
+        "Could not extract any PthreadFunctionType from pFunctionCall: "
+            + pFunctionCall.toASTString(),
+        null);
   }
 
   public static CIdExpression extractPthreadObject(
@@ -88,15 +91,18 @@ public class PthreadUtil {
         }
       }
     }
-    throw new IllegalArgumentException(
+    throw new UnsupportedCodeException(
         String.format(
-            "could not extract pthread object of type %s from expression %s",
-            pPthreadObjectType, parameterExpression.toASTString()));
+            "Could not extract pthread object of type %s from expression %s",
+            pPthreadObjectType, parameterExpression.toASTString()),
+        null);
   }
 
   // START_ROUTINE =================================================================================
 
-  public static CFunctionDeclaration extractStartRoutineDeclaration(CFunctionCall pFunctionCall) {
+  public static CFunctionDeclaration extractStartRoutineDeclaration(CFunctionCall pFunctionCall)
+      throws UnsupportedCodeException {
+
     PthreadFunctionType functionType = getPthreadFunctionType(pFunctionCall);
     int startRoutineIndex = functionType.getParameterIndex(PthreadObjectType.START_ROUTINE);
     CExpression startRoutineParameter =
@@ -113,12 +119,15 @@ public class PthreadUtil {
         }
       }
     }
-    throw new IllegalArgumentException(
-        "could not extract start_routine declaration from pFunctionCall: "
-            + pFunctionCall.toASTString());
+    throw new UnsupportedCodeException(
+        "Could not extract start_routine declaration from pFunctionCall: "
+            + pFunctionCall.toASTString(),
+        null);
   }
 
-  public static CExpression extractStartRoutineArg(CFunctionCall pFunctionCall) {
+  public static CExpression extractStartRoutineArg(CFunctionCall pFunctionCall)
+      throws UnsupportedCodeException {
+
     checkArgument(
         isCallToAnyPthreadFunctionWithObjectType(
             pFunctionCall, PthreadObjectType.START_ROUTINE_ARGUMENT),
@@ -134,7 +143,9 @@ public class PthreadUtil {
 
   // RETURN_VALUE ==================================================================================
 
-  public static CExpression extractExitReturnValue(CFunctionCall pFunctionCall) {
+  public static CExpression extractExitReturnValue(CFunctionCall pFunctionCall)
+      throws UnsupportedCodeException {
+
     checkArgument(
         isCallToAnyPthreadFunctionWithObjectType(pFunctionCall, PthreadObjectType.RETURN_VALUE),
         "pFunctionCall %s must be a call to a pthread method with a start_routine parameter",
@@ -287,7 +298,9 @@ public class PthreadUtil {
    * sequentialization, i.e. the case block contains code. A function may be supported by MPOR but
    * not considered in the sequentialization.
    */
-  public static boolean isExplicitlyHandledPthreadFunction(CFAEdge pCfaEdge) {
+  public static boolean isExplicitlyHandledPthreadFunction(CFAEdge pCfaEdge)
+      throws UnsupportedCodeException {
+
     Optional<CFunctionCall> functionCall = tryGetFunctionCallFromCfaEdge(pCfaEdge);
     if (functionCall.isPresent()) {
       if (isCallToAnyPthreadFunction(functionCall.orElseThrow())) {

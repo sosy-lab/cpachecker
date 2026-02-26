@@ -222,7 +222,9 @@ public final class MPORUtil {
    * Recursively tries to find the field owner of {@code pFieldReference}, e.g. {@code outer} in
    * {@code outer.intermediary.inner}.
    */
-  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference) {
+  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference)
+      throws UnsupportedCodeException {
+
     if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
       return idExpression;
     }
@@ -235,7 +237,11 @@ public final class MPORUtil {
     if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
       return recursivelyFindFieldOwner(fieldReference);
     }
-    throw new IllegalArgumentException("could not find CIdExpression field owner");
+    throw new UnsupportedCodeException(
+        String.format(
+            "Could not find CIdExpression field owner from CFieldRerefence %s",
+            pFieldReference.toASTString()),
+        null);
   }
 
   private static CType getTypeByIdExpression(CIdExpression pIdExpression) {
