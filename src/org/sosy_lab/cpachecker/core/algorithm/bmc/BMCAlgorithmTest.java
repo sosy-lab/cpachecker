@@ -29,20 +29,20 @@ public class BMCAlgorithmTest {
         .build();
   }
 
-  @Test(timeout = 90000)
+  @Test(timeout = 3000)
   public void count_local() throws Exception {
     TestResults results = CPATestRunner.run(getConfiguration(), getProgramPath("countup_local.c"));
     results.assertIsSafe();
   }
 
-  @Test(timeout = 90000)
+  @Test(timeout = 500)
   public void count_local_wrong() throws Exception {
     TestResults results =
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_local_wrong.c"));
     results.assertIsSafe();
   }
 
-  @Test(timeout = 90000)
+  @Test(timeout = 500)
   public void count_local_wrong2() throws Exception {
     TestResults results =
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_local_wrong2.c"));

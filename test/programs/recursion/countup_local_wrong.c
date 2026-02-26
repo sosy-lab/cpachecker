@@ -9,7 +9,7 @@
 extern void reach_error();
 
 int g = 0;
-int max = 10;
+int max = 3;
 
 void count() {
   if (g < max) {
