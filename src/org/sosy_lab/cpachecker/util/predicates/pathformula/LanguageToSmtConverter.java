@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import com.google.common.base.Verify;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.PrintStream;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -36,6 +38,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
+  @CanIgnoreReturnValue
   protected int makeFreshIndex(String name, T type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
@@ -151,23 +154,21 @@ public abstract class LanguageToSmtConverter<T extends Type> {
               // If we are not in a recursive call, then we do not need to reset the index, we know
               // this since if the same variable has not been written we are not in a recursive call
               && newSsa.getIndex(var) != callerSsa.getIndex(var)) {
-            functionReturnSsaBuilder.setIndex(
-                var,
-                callerSsa.getType(var),
-                // we need to guarantee that we are monotonically increasing in the SSA indices,
-                // because otherwise we can return from a recursive call into a previous state
-                // making the whole formula unsat.
-                newSsa.getIndex(var) + 1);
+
+            T varType = (T) callerSsa.getType(var);
+            Verify.verify(
+                varType == newSsa.getType(var),
+                "Variable %s has different types in caller and callee SSA",
+                var);
+
+            makeFreshIndex(var, varType, functionReturnSsaBuilder);
             // Now make it such that the new variable is equal to the old one
             pConstraints.addConstraint(
                 fmgr.makeEqual(
                     makeFormulaForVariable(
-                        callerSsa,
-                        oldFormula.getPointerTargetSet(),
-                        var,
-                        (T) callerSsa.getType(var)),
+                        callerSsa, oldFormula.getPointerTargetSet(), var, varType),
                     makeFormulaForVariable(
-                        functionReturnSsaBuilder.build(), newPts, var, (T) newSsa.getType(var))));
+                        functionReturnSsaBuilder.build(), newPts, var, varType)));
           }
         }
 
