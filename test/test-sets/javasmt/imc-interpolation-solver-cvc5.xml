@@ -10,9 +10,15 @@ SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!-- Interpolating Model Checking test-set used to compare/test interpolation in different SMT solvers, using CVC5 as interpolating solver for all -->
+<!--
+Interpolating Model Checking (IMC) test-set that uses each available solver for SAT checking, but always uses CVC5 as interpolating solver.
+This tests each solver for their performance in regards to incremental SAT checking in multiple theories/logics, model retrieval, as well as parsing and dumping of SMTLIB2.
+Interpolation is not required by each solver, as satisfiable formulas are dumped to SMTLIB2 and parsed by CVC5, which is then used as interpolating solver.
+CVC5s results are then dumped to SMTLIB2 again and parsed by the original solver again.
+Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment below.
+-->
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="4">
 
   <!-- Use Apollon by default, override if desired -->
   <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
@@ -26,7 +32,7 @@ SPDX-License-Identifier: Apache-2.0
 
 
   <option name="--bmc-interpolation"/>
-  <!-- Disable fallback to BMC, as we want to test interpolation -->
+  <!-- Disable fallback to BMC, as we want to test interpolation/parsing/dumping -->
   <option name="--option">imc.fallBack=false</option>
 
 
