@@ -856,7 +856,7 @@ public class CFACreator {
                 comment.getComment(), comment.getFileLocation(), scope, acslScope);
       } catch (AcslParseException e) {
         throw new AcslMetadataCreationException(
-            "Could not parse acsl annotation at: " + comment.getFileLocation() + ": " + e);
+            "Could not parse acsl annotation " + comment + ": " + e);
       }
       switch (annotation) {
         case AcslAssertion pAssertion -> assertionBuilder.put(n, pAssertion);
@@ -865,17 +865,11 @@ public class CFACreator {
             functionContractBuilder.put(n, pFunctionContract);
         case null ->
             throw new AcslMetadataCreationException(
-                "Annotation for acsl comment "
-                    + comment
-                    + " at: "
-                    + comment.getFileLocation()
-                    + " is null.");
+                "Annotation for acsl comment " + comment + " is null.");
         default ->
             throw new AcslMetadataCreationException(
                 "Unexpected annotation type: "
-                    + annotation
-                    + " at: "
-                    + comment.getFileLocation()
+                    + comment
                     + ". Only assertions, loop annotations and function contracts are supported.");
       }
     }

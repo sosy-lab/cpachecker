@@ -51,20 +51,14 @@ public class AcslNodeMappingUtils {
                   .orElseThrow(
                       () ->
                           new AcslNodeMappingException(
-                              "Could not find CFA node for assertion"
-                                  + pComment
-                                  + "at: "
-                                  + pComment.getFileLocation()));
+                              "Could not find CFA node for assertion" + pComment));
       case LoopAnnotContext ignored ->
           n =
               nodeForLoopAnnotation(pComment.getFileLocation(), pAstCfaRelation)
                   .orElseThrow(
                       () ->
                           new AcslNodeMappingException(
-                              "Could not find loop head for loop annotation "
-                                  + pComment
-                                  + " at: "
-                                  + pComment.getFileLocation()));
+                              "Could not find loop head for loop annotation " + pComment));
       case FunctionContractContext ignored ->
           n =
               nodeForFunctionContract(pComment, pAstCfaRelation, pAllComments)
@@ -73,8 +67,6 @@ public class AcslNodeMappingUtils {
                           new AcslNodeMappingException(
                               "Could not find function entry node for function contract\n"
                                   + pComment
-                                  + " at "
-                                  + pComment.getFileLocation()
                                   + "\nStatement contracts are not supported."));
       case null ->
           throw new AcslNodeMappingException("Annotation " + pComment + " has no Antlr context.");
