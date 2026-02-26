@@ -44,12 +44,26 @@ public final class CIntegerLiteralExpression extends AIntegerLiteralExpression
   @Serial private static final long serialVersionUID = 7691279268370356228L;
   public static final CIntegerLiteralExpression ONE = createDummyLiteral(1L, CNumericTypes.INT);
   public static final CIntegerLiteralExpression ZERO = createDummyLiteral(0L, CNumericTypes.INT);
+
+  /**
+   * Note that this base is used only in {@link CIntegerLiteralExpression#toASTString()} and is
+   * intentionally not considered in {@link CIntegerLiteralExpression#equals(Object)} and {@link
+   * CIntegerLiteralExpression#hashCode()}. Two {@link CIntegerLiteralExpression} are thus
+   * considered equal by value, not syntax.
+   */
   private final CIntegerLiteralBase base;
 
   public static CIntegerLiteralExpression createDummyLiteral(long value, CType type) {
     return new CIntegerLiteralExpression(FileLocation.DUMMY, type, BigInteger.valueOf(value));
   }
 
+  /**
+   * Returns a new {@link CIntegerLiteralExpression}.
+   *
+   * <p>{@code pBase} is used for the string representation of this literal, not in {@link
+   * CIntegerLiteralExpression#equals(Object)} and {@link CIntegerLiteralExpression#hashCode()}. For
+   * example, {@code 0x0} and {@code 0} are considered equal and cannot both be stored in a set.
+   */
   public CIntegerLiteralExpression(
       FileLocation pFileLocation, CType pType, BigInteger pValue, CIntegerLiteralBase pBase) {
 
