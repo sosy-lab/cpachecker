@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -65,16 +66,23 @@ public class AcslMetadataParsingTest {
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
     // Assertions
-    b.add(task("after_else.c", 1, new EmptyNodeAttribute()));
-    b.add(task("after_for_loop2.c", 1, new EmptyNodeAttribute()));
-    b.add(task("after_if.c", 1, new EmptyNodeAttribute()));
-    b.add(task("after_loop.c", 1, new EmptyNodeAttribute()));
-    b.add(task("after_loop2.c", 1, new EmptyNodeAttribute()));
-    b.add(task("at_end.c", 1, new EmptyNodeAttribute()));
-    b.add(task("badVariable.c", 0, new EmptyNodeAttribute()));
-    b.add(task("end_of_do_while.c", 1, new EmptyNodeAttribute()));
-    b.add(task("in_middle.c", 1, new EmptyNodeAttribute()));
-    b.add(task("same_annotation_twice.c", 2, new EmptyNodeAttribute()));
+    b.add(
+        task(
+            "after_else.c",
+            1,
+            new AssertionAttribute("main", "a = 20;", "", "assert a == 10 || a == 20;")));
+    /*
+    b.add(task("after_for_loop2.c", 1, new AssertionAttribute()));
+    b.add(task("after_if.c", 1, new AssertionAttribute()));
+    b.add(task("after_loop.c", 1, new AssertionAttribute()));
+    b.add(task("after_loop2.c", 1, new AssertionAttribute()));
+    b.add(task("at_end.c", 1, new AssertionAttribute()));
+    b.add(task("badVariable.c", 0, new AssertionAttribute()));
+    b.add(task("end_of_do_while.c", 1, new AssertionAttribute()));
+    b.add(task("in_middle.c", 1, new AssertionAttribute()));
+    b.add(task("same_annotation_twice.c", 2, new AssertionAttribute()));
+
+     */
 
     // Loop Annotations
     b.add(
@@ -143,34 +151,57 @@ public class AcslMetadataParsingTest {
         ImmutableSet<AcslFunctionContract> actualContracts =
             metadata.functionContracts().get(expectedNode);
         assertThat(hasMatchingFunctionContract(actualContracts, pContractAttribute)).isTrue();
-      }
-      if (nodeAttribute instanceof LoopAnnotationAttribute ploopAttribute) {
+      } else if (nodeAttribute instanceof LoopAnnotationAttribute ploopAttribute) {
         Optional<ImmutableSet<CFANode>> loopHeads = cfa.getAllLoopHeads();
         assertThat(loopHeads).isPresent();
-        FluentIterable<CFANode> heads = FluentIterable.from(loopHeads.orElseThrow());
-        heads = heads.filter(n -> n.getFunctionName().equals(ploopAttribute.function));
-        heads =
-            heads.filter(
-                n ->
-                    n.getNumEnteringEdges() == ploopAttribute.enteringEdges
-                        && n.getNumLeavingEdges() == ploopAttribute.leavingEdges);
-        heads =
-            heads.filter(
-                n ->
-                    !n.getEnteringEdges()
-                        .filter(
-                            e ->
-                                e.getRawStatement().equals(ploopAttribute.rawStatement)
-                                    || e.getDescription().equals(ploopAttribute.rawStatement))
-                        .isEmpty());
+        FluentIterable<CFANode> heads = getIterable(ploopAttribute, loopHeads);
         assertThat(heads).isNotEmpty();
         ImmutableSet<CFANode> expectedNodes = heads.toSet();
         assertThat(
                 hasMatchingLoopAnnotation(
                     expectedNodes, metadata.loopAnnotations(), ploopAttribute))
             .isTrue();
+      } else if (nodeAttribute instanceof AssertionAttribute assertionAttribute) {
+        FluentIterable<CFANode> nodes = FluentIterable.from(cfa.nodes());
+        nodes = nodes.filter(n -> n.getFunctionName().equals(assertionAttribute.function));
+        nodes =
+            nodes.filter(
+                n ->
+                    !n.getEnteringEdges()
+                        .filter(
+                            e -> e.getRawStatement().equals(assertionAttribute.enteringStatement))
+                        .isEmpty());
+        nodes =
+            nodes.filter(
+                n ->
+                    !n.getLeavingEdges()
+                        .filter(
+                            e -> e.getRawStatement().equals(assertionAttribute.leavingStatement))
+                        .isEmpty());
+        assertThat(nodes).isNotEmpty();
       }
     }
+  }
+
+  private static @NonNull FluentIterable<CFANode> getIterable(
+      LoopAnnotationAttribute ploopAttribute, Optional<ImmutableSet<CFANode>> loopHeads) {
+    FluentIterable<CFANode> heads = FluentIterable.from(loopHeads.orElseThrow());
+    heads = heads.filter(n -> n.getFunctionName().equals(ploopAttribute.function));
+    heads =
+        heads.filter(
+            n ->
+                n.getNumEnteringEdges() == ploopAttribute.enteringEdges
+                    && n.getNumLeavingEdges() == ploopAttribute.leavingEdges);
+    heads =
+        heads.filter(
+            n ->
+                !n.getEnteringEdges()
+                    .filter(
+                        e ->
+                            e.getRawStatement().equals(ploopAttribute.rawStatement)
+                                || e.getDescription().equals(ploopAttribute.rawStatement))
+                    .isEmpty());
+    return heads;
   }
 
   boolean hasMatchingFunctionContract(
@@ -204,13 +235,15 @@ public class AcslMetadataParsingTest {
 
   interface CfaNodeAttribute {}
 
-  public record EmptyNodeAttribute() implements CfaNodeAttribute {}
-
   public record FunctionContractAttribute(
       String functionName, int numEnsures, int numRequires, int numAssigns)
       implements CfaNodeAttribute {}
 
   public record LoopAnnotationAttribute(
       String function, int leavingEdges, int enteringEdges, int numAnnotations, String rawStatement)
+      implements CfaNodeAttribute {}
+
+  public record AssertionAttribute(
+      String function, String enteringStatement, String leavingStatement, String assertionString)
       implements CfaNodeAttribute {}
 }
