@@ -5884,3 +5884,7 @@ witness.yamlexporter.exportCompleteCounterexample = false
 
 # The version for which to export the witness.
 witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]
+
+# With this option set to true, ACSL anntations from the source file will be
+# added to the CFA metadata.
+cfa.withAcslMetadata = false
