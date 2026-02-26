@@ -152,7 +152,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
     if (!pDeltas.isEmpty()) {
-      ReachedSetDelta latestDelta = pDeltas.get(pDeltas.size() - 1);
+      ReachedSetDelta latestDelta = pDeltas.getLast();
       collectAndCategorizePatterns(
           latestDelta, accumulatedPatternFrequency, accumulatedCategoryFrequency);
     }
@@ -176,6 +176,19 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       Multiset<String> pPatternAccumulator,
       Multiset<String> pCategoryAccumulator) {
 
+    // delete predicates that were removed from the ReachedSet
+    for (AbstractState pState : pDelta.removedStates()) {
+      PredicateAbstractState predState =
+          AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+
+      if (predState != null && predState.isAbstractionState()) {
+        BooleanFormula abstractionFormula = predState.getAbstractionFormula().asFormula();
+        DelegatingRefinerSExpression rootExpression = normalizer.buildAtom(abstractionFormula);
+        removeMatches(rootExpression, matcher, pPatternAccumulator, pCategoryAccumulator);
+      }
+    }
+
+    // check and add predicates that were added to the ReachedSet
     for (AbstractState pState : pDelta.addedStates()) {
       PredicateAbstractState predState =
           checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
@@ -184,6 +197,26 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
         BooleanFormula abstractionFormula = predState.getAbstractionFormula().asFormula();
         DelegatingRefinerSExpression rootExpression = normalizer.buildAtom(abstractionFormula);
         collectMatches(rootExpression, matcher, pPatternAccumulator, pCategoryAccumulator);
+      }
+    }
+  }
+
+  private void removeMatches(
+      DelegatingRefinerSExpression pExpression,
+      DelegatingRefinerMatchingVisitor pMatcher,
+      Multiset<String> pPatternAccumulator,
+      Multiset<String> pCategoryAccumulator) {
+
+    ImmutableList<DelegatingRefinerNormalizedFormula> matches = pExpression.accept(pMatcher);
+
+    for (DelegatingRefinerNormalizedFormula match : matches) {
+      pPatternAccumulator.remove(match.id());
+      pCategoryAccumulator.remove(match.category());
+    }
+
+    if (pExpression instanceof DelegatingRefinerSExpressionSExpressionOperator operator) {
+      for (DelegatingRefinerSExpression subAtom : operator.sExpressionList()) {
+        removeMatches(subAtom, pMatcher, pPatternAccumulator, pCategoryAccumulator);
       }
     }
   }
@@ -209,13 +242,13 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       ImmutableMultiset<String> pPatternFrequency, ImmutableMultiset<String> pCategoryFrequency) {
     Multiset.Entry<String> dominantCategory = getMostFrequent(pCategoryFrequency);
     if (dominantCategory != null) {
-      logger.logf(Level.INFO, "Dominant category is %s.", dominantCategory);
+      logger.logf(Level.FINER, "Dominant category is %s.", dominantCategory);
     }
 
     Multiset.Entry<String> dominantPattern = getMostFrequent(pPatternFrequency);
     if (dominantPattern != null) {
       logger.logf(
-          Level.INFO, "Dominant pattern is %s for %s.", dominantPattern, pPatternFrequency.size());
+          Level.FINER, "Dominant pattern is %s for %s.", dominantPattern, pPatternFrequency.size());
     }
   }
 
@@ -252,6 +285,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
   private boolean isCategoryDominant(ImmutableMultiset<String> pCategoryFrequency) {
     double maxRedundancyDetectedCategories = calculateMaxRedundancy(pCategoryFrequency);
+
     boolean isOneCategoryDominant = maxRedundancyDetectedCategories > categoryRedundancyThreshold;
 
     if (isOneCategoryDominant) {
@@ -270,6 +304,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
   private boolean isPatternRedundancyAboveThreshold(ImmutableMultiset<String> pPatternFrequency) {
     double maxRedundancyDetectedPatterns = calculateMaxRedundancy(pPatternFrequency);
+
     boolean isPatternRedundancyAboveThreshold = maxRedundancyDetectedPatterns > redundancyThreshold;
     if (isPatternRedundancyAboveThreshold) {
       logger.logf(

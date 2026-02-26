@@ -104,7 +104,7 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
     if (!pDeltas.isEmpty()) {
-      ReachedSetDelta latestDelta = pDeltas.get(pDeltas.size() - 1);
+      ReachedSetDelta latestDelta = pDeltas.getLast();
       totalAbstractionLocations += latestDelta.abstractionLocationsCount();
     }
 
@@ -122,7 +122,7 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
 
     if (currentAbstractionLocationRefinementRatio > abstractionLocationRefinementRatio) {
       logger.logf(
-          Level.INFO,
+          Level.FINE,
           "Ratio of abstraction location to refinements is too high: %.2f for threshold %.2f."
               + " Heuristic %s is no longer applicable.",
           currentAbstractionLocationRefinementRatio,
@@ -132,7 +132,7 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
 
     if (numberRefinements > refinementThreshold) {
       logger.logf(
-          Level.INFO,
+          Level.FINE,
           "Number refinements is too high: %d for threshold %d."
               + " Heuristic %s is no longer applicable.",
           numberRefinements,

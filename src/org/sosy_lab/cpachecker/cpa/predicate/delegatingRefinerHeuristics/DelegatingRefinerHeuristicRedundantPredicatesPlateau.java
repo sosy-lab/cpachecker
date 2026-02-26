@@ -87,7 +87,7 @@ public class DelegatingRefinerHeuristicRedundantPredicatesPlateau
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
     if (!pDeltas.isEmpty()) {
-      ReachedSetDelta latestDelta = pDeltas.get(pDeltas.size() - 1);
+      ReachedSetDelta latestDelta = pDeltas.getLast();
       collectAndCategorizePatterns(
           latestDelta, accumulatedPatternFrequency, accumulatedCategoryFrequency);
     }

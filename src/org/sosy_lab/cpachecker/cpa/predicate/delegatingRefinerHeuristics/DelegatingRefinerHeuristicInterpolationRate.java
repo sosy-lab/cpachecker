@@ -130,7 +130,7 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
     if (!pDeltas.isEmpty()) {
-      ReachedSetDelta latestDelta = pDeltas.get(pDeltas.size() - 1);
+      ReachedSetDelta latestDelta = pDeltas.getLast();
       totalAbstractionLocationCount += latestDelta.abstractionLocationsCount();
 
       for (AbstractState pState : latestDelta.addedStates()) {
