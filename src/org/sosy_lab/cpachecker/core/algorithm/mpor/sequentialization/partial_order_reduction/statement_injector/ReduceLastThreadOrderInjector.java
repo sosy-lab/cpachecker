@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -248,11 +249,10 @@ public record ReduceLastThreadOrderInjector(
         if (reachableVariable.getKey().equals(activeThread)) {
           SeqMemoryLocation memoryLocation = entry.getKey();
           LastSparseBitVector lastSparseBitVector = lastSparseBitVectors.get(memoryLocation);
-          assert lastSparseBitVector != null;
           CIdExpression rightHandSide = reachableVariable.getValue();
           CExpressionAssignmentStatement update =
               SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  lastSparseBitVector.reachableVariable(), rightHandSide);
+                  checkNotNull(lastSparseBitVector).reachableVariable(), rightHandSide);
           rUpdates.add(update);
         }
       }

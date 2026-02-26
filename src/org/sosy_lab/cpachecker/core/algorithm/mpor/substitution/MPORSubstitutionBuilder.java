@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Iterables;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -318,10 +319,9 @@ public record MPORSubstitutionBuilder(
       // start_routine matches
       if (startRoutineDeclaration.equals(functionCallDeclaration)) {
         if (!startRoutineDeclaration.getParameters().isEmpty()) {
-          assert startRoutineDeclaration.getParameters().size() == 1
-              : "start_routines can have either 0 or 1 arguments";
+          // start_routines can have either 0 or 1 arguments
           CParameterDeclaration parameterDeclaration =
-              startRoutineDeclaration.getParameters().getFirst();
+              Iterables.getOnlyElement(startRoutineDeclaration.getParameters());
           String substituteName =
               SeqNameUtil.buildStartRoutineArgName(
                   options,
@@ -406,7 +406,8 @@ public record MPORSubstitutionBuilder(
                     tracker));
         CVariableDeclaration newDeclarationSubstitute =
             substituteVariableDeclaration(
-                substituteDeclaration.getSubstituteVariableDeclaration(), initializerSubstitute);
+                (CVariableDeclaration) substituteDeclaration.expression().getDeclaration(),
+                initializerSubstitute);
         CIdExpression newIdExpression =
             SeqExpressionBuilder.buildIdExpression(newDeclarationSubstitute);
         LocalVariableDeclarationSubstitute newSubstituteDeclaration =

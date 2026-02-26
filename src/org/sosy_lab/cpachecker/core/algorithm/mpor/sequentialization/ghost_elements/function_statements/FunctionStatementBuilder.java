@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -184,8 +186,8 @@ public record FunctionStatementBuilder(
     ImmutableMap.Builder<CFAEdgeForThread, FunctionReturnValueAssignment> rReturnStatements =
         ImmutableMap.builder();
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
-      assert substituteEdges.containsKey(threadEdge)
-          : "substituteEdges must contain all threadEdges";
+      checkState(
+          substituteEdges.containsKey(threadEdge), "substituteEdges must contain all threadEdges");
       // consider only edges with call context, e.g. return 0; in main has no call context
       if (threadEdge.callContext.isPresent()) {
         SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
@@ -213,9 +215,16 @@ public record FunctionStatementBuilder(
       CReturnStatementEdge pReturnStatementEdge,
       CFAEdgeForThread pCallContext) {
 
+    pThread
+        .cfa()
+        .threadEdges
+        .forEach(
+            e ->
+                checkState(
+                    substituteEdges.containsKey(e),
+                    "Edge %s missing from substitute map",
+                    e.cfaEdge.getCode()));
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
-      assert substituteEdges.containsKey(threadEdge)
-          : "substituteEdges must contain all threadEdges";
       // consider only threadEdges with callContext, CReturnStatementEdges always have call contexts
       if (threadEdge.callContext.isPresent()) {
         CFAEdgeForThread callContext = threadEdge.callContext.orElseThrow();
@@ -242,7 +251,6 @@ public record FunctionStatementBuilder(
   private Optional<FunctionReturnValueAssignment> tryBuildReturnValueAssignment(
       SubstituteEdge pFunctionSummaryEdge, CReturnStatementEdge pReturnStatementEdge) {
 
-    assert pFunctionSummaryEdge.cfaEdge instanceof CFunctionSummaryEdge;
     CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) pFunctionSummaryEdge.cfaEdge;
     // if the summary edge is of the form value = func(); (i.e. an assignment)
     if (functionSummaryEdge.getExpression()
@@ -280,8 +288,6 @@ public record FunctionStatementBuilder(
       if (functionCall.isPresent()) {
         if (PthreadUtil.isCallToPthreadFunction(
             functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_EXIT)) {
-          assert pThread.startRoutineExitVariable().isPresent()
-              : "thread calls pthread_exit but has no intermediateExitVariable";
           SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
           CFunctionCall substituteFunctionCall =
               PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();

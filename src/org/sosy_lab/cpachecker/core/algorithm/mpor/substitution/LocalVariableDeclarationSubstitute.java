@@ -11,24 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 
 public record LocalVariableDeclarationSubstitute(
     CIdExpression expression, Optional<MPORSubstitutionTracker> tracker) {
-
-  public boolean isTrackerPresent() {
-    return tracker.isPresent();
-  }
-
-  public CVariableDeclaration getSubstituteVariableDeclaration() {
-    assert expression.getDeclaration() instanceof CVariableDeclaration;
-    return (CVariableDeclaration) expression.getDeclaration();
-  }
-
-  public MPORSubstitutionTracker getTracker() {
-    assert tracker.isPresent() : "cannot get tracker, tracker is not present";
-    return tracker.orElseThrow();
-  }
 
   @Override
   public int hashCode() {

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -235,8 +236,7 @@ public class SeqThreadStatementClauseUtil {
     } else {
       SeqThreadStatement firstStatement = pCurrent.getFirstBlock().getFirstStatement();
       SeqThreadStatementClause next = pLabelClauseMap.get(firstStatement.targetPc().orElseThrow());
-      assert next != null : "could not find target case clause";
-      if (pCurrent.labelNumber + 1 == next.labelNumber) {
+      if (pCurrent.labelNumber + 1 == checkNotNull(next).labelNumber) {
         return isConsecutiveLabelPath(next, pTarget, pLabelClauseMap);
       } else {
         return false;
@@ -350,8 +350,7 @@ public class SeqThreadStatementClauseUtil {
       tryAddToFoundOrder(block, pFoundOrder);
       // add all targets of block that are independent, i.e. not origins or targets (except block)
       for (SeqThreadStatementBlock target : pBlockGraph.get(block)) {
-        assert target != null : "target cannot be null";
-        if (isTargetIndependent(pBlockGraph, block, target)) {
+        if (isTargetIndependent(pBlockGraph, block, checkNotNull(target))) {
           tryAddToFoundOrder(target, pFoundOrder);
         }
       }
@@ -477,8 +476,7 @@ public class SeqThreadStatementClauseUtil {
     return transformedImmutableListCopy(
         pClauses,
         clause -> {
-          assert clause != null : "clause cannot be null";
-          return clause.getFirstBlock();
+          return checkNotNull(clause).getFirstBlock();
         });
   }
 }

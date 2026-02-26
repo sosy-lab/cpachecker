@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -188,7 +190,8 @@ public final class SeqThreadStatementUtil {
 
     // add all injected statements in the correct order
     ImmutableList<SeqInstrumentation> ordered = orderInstrumentation(pruned);
-    assert ordered.size() == pruned.size() : "ordering of statements resulted in lost statements";
+    checkState(
+        ordered.size() == pruned.size(), "ordering of statements resulted in lost statements");
     prepared.addAll(ordered);
 
     // for non-empty bit vector evaluations, place pc write after injections for optimization
