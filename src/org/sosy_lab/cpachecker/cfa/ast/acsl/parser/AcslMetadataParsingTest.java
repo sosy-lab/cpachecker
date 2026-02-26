@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -57,7 +56,7 @@ public class AcslMetadataParsingTest {
     nodeAttributes = pNodeAttributes;
     Configuration config =
         TestDataTools.configurationForTest()
-            .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
+            .loadFromResource(AcslMetadataParsingTest.class, "withAcslMetadata.properties")
             .build();
     LogManager logManager = LogManager.createTestLogManager();
     cfaCreator = new CFACreator(config, logManager, ShutdownNotifier.createDummy());
@@ -184,13 +183,14 @@ public class AcslMetadataParsingTest {
 
     if (programName.equals("badVariable.c")) {
       RuntimeException expectedException =
-          assertThrows(
-              RuntimeException.class, () -> cfaCreator.parseFilesAndCreateAcslMetadata(files));
+          assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expectedException)
           .hasMessageThat()
           .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
     } else {
-      AcslMetadata acslMetadata = cfaCreator.parseFilesAndCreateAcslMetadata(files);
+
+      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+      AcslMetadata acslMetadata = cfa.getAcslMetadata();
       assertThat(acslMetadata).isNotNull();
       assertThat(acslMetadata.numOfAnnotaniots()).isEqualTo(expectedNumOfAnnotations);
     }
@@ -203,8 +203,7 @@ public class AcslMetadataParsingTest {
 
     if (programName.equals("badVariable.c")) {
       RuntimeException expectedException =
-          assertThrows(
-              RuntimeException.class, () -> cfaCreator.parseFilesAndCreateAcslMetadata(files));
+          assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expectedException)
           .hasMessageThat()
           .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");

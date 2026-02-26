@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
 
-public class AcslMetadataException extends Exception {
+public class AcslMetadataException extends RuntimeException {
   @Serial private static final long serialVersionUID = -3184259442448755810L;
 
   public AcslMetadataException(String message) {

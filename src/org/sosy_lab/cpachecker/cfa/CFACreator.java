@@ -64,8 +64,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMetadataCreationException;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMetadataException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslNodeMappingException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslNodeMappingUtils;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
@@ -351,6 +353,13 @@ public class CFACreator {
 
   @Option(
       secure = true,
+      name = "cfa.withAcslMetadata",
+      description =
+          "With this option set to true, ACSL anntations from the source file will be added to the CFA metadata.")
+  private boolean withAcslMetadata = false;
+
+  @Option(
+      secure = true,
       description =
           "Programming language of the input program. If not given explicitly, auto-detection"
               + " will occur. LLVM IR is currently unsupported as input (cf."
@@ -532,7 +541,10 @@ public class CFACreator {
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
   public ImmutableCFA parseSourceAndCreateCFA(String program)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
+      throws InvalidConfigurationException,
+          ParserException,
+          InterruptedException,
+          AcslMetadataCreationException {
 
     stats.totalTime.start();
     try {
@@ -546,33 +558,6 @@ public class CFACreator {
     }
   }
 
-  public AcslMetadata parseFilesAndCreateAcslMetadata(List<String> program)
-      throws ParserException,
-          InterruptedException,
-          InvalidConfigurationException,
-          AcslParseException,
-          AcslMetadataCreationException,
-          IOException {
-    AcslMetadata acslMetadata = null;
-    stats.totalTime.start();
-    try {
-      ParseResult parseResult = parseToCFAs(program);
-      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
-      assert mainFunction != null : "program lacks main function.";
-
-      CFA cfa = createCFA(parseResult, mainFunction);
-      if (parseResult.acslComments().isPresent()) {
-        CProgramScope scope = new CProgramScope(cfa, logger);
-        acslMetadata =
-            createAcslMetadata(
-                scope, ImmutableList.copyOf(parseResult.acslComments().orElseThrow()));
-      }
-    } finally {
-      stats.totalTime.stop();
-    }
-    return acslMetadata;
-  }
-
   /**
    * Parse some files and create a CFA, including all post-processing etc.
    *
@@ -584,7 +569,11 @@ public class CFACreator {
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
   public ImmutableCFA parseFileAndCreateCFA(List<String> sourceFiles)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException,
+          IOException,
+          ParserException,
+          InterruptedException,
+          AcslMetadataCreationException {
 
     Preconditions.checkArgument(
         !sourceFiles.isEmpty(), "At least one source file must be provided!");
@@ -789,20 +778,9 @@ public class CFACreator {
       cfa.setSvLibCfaMetadata(pParseResult.svLibCfaMetadata().orElseThrow());
     }
 
-    if (pParseResult.acslComments().isPresent()) {
-      CProgramScope cScope = new CProgramScope(cfa, logger);
-      AcslMetadata acslMetadata = null;
-      try {
-        acslMetadata =
-            createAcslMetadata(
-                cScope, ImmutableList.copyOf(pParseResult.acslComments().orElseThrow()));
-      } catch (AcslParseException | AcslMetadataException e) {
-        logger.log(Level.WARNING, e);
-      }
-
-      if (acslMetadata != null) {
-        cfa.setAcslMetadata(acslMetadata);
-      }
+    if (withAcslMetadata) {
+      AcslMetadata acslMetadata = createAcslMetadata(cfa, pParseResult);
+      cfa.setAcslMetadata(acslMetadata);
     }
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
@@ -834,69 +812,81 @@ public class CFACreator {
     return immutableCFA;
   }
 
-  /**
-   * Creates the acsl metadata for the CFA by parsing each annotation statement from an acsl comment
-   * into an object of corresponding type. The acsl parser needs the C program scope of the source
-   * program which depends on the CFA. Therefore, the acsl metadata can only be created after the
-   * CFA already exists.
-   *
-   * @param pScope The CProgramScope of the source file
-   * @return A new Acsl Metadata from the Acsl Comments in pParseResult
-   * @throws AcslParseException When one of the acsl statements is of an unknown type.
-   */
-  private AcslMetadata createAcslMetadata(
-      CProgramScope pScope, ImmutableList<AcslComment> pComments)
-      throws AcslParseException, AcslMetadataCreationException {
+  private AcslMetadata createAcslMetadata(CFA pCFA, ParseResult pResult) {
+    CProgramScope scope = new CProgramScope(pCFA, logger);
+    AcslScope acslScope = AcslScope.empty();
+    ImmutableList<AcslComment> allComments =
+        ImmutableList.copyOf(
+            pResult
+                .acslComments()
+                .orElseThrow(
+                    () ->
+                        new AcslMetadataCreationException(
+                            "The parse result has no acsl comments.")));
 
-    ImmutableSetMultimap.Builder<CFANode, AcslAssertion> assertionBuilder =
+    ImmutableSet.Builder<AcslDeclaration> globalDeclarationBuilder = ImmutableSet.builder();
+    ImmutableSetMultimap.Builder<@NonNull CFANode, AcslAssertion> assertionBuilder =
         ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFANode, AcslLoopAnnotation> loopAnnotationBuilder =
+    ImmutableSetMultimap.Builder<@NonNull CFANode, AcslLoopAnnotation> loopAnnotationBuilder =
         ImmutableSetMultimap.builder();
-
-    ImmutableSetMultimap.Builder<CFANode, AcslFunctionContract> functionContractBuilder =
+    ImmutableSetMultimap.Builder<@NonNull CFANode, AcslFunctionContract> functionContractBuilder =
         ImmutableSetMultimap.builder();
 
-    for (AcslComment comment : pComments) {
-      CFANode node =
-          comment
-              .getCfaNode()
-              .orElseThrow(
-                  () ->
-                      new AcslMetadataCreationException(
-                          "Annotation " + comment + " has no CFA node."));
-      // If the comment is a function contract, we need to tell the CProgramScope the function name.
-      if (node instanceof FunctionEntryNode) {
-        pScope = pScope.withFunctionScope(node.getFunctionName());
+    for (AcslComment comment : allComments) {
+
+      CFANode n;
+      try {
+        n =
+            AcslNodeMappingUtils.addAcslToNodeMapping(
+                comment, allComments, pCFA.getAstCfaRelation());
+      } catch (AcslParseException e) {
+        throw new AcslNodeMappingException(
+            "Could not map acsl annotation " + comment + " to node: " + e);
       }
 
-      AAcslAnnotation annotation =
-          AcslParser.parseAcslComment(
-              comment.getComment(), comment.getFileLocation(), pScope, AcslScope.empty());
+      if (n instanceof FunctionEntryNode fn) {
+        scope = scope.withFunctionScope(fn.getFunctionName());
+      }
 
+      AAcslAnnotation annotation;
+      try {
+        annotation =
+            AcslParser.parseAcslComment(
+                comment.getComment(), comment.getFileLocation(), scope, acslScope);
+      } catch (AcslParseException e) {
+        throw new AcslMetadataCreationException(
+            "Could not parse acsl annotation at: " + comment.getFileLocation() + ": " + e);
+      }
       switch (annotation) {
-        case AcslAssertion assertion -> assertionBuilder.put(node, assertion);
-        case AcslLoopAnnotation loopAnnotation -> loopAnnotationBuilder.put(node, loopAnnotation);
-        case AcslFunctionContract functionContract ->
-            functionContractBuilder.put(node, functionContract);
+        case AcslAssertion pAssertion -> assertionBuilder.put(n, pAssertion);
+        case AcslLoopAnnotation pLoopAnnotation -> loopAnnotationBuilder.put(n, pLoopAnnotation);
+        case AcslFunctionContract pFunctionContract ->
+            functionContractBuilder.put(n, pFunctionContract);
         case null ->
             throw new AcslMetadataCreationException(
-                "The comment " + comment + "could not be parsed into an acsl annotation object.");
+                "Annotation for acsl comment "
+                    + comment
+                    + " at: "
+                    + comment.getFileLocation()
+                    + " is null.");
         default ->
             throw new AcslMetadataCreationException(
-                "Unexpected annotation: "
-                    + comment
-                    + ". Parsing is currently supported for assertions, loop annotations, function"
-                    + " contracts and assigns.");
+                "Unexpected annotation type: "
+                    + annotation
+                    + " at: "
+                    + comment.getFileLocation()
+                    + ". Only assertions, loop annotations and function contracts are supported.");
       }
     }
 
+    ImmutableSet<AcslDeclaration> globalDeclarations = globalDeclarationBuilder.build();
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions = assertionBuilder.build();
     ImmutableSetMultimap<CFANode, AcslLoopAnnotation> loopAnnotations =
         loopAnnotationBuilder.build();
     ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts =
         functionContractBuilder.build();
 
-    return new AcslMetadata(ImmutableSet.of(), assertions, loopAnnotations, functionContracts);
+    return new AcslMetadata(globalDeclarations, assertions, loopAnnotations, functionContracts);
   }
 
   /**

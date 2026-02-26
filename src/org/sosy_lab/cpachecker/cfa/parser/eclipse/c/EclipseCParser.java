@@ -365,16 +365,8 @@ class EclipseCParser implements CParser {
 
       result = result.withASTStructure(astCfaRelation);
 
-      if (result.acslComments().isPresent()) {
-        try {
-          result = builder.addAcslToNodeMapping(result, astCfaRelation);
-        } catch (AcslNodeMappingException e) {
-          logger.log(Level.ALL, e);
-        }
-      }
-
       return result;
-    } catch (CFAGenerationRuntimeException | AcslParseException e) {
+    } catch (CFAGenerationRuntimeException e) {
       throw new CParserException(e);
     } finally {
       cfaTimer.stop();
