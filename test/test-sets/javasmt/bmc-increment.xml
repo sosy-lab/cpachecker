@@ -72,7 +72,9 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <rundefinition name="bmc_increment-boolector">
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <!-- Pointer aliasing requires visitation, but Boolector does not support visitation -->
     <option name="--option">cpa.predicate.handlePointerAliasing=false</option>
+    <!-- No pointer aliasing makes counterexamples imprecise -->
     <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     <option name="--option">solver.solver=boolector</option>
   </rundefinition>
