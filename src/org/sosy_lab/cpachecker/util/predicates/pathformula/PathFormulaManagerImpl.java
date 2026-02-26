@@ -467,16 +467,24 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
-    return converter.makeFormulaForVariable(
-        pContext.getSsa(), pContext.getPointerTargetSet(), pVarName, pType);
+    // TODO: This needs to be properly cleaned up to be polymorphic. The problem
+    //    is that the type is only known at runtime
+    // TODO: Think if we should delete this method since it is unused
+    return ((LanguageToSmtConverter<CType>) converter)
+        .makeFormulaForVariable(pContext.getSsa(), pContext.getPointerTargetSet(), pVarName, pType);
   }
 
   /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForUninstantiatedVariable(
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
-    return converter.makeFormulaForUninstantiatedVariable(
-        pVarName, pType, pContextPTS, forcePointerDereference);
+    // TODO: This needs to be properly cleaned up to be polymorphic. The problem
+    //    is that the type is only known at runtime
+    // TODO: Think if we should move this method to the LanguageToSmtConverter and
+    //  provide two methods which delegate to the converter depending on the type
+    return ((LanguageToSmtConverter<CType>) converter)
+        .makeFormulaForUninstantiatedVariable(
+            pVarName, pType, pContextPTS, forcePointerDereference);
   }
 
   /**

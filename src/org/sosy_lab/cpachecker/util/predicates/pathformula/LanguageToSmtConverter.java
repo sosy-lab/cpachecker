@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
@@ -93,8 +92,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
       PointerTargetSet newPts,
       FormulaManagerView fmgr) {
     return switch (pEdge.getEdgeType()) {
-      case FunctionCallEdge ->
-              oldFormula.getSsaStack().pushAndCopy(newSsa);
+      case FunctionCallEdge -> oldFormula.getSsaStack().pushAndCopy(newSsa);
       case FunctionReturnEdge -> {
         // We now need to reset all SSA indices of local variables of the caller function to the
         // state before the call, because after a return edge we are back in the caller
@@ -168,12 +166,9 @@ public abstract class LanguageToSmtConverter<T extends Type> {
                         callerSsa,
                         oldFormula.getPointerTargetSet(),
                         var,
-                        (CType) callerSsa.getType(var)),
+                        (T) callerSsa.getType(var)),
                     makeFormulaForVariable(
-                        functionReturnSsaBuilder.build(),
-                        newPts,
-                        var,
-                        (CType) newSsa.getType(var))));
+                        functionReturnSsaBuilder.build(), newPts, var, (T) newSsa.getType(var))));
           }
         }
 
@@ -213,10 +208,10 @@ public abstract class LanguageToSmtConverter<T extends Type> {
       throws InterruptedException;
 
   public abstract Formula makeFormulaForVariable(
-      SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, CType pType);
+      SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, T pType);
 
   public abstract Formula makeFormulaForUninstantiatedVariable(
-      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean pForcePointerDereference);
+      String pVarName, T pType, PointerTargetSet pContextPTS, boolean pForcePointerDereference);
 
   public abstract Formula buildTermFromPathFormula(
       PathFormula pFormula, CIdExpression pExpr, CFAEdge pEdge) throws UnrecognizedCodeException;

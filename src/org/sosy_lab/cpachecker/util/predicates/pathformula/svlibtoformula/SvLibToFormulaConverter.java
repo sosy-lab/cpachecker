@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -335,14 +334,14 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
 
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, CType pType) {
+      SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, SvLibType pType) {
     throw new RuntimeException("Not implemented yet");
   }
 
   @Override
   public Formula makeFormulaForUninstantiatedVariable(
       String pVarName,
-      CType pType,
+      SvLibType pType,
       PointerTargetSet pContextPTS,
       boolean pForcePointerDereference) {
     throw new RuntimeException("Not implemented yet");

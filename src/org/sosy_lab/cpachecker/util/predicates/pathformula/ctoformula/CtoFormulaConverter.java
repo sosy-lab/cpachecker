@@ -498,7 +498,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
   public Formula makeFormulaForVariable(
       SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     SSAMapBuilder ssa = pContextSSA.builder();
-    Formula formula = makeVariable(pVarName, pType, ssa);
+    Formula formula = makeVariable(pVarName, (CType) pType, ssa);
 
     checkArgument(
         ssa.build().equals(pContextSSA),
