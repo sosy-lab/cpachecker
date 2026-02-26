@@ -689,7 +689,7 @@ class KInductionProver implements AutoCloseable {
       PredicateAbstractState pas =
           AbstractStates.extractStateByType(current, PredicateAbstractState.class);
       if (is != null && pas != null) {
-        SSAMap ssaMap = pas.getPathFormula().getSsa();
+        SSAMap ssaMap = pas.getPathFormula().getTopmostStackSsa();
         for (String input : is.getInputs()) {
           if (ssaMap.containsVariable(input)) {
             inputs.put(input, ssaMap.getIndex(input) - 1);
@@ -752,7 +752,7 @@ class KInductionProver implements AutoCloseable {
       for (AbstractState loopHeadState : loopHeadStates) {
         PredicateAbstractState pas =
             AbstractStates.extractStateByType(loopHeadState, PredicateAbstractState.class);
-        SSAMap ssaMap = pas.getPathFormula().getSsa();
+        SSAMap ssaMap = pas.getPathFormula().getTopmostStackSsa();
         Supplier<Map<String, Formula>> variableFormulas =
             Suppliers.memoize(
                 () -> {

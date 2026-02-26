@@ -131,7 +131,7 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
             pIntermediateState.getBackpointerState().instantiate(),
             pPrecision,
             pIntermediateState.getPathFormula().getPointerTargetSet(),
-            pIntermediateState.getPathFormula().getSsa(),
+            pIntermediateState.getPathFormula().getTopmostStackSsa(),
             pIntermediateState,
             states,
             fullState),

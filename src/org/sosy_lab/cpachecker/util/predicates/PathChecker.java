@@ -338,7 +338,7 @@ public class PathChecker {
       }
 
       pathFormula = pmgr.makeAnd(pathFormula, edge);
-      ssaMaps.add(pathFormula.getSsa());
+      ssaMaps.add(pathFormula.getTopmostStackSsa());
     }
 
     return Pair.of(pathFormula, ssaMaps);

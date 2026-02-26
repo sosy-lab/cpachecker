@@ -1021,7 +1021,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     String function =
         (edge.getPredecessor() != null) ? edge.getPredecessor().getFunctionName() : null;
 
-    SSAMapBuilder ssa = oldFormula.getSsa().builder();
+    SSAMapBuilder ssa = oldFormula.getTopmostStackSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
 
@@ -1685,7 +1685,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
         expr,
         edge,
         functionName,
-        pFormula.getSsa().builder(),
+        pFormula.getTopmostStackSsa().builder(),
         createPointerTargetSetBuilder(pFormula.getPointerTargetSet()),
         constraints,
         ErrorConditions.dummyInstance(bfmgr));

@@ -108,7 +108,7 @@ public class RCNFManager implements StatisticsProvider {
   public Set<BooleanFormula> toLemmasInstantiated(PathFormula pf, FormulaManagerView pFmgr)
       throws InterruptedException, SolverException {
     BooleanFormula transition = pf.getFormula();
-    SSAMap ssa = pf.getSsa();
+    SSAMap ssa = pf.getTopmostStackSsa();
     transition = pFmgr.filterLiterals(transition, input -> !hasDeadUf(input, ssa, pFmgr));
     BooleanFormula quantified = pFmgr.quantifyDeadVariables(transition, ssa);
 

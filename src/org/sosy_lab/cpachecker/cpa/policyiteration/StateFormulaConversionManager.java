@@ -108,7 +108,8 @@ public class StateFormulaConversionManager {
     if (attachExtraInvariant) {
 
       // Extra invariant.
-      constraints.add(fmgrv.instantiate(abstractState.getExtraInvariant(), inputPath.getSsa()));
+      constraints.add(
+          fmgrv.instantiate(abstractState.getExtraInvariant(), inputPath.getTopmostStackSsa()));
     }
 
     for (Entry<Template, PolicyBound> entry : abstractState) {

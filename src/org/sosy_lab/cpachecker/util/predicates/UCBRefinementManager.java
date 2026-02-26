@@ -204,14 +204,15 @@ public class UCBRefinementManager {
       }
 
       // Previously computed predicate
-      pred = fmgr.instantiate(pred, curState.getPathFormula().getSsa());
+      pred = fmgr.instantiate(pred, curState.getPathFormula().getTopmostStackSsa());
 
       // Compute edge post-condition
       BooleanFormula pf = pFormulas.getFormulas().get(i);
 
       // Weakest precondition in the target location
       BooleanFormula ucb =
-          fmgr.instantiate(ucbs.get(i - startStateIdx), nextState.getPathFormula().getSsa());
+          fmgr.instantiate(
+              ucbs.get(i - startStateIdx), nextState.getPathFormula().getTopmostStackSsa());
 
       // Clauses of the precondition to be refined
       Set<BooleanFormula> ucbConj = bfmgr.toConjunctionArgs(ucb, true);

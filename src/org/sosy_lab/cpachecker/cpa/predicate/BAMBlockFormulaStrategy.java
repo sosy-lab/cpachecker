@@ -206,7 +206,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       final FunctionExitNode functionExitNode) {
     final SSAMap newSSA =
         BAMPredicateReducer.updateIndices(
-            rootFormula.getSsa(), parentFormula.getSsa(), functionExitNode);
+            rootFormula.getTopmostStackSsa(), parentFormula.getTopmostStackSsa(), functionExitNode);
     // TODO: seems buggy because it ignores PointerTargetSet
     return parentFormula.withContext(newSSA, parentFormula.getPointerTargetSet());
   }

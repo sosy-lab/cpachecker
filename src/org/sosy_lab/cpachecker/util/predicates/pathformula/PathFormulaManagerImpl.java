@@ -280,7 +280,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     PathFormula pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
 
     if (useNondetFlags) {
-      SSAMapBuilder ssa = pf.getSsa().builder();
+      SSAMapBuilder ssa = pf.getTopmostStackSsa().builder();
 
       int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
       int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
@@ -362,7 +362,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     BooleanFormula conjunction = bfmgr.and(Lists.transform(pPathFormulas, PathFormula::getFormula));
     int lengthSum = pPathFormulas.stream().mapToInt(PathFormula::getLength).sum();
     PathFormula last = pPathFormulas.getLast();
-    return new PathFormula(conjunction, last.getSsa(), last.getPointerTargetSet(), lengthSum);
+    return new PathFormula(
+        conjunction, last.getTopmostStackSsa(), last.getPointerTargetSet(), lengthSum);
   }
 
   @Override
@@ -388,8 +389,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     final BooleanFormula formula1 = pathFormula1.getFormula();
     final BooleanFormula formula2 = pathFormula2.getFormula();
-    final SSAMap ssa1 = pathFormula1.getSsa();
-    final SSAMap ssa2 = pathFormula2.getSsa();
+    final SSAMap ssa1 = pathFormula1.getTopmostStackSsa();
+    final SSAMap ssa2 = pathFormula2.getTopmostStackSsa();
 
     final PointerTargetSet pts1 = pathFormula1.getPointerTargetSet();
     final PointerTargetSet pts2 = pathFormula2.getPointerTargetSet();
@@ -443,7 +444,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
-    SSAMap ssa = pPathFormula.getSsa();
+    SSAMap ssa = pPathFormula.getTopmostStackSsa();
     BooleanFormula otherFormula = fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
@@ -471,7 +472,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     //    is that the type is only known at runtime
     // TODO: Think if we should delete this method since it is unused
     return ((LanguageToSmtConverter<CType>) converter)
-        .makeFormulaForVariable(pContext.getSsa(), pContext.getPointerTargetSet(), pVarName, pType);
+        .makeFormulaForVariable(
+            pContext.getTopmostStackSsa(), pContext.getPointerTargetSet(), pVarName, pType);
   }
 
   /** {@inheritDoc} */
@@ -570,7 +572,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     BooleanFormula bF = pF2.getFormula();
     return bfmgr.and(
         merger.addMergeAssumptions(
-            pF1.getFormula(), pF1.getSsa(), pF1.getPointerTargetSet(), pF2.getSsa()),
+            pF1.getFormula(),
+            pF1.getTopmostStackSsa(),
+            pF1.getPointerTargetSet(),
+            pF2.getTopmostStackSsa()),
         bfmgr.not(bF));
   }
 

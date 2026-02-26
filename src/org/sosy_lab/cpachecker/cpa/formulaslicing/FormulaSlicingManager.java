@@ -167,7 +167,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
         out =
             SlicingAbstractedState.ofClauses(
                 toRcnf(iState),
-                iState.getPathFormula().getSsa(),
+                iState.getPathFormula().getTopmostStackSsa(),
                 iState.getPathFormula().getPointerTargetSet(),
                 fmgr,
                 iState.getNode(),
@@ -241,7 +241,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
         from(prevToMerge.getAbstraction())
             .filter(
                 input ->
-                    allVarsInSSAMap(input, prevToMerge.getSSA(), iState.getPathFormula().getSsa()))
+                    allVarsInSSAMap(
+                        input, prevToMerge.getSSA(), iState.getPathFormula().getTopmostStackSsa()))
             .toSet();
 
     PathFormulaWithStartSSA path =

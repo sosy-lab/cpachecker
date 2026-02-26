@@ -555,7 +555,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       stats.pfWeakeningTime.start();
 
       PointerTargetSet pts = pBlockFormula.getPointerTargetSet();
-      SSAMap ssa = pBlockFormula.getSsa();
+      SSAMap ssa = pBlockFormula.getTopmostStackSsa();
       PathFormula loopFormula =
           new LoopTransitionFinder(
                   config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, pInvariantShutdown)

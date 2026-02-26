@@ -249,7 +249,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
             .map(PartialTransitionRelation::getPathFormula)
             .flatMap(
                 pathFormula -> {
-                  SSAMap ssaMap = pathFormula.getSsa();
+                  SSAMap ssaMap = pathFormula.getTopmostStackSsa();
                   return ssaMap.allVariables().stream()
                       .filter(name -> !name.startsWith("*"))
                       .map(
@@ -365,7 +365,9 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
       throws CPATransferException, InterruptedException {
     PathFormula pathFormula = getPathFormula(pState);
     SSAMap ssaMap =
-        pathFormula.getSsa().withDefault(pDefaultIndex); // Use index 2 for successor locations
+        pathFormula
+            .getTopmostStackSsa()
+            .withDefault(pDefaultIndex); // Use index 2 for successor locations
     pathFormula = pathFormula.withContext(ssaMap, pathFormula.getPointerTargetSet());
     BooleanFormula uninstantiatedFormula = pCandidateInvariant.getFormula(fmgr, pmgr, pathFormula);
     return fmgr.instantiate(uninstantiatedFormula, ssaMap);
@@ -467,7 +469,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
       if (is != null) {
         PredicateAbstractState pas =
             AbstractStates.extractStateByType(s, PredicateAbstractState.class);
-        SSAMap ssaMap = pas.getPathFormula().getSsa();
+        SSAMap ssaMap = pas.getPathFormula().getTopmostStackSsa();
         for (String input : is.getInputs()) {
           if (ssaMap.containsVariable(input)) {
             inputs.put(input, ssaMap.getIndex(input) - 1);

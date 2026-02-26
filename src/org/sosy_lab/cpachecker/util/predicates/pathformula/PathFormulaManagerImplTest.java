@@ -182,7 +182,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     PathFormula p = pfmgrFwd.makeAnd(emptyWithCustomSSA, assignment);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
-    assertThat(p.getSsa().getIndex("x"))
+    assertThat(p.getTopmostStackSsa().getIndex("x"))
         .isEqualTo(customIdx + FreshValueProvider.DEFAULT_INCREMENT);
   }
 
@@ -207,7 +207,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     pf = pfmgrBwd.makeAnd(pf, x_decl);
 
     // The SSA index must be computed without gaps!!
-    assertThat(pf.getSsa().getIndex("x")).isEqualTo(11);
+    assertThat(pf.getTopmostStackSsa().getIndex("x")).isEqualTo(11);
   }
 
   @Test
@@ -216,7 +216,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     pf = pfmgrFwd.makeAnd(pf, x_decl);
 
-    assertThat(pf.getSsa().getIndex("x")).isEqualTo(11);
+    assertThat(pf.getTopmostStackSsa().getIndex("x")).isEqualTo(11);
   }
 
   @Test
@@ -287,7 +287,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     PathFormula expected =
         new PathFormula(
             mgrv.makeOr(makeVariableEquality("a", 1, 2), pf.getFormula()),
-            pf.getSsa(),
+            pf.getTopmostStackSsa(),
             pf.getPointerTargetSet(),
             1);
 
@@ -304,7 +304,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     PathFormula expected =
         new PathFormula(
             mgrv.makeOr(pf.getFormula(), makeVariableEquality("a", 1, 2)),
-            pf.getSsa(),
+            pf.getTopmostStackSsa(),
             pf.getPointerTargetSet(),
             1);
 
@@ -323,7 +323,10 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     PathFormula expected =
         new PathFormula(
-            mgrv.makeOr(left, right), pf2.getSsa(), PointerTargetSet.emptyPointerTargetSet(), 1);
+            mgrv.makeOr(left, right),
+            pf2.getTopmostStackSsa(),
+            PointerTargetSet.emptyPointerTargetSet(),
+            1);
 
     assertEquals(expected, result);
   }
@@ -343,7 +346,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
       throws SolverException, InterruptedException {
     assertThatFormula(result.getFormula()).isEquivalentTo(expected.getFormula());
     assertThat(result.getLength()).isEqualTo(expected.getLength());
-    assertThat(result.getSsa()).isEqualTo(result.getSsa());
+    assertThat(result.getTopmostStackSsa()).isEqualTo(result.getTopmostStackSsa());
     assertThat(result.getPointerTargetSet()).isEqualTo(expected.getPointerTargetSet());
   }
 }

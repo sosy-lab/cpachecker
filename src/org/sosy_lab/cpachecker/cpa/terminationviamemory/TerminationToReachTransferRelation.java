@@ -107,7 +107,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
   }
 
   private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
-    SSAMap ssaMap = pPathFormula.getSsa();
+    SSAMap ssaMap = pPathFormula.getTopmostStackSsa();
     ImmutableSet.Builder<Formula> newStoredIndices = ImmutableSet.builder();
     for (Formula variable : fmgr.extractVariables(pPathFormula.getFormula()).values()) {
       newStoredIndices.add(fmgr.instantiate(fmgr.uninstantiate(variable), ssaMap));

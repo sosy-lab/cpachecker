@@ -145,7 +145,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     String function =
         (pEdge.getPredecessor() != null) ? pEdge.getPredecessor().getFunctionName() : null;
 
-    SSAMapBuilder ssa = pOldFormula.getSsa().builder();
+    SSAMapBuilder ssa = pOldFormula.getTopmostStackSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
 
     BooleanFormula edgeFormula =

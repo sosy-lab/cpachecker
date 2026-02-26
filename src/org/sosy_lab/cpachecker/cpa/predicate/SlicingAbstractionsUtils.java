@@ -497,7 +497,7 @@ public final class SlicingAbstractionsUtils {
           buildPathFormula(
               pPath.get(i),
               pPath.get(i + 1),
-              oldPathFormula.getSsa(),
+              oldPathFormula.getTopmostStackSsa(),
               oldPathFormula.getPointerTargetSet(),
               pSolver.getFormulaManager(),
               pfmgr,

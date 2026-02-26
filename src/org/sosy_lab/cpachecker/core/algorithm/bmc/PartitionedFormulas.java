@@ -155,7 +155,7 @@ class PartitionedFormulas {
     PathFormula prefixPathFormula =
         InterpolationHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(1));
     prefixFormula = prefixPathFormula.getFormula();
-    prefixSsaMap = prefixPathFormula.getSsa();
+    prefixSsaMap = prefixPathFormula.getTopmostStackSsa();
 
     // collect loop formulas: TR(V_k, V_k+1)
     loopFormulas =
@@ -166,7 +166,9 @@ class PartitionedFormulas {
     loopFormulaSsaMaps =
         transformedImmutableListCopy(
             abstractionStates.subList(2, abstractionStates.size() - 1),
-            absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
+            absState ->
+                InterpolationHelper.getPredicateAbstractionBlockFormula(absState)
+                    .getTopmostStackSsa());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
@@ -189,7 +191,7 @@ class PartitionedFormulas {
       prefixSsaMap =
           InterpolationHelper.getPredicateAbstractionBlockFormula(
                   abstractionStates.get(abstractionStates.size() - 2))
-              .getSsa();
+              .getTopmostStackSsa();
     }
 
     logCollectedFormulas();

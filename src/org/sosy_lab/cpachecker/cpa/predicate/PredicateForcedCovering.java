@@ -197,7 +197,8 @@ final class PredicateForcedCovering implements ForcedCovering, StatisticsProvide
                     .getFormula());
           }
 
-          SSAMap ssaMap = getPredicateState(argState).getPathFormula().getSsa().withDefault(1);
+          SSAMap ssaMap =
+              getPredicateState(argState).getPathFormula().getTopmostStackSsa().withDefault(1);
           BooleanFormula stateFormula =
               getPredicateState(coveringCandidate).getAbstractionFormula().asFormula();
           assert !bfmgr.isTrue(stateFormula)

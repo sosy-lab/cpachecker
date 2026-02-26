@@ -232,7 +232,7 @@ public class Trace extends ForwardingList<TraceAtom> {
                 index,
                 selector,
                 previousPathFormula.getFormula(),
-                previousPathFormula.getSsa(),
+                previousPathFormula.getTopmostStackSsa(),
                 cfaEdge));
       } else {
         PathFormula currentPathFormula = manager.makeAnd(previousPathFormula, cfaEdge);
@@ -242,7 +242,11 @@ public class Trace extends ForwardingList<TraceAtom> {
         BooleanFormula currentBooleanFormula = Iterables.getOnlyElement(parts);
         atoms.add(
             new TraceAtom(
-                index, selector, currentBooleanFormula, currentPathFormula.getSsa(), cfaEdge));
+                index,
+                selector,
+                currentBooleanFormula,
+                currentPathFormula.getTopmostStackSsa(),
+                cfaEdge));
         previousPathFormula = currentPathFormula;
       }
       index++;

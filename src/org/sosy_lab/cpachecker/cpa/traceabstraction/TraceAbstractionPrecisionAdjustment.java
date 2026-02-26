@@ -285,7 +285,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
       BooleanFormula instantiatedFormula =
           fMgrView.instantiate(
               curPreds.getPredicate().getSymbolicAtom(),
-              abstractionFormula.getBlockFormula().getSsa());
+              abstractionFormula.getBlockFormula().getTopmostStackSsa());
 
       BooleanFormula resultFormula = bFMgrView.and(pathFormula.getFormula(), instantiatedFormula);
       pathFormula = pathFormula.withFormula(resultFormula);
@@ -308,8 +308,8 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
                   .anyMatch(
                       pred ->
                           anyVariableModified(
-                              abstractionFormula.getBlockFormula().getSsa(),
-                              computedPostCondition.getBlockFormula().getSsa(),
+                              abstractionFormula.getBlockFormula().getTopmostStackSsa(),
+                              computedPostCondition.getBlockFormula().getTopmostStackSsa(),
                               fMgrView.extractVariableNames(
                                   pred.getPredicate().getSymbolicAtom())));
           if (assignmentMadeForRelevantPred) {

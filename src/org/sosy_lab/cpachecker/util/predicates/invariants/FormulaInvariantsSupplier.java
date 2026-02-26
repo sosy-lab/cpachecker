@@ -109,7 +109,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
             context.getPointerTargetSet(),
             false);
       } else {
-        SSAMap ssa = context.getSsa();
+        SSAMap ssa = context.getTopmostStackSsa();
 
         if (!ssa.containsVariable(varName)) {
           if (varName.startsWith("*(") && varName.endsWith(")")) {
@@ -192,7 +192,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
       if (pContext != null) {
         List<BooleanFormula> adjustedInvariants = new ArrayList<>(invariants.size());
-        Set<String> variables = pContext.getSsa().allVariables();
+        Set<String> variables = pContext.getTopmostStackSsa().allVariables();
         for (BooleanFormula invariant : invariants) {
           // Handle pointer aliasing
           BooleanFormula inv =

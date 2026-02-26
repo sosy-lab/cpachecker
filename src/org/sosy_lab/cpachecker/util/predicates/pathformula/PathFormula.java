@@ -84,7 +84,7 @@ public final class PathFormula implements Serializable {
     return formula;
   }
 
-  public SSAMap getSsa() {
+  public SSAMap getTopmostStackSsa() {
     return ssaStack.peek();
   }
 

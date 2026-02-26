@@ -120,7 +120,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     BooleanFormula toStateLemmasAnnotated =
         Collections3.zipMapEntries(
                 selectionInfo,
-                (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, transition.getSsa())))
+                (selector, f) ->
+                    bfmgr.or(selector, fmgr.instantiate(f, transition.getTopmostStackSsa())))
             .collect(bfmgr.toConjunction());
 
     final Set<BooleanFormula> toAbstract =
@@ -137,7 +138,11 @@ public class InductiveWeakeningManager implements StatisticsProvider {
             .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
             .toSet();
     assert checkAllMapsTo(
-        fromStateLemmas, startingSSA, out, transition.getSsa(), transition.getFormula());
+        fromStateLemmas,
+        startingSSA,
+        out,
+        transition.getTopmostStackSsa(),
+        transition.getFormula());
     return out;
   }
 
@@ -164,7 +169,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     BooleanFormula toStateLemmasAnnotated =
         Collections3.zipMapEntries(
                 selectionInfo,
-                (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, transition.getSsa())))
+                (selector, f) ->
+                    bfmgr.or(selector, fmgr.instantiate(f, transition.getTopmostStackSsa())))
             .collect(bfmgr.toConjunction());
 
     final Set<BooleanFormula> toAbstract =
@@ -180,7 +186,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         from(lemmas)
             .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
             .toSet();
-    assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(), transition.getFormula());
+    assert checkAllMapsTo(
+        out, startingSSA, out, transition.getTopmostStackSsa(), transition.getFormula());
 
     return out;
   }
@@ -221,7 +228,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     return switch (weakeningStrategy) {
       case SYNTACTIC ->
           syntacticWeakeningManager.performWeakening(
-              fromSSA, selectionVarsInfo, transition.getSsa(), pFromStateLemmas);
+              fromSSA, selectionVarsInfo, transition.getTopmostStackSsa(), pFromStateLemmas);
       case DESTRUCTIVE ->
           destructiveWeakeningManager.performWeakening(
               selectionVarsInfo, fromState, transition, toState, fromSSA, pFromStateLemmas);

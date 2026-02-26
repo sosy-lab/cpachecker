@@ -84,7 +84,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             buildCycleFormula(
                 terminationState.getPathFormulas().get(keyPair).getFormula(),
                 terminationState.getStoredValues().get(keyPair),
-                terminationState.getPathFormulas().get(keyPair).getSsa(),
+                terminationState.getPathFormulas().get(keyPair).getTopmostStackSsa(),
                 terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
         try {
           isTargetStateReachable = !solver.isUnsat(targetFormula);
