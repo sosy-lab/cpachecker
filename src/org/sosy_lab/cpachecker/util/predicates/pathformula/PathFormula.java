@@ -68,13 +68,6 @@ public final class PathFormula implements Serializable {
    */
   @Deprecated
   public static PathFormula createManually(
-      BooleanFormula pf, SSAMap ssa, PointerTargetSet pts, int pLength) {
-    return new PathFormula(pf, ssa, pts, pLength);
-  }
-
-  // See the other createManually() method for the rationale behind this method.
-  @Deprecated
-  public static PathFormula createManually(
       BooleanFormula pf, PersistentStack<SSAMap> ssa, PointerTargetSet pts, int pLength) {
 
     return new PathFormula(pf, ssa, pts, pLength);

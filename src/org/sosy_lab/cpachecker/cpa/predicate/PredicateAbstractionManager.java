@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -1038,7 +1039,11 @@ public final class PredicateAbstractionManager {
     @SuppressWarnings("deprecation")
     // safe here because weakeningManager cares only about formula and SSAMap
     PathFormula pf =
-        PathFormula.createManually(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0);
+        PathFormula.createManually(
+            f,
+            PersistentStack.<SSAMap>of().pushAndCopy(ssa),
+            PointerTargetSet.emptyPointerTargetSet(),
+            0);
     stats.cartesianAbstractionTime.start();
     try {
       filteredLemmas =

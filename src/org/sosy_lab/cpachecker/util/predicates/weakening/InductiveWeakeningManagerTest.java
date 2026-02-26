@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
@@ -67,7 +68,8 @@ public class InductiveWeakeningManagerTest extends SolverViewBasedTest0 {
             ifmgr.equal(
                 ifmgr.makeVariable("x", 1),
                 ifmgr.add(ifmgr.makeVariable("x", 0), ifmgr.makeNumber(1))),
-            startingSsa.builder().setIndex("x", CNumericTypes.INT, 1).build(),
+            PersistentStack.<SSAMap>of()
+                .pushAndCopy(startingSsa.builder().setIndex("x", CNumericTypes.INT, 1).build()),
             PointerTargetSet.emptyPointerTargetSet(),
             0);
     Set<BooleanFormula> lemmas =
