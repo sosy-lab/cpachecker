@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 public class BMCAlgorithmTest {
 
   private String getProgramPath(String programName) {
-    return "test/programs/recursion/" + programName;
+    return "test/programs/simple/recursion/" + programName;
   }
 
   private Configuration getConfiguration() throws IOException, InvalidConfigurationException {
