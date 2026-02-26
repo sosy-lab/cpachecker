@@ -8,4 +8,5 @@ SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Test-sets in this folder are designed to test multiple solvers and/or their features.
+Test-sets in this folder are designed to test multiple SMT solvers and/or their features on a common analysis.
+The included test-sets are also commonly used to benchmark which SMT solver is best suited for a chosen analysis.
