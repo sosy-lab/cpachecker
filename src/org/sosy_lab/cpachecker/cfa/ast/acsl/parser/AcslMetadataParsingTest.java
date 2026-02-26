@@ -45,20 +45,21 @@ public class AcslMetadataParsingTest {
   private final String programName;
   private final int expectedNumOfAnnotations;
   private final CFACreator cfaCreator;
-  private final LogManager logManager;
-  private final CfaNodeAttribute nodeAttribute;
+  private final ImmutableList<CfaNodeAttribute> nodeAttributes;
 
   public AcslMetadataParsingTest(
-      String pProgramName, int pExpectedNumOfAnnotations, CfaNodeAttribute pNodeAttribute)
+      String pProgramName,
+      int pExpectedNumOfAnnotations,
+      ImmutableList<CfaNodeAttribute> pNodeAttributes)
       throws InvalidConfigurationException {
     programName = pProgramName;
     expectedNumOfAnnotations = pExpectedNumOfAnnotations;
-    nodeAttribute = pNodeAttribute;
+    nodeAttributes = pNodeAttributes;
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
             .build();
-    logManager = LogManager.createTestLogManager();
+    LogManager logManager = LogManager.createTestLogManager();
     cfaCreator = new CFACreator(config, logManager, ShutdownNotifier.createDummy());
   }
 
@@ -70,52 +71,111 @@ public class AcslMetadataParsingTest {
         task(
             "after_else.c",
             1,
-            new AssertionAttribute("main", "a = 20;", "", "assert a == 10 || a == 20;")));
+            ImmutableList.of(
+                new AssertionAttribute("main", "a = 20;", "", "assert a == 10 || a == 20;"))));
 
     b.add(
         task(
-            "after_for_loop2.c", 1, new AssertionAttribute("main", "b++;", "", "assert b == 20;")));
-    b.add(task("after_if.c", 1, new AssertionAttribute("main", "a = 10;", "", "assert a != 20;")));
-    b.add(task("after_loop.c", 1, new AssertionAttribute("main", "a++;", "", "assert a == 20;")));
-    b.add(task("after_loop2.c", 1, new AssertionAttribute("main", "a++;", "", "assert a == 20;")));
-    b.add(task("at_end.c", 1, new AssertionAttribute("main", "a = 10;", "", "assert a != 20;")));
-    b.add(task("badVariable.c", 0, new AssertionAttribute("", "", "", "")));
+            "after_for_loop2.c",
+            1,
+            ImmutableList.of(new AssertionAttribute("main", "b++;", "", "assert b == 20;"))));
     b.add(
         task(
-            "end_of_do_while.c", 1, new AssertionAttribute("main", "a++;", "", "assert a <= 20;")));
+            "after_if.c",
+            1,
+            ImmutableList.of(new AssertionAttribute("main", "a = 10;", "", "assert a != 20;"))));
     b.add(
         task(
-            "in_middle.c", 1, new AssertionAttribute("main", "a = 19;", "a++;", "assert a == 19")));
+            "after_loop.c",
+            1,
+            ImmutableList.of(new AssertionAttribute("main", "a++;", "", "assert a == 20;"))));
+    b.add(
+        task(
+            "after_loop2.c",
+            1,
+            ImmutableList.of(new AssertionAttribute("main", "a++;", "", "assert a == 20;"))));
+    b.add(
+        task(
+            "at_end.c",
+            1,
+            ImmutableList.of(new AssertionAttribute("main", "a = 10;", "", "assert a != 20;"))));
+    b.add(task("badVariable.c", 0, ImmutableList.of(new AssertionAttribute("", "", "", ""))));
+    b.add(
+        task(
+            "end_of_do_while.c",
+            1,
+            ImmutableList.of(new AssertionAttribute("main", "a++;", "", "assert a <= 20;"))));
+    b.add(
+        task(
+            "in_middle.c",
+            1,
+            ImmutableList.of(new AssertionAttribute("main", "a = 19;", "a++;", "assert a == 19"))));
     b.add(
         task(
             "same_annotation_twice.c",
             2,
-            new AssertionAttribute("main", "int x = 10;", "int z = x * x;", "assert x == 10;")));
+            ImmutableList.of(
+                new AssertionAttribute("main", "int x = 10;", "int z = x * x;", "assert x == 10;"),
+                new AssertionAttribute("main", "int z = x * x;", "[x != 10]", "assert x == 10;"))));
 
     // Loop Annotations
     b.add(
         task(
             "double_loop_invariant.c",
             1,
-            new LoopAnnotationAttribute("main", 2, 2, 2, "int i = 0;")));
-    b.add(task("even_while.c", 1, new LoopAnnotationAttribute("main", 2, 2, 1, "while")));
-    b.add(task("even_while_nondet.c", 1, new LoopAnnotationAttribute("main", 2, 2, 1, "while")));
-    b.add(task("even_do_while.c", 1, new LoopAnnotationAttribute("main", 2, 1, 1, "do")));
-    b.add(task("inv_for.c", 1, new LoopAnnotationAttribute("main", 2, 2, 1, "int i = 0;")));
-    b.add(task("inv_short-for.c", 1, new LoopAnnotationAttribute("main", 2, 2, 1, "y = y + 1;")));
+            ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 2, "int i = 0;"))));
+    b.add(
+        task(
+            "even_while.c",
+            1,
+            ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "while"))));
+    b.add(
+        task(
+            "even_while_nondet.c",
+            1,
+            ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "while"))));
+    b.add(
+        task(
+            "even_do_while.c",
+            1,
+            ImmutableList.of(new LoopAnnotationAttribute("main", 2, 1, 1, "do"))));
+    b.add(
+        task(
+            "inv_for.c",
+            1,
+            ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "int i = 0;"))));
+    b.add(
+        task(
+            "inv_short-for.c",
+            1,
+            ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "y = y + 1;"))));
 
     // Function Contracts
-    b.add(task("square_root.c", 1, new FunctionContractAttribute("sqroot", 3, 1, 0)));
-    b.add(task("square.c", 1, new FunctionContractAttribute("square", 2, 0, 0)));
-    b.add(task("square_result.c", 1, new FunctionContractAttribute("square", 1, 0, 0)));
-    b.add(task("power.c", 1, new FunctionContractAttribute("power", 1, 2, 0)));
-    b.add(task("power_result.c", 1, new FunctionContractAttribute("power", 1, 2, 0)));
+    b.add(
+        task(
+            "square_root.c",
+            1,
+            ImmutableList.of(new FunctionContractAttribute("sqroot", 3, 1, 0))));
+    b.add(task("square.c", 1, ImmutableList.of(new FunctionContractAttribute("square", 2, 0, 0))));
+    b.add(
+        task(
+            "square_result.c",
+            1,
+            ImmutableList.of(new FunctionContractAttribute("square", 1, 0, 0))));
+    b.add(task("power.c", 1, ImmutableList.of(new FunctionContractAttribute("power", 1, 2, 0))));
+    b.add(
+        task(
+            "power_result.c",
+            1,
+            ImmutableList.of(new FunctionContractAttribute("power", 1, 2, 0))));
     return b.build();
   }
 
   private static Object[] task(
-      String program, int expectedNumOfAnnotations, CfaNodeAttribute nodeAttribute) {
-    return new Object[] {program, expectedNumOfAnnotations, nodeAttribute};
+      String program,
+      int expectedNumOfAnnotations,
+      ImmutableList<CfaNodeAttribute> nodeAttributes) {
+    return new Object[] {program, expectedNumOfAnnotations, nodeAttributes};
   }
 
   @Test
@@ -153,40 +213,43 @@ public class AcslMetadataParsingTest {
       AcslMetadata metadata = cfa.getAcslMetadata();
       assertThat(metadata).isNotNull();
 
-      if (nodeAttribute instanceof FunctionContractAttribute pContractAttribute) {
-        FunctionEntryNode expectedNode = cfa.getFunctionHead(pContractAttribute.functionName);
-        assertThat(metadata.functionContracts()).containsKey(expectedNode);
-        ImmutableSet<AcslFunctionContract> actualContracts =
-            metadata.functionContracts().get(expectedNode);
-        assertThat(hasMatchingFunctionContract(actualContracts, pContractAttribute)).isTrue();
-      } else if (nodeAttribute instanceof LoopAnnotationAttribute ploopAttribute) {
-        Optional<ImmutableSet<CFANode>> loopHeads = cfa.getAllLoopHeads();
-        assertThat(loopHeads).isPresent();
-        FluentIterable<CFANode> heads = getIterable(ploopAttribute, loopHeads);
-        assertThat(heads).isNotEmpty();
-        ImmutableSet<CFANode> expectedNodes = heads.toSet();
-        assertThat(
-                hasMatchingLoopAnnotation(
-                    expectedNodes, metadata.loopAnnotations(), ploopAttribute))
-            .isTrue();
-      } else if (nodeAttribute instanceof AssertionAttribute assertionAttribute) {
-        FluentIterable<CFANode> nodes = FluentIterable.from(cfa.nodes());
-        nodes = nodes.filter(n -> n.getFunctionName().equals(assertionAttribute.function));
-        nodes =
-            nodes.filter(
-                n ->
-                    !n.getEnteringEdges()
-                        .filter(
-                            e -> e.getRawStatement().equals(assertionAttribute.enteringStatement))
-                        .isEmpty());
-        nodes =
-            nodes.filter(
-                n ->
-                    !n.getLeavingEdges()
-                        .filter(
-                            e -> e.getRawStatement().equals(assertionAttribute.leavingStatement))
-                        .isEmpty());
-        assertThat(nodes).isNotEmpty();
+      for (CfaNodeAttribute nodeAttribute : nodeAttributes) {
+
+        if (nodeAttribute instanceof FunctionContractAttribute pContractAttribute) {
+          FunctionEntryNode expectedNode = cfa.getFunctionHead(pContractAttribute.functionName);
+          assertThat(metadata.functionContracts()).containsKey(expectedNode);
+          ImmutableSet<AcslFunctionContract> actualContracts =
+              metadata.functionContracts().get(expectedNode);
+          assertThat(hasMatchingFunctionContract(actualContracts, pContractAttribute)).isTrue();
+        } else if (nodeAttribute instanceof LoopAnnotationAttribute ploopAttribute) {
+          Optional<ImmutableSet<CFANode>> loopHeads = cfa.getAllLoopHeads();
+          assertThat(loopHeads).isPresent();
+          FluentIterable<CFANode> heads = getIterable(ploopAttribute, loopHeads);
+          assertThat(heads).isNotEmpty();
+          ImmutableSet<CFANode> expectedNodes = heads.toSet();
+          assertThat(
+                  hasMatchingLoopAnnotation(
+                      expectedNodes, metadata.loopAnnotations(), ploopAttribute))
+              .isTrue();
+        } else if (nodeAttribute instanceof AssertionAttribute assertionAttribute) {
+          FluentIterable<CFANode> nodes = FluentIterable.from(cfa.nodes());
+          nodes = nodes.filter(n -> n.getFunctionName().equals(assertionAttribute.function));
+          nodes =
+              nodes.filter(
+                  n ->
+                      !n.getEnteringEdges()
+                          .filter(
+                              e -> e.getRawStatement().equals(assertionAttribute.enteringStatement))
+                          .isEmpty());
+          nodes =
+              nodes.filter(
+                  n ->
+                      !n.getLeavingEdges()
+                          .filter(
+                              e -> e.getRawStatement().equals(assertionAttribute.leavingStatement))
+                          .isEmpty());
+          assertThat(nodes).isNotEmpty();
+        }
       }
     }
   }
@@ -241,7 +304,7 @@ public class AcslMetadataParsingTest {
     return false;
   }
 
-  interface CfaNodeAttribute {}
+  public interface CfaNodeAttribute {}
 
   public record FunctionContractAttribute(
       String functionName, int numEnsures, int numRequires, int numAssigns)
