@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.Iterables;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -60,7 +61,7 @@ public class PthreadUtil {
         null);
   }
 
-  public static CIdExpression extractPthreadObject(
+  public static CExpression getParameterExpressionAtPthreadObjectTypeIndex(
       CFunctionCall pFunctionCall, PthreadObjectType pPthreadObjectType)
       throws UnsupportedCodeException {
 
@@ -72,14 +73,23 @@ public class PthreadUtil {
 
     PthreadFunctionType functionType = getPthreadFunctionType(pFunctionCall);
     int parameterIndex = functionType.getParameterIndex(pPthreadObjectType);
+    return pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(parameterIndex);
+  }
+
+  public static CIdExpression extractPthreadObject(
+      CFunctionCall pFunctionCall, PthreadObjectType pPthreadObjectType)
+      throws UnsupportedCodeException {
+
     CExpression parameterExpression =
-        pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(parameterIndex);
+        getParameterExpressionAtPthreadObjectTypeIndex(pFunctionCall, pPthreadObjectType);
     CExpression expression = MPORUtil.getOperandFromUnaryExpression(parameterExpression);
     // first handle pthread_t, the only pthread object type that may not be a pointer
-    if (pPthreadObjectType.equals(PthreadObjectType.PTHREAD_T)
-        && functionType.isPthreadTPointer()) {
-      if (expression instanceof CIdExpression pthreadT) {
-        return pthreadT;
+    if (pPthreadObjectType.equals(PthreadObjectType.PTHREAD_T)) {
+      PthreadFunctionType functionType = getPthreadFunctionType(pFunctionCall);
+      if (functionType.isPthreadTPointer()) {
+        if (expression instanceof CIdExpression pthreadT) {
+          return pthreadT;
+        }
       }
     } else {
       if (expression instanceof CIdExpression idExpression) {
@@ -157,6 +167,13 @@ public class PthreadUtil {
         .getFunctionCallExpression()
         .getParameterExpressions()
         .get(returnValueIndex);
+  }
+
+  public static boolean isCallToPthreadExitWithReturnValue(CFunctionCall pFunctionCall) {
+    return isCallToPthreadFunction(pFunctionCall, PthreadFunctionType.PTHREAD_EXIT)
+        && !MPORUtil.isVoidPointer(
+            Iterables.getOnlyElement(
+                pFunctionCall.getFunctionCallExpression().getParameterExpressions()));
   }
 
   // PTHREAD_MUTEX_INITIALIZER =====================================================================

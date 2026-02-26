@@ -402,6 +402,7 @@ public record SeqThreadStatementBuilder(
 
   static SeqThreadStatement buildGhostOnlyStatement(
       int pThreadId, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.GHOST_ONLY, ImmutableSet.of(), pThreadId, pPcLeftHandSide);
@@ -668,10 +669,9 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildThreadExitStatement(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
-    checkArgument(
-        functionStatements.startRoutineExitAssignments().containsKey(pThreadEdge),
-        "could not find pThreadEdge in returnValueAssignments");
-
+    if (!functionStatements.startRoutineExitAssignments().containsKey(pThreadEdge)) {
+      return buildGhostOnlyStatement(thread.id(), pcLeftHandSide, pTargetPc);
+    }
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.THREAD_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
@@ -697,12 +697,18 @@ public record SeqThreadStatementBuilder(
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
                 pcVariables.getThreadInactiveExpression(targetThread.id())));
 
-    if (targetThread.startRoutineExitVariable().isPresent()) {
-      CStatementWrapper returnValueRead =
-          new CStatementWrapper(
-              buildReturnValueRead(
-                  targetThread.startRoutineExitVariable().orElseThrow(), pSubstituteEdge));
-      return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
+    CExpression parameter =
+        PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
+            pFunctionCall, PthreadObjectType.RETURN_VALUE);
+    if (!MPORUtil.isVoidPointer(parameter)) {
+      if (targetThread.startRoutineExitVariable().isPresent()) {
+        CStatementWrapper returnValueRead =
+            new CStatementWrapper(
+                buildReturnValueRead(
+                    targetThread.startRoutineExitVariable().orElseThrow(), pSubstituteEdge));
+        return SeqThreadStatement.of(
+            data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
+      }
     }
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall));
   }

@@ -22,12 +22,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -181,6 +183,20 @@ public final class MPORUtil {
       if (initializerExpression.getExpression() instanceof CIdExpression idExpression) {
         if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
           return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static boolean isVoidPointer(CExpression pExpression) {
+    if (pExpression instanceof CCastExpression castExpression) {
+      if (castExpression.getCastType().equals(CPointerType.POINTER_TO_VOID)) {
+        if (castExpression.getOperand()
+            instanceof CIntegerLiteralExpression integerLiteralExpression) {
+          if (integerLiteralExpression.equals(CIntegerLiteralExpression.ZERO)) {
+            return true;
+          }
         }
       }
     }

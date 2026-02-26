@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -286,8 +285,7 @@ public record FunctionStatementBuilder(
       Optional<CFunctionCall> functionCall =
           PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
       if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadFunction(
-            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_EXIT)) {
+        if (PthreadUtil.isCallToPthreadExitWithReturnValue(functionCall.orElseThrow())) {
           SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
           CFunctionCall substituteFunctionCall =
               PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
