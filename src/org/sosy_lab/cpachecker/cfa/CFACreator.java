@@ -355,7 +355,8 @@ public class CFACreator {
       secure = true,
       name = "cfa.withAcslMetadata",
       description =
-          "With this option set to true, ACSL anntations from the source file will be added to the CFA metadata.")
+          "With this option set to true, ACSL anntations from the source file will be added to the"
+              + " CFA metadata.")
   private boolean withAcslMetadata = false;
 
   @Option(

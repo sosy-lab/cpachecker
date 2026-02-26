@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.base.Verify;
-import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -54,6 +53,4 @@ public class AcslComment {
   public Boolean hasCfaNode() {
     return cfaNode.isPresent();
   }
-
-
 }
