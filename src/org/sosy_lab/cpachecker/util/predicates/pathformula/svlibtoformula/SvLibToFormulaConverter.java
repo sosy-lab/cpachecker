@@ -168,7 +168,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
         };
 
     PersistentStack<SSAMap> newSsaStack =
-        handleSsaStackForFunctionReturn(
+        handleSsaStack(
             pEdge, constraints, pOldFormula, ssa.build(), pOldFormula.getPointerTargetSet(), fmgr);
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());

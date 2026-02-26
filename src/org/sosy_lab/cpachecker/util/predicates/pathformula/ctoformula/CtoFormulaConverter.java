@@ -1054,7 +1054,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     PointerTargetSet newPts = pts.build();
 
     PersistentStack<SSAMap> newSsaStack =
-        handleSsaStackForFunctionReturn(edge, constraints, oldFormula, newSsa, newPts, fmgr);
+        handleSsaStack(edge, constraints, oldFormula, newSsa, newPts, fmgr);
 
     // Now build the new formula
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());

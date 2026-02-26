@@ -87,7 +87,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
     return idx;
   }
 
-  public PersistentStack<SSAMap> handleSsaStackForFunctionReturn(
+  public PersistentStack<SSAMap> handleSsaStack(
       CFAEdge pEdge,
       Constraints pConstraints,
       PathFormula oldFormula,
