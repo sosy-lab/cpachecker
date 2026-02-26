@@ -71,18 +71,26 @@ public class AcslMetadataParsingTest {
             "after_else.c",
             1,
             new AssertionAttribute("main", "a = 20;", "", "assert a == 10 || a == 20;")));
-    /*
-    b.add(task("after_for_loop2.c", 1, new AssertionAttribute()));
-    b.add(task("after_if.c", 1, new AssertionAttribute()));
-    b.add(task("after_loop.c", 1, new AssertionAttribute()));
-    b.add(task("after_loop2.c", 1, new AssertionAttribute()));
-    b.add(task("at_end.c", 1, new AssertionAttribute()));
-    b.add(task("badVariable.c", 0, new AssertionAttribute()));
-    b.add(task("end_of_do_while.c", 1, new AssertionAttribute()));
-    b.add(task("in_middle.c", 1, new AssertionAttribute()));
-    b.add(task("same_annotation_twice.c", 2, new AssertionAttribute()));
 
-     */
+    b.add(
+        task(
+            "after_for_loop2.c", 1, new AssertionAttribute("main", "b++;", "", "assert b == 20;")));
+    b.add(task("after_if.c", 1, new AssertionAttribute("main", "a = 10;", "", "assert a != 20;")));
+    b.add(task("after_loop.c", 1, new AssertionAttribute("main", "a++;", "", "assert a == 20;")));
+    b.add(task("after_loop2.c", 1, new AssertionAttribute("main", "a++;", "", "assert a == 20;")));
+    b.add(task("at_end.c", 1, new AssertionAttribute("main", "a = 10;", "", "assert a != 20;")));
+    b.add(task("badVariable.c", 0, new AssertionAttribute("", "", "", "")));
+    b.add(
+        task(
+            "end_of_do_while.c", 1, new AssertionAttribute("main", "a++;", "", "assert a <= 20;")));
+    b.add(
+        task(
+            "in_middle.c", 1, new AssertionAttribute("main", "a = 19;", "a++;", "assert a == 19")));
+    b.add(
+        task(
+            "same_annotation_twice.c",
+            2,
+            new AssertionAttribute("main", "int x = 10;", "int z = x * x;", "assert x == 10;")));
 
     // Loop Annotations
     b.add(
