@@ -467,6 +467,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   /** {@inheritDoc} */
   @Override
+  @SuppressWarnings("unchecked")
   public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
     // TODO: This needs to be properly cleaned up to be polymorphic. The problem
     //    is that the type is only known at runtime
@@ -478,6 +479,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   /** {@inheritDoc} */
   @Override
+  @SuppressWarnings("unchecked")
   public Formula makeFormulaForUninstantiatedVariable(
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     // TODO: This needs to be properly cleaned up to be polymorphic. The problem

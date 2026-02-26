@@ -155,6 +155,8 @@ public abstract class LanguageToSmtConverter<T extends Type> {
               // this since if the same variable has not been written we are not in a recursive call
               && newSsa.getIndex(var) != callerSsa.getIndex(var)) {
 
+            // The SSAMap is not polymorphic so it does not know that it should only contain a T.
+            @SuppressWarnings("unchecked")
             T varType = (T) callerSsa.getType(var);
             Verify.verify(
                 varType == newSsa.getType(var),
