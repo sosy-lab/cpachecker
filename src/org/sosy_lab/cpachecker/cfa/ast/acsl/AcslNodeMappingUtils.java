@@ -34,7 +34,6 @@ public class AcslNodeMappingUtils {
   /**
    * Finds the Cfa node that represents an acsl comment in the Cfa
    *
-   * @param pResult A ParseResult where the field acslComments is not empty
    * @param pAstCfaRelation The current AstCfaRelation
    * @return An updated version of pResult where each acsl comment now has a Cfa node that
    *     represents the comment location in the Cfa.
@@ -66,16 +65,17 @@ public class AcslNodeMappingUtils {
                                   + pComment
                                   + " at: "
                                   + pComment.getFileLocation()));
-      case FunctionContractContext ignored -> n =
-          nodeForFunctionContract(pComment, pAstCfaRelation, pAllComments)
-              .orElseThrow(
-                  () ->
-                      new AcslNodeMappingException(
-                          "Could not find function entry node for function contract\n"
-                              + pComment
-                              + " at "
-                              + pComment.getFileLocation()
-                              + "\nStatement contracts are not supported."));
+      case FunctionContractContext ignored ->
+          n =
+              nodeForFunctionContract(pComment, pAstCfaRelation, pAllComments)
+                  .orElseThrow(
+                      () ->
+                          new AcslNodeMappingException(
+                              "Could not find function entry node for function contract\n"
+                                  + pComment
+                                  + " at "
+                                  + pComment.getFileLocation()
+                                  + "\nStatement contracts are not supported."));
       case null ->
           throw new AcslNodeMappingException("Annotation " + pComment + " has no Antlr context.");
       default ->
@@ -143,7 +143,7 @@ public class AcslNodeMappingUtils {
     FileLocation nextLocation =
         pAstCfaRelation.nextStartStatementLocation(pComment.getFileLocation().getNodeOffset());
 
-    if (nextLocation.isRealLocation() && pComment.noCommentInBetween(nextLocation, pAllComments)) {
+    if (nextLocation.isRealLocation() && noCommentInBetween(pComment, nextLocation, pAllComments)) {
       Optional<CFANode> nextNode =
           pAstCfaRelation.getNodeForStatementLocation(
               nextLocation.getStartingLineNumber(), nextLocation.getStartColumnInLine());
@@ -162,5 +162,21 @@ public class AcslNodeMappingUtils {
     }
 
     return Optional.empty();
+  }
+
+  public static boolean noCommentInBetween(
+      AcslComment pComment, FileLocation nextStatement, List<AcslComment> otherComments) {
+    for (AcslComment other : otherComments) {
+      if (!other.equals(pComment)
+          && other.getFileLocation().getNodeOffset()
+              > pComment.getFileLocation().getNodeOffset()
+                  + pComment.getFileLocation().getNodeLength()
+          && other.getFileLocation().getNodeOffset() + other.getFileLocation().getNodeLength()
+              < nextStatement.getNodeOffset()) {
+        // There is an annotation inbetween the comment and the statement
+        return false;
+      }
+    }
+    return true;
   }
 }
