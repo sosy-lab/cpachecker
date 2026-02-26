@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -18,9 +17,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -86,18 +85,16 @@ public abstract class LanguageToSmtConverter<T extends Type> {
     return idx;
   }
 
-  public Pair<PersistentStack<SSAMap>, ImmutableList<BooleanFormula>>
-      handleSsaStackForFunctionReturn(
-          CFAEdge pEdge,
-          PathFormula oldFormula,
-          SSAMap newSsa,
-          PointerTargetSet newPts,
-          FormulaManagerView fmgr) {
+  public PersistentStack<SSAMap> handleSsaStackForFunctionReturn(
+      CFAEdge pEdge,
+      Constraints pConstraints,
+      PathFormula oldFormula,
+      SSAMap newSsa,
+      PointerTargetSet newPts,
+      FormulaManagerView fmgr) {
     return switch (pEdge.getEdgeType()) {
       case FunctionCallEdge ->
-          Pair.of(
-              oldFormula.getSsaStack().pushAndCopy(newSsa),
-              ImmutableList.of(fmgr.getBooleanFormulaManager().makeTrue()));
+              oldFormula.getSsaStack().pushAndCopy(newSsa);
       case FunctionReturnEdge -> {
         // We now need to reset all SSA indices of local variables of the caller function to the
         // state before the call, because after a return edge we are back in the caller
@@ -128,7 +125,6 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           callerSsa = oldFormula.getSsaStack().popAndCopy().peek();
         }
 
-        ImmutableList.Builder<BooleanFormula> constraintsBuilder = ImmutableList.builder();
         for (String var : callerSsa.allVariables()) {
 
           // Compute the representation of the return term as a string. This is the easiest
@@ -166,7 +162,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
                 // making the whole formula unsat.
                 newSsa.getIndex(var) + 1);
             // Now make it such that the new variable is equal to the old one
-            constraintsBuilder.add(
+            pConstraints.addConstraint(
                 fmgr.makeEqual(
                     makeFormulaForVariable(
                         callerSsa,
@@ -196,12 +192,9 @@ public abstract class LanguageToSmtConverter<T extends Type> {
                   .pushAndCopy(functionReturnSsaBuilder.build());
         }
 
-        yield Pair.of(callerStack, constraintsBuilder.build());
+        yield callerStack;
       }
-      default ->
-          Pair.of(
-              oldFormula.getSsaStack().popAndCopy().pushAndCopy(newSsa),
-              ImmutableList.of(fmgr.getBooleanFormulaManager().makeTrue()));
+      default -> oldFormula.getSsaStack().popAndCopy().pushAndCopy(newSsa);
     };
   }
 

@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.FormatMethod;
@@ -1050,19 +1049,17 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
           edge, function, ssa, pts, constraints, errorConditions, RETURN_VARIABLE_NAME, true);
     }
 
-    edgeFormula = bfmgr.and(edgeFormula, constraints.get());
-
+    // Compute the new SSA stack
     SSAMap newSsa = ssa.build();
     PointerTargetSet newPts = pts.build();
 
+    PersistentStack<SSAMap> newSsaStack =
+        handleSsaStackForFunctionReturn(edge, constraints, oldFormula, newSsa, newPts, fmgr);
+
+    // Now build the new formula
+    edgeFormula = bfmgr.and(edgeFormula, constraints.get());
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-
-    Pair<PersistentStack<SSAMap>, ImmutableList<BooleanFormula>> newSsaStackWithConstraints =
-        handleSsaStackForFunctionReturn(edge, oldFormula, newSsa, newPts, fmgr);
-
-    PersistentStack<SSAMap> newSsaStack = newSsaStackWithConstraints.getFirst();
-    newFormula = fmgr.makeAnd(newFormula, bfmgr.and(newSsaStackWithConstraints.getSecond()));
 
     @SuppressWarnings("deprecation")
     // This is an intended use, CtoFormulaConverter just does not have access to the constructor
