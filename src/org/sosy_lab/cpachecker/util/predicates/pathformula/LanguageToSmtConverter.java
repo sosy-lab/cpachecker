@@ -100,9 +100,8 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         // these variables, which can lead to unsound results.
         //
         // For example, if we have a
-        // function "f" with a local variable "x", and we call "f" (f_new) from the same
-        // function "f" (f_old),
-        // then after the return edge of f_old we are back in f_new, but if we do not reset the
+        // function "f" (f_old) with a local variable "x", and we call "f" (f_new)
+        // then after the return edge of f_new we are back in f_old, but if we do not reset the
         // SSA
         // indices of "x", then we would have the SSA index of "x" from the f_new call,
         // and not the ones for f_old.
