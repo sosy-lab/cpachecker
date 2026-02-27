@@ -112,6 +112,9 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   }
 
   public SeqThreadStatementBlock withStatements(ImmutableList<SeqThreadStatement> pStatements) {
+    checkArgument(
+        statements.size() == pStatements.size(),
+        "pStatements.size() must be equal to the existing statements.size()");
     return new SeqThreadStatementBlock(threadId, labelNumber, pStatements, nextThreadLabel);
   }
 
