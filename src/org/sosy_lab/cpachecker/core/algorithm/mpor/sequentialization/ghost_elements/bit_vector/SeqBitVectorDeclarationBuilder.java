@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record SeqBitVectorDeclarationBuilder(
     SeqBitVectorEncoding bitVectorEncoding,
@@ -52,7 +53,9 @@ public record SeqBitVectorDeclarationBuilder(
    * bit vectors are always initialized with {@code 0} for all indices, the actual assignment based
    * on the threads first statement is done when a thread is marked as active / created.
    */
-  public ImmutableList<CVariableDeclaration> buildBitVectorDeclarationsByEncoding() {
+  public ImmutableList<CVariableDeclaration> buildBitVectorDeclarationsByEncoding()
+      throws UnsupportedCodeException {
+
     return switch (bitVectorEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
@@ -64,7 +67,9 @@ public record SeqBitVectorDeclarationBuilder(
 
   // DENSE =========================================================================================
 
-  private ImmutableList<CVariableDeclaration> buildDenseBitVectorDeclarationsByReductionMode() {
+  private ImmutableList<CVariableDeclaration> buildDenseBitVectorDeclarationsByReductionMode()
+      throws UnsupportedCodeException {
+
     return switch (reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
@@ -80,7 +85,7 @@ public record SeqBitVectorDeclarationBuilder(
   }
 
   private ImmutableList<CVariableDeclaration> buildDenseBitVectorDeclarationsByAccessType(
-      MemoryAccessType pAccessType) {
+      MemoryAccessType pAccessType) throws UnsupportedCodeException {
 
     CSimpleType type = SeqBitVectorUtil.getBitVectorTypeByMemoryModel(machineModel, memoryModel);
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
@@ -90,7 +95,7 @@ public record SeqBitVectorDeclarationBuilder(
   }
 
   private ImmutableList<CVariableDeclaration> buildCurrentDenseBitVectorDeclarations(
-      CSimpleType pType, MemoryAccessType pAccessType) {
+      CSimpleType pType, MemoryAccessType pAccessType) throws UnsupportedCodeException {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
 
@@ -127,7 +132,7 @@ public record SeqBitVectorDeclarationBuilder(
   }
 
   private Optional<CVariableDeclaration> tryBuildLastDenseBitVectorDeclaration(
-      CSimpleType pType, MemoryAccessType pAccessType) {
+      CSimpleType pType, MemoryAccessType pAccessType) throws UnsupportedCodeException {
 
     if (bitVectorVariables.isLastDenseBitVectorPresentByAccessType(pAccessType)) {
       LastDenseBitVector lastDenseBitVector =

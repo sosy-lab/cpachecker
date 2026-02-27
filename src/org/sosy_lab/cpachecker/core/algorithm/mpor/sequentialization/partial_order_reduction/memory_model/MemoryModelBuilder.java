@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -408,10 +409,9 @@ public record MemoryModelBuilder(
             // use the ID of the created thread for the parameter declaration
             CFunctionDeclaration functionDeclaration =
                 PthreadUtil.extractStartRoutineDeclaration(functionCall);
-            assert functionDeclaration.getParameters().size() == 1
-                : "start_routine functions can only have a single parameter";
+            // start_routine functions can only have a single parameter
             CParameterDeclaration parameterDeclaration =
-                functionDeclaration.getParameters().getFirst();
+                Iterables.getOnlyElement(functionDeclaration.getParameters());
             rAssignments.put(
                 SeqMemoryLocation.of(
                     options,

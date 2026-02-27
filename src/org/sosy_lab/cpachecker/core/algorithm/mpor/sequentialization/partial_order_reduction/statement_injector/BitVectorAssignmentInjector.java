@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record BitVectorAssignmentInjector(
     MPOROptions options,
@@ -45,7 +46,9 @@ public record BitVectorAssignmentInjector(
     MachineModel machineModel,
     MemoryModel memoryModel) {
 
-  SeqThreadStatement injectBitVectorAssignmentsIntoStatement(SeqThreadStatement pStatement) {
+  SeqThreadStatement injectBitVectorAssignmentsIntoStatement(SeqThreadStatement pStatement)
+      throws UnsupportedCodeException {
+
     // if valid target pc found, inject bit vector write and evaluation statements
     if (pStatement.targetPc().isPresent()) {
       ImmutableList.Builder<SeqInstrumentation> newInstrumentation = ImmutableList.builder();
@@ -71,7 +74,7 @@ public record BitVectorAssignmentInjector(
 
   // Bit Vector Resets =============================================================================
 
-  private ImmutableList<SeqInstrumentation> buildBitVectorResets() {
+  private ImmutableList<SeqInstrumentation> buildBitVectorResets() throws UnsupportedCodeException {
     checkArgument(
         !options.reductionMode().equals(ReductionMode.NONE),
         "cannot build assignments for reduction NONE");
@@ -92,7 +95,7 @@ public record BitVectorAssignmentInjector(
   // Bit Vector Assignments ========================================================================
 
   private ImmutableList<SeqInstrumentation> buildBitVectorAssignmentsByReduction(
-      SeqThreadStatementClause pTargetClause) {
+      SeqThreadStatementClause pTargetClause) throws UnsupportedCodeException {
 
     checkArgument(
         !options.reductionMode().equals(ReductionMode.NONE),
@@ -122,7 +125,8 @@ public record BitVectorAssignmentInjector(
   private ImmutableList<SeqInstrumentation> buildBitVectorAssignmentByEncoding(
       ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       MemoryAccessType pAccessType,
-      ReachType pReachType) {
+      ReachType pReachType)
+      throws UnsupportedCodeException {
 
     return switch (options.bitVectorEncoding()) {
       case NONE ->
@@ -137,7 +141,8 @@ public record BitVectorAssignmentInjector(
   private ImmutableList<SeqInstrumentation> buildDenseBitVectorAssignment(
       ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       MemoryAccessType pAccessType,
-      ReachType pReachType) {
+      ReachType pReachType)
+      throws UnsupportedCodeException {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(
         options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {

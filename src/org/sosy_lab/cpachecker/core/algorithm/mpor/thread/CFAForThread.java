@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -150,10 +151,7 @@ public class CFAForThread {
     // no call context -> return the single thread node corresponding to pCfaNode
     if (pCallContext.isEmpty()) {
       ImmutableSet<CFANodeForThread> threadNodesByCfaNode = getThreadNodesByCfaNode(pCfaNode);
-      assert threadNodesByCfaNode.size() == 1
-          : "if there is no calling context, the cfa node can have only one corresponding thread"
-              + " node";
-      return Optional.of(threadNodesByCfaNode.iterator().next());
+      return Optional.of(Iterables.getOnlyElement(threadNodesByCfaNode));
     }
 
     // otherwise extract return node based on call context

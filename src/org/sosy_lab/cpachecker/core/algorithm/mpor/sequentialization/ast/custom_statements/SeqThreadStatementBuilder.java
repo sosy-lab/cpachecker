@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -143,7 +145,8 @@ public record SeqThreadStatementBuilder(
   // const CPAchecker_TMP ==========================================================================
 
   private SeqThreadStatement buildConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes) {
+      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes)
+      throws UnsupportedCodeException {
 
     SubstituteEdge constCpaCheckerTmpEdge =
         Objects.requireNonNull(substituteEdges.get(pThreadEdge));
@@ -151,15 +154,13 @@ public record SeqThreadStatementBuilder(
     // ensure there are two single successors that are both statement edges
     CFANodeForThread firstSuccessor = pThreadEdge.getSuccessor();
     pCoveredNodes.add(firstSuccessor);
-    assert firstSuccessor.leavingEdges().size() == 1
-        : "const CPAchecker_TMP declarations can have only 1 successor edge";
-    CFAEdgeForThread firstSuccessorEdge = firstSuccessor.firstLeavingEdge();
+    // const CPAchecker_TMP declarations can have only 1 successor edge
+    CFAEdgeForThread firstSuccessorEdge = Iterables.getOnlyElement(firstSuccessor.leavingEdges());
     assert firstSuccessorEdge.cfaEdge instanceof CStatementEdge
         : "successor edge of const CPAchecker_TMP declaration must be CStatementEdge";
     CFANodeForThread secondSuccessor = firstSuccessorEdge.getSuccessor();
-    assert secondSuccessor.leavingEdges().size() == 1
-        : "second successor of const CPAchecker_TMP declarations can have only 1 successor edge";
-    CFAEdgeForThread secondSuccessorEdge = secondSuccessor.firstLeavingEdge();
+    // second successor of const CPAchecker_TMP declarations can have only 1 successor edge
+    CFAEdgeForThread secondSuccessorEdge = Iterables.getOnlyElement(secondSuccessor.leavingEdges());
 
     CStatementEdge secondSuccessorStatement = (CStatementEdge) secondSuccessorEdge.cfaEdge;
     // there are programs where a const CPAchecker_TMP statement has only two parts.
@@ -175,7 +176,8 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildTwoPartConstCpaCheckerTmpStatement(
-      SubstituteEdge pConstCpaCheckerTmpEdge, CFAEdgeForThread pSuccessorEdge) {
+      SubstituteEdge pConstCpaCheckerTmpEdge, CFAEdgeForThread pSuccessorEdge)
+      throws UnsupportedCodeException {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge substituteEdgeA = Objects.requireNonNull(substituteEdges.get(pSuccessorEdge));
@@ -192,7 +194,8 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildThreePartConstCpaCheckerTmpStatement(
       SubstituteEdge pConstCpaCheckerTmpEdge,
       CFAEdgeForThread pFirstSuccessorEdge,
-      CFAEdgeForThread pSecondSuccessorEdge) {
+      CFAEdgeForThread pSecondSuccessorEdge)
+      throws UnsupportedCodeException {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge firstSuccessorEdge =
@@ -214,7 +217,8 @@ public record SeqThreadStatementBuilder(
       SubstituteEdge pFirstSuccessorEdge,
       Optional<SubstituteEdge> pSecondSuccessorEdge,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pNewTargetPc) {
+      int pNewTargetPc)
+      throws UnsupportedCodeException {
 
     SeqThreadStatementData data =
         new SeqThreadStatementData(
@@ -247,7 +251,8 @@ public record SeqThreadStatementBuilder(
   private void checkConstCpaCheckerTmpArguments(
       CVariableDeclaration pVariableDeclaration,
       SubstituteEdge pFirstSuccessorEdge,
-      Optional<SubstituteEdge> pSecondSuccessorEdge) {
+      Optional<SubstituteEdge> pSecondSuccessorEdge)
+      throws UnsupportedCodeException {
 
     checkArgument(
         MPORUtil.isConstCpaCheckerTmp(pVariableDeclaration),
@@ -304,7 +309,9 @@ public record SeqThreadStatementBuilder(
     }
   }
 
-  private CIdExpression getIdExpressionFromSecondSuccessor(CExpression pExpression) {
+  private CIdExpression getIdExpressionFromSecondSuccessor(CExpression pExpression)
+      throws UnsupportedCodeException {
+
     if (pExpression instanceof CIdExpression idExpression) {
       return idExpression;
     } else if (pExpression instanceof CPointerExpression pointerExpression) {
@@ -312,8 +319,11 @@ public record SeqThreadStatementBuilder(
         return idExpression;
       }
     }
-    throw new IllegalArgumentException(
-        "pExpression must be either CIdExpression or CPointerExpression");
+    throw new UnsupportedCodeException(
+        String.format(
+            "pExpression must be either CIdExpression or CPointerExpression %s",
+            pExpression.toASTString()),
+        null);
   }
 
   // Statement build methods =======================================================================
@@ -392,6 +402,7 @@ public record SeqThreadStatementBuilder(
 
   static SeqThreadStatement buildGhostOnlyStatement(
       int pThreadId, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.GHOST_ONLY, ImmutableSet.of(), pThreadId, pPcLeftHandSide);
@@ -453,8 +464,9 @@ public record SeqThreadStatementBuilder(
     // handle function without parameters that is not "reach_error" -> blank statement
     CFunctionDeclaration functionDeclaration =
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
-    assert functionDeclaration.getParameters().isEmpty()
-        : "function has parameters, but they are not present in pFunctionStatements";
+    checkState(
+        functionDeclaration.getParameters().isEmpty(),
+        "function has parameters, but they are not present in pFunctionStatements");
 
     return buildGhostOnlyStatement(thread.id(), pcLeftHandSide, pTargetPc);
   }
@@ -657,10 +669,9 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildThreadExitStatement(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
-    checkArgument(
-        functionStatements.startRoutineExitAssignments().containsKey(pThreadEdge),
-        "could not find pThreadEdge in returnValueAssignments");
-
+    if (!functionStatements.startRoutineExitAssignments().containsKey(pThreadEdge)) {
+      return buildGhostOnlyStatement(thread.id(), pcLeftHandSide, pTargetPc);
+    }
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.THREAD_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
@@ -686,12 +697,18 @@ public record SeqThreadStatementBuilder(
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
                 pcVariables.getThreadInactiveExpression(targetThread.id())));
 
-    if (targetThread.startRoutineExitVariable().isPresent()) {
-      CStatementWrapper returnValueRead =
-          new CStatementWrapper(
-              buildReturnValueRead(
-                  targetThread.startRoutineExitVariable().orElseThrow(), pSubstituteEdge));
-      return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
+    CExpression parameter =
+        PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
+            pFunctionCall, PthreadObjectType.RETURN_VALUE);
+    if (!MPORUtil.isVoidPointer(parameter)) {
+      if (targetThread.startRoutineExitVariable().isPresent()) {
+        CStatementWrapper returnValueRead =
+            new CStatementWrapper(
+                buildReturnValueRead(
+                    targetThread.startRoutineExitVariable().orElseThrow(), pSubstituteEdge));
+        return SeqThreadStatement.of(
+            data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
+      }
     }
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall));
   }
@@ -872,7 +889,9 @@ public record SeqThreadStatementBuilder(
    *       handled.
    * </ul>
    */
-  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor) {
+  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor)
+      throws UnsupportedCodeException {
+
     // exiting start_routine of thread -> blank, just set pc = EXIT_PC;
     if (pSuccessor instanceof FunctionExitNode
         && pSuccessor.getFunction().equals(thread.startRoutine())) {
