@@ -220,7 +220,7 @@ public class SeqThreadStatementClauseUtil {
   public static boolean isSeparateLoopStart(
       MPOROptions pOptions, SeqThreadStatementClause pClause) {
 
-    return pClause.getFirstBlock().isLoopStart() && pOptions.noBackwardLoopGoto();
+    return pClause.getFirstBlock().isLoopHead() && pOptions.noBackwardLoopGoto();
   }
 
   // Path ==========================================================================================

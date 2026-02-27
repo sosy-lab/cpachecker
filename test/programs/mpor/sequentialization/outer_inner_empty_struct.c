@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <pthread.h>
 
+extern int __VERIFIER_nondet_int(void);
 // empty struct (no members)
 typedef struct {} Empty;
 // inner struct with member
@@ -36,6 +37,9 @@ void * start_routine(void *arg)
 {
   int *ultimate_question = malloc(sizeof(int));
    *ultimate_question = 42;
+    do
+      field_member_parameter_test(ultimate_question);
+    while (__VERIFIER_nondet_int());
    pthread_exit((void*)ultimate_question);
 }
 int main(void) {

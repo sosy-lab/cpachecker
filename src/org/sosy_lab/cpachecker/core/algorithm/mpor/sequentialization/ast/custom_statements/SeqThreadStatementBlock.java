@@ -35,7 +35,7 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
 
   private final ImmutableList<SeqThreadStatement> statements;
 
-  private final boolean isLoopStart;
+  private final boolean isLoopHead;
 
   private final Optional<CLabelStatement> nextThreadLabel;
 
@@ -43,6 +43,7 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
       int pThreadId,
       int pLabelNumber,
       ImmutableList<SeqThreadStatement> pStatements,
+      boolean pIsLoopHead,
       Optional<CLabelStatement> pNextThreadLabel) {
 
     checkArgument(
@@ -51,7 +52,7 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
     threadId = pThreadId;
     labelNumber = pLabelNumber;
     statements = pStatements;
-    isLoopStart = SeqThreadStatementBlockUtil.isLoopStart(statements);
+    isLoopHead = pIsLoopHead;
     nextThreadLabel = pNextThreadLabel;
   }
 
@@ -103,19 +104,23 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
     return nextThreadLabel;
   }
 
-  public boolean isLoopStart() {
-    return isLoopStart;
+  public boolean isLoopHead() {
+    return isLoopHead;
   }
 
   public SeqThreadStatementBlock withLabelNumber(int pLabelNumber) {
-    return new SeqThreadStatementBlock(threadId, pLabelNumber, statements, nextThreadLabel);
+    return new SeqThreadStatementBlock(
+        threadId, pLabelNumber, statements, isLoopHead, nextThreadLabel);
   }
 
   public SeqThreadStatementBlock withStatements(ImmutableList<SeqThreadStatement> pStatements) {
     checkArgument(
         statements.size() == pStatements.size(),
         "pStatements.size() must be equal to the existing statements.size()");
-    return new SeqThreadStatementBlock(threadId, labelNumber, pStatements, nextThreadLabel);
+    // cloning with updated statement does not change the validity of 'isLoopHead' because only
+    // the instrumentation of the statements changes, not the statements themselves
+    return new SeqThreadStatementBlock(
+        threadId, labelNumber, pStatements, isLoopHead, nextThreadLabel);
   }
 
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */
