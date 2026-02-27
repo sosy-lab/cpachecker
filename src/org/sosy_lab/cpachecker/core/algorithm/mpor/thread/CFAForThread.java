@@ -47,18 +47,23 @@ public class CFAForThread {
   /** The (sub)set of CFANodes from the original input CFA that this thread can reach. */
   public final ImmutableList<CFANodeForThread> threadNodes;
 
+  /** The (sub)set of CFANode loop heads from the original input CFA that this thread can reach. */
+  public final ImmutableSet<CFANodeForThread> loopHeads;
+
   public final ImmutableList<CFAEdgeForThread> threadEdges;
 
   protected CFAForThread(
       int pThreadId,
       FunctionEntryNode pEntryNode,
       ImmutableList<CFANodeForThread> pThreadNodes,
+      ImmutableSet<CFANodeForThread> pLoopHeads,
       ImmutableList<CFAEdgeForThread> pThreadEdges) {
 
     threadId = pThreadId;
     entryNode = pEntryNode;
     exitNode = entryNode.getExitNode();
     threadNodes = pThreadNodes;
+    loopHeads = pLoopHeads;
     threadEdges = pThreadEdges;
     initPredecessors(threadNodes);
     initSuccessors(threadEdges, threadNodes);

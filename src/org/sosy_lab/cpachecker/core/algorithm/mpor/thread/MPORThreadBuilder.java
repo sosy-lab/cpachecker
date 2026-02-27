@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
@@ -158,10 +159,13 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         Optional.empty(),
         pStartRoutineCall);
 
+    ImmutableList<CFANodeForThread> finalThreadNodes = threadNodes.build();
+
     return new CFAForThread(
         pThreadId,
         pEntryNode,
-        threadNodes.build(),
+        finalThreadNodes,
+        getAllLoopHeads(finalThreadNodes),
         ImmutableList.copyOf(threadEdges.buildOrThrow().keySet()));
   }
 
@@ -300,6 +304,18 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   }
 
   // (Private) Helpers =============================================================================
+
+  private ImmutableSet<CFANodeForThread> getAllLoopHeads(
+      ImmutableList<CFANodeForThread> pThreadNodes) {
+
+    ImmutableSet.Builder<CFANodeForThread> loopHeads = ImmutableSet.builder();
+    for (CFANodeForThread threadNode : pThreadNodes) {
+      if (cfa.getAllLoopHeads().orElseThrow().contains(threadNode.cfaNode)) {
+        loopHeads.add(threadNode);
+      }
+    }
+    return loopHeads.build();
+  }
 
   private ImmutableListMultimap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
       int pThreadId, Iterable<CFAEdge> pCfaEdges, Optional<CFAEdgeForThread> pCallContext) {
