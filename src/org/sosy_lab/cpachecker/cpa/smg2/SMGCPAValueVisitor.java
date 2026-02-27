@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -215,13 +214,7 @@ public class SMGCPAValueVisitor
           CFieldReference explicitFieldRef = fieldRef.withExplicitPointerDereference();
           CType returnType =
               SMGCPAExpressionEvaluator.getCanonicalType(explicitFieldRef.getExpressionType());
-          Value readSizeValue = evaluator.getBitSizeof(currentState, returnType, cfaEdge);
-          // If this fails, hand through Value instead of BigInt
-          checkState(
-              readSizeValue.isNumericValue(),
-              "Expected concrete value, but found symbolic value for type size");
-          BigInteger readSize = readSizeValue.asNumericValue().bigIntegerValue();
-
+          BigInteger readSize = evaluator.getBitSizeof(currentState, returnType);
           BigInteger fieldOffset =
               evaluator.getFieldOffsetInBits(
                   SMGCPAExpressionEvaluator.getCanonicalType(explicitFieldRef),
@@ -333,7 +326,7 @@ public class SMGCPAValueVisitor
         }
 
         // Calculate the offset out of the subscript value and the type
-        Value typeSizeInBits = evaluator.getBitSizeof(newState, returnType, cfaEdge);
+        BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
         Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
@@ -373,13 +366,7 @@ public class SMGCPAValueVisitor
       throws CPATransferException {
     SMGState newState = pCurrentState;
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(pReturnType);
-    Value typeSizeInBitsValue = evaluator.getBitSizeof(newState, returnType, cfaEdge);
-    // If this fails, hand through Value instead of BigInt
-    checkState(
-        typeSizeInBitsValue.isNumericValue(),
-        "Expected concrete value, but found symbolic value for type size");
-    BigInteger typeSizeInBits = typeSizeInBitsValue.asNumericValue().bigIntegerValue();
-
+    BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
     if (arrayValue instanceof AddressExpression arrayAddr) {
       Value addrOffsetValue = arrayAddr.getOffset();
 
@@ -765,7 +752,8 @@ public class SMGCPAValueVisitor
     } else if (isComparison(binaryOperator)) {
       // comparisons
       Value returnValue =
-          comparisonOperation(numLeftValue, numRightValue, binaryOperator, calculationType);
+          comparisonOperation(
+              (NumericValue) leftValue, (NumericValue) rightValue, binaryOperator, calculationType);
       // we do not cast here, because 0 and 1 are small enough for every type.
       return ImmutableList.of(ValueAndSMGState.of(returnValue, currentState));
     } else {
@@ -817,6 +805,18 @@ public class SMGCPAValueVisitor
       }
     }
 
+    // Interpret address as numeric, try to calculate the operation based on the numeric
+    // A pointer deref on a numeric (or a cast) should return it to an address expr or pointer
+    if (targetType instanceof CSimpleType cSimpleType && !cSimpleType.hasComplexSpecifier()) {
+      if (((value instanceof AddressExpression) || evaluator.isPointerValue(value, currentState))
+          && options.isCastMemoryAddressesToNumeric()) {
+
+        logger.logf(Level.FINE, "Memory address '%s' interpreted as numeric value.", value);
+        return ValueAndSMGState.of(
+            currentState.transformAddressIntoNumericValue(value).orElseThrow(), currentState);
+      }
+    }
+
     if (!value.isExplicitlyKnown()) {
       return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
     }
@@ -831,12 +831,7 @@ public class SMGCPAValueVisitor
     CType type = targetType.getCanonicalType();
     final int size;
     if (type instanceof CSimpleType) {
-      size =
-          evaluator
-              .getBitSizeof(currentState, type, cfaEdge)
-              .asNumericValue()
-              .bigIntegerValue()
-              .intValueExact();
+      size = evaluator.getBitSizeof(currentState, type).intValue();
     } else if (type instanceof CBitFieldType) {
       size = ((CBitFieldType) type).getBitFieldSize();
       type = ((CBitFieldType) type).getType();
@@ -933,12 +928,11 @@ public class SMGCPAValueVisitor
         && !state.isLocalVariablePresentOnPreviousStackFrame(variableName)) {
       if (varDecl instanceof CVariableDeclaration cVariableDeclaration) {
         creationBuilder.addAll(
-            evaluator.handleVariableDeclarationWithoutInitializer(
-                state, cVariableDeclaration, cfaEdge));
+            evaluator.handleVariableDeclarationWithoutInizializer(state, cVariableDeclaration));
       } else if (varDecl instanceof CParameterDeclaration cParameterDeclaration) {
         creationBuilder.addAll(
-            evaluator.handleVariableDeclarationWithoutInitializer(
-                state, cParameterDeclaration.asVariableDeclaration(), cfaEdge));
+            evaluator.handleVariableDeclarationWithoutInizializer(
+                state, cParameterDeclaration.asVariableDeclaration()));
       } else {
         throw new SMGException("Unhandled on-the-fly variable creation type: " + varDecl);
       }
@@ -953,8 +947,7 @@ public class SMGCPAValueVisitor
 
         // if the variable is an array, create/search new pointer to the array and return that
         finalStatesBuilder.add(
-            evaluator.createAddressForLocalOrGlobalVariable(
-                variableName, returnType, currentState));
+            evaluator.createAddressForLocalOrGlobalVariable(variableName, currentState));
 
       } else if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
         // Struct/Unions on the stack/global; return the memory location in a
@@ -975,13 +968,7 @@ public class SMGCPAValueVisitor
         // offsets inside the points to edge). These have to be packaged into an AddressExpression
         // with a 0 offset. Modifications of the offset of the address can be done by subsequent
         // methods. (The check is fine because we already filtered out structs/unions)
-        Value sizeInBitsValue =
-            evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
-        BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
-        // If this fails, hand through Value instead of BigInt
-        checkState(
-            sizeInBitsValue.isNumericValue(),
-            "Expected concrete value, but found symbolic value for type size");
+        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
         // Now use the qualified name to get the actual global/stack memory location
         for (ValueAndSMGState readValueAndState :
             evaluator.readStackOrGlobalVariable(
@@ -1014,11 +1001,7 @@ public class SMGCPAValueVisitor
 
       } else {
         // Everything else should be readable and returnable directly; just return the Value
-        Value sizeInBitsValue =
-            evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
-        // If this fails hand through Value
-        checkState(sizeInBitsValue.isNumericValue());
-        BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
+        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
         // Now use the qualified name to get the actual global/stack memory location
         finalStatesBuilder.addAll(
             evaluator.readStackOrGlobalVariable(
@@ -1082,10 +1065,10 @@ public class SMGCPAValueVisitor
     final CType innerType = e.getType();
 
     return switch (idOperator) {
-      case SIZEOF ->
-          ImmutableList.of(
-              ValueAndSMGState.of(evaluator.getBitSizeof(state, innerType, cfaEdge), state));
-
+      case SIZEOF -> {
+        BigInteger size = evaluator.getBitSizeof(state, innerType);
+        yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(size), state));
+      }
       case ALIGNOF -> {
         BigInteger align = evaluator.getAlignOf(innerType);
         yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
@@ -1114,10 +1097,7 @@ public class SMGCPAValueVisitor
 
     switch (unaryOperator) {
       case SIZEOF -> {
-        Value sizeInBitsValue = evaluator.getBitSizeof(state, operandType, cfaEdge);
-        // If this fails hand through Value
-        checkState(sizeInBitsValue.isNumericValue());
-        BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
+        BigInteger sizeInBits = evaluator.getBitSizeof(state, operandType);
         return ImmutableList.of(
             ValueAndSMGState.of(new NumericValue(sizeInBits.divide(BigInteger.valueOf(8))), state));
       }
@@ -1228,10 +1208,7 @@ public class SMGCPAValueVisitor
         continue;
       }
 
-      Value sizeInBitsValue = evaluator.getBitSizeof(currentState, returnType, cfaEdge);
-      // If this fails hand through Value
-      checkState(sizeInBitsValue.isNumericValue());
-      BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
+      BigInteger sizeInBits = evaluator.getBitSizeof(currentState, returnType);
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
         if (!(offset instanceof NumericValue)) {
@@ -1540,13 +1517,13 @@ public class SMGCPAValueVisitor
       SMGState pState,
       Function<FloatValue, Value> pOperation) {
     final Value parameter = Iterables.getOnlyElement(pArguments);
-    if (parameter instanceof NumericValue numParameter) {
+    if (parameter.isExplicitlyKnown()) {
       // Cast the argument to match the function type
       FloatValue value =
           castToFloat(
               machineModel,
               BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
-              numParameter);
+              (NumericValue) parameter);
 
       return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value), pState));
     } else {
@@ -2017,7 +1994,7 @@ public class SMGCPAValueVisitor
         // expression!
         correctlyTypedOffset =
             calculateArithmeticOperationWithBitPromotion(
-                evaluator.getBitSizeof(currentState, canonicalReturnType, cfaEdge),
+                new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
                 leftValueType,
                 rightValue,
                 rightValueType,
@@ -2071,15 +2048,14 @@ public class SMGCPAValueVisitor
       }
       Value correctlyTypedOffset;
       if (calculationType instanceof CPointerType) {
-        Value bitSizedType = evaluator.getBitSizeof(currentState, canonicalReturnType, cfaEdge);
         correctlyTypedOffset =
             arithmeticOperation(
-                (NumericValue) bitSizedType,
+                new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
                 numLeftValue,
                 BinaryOperator.MULTIPLY,
                 machineModel.getPointerSizedIntType());
       } else {
-        // If it's a cast pointer, i.e. ((unsigned int) pointer) + 8;
+        // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
             arithmeticOperation(
@@ -2142,12 +2118,13 @@ public class SMGCPAValueVisitor
 
         // distance in bits / type size = distance
         // The type in both pointers is the same, we need the return type from one of them
-        Value size;
+        NumericValue size;
         if (leftValueType instanceof CPointerType cPointerType) {
-          size = evaluator.getBitSizeof(currentState, cPointerType.getType(), cfaEdge);
+          size = new NumericValue(evaluator.getBitSizeof(currentState, cPointerType.getType()));
         } else if (addressRight.getType() instanceof CArrayType) {
           size =
-              evaluator.getBitSizeof(currentState, ((CArrayType) leftValueType).getType(), cfaEdge);
+              new NumericValue(
+                  evaluator.getBitSizeof(currentState, ((CArrayType) leftValueType).getType()));
         } else {
           returnBuilder.add(
               ValueAndSMGState.ofUnknownValue(
@@ -2161,7 +2138,7 @@ public class SMGCPAValueVisitor
         Value distance =
             arithmeticOperation(
                 numDistanceInBits,
-                (NumericValue) size,
+                size,
                 BinaryOperator.DIVIDE,
                 machineModel.getPointerSizedIntType());
 

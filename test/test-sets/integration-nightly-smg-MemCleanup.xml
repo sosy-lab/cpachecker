@@ -26,7 +26,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
   <option name="--option">cpa.smg2.enableMallocFail=false</option>
 
-  <tasks name="C.valid-memcleanup.Main">
+  <tasks>
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <includesfile>../programs/benchmarks/Juliet.set</includesfile>
     <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
@@ -34,10 +34,5 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
   </tasks>
-  <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
-    <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
-  </tasks>
-
 
 </benchmark>

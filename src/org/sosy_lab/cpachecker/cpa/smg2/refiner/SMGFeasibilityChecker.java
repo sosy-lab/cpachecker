@@ -70,7 +70,7 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
         SMGState.of(
             pCfa.getMachineModel(),
             pLogger,
-            new SMGOptions(pConfig, pCfa),
+            new SMGOptions(pConfig),
             pCfa,
             pEvaluator,
             pStatistics),
@@ -97,8 +97,7 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
     try {
       List<Pair<SMGState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
       SMGState next =
-          SMGState.of(
-              machineModel, logger, new SMGOptions(config, cfa), cfa, evaluator, statistics);
+          SMGState.of(machineModel, logger, new SMGOptions(config), cfa, evaluator, statistics);
 
       if (cfa.getMainFunction() instanceof CFunctionEntryNode functionNode) {
         // Init main

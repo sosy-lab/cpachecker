@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.smg.util;
 
 import com.google.common.base.Preconditions;
-import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
@@ -17,16 +17,16 @@ public class SMGAndSMGValues {
 
   private final SMG smg;
 
-  private final Map<SMGValue, SMGValue> values;
+  private final Set<SMGValue> values;
 
-  private SMGAndSMGValues(SMG pSmg, Map<SMGValue, SMGValue> pSMGValues) {
+  private SMGAndSMGValues(SMG pSmg, Set<SMGValue> pSMGValues) {
     Preconditions.checkNotNull(pSmg);
     Preconditions.checkNotNull(pSMGValues);
     smg = pSmg;
     values = pSMGValues;
   }
 
-  public static SMGAndSMGValues of(SMG pSmg, Map<SMGValue, SMGValue> pSMGValues) {
+  public static SMGAndSMGValues of(SMG pSmg, Set<SMGValue> pSMGValues) {
     return new SMGAndSMGValues(pSmg, pSMGValues);
   }
 
@@ -34,8 +34,7 @@ public class SMGAndSMGValues {
     return smg;
   }
 
-  /** oldValue -> newValue */
-  public Map<SMGValue, SMGValue> getSMGValues() {
+  public Set<SMGValue> getSMGValues() {
     return values;
   }
 }

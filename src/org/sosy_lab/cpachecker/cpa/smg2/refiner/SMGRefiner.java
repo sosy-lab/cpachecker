@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -177,7 +176,6 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         smgCpa.getShutdownNotifier(),
         cfa,
         smgCpa.getEvaluator(),
-        smgCpa.getSMGOptions(),
         smgCpa.getStatistics());
   }
 
@@ -191,7 +189,6 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGOptions pOptions,
       SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
@@ -208,7 +205,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pEvaluator,
             pStatistics),
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig, pCfa),
+            new SMGOptions(pConfig),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
@@ -223,8 +220,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
     checker = pFeasibilityChecker;
     concreteErrorPathAllocator =
-        new SMGConcreteErrorPathAllocator(
-            pConfig, logger, pCfa.getMachineModel(), pOptions, pStatistics);
+        new SMGConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
     shutdownNotifier = pShutdownNotifier;
   }
 

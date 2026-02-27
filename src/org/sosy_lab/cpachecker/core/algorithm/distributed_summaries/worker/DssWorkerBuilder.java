@@ -113,7 +113,7 @@ public class DssWorkerBuilder {
         new CommunicationId(workerId, DssCommunicationEntity.OBSERVER),
         connection ->
             new DssVisualizationWorker(
-                workerId, pBlockGraph, connection, pOptions, messageFactory, cfa, logger));
+                workerId, pBlockGraph, connection, pOptions, messageFactory, logger));
     return this;
   }
 

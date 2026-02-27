@@ -12,9 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -104,9 +102,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     SINGLE_WORKER
   }
 
-  // Cache is static because it is shared between different instances of DistributedSummarySynthesis
-  private static final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
-
   public DistributedSummarySynthesis(
       Configuration pConfig,
       LogManager pLogger,
@@ -146,7 +141,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     dssStats.getInstrumentationTimer().start();
     Modification modification =
         BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
-
     dssStats.getInstrumentationTimer().stop();
     ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
     dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
@@ -191,26 +185,15 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     logger.log(Level.INFO, "Starting block analysis...");
     try {
       // create blockGraph and reduce to relevant parts
-
-      BlockGraph blockGraph;
+      BlockGraph blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
       if (decompositionOptions.generateBlockGraphOnly()) {
-        blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
-        blockGraph.export(decompositionOptions.getBlockCFAFile(), initialCFA);
+        blockGraph.export(decompositionOptions.getBlockCFAFile());
         logger.logf(
             Level.INFO, "Block graph exported to %s.", decompositionOptions.getBlockCFAFile());
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
-      Modification modification;
-      synchronized (modifiedBlockGraphCache) {
-        if (modifiedBlockGraphCache.containsKey(initialCFA)) {
-          logger.logf(Level.INFO, "Using cached modified block graph.");
-          modification = modifiedBlockGraphCache.get(initialCFA);
-        } else {
-          blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
-          modification = modifyBlockGraph(blockGraph);
-          modifiedBlockGraphCache.put(initialCFA, modification);
-        }
-      }
+
+      Modification modification = modifyBlockGraph(blockGraph);
       CFA cfa = modification.cfa();
       blockGraph = modification.blockGraph();
       logger.logf(

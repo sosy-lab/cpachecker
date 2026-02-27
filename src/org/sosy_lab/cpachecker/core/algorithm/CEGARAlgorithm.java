@@ -112,9 +112,7 @@ public class CEGARAlgorithm
 
   private class CEGARMBean extends AbstractMBean implements CEGARMXBean {
     CEGARMBean() {
-      super(
-          "org.sosy_lab.cpachecker:type=CEGAR,name=Thread-" + Thread.currentThread().threadId(),
-          logger);
+      super("org.sosy_lab.cpachecker:type=CEGAR", logger);
     }
 
     @Override

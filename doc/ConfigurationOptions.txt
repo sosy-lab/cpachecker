@@ -114,25 +114,12 @@ solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
 solver.logAllQueries = false
 solver.logfile = no default value
 
-# If used together with solver.mathsat5.useExtendedSMTLIB2Output, SMTLIB2
-# output will contain let-bindings instead of define-fun based bindings.
-solver.mathsat5.dumpSMTLIB2LetExpressions = false
-
 # Further options that will be passed to Mathsat in addition to the default
 # options. Format is 'key1=value1,key2=value2'
 solver.mathsat5.furtherOptions = ""
 
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
-
-# If enabled, SMTLIB2 output of MathSAT5 will be generated using the extended
-# dumping function msat_to_smtlib2_ext(), instead of the regular dumping
-# function msat_to_smtlib2(). This extended dump might allow the exporting of
-# features to SMTLIB2 that can't be solved using MathSAT5, e.g. quantified
-# formulas. The output will contain define-fun based bindings instead of
-# let-expressions per default. If you want to use let bindings, enable option
-# solver.mathsat5.dumpSMTLIB2LetExpressions as well.
-solver.mathsat5.useExtendedSMTLIB2Output = false
 
 # Use non-linear arithmetic of the solver if supported and throw exception
 # otherwise, approximate non-linear arithmetic with UFs if unsupported, or
@@ -141,42 +128,26 @@ solver.mathsat5.useExtendedSMTLIB2Output = false
 solver.nonLinearArithmetic = USE
   enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
 
-# deprecated name for solver.opensmt.interpolation.algorithm.booleanTheory
+# Algorithm for boolean interpolation
 solver.opensmt.algBool = MCMILLAN
   enum:     [MCMILLAN, PUDLAK, MCMILLAN_PRIME, PROOF_SENSITIVE, PROOF_SENSITIVE_WEAK,
              PROOF_SENSITIVE_STRONG]
 
-# deprecated name for solver.opensmt.interpolation.algorithm.lraTheory
+# Algorithm for LRA interpolation
 solver.opensmt.algLra = STRONG
   enum:     [STRONG, WEAK, FACTOR, DECOMPOSING_STRONG, DECOMPOSING_WEAK]
 
-# deprecated name for solver.opensmt.interpolation.algorithm.ufTheory
+# Algorithm for UF interpolation
 solver.opensmt.algUf = STRONG
   enum:     [STRONG, WEAK, RANDOM]
-
-# Interpolation algorithm for boolean theory
-solver.opensmt.interpolation.algorithm.booleanTheory = MCMILLAN
-  enum:     [MCMILLAN, PUDLAK, MCMILLAN_PRIME, PROOF_SENSITIVE, PROOF_SENSITIVE_WEAK,
-             PROOF_SENSITIVE_STRONG]
-
-# Interpolation algorithm for LRA theory
-solver.opensmt.interpolation.algorithm.lraTheory = STRONG
-  enum:     [STRONG, WEAK, FACTOR, DECOMPOSING_STRONG, DECOMPOSING_WEAK]
-
-# Interpolation algorithm for UF theory
-solver.opensmt.interpolation.algorithm.ufTheory = STRONG
-  enum:     [STRONG, WEAK, RANDOM]
-
-# Level of simplification for interpolants,ranging from 0 (no simplification)
-# to 4 (maximum simplification).
-solver.opensmt.interpolation.simplificationLevel = 0
 
 # SMT-LIB2 name of the logic to be used by the solver.
 solver.opensmt.logic = QF_AUFLIRA
   enum:     [CORE, QF_AX, QF_UF, QF_IDL, QF_RDL, QF_LIA, QF_LRA, QF_ALIA, QF_ALRA,
              QF_UFLIA, QF_UFLRA, QF_AUFLIA, QF_AUFLRA, QF_AUFLIRA]
 
-# deprecated name for solver.opensmt.interpolation.simplificationLevel
+# Level of simplification for interpolants,ranging from 0 (no simplification)
+# to 4 (maximum simplification).
 solver.opensmt.simplifyInterpolants = 0
 
 # Enable additional assertion checks within Princess. The main usage is
@@ -209,8 +180,8 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
-             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # Sequentialize all solver actions to allow concurrent access!
 solver.synchronize = false
@@ -224,14 +195,6 @@ solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
-
-# Activate replayable logging in Z3. The log can be given as an input to the
-# solver and replayed.
-solver.z3.legacy.log = no default value
-
-# Require proofs from SMT solver
-solver.z3.legacy.requireProofs = true
-  allowed values: [true, false]
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -3195,13 +3158,13 @@ cpa.predicate.solver.enableLoggingInSolver = false
 
 # deprecated name for solver.interpolationSolver
 cpa.predicate.solver.interpolationSolver = no default value
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
-             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # deprecated name for solver.solver
 cpa.predicate.solver.solver = MATHSAT5
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
-             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
@@ -3624,9 +3587,6 @@ cpa.smg2.allocateExternalVariables = true
 # is simply accepted without any checks.
 cpa.smg2.allowNondetFunctionsWithArbitraryTypes = true
 
-# If this Option is enabled, variable array length may be symbolic.
-cpa.smg2.allowSymbolicVariableArrayLength = false
-
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
 
@@ -3645,6 +3605,14 @@ cpa.smg2.cacheSupersets = false
 # If this Option is enabled, C function atexit() will return a succeeding and
 # failing registration for each registration. Otherwise only succeeding.
 cpa.smg2.canAtexitFail = false
+
+# with this option enabled, memory addresses (pointers) are transformed into
+# a numeric assumption upon casting the pointer to a number. This assumption
+# can be returned to a proper pointer by casting it back. This enables
+# numeric operations beyond pointer arithmetics, but loses precision for
+# comparisons/assumptions, as the numeric assumption is static. May be
+# unsound!
+cpa.smg2.castMemoryAddressesToNumeric = false
 
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
@@ -3671,32 +3639,12 @@ cpa.smg2.enableMallocFail = true
 # zeroing allocation functions like calloc().
 cpa.smg2.enableZeroingOfSymbolicMemorySize = false
 
-# The direction in which values are assigned when a concrete error path is
-# built (i.e. for a counterexample-check or a witness). Forward assigns
-# concrete values only if they are known at the location. Backward does
-# remember possible assignments from before and carries them over.
-cpa.smg2.errorPathConcreteValueAssignmentDirection = BACKWARD
-  enum:     [FORWARD, BACKWARD]
-
-# Exports concrete variable assignments for internally created CPAchecker
-# variables (e.g. '__CPAchecker_TMP_X') if true. Note: Those internal
-# variables are used e.g. to safe results of sub-expressions that are split
-# up, including assumptions, and are always used and exported. This options
-# only controls whether this CPA exports known concrete values for these
-# variables in counterexamples and witnesses.
-cpa.smg2.exportInternalVariableAssignments = true
-
 # Filename format for SMG graph dumps
 cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 
 # Describes when SMG graphs should be dumped.
 cpa.smg2.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
-
-# If true, exports concrete variable assignments along the found path towards
-# errors for counterexamples and violation witnesses. If false, only the
-# found path is exported.
-cpa.smg2.exportVariableAssignmentsForViolations = true
 
 # Functions which return externally allocated memory with bit size defined by
 # option externalAllocationSize
@@ -3763,6 +3711,10 @@ cpa.smg2.initialPrecisionFile = no default value
 # get an initial precision from a predicate precision file
 cpa.smg2.initialPredicatePrecisionFile = no default value
 
+# Perform merge SMGStates by SMGJoin on ends of code block. Works with
+# 'merge=JOIN'
+cpa.smg2.joinOnBlockEnd = false
+
 # If this option is enabled, a call to malloc with value zero results in a
 # return value that is equal to zero. If this option is disabled, a non-zero
 # memory section that may not be accessed but freed is returned.
@@ -3783,35 +3735,9 @@ cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 # Determines if memory errors are target states
 cpa.smg2.memoryErrors = false
 
-# Which merge operator to use for the SMGCPA. 'PREDATOR-MERGE' uses the merge
-# operation described for the Predator verification tool; appendix C 'The
-# Join Algorithms', page 28 in https://doi.org/10.1007/978-3-642-38856-9_13.
+# which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
-  allowed values: [SEP, PREDATOR-MERGE]
-
-# Apply merge operator only on ends of code blocks.
-cpa.smg2.merge.exclusivelyBlockEnds = false
-
-# Apply merge operator only on equal code block ends if true. Only applied if
-# exclusivelyBlockEnds=true.
-cpa.smg2.merge.exclusivelyEqualBlockEnds = false
-
-# Apply merge operator only on states with at least one input state including
-# an abstracted list.
-cpa.smg2.merge.exclusivelyWithAbstractionPresent = false
-
-# When true, concrete values can be overapproximated when merging, e.g. when
-# merged with a symbolic value, or another, but distinct concrete value.
-cpa.smg2.merge.overapproximateConcreteValues = false
-
-# When true, unequal constraints on symbolic values are overapproximated when
-# merging.
-cpa.smg2.merge.overapproximateSymbolicConstraints = false
-
-# Apply merge operator based on Predators join algorithm to determine
-# subsumtion of abstracted lists in the stop operator more precisely. Can be
-# costly.
-cpa.smg2.merge.useMergeForAbstractionDetectionInStopOperator = false
+  allowed values: [SEP]
 
 # Whether to perform SAT checks only for the last added constraint
 cpa.smg2.minimalSatCheck = true
@@ -5516,13 +5442,13 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
-             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
-             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # Comma-separated list of files with specifications that should be checked
 # (cf. config/specification/ for examples). Property files as used in SV-COMP

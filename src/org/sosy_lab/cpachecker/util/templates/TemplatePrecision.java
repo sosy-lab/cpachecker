@@ -653,13 +653,14 @@ public class TemplatePrecision implements Precision {
   }
 
   private Collection<ASimpleDeclaration> getVarsForNode(CFANode node) {
-    return switch (varFiltering) {
-      case ALL_LIVE ->
-          Sets.union(
-              cfa.getLiveVariables().orElseThrow().getLiveVariablesForNode(node),
-              functionParameters.get(node.getFunctionName()));
-      case INTERPOLATION_BASED -> varsInInterpolant.get(node);
-      default -> allVariables;
-    };
+    if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
+      return Sets.union(
+          cfa.getLiveVariables().orElseThrow().getLiveVariablesForNode(node),
+          functionParameters.get(node.getFunctionName()));
+    } else if (varFiltering == VarFilteringStrategy.INTERPOLATION_BASED) {
+      return varsInInterpolant.get(node);
+    } else {
+      return allVariables;
+    }
   }
 }

@@ -108,10 +108,11 @@ public class SMGCPAAddressVisitor
   @Override
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CStringLiteralExpression e)
       throws CPATransferException {
-    String globalVarName = state.getCStringLiteralExpressionVariableName(e);
+    String globalVarName = evaluator.getCStringLiteralExpressionVairableName(e);
     SMGState currentState = state;
     if (!currentState.isGlobalVariablePresent(globalVarName)) {
-      Value sizeOfString = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
+      Value sizeOfString =
+          new NumericValue(evaluator.getBitSizeof(currentState, e.getExpressionType()));
       currentState =
           currentState.copyAndAddGlobalVariable(sizeOfString, globalVarName, e.getExpressionType());
       List<SMGState> statesWithString =
@@ -130,8 +131,7 @@ public class SMGCPAAddressVisitor
     }
     // TODO: assertion that the Strings are immutable
     ValueAndSMGState addressValueAndState =
-        evaluator.createAddressForLocalOrGlobalVariable(
-            globalVarName, e.getExpressionType(), currentState);
+        evaluator.createAddressForLocalOrGlobalVariable(globalVarName, currentState);
     Value addressValue = addressValueAndState.getValue();
     currentState = addressValueAndState.getState();
 
@@ -182,7 +182,7 @@ public class SMGCPAAddressVisitor
           continue;
         }
         // Calculate the offset out of the subscript value and the type
-        Value typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
+        BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
         Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         // Get the value from the array and return the value + state
@@ -356,8 +356,7 @@ public class SMGCPAAddressVisitor
       // Assignment using the solver only. While we get the concrete value here,
       //  we can't assign it to a variable.
       List<ValueAndSMGState> assignedResults =
-          pCurrentState.findValueAssignmentsWithSolver(
-              symOffsetToAssign, exprCurrentlyUnderEval, cfaEdge);
+          pCurrentState.findValueAssignmentsWithSolver(symOffsetToAssign, cfaEdge);
       ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
           ImmutableList.builder();
       for (ValueAndSMGState assignedValueAndState : assignedResults) {

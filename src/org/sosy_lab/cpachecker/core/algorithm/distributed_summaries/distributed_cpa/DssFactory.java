@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.Map;
@@ -60,8 +58,8 @@ public class DssFactory {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    BiMap<Integer, CFANode> cfaNodeIdMap = createCfaNodeIdMap(pCFA);
-
+    ImmutableMap<Integer, CFANode> integerToNodeMap =
+        ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
     return switch (pCPA) {
       case PredicateCPA predicateCPA ->
           distribute(
@@ -72,8 +70,9 @@ public class DssFactory {
               pOptions,
               pLogManager,
               pShutdownNotifier,
-              cfaNodeIdMap);
-      case CallstackCPA callstackCPA -> distribute(callstackCPA, pBlockNode, pCFA, cfaNodeIdMap);
+              integerToNodeMap);
+      case CallstackCPA callstackCPA ->
+          distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
       case ARGCPA argCPA ->
@@ -96,7 +95,7 @@ public class DssFactory {
               pMessageFactory,
               pLogManager,
               pShutdownNotifier);
-      case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, cfaNodeIdMap);
+      case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, integerToNodeMap);
       case null /*TODO check if null is necessary*/, default -> null;
     };
   }
@@ -107,7 +106,7 @@ public class DssFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      LocationCPA pLocationCPA, BlockNode pNode, BiMap<Integer, CFANode> pNodeMap) {
+      LocationCPA pLocationCPA, BlockNode pNode, Map<Integer, CFANode> pNodeMap) {
     return new DistributedLocationCPA(pLocationCPA, pNode, pNodeMap);
   }
 
@@ -119,7 +118,7 @@ public class DssFactory {
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      BiMap<Integer, CFANode> pIntegerCFANodeMap)
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap)
       throws InvalidConfigurationException {
     return new DistributedPredicateCPA(
         pPredicateCPA,
@@ -136,7 +135,7 @@ public class DssFactory {
       CallstackCPA pCallstackCPA,
       BlockNode pBlockNode,
       CFA pCFA,
-      BiMap<Integer, CFANode> pIdToNodeMap) {
+      Map<Integer, CFANode> pIdToNodeMap) {
     return new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pCFA, pIdToNodeMap);
   }
 
@@ -198,21 +197,5 @@ public class DssFactory {
             pMessageFactory,
             pLogManager,
             pShutdownNotifier));
-  }
-
-  static BiMap<Integer, CFANode> createCfaNodeIdMap(CFA pCFA) {
-    ImmutableMap<Integer, CFANode> integerToNodeMap =
-        ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
-
-    int minCfaNodeNumber = integerToNodeMap.keySet().stream().min(Integer::compareTo).orElseThrow();
-
-    // All node IDs are shifted such that they start from 0
-    BiMap<Integer, CFANode> cfaNodeIdMap = HashBiMap.create();
-
-    for (Map.Entry<Integer, CFANode> entry : integerToNodeMap.entrySet()) {
-      int index = entry.getKey() - minCfaNodeNumber;
-      cfaNodeIdMap.put(index, entry.getValue());
-    }
-    return cfaNodeIdMap;
   }
 }

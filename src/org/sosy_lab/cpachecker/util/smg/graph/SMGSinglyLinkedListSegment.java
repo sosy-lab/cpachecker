@@ -18,7 +18,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
   private final int minLength;
   private final BigInteger headOffset;
   private final BigInteger nextOffset;
-  private final BigInteger nextPointerTargetOffset;
+  private final BigInteger nextPointerTargetoffset;
 
   // Track the equality cache used in the latest creation of this abstraction.
   // Can be used to argue about whether Values are equal or identical and need
@@ -40,7 +40,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
     minLength = pMinLength;
     headOffset = pHeadOffset;
     nextOffset = pNextOffset;
-    nextPointerTargetOffset = pNextPointerTargetOffset;
+    nextPointerTargetoffset = pNextPointerTargetOffset;
     relevantEqualities = EqualityCache.of();
   }
 
@@ -57,7 +57,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
     minLength = pMinLength;
     headOffset = pHeadOffset;
     nextOffset = pNextOffset;
-    nextPointerTargetOffset = pNextPointerTargetoffset;
+    nextPointerTargetoffset = pNextPointerTargetoffset;
     relevantEqualities = pRelevantEqualities;
   }
 
@@ -66,14 +66,13 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
   }
 
   public BigInteger getNextPointerTargetOffset() {
-    return nextPointerTargetOffset;
+    return nextPointerTargetoffset;
   }
 
   public BigInteger getHeadOffset() {
     return headOffset;
   }
 
-  @Override
   public int getMinLength() {
     return minLength;
   }
@@ -102,24 +101,21 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         objectToCopy.getOffset(),
         objectToCopy.headOffset,
         objectToCopy.nextOffset,
-        objectToCopy.nextPointerTargetOffset,
+        objectToCopy.nextPointerTargetoffset,
         objectToCopy.minLength,
         objectToCopy.relevantEqualities);
   }
 
   @Override
-  public SMGObject copyWithNewNestingLevel(int newLevel) {
+  public SMGObject copyWithNewLevel(int newLevel) {
     Preconditions.checkArgument(newLevel >= 0);
-    if (getNestingLevel() == newLevel) {
-      return this;
-    }
     return new SMGSinglyLinkedListSegment(
         newLevel,
         getSize(),
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetOffset,
+        nextPointerTargetoffset,
         minLength,
         relevantEqualities);
   }
@@ -132,7 +128,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetOffset,
+        nextPointerTargetoffset,
         newMinimumLength,
         relevantEqualities);
   }
@@ -145,7 +141,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetOffset,
+        nextPointerTargetoffset,
         minLength,
         pRelevantEqualities);
   }
@@ -162,7 +158,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetOffset,
+        nextPointerTargetoffset,
         Integer.max(getMinLength() - 1, 0),
         relevantEqualities);
   }
@@ -175,25 +171,14 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetOffset,
+        nextPointerTargetoffset,
         minLength,
         relevantEqualities);
   }
 
   @Override
   public String toString() {
-    String sizeToPrint = super.getSize().toString();
-    if (super.getSize().isNumericValue()) {
-      sizeToPrint = super.getSize().asNumericValue().bigIntegerValue().toString();
-    }
-    return minLength
-        + "+SLL "
-        + super.hashCode()
-        + "["
-        + super.getOffset()
-        + ", "
-        + sizeToPrint
-        + ")";
+    return minLength + "+SLL " + super.hashCode();
   }
 
   @Override
@@ -211,12 +196,5 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
    */
   public EqualityCache<Value> getRelevantEqualities() {
     return relevantEqualities;
-  }
-
-  @Override
-  public SMGObject join(SMGObject otherObj) {
-    int newNestingLevel = Integer.max(getNestingLevel(), otherObj.getNestingLevel());
-    int newMinLength = Integer.min(getMinLength(), otherObj.getMinLength());
-    return copyWithNewMinimumLength(newMinLength).copyWithNewNestingLevel(newNestingLevel);
   }
 }

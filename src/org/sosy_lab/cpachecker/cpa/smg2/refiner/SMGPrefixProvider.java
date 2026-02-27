@@ -49,13 +49,13 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
         SMGState.of(
             pCfa.getMachineModel(),
             pLogger,
-            new SMGOptions(config, pCfa),
+            new SMGOptions(config),
             pCfa,
             new SMGCPAExpressionEvaluator(
                 pCfa.getMachineModel(),
                 pLogger,
                 SMGCPAExportOptions.getNoExportInstance(),
-                new SMGOptions(config, pCfa),
+                new SMGOptions(config),
                 null),
             pStatistics),
         pLogger,

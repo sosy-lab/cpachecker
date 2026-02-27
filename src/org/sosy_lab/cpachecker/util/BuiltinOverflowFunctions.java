@@ -87,11 +87,13 @@ public class BuiltinOverflowFunctions {
     }
 
     private static String getOperatorName(BinaryOperator pOperator) {
-      return switch (pOperator) {
-        case PLUS -> "add";
-        case MINUS -> "sub";
-        default -> "mul";
-      };
+      if (pOperator == BinaryOperator.PLUS) {
+        return "add";
+      } else if (pOperator == BinaryOperator.MINUS) {
+        return "sub";
+      } else {
+        return "mul";
+      }
     }
 
     private static String getDataTypePrefix(@Nullable CSimpleType pType) {

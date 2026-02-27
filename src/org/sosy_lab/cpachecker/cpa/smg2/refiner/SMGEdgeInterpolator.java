@@ -55,7 +55,7 @@ public class SMGEdgeInterpolator
         pStrongestPostOperator,
         pFeasibilityChecker,
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig, pCfa),
+            new SMGOptions(pConfig),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
@@ -65,7 +65,7 @@ public class SMGEdgeInterpolator
         SMGState.of(
             pCfa.getMachineModel(),
             pLogger,
-            new SMGOptions(pConfig, pCfa),
+            new SMGOptions(pConfig),
             pCfa,
             pEvaluator,
             pStatistics),

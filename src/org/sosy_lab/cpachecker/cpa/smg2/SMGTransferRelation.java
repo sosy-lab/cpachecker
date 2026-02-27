@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
@@ -84,7 +83,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
@@ -115,7 +114,8 @@ public class SMGTransferRelation
     extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
 
   private final SMGOptions options;
-  private final SMGAbstractionOptions abstractionOptions;
+
+  private final PrecAdjustmentOptions precisionAdjustmentOptions;
 
   @SuppressWarnings("unused")
   private final SMGCPAExportOptions exportSMGOptions;
@@ -141,6 +141,7 @@ public class SMGTransferRelation
   public SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
+      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       CFA pCfa,
       ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
@@ -150,7 +151,7 @@ public class SMGTransferRelation
     cfa = pCfa;
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
-    abstractionOptions = options.getAbstractionOptions();
+    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
     exportSMGOptions = pExportSMGOptions;
     solver = pSolver;
 
@@ -169,6 +170,7 @@ public class SMGTransferRelation
   protected SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
+      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
       Collection<String> pBooleanVariables,
@@ -177,7 +179,7 @@ public class SMGTransferRelation
       throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
-    abstractionOptions = options.getAbstractionOptions();
+    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
     exportSMGOptions = pExportSMGOptions;
     booleanVariables = pBooleanVariables;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
@@ -225,7 +227,7 @@ public class SMGTransferRelation
     ImmutableList.Builder<SMGState> successors = ImmutableList.builder();
     for (SMGState s : pSuccessors) {
       for (CSimpleDeclaration variable : edge.getSuccessor().getOutOfScopeVariables()) {
-        s = s.invalidateVariable(MemoryLocation.forDeclaration(variable), true);
+        s = s.invalidateVariable(MemoryLocation.forDeclaration(variable));
       }
       successors.add(s);
     }
@@ -301,7 +303,7 @@ public class SMGTransferRelation
       SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger, options);
       for (ValueAndSMGState returnValueAndState : vv.evaluate(returnExp, retType)) {
         // We get the size per state as it could theoretically change per state (abstraction)
-        Value sizeInBits = evaluator.getBitSizeof(state, retType, returnEdge);
+        BigInteger sizeInBits = evaluator.getBitSizeof(state, retType);
 
         // Iff the target and source are a struct, we need to copy the struct.
         // The value visitor gives us a pointer (singular value) that is then used to find the
@@ -399,9 +401,7 @@ public class SMGTransferRelation
           SMGCPAExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
       CType rightValueType =
           SMGCPAExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
-      Value sizeInBitsValue = evaluator.getBitSizeof(state, rightValueType, functionReturnEdge);
-      checkState(sizeInBitsValue.isNumericValue());
-      BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
+      BigInteger sizeInBits = evaluator.getBitSizeof(state, rightValueType);
       Optional<SMGObject> returnObject =
           state.getMemoryModel().getReturnObjectForCurrentStackFrame();
       // There should always be a return memory object in the case of a
@@ -415,8 +415,7 @@ public class SMGTransferRelation
         SMGState currentState = state;
 
         for (SMGState stateWithNewVar :
-            createVariableOnTheSpotForPreviousStackframe(
-                leftValue, currentState, functionReturnEdge)) {
+            createVariableOnTheSpotForPreviousStackframe(leftValue, currentState)) {
           Preconditions.checkArgument(leftValue instanceof CIdExpression);
           String leftHandSideVarName =
               ((CIdExpression) leftValue).getDeclaration().getQualifiedName();
@@ -445,8 +444,7 @@ public class SMGTransferRelation
           // Now we can drop the stack frame as we left the function and have the return value
           SMGState currentState = readValueAndState.getState().dropStackFrame();
           // The memory on the left hand side might not exist because of CEGAR
-          for (SMGState stateWithNewVar :
-              createVariableOnTheSpot(leftValue, currentState, functionReturnEdge)) {
+          for (SMGState stateWithNewVar : createVariableOnTheSpot(leftValue, currentState)) {
             stateBuilder.addAll(
                 evaluator.writeValueToExpression(
                     summaryEdge, leftValue, readValueAndState.getValue(), stateWithNewVar));
@@ -460,7 +458,7 @@ public class SMGTransferRelation
   }
 
   private List<SMGState> createVariableOnTheSpotForPreviousStackframe(
-      CExpression leftHandSideExpr, SMGState pState, CFAEdge pEdge) throws CPATransferException {
+      CExpression leftHandSideExpr, SMGState pState) throws CPATransferException {
     // TODO: move this method to the state
     // Remove top stackframe
     PersistentStack<StackFrame> completeStack = pState.getMemoryModel().getStackFrames();
@@ -471,7 +469,7 @@ public class SMGTransferRelation
 
     // Create variable on the stack below
     ImmutableList.Builder<SMGState> returnListBuilder = ImmutableList.builder();
-    for (SMGState stateWVar : createVariableOnTheSpot(leftHandSideExpr, tempState, pEdge)) {
+    for (SMGState stateWVar : createVariableOnTheSpot(leftHandSideExpr, tempState)) {
       // Restore the stack
       PersistentStack<StackFrame> incompleteStack = stateWVar.getMemoryModel().getStackFrames();
       PersistentStack<StackFrame> newCompleteStack = incompleteStack.pushAndCopy(topStackframe);
@@ -492,8 +490,8 @@ public class SMGTransferRelation
    * @return a new SMGState with the variable added.
    * @throws CPATransferException for errors and unhandled cases
    */
-  private List<SMGState> createVariableOnTheSpot(
-      CExpression leftHandSideExpr, SMGState pState, CFAEdge pEdge) throws CPATransferException {
+  private List<SMGState> createVariableOnTheSpot(CExpression leftHandSideExpr, SMGState pState)
+      throws CPATransferException {
     return switch (leftHandSideExpr) {
       case CIdExpression leftCIdExpr -> {
         CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
@@ -506,29 +504,29 @@ public class SMGTransferRelation
         }
         if (!currentState.isLocalOrGlobalVariablePresent(varName)) {
           if (decl instanceof CVariableDeclaration cVariableDeclaration) {
-            yield evaluator.handleVariableDeclarationWithoutInitializer(
-                currentState, cVariableDeclaration, pEdge);
+            yield evaluator.handleVariableDeclarationWithoutInizializer(
+                currentState, cVariableDeclaration);
           } else if (decl instanceof CParameterDeclaration cParameterDeclaration) {
-            yield evaluator.handleVariableDeclarationWithoutInitializer(
-                currentState, cParameterDeclaration.asVariableDeclaration(), pEdge);
+            yield evaluator.handleVariableDeclarationWithoutInizializer(
+                currentState, cParameterDeclaration.asVariableDeclaration());
           }
         }
         yield ImmutableList.of(pState);
       }
       case CArraySubscriptExpression cArraySubscriptExpression ->
-          createVariableOnTheSpot(cArraySubscriptExpression.getArrayExpression(), pState, pEdge);
+          createVariableOnTheSpot(cArraySubscriptExpression.getArrayExpression(), pState);
 
       case CFieldReference cFieldReference ->
-          createVariableOnTheSpot(cFieldReference.getFieldOwner(), pState, pEdge);
+          createVariableOnTheSpot(cFieldReference.getFieldOwner(), pState);
 
       case CPointerExpression cPointerExpression ->
-          createVariableOnTheSpot(cPointerExpression.getOperand(), pState, pEdge);
+          createVariableOnTheSpot(cPointerExpression.getOperand(), pState);
 
       case CUnaryExpression cUnaryExpression ->
-          createVariableOnTheSpot(cUnaryExpression.getOperand(), pState, pEdge);
+          createVariableOnTheSpot(cUnaryExpression.getOperand(), pState);
 
       case CCastExpression cCastExpression ->
-          createVariableOnTheSpot(cCastExpression.getOperand(), pState, pEdge);
+          createVariableOnTheSpot(cCastExpression.getOperand(), pState);
 
       case null /*TODO check if null is necessary*/, default -> ImmutableList.of(pState);
     };
@@ -592,17 +590,15 @@ public class SMGTransferRelation
         parameterType = SMGCPAExpressionEvaluator.getCanonicalType(paramDecl.get(i));
       } else {
         // Remember overall size of varArgs
-        Value typeSizeInBits = evaluator.getBitSizeof(currentState, cParamExp, callEdge);
-        checkState(typeSizeInBits.isNumericValue());
         overallVarArgsSizeInBits =
-            overallVarArgsSizeInBits.add(typeSizeInBits.asNumericValue().bigIntegerValue());
+            overallVarArgsSizeInBits.add(evaluator.getBitSizeof(currentState, cParamExp));
       }
 
       ValueAndSMGState valueAndState;
       if (parameterType instanceof CPointerType && argumentType instanceof CArrayType) {
         if (cParamExp instanceof CStringLiteralExpression stringExpr) {
           // For example: print("string"); does not create a String constant beforehand
-          String stringName = currentState.getCStringLiteralExpressionVariableName(stringExpr);
+          String stringName = evaluator.getCStringLiteralExpressionVairableName(stringExpr);
           if (!currentState.isLocalOrGlobalVariablePresent(stringName)) {
             // If s String literal is part of varArgs, we don't have a variable decl
             List<SMGState> statesWithString =
@@ -860,11 +856,11 @@ public class SMGTransferRelation
       if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
         // TODO: add option and extract to method
         // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
-        if (abstractionOptions.getListAbstractionMinimumLengthThreshold()
+        if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
                 <= loopBound.getValue().intValueExact()
-            && abstractionOptions.getListAbstractionMinimumLengthThreshold()
-                < abstractionOptions.getListAbstractionMaximumIncreaseLengthThreshold()) {
-          abstractionOptions.incListAbstractionMinimumLengthThreshold();
+            && precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+                < precisionAdjustmentOptions.getListAbstractionMaximumIncreaseLengthThreshold()) {
+          precisionAdjustmentOptions.incListAbstractionMinimumLengthThreshold();
         }
       }
     }
@@ -954,7 +950,7 @@ public class SMGTransferRelation
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-      for (SMGState currentState : createVariableOnTheSpot(lValue, state, pCfaEdge)) {
+      for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
         stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
       }
       return stateBuilder.build();
@@ -1055,7 +1051,8 @@ public class SMGTransferRelation
           // Init main parameters if there are any
           for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
             CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
-            Value paramSizeInBits = evaluator.getBitSizeof(currentState, paramType, edge);
+            Value paramSizeInBits =
+                new NumericValue(evaluator.getBitSizeof(currentState, paramType));
             if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
               currentState =
                   currentState.copyAndAddLocalVariable(
@@ -1225,7 +1222,8 @@ public class SMGTransferRelation
         for (ValueAndSMGState addressAndState :
             evaluator.createAddress(rValue, currentState, cfaEdge)) {
 
-          Value sizeOfTypeLeft = evaluator.getBitSizeof(currentState, leftHandSideType, cfaEdge);
+          Value sizeOfTypeLeft =
+              new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
           Value addressToAssign = addressAndState.getValue();
           currentState = addressAndState.getState();
 
@@ -1282,7 +1280,8 @@ public class SMGTransferRelation
     SMGState currentState = pCurrentState;
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type
-    Value sizeInBits = evaluator.getBitSizeof(currentState, leftHandSideType, edge);
+    NumericValue sizeInBits =
+        new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
 
     if (valueToWrite instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
@@ -1325,11 +1324,8 @@ public class SMGTransferRelation
         } else {
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
-              evaluator.findOrCreateNewPointer(
-                  addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset(),
-                  rightHandSideType,
-                  currentState);
+              evaluator.findOrcreateNewPointer(
+                  addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
@@ -1368,11 +1364,8 @@ public class SMGTransferRelation
             || options.trackPredicates()) {
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
-              evaluator.findOrCreateNewPointer(
-                  addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset(),
-                  rightHandSideType,
-                  currentState);
+              evaluator.findOrcreateNewPointer(
+                  addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
@@ -1384,7 +1377,10 @@ public class SMGTransferRelation
           valueToWrite = UnknownValue.getInstance();
         }
         Preconditions.checkArgument(
-            sizeInBits.equals(evaluator.getBitSizeof(currentState, leftHandSideType, edge)));
+            sizeInBits
+                    .bigIntegerValue()
+                    .compareTo(evaluator.getBitSizeof(currentState, leftHandSideType))
+                == 0);
 
         return ImmutableList.of(
             currentState.writeValueWithChecks(

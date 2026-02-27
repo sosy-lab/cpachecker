@@ -477,24 +477,20 @@ public final class PredicateAbstractionManager {
       }
     }
 
-    abs =
-        switch (abstractionType) {
-          case ELIMINATION -> {
-            stats.quantifierEliminationTime.start();
-            try {
-              BooleanFormula eliminationResult =
-                  fmgr.uninstantiate(fmgr.eliminateDeadVariables(f, ssa));
-              yield rmgr.makeAnd(abs, amgr.convertFormulaToRegion(eliminationResult));
-            } finally {
-              stats.quantifierEliminationTime.stop();
-            }
-          }
-          case CARTESIAN_BY_WEAKENING ->
-              rmgr.makeAnd(
-                  abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
+    if (abstractionType == AbstractionType.ELIMINATION) {
+      stats.quantifierEliminationTime.start();
+      try {
+        BooleanFormula eliminationResult = fmgr.uninstantiate(fmgr.eliminateDeadVariables(f, ssa));
+        abs = rmgr.makeAnd(abs, amgr.convertFormulaToRegion(eliminationResult));
+      } finally {
+        stats.quantifierEliminationTime.stop();
+      }
+    } else if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
+      abs = rmgr.makeAnd(abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
 
-          default -> rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
-        };
+    } else {
+      abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
+    }
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
 
