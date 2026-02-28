@@ -37,6 +37,17 @@ public final class PathFormula implements Serializable {
 
   @Serial private static final long serialVersionUID = -7716850731790578620L;
   private final BooleanFormula formula;
+
+  // The stackf of SSAMap's allows users to keep track of
+  // old states of the SSAMap. This is useful for handling recursion,
+  // where we need to know the index a value had at the call-site of a
+  // recursive function in order to reset its state after the call
+  // to its original value, for more explanation on this
+  // application take a look at the `LanguageToSmtConverter`.
+  //
+  // Note that in general only the topmost element of the stack
+  // is valid and any element further down the stack should
+  // not be used for any encoding purposes.
   private final PersistentStack<SSAMap> ssaStack;
   private final int length;
   private final PointerTargetSet pts;
