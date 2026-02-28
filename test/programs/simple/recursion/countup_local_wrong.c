@@ -17,7 +17,9 @@ void count() {
     int a = 0;
     count();
     a += 1;
-    if (a == 1) reach_error();
+    if (a == 1) {
+      ERROR: reach_error();
+    }
   }
 }
 
@@ -25,6 +27,6 @@ void count() {
 int main() {
   count();
   if (g != max) {
-    reach_error();
+    ERROR: reach_error();
   }
 }

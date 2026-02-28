@@ -39,13 +39,13 @@ public class BMCAlgorithmTest {
   public void count_local_wrong() throws Exception {
     TestResults results =
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_local_wrong.c"));
-    results.assertIsSafe();
+    results.assertIsUnsafe();
   }
 
   @Test(timeout = 500)
   public void count_local_wrong2() throws Exception {
     TestResults results =
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_local_wrong2.c"));
-    results.assertIsSafe();
+    results.assertIsUnsafe();
   }
 }
