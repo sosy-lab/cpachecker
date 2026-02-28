@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import com.google.common.base.Verify;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.PrintStream;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -126,31 +124,18 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         }
 
         for (String var : callerSsa.allVariables()) {
-
-          // Compute the representation of the return term as a string. This is the easiest
-          // way to commonly handle C and SV-LIB, since SV-LIB can return a tuple and C
-          // only returns a single variable. One could change the interface, but that seems
-          // unnecessarily complex, since the variable in the SSAMap is still definitely a string.
-          String leftHandSide = "";
-          if (((FunctionReturnEdge) pEdge).getFunctionCall()
-              instanceof AFunctionCallAssignmentStatement pAssignmentStatement) {
-            leftHandSide =
-                pAssignmentStatement
-                    .getLeftHandSide()
-                    .toASTString(AAstNodeRepresentation.QUALIFIED);
-          }
-
           if (
           // Only reset the variables of the caller function, which we can identify
           // by the variable name starting with the function name of the caller function (which
           // is the successor function of the return edge).
           var.startsWith(pEdge.getSuccessor().getFunctionName() + "::")
-              // In addition, we should only update those which are not being
-              // written by the return function, for example for `a = f(a);`,
-              // we do not want to reset the index of the `a` to the state before the call, since
-              // it is being written by the return function, and thus we need to keep the new index
-              // for`a`
-              && !leftHandSide.contains(var.replace("::", "__"))
+              // In case a variable is being written by the return value, i.e., the
+              // return has the form `a = f();`, then we dont't need to update the
+              // local variable `a`. This can be read seen by comparing the SSAMap
+              // of the old pathformula with the current SSAMap, and if this variable
+              // was updated between them, then we don't need to reset it to its
+              // caller value
+              && newSsa.getIndex(var) == oldFormula.getTopmostStackSsa().getIndex(var)
               // If we are not in a recursive call, then we do not need to reset the index, we know
               // this since if the same variable has not been written we are not in a recursive call
               && newSsa.getIndex(var) != callerSsa.getIndex(var)) {
