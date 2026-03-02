@@ -7,23 +7,27 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern void reach_error();
+extern __VERIFIER_nondet_int();
 
 int g = 0;
 int max = 3;
 
 void count(int *c) {
   if (*c < max) {
-    *c++;
     int* a = c;
-    count();
-    a += 1;
+    count(a);
+    int* b = a;
+    (*b) += 1;
   }
 }
 
 
 int main() {
+  max = __VERIFIER_nondet_int();
+  if (max >= 3 || max <= 0) return 0;
+
   count(&g);
-  if (g != 2*max) {
-    reach_error();
+  if (g != max) {
+    ERROR: reach_error();
   }
 }
