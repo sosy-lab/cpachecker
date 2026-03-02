@@ -793,7 +793,7 @@ class WebInterface:
                     )
 
             # retry submission of run
-            return self.  _submit(
+            return self._submit(
                 run,
                 limits,
                 cpu_model,
