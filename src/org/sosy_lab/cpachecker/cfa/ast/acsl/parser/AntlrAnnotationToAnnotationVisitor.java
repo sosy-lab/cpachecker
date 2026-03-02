@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
@@ -27,8 +29,10 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AntlrToInternalNotImplementedException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssignsClauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.EnsuresClauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LocationContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopClauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
@@ -38,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.S
 public class AntlrAnnotationToAnnotationVisitor
     extends AntlrToInternalAbstractConverter<AAcslAnnotation> {
   private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
+  private final AntlrTsetToMemorySetConverter antlrTsetToMemorySetConverter;
   private final FileLocation fileLocation;
 
   protected AntlrAnnotationToAnnotationVisitor(
@@ -46,6 +51,7 @@ public class AntlrAnnotationToAnnotationVisitor
     fileLocation = pFileLocation;
     antlrPredicateToPredicateConverter =
         new AntlrPredicateToPredicateConverter(pCProgramScope, pAcslScope);
+    antlrTsetToMemorySetConverter = new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope);
   }
 
   @Override
@@ -113,6 +119,17 @@ public class AntlrAnnotationToAnnotationVisitor
   public AcslRequires visitRequiresClause(RequiresClauseContext ctx) {
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
     return new AcslRequires(fileLocation, predicate);
+  }
+
+  @Override
+  public AcslAssigns visitAssignsClause(AssignsClauseContext ctx) {
+    ImmutableSet.Builder<AcslMemoryLocationSet> locationSetBuilder = ImmutableSet.builder();
+    for (LocationContext loc : ctx.locations().location()) {
+      AcslMemoryLocationSet memLocation = antlrTsetToMemorySetConverter.visit(loc);
+      locationSetBuilder.add(memLocation);
+    }
+    ImmutableSet<AcslMemoryLocationSet> locationsSet = locationSetBuilder.build();
+    return new AcslAssigns(fileLocation, locationsSet);
   }
 
   @Override

@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
 public final class AcslAssigns extends AAcslAnnotation {
   private final ImmutableSet<AcslMemoryLocationSet> locations;
 
-  private AcslAssigns(FileLocation pFileLocation, ImmutableSet<AcslMemoryLocationSet> pLocations) {
+  public AcslAssigns(FileLocation pFileLocation, ImmutableSet<AcslMemoryLocationSet> pLocations) {
     super(pFileLocation);
     locations = pLocations;
   }
