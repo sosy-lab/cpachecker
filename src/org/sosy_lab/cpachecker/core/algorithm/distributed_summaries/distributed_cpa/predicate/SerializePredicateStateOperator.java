@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.io.IOException;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
@@ -62,10 +64,14 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     }
     String serializedFormula = formulaManagerView.dumpFormula(booleanFormula).toString();
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
-    String serializedSSAMap;
     String pts;
+    StringBuilder serializedSSAMap = new StringBuilder();
     try {
-      serializedSSAMap = DssSerializeObjectUtil.serialize(ssaMap);
+      JSON.writeJSONString(
+          Maps.toMap(
+              ssaMap.allVariables(),
+              variable -> ssaMap.getIndex(variable) + " " + ssaMap.getType(variable)),
+          serializedSSAMap);
       pts = DssSerializeObjectUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException e) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
@@ -75,7 +81,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     return ContentBuilder.builder()
         .pushLevel(PredicateAbstractState.class.getName())
         .put(STATE_KEY, serializedFormula)
-        .put(SSA_KEY, serializedSSAMap)
+        .put(SSA_KEY, serializedSSAMap.toString())
         .put(PTS_KEY, pts)
         .putIf(writeReadableFormulas, READABLE_KEY, booleanFormula.toString())
         .build();
