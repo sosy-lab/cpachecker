@@ -12,9 +12,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -105,14 +102,11 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
                       ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
                       "Malformed pthread_create (Thread not CIdExpression): %s",
                       ((CUnaryExpression) params.get(2)).getOperand());
-                  final var eventList = prevState.threads().get(pid).pMemoryEvents();
-                  final var lastEvent = eventList.get(eventList.size() - 1);
                   prevState =
                       addNewThread(
                           prevState,
                           ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
-                              .getName(),
-                          Optional.of(lastEvent));
+                              .getName());
                 }
                 default -> {
                   // nothing to do
@@ -131,7 +125,6 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
         final var loc = threadState.pLocationState();
         final var stack = threadState.pCallstackState();
         final var pathFormula = threadState.pPathFormula();
-        final var accesses = threadState.pMemoryEvents();
 
         final var nextLocs =
             locationCPA.getTransferRelation().getAbstractSuccessorsForEdge(loc, precision, cfaEdge);
@@ -140,13 +133,6 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
                 .getTransferRelation()
                 .getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
         final var nextFormula = pathFormulaManager.makeAnd(pathFormula, cfaEdge);
-        final var nextAccesses =
-            ImmutableList.copyOf(
-                Iterables.concat(
-                    accesses,
-                    PorEdgeCloner.getAccesses(cfaEdge).stream()
-                        .map(pMemoryEvent -> pMemoryEvent.withGuard(nextFormula))
-                        .toList()));
 
         final var nextStates =
             nextLocs.stream()
@@ -159,8 +145,7 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
                                         pid,
                                         (LocationState) nextLoc,
                                         (CallstackState) nextStack,
-                                        nextFormula,
-                                        nextAccesses)));
+                                        nextFormula)));
 
         return nextStates.toList();
       }
@@ -169,13 +154,12 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
   }
 
   PORState initial() {
-    return addNewThread(PORState.empty(), "main", Optional.empty());
+    return addNewThread(PORState.empty(), "main");
   }
 
   PORState addNewThread(
       final PORState old,
-      final String functionName,
-      final Optional<MemoryEvent> hbBeforeEvent) {
+      final String functionName) {
     CFANode functioncallNode =
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
@@ -189,7 +173,7 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
 
     PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula();
 
-    return old.addNewThread(initialLoc, initialStack, emptyFormula, hbBeforeEvent);
+    return old.addNewThread(initialLoc, initialStack, emptyFormula);
   }
 
   public Solver getSolver() {

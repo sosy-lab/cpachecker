@@ -18,12 +18,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 public record PORThreadState(
     LocationState pLocationState,
     CallstackState pCallstackState,
-    PathFormula pPathFormula,
-    List<MemoryEvent> pMemoryEvents) {
+    PathFormula pPathFormula) {
   @Override
   public String toString() {
-    return "(loc=%s, callstack=%s, pathFormula=%s, memoryEvents=%s)"
-        .formatted(pLocationState, pCallstackState, pPathFormula, pMemoryEvents);
+    return "(loc=%s, callstack=%s, pathFormula=%s)"
+        .formatted(pLocationState, pCallstackState, pPathFormula);
   }
 
   @Override

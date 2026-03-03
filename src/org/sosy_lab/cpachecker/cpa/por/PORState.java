@@ -60,19 +60,14 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
   PORState addNewThread(
       LocationState pInitialLoc,
       CallstackState pInitialStack,
-      PathFormula pEmptyFormula,
-      Optional<MemoryEvent> pHbBeforeEvent) {
+      PathFormula pEmptyFormula) {
     final int newPid = threads.size();
-    final List<MemoryEvent> eventList =
-        pHbBeforeEvent
-            .map(pMemoryEvent -> ImmutableList.of(pMemoryEvent))
-            .orElse(ImmutableList.of());
     final ImmutableMap<Integer, PORThreadState> newThreads =
         ImmutableMap.<Integer, PORThreadState>builder()
             .putAll(threads)
             .put(
                 newPid,
-                new PORThreadState(pInitialLoc, pInitialStack, pEmptyFormula, eventList))
+                new PORThreadState(pInitialLoc, pInitialStack, pEmptyFormula))
             .buildKeepingLast();
     return new PORState(newThreads);
   }
@@ -81,8 +76,7 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
       int pPid,
       LocationState pNextLoc,
       CallstackState pNextStack,
-      PathFormula pNextFormula,
-      List<MemoryEvent> pAccesses) {
+      PathFormula pNextFormula) {
     assert threads.containsKey(pPid) : "threads must contain pid to step " + pPid;
     final ImmutableMap.Builder<Integer, PORThreadState> newThreads = ImmutableMap.builder();
     for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
@@ -91,7 +85,7 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
       }
     }
     newThreads.put(
-        pPid, new PORThreadState(pNextLoc, pNextStack, pNextFormula, pAccesses));
+        pPid, new PORThreadState(pNextLoc, pNextStack, pNextFormula));
     return new PORState(newThreads.buildKeepingLast());
   }
 
@@ -222,6 +216,9 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
     final var otherEdges = new ArrayList<CFAEdge>();
     for (final var edge : allOutgoingEdges) {
       if (firstActions.contains(edge)) {
+        if (edge.getPredecessor().isLoopStart()) {
+          return allOutgoingEdges;
+        }
         sourceSet.add(edge);
       } else {
         otherEdges.add(edge);
@@ -234,6 +231,9 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
       final ImmutableSet.Builder<CFAEdge> edgesToRemove = ImmutableSet.builder();
       for (final var edge : otherEdges) {
         if (sourceSet.stream().anyMatch(s -> dependent(s, edge))) {
+          if (edge.getPredecessor().isLoopStart()) {
+            return allOutgoingEdges;
+          }
           sourceSet.add(edge);
           edgesToRemove.add(edge);
           addedNewEdge = true;
@@ -242,7 +242,6 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
       otherEdges.removeAll(edgesToRemove.build());
     }
 
-    // TODO is any action in the source set a backward edge?
     return ImmutableList.copyOf(sourceSet);
   }
 
@@ -270,14 +269,12 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
   }
 
   private Collection<?> getUsedGlobalVars(CFAEdge edge) {
-    // TODO implement
     // collect directly used vars by the cfa edge
     // plus continue to successor edges until the current thread obtains any mutexes
-    return ImmutableList.of();
+    return getDirectlyUsedGlobalVars(edge); // TODO handle mutexes
   }
 
   private Collection<?> getInfluencedGlobalVars(CFAEdge edge) {
-    // TODO implement
     // get vars of all edges statically reachable in the cfa from the given cfa edge
     // at thread start edges, also process all edges reachable from the started thread's initial location
     return getVarsWithTraversal(edge);

@@ -16,6 +16,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
+import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -120,7 +121,7 @@ public class CSourceOriginMapping {
     if (!lineNumberToStartingOffset.containsKey(normalizedPath)) {
       Verify.verify(
           // For automata files
-          normalizedPath.toString().equals("./fragment")
+          normalizedPath.toString().equals("." + File.separator + "fragment")
               // For parsing expressions stemming from witnesses
               || normalizedPath.toString().equals("./#expr#"));
       // Till now, we only have fragments with one line of code.

@@ -64,11 +64,9 @@ class PorAstCloner {
 
   private final int threadId;
   private boolean isLhs = false;
-  private final List<MemoryEvent> memoryEvents;
 
-  PorAstCloner(int pThreadId, List<MemoryEvent> pMemoryEvents) {
+  PorAstCloner(int pThreadId) {
     this.threadId = pThreadId;
-    this.memoryEvents = pMemoryEvents;
   }
 
   CExpression cloneExpression(CExpression exp) {
@@ -138,6 +136,9 @@ class PorAstCloner {
 
       if (ast instanceof CVariableDeclaration decl) {
         CVariableDeclaration newDecl = (CVariableDeclaration) createNewDeclaration(decl);
+        if (decl == newDecl) {
+          return decl;
+        }
         newDecl.addInitializer(cloneAstRightSide(decl.getInitializer()));
         return newDecl;
 
@@ -219,7 +220,7 @@ class PorAstCloner {
   }
 
   private CSimpleDeclaration createNewDeclaration(CSimpleDeclaration cDecl) {
-    if (cDecl instanceof CVariableDeclaration decl) {
+    if (cDecl instanceof CVariableDeclaration decl && !decl.isGlobal()) {
       FileLocation loc = decl.getFileLocation();
       CVariableDeclaration newDecl =
           new CVariableDeclaration(
@@ -231,17 +232,6 @@ class PorAstCloner {
               decl.getOrigName(),
               changeQualifiedName(decl),
               null);
-      if (decl.isGlobal()) {
-        final var type = isLhs ? WRITE : READ;
-        final var id = ++mutableUniqueCounter;
-        memoryEvents.add(
-            new MemoryEvent(
-                id,
-                MemoryLocation.forDeclaration(decl),
-                newDecl.getQualifiedName(),
-                Optional.empty(),
-                type));
-      }
       return newDecl;
     } else {
       return cDecl;
@@ -254,10 +244,6 @@ class PorAstCloner {
    */
   private String changeQualifiedName(CSimpleDeclaration decl) {
     return "T%d_%s".formatted(threadId, decl.getQualifiedName());
-  }
-
-  public List<MemoryEvent> getMemoryEvents() {
-    return memoryEvents;
   }
 
   private class CExpressionCloner extends DefaultCExpressionVisitor<CExpression, RuntimeException> {

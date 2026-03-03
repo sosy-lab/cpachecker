@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -27,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 
 /**
  * Edge cloner for POR that uses {@link PorAstCloner} (thread-ID-only variable renaming, no CSSA
@@ -48,16 +45,11 @@ final class PorEdgeCloner {
 
   record EdgeIdentifier(AbstractState state, int pid, CFAEdge pCFAEdge) {}
 
-  static List<MemoryEvent> getAccesses(final CFAEdge pCFAEdge) {
-    final var edgeCloner = reverseCache.get(pCFAEdge);
-    return edgeCloner.getMemoryEvents();
-  }
-
   private CFAEdge mappedEdge;
   private final PorAstCloner astCloner;
 
   private PorEdgeCloner(final int idx, final CFAEdge pCFAEdge) {
-    this.astCloner = new PorAstCloner(idx, new ArrayList<>());
+    this.astCloner = new PorAstCloner(idx);
     this.mappedEdge = cloneEdgeDirect(pCFAEdge);
   }
 
@@ -233,9 +225,5 @@ final class PorEdgeCloner {
       }
     }
     throw new AssertionError(ONLY_C_SUPPORTED);
-  }
-
-  public List<MemoryEvent> getMemoryEvents() {
-    return astCloner.getMemoryEvents();
   }
 }

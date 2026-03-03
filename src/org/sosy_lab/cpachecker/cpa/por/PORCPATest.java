@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 /** Integration tests for the POR CPA using the {@code por.properties} configuration. */
 public class PORCPATest {
 
-  private static final String TEST_DIR = "test/programs/por/";
+  private static final String TEST_DIR = "test/programs/por_prep/";
 
   private static Configuration getConfig(Map<String, String> extra)
       throws InvalidConfigurationException, IOException {
@@ -32,7 +32,7 @@ public class PORCPATest {
   }
 
   private static Configuration getConfig() throws InvalidConfigurationException, IOException {
-    return getConfig(ImmutableMap.of("parser.usePreprocessor", "true"));
+    return getConfig(ImmutableMap.of("parser.usePreprocessor", "false"));
   }
 
   // -- safe programs --
