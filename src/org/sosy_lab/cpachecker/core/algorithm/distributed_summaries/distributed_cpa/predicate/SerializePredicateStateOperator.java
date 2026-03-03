@@ -9,10 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import java.io.IOException;
+import java.util.Map;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -35,11 +36,17 @@ public class SerializePredicateStateOperator implements SerializeOperator {
   private final PredicateCPA predicateCPA;
   private final boolean writeReadableFormulas;
 
+  private final Map<String, Type> variableTypes;
+
   public SerializePredicateStateOperator(
-      PredicateCPA pPredicateCPA, CFA pCFA, boolean pWriteReadableFormulas) {
+      PredicateCPA pPredicateCPA,
+      CFA pCFA,
+      boolean pWriteReadableFormulas,
+      Map<String, Type> pVariableTypes) {
     cfa = pCFA;
     predicateCPA = pPredicateCPA;
     writeReadableFormulas = pWriteReadableFormulas;
+    variableTypes = pVariableTypes;
   }
 
   @Override
@@ -67,11 +74,20 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     String pts;
     StringBuilder serializedSSAMap = new StringBuilder();
     try {
-      JSON.writeJSONString(
-          Maps.toMap(
-              ssaMap.allVariables(),
-              variable -> ssaMap.getIndex(variable) + " " + ssaMap.getType(variable)),
-          serializedSSAMap);
+      ImmutableMap.Builder<String, String> variableToIndexTypeBuilder = ImmutableMap.builder();
+      for (String variable : ssaMap.allVariables()) {
+        if (variableTypes.containsKey(variable)) {
+          variableToIndexTypeBuilder.put(
+              variable, ssaMap.getIndex(variable) + " " + variableTypes.get(variable).toString());
+        } else {
+          variableToIndexTypeBuilder.put(
+              variable,
+              ssaMap.getIndex(variable)
+                  + " "
+                  + DssSerializeObjectUtil.serialize(ssaMap.getType(variable)));
+        }
+      }
+      JSON.writeJSONString(variableToIndexTypeBuilder.buildOrThrow(), serializedSSAMap);
       pts = DssSerializeObjectUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException e) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
