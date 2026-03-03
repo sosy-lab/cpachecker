@@ -2152,6 +2152,25 @@ public class SMGCPAValueVisitor
       canonicalReturnType = ((CPointerType) expressionType).getType();
     }
 
+    boolean leftIsZero =
+        leftValue instanceof NumericValue numLeftValue
+            && numLeftValue.bigIntegerValue().equals(BigInteger.ZERO);
+    boolean rightIsZero =
+        rightValue instanceof NumericValue numRightValue
+            && numRightValue.bigIntegerValue().equals(BigInteger.ZERO);
+    checkArgument(
+        !(leftValue instanceof ConstantSymbolicExpression leftConst)
+            || !(leftConst.getValue() instanceof NumericValue));
+    checkArgument(
+        !(rightValue instanceof ConstantSymbolicExpression rightConst)
+            || !(rightConst.getValue() instanceof NumericValue));
+
+    if (rightIsZero) {
+      return ImmutableList.of(ValueAndSMGState.of(leftValue, currentState));
+    } else if (leftIsZero) {
+      return ImmutableList.of(ValueAndSMGState.of(rightValue, currentState));
+    }
+
     if (leftIsPointer && !rightIsPointer) {
 
       // e.g. pointer + 3
