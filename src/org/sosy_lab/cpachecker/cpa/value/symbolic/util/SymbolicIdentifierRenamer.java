@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -41,8 +43,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicValue> {
-  public static Map<String, Map<Long, Long>> blockRenaming = new HashMap<>();
-  public static Map<String, Set<SymbolicIdentifier>> blockIdentifiers = new HashMap<>();
+  public static ConcurrentMap<String, Map<Long, Long>> blockRenaming = new ConcurrentHashMap<>();
+  public static ConcurrentMap<String, Set<SymbolicIdentifier>> blockIdentifiers = new ConcurrentHashMap<>();
 
   public Map<Long, Long> getIdentifierMap() {
     return identifierMap;
