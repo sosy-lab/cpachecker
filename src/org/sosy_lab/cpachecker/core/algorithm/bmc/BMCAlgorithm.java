@@ -70,6 +70,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
 
+  @Option(
+      name = "bmc.terminationMode",
+      secure = true,
+      description =
+          "Switch BMC from target-state reachability checking to an experimental"
+              + " termination-oriented mode.")
+  private boolean terminationMode = false;
+
   // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
   @Option(
       name = "counterexample.export.allowImpreciseCounterexamples",
@@ -136,7 +144,18 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   @Override
+  protected boolean isTerminationMode() {
+    return terminationMode;
+  }
+
+  @Override
   protected CandidateGenerator getCandidateInvariants() {
+    if (terminationMode) {
+      logger.log(
+          Level.INFO,
+          "BMC termination mode is enabled; reusing the current candidate generator as a"
+              + " temporary connectivity check.");
+    }
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {

@@ -490,8 +490,16 @@ abstract class AbstractBMCAlgorithm
           // first check safety in k iterations
 
           boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
+          if (isTerminationMode()) {
+            logger.log(
+                Level.INFO,
+                safe
+                    ? "Termination mode: current candidate holds for the current k."
+                    : "Termination mode: current candidate is violated for the current k.");
+          }
           if (!safe) {
-            if (candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
+            if (!isTerminationMode()
+                && candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
               return AlgorithmStatus.UNSOUND_AND_PRECISE;
             }
             candidateInvariantIterator.remove();
@@ -693,6 +701,10 @@ abstract class AbstractBMCAlgorithm
    * @return the candidate invariants to be checked.
    */
   protected abstract CandidateGenerator getCandidateInvariants();
+
+  protected boolean isTerminationMode() {
+    return false;
+  }
 
   /**
    * Adjusts the conditions of those CPAs that support the adjustment of conditions.
