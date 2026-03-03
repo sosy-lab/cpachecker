@@ -132,20 +132,4 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
     }
     return Optional.of(violationCondition);
   }
-
-  private static ValueAnalysisState getViolationValueState(
-      ARGState pState, MachineModel pMachineModel) {
-
-    BlockState blockState = AbstractStates.extractStateByType(pState, BlockState.class);
-    assert (blockState != null && blockState.isTarget());
-
-    if (blockState.getViolationConditions().isEmpty()) {
-      return new ValueAnalysisState(pMachineModel);
-    }
-    AbstractState violation = blockState.getViolationConditions().getFirst();
-    ValueAnalysisState violationValue =
-        AbstractStates.extractStateByType(violation, ValueAnalysisState.class);
-    assert violationValue != null;
-    return violationValue;
-  }
 }
