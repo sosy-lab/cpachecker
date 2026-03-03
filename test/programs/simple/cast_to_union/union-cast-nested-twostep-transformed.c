@@ -6,6 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// This transformed test avoids casts to union type.
+// Instead it uses equivalent expressions and directly assigns values to members of the unions.
+// This showcases the same behaviour that is expected when using the cast.
+
 typedef union Inner {
   float f;
   int i;

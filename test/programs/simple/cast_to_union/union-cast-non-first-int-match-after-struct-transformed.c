@@ -6,6 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// This transformed test avoids the cast to union type.
+// Instead it uses an equivalent expression and directly assigns a member of the union a value.
+// This showcases the same behaviour that is expected when using the cast.
+
 //#include<stdio.h>
 
 typedef union  {
