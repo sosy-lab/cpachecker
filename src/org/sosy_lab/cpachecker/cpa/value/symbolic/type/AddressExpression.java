@@ -33,7 +33,7 @@ public final class AddressExpression extends SymbolicExpression {
   private final Value addressValue;
   private final CType addressType;
 
-  // The offset may be any Value, but numeric values are prefered
+  // The offset may be any Value, but numeric values are preferred
   private final Value offset;
 
   private AddressExpression(Value pAddress, CType pAddressType, Value pOffsetValue) {
@@ -41,6 +41,10 @@ public final class AddressExpression extends SymbolicExpression {
     Preconditions.checkNotNull(pAddressType);
     Preconditions.checkNotNull(pOffsetValue);
     checkArgument(!pAddress.isUnknown() && !(pAddress instanceof NumericValue));
+    checkArgument(
+        !(pAddress instanceof ConstantSymbolicExpression wrappedAddress)
+            || (!wrappedAddress.getValue().isUnknown()
+                && !(wrappedAddress.getValue() instanceof NumericValue)));
     addressValue = pAddress;
     addressType = pAddressType;
     offset = pOffsetValue;
