@@ -234,9 +234,8 @@ public class SMGCPAValueVisitorTest {
 
       // Create a Value that we want to be mapped to an SMGValue to write into the struct
       Value intValue = new NumericValue(i);
-      Value addressValue =
-          new ConstantSymbolicExpression(
-              SymbolicValueFactory.getInstance().newIdentifier(null), null);
+      // Addresses are not wrapped in consts
+      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
 
       addHeapVariableToMemoryModel(
           0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
@@ -478,9 +477,8 @@ public class SMGCPAValueVisitorTest {
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value that we want to be mapped to an SMGValue to write into the struct
       Value intValue = new NumericValue(i);
-      Value addressValue =
-          new ConstantSymbolicExpression(
-              SymbolicValueFactory.getInstance().newIdentifier(null), null);
+      // Addresses are not wrapped in consts
+      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
 
       addHeapVariableToMemoryModel(
           0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
@@ -519,9 +517,8 @@ public class SMGCPAValueVisitorTest {
   @Test
   public void readFieldDerefPointerExplicitlyRepeatedlyTest()
       throws InvalidConfigurationException, CPATransferException {
-    Value addressValue =
-        new ConstantSymbolicExpression(
-            SymbolicValueFactory.getInstance().newIdentifier(null), null);
+    // Addresses are not wrapped in consts
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
 
     addHeapVariableToMemoryModel(
         0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
@@ -1330,10 +1327,9 @@ public class SMGCPAValueVisitorTest {
     // We want to test the arrays for all basic types
     for (CType currentArrayType : ARRAY_TEST_TYPES) {
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
-      // address to the heap where the array starts
-      Value addressValue =
-          new ConstantSymbolicExpression(
-              SymbolicValueFactory.getInstance().newIdentifier(null), null);
+      // Address to the heap where the array starts
+      // Addresses are not wrapped in consts
+      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
@@ -1456,10 +1452,9 @@ public class SMGCPAValueVisitorTest {
     // We want to test the arrays for all basic types
     for (CType currentArrayType : ARRAY_TEST_TYPES) {
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
-      // address to the heap where the array starts
-      Value addressValue =
-          new ConstantSymbolicExpression(
-              SymbolicValueFactory.getInstance().newIdentifier(null), null);
+      // Address to the heap where the array starts
+      // Addresses are not wrapped in consts
+      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
@@ -1622,10 +1617,9 @@ public class SMGCPAValueVisitorTest {
     // We want to test the arrays for all basic types
     for (CType currentArrayType : ARRAY_TEST_TYPES) {
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
-      // address to the heap where the array starts
-      Value addressValue =
-          new ConstantSymbolicExpression(
-              SymbolicValueFactory.getInstance().newIdentifier(null), null);
+      // Address to the heap where the array starts
+      // Addresses are not wrapped in consts
+      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
