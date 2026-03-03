@@ -436,15 +436,15 @@ polyId
     ;
 
 logicConstDef
-    : 'logic' typeExpr polyId '=' term
+    : 'logic'? typeExpr polyId '=' term
     ;
 
 logicFunctionDef
-    : 'logic' typeExpr polyId parameters '=' term
+    : 'logic'? typeExpr polyId parameters '=' term
     ;
 
 logicPredicateDef
-    : 'predicate' polyId parameters? '=' pred
+    : 'predicate'? polyId parameters? '=' pred
     ;
 
 
@@ -457,7 +457,7 @@ parameter
     ;
 
 lemmaDef
-    : 'lemma' polyId ':' pred
+    : 'lemma'? polyId ':' pred
     ;
 
 
