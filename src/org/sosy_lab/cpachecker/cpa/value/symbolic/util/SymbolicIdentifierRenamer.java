@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,7 +43,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class SymbolicIdentifierRenamer implements SymbolicValueVisitor<SymbolicValue> {
   public static ConcurrentMap<String, Map<Long, Long>> blockRenaming = new ConcurrentHashMap<>();
-  public static ConcurrentMap<String, Set<SymbolicIdentifier>> blockIdentifiers = new ConcurrentHashMap<>();
+  public static ConcurrentMap<String, Set<SymbolicIdentifier>> blockIdentifiers =
+      new ConcurrentHashMap<>();
 
   public Map<Long, Long> getIdentifierMap() {
     return identifierMap;
