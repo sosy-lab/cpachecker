@@ -409,7 +409,7 @@ public class LoopInfoUtils {
     for (int i = 0; i < pRanges.get(pDepth); i++) {
       current.add(i);
       result.addAll(generateCombinationsHf(pRanges, ImmutableList.copyOf(current), pDepth + 1));
-      current.remove(current.size() - 1);
+      current.removeLast();
     }
 
     return ImmutableList.copyOf(result);
@@ -476,7 +476,7 @@ public class LoopInfoUtils {
                   .replace("  ", "")
                   .replace(" {", "");
           List<String> structParts = Splitter.on('\n').splitToList(cComplexTypeDeclaration);
-          structName = structParts.get(0);
+          structName = structParts.getFirst();
           for (int i = 1; i < structParts.size(); i++) {
             if (structParts.get(i).startsWith("struct ")) {
               members.put(

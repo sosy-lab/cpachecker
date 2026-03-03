@@ -140,7 +140,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
     while (!waitlist.isEmpty()) {
-      Pair<CFANode, InstrumentationState> currentPair = waitlist.remove(waitlist.size() - 1);
+      Pair<CFANode, InstrumentationState> currentPair = waitlist.removeLast();
       reachlist.add(currentPair);
       CFANode currentNode = currentPair.getFirst();
       InstrumentationState currentState = currentPair.getSecond();
@@ -237,7 +237,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       if ((pTransition.getPattern().toString().equals("ptr_deref")
               || pTransition.getPattern().toString().equals("ptr_declar"))
           && !pMatchedVariables.isEmpty()) {
-        String matchedVar = pMatchedVariables.get(0);
+        String matchedVar = pMatchedVariables.getFirst();
         functionName = matchedVar;
         if (!matchedVar.contains("[") && !matchedVar.contains("->")) {
           functionName = "*" + functionName;

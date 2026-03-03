@@ -289,7 +289,7 @@ public class InstrumentationPattern {
         List<String> parameters =
             new ArrayList<>(
                 expression.getParameterExpressions().stream().map(e -> e.toString()).toList());
-        parameters.add(0, condition);
+        parameters.addFirst(condition);
         return ImmutableList.copyOf(parameters);
       }
     }
