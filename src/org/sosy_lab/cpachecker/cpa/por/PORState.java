@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -32,7 +33,8 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-public class PORState implements AbstractState, AbstractStateWithLocations, Graphable {
+public class PORState implements AbstractState, AbstractStateWithLocations,
+                                 AbstractStateWithLocation, Graphable {
 
   private final ImmutableMap<Integer, PORThreadState> threads;
 
@@ -106,6 +108,13 @@ public class PORState implements AbstractState, AbstractStateWithLocations, Grap
       }
     }
     return nodes.build();
+  }
+
+
+  // needed, otherwise cannot sort states (gives exception).
+  @Override
+  public CFANode getLocationNode() {
+    return getLocationNodes().iterator().next();
   }
 
   /**
