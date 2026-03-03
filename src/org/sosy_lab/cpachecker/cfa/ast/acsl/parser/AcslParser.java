@@ -110,6 +110,7 @@ public class AcslParser {
       FileLocation pLocation,
       CProgramScope pCScope,
       AcslScope pAcslScope) {
+
     AntlrAnnotationToAnnotationVisitor parser =
         new AntlrAnnotationToAnnotationVisitor(pCScope, pAcslScope, pLocation);
 

@@ -24,7 +24,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * - A function contract consisting of ensures, assigns and requires clauses (§ 2.3 of the Acsl
  * Standard v.1.23)
  *
- * @param globalAcslDeclarations A set of global Acsl Declarations
+ * @param globalAcslDeclarations Global Acsl Declarations correspond to Logic specifications as
+ *     defined in ANSI/ISO C Specification Language Version 1.23 §2.6.
  * @param assertions A mapping of Cfa Nodes to Acsl assertion_clauses
  * @param loopAnnotations A mapping of Cfa Nodes to Acsl loop_invariants
  * @param functionContracts A mapping of Cfa Nodes to Acsl function_contracts. "A C function can be

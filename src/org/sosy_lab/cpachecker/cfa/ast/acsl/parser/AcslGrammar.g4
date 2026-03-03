@@ -436,15 +436,15 @@ polyId
     ;
 
 logicConstDef
-    : typeExpr polyId '=' term
+    : 'logic' typeExpr polyId '=' term
     ;
 
 logicFunctionDef
-    : typeExpr polyId parameters '=' term
+    : 'logic' typeExpr polyId parameters '=' term
     ;
 
 logicPredicateDef
-    : polyId parameters? '=' pred
+    : 'predicate' polyId parameters? '=' pred
     ;
 
 
@@ -457,7 +457,7 @@ parameter
     ;
 
 lemmaDef
-    : polyId ':' pred
+    : 'lemma' polyId ':' pred
     ;
 
 
@@ -467,5 +467,5 @@ acslStatement
 
 
 acslComment
-    :  assertion | loopAnnot | functionContract
+    :  assertion | loopAnnot | functionContract | logicDef
     ;

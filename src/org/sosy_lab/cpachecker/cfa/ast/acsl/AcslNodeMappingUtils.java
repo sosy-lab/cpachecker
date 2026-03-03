@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
@@ -22,9 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -34,40 +32,21 @@ public class AcslNodeMappingUtils {
   /**
    * Finds the Cfa node that represents an acsl comment in the Cfa
    *
-   * @param pAstCfaRelation The current AstCfaRelation
    * @return An updated version of pResult where each acsl comment now has a Cfa node that
    *     represents the comment location in the Cfa.
    */
   public static CFANode addAcslToNodeMapping(
-      AcslComment pComment, List<AcslComment> pAllComments, AstCfaRelation pAstCfaRelation)
+      AcslComment pComment, List<AcslComment> pAllComments, CFA pCFA)
       throws AcslParseException, AcslNodeMappingException {
 
     ParseTree ctx = AcslParser.acslCommentToContext(pComment.getComment());
     CFANode n;
     switch (ctx) {
-      case AssertionContext ignored ->
-          n =
-              nodeForAssertion(pComment.getFileLocation(), pAstCfaRelation)
-                  .orElseThrow(
-                      () ->
-                          new AcslNodeMappingException(
-                              "Could not find CFA node for assertion" + pComment));
+      case AssertionContext ignored -> n = nodeForAssertion(pComment, pCFA.getAstCfaRelation());
       case LoopAnnotContext ignored ->
-          n =
-              nodeForLoopAnnotation(pComment.getFileLocation(), pAstCfaRelation)
-                  .orElseThrow(
-                      () ->
-                          new AcslNodeMappingException(
-                              "Could not find loop head for loop annotation " + pComment));
+          n = nodeForLoopAnnotation(pComment, pCFA.getAstCfaRelation());
       case FunctionContractContext ignored ->
-          n =
-              nodeForFunctionContract(pComment, pAstCfaRelation, pAllComments)
-                  .orElseThrow(
-                      () ->
-                          new AcslNodeMappingException(
-                              "Could not find function entry node for function contract\n"
-                                  + pComment
-                                  + "\nStatement contracts are not supported."));
+          n = nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation(), pAllComments);
       case null ->
           throw new AcslNodeMappingException("Annotation " + pComment + " has no Antlr context.");
       default ->
@@ -80,14 +59,21 @@ public class AcslNodeMappingUtils {
     return n;
   }
 
-  private static Optional<CFANode> nodeForAssertion(
-      FileLocation pLocation, AstCfaRelation pAstCfaRelation) {
+  private static CFANode nodeForAssertion(AcslComment pComment, AstCfaRelation pAstCfaRelation) {
+    FileLocation location = pComment.fileLocation();
 
     Optional<ASTElement> tightestStatement =
         pAstCfaRelation.getElemForStarting(
-            pLocation.getStartingLineNumber(), OptionalInt.of(pLocation.getStartColumnInLine()));
+            location.getStartingLineNumber(), OptionalInt.of(location.getStartColumnInLine()));
 
-    if (tightestStatement.isPresent() && !tightestStatement.orElseThrow().edges().isEmpty()) {
+    if (tightestStatement.isPresent()
+        && !tightestStatement
+            .orElseThrow(
+                () ->
+                    new AcslNodeMappingException(
+                        "No tightest statement found for acsl comment: " + pComment))
+            .edges()
+            .isEmpty()) {
 
       FluentIterable<CFANode> predecessors =
           FluentIterable.from(tightestStatement.orElseThrow().edges())
@@ -100,26 +86,27 @@ public class AcslNodeMappingUtils {
               .filter(n -> !predecessors.contains(n) && !(n instanceof FunctionExitNode))
               .toList();
 
-      return Optional.of(nodesForComment.getFirst());
+      return nodesForComment.getFirst();
     }
-    return Optional.empty();
+    throw new AcslNodeMappingException("Acsl assertion: " + pComment + " has no CFA node");
   }
 
-  private static Optional<CFANode> nodeForLoopAnnotation(
-      FileLocation pLocation, AstCfaRelation pAstCfaRelation) {
+  private static CFANode nodeForLoopAnnotation(
+      AcslComment pComment, AstCfaRelation pAstCfaRelation) {
+    FileLocation location = pComment.fileLocation();
 
     FileLocation nextStatement =
-        pAstCfaRelation.nextStartStatementLocation(pLocation.getNodeOffset());
+        pAstCfaRelation.nextStartStatementLocation(location.getNodeOffset());
     Optional<CFANode> iterationNode =
         pAstCfaRelation.getNodeForIterationStatementLocation(
             nextStatement.getStartingLineNumber(), nextStatement.getStartColumnInLine());
 
     if (iterationNode.isPresent()) {
       Verify.verify(iterationNode.orElseThrow().isLoopStart());
-      return iterationNode;
+      return iterationNode.orElseThrow(
+          () -> new AcslNodeMappingException("Loop annotation: " + pComment + "has no loop head."));
     }
-
-    return Optional.empty();
+    throw new AcslNodeMappingException("Loop annotation: " + pComment + "has no loop head.");
   }
 
   /**
@@ -129,11 +116,14 @@ public class AcslNodeMappingUtils {
    * @return - The next Function Entry Node if pComment is a function contract - Optional.empty()
    *     otherwise.
    */
-  private static Optional<CFANode> nodeForFunctionContract(
-      AcslComment pComment, AstCfaRelation pAstCfaRelation, List<AcslComment> pAllComments) {
+  private static CFANode nodeForFunctionContract(
+      AcslComment pComment,
+      CFA pCFA,
+      AstCfaRelation pAstCfaRelation,
+      List<AcslComment> pAllComments) {
 
     FileLocation nextLocation =
-        pAstCfaRelation.nextStartStatementLocation(pComment.getFileLocation().getNodeOffset());
+        pAstCfaRelation.nextStartStatementLocation(pComment.fileLocation().getNodeOffset());
 
     if (nextLocation.isRealLocation() && noCommentInBetween(pComment, nextLocation, pAllComments)) {
       Optional<CFANode> nextNode =
@@ -141,29 +131,31 @@ public class AcslNodeMappingUtils {
               nextLocation.getStartingLineNumber(), nextLocation.getStartColumnInLine());
 
       if (nextNode.isPresent()) {
-        ImmutableList<CFAEdge> edges =
+        String functionName =
             nextNode
-                .orElseThrow()
-                .getEnteringEdges()
-                .filter(e -> e.getPredecessor() instanceof FunctionEntryNode)
-                .toList();
-        if (edges.size() == 1 && edges.getFirst().getPredecessor() instanceof FunctionEntryNode f) {
-          return Optional.of(f);
-        }
+                .orElseThrow(
+                    () ->
+                        new AcslNodeMappingException(
+                            "Could not find function entry node for function contract\n"
+                                + pComment))
+                .getFunctionName();
+        return pCFA.getFunctionHead(functionName);
       }
     }
 
-    return Optional.empty();
+    throw new AcslNodeMappingException(
+        "Could not find function entry node for function contract\n"
+            + pComment
+            + "\nStatement contracts are not supported.");
   }
 
   public static boolean noCommentInBetween(
       AcslComment pComment, FileLocation nextStatement, List<AcslComment> otherComments) {
     for (AcslComment other : otherComments) {
       if (!other.equals(pComment)
-          && other.getFileLocation().getNodeOffset()
-              > pComment.getFileLocation().getNodeOffset()
-                  + pComment.getFileLocation().getNodeLength()
-          && other.getFileLocation().getNodeOffset() + other.getFileLocation().getNodeLength()
+          && other.fileLocation().getNodeOffset()
+              > pComment.fileLocation().getNodeOffset() + pComment.fileLocation().getNodeLength()
+          && other.fileLocation().getNodeOffset() + other.fileLocation().getNodeLength()
               < nextStatement.getNodeOffset()) {
         // There is an annotation inbetween the comment and the statement
         return false;

@@ -42,6 +42,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Concurrency;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMetadataCreationException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslNodeMappingException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslNodeMappingUtils;
@@ -77,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicDefContext;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlockStructureBuilder;
@@ -788,7 +791,7 @@ public class CFACreator {
 
     if (pParseResult.blocks().isPresent() && pParseResult.acslComments().isPresent()) {
       for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
-        commentPositions.add(comment.getFileLocation());
+        commentPositions.add(comment.fileLocation());
       }
       blocks.addAll(pParseResult.blocks().orElseThrow());
     }
@@ -815,7 +818,7 @@ public class CFACreator {
 
   private AcslMetadata createAcslMetadata(CFA pCFA, ParseResult pResult) {
     CProgramScope scope = new CProgramScope(pCFA, logger);
-    AcslScope acslScope = AcslScope.empty();
+    AcslScope acslScope = AcslScope.mutableCopy(AcslScope.empty());
     ImmutableList<AcslComment> allComments =
         ImmutableList.copyOf(
             pResult
@@ -834,43 +837,59 @@ public class CFACreator {
         ImmutableSetMultimap.builder();
 
     for (AcslComment comment : allComments) {
-
-      CFANode n;
+      ParseTree ctx;
       try {
-        n =
-            AcslNodeMappingUtils.addAcslToNodeMapping(
-                comment, allComments, pCFA.getAstCfaRelation());
+        ctx = AcslParser.acslCommentToContext(comment.getComment());
       } catch (AcslParseException e) {
-        throw new AcslNodeMappingException(
-            "Could not map acsl annotation " + comment + " to node: " + e);
+        throw new AcslMetadataCreationException(e.getMessage());
       }
 
-      if (n instanceof FunctionEntryNode fn) {
-        scope = scope.withFunctionScope(fn.getFunctionName());
-      }
+      if (ctx instanceof LogicDefContext) {
+        try {
+          AcslLogicDefinition logicDefinition =
+              AcslParser.parseLogicalDefinition(comment.getComment(), acslScope);
+          globalDeclarationBuilder.add(logicDefinition.getDeclaration());
+          acslScope.registerDeclaration(logicDefinition.getDeclaration());
+        } catch (AcslParseException e) {
+          throw new AcslMetadataCreationException(e.getMessage());
+        }
+      } else {
+        CFANode n;
+        try {
+          n = AcslNodeMappingUtils.addAcslToNodeMapping(comment, allComments, pCFA);
+        } catch (AcslParseException e) {
+          throw new AcslNodeMappingException(
+              "Could not map acsl annotation " + comment + " to node: " + e);
+        }
 
-      AAcslAnnotation annotation;
-      try {
-        annotation =
-            AcslParser.parseAcslComment(
-                comment.getComment(), comment.getFileLocation(), scope, acslScope);
-      } catch (AcslParseException e) {
-        throw new AcslMetadataCreationException(
-            "Could not parse acsl annotation " + comment + ": " + e);
-      }
-      switch (annotation) {
-        case AcslAssertion pAssertion -> assertionBuilder.put(n, pAssertion);
-        case AcslLoopAnnotation pLoopAnnotation -> loopAnnotationBuilder.put(n, pLoopAnnotation);
-        case AcslFunctionContract pFunctionContract ->
-            functionContractBuilder.put(n, pFunctionContract);
-        case null ->
-            throw new AcslMetadataCreationException(
-                "Annotation for acsl comment " + comment + " is null.");
-        default ->
-            throw new AcslMetadataCreationException(
-                "Unexpected annotation type: "
-                    + comment
-                    + ". Only assertions, loop annotations and function contracts are supported.");
+        if (n instanceof FunctionEntryNode fn) {
+          scope = scope.withFunctionScope(fn.getFunctionName());
+        }
+
+        AAcslAnnotation annotation;
+        try {
+          annotation =
+              AcslParser.parseAcslComment(
+                  comment.getComment(), comment.fileLocation(), scope, acslScope);
+        } catch (AcslParseException e) {
+          throw new AcslMetadataCreationException(
+              "Could not parse acsl annotation " + comment + ": " + e);
+        }
+        switch (annotation) {
+          case AcslAssertion pAssertion -> assertionBuilder.put(n, pAssertion);
+          case AcslLoopAnnotation pLoopAnnotation -> loopAnnotationBuilder.put(n, pLoopAnnotation);
+          case AcslFunctionContract pFunctionContract ->
+              functionContractBuilder.put(n, pFunctionContract);
+          case null ->
+              throw new AcslMetadataCreationException(
+                  "Annotation for acsl comment " + comment + " is null.");
+          default ->
+              throw new AcslMetadataCreationException(
+                  "Unexpected annotation type: "
+                      + comment
+                      + ". Only assertions, loop annotations and function contracts are"
+                      + " supported.");
+        }
       }
     }
 

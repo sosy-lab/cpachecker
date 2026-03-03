@@ -43,16 +43,19 @@ public class AcslMetadataParsingTest {
   private static final String TEST_DIR = "test/programs/acsl/";
   private final String programName;
   private final int expectedNumOfAnnotations;
+  private final int expectedNumOfDeclarations;
   private final CFACreator cfaCreator;
   private final ImmutableList<CfaNodeAttribute> nodeAttributes;
 
   public AcslMetadataParsingTest(
       String pProgramName,
       int pExpectedNumOfAnnotations,
+      int pExpectedNumOfDeclarations,
       ImmutableList<CfaNodeAttribute> pNodeAttributes)
       throws InvalidConfigurationException {
     programName = pProgramName;
     expectedNumOfAnnotations = pExpectedNumOfAnnotations;
+    expectedNumOfDeclarations = pExpectedNumOfDeclarations;
     nodeAttributes = pNodeAttributes;
     Configuration config =
         TestDataTools.configurationForTest()
@@ -65,11 +68,24 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
+    b.add(
+        task(
+            "square_root_with_predicate.c",
+            1,
+            1,
+            ImmutableList.of(new FunctionContractAttribute("sqroot", 3, 1, 0))));
+    b.add(
+        task(
+            "square_with_predicate.c",
+            2,
+            1,
+            ImmutableList.of(new FunctionContractAttribute("square", 2, 0, 0))));
     // Assertions
     b.add(
         task(
             "after_else.c",
             1,
+            0,
             ImmutableList.of(
                 new AssertionAttribute("main", "a = 20;", "", "assert a == 10 || a == 20;"))));
 
@@ -77,42 +93,50 @@ public class AcslMetadataParsingTest {
         task(
             "after_for_loop2.c",
             1,
+            0,
             ImmutableList.of(new AssertionAttribute("main", "b++;", "", "assert b == 20;"))));
     b.add(
         task(
             "after_if.c",
             1,
+            0,
             ImmutableList.of(new AssertionAttribute("main", "a = 10;", "", "assert a != 20;"))));
     b.add(
         task(
             "after_loop.c",
             1,
+            0,
             ImmutableList.of(new AssertionAttribute("main", "a++;", "", "assert a == 20;"))));
     b.add(
         task(
             "after_loop2.c",
             1,
+            0,
             ImmutableList.of(new AssertionAttribute("main", "a++;", "", "assert a == 20;"))));
     b.add(
         task(
             "at_end.c",
             1,
+            0,
             ImmutableList.of(new AssertionAttribute("main", "a = 10;", "", "assert a != 20;"))));
-    b.add(task("badVariable.c", 0, ImmutableList.of(new AssertionAttribute("", "", "", ""))));
+    b.add(task("badVariable.c", 0, 0, ImmutableList.of(new AssertionAttribute("", "", "", ""))));
     b.add(
         task(
             "end_of_do_while.c",
             1,
+            0,
             ImmutableList.of(new AssertionAttribute("main", "a++;", "", "assert a <= 20;"))));
     b.add(
         task(
             "in_middle.c",
             1,
+            0,
             ImmutableList.of(new AssertionAttribute("main", "a = 19;", "a++;", "assert a == 19"))));
     b.add(
         task(
             "same_annotation_twice.c",
             2,
+            0,
             ImmutableList.of(
                 new AssertionAttribute("main", "int x = 10;", "int z = x * x;", "assert x == 10;"),
                 new AssertionAttribute("main", "int z = x * x;", "[x != 10]", "assert x == 10;"))));
@@ -122,31 +146,37 @@ public class AcslMetadataParsingTest {
         task(
             "double_loop_invariant.c",
             1,
+            0,
             ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 2, "int i = 0;"))));
     b.add(
         task(
             "even_while.c",
             1,
+            0,
             ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "while"))));
     b.add(
         task(
             "even_while_nondet.c",
             1,
+            0,
             ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "while"))));
     b.add(
         task(
             "even_do_while.c",
             1,
+            0,
             ImmutableList.of(new LoopAnnotationAttribute("main", 2, 1, 1, "do"))));
     b.add(
         task(
             "inv_for.c",
             1,
+            0,
             ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "int i = 0;"))));
     b.add(
         task(
             "inv_short-for.c",
             1,
+            0,
             ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "y = y + 1;"))));
 
     // Function Contracts
@@ -154,18 +184,22 @@ public class AcslMetadataParsingTest {
         task(
             "square_root.c",
             1,
+            0,
             ImmutableList.of(new FunctionContractAttribute("sqroot", 3, 1, 0))));
-    b.add(task("square.c", 1, ImmutableList.of(new FunctionContractAttribute("square", 2, 0, 0))));
+    b.add(
+        task("square.c", 1, 0, ImmutableList.of(new FunctionContractAttribute("square", 2, 0, 0))));
     b.add(
         task(
             "square_result.c",
             1,
+            0,
             ImmutableList.of(new FunctionContractAttribute("square", 1, 0, 0))));
-    b.add(task("power.c", 1, ImmutableList.of(new FunctionContractAttribute("power", 1, 2, 0))));
+    b.add(task("power.c", 1, 0, ImmutableList.of(new FunctionContractAttribute("power", 1, 2, 0))));
     b.add(
         task(
             "power_result.c",
             1,
+            0,
             ImmutableList.of(new FunctionContractAttribute("power", 1, 2, 0))));
     return b.build();
   }
@@ -173,8 +207,11 @@ public class AcslMetadataParsingTest {
   private static Object[] task(
       String program,
       int expectedNumOfAnnotations,
+      int expectedNumOfDeclarations,
       ImmutableList<CfaNodeAttribute> nodeAttributes) {
-    return new Object[] {program, expectedNumOfAnnotations, nodeAttributes};
+    return new Object[] {
+      program, expectedNumOfAnnotations, expectedNumOfDeclarations, nodeAttributes
+    };
   }
 
   @Test
@@ -193,6 +230,25 @@ public class AcslMetadataParsingTest {
       AcslMetadata acslMetadata = cfa.getAcslMetadata();
       assertThat(acslMetadata).isNotNull();
       assertThat(acslMetadata.numOfAnnotaniots()).isEqualTo(expectedNumOfAnnotations);
+    }
+  }
+
+  @Test
+  public void parseCorrectNumberOfAcslDeclarationsTest() throws Exception {
+    List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
+
+    if (programName.equals("badVariable.c")) {
+      RuntimeException expectedException =
+          assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(expectedException)
+          .hasMessageThat()
+          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
+    } else {
+
+      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+      AcslMetadata acslMetadata = cfa.getAcslMetadata();
+      assertThat(acslMetadata).isNotNull();
+      assertThat(acslMetadata.globalAcslDeclarations().size()).isEqualTo(expectedNumOfDeclarations);
     }
   }
 

@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarBaseVisi
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslCommentContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicDefContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
 
 public class AntrlAcslCommentToContextVisitor extends AcslGrammarBaseVisitor<ParserRuleContext> {
@@ -34,6 +35,11 @@ public class AntrlAcslCommentToContextVisitor extends AcslGrammarBaseVisitor<Par
 
   @Override
   public FunctionContractContext visitFunctionContract(FunctionContractContext ctx) {
+    return ctx;
+  }
+
+  @Override
+  public LogicDefContext visitLogicDef(LogicDefContext ctx) {
     return ctx;
   }
 }
