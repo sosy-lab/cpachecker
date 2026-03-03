@@ -1,0 +1,29 @@
+
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+extern int __VERIFIER_nondet_int(void);
+
+/*@ logic integer is_positive (integer i) = i >= 0 ? 1 : 0;*/
+
+/*@ ensures \result == a * a;
+    ensures \result >= 0;
+*/
+int square (int a){
+  return a * a;
+}
+
+int main() {
+  int x = __VERIFIER_nondet_int();
+  int y = square(x);
+  /*@ assert y == x*x;*/
+  //@ assert is_positive(y) == 1;
+  if(y != x*x) ERROR: return 1;
+  
+  return 0;
+}

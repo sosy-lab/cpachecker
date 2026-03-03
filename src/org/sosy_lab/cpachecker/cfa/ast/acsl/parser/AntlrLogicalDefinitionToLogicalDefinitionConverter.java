@@ -154,7 +154,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
       }
     }
 
-    AcslType returnType = antrlTypeExpressionToTypeConverter.visit(ctx.getChild(0));
+    AcslType returnType = antrlTypeExpressionToTypeConverter.visit(ctx.typeExpr());
 
     // Solving this through a visitor would be nicer, but seems like overkill
     ParametersContext parametersContext = ctx.parameters();
@@ -178,7 +178,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
 
     getAcslScope().registerDeclaration(functionDeclaration);
 
-    AcslTerm body = antlrTermToTermConverter.visit(ctx.getChild(4));
+    AcslTerm body = antlrTermToTermConverter.visit(ctx.term());
     return new AcslLogicFunctionDefinition(FileLocation.DUMMY, functionDeclaration, body);
   }
 }

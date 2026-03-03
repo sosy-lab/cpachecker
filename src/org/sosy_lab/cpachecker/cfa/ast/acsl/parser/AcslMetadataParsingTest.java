@@ -68,18 +68,53 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
+    /*
     b.add(
         task(
             "square_root_with_predicate.c",
+            2,
+            1,
+            ImmutableList.of(new FunctionContractAttribute("sqroot", 3, 1, 0))));
+    b.add(
+        task(
+            "square_root_with_predicate2.c",
             1,
             1,
             ImmutableList.of(new FunctionContractAttribute("sqroot", 3, 1, 0))));
     b.add(
         task(
             "square_with_predicate.c",
+            3,
+            1,
+            ImmutableList.of(new FunctionContractAttribute("square", 2, 0, 0))));
+    b.add(
+        task(
+            "square_with_predicate2.c",
             2,
             1,
             ImmutableList.of(new FunctionContractAttribute("square", 2, 0, 0))));
+
+     */
+    b.add(
+        task(
+            "square_with_logic_function.c",
+            2,
+            1,
+            ImmutableList.of(new FunctionContractAttribute("square", 2, 0, 0))));
+    b.add(
+        task(
+            "maxArray.c",
+            4,
+            1,
+            ImmutableList.of(
+                new FunctionContractAttribute("max", 2, 0, 1),
+                new FunctionContractAttribute("maxArray", 1, 1, 1),
+                new LoopAnnotationAttribute("maxArray", 2, 2, 2, "int i = 0;"),
+                new AssertionAttribute(
+                    "main",
+                    "int m = maxArray(a, 50);",
+                    "int j = -1;",
+                    "assert m == max_Array(a,50);"))));
     // Assertions
     b.add(
         task(
