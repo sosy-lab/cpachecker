@@ -1045,7 +1045,7 @@ class ASTConverter {
     return createTemporaryVariable(loc, castType, init);
   }
 
-  private static void ensureUnionHasMembers(CCompositeType unionType, FileLocation loc) {
+  private void ensureUnionHasMembers(CCompositeType unionType, FileLocation loc) {
     if (unionType.getMembers().isEmpty()) {
       throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
     }
@@ -1055,7 +1055,7 @@ class ASTConverter {
    * Returns the first union member whose canonical type exactly matches the given operand type.
    * Deterministic: first matching member wins.
    */
-  private static @Nullable CCompositeTypeMemberDeclaration findUnionMemberWithExactType(
+  private @Nullable CCompositeTypeMemberDeclaration findUnionMemberWithExactType(
       CCompositeType unionType, CType operandType) {
 
     for (CCompositeTypeMemberDeclaration member : unionType.getMembers()) {
@@ -1067,7 +1067,7 @@ class ASTConverter {
   }
 
   /** Build initializer list equivalent to: (U){ .member = operand } */
-  private static CInitializer buildDesignatedUnionMemberInitializer(
+  private CInitializer buildDesignatedUnionMemberInitializer(
       FileLocation loc, CCompositeTypeMemberDeclaration member, CExpression operand) {
 
     String memberName = member.getName();
