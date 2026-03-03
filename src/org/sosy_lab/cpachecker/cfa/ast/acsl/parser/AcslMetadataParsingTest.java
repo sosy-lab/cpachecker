@@ -210,7 +210,7 @@ public class AcslMetadataParsingTest {
       int expectedNumOfDeclarations,
       ImmutableList<CfaNodeAttribute> nodeAttributes) {
     return new Object[] {
-      program, expectedNumOfAnnotations, expectedNumOfDeclarations, nodeAttributes
+      program, expectedNumOfAnnotations, expectedNumOfDeclarations, nodeAttributes,
     };
   }
 
