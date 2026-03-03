@@ -112,8 +112,9 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
       }
       if (edge instanceof AStatementEdge aStatementEdge
           && aStatementEdge.getStatement() instanceof CAssignment cAssignment) {
-        if (cAssignment.getLeftHandSide() instanceof CIdExpression id)
+        if (cAssignment.getLeftHandSide() instanceof CIdExpression id) {
           declared.add(id.getDeclaration().getQualifiedName());
+        }
       }
     }
 

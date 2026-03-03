@@ -96,9 +96,9 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
         state.setViolationCondition(
             pfgmr.makeEmptyPathFormulaWithContext(ssaMap, targetSet).withFormula(parsed));
       }
-      if (pMessage.getType().equals(DssMessageType.POST_CONDITION))
+      if (pMessage.getType().equals(DssMessageType.POST_CONDITION)) {
         havocVariables(state, getAccessedVariables(blockNode));
-
+      }
       return state;
 
     } catch (ClassCastException e) {
