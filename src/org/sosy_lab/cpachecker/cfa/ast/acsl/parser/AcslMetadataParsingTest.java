@@ -248,7 +248,7 @@ public class AcslMetadataParsingTest {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata acslMetadata = cfa.getAcslMetadata();
       assertThat(acslMetadata).isNotNull();
-      assertThat(acslMetadata.globalAcslDeclarations().size()).isEqualTo(expectedNumOfDeclarations);
+      assertThat(acslMetadata.globalAcslDeclarations()).hasSize(expectedNumOfDeclarations);
     }
   }
 
