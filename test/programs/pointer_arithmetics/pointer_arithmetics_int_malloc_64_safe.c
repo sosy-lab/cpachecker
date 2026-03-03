@@ -18,12 +18,13 @@
 int main() {
   int memory_size = 10;
   int *ptr = malloc(memory_size*sizeof(int));
-  int *otherPtr = malloc(memory_size*sizeof(int));
-
   if (ptr == 0) {
     return 0;
   }
+
+  int *otherPtr = malloc(memory_size*sizeof(int));
   if (otherPtr == 0) {
+    free(ptr);
     return 0;
   }
 
