@@ -8,7 +8,7 @@
 
 format_version: '2.1'
 
-input_files: 'union-cast-2.c'
+input_files: 'union-cast-non-first-int-match-among-shorts.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-label.prp
