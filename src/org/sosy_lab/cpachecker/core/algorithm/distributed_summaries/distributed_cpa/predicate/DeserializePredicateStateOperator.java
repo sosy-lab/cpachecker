@@ -50,6 +50,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   private final BlockNode blockNode;
 
   private final ImmutableMap<String, CType> variableTypes;
+  private final Map<String, CType> numericTypes;
 
   public DeserializePredicateStateOperator(
       PredicateCPA pPredicateCPA,
@@ -62,6 +63,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
     pathFormulaManager = pPredicateCPA.getPathFormulaManager();
     cfa = pCFA;
     blockNode = pBlockNode;
+    numericTypes = getNumericTypes();
   }
 
   private Map<String, CType> getNumericTypes() {
@@ -105,7 +107,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
             entry.getKey(),
             Objects.requireNonNull(
                 variableTypes.getOrDefault(
-                    entry.getKey(), getNumericTypes().get(indexAndType.getLast()))),
+                    entry.getKey(), numericTypes.get(indexAndType.getLast()))),
             Integer.parseInt(indexAndType.getFirst()));
       }
 
