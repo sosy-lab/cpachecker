@@ -4427,7 +4427,9 @@ public class SMGCPAValueVisitor
       if (maybeAddress instanceof ConstantSymbolicExpression constRight) {
         maybeAddress = constRight.getValue();
       }
+      // AddressExpressions may never be nested
       checkState(!(maybeAddress instanceof AddressExpression));
+      // Also, a pointer is always a symbolicIdentifier, never a const expr in SMG2
       checkState(currentState.isPointer(maybeAddress));
     }
     if (maybeAddress instanceof ConstantSymbolicExpression constRight) {
