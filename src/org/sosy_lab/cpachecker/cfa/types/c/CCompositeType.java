@@ -52,7 +52,7 @@ public final class CCompositeType implements CComplexType {
       final String pOrigName) {
     this(pQualifiers, pKind, pName, pOrigName);
     checkMembers(pMembers);
-    members = ImmutableList.copyOf(pMembers);
+    members = List.copyOf(pMembers);
   }
 
   private void checkMembers(List<CCompositeTypeMemberDeclaration> pMembers) {
