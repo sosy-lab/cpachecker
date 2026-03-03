@@ -995,45 +995,10 @@ class ASTConverter {
     // the operand's type.
     // https://gcc.gnu.org/onlinedocs/gcc/Cast-to-Union.html
     // We found out, that 'match' means exact type match in this case through our own experiments.
-    // (Currently handled for scalar operands.)
-    // Lower this to a designated initializer
-
-    if (castType.getCanonicalType() instanceof CCompositeType compositeType
-        && compositeType.getKind() == ComplexTypeKind.UNION) {
-
-      if (compositeType.getMembers().isEmpty()) {
-        throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
-      }
-
-      CType operandType = operand.getExpressionType().getCanonicalType();
-
-      CCompositeTypeMemberDeclaration matchingMember = null;
-      for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
-        if (member.getType().getCanonicalType().equals(operandType)) {
-          matchingMember = member;
-          break; // deterministic: first matching member wins
-        }
-      }
-
-      if (matchingMember == null) {
-        throw new CFAGenerationRuntimeException(
-            "Invalid cast to union type: operand type "
-                + operandType.toASTString("")
-                + " does not exactly match any union member's type at "
-                + loc);
-      }
-
-      // Lower (U)operand into (U){ .<member> = operand }.
-      // This avoids representing a non-scalar union cast as CCastExpression.
-      String memberName = matchingMember.getName();
-
-      CFieldDesignator designator = new CFieldDesignator(loc, memberName);
-      CInitializer designated =
-          new CDesignatedInitializer(
-              loc, ImmutableList.of(designator), new CInitializerExpression(loc, operand));
-
-      CInitializer init = new CInitializerList(loc, ImmutableList.of(designated));
-      return createTemporaryVariable(loc, castType, init);
+    // Lower this to a designated initializer stored in a temporary variable.
+    CAstNode loweredUnionCast = tryLowerGccCastToUnion(loc, castType, operand);
+    if (loweredUnionCast != null) {
+      return loweredUnionCast;
     }
 
     if (options.simplifyPointerExpressions()
@@ -1044,6 +1009,74 @@ class ASTConverter {
     } else {
       return new CCastExpression(loc, castType, operand);
     }
+  }
+
+  /**
+   * Try to lower a GCC cast-to-union extension into a temporary union value initialized with a
+   * designated initializer. Returns {@code null} if this cast is not a cast to a union type.
+   *
+   * <p>GCC extension: (U)expr is valid iff {@code expr}'s type is an exact match of a direct union
+   * member type. If no member matches (or the union is empty), this method throws a {@link
+   * CFAGenerationRuntimeException}.
+   */
+  private @Nullable CAstNode tryLowerGccCastToUnion(
+      FileLocation loc, CType castType, CExpression castOperand) {
+
+    if (!(castType.getCanonicalType() instanceof CCompositeType compositeType)
+        || compositeType.getKind() != ComplexTypeKind.UNION) {
+      return null;
+    }
+
+    ensureUnionHasMembers(compositeType, loc);
+
+    CType operandType = castOperand.getExpressionType().getCanonicalType();
+    CCompositeTypeMemberDeclaration matchingMember =
+        findUnionMemberWithExactType(compositeType, operandType);
+
+    if (matchingMember == null) {
+      throw new CFAGenerationRuntimeException(
+          "Invalid cast to union type: operand type "
+              + operandType.toASTString("")
+              + " does not exactly match any union member's type at "
+              + loc);
+    }
+
+    CInitializer init = buildDesignatedUnionMemberInitializer(loc, matchingMember, castOperand);
+    return createTemporaryVariable(loc, castType, init);
+  }
+
+  private static void ensureUnionHasMembers(CCompositeType unionType, FileLocation loc) {
+    if (unionType.getMembers().isEmpty()) {
+      throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
+    }
+  }
+
+  /**
+   * Returns the first union member whose canonical type exactly matches the given operand type.
+   * Deterministic: first matching member wins.
+   */
+  private static @Nullable CCompositeTypeMemberDeclaration findUnionMemberWithExactType(
+      CCompositeType unionType, CType operandType) {
+
+    for (CCompositeTypeMemberDeclaration member : unionType.getMembers()) {
+      if (member.getType().getCanonicalType().equals(operandType)) {
+        return member;
+      }
+    }
+    return null;
+  }
+
+  /** Build initializer list equivalent to: (U){ .member = operand } */
+  private static CInitializer buildDesignatedUnionMemberInitializer(
+      FileLocation loc, CCompositeTypeMemberDeclaration member, CExpression operand) {
+
+    String memberName = member.getName();
+    CFieldDesignator designator = new CFieldDesignator(loc, memberName);
+    CInitializer designated =
+        new CDesignatedInitializer(
+            loc, ImmutableList.of(designator), new CInitializerExpression(loc, operand));
+
+    return new CInitializerList(loc, ImmutableList.of(designated));
   }
 
   private static class ContainsProblemTypeVisitor
