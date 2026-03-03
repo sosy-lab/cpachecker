@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -17,12 +16,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -37,8 +36,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
-public class DistributedPredicateCPA
-    implements ForwardingDistributedConfigurableProgramAnalysis, AutoCloseable {
+public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
   private final PredicateCPA predicateCPA;
 
@@ -51,9 +49,8 @@ public class DistributedPredicateCPA
   private final ProceedOperator proceedOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator stateCoverageOperator;
-  private final CombinePreconditionsOperator combinePreconditionsOperator;
+  private final CombineOperator combineOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
-  private final PredicateStateCombineViolationConditionOperator combineViolationConditionsOperator;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -63,20 +60,18 @@ public class DistributedPredicateCPA
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      BiMap<Integer, CFANode> pIdToNodeMap,
-      ImmutableMap<String, Type> pTypeMap)
+      ImmutableMap<Integer, CFANode> pIdToNodeMap,
+      ImmutableMap<String, CType> pTypeMap)
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
-    serialize =
-        new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas, pTypeMap);
+    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode, pTypeMap);
     serializePrecisionOperator =
-        new SerializePredicatePrecisionOperator(
-            pPredicateCPA.getSolver().getFormulaManager(), pIdToNodeMap.inverse());
+        new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
-            predicateCPA.getAbstractionManager(), pIdToNodeMap::get);
+            predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), pIdToNodeMap::get);
     proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
     stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
     verificationConditionOperator =
@@ -90,12 +85,8 @@ public class DistributedPredicateCPA
                 AnalysisDirection.BACKWARD),
             predicateCPA,
             pNode.getPredecessorIds().isEmpty());
-    combinePreconditionsOperator = new CombinePredicateStatePreconditionsOperator(predicateCPA);
-    combinePrecisionOperator =
-        new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
-    combineViolationConditionsOperator =
-        new PredicateStateCombineViolationConditionOperator(
-            predicateCPA.getSolver().getFormulaManager(), predicateCPA.getPathFormulaManager());
+    combineOperator = new CombinePredicateStateOperator(predicateCPA);
+    combinePrecisionOperator = new CombinePredicatePrecisionOperator();
   }
 
   @Override
@@ -152,18 +143,6 @@ public class DistributedPredicateCPA
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
-    // The predicate state has no information about the point in the program, so always
-    // return the same number (arbitrarily chosen)
-    return 0;
-  }
-
-  @Override
-  public PredicateStateCombineViolationConditionOperator getCombineViolationConditionsOperator() {
-    return combineViolationConditionsOperator;
-  }
-
-  @Override
   public AbstractState reset(AbstractState pAbstractState) {
     Preconditions.checkArgument(
         pAbstractState instanceof PredicateAbstractState,
@@ -183,12 +162,7 @@ public class DistributedPredicateCPA
   }
 
   @Override
-  public CombinePreconditionsOperator getCombineOperator() {
-    return combinePreconditionsOperator;
-  }
-
-  @Override
-  public void close() {
-    predicateCPA.close();
+  public CombineOperator getCombineOperator() {
+    return combineOperator;
   }
 }

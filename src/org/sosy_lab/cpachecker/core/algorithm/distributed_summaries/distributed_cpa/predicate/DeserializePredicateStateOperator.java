@@ -17,10 +17,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
@@ -49,25 +49,19 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   private final CFA cfa;
   private final BlockNode blockNode;
 
-  private final ImmutableMap<String, Type> variableTypes;
-  private final Map<String, CType> numericTypes;
-
-  // ObjectMapper is expensive in initialization, but thread safe;
-  // so we can reuse.
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private final ImmutableMap<String, CType> variableTypes;
 
   public DeserializePredicateStateOperator(
       PredicateCPA pPredicateCPA,
       CFA pCFA,
       BlockNode pBlockNode,
-      ImmutableMap<String, Type> pVariableTypes) {
+      ImmutableMap<String, CType> pVariableTypes) {
     predicateCPA = pPredicateCPA;
     variableTypes = pVariableTypes;
     formulaManagerView = predicateCPA.getSolver().getFormulaManager();
     pathFormulaManager = pPredicateCPA.getPathFormulaManager();
     cfa = pCFA;
     blockNode = pBlockNode;
-    numericTypes = getNumericTypes();
   }
 
   private Map<String, CType> getNumericTypes() {
@@ -94,6 +88,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
       Preconditions.checkNotNull(serializedSsaMap, "SSA Map must be provided");
 
       // parse JSON string into Map<String, Integer> using Jackson
+      ObjectMapper objectMapper = new ObjectMapper();
       Map<String, String> ssaMapContents;
       try {
         ssaMapContents = objectMapper.readValue(serializedSsaMap, new TypeReference<>() {});
@@ -105,12 +100,13 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
       SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
       for (Entry<String, String> entry : ssaMapContents.entrySet()) {
         List<String> indexAndType = Splitter.on(" ").limit(2).splitToList(entry.getValue());
-        Type type =
-            variableTypes.getOrDefault(entry.getKey(), numericTypes.get(indexAndType.getLast()));
-        if (type == null) {
-          type = DssSerializeObjectUtil.deserialize(indexAndType.getLast(), Type.class);
-        }
-        ssaMapBuilder.setIndex(entry.getKey(), type, Integer.parseInt(indexAndType.getFirst()));
+
+        ssaMapBuilder.setIndex(
+            entry.getKey(),
+            Objects.requireNonNull(
+                variableTypes.getOrDefault(
+                    entry.getKey(), getNumericTypes().get(indexAndType.getLast()))),
+            Integer.parseInt(indexAndType.getFirst()));
       }
 
       String serializedPts = predicateContent.get(SerializePredicateStateOperator.PTS_KEY);
