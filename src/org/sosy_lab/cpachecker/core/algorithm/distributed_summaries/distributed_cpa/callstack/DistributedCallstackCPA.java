@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
 import com.google.common.base.Preconditions;
-import java.util.Map;
+import com.google.common.collect.BiMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -55,10 +55,10 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
       CallstackCPA pCallstackCPA,
       BlockNode pBlockNode,
       CFA pCFA,
-      Map<Integer, CFANode> pIdToNodeMap) {
+      BiMap<Integer, CFANode> pIdToNodeMap) {
     callstackCPA = pCallstackCPA;
     cfa = pCFA;
-    serialize = new SerializeCallstackStateOperator();
+    serialize = new SerializeCallstackStateOperator(pIdToNodeMap.inverse());
     deserialize =
         new DeserializeCallstackStateOperator(pCallstackCPA, pBlockNode, pIdToNodeMap::get);
     verificationConditionOperator =
