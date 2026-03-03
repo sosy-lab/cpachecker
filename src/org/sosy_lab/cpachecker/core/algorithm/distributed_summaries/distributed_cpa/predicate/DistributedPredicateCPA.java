@@ -16,6 +16,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -59,12 +60,13 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      ImmutableMap<Integer, CFANode> pIdToNodeMap)
+      ImmutableMap<Integer, CFANode> pIdToNodeMap,
+      ImmutableMap<String, CType> pTypeMap)
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
-    deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
+    deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode, pTypeMap);
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
     deserializePrecisionOperator =
