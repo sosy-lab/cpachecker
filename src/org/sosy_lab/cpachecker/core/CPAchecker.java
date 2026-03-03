@@ -285,7 +285,6 @@ public class CPAchecker {
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
-    CoreComponentsFactory factory;
     MainCPAStatistics stats = null;
     ImmutableCFA cfa = null;
 
@@ -298,11 +297,8 @@ public class CPAchecker {
 
       cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
-      factory =
-          new CoreComponentsFactory(
-              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
-      return run0(cfa, null, factory, stats);
 
+      return run0(cfa, null, stats);
     } catch (InvalidConfigurationException
         | ParserException
         | IOException
@@ -317,30 +313,17 @@ public class CPAchecker {
   public CPAcheckerResult run(CFA cfa, Specification specification, MainCPAStatistics stats) {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
-    CoreComponentsFactory factory;
-
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      factory =
-          new CoreComponentsFactory(
-              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
-      return run0(cfa, specification, factory, stats);
-
-    } catch (InvalidConfigurationException e) {
-      logErrorMessage(e, logger);
-      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
+      return run0(cfa, specification, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
   }
 
-  private CPAcheckerResult run0(
-      CFA cfa,
-      Specification specification,
-      CoreComponentsFactory factory,
-      MainCPAStatistics stats) {
+  private CPAcheckerResult run0(CFA cfa, Specification specification, MainCPAStatistics stats) {
 
     Algorithm algorithm = null;
     ReachedSet reached = null;
@@ -349,6 +332,7 @@ public class CPAchecker {
 
     try {
 
+      CoreComponentsFactory factory;
       // create reached set, cpa, algorithm
       ConfigurableProgramAnalysis cpa;
 
@@ -357,6 +341,11 @@ public class CPAchecker {
       if (!stats.creationTime.isRunning()) {
         stats.creationTime.start();
       }
+
+      factory =
+          new CoreComponentsFactory(
+              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
+
       stats.cpaCreationTime.start();
       try {
         if (specification == null) {
