@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
  * MachineModel}.
  */
 @RunWith(Parameterized.class)
-public class SMGBaseCPATest {
+public abstract class SMGBaseCPATest {
 
   /**
    * The default configuration files to use for running SMG2 as Symbolic Execution and Value
