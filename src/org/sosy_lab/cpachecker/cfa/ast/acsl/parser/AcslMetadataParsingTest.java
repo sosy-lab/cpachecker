@@ -68,7 +68,6 @@ public class AcslMetadataParsingTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    /*
     b.add(
         task(
             "square_root_with_predicate.c",
@@ -93,8 +92,6 @@ public class AcslMetadataParsingTest {
             2,
             1,
             ImmutableList.of(new FunctionContractAttribute("square", 2, 0, 0))));
-
-     */
     b.add(
         task(
             "square_with_logic_function.c",
