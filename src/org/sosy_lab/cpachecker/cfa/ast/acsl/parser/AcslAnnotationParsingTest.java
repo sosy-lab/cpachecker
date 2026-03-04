@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Objects;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -21,8 +23,13 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
@@ -152,6 +159,74 @@ public class AcslAnnotationParsingTest {
     AAcslAnnotation parsed =
         AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void parseAssertionWithPredicate() throws AcslParseException {
+    AcslScope aScope = AcslScope.mutableCopy(getAcslScope());
+    String predicate = "predicate is_positive(integer i) = i >= 0";
+    AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
+    aScope.registerDeclaration(predDef.getDeclaration());
+
+    String assertion = "assert is_positive(x);";
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, getCProgramScope(), aScope));
+  }
+
+  @Test
+  public void parseAssertionWithLogicFunction() throws AcslParseException {
+    AcslScope acslScope = AcslScope.mutableCopy(getAcslScope());
+    String logicFunction = "logic integer is_positive (integer i) = i >= 0 ? 1 : 0;";
+    AcslLogicDefinition funcDef = AcslParser.parseLogicalDefinition(logicFunction, acslScope);
+    acslScope.registerDeclaration(funcDef.getDeclaration());
+
+    CVariableDeclaration a =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            basicInt(),
+            "a",
+            "a",
+            "a",
+            null /* No initializer, we only want it for testing */);
+
+    CProgramScope scope = getCProgramScope();
+    scope.registerDeclaration(a);
+
+    AcslParameterDeclaration i =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+    AcslFunctionDeclaration declaration =
+        new AcslFunctionDeclaration(
+            FileLocation.DUMMY,
+            new AcslFunctionType(
+                AcslBuiltinLogicType.INTEGER, List.of(AcslBuiltinLogicType.INTEGER), false),
+            "is_positive",
+            "is_positive",
+            List.of(),
+            List.of(i));
+
+    AcslAssertion expected =
+        new AcslAssertion(
+            FileLocation.DUMMY,
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslFunctionCallTerm(
+                    FileLocation.DUMMY,
+                    new AcslFunctionType(
+                        AcslBuiltinLogicType.INTEGER, List.of(AcslBuiltinLogicType.INTEGER), false),
+                    new AcslIdTerm(FileLocation.DUMMY, declaration),
+                    List.of(new AcslIdTerm(FileLocation.DUMMY, new AcslCVariableDeclaration(a))),
+                    declaration),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                AcslBinaryTermExpressionOperator.EQUALS));
+    String input = "assert is_positive(a) == 1;";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslStatement(input, FileLocation.DUMMY, scope, acslScope);
+    assertThat(parsed.toAstString()).isEqualTo(expected.toAstString());
   }
 
   private AcslAssertion getAssertion() {

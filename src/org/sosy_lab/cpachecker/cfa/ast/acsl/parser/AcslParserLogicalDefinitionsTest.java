@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.util.List;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
@@ -35,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
@@ -524,6 +527,63 @@ public class AcslParserLogicalDefinitionsTest {
         "Sorted<T>(T* a, integer i, integer j) = \\forall integer k, l ; i <= k < l <= j ==> a[k] <"
             + " a[l]";
 
+    testLogicalFunctionParsing(input, output);
+  }
+
+  @Test
+  public void parseIsPositiveLogicalPredicateDeclaration() throws AcslParseException {
+    AcslParameterDeclaration i =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+    AcslPredicateDeclaration declaration =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            new AcslPredicateType(List.of(AcslBuiltinLogicType.INTEGER), false),
+            "is_positive",
+            "is_positive",
+            List.of(),
+            List.of(i));
+    AcslBinaryTermPredicate body =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(FileLocation.DUMMY, i),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+            AcslBinaryTermExpressionOperator.GREATER_EQUAL);
+    AcslLogicPredicateDefinition output =
+        new AcslLogicPredicateDefinition(FileLocation.DUMMY, declaration, body);
+    String input = "predicate is_positive(integer i) = i >= 0;";
+    testLogicalFunctionParsing(input, output);
+  }
+
+  @Test
+  public void parseIsPositiveLogicFunction() throws AcslParseException {
+    String input = "logic integer is_positive (integer i) = i >= 0 ? 1 : 0;";
+    AcslParameterDeclaration i =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+    AcslFunctionDeclaration declaration =
+        new AcslFunctionDeclaration(
+            FileLocation.DUMMY,
+            new AcslFunctionType(
+                AcslBuiltinLogicType.INTEGER, List.of(AcslBuiltinLogicType.INTEGER), false),
+            "is_positive",
+            "is_positive",
+            List.of(),
+            List.of(i));
+    AcslTerm body =
+        new AcslTernaryTerm(
+            FileLocation.DUMMY,
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslIdTerm(FileLocation.DUMMY, i),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+                AcslBinaryTermExpressionOperator.GREATER_EQUAL),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO));
+    AcslLogicFunctionDefinition output =
+        new AcslLogicFunctionDefinition(FileLocation.DUMMY, declaration, body);
     testLogicalFunctionParsing(input, output);
   }
 }
