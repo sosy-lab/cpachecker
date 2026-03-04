@@ -548,16 +548,17 @@ public class SMGCPAValueVisitor
   }
 
   private List<ValueAndSMGState> handleBinaryOperation(
-      Value leftValue, Value rightValue, CBinaryExpression e, SMGState currentState)
+      final Value pLeftValue, final Value pRightValue, CBinaryExpression e, SMGState currentState)
       throws CPATransferException {
     final BinaryOperator binaryOperator = e.getOperator();
     final CType calculationType = e.getCalculationType();
     final CType leftType = e.getOperand1().getExpressionType().getCanonicalType();
     final CType rightType = e.getOperand2().getExpressionType().getCanonicalType();
 
-    ValueAndSMGState castLeftValue = castCValue(leftValue, calculationType, currentState);
-    leftValue = castLeftValue.getValue();
-    currentState = castLeftValue.getState();
+    ValueAndSMGState castLeftValueAndState = castCValue(pLeftValue, calculationType, currentState);
+    final Value leftValueWithCorrectType = castLeftValueAndState.getValue();
+    currentState = castLeftValueAndState.getState();
+    final Value rightValueWithCorrectType;
     if (binaryOperator != SHIFT_LEFT && binaryOperator != SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We do not even need integer-promotion,
@@ -570,24 +571,27 @@ public class SMGCPAValueVisitor
        * or equal to the width of the promoted left operand,
        * the behavior is undefined.
        */
-      ValueAndSMGState castRightValue = castCValue(rightValue, calculationType, currentState);
-      rightValue = castRightValue.getValue();
+      ValueAndSMGState castRightValue = castCValue(pRightValue, calculationType, currentState);
+      rightValueWithCorrectType = castRightValue.getValue();
       currentState = castRightValue.getState();
+    } else {
+      rightValueWithCorrectType = pRightValue;
     }
 
-    if (isPointerArithmetics(leftValue, rightValue, e, currentState)) {
+    if (isPointerArithmetics(
+        leftValueWithCorrectType, rightValueWithCorrectType, e, currentState)) {
       // Pointer Arithmetics
       // TODO: we now allow unknown to end up in the values, handle here as well!
       checkArgument(
-          !(leftValue instanceof AddressExpression
-              || rightValue instanceof AddressExpression
-              || state.isPointer(leftValue)
-              || state.isPointer(rightValue))
-              || !(leftValue.isUnknown() || rightValue.isUnknown()));
+          !(leftValueWithCorrectType instanceof AddressExpression
+                  || rightValueWithCorrectType instanceof AddressExpression
+                  || state.isPointer(leftValueWithCorrectType)
+                  || state.isPointer(rightValueWithCorrectType))
+              || !(leftValueWithCorrectType.isUnknown() || rightValueWithCorrectType.isUnknown()));
       return handlePointerArithmetics(
-          leftValue,
+          leftValueWithCorrectType,
           leftType,
-          rightValue,
+          rightValueWithCorrectType,
           rightType,
           e,
           currentState,
@@ -596,12 +600,15 @@ public class SMGCPAValueVisitor
     }
 
     // Function pointers
-    if (leftValue instanceof FunctionValue || rightValue instanceof FunctionValue) {
+    if (leftValueWithCorrectType instanceof FunctionValue
+        || rightValueWithCorrectType instanceof FunctionValue) {
       // TODO: we now allow unknown to end up in the values, handle here as well!
-      checkArgument(!(leftValue.isUnknown() || rightValue.isUnknown()));
+      checkArgument(
+          !(leftValueWithCorrectType.isUnknown() || rightValueWithCorrectType.isUnknown()));
       return ImmutableList.of(
           ValueAndSMGState.of(
-              calculateExpressionWithFunctionValue(binaryOperator, rightValue, leftValue),
+              calculateExpressionWithFunctionValue(
+                  binaryOperator, rightValueWithCorrectType, leftValueWithCorrectType),
               currentState));
     }
 
@@ -609,28 +616,32 @@ public class SMGCPAValueVisitor
     // symbolicExpressions, and this is only correct if we don't use the wrapping of the
     // AddressExpressions, but full pointers
     checkArgument(
-        !(leftValue instanceof AddressExpression || rightValue instanceof AddressExpression));
+        !(leftValueWithCorrectType instanceof AddressExpression
+            || rightValueWithCorrectType instanceof AddressExpression));
 
     // We also don't want location representations in SymbolicIdentifiers (as we use them for arrays
     // in SMG2)
     checkArgument(
-        !(leftValue instanceof SymbolicIdentifier leftSymIdent)
+        !(leftValueWithCorrectType instanceof SymbolicIdentifier leftSymIdent)
             || leftSymIdent.getRepresentedLocation().isEmpty());
     checkArgument(
-        !(rightValue instanceof SymbolicIdentifier rightSymIdent)
+        !(rightValueWithCorrectType instanceof SymbolicIdentifier rightSymIdent)
             || rightSymIdent.getRepresentedLocation().isEmpty());
     // TODO: unwrap consts to check as well?
 
     if (binaryOperator.isLogicalOperator()) {
       // Comparisons, i.e. ==, !=, <, >, <=, >=
-      Value returnValue = handleComparisonOperation(leftValue, rightValue, binaryOperator, e);
+      Value returnValue =
+          handleComparisonOperation(
+              leftValueWithCorrectType, rightValueWithCorrectType, binaryOperator, e);
       // We do not cast here, because 0 and 1 are small enough for every type.
       return ImmutableList.of(ValueAndSMGState.of(returnValue, currentState));
 
     } else {
       // Arithmetic and bitwise operations, i.e. +, -, *, /, %, <<, >>, |, &, ^
       Value arithResult =
-          handleBinaryArithmeticOrBitwiseOperation(leftValue, rightValue, binaryOperator, e);
+          handleBinaryArithmeticOrBitwiseOperation(
+              leftValueWithCorrectType, rightValueWithCorrectType, binaryOperator, e);
       return ImmutableList.of(castCValue(arithResult, e.getExpressionType(), currentState));
     }
   }
