@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_AND;
@@ -821,7 +822,6 @@ public class SMGCPAValueVisitor
    * options). This method guarantees that if true or false is returned, the negation also holds
    * (i.e. that !(ptr == 123) == ptr != 123)
    */
-  @SuppressWarnings("UnusedVariable")
   private Value getAddressEqualityWithNumber(
       Value address,
       CType addressType,
@@ -831,6 +831,11 @@ public class SMGCPAValueVisitor
       CType calculationType)
       throws SMGException, SMGSolverException {
     checkArgument(pCurrentState.isPointer(address));
+
+    // TODO: the types will be useful later to determine in/equality w type info
+    checkNotNull(addressType);
+    checkNotNull(nonAddressValueType);
+
     if (pCurrentState.isPointer(nonAddressValue)) {
       return evaluator.checkEqualityForAddresses(address, nonAddressValue, pCurrentState);
     }
