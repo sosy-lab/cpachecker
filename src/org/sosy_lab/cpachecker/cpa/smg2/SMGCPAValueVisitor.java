@@ -1131,13 +1131,12 @@ public class SMGCPAValueVisitor
                 currentState));
 
       } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
-        // Pointer/Array/Function types should return a Value that internally can be translated into
-        // a
-        // SMGValue that leads to an SMGPointsToEdge that leads to the correct object (with
-        // potential
-        // offsets inside the points to edge). These have to be packaged into an AddressExpression
-        // with a 0 offset. Modifications of the offset of the address can be done by subsequent
-        // methods. (The check is fine because we already filtered out structs/unions)
+        // Pointer/Array/Function types should return a Value that internally can be translated
+        // into a SMGValue that leads to an SMGPointsToEdge that leads to the correct object
+        // (with potential offsets inside the points to edge).
+        // These have to be packaged into an AddressExpression with a 0 offset.
+        // Modifications of the offset of the address can be done by subsequent methods.
+        // (The check is fine because we already filtered out structs/unions)
         Value sizeInBitsValue =
             evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
         BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
@@ -2185,6 +2184,20 @@ public class SMGCPAValueVisitor
       return ImmutableList.of(ValueAndSMGState.of(leftValue, currentState));
     } else if (leftIsZero) {
       return ImmutableList.of(ValueAndSMGState.of(rightValue, currentState));
+    } else if (leftValue == rightValue
+        && binaryOperator == MINUS
+        && (leftValueType instanceof CSimpleType simpleLeftType
+            && rightValueType instanceof CSimpleType simpleRightType
+            && calculationType instanceof CSimpleType simpleCalcType
+            && machineModel.getSizeofInBits(simpleLeftType)
+                >= machineModel.getSizeofInBits(machineModel.getPointerSizedIntType())
+            && machineModel.getSizeofInBits(simpleRightType)
+                >= machineModel.getSizeofInBits(machineModel.getPointerSizedIntType())
+            && machineModel.getSizeofInBits(simpleCalcType)
+                >= machineModel.getSizeofInBits(machineModel.getPointerSizedIntType()))) {
+      // Types are not allowed to restrict the address (i.e. be smaller than the address)
+      // x - x == 0
+      return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
     }
 
     if (leftIsPointer && !rightIsPointer) {
