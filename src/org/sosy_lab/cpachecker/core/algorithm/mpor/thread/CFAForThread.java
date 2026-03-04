@@ -48,7 +48,7 @@ public class CFAForThread {
   public final ImmutableList<CFANodeForThread> threadNodes;
 
   /** The (sub)set of CFANode loop heads from the original input CFA that this thread can reach. */
-  public final ImmutableSet<CFANode> loopHeads;
+  private final ImmutableSet<CFANode> loopHeads;
 
   public final ImmutableList<CFAEdgeForThread> threadEdges;
 
@@ -191,6 +191,10 @@ public class CFAForThread {
       }
     }
     return Optional.empty();
+  }
+
+  public ImmutableSet<CFANode> getLoopHeads() {
+    return loopHeads;
   }
 
   @Override

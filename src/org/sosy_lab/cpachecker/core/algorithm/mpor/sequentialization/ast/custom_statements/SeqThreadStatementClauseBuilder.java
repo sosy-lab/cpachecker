@@ -331,10 +331,13 @@ public record SeqThreadStatementClauseBuilder(
       int pLabelPc,
       ImmutableList<SeqThreadStatement> pStatements) {
 
-    boolean isLoopHead = isLoopHead(pThread.cfa().loopHeads, pStatements);
     SeqThreadStatementBlock block =
         new SeqThreadStatementBlock(
-            pThread.id(), pLabelPc, pStatements, isLoopHead, pNextThreadLabel);
+            pThread.id(),
+            pLabelPc,
+            pStatements,
+            isLoopHead(pThread.cfa().getLoopHeads(), pStatements),
+            pNextThreadLabel);
     return new SeqThreadStatementClause(options, block);
   }
 
