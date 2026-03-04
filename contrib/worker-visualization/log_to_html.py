@@ -32,6 +32,7 @@ ENCODING = "UTF-8"
 
 class MessageType(Enum):
     """Enumeration of message types in the distributed block analysis."""
+
     POST_CONDITION = "POST_CONDITION"
     VIOLATION_CONDITION = "VIOLATION_CONDITION"
     FOUND_RESULT = "FOUND_RESULT"
@@ -40,6 +41,7 @@ class MessageType(Enum):
 @dataclass
 class Message:
     """Data class representing a worker message."""
+
     timestamp: int
     sender_id: str
     message_type: MessageType
@@ -50,7 +52,9 @@ class Message:
     code: str
 
     @classmethod
-    def from_json(cls, json_data: Dict[str, Any], block_logs: Dict[str, Any]) -> 'Message':
+    def from_json(
+        cls, json_data: Dict[str, Any], block_logs: Dict[str, Any]
+    ) -> "Message":
         """Create a Message instance from JSON data."""
         header = json_data["header"]
         sender_id = header["senderId"]
@@ -64,7 +68,7 @@ class Message:
             filename=json_data.get("filename", ""),
             predecessors=block_info.get("predecessors", []),
             successors=block_info.get("successors", []),
-            code="\n".join(x for x in block_info.get("code", []) if x)
+            code="\n".join(x for x in block_info.get("code", []) if x),
         )
 
 
@@ -78,7 +82,7 @@ Examples:
   %(prog)s
   %(prog)s --messages-json output/messages --block-structure-json output/blocks.json
   %(prog)s -o visualization --export-keys state predicates
-        """
+        """,
     )
     parser.add_argument(
         "--messages-json",
@@ -113,7 +117,9 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
 
     args.block_structure_json = Path(args.block_structure_json)
     if not args.block_structure_json.exists():
-        raise ValueError(f"Block structure file does not exist: {args.block_structure_json}")
+        raise ValueError(
+            f"Block structure file does not exist: {args.block_structure_json}"
+        )
 
     args.messages_json = Path(args.messages_json)
     if not args.messages_json.is_dir():
@@ -137,7 +143,9 @@ def load_json_file(json_file: Path) -> Dict[str, Any]:
         return {}
 
 
-def filter_content_by_keys(content: Dict[str, Any], export_keys: List[str]) -> Dict[str, Any]:
+def filter_content_by_keys(
+    content: Dict[str, Any], export_keys: List[str]
+) -> Dict[str, Any]:
     """Filter message content based on export keys."""
     if not export_keys:
         return content
@@ -151,8 +159,11 @@ def filter_content_by_keys(content: Dict[str, Any], export_keys: List[str]) -> D
     return filtered
 
 
-def generate_message_html(message: Optional[Dict[str, Any]], block_logs: Dict[str, Any],
-                          export_keys: List[str]) -> str:
+def generate_message_html(
+    message: Optional[Dict[str, Any]],
+    block_logs: Dict[str, Any],
+    export_keys: List[str],
+) -> str:
     """Generate HTML representation of a single message."""
     if not message:
         return "<div></div>"
@@ -187,13 +198,13 @@ def generate_message_html(message: Optional[Dict[str, Any]], block_logs: Dict[st
         <div class="message-header">
             <span class="message-arrow">{arrow}</span>
             <span class="message-info">
-                From <strong>{', '.join(senders)}</strong>
+                From <strong>{", ".join(senders)}</strong>
                 <span class="message-id">(ID: {msg_id[1:-5]})</span>
             </span>
         </div>
         <div class="message-direction">
-            To <strong>{', '.join(receivers) if receivers else 'None'}</strong>
-            <span class="message-type-badge">{message_type.replace('_', ' ')}</span>
+            To <strong>{", ".join(receivers) if receivers else "None"}</strong>
+            <span class="message-type-badge">{message_type.replace("_", " ")}</span>
         </div>
         <details class="message-content">
             <summary>View Content</summary>
@@ -204,8 +215,9 @@ def generate_message_html(message: Optional[Dict[str, Any]], block_logs: Dict[st
     return html
 
 
-def generate_html_table(messages: List[Dict[str, Any]], block_logs: Dict[str, Any],
-                        export_keys: List[str]) -> str:
+def generate_html_table(
+    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+) -> str:
     """Generate HTML table from messages."""
     if not messages:
         return "<p>No messages to display.</p>"
@@ -233,7 +245,7 @@ def generate_html_table(messages: List[Dict[str, Any]], block_logs: Dict[str, An
     type_to_class = {
         "POST_CONDITION": "post-condition",
         "VIOLATION_CONDITION": "violation-condition",
-        "FOUND_RESULT": "found-result"
+        "FOUND_RESULT": "found-result",
     }
 
     # Build table HTML
@@ -243,11 +255,13 @@ def generate_html_table(messages: List[Dict[str, Any]], block_logs: Dict[str, An
     html_parts.append('<thead><tr class="header-row">')
     html_parts.append('<th class="time-column">Time</th>')
     for block_id in sorted_block_ids:
-        html_parts.append(f'<th class="block-column" data-block="{block_id}">{block_id}</th>')
-    html_parts.append('</tr></thead>')
+        html_parts.append(
+            f'<th class="block-column" data-block="{block_id}">{block_id}</th>'
+        )
+    html_parts.append("</tr></thead>")
 
     # Table body
-    html_parts.append('<tbody>')
+    html_parts.append("<tbody>")
     for timestamp in sorted(timestamp_to_messages.keys()):
         row_messages = timestamp_to_messages[timestamp]
         html_parts.append(f'<tr data-timestamp="{timestamp}">')
@@ -261,20 +275,21 @@ def generate_html_table(messages: List[Dict[str, Any]], block_logs: Dict[str, An
                 css_class = type_to_class.get(msg_type, "normal")
                 cell_html = generate_message_html(msg, block_logs, export_keys)
                 html_parts.append(
-                    f'<td class="message-cell {css_class}" data-type="{msg_type}">{cell_html}</td>')
+                    f'<td class="message-cell {css_class}" data-type="{msg_type}">{cell_html}</td>'
+                )
 
-        html_parts.append('</tr>')
-    html_parts.append('</tbody>')
-    html_parts.append('</table>')
+        html_parts.append("</tr>")
+    html_parts.append("</tbody>")
+    html_parts.append("</table>")
 
-    return '\n'.join(html_parts)
+    return "\n".join(html_parts)
 
 
 def visualize_block_graph(
-        block_structure_file: Path,
-        output_path: Path,
-        output_dot_name: str = "graph.dot",
-        output_png_name: str = "graph.png",
+    block_structure_file: Path,
+    output_path: Path,
+    output_dot_name: str = "graph.dot",
+    output_png_name: str = "graph.png",
 ) -> None:
     """Generate block structure graph visualization."""
     block_logs = load_json_file(block_structure_file)
@@ -316,8 +331,9 @@ def visualize_block_graph(
         print(f"WARNING: Failed to generate PNG from DOT file: {e}", file=sys.stderr)
 
 
-def generate_timeline_view(messages: List[Dict[str, Any]], block_logs: Dict[str, Any],
-                           export_keys: List[str]) -> str:
+def generate_timeline_view(
+    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+) -> str:
     """Generate timeline view HTML where messages are shown chronologically."""
     if not messages:
         return "<p>No messages to display.</p>"
@@ -336,7 +352,7 @@ def generate_timeline_view(messages: List[Dict[str, Any]], block_logs: Dict[str,
     type_to_class = {
         "POST_CONDITION": "post-condition",
         "VIOLATION_CONDITION": "violation-condition",
-        "FOUND_RESULT": "found-result"
+        "FOUND_RESULT": "found-result",
     }
 
     html_parts = ['<div class="timeline-container">']
@@ -363,9 +379,17 @@ def generate_timeline_view(messages: List[Dict[str, Any]], block_logs: Dict[str,
             # Determine message direction and participants
             arrow, senders, receivers = "-", ["all"], ["all"]
             if message_type == "POST_CONDITION":
-                arrow, senders, receivers = "&darr;", predecessors or ["Self"], successors
+                arrow, senders, receivers = (
+                    "&darr;",
+                    predecessors or ["Self"],
+                    successors,
+                )
             elif message_type == "VIOLATION_CONDITION":
-                arrow, senders, receivers = "&uarr;", successors or ["Self"], predecessors
+                arrow, senders, receivers = (
+                    "&uarr;",
+                    successors or ["Self"],
+                    predecessors,
+                )
             elif message_type == "FOUND_RESULT":
                 senders = [msg.get("from", "Self")]
 
@@ -381,17 +405,17 @@ def generate_timeline_view(messages: List[Dict[str, Any]], block_logs: Dict[str,
                 <div class="timeline-card-header">
                     <span class="timeline-arrow">{arrow}</span>
                     <span class="timeline-sender"><strong>{sender_id}</strong></span>
-                    <span class="timeline-type-badge">{message_type.replace('_', ' ')}</span>
+                    <span class="timeline-type-badge">{message_type.replace("_", " ")}</span>
                 </div>
                 <div class="timeline-card-body">
                     <div class="timeline-participants">
                         <div class="timeline-participant-group">
                             <span class="label">From:</span> 
-                            <span class="value">{', '.join(senders)}</span>
+                            <span class="value">{", ".join(senders)}</span>
                         </div>
                         <div class="timeline-participant-group">
                             <span class="label">To:</span> 
-                            <span class="value">{', '.join(receivers) if receivers else 'None'}</span>
+                            <span class="value">{", ".join(receivers) if receivers else "None"}</span>
                         </div>
                     </div>
                     <div class="timeline-msg-id">ID: {msg_id[1:-5]}</div>
@@ -403,19 +427,19 @@ def generate_timeline_view(messages: List[Dict[str, Any]], block_logs: Dict[str,
             </div>
             ''')
 
-        html_parts.append('</div>')  # Close timeline-messages
-        html_parts.append('</div>')  # Close timeline-row
+        html_parts.append("</div>")  # Close timeline-messages
+        html_parts.append("</div>")  # Close timeline-row
 
-    html_parts.append('</div>')  # Close timeline-container
-    return '\n'.join(html_parts)
+    html_parts.append("</div>")  # Close timeline-container
+    return "\n".join(html_parts)
 
 
 def generate_html_report(
-        messages: List[Dict[str, Any]],
-        block_logs: Dict[str, Any],
-        output_path: Path,
-        export_keys: Optional[List[str]] = None,
-        report_filename: str = "report.html",
+    messages: List[Dict[str, Any]],
+    block_logs: Dict[str, Any],
+    output_path: Path,
+    export_keys: Optional[List[str]] = None,
+    report_filename: str = "report.html",
 ) -> Path:
     """Generate the complete HTML report with embedded styles and scripts."""
     export_keys = export_keys or []
@@ -473,7 +497,7 @@ def generate_html_report(
                 <div class="filter-section">
                     <label>Filter by Message Type:</label>
                     <div class="filter-buttons">
-                        {' '.join(f'<button class="filter-btn active" data-filter-type="{mt}">{mt.replace("_", " ")}</button>' for mt in message_types)}
+                        {" ".join(f'<button class="filter-btn active" data-filter-type="{mt}">{mt.replace("_", " ")}</button>' for mt in message_types)}
                     </div>
                 </div>
                 
@@ -557,10 +581,10 @@ def generate_html_report(
 
 
 def load_and_process_messages(
-        message_dir: Path,
-        block_structure_json: Path,
-        output_path: Path,
-        export_keys: Optional[List[str]] = None,
+    message_dir: Path,
+    block_structure_json: Path,
+    output_path: Path,
+    export_keys: Optional[List[str]] = None,
 ) -> Optional[Path]:
     """Load messages from directory and generate visualization."""
     all_messages = []
@@ -569,8 +593,12 @@ def load_and_process_messages(
     # Get sorted list of JSON message files
     try:
         json_files = sorted(
-            [f.name for f in message_dir.iterdir() if f.is_file() and f.suffix == ".json"],
-            key=lambda name: name[1:-5] if name[0].isdigit() else name
+            [
+                f.name
+                for f in message_dir.iterdir()
+                if f.is_file() and f.suffix == ".json"
+            ],
+            key=lambda name: name[1:-5] if name[0].isdigit() else name,
         )
     except Exception as e:
         print(f"ERROR: Failed to read message directory: {e}", file=sys.stderr)
@@ -1568,8 +1596,7 @@ def main(argv=None):
     # Generate block graph visualization
     print("Generating block structure visualization...")
     visualize_block_graph(
-        block_structure_file=args.block_structure_json,
-        output_path=output_path
+        block_structure_file=args.block_structure_json, output_path=output_path
     )
 
     # Generate message visualization
