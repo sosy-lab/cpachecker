@@ -39,8 +39,14 @@ int main() {
   unsigned long ulPtr = (unsigned long) ptr;
 
   for (int i = 0; i < memory_size; i++) {
-    assert((int *) intPtr == ptr || (int *) uintPtr == ptr || (int *) llPtr == ptr || (int *) ulPtr == ptr);
-    assert(intPtr == (intptr_t) ptr || uintPtr == (uintptr_t) ptr || llPtr == (long long) ptr || ulPtr == (unsigned long) ptr);
+    assert((int *) intPtr == ptr);
+    assert((int *) uintPtr == ptr);
+    assert((int *) llPtr == ptr);
+    assert((int *) ulPtr == ptr);
+    assert(intPtr == (intptr_t) ptr);
+    assert(uintPtr == (uintptr_t) ptr);
+    assert(llPtr == (long long) ptr);
+    assert(ulPtr == (unsigned long) ptr);
 
     *(int *) intPtr = i;
     *otherPtr = i + 1;
@@ -59,8 +65,14 @@ int main() {
     assert(otherPtr == otherPtr);
 
     // Check that the cast values are consistent before decrements
-    assert((int *) intPtr == ptr || (int *) uintPtr == ptr || (int *) llPtr == ptr || (int *) ulPtr == ptr);
-    assert(intPtr == (intptr_t) ptr || uintPtr == (uintptr_t) ptr || llPtr == (long long) ptr || ulPtr == (unsigned long) ptr);
+    assert((int *) intPtr == ptr);
+    assert((int *) uintPtr == ptr);
+    assert((int *) llPtr == ptr);
+    assert((int *) ulPtr == ptr);
+    assert(intPtr == (intptr_t) ptr);
+    assert(uintPtr == (uintptr_t) ptr);
+    assert(llPtr == (long long) ptr);
+    assert(ulPtr == (unsigned long) ptr);
 
     // TODO: find out whether this can be negative and add appropriate tests
     // intptr_t intPtr_before_dec = intPtr;
@@ -76,38 +88,80 @@ int main() {
     ulPtr = ulPtr - 4;
 
     // Check that the cast values are consistent after decrements
-    assert(intPtr == (intptr_t) ptr || uintPtr == (uintptr_t) ptr || llPtr == (long long) ptr || ulPtr == (unsigned long) ptr);
+    // Decrementing an integer pointer is equal to subtracting 4 bytes from its address
+    assert(intPtr == (intptr_t) ptr);
+    assert(uintPtr == (uintptr_t) ptr);
+    assert(llPtr == (long long) ptr);
+    assert(ulPtr == (unsigned long) ptr);
 
-    assert((int *) intPtr == ptr || (int *) uintPtr == ptr ||  (int *) llPtr == ptr || (int *) ulPtr == ptr);
-    assert(*(int *) intPtr == i || *(int *) uintPtr == i || *(int *) llPtr == i || *(int *) ulPtr == i);
+    assert((int *) intPtr == ptr);
+    assert((int *) uintPtr == ptr);
+    assert((int *) llPtr == ptr);
+    assert((int *) ulPtr == ptr);
+
+    assert(*(int *) intPtr == i);
+    assert(*(int *) uintPtr == i);
+    assert(*(int *) llPtr == i);
+    assert(*(int *) ulPtr == i);
 
     // Distance to itself
-    assert(intPtr - intPtr == 0 || uintPtr - uintPtr == 0 || llPtr - llPtr == 0 || ulPtr - ulPtr == 0);
+    assert(intPtr - intPtr == 0);
+    assert(uintPtr - uintPtr == 0);
+    assert(llPtr - llPtr == 0);
+    assert(ulPtr - ulPtr == 0);
+
     // Distance to before dec
-    assert(uintPtr_before_dec - uintPtr == 4 || llPtr - llPtr_before_dec == -4 || ulPtr - ulPtr_before_dec == -4);
+    assert(uintPtr_before_dec - uintPtr == 4);
+    assert(llPtr - llPtr_before_dec == -4);
+    assert(ulPtr - ulPtr_before_dec == -4);
 
     // intptr_t can be negative (i think), but long long can fit the entire pointer in its positive range, hence they are NEVER negative!
-    assert(uintPtr_before_dec > uintPtr || ulPtr_before_dec > ulPtr || llPtr_before_dec > llPtr);
+    assert(uintPtr_before_dec > uintPtr);
+    assert(ulPtr_before_dec > ulPtr);
+    assert(llPtr_before_dec > llPtr);
 
-    assert(uintPtr_before_dec >= uintPtr || ulPtr_before_dec >= ulPtr || llPtr_before_dec >= llPtr);
+    assert(uintPtr_before_dec >= uintPtr);
+    assert(ulPtr_before_dec >= ulPtr);
+    assert(llPtr_before_dec >= llPtr);
 
-    assert( !(uintPtr_before_dec < uintPtr) || !(ulPtr_before_dec < ulPtr) || !(llPtr_before_dec < llPtr));
+    assert( !(uintPtr_before_dec < uintPtr));
+    assert(!(ulPtr_before_dec < ulPtr));
+    assert(!(llPtr_before_dec < llPtr));
 
-    assert(!(uintPtr_before_dec <= uintPtr) || !(ulPtr_before_dec <= ulPtr) || !(llPtr_before_dec <= llPtr));
+    assert(!(uintPtr_before_dec <= uintPtr));
+    assert(!(ulPtr_before_dec <= ulPtr));
+    assert(!(llPtr_before_dec <= llPtr));
 
-    assert(uintPtr_before_dec != uintPtr || ulPtr_before_dec != ulPtr || llPtr_before_dec != llPtr);
+    assert(uintPtr_before_dec != uintPtr);
+    assert(ulPtr_before_dec != ulPtr);
+    assert(llPtr_before_dec != llPtr);
 
-    assert(!(uintPtr + 1 < uintPtr) || !(ulPtr + 1 < ulPtr) || !(llPtr + 1 < llPtr));
+    assert(!(uintPtr + 1 < uintPtr));
+    assert(!(ulPtr + 1 < ulPtr));
+    assert(!(llPtr + 1 < llPtr));
 
-    assert(uintPtr + 1 >= uintPtr || ulPtr + 1 >= ulPtr || llPtr + 1 >= llPtr);
+    assert(uintPtr + 1 >= uintPtr);
+    assert(ulPtr + 1 >= ulPtr);
+    assert(llPtr + 1 >= llPtr);
 
-    assert(uintPtr + 1 > uintPtr || ulPtr + 1 > ulPtr || llPtr + 1 > llPtr);
+    assert(uintPtr + 1 > uintPtr);
+    assert(ulPtr + 1 > ulPtr);
+    assert(llPtr + 1 > llPtr);
 
-    assert(intPtr <= intPtr || uintPtr <= uintPtr || llPtr <= llPtr || ulPtr <= ulPtr);
+    assert(intPtr <= intPtr);
+    assert(uintPtr <= uintPtr);
+    assert(llPtr <= llPtr);
+    assert(ulPtr <= ulPtr);
 
-    assert(intPtr >= (intptr_t) ptr || uintPtr >= (uintptr_t) ptr || llPtr >= (long long) ptr || ulPtr >= (unsigned long) ptr);
+    assert(intPtr >= (intptr_t) ptr);
+    assert(uintPtr >= (uintptr_t) ptr);
+    assert(llPtr >= (long long) ptr);
+    assert(ulPtr >= (unsigned long) ptr);
 
-    assert(!(intPtr != (intptr_t) ptr) || !(uintPtr != (uintptr_t) ptr) || !(llPtr != (long long) ptr) || !(ulPtr != (unsigned long) ptr));
+    assert(!(intPtr != (intptr_t) ptr));
+    assert(!(uintPtr != (uintptr_t) ptr));
+    assert(!(llPtr != (long long) ptr));
+    assert(!(ulPtr != (unsigned long) ptr));
   }
 
   int * ptrPlusOne = 1 + ptr;
@@ -197,7 +251,10 @@ int main() {
 
 
   // Check some pointers (generated out of the 2 originals) for value consistency
-  assert(*(int *)(uintPtr + 8) == *(int *)(intPtr + 16) - 2 || *(int *)(uintPtr + 8) == 2 || *(int *)(uintPtr + 8) == *otherPtr + 1 || *(int *)(ulPtr + 4) == 1);
+  assert(*(int *)(uintPtr + 8) == *(int *)(intPtr + 16) - 2);
+    assert(*(int *)(uintPtr + 8) == 2);
+    assert(*(int *)(uintPtr + 8) == *otherPtr + 1);
+    assert(*(int *)(ulPtr + 4) == 1);
   
 
   free((int *)uintPtr); // initial pointer, so this is safe
