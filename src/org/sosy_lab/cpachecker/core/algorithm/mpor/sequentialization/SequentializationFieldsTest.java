@@ -288,7 +288,9 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads).isEqualTo(4);
+    // there are 3 pthread_create calls + the main thread. however, the last pthread_create is not
+    // reachable due to a while (1) loop that never terminates.
+    assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
