@@ -128,7 +128,7 @@ public class ArrayAbstraction {
               indexType,
               indexExpression,
               updateStepExpression,
-              CBinaryExpression.BinaryOperator.MODULO);
+              CBinaryExpression.BinaryOperator.REMAINDER);
 
       BigInteger startValue = pIndex.getInitializeOperation().getValue();
       BigInteger remainder = startValue.remainder(updateStepValue);

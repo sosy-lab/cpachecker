@@ -56,7 +56,7 @@ public class ToCExpressionVisitorTest {
         builder.buildBinaryExpression(
             CIntegerLiteralExpression.createDummyLiteral(0b01, CNumericTypes.INT),
             CIntegerLiteralExpression.createDummyLiteral(0b01, CNumericTypes.INT),
-            BinaryOperator.BINARY_AND));
+            BinaryOperator.BITWISE_AND));
   }
 
   private ExpressionTree<AExpression> createRightTree() throws UnrecognizedCodeException {
@@ -64,7 +64,7 @@ public class ToCExpressionVisitorTest {
         builder.buildBinaryExpression(
             CIntegerLiteralExpression.createDummyLiteral(0b10, CNumericTypes.INT),
             CIntegerLiteralExpression.createDummyLiteral(0b11, CNumericTypes.INT),
-            BinaryOperator.BINARY_AND));
+            BinaryOperator.BITWISE_AND));
   }
 
   private ExpressionTree<AExpression> createTreeOnlyFalse() throws UnrecognizedCodeException {
@@ -72,7 +72,7 @@ public class ToCExpressionVisitorTest {
         builder.buildBinaryExpression(
             CIntegerLiteralExpression.createDummyLiteral(0b00, CNumericTypes.INT),
             CIntegerLiteralExpression.createDummyLiteral(0b00, CNumericTypes.INT),
-            BinaryOperator.BINARY_AND));
+            BinaryOperator.BITWISE_AND));
   }
 
   private BooleanFormula convertCExpressionToBooleanFormula(

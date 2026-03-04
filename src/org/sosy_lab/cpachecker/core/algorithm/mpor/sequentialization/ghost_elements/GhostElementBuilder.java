@@ -13,9 +13,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariablesBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariableBuilder;
@@ -29,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
 public record GhostElementBuilder(
     MPOROptions options,
@@ -39,9 +39,10 @@ public record GhostElementBuilder(
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   public GhostElements buildGhostElements() throws UnrecognizedCodeException {
-    Optional<BitVectorVariables> bitVectorVariables =
+    Optional<SeqBitVectorVariables> bitVectorVariables =
         options.isAnyBitVectorReductionEnabled()
-            ? new BitVectorBuilder(options, threads, substituteEdges, memoryModel.orElseThrow())
+            ? new SeqBitVectorVariablesBuilder(
+                    options, threads, substituteEdges, memoryModel.orElseThrow())
                 .buildBitVectorVariables()
             : Optional.empty();
 
@@ -71,14 +72,14 @@ public record GhostElementBuilder(
         threadSyncFlags);
   }
 
-  private ImmutableMap<MPORThread, SeqThreadLabelStatement> buildThreadLabels() {
+  private ImmutableMap<MPORThread, CLabelStatement> buildThreadLabels() {
     if (!options.isThreadLabelRequired()) {
       return ImmutableMap.of();
     }
-    ImmutableMap.Builder<MPORThread, SeqThreadLabelStatement> rLabels = ImmutableMap.builder();
+    ImmutableMap.Builder<MPORThread, CLabelStatement> rLabels = ImmutableMap.builder();
     for (MPORThread thread : threads) {
       String name = SeqNameUtil.buildThreadPrefix(options, thread.id());
-      rLabels.put(thread, new SeqThreadLabelStatement(name));
+      rLabels.put(thread, new CLabelStatement(name));
     }
     return rLabels.buildOrThrow();
   }

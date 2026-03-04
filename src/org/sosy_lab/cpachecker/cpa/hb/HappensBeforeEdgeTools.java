@@ -121,7 +121,7 @@ final class HappensBeforeEdgeTools {
                         CNumericTypes.UNSIGNED_INT,
                         expr1,
                         expr2,
-                        BinaryOperator.BINARY_AND));
+                        BinaryOperator.BITWISE_AND));
     return new CAssumeEdge(
         expr.toASTString(), node.getFunction().getFileLocation(), node, node, expr, false);
   }

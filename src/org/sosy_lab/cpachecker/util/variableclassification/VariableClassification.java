@@ -16,12 +16,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSortedMultiset;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -37,10 +40,10 @@ public class VariableClassification implements Serializable {
 
   private final boolean hasRelevantNonIntAddVars;
 
-  private final Set<String> intBoolVars;
-  private final Set<String> intEqualVars;
-  private final Set<String> intAddVars;
-  private final Set<String> intOverflowVars;
+  private final ImmutableSortedSet<String> intBoolVars;
+  private final ImmutableSortedSet<String> intEqualVars;
+  private final ImmutableSortedSet<String> intAddVars;
+  private final ImmutableSortedSet<String> intOverflowVars;
 
   /**
    * These sets contain all variables even ones of array, pointer or structure types. Such variables
@@ -49,27 +52,28 @@ public class VariableClassification implements Serializable {
    */
   // Initially contains variables used in assumes and assigned to pointer dereferences,
   // then all essential variables (by propagation)
-  private final Set<String> relevantVariables;
+  private final ImmutableSortedSet<String> relevantVariables;
 
-  private final Set<String> addressedVariables;
+  private final ImmutableSortedSet<String> addressedVariables;
 
-  private final Multiset<String> assumedVariables;
-  private final Multiset<String> assignedVariables;
+  private final ImmutableSortedMultiset<String> assumedVariables;
+  private final ImmutableSortedMultiset<String> assignedVariables;
 
   /**
    * Fields information doesn't take any aliasing information into account, fields are considered
    * per type, not per composite instance
    */
   // Initially contains fields used in assumes and assigned to pointer dereferences,
-  // then all essential fields (by propagation)
-  private final Multimap<CCompositeType, String> relevantFields;
+  // then all essential fields (by propagation).
+  // relevant and addressed fields are sorted by name for keys and naturally for values.
+  private final ImmutableSetMultimap<CCompositeType, String> relevantFields;
 
-  private final Multimap<CCompositeType, String> addressedFields;
+  private final ImmutableSetMultimap<CCompositeType, String> addressedFields;
 
-  private final Set<Partition> partitions;
-  private final Set<Partition> intBoolPartitions;
-  private final Set<Partition> intEqualPartitions;
-  private final Set<Partition> intAddPartitions;
+  private final ImmutableSortedSet<Partition> partitions;
+  private final ImmutableSortedSet<Partition> intBoolPartitions;
+  private final ImmutableSortedSet<Partition> intEqualPartitions;
+  private final ImmutableSortedSet<Partition> intAddPartitions;
 
   private final Table<CFAEdge, Integer, Partition> edgeToPartitions;
 
@@ -91,21 +95,31 @@ public class VariableClassification implements Serializable {
       Multiset<String> pAssumedVariables,
       Multiset<String> pAssignedVariables) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
-    intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
-    intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
-    intAddVars = ImmutableSet.copyOf(pIntAddVars);
-    intOverflowVars = ImmutableSet.copyOf(pIntOverflowVars);
-    relevantVariables = ImmutableSet.copyOf(pRelevantVariables);
-    addressedVariables = ImmutableSet.copyOf(pAddressedVariables);
-    relevantFields = ImmutableSetMultimap.copyOf(pRelevantFields);
-    addressedFields = ImmutableSetMultimap.copyOf(pAddressedFields);
-    partitions = ImmutableSet.copyOf(pPartitions);
-    intBoolPartitions = ImmutableSet.copyOf(pIntBoolPartitions);
-    intEqualPartitions = ImmutableSet.copyOf(pIntEqualPartitions);
-    intAddPartitions = ImmutableSet.copyOf(pIntAddPartitions);
+    intBoolVars = ImmutableSortedSet.copyOf(pIntBoolVars);
+    intEqualVars = ImmutableSortedSet.copyOf(pIntEqualVars);
+    intAddVars = ImmutableSortedSet.copyOf(pIntAddVars);
+    intOverflowVars = ImmutableSortedSet.copyOf(pIntOverflowVars);
+    relevantVariables = ImmutableSortedSet.copyOf(pRelevantVariables);
+    addressedVariables = ImmutableSortedSet.copyOf(pAddressedVariables);
+    relevantFields =
+        ImmutableSetMultimap.<CCompositeType, String>builder()
+            .putAll(pRelevantFields)
+            .orderKeysBy(Comparator.comparing(c -> c.getName()))
+            .orderValuesBy(Comparator.naturalOrder())
+            .build();
+    addressedFields =
+        ImmutableSetMultimap.<CCompositeType, String>builder()
+            .putAll(pAddressedFields)
+            .orderKeysBy(Comparator.comparing(c -> c.getName()))
+            .orderValuesBy(Comparator.naturalOrder())
+            .build();
+    partitions = ImmutableSortedSet.copyOf(pPartitions);
+    intBoolPartitions = ImmutableSortedSet.copyOf(pIntBoolPartitions);
+    intEqualPartitions = ImmutableSortedSet.copyOf(pIntEqualPartitions);
+    intAddPartitions = ImmutableSortedSet.copyOf(pIntAddPartitions);
     edgeToPartitions = ImmutableTable.copyOf(pEdgeToPartitions);
-    assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
-    assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
+    assumedVariables = ImmutableSortedMultiset.copyOf(pAssumedVariables);
+    assignedVariables = ImmutableSortedMultiset.copyOf(pAssignedVariables);
   }
 
   @VisibleForTesting
@@ -159,9 +173,11 @@ public class VariableClassification implements Serializable {
    * All fields that may be essential for reachability properties (only fields accessed explicitly
    * through either dot (.) or arrow (->) operator count).
    *
-   * @return A collection of (CCompositeType, fieldName) mappings.
+   * @return A collection of (CCompositeType, fieldName) mappings, whose keys are sorted by natural
+   *     string order of {@link CCompositeType#getName()} and values are sorted by natural string
+   *     order.
    */
-  public Multimap<CCompositeType, String> getRelevantFields() {
+  public ImmutableSetMultimap<CCompositeType, String> getRelevantFields() {
     return relevantFields;
   }
 
@@ -169,9 +185,11 @@ public class VariableClassification implements Serializable {
    * All fields that have their addresses taken somewhere in the source code. (only fields accessed
    * explicitly through either dot (.) or arrow (->) operator count).
    *
-   * @return A collection of (CCompositeType, fieldName) mappings.
+   * @return A collection of (CCompositeType, fieldName) mappings, whose keys are sorted by natural
+   *     string order of {@link CCompositeType#getName()} and * values are sorted by natural string
+   *     order.
    */
-  public Multimap<CCompositeType, String> getAddressedFields() {
+  public ImmutableSetMultimap<CCompositeType, String> getAddressedFields() {
     return addressedFields;
   }
 
@@ -179,14 +197,14 @@ public class VariableClassification implements Serializable {
    * This function returns a collection of scoped names. This collection contains all vars, that are
    * boolean, i.e. the value is 0 or 1.
    */
-  public Set<String> getIntBoolVars() {
+  public ImmutableSortedSet<String> getIntBoolVars() {
     return intBoolVars;
   }
 
   /**
    * This function returns a collection of partitions. Each partition contains only boolean vars.
    */
-  public Set<Partition> getIntBoolPartitions() {
+  public ImmutableSortedSet<Partition> getIntBoolPartitions() {
     return intBoolPartitions;
   }
 
@@ -196,7 +214,7 @@ public class VariableClassification implements Serializable {
    * calculations (add, sub, mult) with these vars. This collection does not contain any variable
    * from "IntBool" or "IntAdd".
    */
-  public Set<String> getIntEqualVars() {
+  public ImmutableSortedSet<String> getIntEqualVars() {
     return intEqualVars;
   }
 
@@ -205,7 +223,7 @@ public class VariableClassification implements Serializable {
    * only assigned or compared for equality with integer values. This collection does not contains
    * anypartition from "IntBool" or "IntAdd".
    */
-  public Set<Partition> getIntEqualPartitions() {
+  public ImmutableSortedSet<Partition> getIntEqualPartitions() {
     return intEqualPartitions;
   }
 
@@ -214,7 +232,7 @@ public class VariableClassification implements Serializable {
    * only used in simple calculations (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^). This collection
    * does not contain any variable from "IntBool" or "IntEq".
    */
-  public Set<String> getIntAddVars() {
+  public ImmutableSortedSet<String> getIntAddVars() {
     return intAddVars;
   }
 
@@ -223,7 +241,7 @@ public class VariableClassification implements Serializable {
    * used in calculations that can lead to an overflow (+, -, *, /, %, <<). This collection may
    * contain any variable from "IntBool", "IntEq" or "IntAdd".
    */
-  public Set<String> getIntOverflowVars() {
+  public ImmutableSortedSet<String> getIntOverflowVars() {
     return intOverflowVars;
   }
 
@@ -232,7 +250,7 @@ public class VariableClassification implements Serializable {
    * used in simple calculations. This collection does not contains anypartition from "IntBool" or
    * "IntEq".
    */
-  public Set<Partition> getIntAddPartitions() {
+  public ImmutableSortedSet<Partition> getIntAddPartitions() {
     return intAddPartitions;
   }
 
@@ -240,12 +258,12 @@ public class VariableClassification implements Serializable {
    * This function returns a collection of partitions. A partition contains all vars, that are
    * dependent from each other.
    */
-  public Set<Partition> getPartitions() {
+  public ImmutableSortedSet<Partition> getPartitions() {
     return partitions;
   }
 
   /** This method return all variables (i.e., their qualified name), that occur in an assumption. */
-  public Multiset<String> getAssumedVariables() {
+  public ImmutableSortedMultiset<String> getAssumedVariables() {
     return assumedVariables;
   }
 
@@ -253,7 +271,7 @@ public class VariableClassification implements Serializable {
    * This method return all variables (i.e., their qualified name), that occur as left-hand side in
    * an assignment.
    */
-  public Multiset<String> getAssignedVariables() {
+  public ImmutableSortedMultiset<String> getAssignedVariables() {
     return assignedVariables;
   }
 

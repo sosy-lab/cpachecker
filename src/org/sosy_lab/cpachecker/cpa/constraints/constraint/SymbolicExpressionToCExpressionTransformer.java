@@ -229,12 +229,12 @@ public class SymbolicExpressionToCExpressionTransformer
 
   @Override
   public CExpression visit(ModuloExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.MODULO);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.REMAINDER);
   }
 
   @Override
   public CExpression visit(BinaryAndExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_AND);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_AND);
   }
 
   @Override
@@ -244,12 +244,12 @@ public class SymbolicExpressionToCExpressionTransformer
 
   @Override
   public CExpression visit(BinaryOrExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_OR);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_OR);
   }
 
   @Override
   public CExpression visit(BinaryXorExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_XOR);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_XOR);
   }
 
   @Override
@@ -302,12 +302,12 @@ public class SymbolicExpressionToCExpressionTransformer
 
   @Override
   public CExpression visit(LogicalOrExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_OR);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_OR);
   }
 
   @Override
   public CExpression visit(LogicalAndExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_AND);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_AND);
   }
 
   @Override
