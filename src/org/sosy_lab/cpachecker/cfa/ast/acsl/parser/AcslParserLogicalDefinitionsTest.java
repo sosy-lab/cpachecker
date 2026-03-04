@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
-
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
