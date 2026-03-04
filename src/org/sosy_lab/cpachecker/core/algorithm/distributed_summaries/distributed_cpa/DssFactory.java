@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -19,6 +20,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
@@ -41,9 +43,11 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.VariableAndTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class DssFactory {
 
@@ -65,10 +69,11 @@ public class DssFactory {
       DssMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPATransferException, InterruptedException {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
-    ImmutableMap<String, Type> variableAndFunctionToTypeMap = ImmutableMap.copyOf(getTypeMap(pCFA));
+    ImmutableMap<String, Type> variableAndFunctionToTypeMap =
+        ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier));
     return switch (pCPA) {
       case PredicateCPA predicateCPA ->
           distribute(
@@ -113,10 +118,37 @@ public class DssFactory {
     };
   }
 
-  private static Map<String, Type> getTypeMap(CFA pCFA) {
-    VariableAndTypeVisitor variableTypeCollector = new VariableAndTypeVisitor();
-    CFATraversal.dfs().traverse(pCFA.getMainFunction(), variableTypeCollector);
-    return variableTypeCollector.getVariablesToTypes();
+  /**
+   * Get a mapping from variable and function names to their types.
+   *
+   * @param pCfa CFA to get the mapping for
+   * @param pConfiguration configuration to create the solver for the path formula manager
+   * @param pLogManager log manager to create the solver for the path formula manager
+   * @param pShutdownNotifier shutdown notifier to create the solver for the path formula manager
+   * @return a mapping from variable and function names to their types
+   * @throws InvalidConfigurationException if the configuration is invalid for the solver
+   * @throws CPATransferException if the path formula manager cannot create a path formula for the
+   *     given CFA
+   * @throws InterruptedException if the thread is interrupted while creating the path formula
+   */
+  private static Map<String, Type> getTypeMap(
+      CFA pCfa,
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, CPATransferException, InterruptedException {
+    try (Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier)) {
+      PathFormulaManagerImpl pfm =
+          new PathFormulaManagerImpl(
+              solver.getFormulaManager(),
+              pConfiguration,
+              pLogManager,
+              pShutdownNotifier,
+              pCfa,
+              AnalysisDirection.FORWARD);
+      PathFormula pathFormula = pfm.makeFormulaForPath(ImmutableList.copyOf(pCfa.edges()));
+      return Maps.toMap(pathFormula.getSsa().allVariables(), pathFormula.getSsa()::getType);
+    }
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
@@ -186,8 +218,9 @@ public class DssFactory {
       DssMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
-    Builder<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
+      throws InvalidConfigurationException, CPATransferException, InterruptedException {
+    ImmutableMap.Builder<
+            Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
         builder = ImmutableMap.builder();
     for (ConfigurableProgramAnalysis wrappedCPA : pCompositeCPA.getWrappedCPAs()) {
       DistributedConfigurableProgramAnalysis dcpa =
@@ -217,7 +250,7 @@ public class DssFactory {
       DssMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPATransferException, InterruptedException {
     return new DistributedARGCPA(
         pARGCPA,
         distribute(
