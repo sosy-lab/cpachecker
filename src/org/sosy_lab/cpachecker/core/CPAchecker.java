@@ -337,7 +337,6 @@ public class CPAchecker {
 
     try {
 
-      CoreComponentsFactory factory;
       // create reached set, cpa, algorithm
       ConfigurableProgramAnalysis cpa;
 
@@ -347,7 +346,7 @@ public class CPAchecker {
         stats.creationTime.start();
       }
 
-      factory =
+      CoreComponentsFactory factory =
           new CoreComponentsFactory(
               config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
 
