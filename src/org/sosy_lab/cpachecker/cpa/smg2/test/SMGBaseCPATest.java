@@ -19,9 +19,9 @@ import com.google.common.truth.Fact;
 import com.google.common.truth.FailureMetadata;
 import com.google.common.truth.SimpleSubjectBuilder;
 import com.google.common.truth.Subject;
+import com.google.common.truth.TruthJUnit;
 import java.io.IOException;
 import java.util.Set;
-import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -91,15 +91,6 @@ public abstract class SMGBaseCPATest {
   @Parameter(1)
   public String specToUse;
 
-  private Configuration analysisToUse;
-
-  private static final MachineModel machineModel = getMachineModel();
-
-  @Before
-  public void init() throws IOException, InvalidConfigurationException {
-    analysisToUse = buildConfigForC(configToUse, specToUse);
-  }
-
   private static String addProgramPathPrefixIfNeeded(String programPath) {
     if (!programPath.startsWith(TEST_PROGRAM_COMMON_PREFIX)) {
       return TEST_PROGRAM_COMMON_PREFIX + programPath;
@@ -107,17 +98,22 @@ public abstract class SMGBaseCPATest {
     return programPath;
   }
 
-  private static Configuration buildConfigForC(String cpaConfiguration, String specification)
+  private static Configuration buildConfigForC(
+      String cpaConfiguration, String specification, MachineModel machineModel)
       throws IOException, InvalidConfigurationException {
     return getConfig(
         CPA_CONFIG_COMMON_PREFIX + cpaConfiguration,
         Language.C,
-        SPECIFICATION_COMMON_PREFIX + specification);
+        SPECIFICATION_COMMON_PREFIX + specification,
+        machineModel);
   }
 
   /** Uses the default {@link Configuration} and does not allow generated files to be accessed. */
   protected static Configuration getConfig(
-      String configurationFile, Language inputLanguage, String specificationFile)
+      String configurationFile,
+      Language inputLanguage,
+      String specificationFile,
+      MachineModel machineModel)
       throws InvalidConfigurationException, IOException {
 
     Configuration configForFiles = Configuration.defaultConfiguration();
@@ -125,27 +121,52 @@ public abstract class SMGBaseCPATest {
         configurationFile, inputLanguage, specificationFile, configForFiles, machineModel);
   }
 
-  protected static MachineModel getMachineModel() {
-    return MachineModel.LINUX32;
-  }
-
-  /** Disables overflows specifications for a test. */
-  protected void doNotTestOverflows() {
+  /**
+   * Skips all overflow specifications for a test, starting from the position this method is used.
+   */
+  protected void doNotTestOverflowSpecification() {
     assume().that(specToUse).isNotEqualTo(OVERFLOW_SPECIFICATION);
   }
 
   /**
-   * Use this for checking assertions about the result of a program verification on a program given
-   * via its path with Truth: <code>
-   * assertThatProgram(pathToProgram).is...()</code>.
+   * Checks assertions about the verification result of a ILP32 program given via its path with
+   * {@link com.google.common.truth.Truth}: <code>assertThatILP32Program(pathToProgram).is...()
+   * </code>, with e.g. <code>isSafe()</code>, <code>isUnsafe()</code> etc. The verification used is
+   * defined via the current test parameters as defined in {@link SMGBaseCPATest}. You can disable
+   * certain {@link Configuration}s via methods like {@link
+   * SMGBaseCPATest#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
    *
-   * @param pathToProgram path to test program, e.g.
+   * @param pathToProgram path to a ILP32 test program, e.g.
    *     'test/programs/basics/array_tests/array_usage_32_true.c'. The common path-prefix
    *     'test/programs/' is automatically added if not present, i.e.
    *     'basics/array_tests/array_usage_32_true.c' is equivalent to the previous path.
    */
-  protected final ProgramSubject assertThatProgram(String pathToProgram) {
-    return assertUsing(analysisToUse).that(pathToProgram);
+  protected final ProgramSubject assertThatILP32Program(String pathToProgram)
+      throws IOException, InvalidConfigurationException {
+    return assertThatProgram(pathToProgram, MachineModel.LINUX32);
+  }
+
+  /**
+   * Checks assertions about the verification result of a LP64 program given via its path with
+   * {@link com.google.common.truth.Truth}: <code>assertThatLP64Program(pathToProgram).is...()
+   * </code>, with e.g. <code>isSafe()</code>, <code>isUnsafe()</code> etc. The verification used is
+   * defined via the current test parameters as defined in {@link SMGBaseCPATest}. You can disable
+   * certain {@link Configuration}s via methods like {@link
+   * SMGBaseCPATest#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
+   *
+   * @param pathToProgram path to a LP64 program, e.g.
+   *     'test/programs/basics/array_tests/array_usage_64_true.c'. The common path-prefix
+   *     'test/programs/' is automatically added if not present, i.e.
+   *     'basics/array_tests/array_usage_64_true.c' is equivalent to the previous path.
+   */
+  protected final ProgramSubject assertThatLP64Program(String pathToProgram)
+      throws IOException, InvalidConfigurationException {
+    return assertThatProgram(pathToProgram, MachineModel.LINUX64);
+  }
+
+  private ProgramSubject assertThatProgram(String pathToProgram, MachineModel pMachineModel)
+      throws IOException, InvalidConfigurationException {
+    return assertUsing(buildConfigForC(configToUse, specToUse, pMachineModel)).that(pathToProgram);
   }
 
   /**
@@ -153,7 +174,9 @@ public abstract class SMGBaseCPATest {
    * using <code>assert_().about(...).that(String).isSafe()</code> etc.) that is given the path to a
    * program to be analyzed.
    *
-   * <p>For a test use {@link ProgramSubject#assertThatProgram(String)}.
+   * <p>For a test use <code>assertThatILP64Program(pathToProgram).is...()</code>. via either {@link
+   * ProgramSubject#assertThatLP64Program(String)} or {@link
+   * ProgramSubject#assertThatILP32Program(String)}.
    */
   public static final class ProgramSubject extends Subject {
 
