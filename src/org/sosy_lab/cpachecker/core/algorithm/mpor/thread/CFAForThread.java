@@ -38,12 +38,6 @@ public class CFAForThread {
   /** FunctionEntryNode of the main function (main thread) or start_routine (pthreads). */
   public final FunctionEntryNode entryNode;
 
-  /**
-   * FunctionExitNode of the main function (main thread) or start_routine (pthreads). Can be empty,
-   * see {@link FunctionEntryNode#getExitNode()}.
-   */
-  public final Optional<FunctionExitNode> exitNode;
-
   /** The (sub)set of CFANodes from the original input CFA that this thread can reach. */
   public final ImmutableList<CFANodeForThread> threadNodes;
 
@@ -61,7 +55,6 @@ public class CFAForThread {
 
     threadId = pThreadId;
     entryNode = pEntryNode;
-    exitNode = entryNode.getExitNode();
     threadNodes = pThreadNodes;
     loopHeads = pLoopHeads;
     threadEdges = pThreadEdges;
@@ -199,7 +192,7 @@ public class CFAForThread {
 
   @Override
   public int hashCode() {
-    return Objects.hash(threadId, entryNode, exitNode, threadNodes, threadEdges);
+    return Objects.hash(threadId, entryNode, threadNodes, threadEdges);
   }
 
   @Override
@@ -210,7 +203,6 @@ public class CFAForThread {
     return pOther instanceof CFAForThread other
         && threadId == other.threadId
         && entryNode.equals(other.entryNode)
-        && exitNode.equals(other.exitNode)
         && threadNodes.equals(other.threadNodes)
         && threadEdges.equals(other.threadEdges);
   }
