@@ -3520,41 +3520,32 @@ cpa.smg2.abortOnNonConcreteMemorySize = true
 # threshold are removed. For negative numbers this option is ignored. Note: 0
 # also removes the null value, reducing impacting null dereference or free
 # soundness. Currently only supported for given value 0.
-cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold = no default value
 cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold = -1
 
 # If heap values are to be abstracted based on CEGAR.
-cpa.smg2.abstraction.abstractHeapValues = no default value
 cpa.smg2.abstraction.abstractHeapValues = false
 
 # Abstraction of all detected linked lists at loop heads.
-cpa.smg2.abstraction.abstractLinkedLists = no default value
 cpa.smg2.abstraction.abstractLinkedLists = true
 
 # Abstraction of program variables via CEGAR.
-cpa.smg2.abstraction.abstractProgramVariables = no default value
 cpa.smg2.abstraction.abstractProgramVariables = false
 
 # restrict abstraction computations to branching points
-cpa.smg2.abstraction.alwaysAtBranch = no default value
 cpa.smg2.abstraction.alwaysAtBranch = false
 
 # restrict abstraction computations to function calls/returns
-cpa.smg2.abstraction.alwaysAtFunction = no default value
 cpa.smg2.abstraction.alwaysAtFunction = false
 
 # restrict abstraction computations to join points
-cpa.smg2.abstraction.alwaysAtJoin = no default value
 cpa.smg2.abstraction.alwaysAtJoin = false
 
 # If enabled, abstraction computations at loop-heads are enabled. List
 # abstraction has to be enabled for this.
-cpa.smg2.abstraction.alwaysAtLoop = no default value
 cpa.smg2.abstraction.alwaysAtLoop = false
 
 # threshold for level of determinism, in percent, up-to which abstraction
 # computations are performed (and iteration threshold was reached)
-cpa.smg2.abstraction.determinismThreshold = no default value
 cpa.smg2.abstraction.determinismThreshold = 85
 
 # toggle memory sensitive liveness abstraction. Liveness abstraction is
@@ -3563,19 +3554,16 @@ cpa.smg2.abstraction.determinismThreshold = 85
 # enabled, it is first checked if there is a valid address still pointing to
 # the variable before removing it. Liveness abstraction might be unsound
 # without this option.
-cpa.smg2.abstraction.doEnforcePointerSensitiveLiveness = no default value
 cpa.smg2.abstraction.doEnforcePointerSensitiveLiveness = true
 
 # toggle liveness abstraction. Is independent of CEGAR, but dependent on the
 # CFAs liveness variables being tracked. Might be unsound for stack-based
 # memory structures like arrays.
-cpa.smg2.abstraction.doLivenessAbstraction = no default value
 cpa.smg2.abstraction.doLivenessAbstraction = true
 
 # skip abstraction computations until the given number of iterations are
 # reached, after that decision is based on then current level of determinism,
 # setting the option to -1 always performs abstraction computations
-cpa.smg2.abstraction.iterationThreshold = no default value
 cpa.smg2.abstraction.iterationThreshold = -1
 
 # The minimum list segments that are needed for abstraction may be increased
@@ -3584,21 +3572,17 @@ cpa.smg2.abstraction.iterationThreshold = -1
 # are abstracted in any case. If you want to prevent dynamic increase of list
 # abstraction min threshold set this to the same value as
 # listAbstractionMinimumLengthThreshold.
-cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = no default value
 cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 6
 
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
-cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = no default value
 cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = 4
 
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
-cpa.smg2.abstraction.onlyAtNonLinearCFA = no default value
 cpa.smg2.abstraction.onlyAtNonLinearCFA = false
 
 # Periodically removes unused constraints from the state.
-cpa.smg2.abstraction.removeUnusedConstraints = no default value
 cpa.smg2.abstraction.removeUnusedConstraints = false
 
 # Allocate memory on declaration of external variable
@@ -3755,30 +3739,6 @@ cpa.smg2.memoryErrors = false
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
   allowed values: [SEP]
-
-# Apply merge operator only on ends of code blocks.
-cpa.smg2.merge.exclusivelyBlockEnds = no default value
-
-# Apply merge operator only on equal code block ends if true. Only applied if
-# exclusivelyBlockEnds=true.
-cpa.smg2.merge.exclusivelyEqualBlockEnds = no default value
-
-# Apply merge operator only on states with at least one input state including
-# an abstracted list.
-cpa.smg2.merge.exclusivelyWithAbstractionPresent = no default value
-
-# When true, concrete values can be overapproximated when merging, e.g. when
-# merged with a symbolic value, or another, but distinct concrete value.
-cpa.smg2.merge.overapproximateConcreteValues = no default value
-
-# When true, unequal constraints on symbolic values are overapproximated when
-# merging.
-cpa.smg2.merge.overapproximateSymbolicConstraints = no default value
-
-# Apply merge operator based on Predators join algorithm to determine
-# subsumtion of abstracted lists in the stop operator more precisely. Can be
-# costly.
-cpa.smg2.merge.useMergeForAbstractionDetectionInStopOperator = no default value
 
 # Whether to perform SAT checks only for the last added constraint
 cpa.smg2.minimalSatCheck = true
@@ -4303,27 +4263,6 @@ cpa.value.refinement.useTopDownInterpolationStrategy = true
 # Whether to write symbolic trace (including path constraints) for found
 # erexamples
 cpa.value.refinement.writePathConstraints = true
-
-# Overall timelimit for computing initial value precision from given
-# predicate precision(use seconds or specify a unit; 0 for infinite)
-cpa.value.reuse.precision.converter.adaptionLimit = no default value
-
-# also consider other binary operators then ==, !== when considering control
-# dependencies while adapting predicate precision
-cpa.value.reuse.precision.converter.includeControlNonEquiv = no default value
-
-# comma-separated list of files with property specifications that should be
-# considered when determining the relevant edges for predicate precision
-# adaption
-cpa.value.reuse.precision.converter.relevantProperties = no default value
-
-# which strategy to use to convert predicate to value precision
-cpa.value.reuse.precision.converter.strategy = no default value
-  enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
-             CONVERT_AND_ADD_FLOW_BIDIRECTED]
-
-# also consider control dependencies during adaption of predicate precision
-cpa.value.reuse.precision.converter.useControl = no default value
 
 # Overall timelimit for computing initial value precision from given
 # predicate precision(use seconds or specify a unit; 0 for infinite)

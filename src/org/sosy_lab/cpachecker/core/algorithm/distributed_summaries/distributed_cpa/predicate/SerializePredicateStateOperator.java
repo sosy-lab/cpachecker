@@ -78,7 +78,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
       for (String variable : ssaMap.allVariables()) {
         if (variableTypes.containsKey(variable)) {
           variableToIndexTypeBuilder.put(
-              variable, ssaMap.getIndex(variable) + " " + variableTypes.get(variable).toString());
+              variable, ssaMap.getIndex(variable) + " " + variableTypes.get(variable));
         } else {
           variableToIndexTypeBuilder.put(
               variable,
