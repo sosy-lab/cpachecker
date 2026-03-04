@@ -72,15 +72,8 @@ public class DssBlockAnalyses {
                 state,
                 reachedSet.getReached(location),
                 pCpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()))) {
-          if (!pCpa.getStopOperator()
-              .stop(
-                  state,
-                  reachedSet.getReached(location),
-                  pCpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()))) {
-            reachedSet.add(
-                state,
-                pCpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()));
-          }
+          reachedSet.add(
+              state, pCpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()));
         }
       }
     }
