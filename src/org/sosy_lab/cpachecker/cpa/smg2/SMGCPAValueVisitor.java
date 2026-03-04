@@ -575,15 +575,15 @@ public class SMGCPAValueVisitor
       currentState = castRightValue.getState();
     }
 
-    // Pointer Arithmetics
-    // TODO: we now allow unknown to end up in the values, handle here as well!
-    checkArgument(
-        !(leftValue instanceof AddressExpression
-                || rightValue instanceof AddressExpression
-                || state.isPointer(leftValue)
-                || state.isPointer(rightValue))
-            || !(leftValue.isUnknown() || rightValue.isUnknown()));
     if (isPointerArithmetics(leftValue, rightValue, e, currentState)) {
+      // Pointer Arithmetics
+      // TODO: we now allow unknown to end up in the values, handle here as well!
+      checkArgument(
+          !(leftValue instanceof AddressExpression
+              || rightValue instanceof AddressExpression
+              || state.isPointer(leftValue)
+              || state.isPointer(rightValue))
+              || !(leftValue.isUnknown() || rightValue.isUnknown()));
       return handlePointerArithmetics(
           leftValue,
           leftType,
