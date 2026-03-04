@@ -56,6 +56,10 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads().size()).isEqualTo(1);
+    assertThat(fields.threads.get(1).cfa().getLoopHeads().size()).isEqualTo(1);
+    assertThat(fields.threads.get(2).cfa().getLoopHeads().size()).isEqualTo(1);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads().size()).isEqualTo(1);
   }
 
   @Test
@@ -81,6 +85,8 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test
@@ -105,6 +111,8 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test
@@ -142,6 +150,9 @@ public class SequentializationFieldsTest {
             .isTrue();
       }
     }
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test
@@ -164,6 +175,9 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads().size()).isEqualTo(1);
+    assertThat(fields.threads.get(1).cfa().getLoopHeads().size()).isEqualTo(1);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads().size()).isEqualTo(1);
   }
 
   @Test
@@ -185,6 +199,10 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test
@@ -207,6 +225,11 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(3).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test
@@ -231,6 +254,11 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(3).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test
@@ -257,6 +285,9 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads().size()).isEqualTo(1);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads().size()).isEqualTo(1);
   }
 
   @Test
@@ -279,6 +310,11 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(3).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test
@@ -302,6 +338,9 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads().size()).isEqualTo(3);
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads().size()).isEqualTo(2);
   }
 
   @Test
@@ -325,6 +364,13 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(3).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(4).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(5).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test
@@ -348,6 +394,9 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads().size()).isEqualTo(1);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads().size()).isEqualTo(1);
   }
 
   private SequentializationFields getSequentializationFields(

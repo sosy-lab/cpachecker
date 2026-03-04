@@ -34,7 +34,7 @@ void *task2(void *arg) {
         y = 20;
     while (__VERIFIER_nondet_int());
     label:
-    *y = 10;
+    y = 10;
     if (__VERIFIER_nondet_int()) {
         goto label;
     }
