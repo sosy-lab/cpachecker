@@ -1179,6 +1179,10 @@ cfa.variableClassification.printStatsOnStartup = false
 # Dump variable type mapping to a file.
 cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 
+# With this option set to true, ACSL anntations from the source file will be
+# added to the CFA metadata.
+cfa.withAcslMetadata = false
+
 # Output an input file, with invariants embedded as assume constraints.
 cinvariants.export = false
 
@@ -5884,7 +5888,3 @@ witness.yamlexporter.exportCompleteCounterexample = false
 
 # The version for which to export the witness.
 witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]
-
-# With this option set to true, ACSL anntations from the source file will be
-# added to the CFA metadata.
-cfa.withAcslMetadata = false
