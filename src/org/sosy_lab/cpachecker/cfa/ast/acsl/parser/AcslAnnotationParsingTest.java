@@ -14,7 +14,6 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
-import java.util.List;
 import java.util.Objects;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -202,11 +201,11 @@ public class AcslAnnotationParsingTest {
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,
             new AcslFunctionType(
-                AcslBuiltinLogicType.INTEGER, List.of(AcslBuiltinLogicType.INTEGER), false),
+                AcslBuiltinLogicType.INTEGER, ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
             "is_positive",
             "is_positive",
-            List.of(),
-            List.of(i));
+            ImmutableList.of(),
+            ImmutableList.of(i));
 
     AcslAssertion expected =
         new AcslAssertion(
@@ -216,9 +215,9 @@ public class AcslAnnotationParsingTest {
                 new AcslFunctionCallTerm(
                     FileLocation.DUMMY,
                     new AcslFunctionType(
-                        AcslBuiltinLogicType.INTEGER, List.of(AcslBuiltinLogicType.INTEGER), false),
+                        AcslBuiltinLogicType.INTEGER, ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
                     new AcslIdTerm(FileLocation.DUMMY, declaration),
-                    List.of(new AcslIdTerm(FileLocation.DUMMY, new AcslCVariableDeclaration(a))),
+                    ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, new AcslCVariableDeclaration(a))),
                     declaration),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),

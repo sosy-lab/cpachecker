@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
-import java.util.List;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
@@ -536,11 +535,11 @@ public class AcslParserLogicalDefinitionsTest {
     AcslPredicateDeclaration declaration =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
-            new AcslPredicateType(List.of(AcslBuiltinLogicType.INTEGER), false),
+            new AcslPredicateType(ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
             "is_positive",
             "is_positive",
-            List.of(),
-            List.of(i));
+            ImmutableList.of(),
+            ImmutableList.of(i));
     AcslBinaryTermPredicate body =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
@@ -563,11 +562,11 @@ public class AcslParserLogicalDefinitionsTest {
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,
             new AcslFunctionType(
-                AcslBuiltinLogicType.INTEGER, List.of(AcslBuiltinLogicType.INTEGER), false),
+                AcslBuiltinLogicType.INTEGER, ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
             "is_positive",
             "is_positive",
-            List.of(),
-            List.of(i));
+            ImmutableList.of(),
+            ImmutableList.of(i));
     AcslTerm body =
         new AcslTernaryTerm(
             FileLocation.DUMMY,
