@@ -965,11 +965,20 @@ public class SMGCPAValueVisitor
       throws CPATransferException {
     if (targetType instanceof CPointerType) {
       if (value instanceof AddressExpression || value instanceof NumericValue) {
+        // TODO: warn on non 0 numeric pointers
         return ValueAndSMGState.of(value, currentState);
 
       } else if (evaluator.isPointerValue(value, currentState)) {
+        checkArgument(
+            !(value instanceof ConstantSymbolicExpression constValue)
+                || !(constValue.getValue() instanceof NumericValue));
         return ValueAndSMGState.of(
             AddressExpression.withZeroOffset(value, targetType), currentState);
+      } else if (value instanceof ConstantSymbolicExpression constValue
+          && currentState.isPointer(constValue.getValue())) {
+        checkArgument(!(constValue.getValue() instanceof NumericValue));
+        return ValueAndSMGState.of(
+            AddressExpression.withZeroOffset(constValue.getValue(), targetType), currentState);
 
       } else if (options.trackPredicates() && value instanceof SymbolicValue) {
         return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
