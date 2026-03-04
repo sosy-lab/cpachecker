@@ -12,15 +12,11 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public abstract class ProgramTransformation {
-  private ProgramTransformationBehaviour behaviour;
+public class JumpThreadingProramTransformation extends ProgramTransformation {
+  public ProgramTransformationBehaviour behaviour = ProgramTransformationBehaviour.PRECISE;
 
-  /**
-   * Perform the program transformation on a given CFANode and return the resulting SubCFA or Optional.empty.
-   *
-   * @param pCFA  CFA
-   * @param pNode CFANode
-   * @return Optional SubCFA
-   */
-  public abstract Optional<SubCFA> transform(CFA pCFA, CFANode pNode);
+  @Override
+  public Optional<SubCFA> transform(CFA pCFA, CFANode pNode) {
+    return Optional.empty();
+  }
 }

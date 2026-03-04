@@ -11,92 +11,77 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.graph.Traverser;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 
 public class TailRecursionEliminationProgramTransformation extends ProgramTransformation{
   public ProgramTransformationBehaviour behaviour = ProgramTransformationBehaviour.PRECISE;
 
   @Override
-  public Optional<ProgramTransformationInformation> canBeApplied(CFA pCFA) {
-    return Optional.empty();
-  }
+  public Optional<SubCFA> transform(CFA pCFA, CFANode pNode) {
 
-  @Override
-  public SubCFA transform(CFA pCFA, ProgramTransformationInformation pInfo) {
-    // TODO WIP!
+    // TODO check transformation conditions
+    if (!(pNode instanceof FunctionEntryNode)) {
+      return Optional.empty();
+    }
+    if (((FunctionEntryNode) pNode).getExitNode().isEmpty()) {
+      return Optional.empty();
+    }
+    CFANode exitNode = ((FunctionEntryNode) pNode).getExitNode().get();
+    String functionName = pNode.getFunctionName();
+
+    FluentIterable<CFAEdge> enteringEdges = exitNode.getEnteringEdges();
+    for(CFAEdge edge : enteringEdges) {
+      CReturnStatement returnStatement = ((CReturnStatementEdge) edge).getReturnStatement();
+      // TODO return expressions checken
+      if (returnStatement.getReturnValue().isEmpty()) {
+        return  Optional.empty();
+      }
+      CExpression returnExpression = returnStatement.getReturnValue().get();
+    }
+
+    // TODO perform transformation
     ArrayList<CFANode> nodes = new ArrayList<>();
     ArrayList<CFAEdge> edges = new ArrayList<>();
-    boolean isFinished = false;
-    ArrayList<Integer> visitedNodes = new ArrayList<>();
-
-    ImmutableList<? extends AParameterDeclaration> parameters = pInfo.entryNode().getFunction().getParameters();
+    HashMap<Integer, Integer> nodeMap = new HashMap<>();
+    Traverser<CFANode> cfaNetworkTraverser = Traverser.forGraph(pCFA.asGraph());
+    Iterable<CFANode> cfaNodeIterable = cfaNetworkTraverser.breadthFirst(pNode);
+    ImmutableList<? extends AParameterDeclaration> parameters = pNode.getFunction().getParameters();
     int parameterNum = parameters.size();
 
-    // Create new start node and set it as LoopStart
-    nodes.add(CFANode.newDummyCFANode(pInfo.entryNode().getFunctionName()));
-    nodes.getFirst().setLoopStart();
-    visitedNodes.add(pInfo.entryNode().getNodeNumber());
-
-    // iterate through nodes and copy them + adding edges to the previous one
-    CFANode currentNode = pInfo.entryNode();
-    CFANode previousNewNode = nodes.getLast();
-    while (!isFinished) {
-      FluentIterable<CFAEdge> leavingEdges = currentNode.getLeavingEdges();
-      switch (leavingEdges.size()) {
-        // case 0, we reached the last edge in this function
-        case 0:
+    for(CFANode currentNode : cfaNodeIterable) {
+      if (currentNode.getFunctionName().equals(functionName)) {
+        if (currentNode.getNodeNumber() == exitNode.getNodeNumber()) {
+          nodes.add(CFANode.newDummyCFANode(functionName));
+          nodeMap.put(currentNode.getNodeNumber(), nodes.getLast().getNodeNumber());
           break;
-        // case 1, add equivalent edge to edges
-        case 1:
-          nodes.add(CFANode.newDummyCFANode());
-          CFAEdgeType edgeType = leavingEdges.get(0).getEdgeType();
-          break;
-        case 2:
-          break;
-        default:
-          break;
+        } else if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
+          nodes.add(CFANode.newDummyCFANode(functionName));
+          nodes.getLast().setLoopStart();
+          nodeMap.put(currentNode.getNodeNumber(), nodes.getLast().getNodeNumber());
+        }
       }
     }
 
-    // add n extra nodes, where n is the number of function parameters
-
-    // connect the last extra node to the initial node to create a loop
-
-
-    return new SubCFA(
-        pInfo.entryNode(),
-        pInfo.exitNode(),
+    return Optional.of(new SubCFA(
+        pNode,
+        exitNode,
         nodes.getFirst(),
         nodes.getLast(),
         ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION,
         ProgramTransformationBehaviour.PRECISE,
-        ImmutableSet.of(),
-        ImmutableSet.of()
-    );
-  }
-
-  private void copyFromCFA(CFA pCFA, CFANode pCurrentNode, CFANode pExitNode, ArrayList<CFANode> pNodes, ArrayList<CFAEdge> pEdges, ArrayList<Integer> pVisitedNodes) {
-    // TODO WIP!
-
-    // for each leaving edge successor node call copyFromCFA
-    FluentIterable<CFAEdge> leavingEdges = pCurrentNode.getLeavingEdges();
-    if (leavingEdges.isEmpty()) {
-      return;
-    }
-    for(CFAEdge edge : leavingEdges) {
-      int nextNodeNumber = edge.getSuccessor().getNodeNumber();
-      if (!pVisitedNodes.contains(nextNodeNumber)) {
-        pNodes.add(CFANode.newDummyCFANode());
-        pVisitedNodes.add(nextNodeNumber);
-      }
-      // TODO add new edge
-      copyFromCFA(pCFA, edge.getSuccessor(), pExitNode, pNodes, pEdges, pVisitedNodes);
-    }
+        ImmutableSet.copyOf(nodes),
+        ImmutableSet.copyOf(edges)
+    ));
   }
 }

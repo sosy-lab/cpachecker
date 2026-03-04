@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -27,25 +26,6 @@ public record SubCFA (
     ImmutableSet<CFANode> allNodes,
     ImmutableSet<CFAEdge> allEdges
   ) {
-
-  /**
-   * Apply the given program transformation on the given nodes and return the resulting SubCFA.
-   *
-   * @param pCFA MutableCFA
-   * @param pEntryNode CFANode
-   * @param pExitNode CFANode
-   * @param pTransformation ProgramTransformationEnum
-   * @return SubCFA after applying the program transformation
-   */
-  public static SubCFA createSubCFA(CFA pCFA, ProgramTransformationInformation pInfo) {
-
-    return switch (pInfo.programTransformation()) {
-      case JUMP_THREADING -> null;
-      case TAIL_RECURSION_ELIMINATION ->
-        new TailRecursionEliminationProgramTransformation().transform(pCFA, pInfo);
-      default -> null;
-    };
-  }
 
   /**
    * Inserts the CFANodes and CFAEdges plus additional CFAMetadata into the given MutableCFA.
