@@ -562,7 +562,9 @@ public class AcslParserLogicalDefinitionsTest {
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,
             new AcslFunctionType(
-                AcslBuiltinLogicType.INTEGER, ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
+                AcslBuiltinLogicType.INTEGER,
+                ImmutableList.of(AcslBuiltinLogicType.INTEGER),
+                false),
             "is_positive",
             "is_positive",
             ImmutableList.of(),
