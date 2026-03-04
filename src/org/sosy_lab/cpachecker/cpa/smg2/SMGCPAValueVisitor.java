@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -2140,6 +2141,8 @@ public class SMGCPAValueVisitor
    * @param expressionType {@link CType} of the final expression.
    * @param calculationType {@link CType} of the calculation. (Should be int for pointers)
    * @param currentState current {@link SMGState}
+   * @param originalExpression {@link CBinaryExpression} that caused this evaluation. Needed to
+   *     retrieve type information in certain circumstances from cast pointers.
    * @return {@link ValueAndSMGState} with the result Value that may be {@link AddressExpression} /
    *     {@link UnknownValue} or a symbolic/numeric one depending on input + the new up-to-date
    *     state.
@@ -2153,7 +2156,7 @@ public class SMGCPAValueVisitor
       CType leftValueType,
       CType rightValueType,
       SMGState currentState,
-      CBinaryExpression originalExpressionForErrorMessages)
+      CBinaryExpression originalExpression)
       throws CPATransferException {
     // Find the address, check that the other is a numeric value and use as offset, else if both
     // are addresses we allow the distance, else unknown (we can't dereference symbolics)
@@ -2220,7 +2223,7 @@ public class SMGCPAValueVisitor
           binaryOperator,
           calculationType,
           currentState,
-          originalExpressionForErrorMessages,
+          originalExpression,
           canonicalReturnType);
 
     } else if (!leftIsPointer) {
@@ -2236,7 +2239,7 @@ public class SMGCPAValueVisitor
           binaryOperator,
           calculationType,
           currentState,
-          originalExpressionForErrorMessages,
+          originalExpression,
           canonicalReturnType);
 
     } else {
@@ -2258,14 +2261,24 @@ public class SMGCPAValueVisitor
           continue;
         }
 
-        // distance in bits / type size = distance
-        // The type in both pointers is the same, we need the return type from one of them
-        Value size;
+        // For pointer types (distance is in objects for pointers):
+        // distance in bits / object type size in bits = distance
+        // The type in both pointers should be the same, we need the return type from one of them.
+        // For integer types (distance is in bytes for numeric addresses):
+        // distance in bits / byte size in bits = distance
+        CType objectType;
+        // TODO: we need to make sure that at no point a type is used (e.g. casts) that lose part of
+        // the address (e.g. (int *) (char) pointer).
         if (leftValueType instanceof CPointerType cPointerType) {
-          size = evaluator.getBitSizeof(currentState, cPointerType.getType(), cfaEdge);
-        } else if (rightValueType.getCanonicalType() instanceof CArrayType) {
-          size =
-              evaluator.getBitSizeof(currentState, ((CArrayType) leftValueType).getType(), cfaEdge);
+          objectType = cPointerType.getType();
+        } else if (leftValueType.getCanonicalType() instanceof CArrayType arrayType) {
+          objectType = arrayType.getType();
+        } else if (leftValueType instanceof CSimpleType simpleType
+            && simpleType.getType().isIntegerType()
+            && machineModel.getSizeofInBits(simpleType)
+                >= machineModel.getSizeofInBits(machineModel.getPointerSizedIntType())) {
+          // Char is always byte sized
+          objectType = CNumericTypes.CHAR;
         } else {
           returnBuilder.add(
               ValueAndSMGState.ofUnknownValue(
@@ -2274,18 +2287,22 @@ public class SMGCPAValueVisitor
                   cfaEdge));
           continue;
         }
-        // Undefined behavior if this assertion does not hold
+
+        Value objectTypeBitSize = new NumericValue(machineModel.getSizeofInBits(objectType));
+
+        // Undefined behavior if this assertion does not hold for every pointer/address related type
+        // Casts to numbers can have variations, but are not checked
         assert leftValueType.equals(rightValueType);
         Value distance =
             handleBinaryArithmeticOrBitwiseOperation(
                 numDistanceInBits,
                 leftValueType,
-                size,
+                objectTypeBitSize,
                 rightValueType,
                 DIVIDE,
                 machineModel.getPointerSizedIntType(),
                 machineModel.getPointerSizedIntType(),
-                originalExpressionForErrorMessages);
+                originalExpression);
 
         returnBuilder.add(ValueAndSMGState.of(distance, currentState));
       }
