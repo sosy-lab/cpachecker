@@ -4324,6 +4324,27 @@ cpa.value.reuse.precision.converter.strategy = CONVERT_ONLY
 # also consider control dependencies during adaption of predicate precision
 cpa.value.reuse.precision.converter.useControl = false
 
+# Overall timelimit for computing initial value precision from given
+# predicate precision(use seconds or specify a unit; 0 for infinite)
+cpa.value.reuse.precision.predicate.adaptionLimit = no default value
+
+# also consider other binary operators then ==, !== when considering control
+# dependencies while adapting predicate precision
+cpa.value.reuse.precision.predicate.includeControlNonEquiv = no default value
+
+# comma-separated list of files with property specifications that should be
+# considered when determining the relevant edges for predicate precision
+# adaption
+cpa.value.reuse.precision.predicate.relevantProperties = no default value
+
+# which strategy to use to convert predicate to value precision
+cpa.value.reuse.precision.predicate.strategy = no default value
+  enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
+             CONVERT_AND_ADD_FLOW_BIDIRECTED]
+
+# also consider control dependencies during adaption of predicate precision
+cpa.value.reuse.precision.predicate.useControl = no default value
+
 # configure whether to export all loop invariants into one file or to split
 # the export into one file per type
 cpa.value.splitLoopInvariantsInExport = false
