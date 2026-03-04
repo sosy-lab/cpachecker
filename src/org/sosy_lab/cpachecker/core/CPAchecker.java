@@ -296,9 +296,14 @@ public class CPAchecker {
       stats.creationTime.start();
 
       cfa = parse(programDenotation, stats);
+
+      logAboutSpecification();
+      Specification specification =
+          Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+
       shutdownNotifier.shutdownIfNecessary();
 
-      return run0(cfa, null, stats);
+      return run0(cfa, specification, stats);
     } catch (InvalidConfigurationException
         | ParserException
         | IOException
@@ -348,11 +353,6 @@ public class CPAchecker {
 
       stats.cpaCreationTime.start();
       try {
-        if (specification == null) {
-          logAboutSpecification();
-          specification =
-              Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
-        }
         cpa = factory.createCPA(specification);
       } finally {
         stats.cpaCreationTime.stop();
