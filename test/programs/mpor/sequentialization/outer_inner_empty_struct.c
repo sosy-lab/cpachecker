@@ -36,11 +36,8 @@ void field_owner_parameter_test_ptr(Inner * param_inner) {
 void * start_routine(void *arg)
 {
   int *ultimate_question = malloc(sizeof(int));
-   *ultimate_question = 42;
-    do
-      field_member_parameter_test(ultimate_question);
-    while (__VERIFIER_nondet_int());
-   pthread_exit((void*)ultimate_question);
+  *ultimate_question = 42;
+  pthread_exit((void*)ultimate_question);
 }
 int main(void) {
   outer_A.inner.inner_member = 42;

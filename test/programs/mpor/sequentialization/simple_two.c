@@ -30,6 +30,17 @@ void *task2(void *arg) {
     x++;
     const int y;
     y = 42;
+    do
+        y = 20;
+    while (__VERIFIER_nondet_int());
+    label:
+    *y = 10;
+    if (__VERIFIER_nondet_int()) {
+        goto label;
+    }
+}
+void local_increment(int number) {
+    number += 1;
 }
 const int global_const = 0;
 int main() {
@@ -38,6 +49,7 @@ int main() {
       __assert_fail("0", "simple_two.c", 24, __extension__ __PRETTY_FUNCTION__);
     }
     x = 0;
+    local_increment(x);
     pthread_t id1, id2;
     pthread_create(&id1, (void *) 0, task1, (void *) 0);
     pthread_create(&id2, (void *) 0, task2, (void *) 0);
@@ -56,6 +68,9 @@ int main() {
         for (int j = 0; j < 5; j++) {
             j++;
         }
+    }
+    while (1) {
+        local_increment(x);
     }
     int top;
     __VERIFIER_atomic_begin();

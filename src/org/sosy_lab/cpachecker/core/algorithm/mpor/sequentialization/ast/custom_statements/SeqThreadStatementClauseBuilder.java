@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -338,14 +340,15 @@ public record SeqThreadStatementClauseBuilder(
 
   private boolean isLoopHead(
       ImmutableSet<CFANode> pLoopHeads, ImmutableList<SeqThreadStatement> pStatements) {
+
     for (SeqThreadStatement statement : pStatements) {
       for (SubstituteEdge substituteEdge : statement.data().getSubstituteEdges()) {
         CFANode predecessor = substituteEdge.cfaEdge.getPredecessor();
         if (pLoopHeads.contains(predecessor)) {
-          // simple for / (do-)while loop with predicate expression -> loop is pLoopHeads
+          // simple for / (do-)while loop -> loop head is predecessor
           return true;
-        } else if (isAnyWhileTrueLoopStart(predecessor)) {
-          // infinite while (1) loop -> loop is in predecessor of predecessor
+        } else if (isWhileTrueLoopHead(pLoopHeads, predecessor, substituteEdge.getCallContext())) {
+          // infinite while (1) loop -> loop head is in another node
           return true;
         }
       }
@@ -353,42 +356,35 @@ public record SeqThreadStatementClauseBuilder(
     return false;
   }
 
-  private static boolean isAnyWhileTrueLoopStart(CFANode pCfaNode) {
+  private static boolean isWhileTrueLoopHead(
+      final ImmutableSet<CFANode> pLoopHeads,
+      CFANode pCfaNode,
+      Optional<CFAEdgeForThread> pCallContext) {
+
     if (pCfaNode.getEnteringEdges().size() == 1) {
       CFAEdge enteringEdge = Iterables.getOnlyElement(pCfaNode.getEnteringEdges());
       CFANode predecessor = enteringEdge.getPredecessor();
-      if (isWhileTrueLoopStart(predecessor)) {
-        return true;
-      } else if (isWhileTrueLoopStartWithDeclaration(enteringEdge, predecessor)) {
-        return true;
-      } else if (isWhileTrueLoopStartWithFunctionCall(predecessor)) {
+      // while (1) loop heads are BlankEdges annotated with "1"
+      if (enteringEdge instanceof BlankEdge
+          && enteringEdge.getRawStatement().equals("1")
+          && pLoopHeads.contains(predecessor)) {
+        checkState(isWhileLoopHeadDescription(predecessor));
         return true;
       }
-    }
-    return false;
-  }
-
-  private static boolean isWhileTrueLoopStartWithDeclaration(CFAEdge pCfaEdge, CFANode pCfaNode) {
-    if (pCfaEdge instanceof CDeclarationEdge) {
       // edge case: while(1) starts e.g. with switch(__VERIFIER_nondet...())
-      // which is transformed into separate declaration
-      for (CFAEdge enteringEdge : pCfaNode.getEnteringEdges()) {
-        if (isWhileTrueLoopStart(enteringEdge.getPredecessor())) {
-          return true;
-        }
+      // which is transformed into a separate declaration
+      if (enteringEdge instanceof CDeclarationEdge
+          && isWhileTrueLoopHead(pLoopHeads, predecessor, pCallContext)) {
+        return true;
       }
-    }
-    return false;
-  }
-
-  private static boolean isWhileTrueLoopStartWithFunctionCall(CFANode pCfaNode) {
-    if (pCfaNode instanceof CFunctionEntryNode) {
       // edge case: while(1) is followed directly by function call
-      for (CFAEdge leavingEdge : pCfaNode.getLeavingEdges()) {
-        if (leavingEdge.getDescription().equals("Function start dummy edge")) {
-          for (CFAEdge functionCallEdge : pCfaNode.getEnteringEdges()) {
-            for (CFAEdge enteringEdge : functionCallEdge.getPredecessor().getEnteringEdges()) {
-              if (isWhileTrueLoopStart(enteringEdge.getPredecessor())) {
+      if (predecessor instanceof CFunctionEntryNode) {
+        for (CFAEdge leavingEdge : predecessor.getLeavingEdges()) {
+          if (leavingEdge.getDescription().equals("Function start dummy edge")) {
+            for (CFAEdge functionCallEdge : predecessor.getEnteringEdges()) {
+              CFANode functionPredecessor = functionCallEdge.getPredecessor();
+              if (pCallContext.orElseThrow().cfaEdge.equals(functionCallEdge)
+                  && isWhileTrueLoopHead(pLoopHeads, functionPredecessor, pCallContext)) {
                 return true;
               }
             }
@@ -399,7 +395,7 @@ public record SeqThreadStatementClauseBuilder(
     return false;
   }
 
-  private static boolean isWhileTrueLoopStart(CFANode pCfaNode) {
+  private static boolean isWhileLoopHeadDescription(CFANode pCfaNode) {
     if (pCfaNode.isLoopStart()) {
       for (CFAEdge enteringEdge : pCfaNode.getEnteringEdges()) {
         if (enteringEdge instanceof BlankEdge blankEdge) {
