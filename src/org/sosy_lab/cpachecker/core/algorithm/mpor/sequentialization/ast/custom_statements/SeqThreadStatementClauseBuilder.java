@@ -231,9 +231,14 @@ public record SeqThreadStatementClauseBuilder(
       CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
       ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
       if (pThreadNode.cfaNode instanceof FunctionExitNode) {
+        ImmutableSet<SubstituteEdge> edges =
+            pThreadNode.leavingEdges().stream()
+                .map(substituteEdges::get)
+                .filter(Objects::nonNull)
+                .collect(ImmutableSet.toImmutableSet());
         statements.add(
             SeqThreadStatementBuilder.buildGhostOnlyStatement(
-                pThread.id(), pcLeftHandSide, targetPc));
+                pThread, edges, pcLeftHandSide, targetPc));
       } else {
         statements.addAll(
             pStatementBuilder.buildStatementsFromThreadNode(pThreadNode, pCoveredNodes));

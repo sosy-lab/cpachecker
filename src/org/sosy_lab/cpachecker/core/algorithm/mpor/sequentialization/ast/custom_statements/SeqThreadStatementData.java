@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /** A class to keep the data that is linked to every {@link SeqThreadStatement}. */
 public class SeqThreadStatementData {
@@ -22,6 +23,8 @@ public class SeqThreadStatementData {
 
   private final int threadId;
 
+  private final boolean isLoopHead;
+
   private final CLeftHandSide pcLeftHandSide;
 
   /**
@@ -30,7 +33,7 @@ public class SeqThreadStatementData {
    * @param pType The {@link SeqThreadStatementType} of this statement.
    * @param pSubstituteEdges The set of {@link SubstituteEdge}s created from the input programs
    *     {@link CFA} that this statement represents.
-   * @param pThreadId The ID of the thread that executes this statement.
+   * @param pThread The {@link MPORThread} that executes this statement.
    * @param pPcLeftHandSide The {@link CLeftHandSide} of the thread simulation that executes the
    *     underlying statement. The {@link CLeftHandSide} is written to when updating the pc, e.g.
    *     {@code pc0 = 42;}.
@@ -38,32 +41,35 @@ public class SeqThreadStatementData {
   public SeqThreadStatementData(
       SeqThreadStatementType pType,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pThreadId,
+      MPORThread pThread,
       CLeftHandSide pPcLeftHandSide) {
 
     type = pType;
     substituteEdges = pSubstituteEdges;
-    threadId = pThreadId;
+    threadId = pThread.id();
+    isLoopHead =
+        pSubstituteEdges.stream()
+            .anyMatch(e -> pThread.cfa().getLoopHeads().contains(e.cfaEdge.getPredecessor()));
     pcLeftHandSide = pPcLeftHandSide;
   }
 
   public static SeqThreadStatementData of(
       SeqThreadStatementType pType,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pThreadId,
+      MPORThread pThread,
       CLeftHandSide pPcLeftHandSide) {
 
-    return new SeqThreadStatementData(pType, pSubstituteEdges, pThreadId, pPcLeftHandSide);
+    return new SeqThreadStatementData(pType, pSubstituteEdges, pThread, pPcLeftHandSide);
   }
 
   public static SeqThreadStatementData of(
       SeqThreadStatementType pType,
       SubstituteEdge pSubstituteEdge,
-      int pThreadId,
+      MPORThread pThread,
       CLeftHandSide pPcLeftHandSide) {
 
     return new SeqThreadStatementData(
-        pType, ImmutableSet.of(pSubstituteEdge), pThreadId, pPcLeftHandSide);
+        pType, ImmutableSet.of(pSubstituteEdge), pThread, pPcLeftHandSide);
   }
 
   public SeqThreadStatementType getType() {
@@ -76,6 +82,10 @@ public class SeqThreadStatementData {
 
   public int getThreadId() {
     return threadId;
+  }
+
+  public boolean isLoopHead() {
+    return isLoopHead;
   }
 
   public CLeftHandSide getPcLeftHandSide() {
