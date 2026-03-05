@@ -143,13 +143,13 @@ pred
     : '\\true'                          # LogicalTruePred
     | '\\false'                         # LogicalFalsePred
     | ident                             # PredicateVariable
+    | ident '(' term (',' term)* ')'    # PredicateApplicationPred
     // Not really part of the ACSL spec, but ACSL has an implicit conversion from terms
     // to predicates, which works the same way as in C i.e.
     // 0 is false and everything else is true
     | term                                                          # PredicateTerm
     // We transform these into binary expressions when parsing
     | term (relOp term)+                # ComparisonPred
-    | ident '(' term (',' term)* ')'    # PredicateApplicationPred
     | '(' pred ')'                      # ParenthesesPred
     | pred binaryPredOp pred            # BinaryPredicate
     | unaryPredOp pred                          # UnaryPred

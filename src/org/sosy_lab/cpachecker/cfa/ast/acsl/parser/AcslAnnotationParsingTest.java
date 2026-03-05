@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -168,10 +167,9 @@ public class AcslAnnotationParsingTest {
     aScope.registerDeclaration(predDef.getDeclaration());
 
     String assertion = "assert is_positive(x);";
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, getCProgramScope(), aScope));
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, getCProgramScope(), aScope);
+    assertThat(parsed.toAstString()).isEqualTo(assertion);
   }
 
   @Test

@@ -530,6 +530,9 @@ public class AcslParserLogicalDefinitionsTest {
 
   @Test
   public void parseIsPositiveLogicalPredicateDeclaration() throws AcslParseException {
+    /*
+    This example was taken from ANSI/ISO C Specification Language Version 1.23 §2.61 Example 2.40.
+     */
     AcslParameterDeclaration i =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
     AcslPredicateDeclaration declaration =
@@ -555,6 +558,9 @@ public class AcslParserLogicalDefinitionsTest {
 
   @Test
   public void parseIsPositiveLogicFunction() throws AcslParseException {
+    /*
+    This example was taken from ANSI/ISO C Specification Language Version 1.23 §2.61 Example 2.40.
+     */
     String input = "logic integer is_positive (integer i) = i >= 0 ? 1 : 0;";
     AcslParameterDeclaration i =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");

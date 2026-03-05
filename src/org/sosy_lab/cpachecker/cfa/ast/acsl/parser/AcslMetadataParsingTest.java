@@ -259,16 +259,12 @@ public class AcslMetadataParsingTest {
           // ToDo: Implement TypeSpecifierContext
           AntlrToInternalNotImplementedException.class,
           () -> cfaCreator.parseFileAndCreateCFA(files));
-    } else if (programName.equals("square_with_logic_function.c")) {
-      // ToDo: Replace ACSLdeprectade
-      // The deprecated acsl parse can't handle the logic function 'is_positive'.
-      assertThrows(CParserException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
-    } else if (programName.equals("square_root_with_predicate.c")
+    } else if (programName.equals("square_with_logic_function.c")
+        || programName.equals("square_root_with_predicate.c")
         || programName.equals("square_with_predicate.c")) {
-      // ToDo Handle predicate calls in assertions.
-      // Currently, the parser recognizes a predicate call as a function call and then find the
-      // predicate declaration.
-      assertThrows(NullPointerException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      // ToDo: Replace ACSLdeprectade
+      // The deprecated acsl parser can't handle acsl logic specifications.
+      assertThrows(CParserException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
     } else {
 
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
@@ -300,16 +296,12 @@ public class AcslMetadataParsingTest {
           // ToDo: Implement TypeSpecifierContext
           AntlrToInternalNotImplementedException.class,
           () -> cfaCreator.parseFileAndCreateCFA(files));
-    } else if (programName.equals("square_with_logic_function.c")) {
-      // ToDo: Replace ACSLdeprectade
-      // The deprecated acsl parse can't handle the logic function 'is_positive'.
-      assertThrows(CParserException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
-    } else if (programName.equals("square_root_with_predicate.c")
+    } else if (programName.equals("square_with_logic_function.c")
+        || programName.equals("square_root_with_predicate.c")
         || programName.equals("square_with_predicate.c")) {
-      // ToDo Handle predicate calls in assertions.
-      // Currently, the parser recognizes a predicate call as a function call and then find the
-      // predicate declaration.
-      assertThrows(NullPointerException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      // ToDo: Replace ACSLdeprectade
+      // The deprecated acsl parse can't handle acsl logic specifications.
+      assertThrows(CParserException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata acslMetadata = cfa.getAcslMetadata();
@@ -341,16 +333,12 @@ public class AcslMetadataParsingTest {
           // ToDo: Implement TypeSpecifierContext
           AntlrToInternalNotImplementedException.class,
           () -> cfaCreator.parseFileAndCreateCFA(files));
-    } else if (programName.equals("square_with_logic_function.c")) {
-      // ToDo: Replace ACSLdeprectade
-      // The deprecated acsl parse can't handle the logic function 'is_positive'.
-      assertThrows(CParserException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
-    } else if (programName.equals("square_root_with_predicate.c")
+    } else if (programName.equals("square_with_logic_function.c")
+        || programName.equals("square_root_with_predicate.c")
         || programName.equals("square_with_predicate.c")) {
-      // ToDo Handle predicate calls in assertions.
-      // Currently, the parser recognizes a predicate call as a function call and then find the
-      // predicate declaration.
-      assertThrows(NullPointerException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      // ToDo: Replace ACSLdeprectade
+      // The deprecated acsl parser can't handle acsl logic specifications.
+      assertThrows(CParserException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata metadata = cfa.getAcslMetadata();
