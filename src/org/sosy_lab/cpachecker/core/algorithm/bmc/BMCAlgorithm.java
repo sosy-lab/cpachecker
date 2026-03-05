@@ -52,9 +52,9 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
@@ -157,8 +157,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (terminationMode) {
       if (!cfa.getLoopStructure().isPresent()) {
         logger.log(
-            Level.WARNING,
-            "Termination mode is enabled, but loop structure is unavailable.");
+            Level.WARNING, "Termination mode is enabled, but loop structure is unavailable.");
         return CandidateGenerator.EMPTY_GENERATOR;
       }
       ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
