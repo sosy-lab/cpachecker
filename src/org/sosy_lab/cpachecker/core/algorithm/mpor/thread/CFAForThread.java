@@ -53,6 +53,16 @@ public class CFAForThread {
       ImmutableSet<CFANode> pLoopHeads,
       ImmutableList<CFAEdgeForThread> pThreadEdges) {
 
+    checkArgument(
+        pThreadNodes.stream().anyMatch(n -> n.getCfaNode().equals(pEntryNode)),
+        "pEntryNode must be present in pThreadNodes.");
+    checkArgument(
+        pThreadNodes.stream()
+            .map(CFANodeForThread::getCfaNode)
+            .collect(ImmutableSet.toImmutableSet())
+            .containsAll(pLoopHeads),
+        "All pLoopHeads must be present in pThreadNodes.");
+
     threadId = pThreadId;
     entryNode = pEntryNode;
     threadNodes = pThreadNodes;
@@ -69,7 +79,7 @@ public class CFAForThread {
    */
   private void handleFunctionReturnEdges() {
     for (CFANodeForThread threadNode : threadNodes) {
-      if (threadNode.cfaNode instanceof FunctionExitNode) {
+      if (threadNode.getCfaNode() instanceof FunctionExitNode) {
         Set<CFAEdgeForThread> prunedEdges = new HashSet<>();
         for (CFAEdgeForThread threadEdge : threadNode.leavingEdges()) {
           Optional<CFANodeForThread> returnThreadNode =
@@ -122,7 +132,7 @@ public class CFAForThread {
       if (!(cfaEdge instanceof CFunctionReturnEdge)) {
         for (CFANodeForThread threadNode : pThreadNodes) {
           // check if predecessor node of edge is same as node
-          if (threadNode.cfaNode.equals(cfaEdge.getSuccessor())) {
+          if (threadNode.getCfaNode().equals(cfaEdge.getSuccessor())) {
             // check if calling context for node and edge are the same
             if (cfaEdge instanceof CFunctionCallEdge) {
               // for call edges, we use the edge as the call context
@@ -169,7 +179,7 @@ public class CFAForThread {
    */
   private ImmutableSet<CFANodeForThread> getThreadNodesByCfaNode(CFANode pCfaNode) {
     return threadNodes.stream()
-        .filter(threadNode -> threadNode.cfaNode.equals(pCfaNode))
+        .filter(threadNode -> threadNode.getCfaNode().equals(pCfaNode))
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -177,7 +187,7 @@ public class CFAForThread {
       CFANode pCfaNode, Optional<CFAEdgeForThread> pCallContext) {
 
     for (CFANodeForThread threadNode : threadNodes) {
-      if (threadNode.cfaNode.equals(pCfaNode)) {
+      if (threadNode.getCfaNode().equals(pCfaNode)) {
         if (threadNode.callContext.equals(pCallContext)) {
           return Optional.of(threadNode);
         }

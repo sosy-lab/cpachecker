@@ -333,7 +333,7 @@ public record SeqThreadStatementBuilder(
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
-    CFANode successor = pThreadEdge.getSuccessor().cfaNode;
+    CFANode successor = pThreadEdge.getSuccessor().getCfaNode();
 
     if (resultsInBlankStatement(pSubstituteEdge, successor)) {
       return buildGhostOnlyStatement(

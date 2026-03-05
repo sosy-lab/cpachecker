@@ -226,7 +226,7 @@ public record SeqThreadStatementClauseBuilder(
     } else {
       CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
       ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
-      if (pThreadNode.cfaNode instanceof FunctionExitNode) {
+      if (pThreadNode.getCfaNode() instanceof FunctionExitNode) {
         ImmutableSet<SubstituteEdge> edges =
             pThreadNode.leavingEdges().stream()
                 .map(substituteEdges::get)
@@ -252,7 +252,7 @@ public record SeqThreadStatementClauseBuilder(
           : "A CFANodeForThread without any leaving edges must have EXIT_PC.";
       return true;
     }
-    FluentIterable<CFAEdge> enteringEdges = pThreadNode.cfaNode.getEnteringEdges();
+    FluentIterable<CFAEdge> enteringEdges = pThreadNode.getCfaNode().getEnteringEdges();
     if (enteringEdges.size() == 1) {
       if (Iterables.getOnlyElement(enteringEdges) instanceof CFunctionSummaryStatementEdge) {
         return true;

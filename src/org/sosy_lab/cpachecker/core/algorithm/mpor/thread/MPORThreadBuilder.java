@@ -311,8 +311,9 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     }
     ImmutableSet.Builder<CFANode> loopHeads = ImmutableSet.builder();
     for (CFANodeForThread threadNode : pThreadNodes) {
-      if (cfa.getLoopStructure().orElseThrow().getAllLoopHeads().contains(threadNode.cfaNode)) {
-        loopHeads.add(threadNode.cfaNode);
+      CFANode cfaNode = threadNode.getCfaNode();
+      if (cfa.getLoopStructure().orElseThrow().getAllLoopHeads().contains(cfaNode)) {
+        loopHeads.add(cfaNode);
       }
     }
     return loopHeads.build();
