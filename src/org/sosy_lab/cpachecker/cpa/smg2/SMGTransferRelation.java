@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -132,6 +133,8 @@ public class SMGTransferRelation
   // (see SMGCPAAssigningValueVisitor). Used to assign boolean concrete values.
   private final Collection<String> booleanVariables;
 
+  private final Optional<ImmutableSet<CFANode>> maybeLoopHeads;
+
   private final @Nullable SMGCPAStatistics stats;
 
   private final ConstraintsSolver solver;
@@ -163,6 +166,7 @@ public class SMGTransferRelation
     evaluator = pEvaluator;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = pStats;
+    maybeLoopHeads = cfa.getAllLoopHeads();
   }
 
   /* For tests only. */
@@ -214,6 +218,7 @@ public class SMGTransferRelation
 
     evaluator = pEvaluator;
     cfa = null;
+    maybeLoopHeads = Optional.empty();
   }
 
   @Override
@@ -851,6 +856,8 @@ public class SMGTransferRelation
     truthValue = simplifiedExpression.getSecond();
 
     if (expression instanceof CBinaryExpression binEx
+        && maybeLoopHeads.isPresent()
+        && maybeLoopHeads.orElseThrow().contains(cfaEdge.getPredecessor())
         && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound
         && loopBound.getValue().bitCount() <= 32) {
       if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
