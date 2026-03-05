@@ -9,15 +9,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -67,8 +70,9 @@ public class SeqPruner {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
-    // map the original pc to pc that are found after pruning
-    ImmutableMap<Integer, Integer> pcUpdates = createPrunedPcUpdates(pClauses, labelClauseMap);
+    // table (1) original pc (2) post prune pc (3) whether a loop head was pruned
+    ImmutableTable<Integer, Integer, Boolean> pcUpdates =
+        createPrunedPcUpdates(pClauses, labelClauseMap);
     // update each target pc so that it targets a non-blank case
     ImmutableList<SeqThreadStatementClause> rUpdatedTargetPc =
         updateTargetPcToNonPruned(pClauses, labelClauseMap, pcUpdates);
@@ -80,20 +84,22 @@ public class SeqPruner {
    * Maps pre prune {@code int pc} to their post prune counterparts. Not all target {@code pc} are
    * present as keys.
    */
-  private static ImmutableMap<Integer, Integer> createPrunedPcUpdates(
+  private static ImmutableTable<Integer, Integer, Boolean> createPrunedPcUpdates(
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     Set<Integer> visitedPrePrunePc = new HashSet<>();
-    ImmutableMap.Builder<Integer, Integer> rMap = ImmutableMap.builder();
+    ImmutableTable.Builder<Integer, Integer, Boolean> rMap = ImmutableTable.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      if (!clause.isBlank()) {
+      if (!clause.isBlank() || clause.getFirstBlock().isLoopHead()) {
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
           if (statement.targetPc().isPresent()) {
             int targetPc = statement.targetPc().orElseThrow();
             Optional<Integer> postPrunePc = findTargetPc(clause, statement, pLabelClauseMap);
             if (postPrunePc.isPresent() && visitedPrePrunePc.add(targetPc)) {
-              rMap.put(targetPc, postPrunePc.orElseThrow());
+              // loop heads e.g. while (1) are pruned, so their information has to be stored
+              boolean isLoopHeadPruned = clause.isBlank() && clause.getFirstBlock().isLoopHead();
+              rMap.put(targetPc, postPrunePc.orElseThrow(), isLoopHeadPruned);
             }
           }
         }
@@ -105,7 +111,7 @@ public class SeqPruner {
   private static ImmutableList<SeqThreadStatementClause> updateTargetPcToNonPruned(
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      ImmutableMap<Integer, Integer> pPcUpdates) {
+      ImmutableTable<Integer, Integer, Boolean> pPcUpdates) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rUpdatedTargetPc = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
@@ -114,10 +120,13 @@ public class SeqPruner {
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
           if (statement.targetPc().isPresent()) {
             int targetPc = statement.targetPc().orElseThrow();
-            if (pPcUpdates.containsKey(targetPc)) {
+            if (pPcUpdates.containsRow(targetPc)) {
               // if pc was updated in prune, clone statement with new target pc
-              newStatements.add(
-                  statement.withTargetPc(Objects.requireNonNull(pPcUpdates.get(targetPc))));
+              Map<Integer, Boolean> rowMap = checkNotNull(pPcUpdates.rowMap().get(targetPc));
+              checkState(rowMap.size() == 1, "targetPc can only map to a single post-prune pc.");
+              int newPc = Iterables.getOnlyElement(rowMap.keySet());
+              boolean newIsLoopHead = Iterables.getOnlyElement(rowMap.values());
+              newStatements.add(statement.withTargetPc(newPc).withIsLoopHead(newIsLoopHead));
               continue;
             }
           }
@@ -189,9 +198,11 @@ public class SeqPruner {
       SeqThreadStatementClause pCurrent,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    // if pInitial is present, it should only write a pc
-    checkArgument(
-        pInitial.isEmpty() || !pInitial.orElseThrow().isBlank(), "pInitial must not be prunable");
+    if (pInitial.isPresent() && pInitial.orElseThrow().isBlank()) {
+      checkArgument(
+          pInitial.orElseThrow().getFirstBlock().isLoopHead(),
+          "If pInitial is present and not blank, then it must be a loop head.");
+    }
     if (pCurrent.isBlank()) {
       SeqThreadStatement singleStatement = pCurrent.getFirstBlock().getFirstStatement();
       Verify.verify(validPrunableClause(pCurrent));
