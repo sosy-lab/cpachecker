@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
  *
  * @param data The data that all statements must contain, e.g., their {@link
  *     SeqThreadStatementType}.
- * @param pIsLoopHead Whether this statement is a loop head.
+ * @param isLoopHead Whether this statement is a loop head.
  * @param targetPc The value assigned to a threads {@code pc}, e.g. {@code 42} in {@code pc0 = 42;},
  *     used only if there is no {@code targetGoto}.
  * @param targetGoto The {@code goto stmt;} statement, used only if there is no {@code targetPc}.
