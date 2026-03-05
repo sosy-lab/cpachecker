@@ -34,7 +34,7 @@ public final class SeqThreadStatementDataWithIfExpression extends SeqThreadState
    * @param pType The {@link SeqThreadStatementType} of this statement.
    * @param pSubstituteEdges The set of {@link SubstituteEdge}s created from the input programs
    *     {@link CFA} that this statement represents.
-   * @param pThread The {@link MPORThread} that executes this statement.
+   * @param pThreadId The ID of the {@link MPORThread} that executes this statement.
    * @param pPcLeftHandSide The {@link CLeftHandSide} of the thread simulation that executes the
    *     underlying statement. The {@link CLeftHandSide} is written to when updating the pc, e.g.
    *     {@code pc0 = 42;}.
@@ -44,11 +44,11 @@ public final class SeqThreadStatementDataWithIfExpression extends SeqThreadState
   public SeqThreadStatementDataWithIfExpression(
       SeqThreadStatementType pType,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      MPORThread pThread,
+      int pThreadId,
       CLeftHandSide pPcLeftHandSide,
       CExpression pIfExpression) {
 
-    super(pType, pSubstituteEdges, pThread, pPcLeftHandSide);
+    super(pType, pSubstituteEdges, pThreadId, pPcLeftHandSide);
     checkArgument(
         pType.equals(SeqThreadStatementType.ASSUME), "pType must be SeqThreadStatementType.ASSUME");
     ifExpression = pIfExpression;

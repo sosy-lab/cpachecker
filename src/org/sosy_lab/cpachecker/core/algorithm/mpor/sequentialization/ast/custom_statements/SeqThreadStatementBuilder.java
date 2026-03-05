@@ -217,7 +217,10 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         new SeqThreadStatementData(
-            SeqThreadStatementType.CONST_CPACHECKER_TMP, pSubstituteEdges, thread, pcLeftHandSide);
+            SeqThreadStatementType.CONST_CPACHECKER_TMP,
+            pSubstituteEdges,
+            thread.id(),
+            pcLeftHandSide);
 
     // ensure that the declaration is a CVariableDeclaration and cast accordingly
     CDeclarationEdge declarationEdge = (CDeclarationEdge) pConstCpaCheckerTmpEdge.cfaEdge;
@@ -237,7 +240,11 @@ public record SeqThreadStatementBuilder(
           new CStatementWrapper(
               ((CStatementEdge) pSecondSuccessorEdge.orElseThrow().cfaEdge).getStatement()));
     }
-    return SeqThreadStatement.of(data, pNewTargetPc, exportStatements.build());
+    return SeqThreadStatement.of(
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pNewTargetPc,
+        exportStatements.build());
   }
 
   private void checkConstCpaCheckerTmpArguments(
@@ -372,12 +379,13 @@ public record SeqThreadStatementBuilder(
         new SeqThreadStatementDataWithIfExpression(
             SeqThreadStatementType.ASSUME,
             ImmutableSet.of(pSubstituteEdge),
-            thread,
+            thread.id(),
             pPcLeftHandSide,
             pAssumeEdge.getExpression());
 
     // just return with empty statements, the block handles the if-else branch
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of());
+    return SeqThreadStatement.of(
+        data, isLoopHead(thread, data.getSubstituteEdges()), pTargetPc, ImmutableList.of());
   }
 
   private SeqThreadStatement buildDefaultStatement(
@@ -388,9 +396,12 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread, pPcLeftHandSide);
+            SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pPcLeftHandSide);
     return SeqThreadStatement.of(
-        data, pTargetPc, ImmutableList.of(new CStatementWrapper(pStatementEdge.getStatement())));
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pTargetPc,
+        ImmutableList.of(new CStatementWrapper(pStatementEdge.getStatement())));
   }
 
   static SeqThreadStatement buildGhostOnlyStatement(
@@ -401,8 +412,9 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.GHOST_ONLY, pSubstituteEdges, pThread, pPcLeftHandSide);
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of());
+            SeqThreadStatementType.GHOST_ONLY, pSubstituteEdges, pThread.id(), pPcLeftHandSide);
+    return SeqThreadStatement.of(
+        data, isLoopHead(pThread, data.getSubstituteEdges()), pTargetPc, ImmutableList.of());
   }
 
   private SeqThreadStatement buildLocalVariableInitializationStatement(
@@ -421,11 +433,15 @@ public record SeqThreadStatementBuilder(
         SeqThreadStatementData.of(
             SeqThreadStatementType.LOCAL_VARIABLE_INITIALIZATION,
             pSubstituteEdge,
-            thread,
+            thread.id(),
             pPcLeftHandSide);
     CStatementWrapper assignmentStatement =
         buildExpressionAssignmentStatementFromVariableDeclaration(pVariableDeclaration);
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assignmentStatement));
+    return SeqThreadStatement.of(
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pTargetPc,
+        ImmutableList.of(assignmentStatement));
   }
 
   private SeqThreadStatement buildFunctionCallStatement(
@@ -438,7 +454,10 @@ public record SeqThreadStatementBuilder(
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getOrigName();
     SeqThreadStatementData parameterAssignmentData =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.PARAMETER_ASSIGNMENT, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.PARAMETER_ASSIGNMENT,
+            pSubstituteEdge,
+            thread.id(),
+            pcLeftHandSide);
 
     // handle (some arbitrary) function with parameters
     if (functionStatements.parameterAssignments().containsKey(pThreadEdge)) {
@@ -465,7 +484,7 @@ public record SeqThreadStatementBuilder(
         thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, pTargetPc);
   }
 
-  private static SeqThreadStatement buildParameterAssignmentStatement(
+  private SeqThreadStatement buildParameterAssignmentStatement(
       String pFunctionName,
       ImmutableList<FunctionParameterAssignment> pFunctionParameterAssignments,
       SeqThreadStatementData pData,
@@ -475,15 +494,21 @@ public record SeqThreadStatementBuilder(
         !pFunctionParameterAssignments.isEmpty() || pFunctionName.equals(REACH_ERROR_FUNCTION_NAME),
         "If pAssignments is empty, then the function name must be reach_error.");
 
-    ImmutableList.Builder<CCompoundStatementElement> functionStatements = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> functionStatementBuilder =
+        ImmutableList.builder();
     // if the function name is "reach_error", inject a "reach_error()" call for reachability
     if (pFunctionName.equals(REACH_ERROR_FUNCTION_NAME)) {
-      functionStatements.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
+      functionStatementBuilder.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
     }
     for (FunctionParameterAssignment assignment : pFunctionParameterAssignments) {
-      functionStatements.add(new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
+      functionStatementBuilder.add(
+          new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
     }
-    return SeqThreadStatement.of(pData, pTargetPc, functionStatements.build());
+    return SeqThreadStatement.of(
+        pData,
+        isLoopHead(thread, pData.getSubstituteEdges()),
+        pTargetPc,
+        functionStatementBuilder.build());
   }
 
   private SeqThreadStatement buildReturnValueAssignmentStatement(
@@ -495,9 +520,12 @@ public record SeqThreadStatementBuilder(
           Objects.requireNonNull(functionStatements.returnValueAssignments().get(pThreadEdge));
       SeqThreadStatementData data =
           SeqThreadStatementData.of(
-              SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread, pcLeftHandSide);
+              SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pcLeftHandSide);
       return SeqThreadStatement.of(
-          data, pTargetPc, ImmutableList.of(new CStatementWrapper(assignment.statement())));
+          data,
+          isLoopHead(thread, data.getSubstituteEdges()),
+          pTargetPc,
+          ImmutableList.of(new CStatementWrapper(assignment.statement())));
     }
 
     // -> function does not return anything, i.e. return;
@@ -558,11 +586,15 @@ public record SeqThreadStatementBuilder(
         "pFunctionType must be VERIFIER_ATOMIC_BEGIN or VERIFIER_ATOMIC_END.");
 
     SeqThreadStatementData data =
-        SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread, pcLeftHandSide);
+        SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     // just add a comment with the function name for better overview in the output program
     CComment commentStatement = new CComment(pFunctionType.name + ";");
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(commentStatement));
+    return SeqThreadStatement.of(
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pTargetPc,
+        ImmutableList.of(commentStatement));
   }
 
   private SeqThreadStatement buildCondSignalStatement(
@@ -578,10 +610,13 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.COND_SIGNAL, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.COND_SIGNAL, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     return SeqThreadStatement.of(
-        data, pTargetPc, ImmutableList.of(new CStatementWrapper(setCondSignaledTrue)));
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pTargetPc,
+        ImmutableList.of(new CStatementWrapper(setCondSignaledTrue)));
   }
 
   public SeqThreadStatement buildCondWaitStatement(
@@ -598,7 +633,7 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.COND_WAIT, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.COND_WAIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
     // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
@@ -616,6 +651,7 @@ public record SeqThreadStatementBuilder(
 
     return SeqThreadStatement.of(
         data,
+        isLoopHead(thread, data.getSubstituteEdges()),
         pTargetPc,
         ImmutableList.of(
             new CStatementWrapper(assumeSignaled),
@@ -637,7 +673,7 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.THREAD_CREATION, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.THREAD_CREATION, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     CExpression pthreadTObject =
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_T);
@@ -658,7 +694,8 @@ public record SeqThreadStatementBuilder(
                 pcVariables().getPcLeftHandSide(createdThread.id()),
                 ProgramCounterVariables.INIT_PC)));
 
-    return SeqThreadStatement.of(data, pTargetPc, exportStatements.build());
+    return SeqThreadStatement.of(
+        data, isLoopHead(thread, data.getSubstituteEdges()), pTargetPc, exportStatements.build());
   }
 
   private SeqThreadStatement buildThreadExitStatement(
@@ -670,11 +707,12 @@ public record SeqThreadStatementBuilder(
     }
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.THREAD_EXIT, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.THREAD_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
     FunctionReturnValueAssignment returnValueAssignment =
         Objects.requireNonNull(functionStatements.startRoutineExitAssignments().get(pThreadEdge));
     return SeqThreadStatement.of(
         data,
+        isLoopHead(thread, data.getSubstituteEdges()),
         pTargetPc,
         ImmutableList.of(new CStatementWrapper(returnValueAssignment.statement())));
   }
@@ -685,7 +723,7 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.THREAD_JOIN, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.THREAD_JOIN, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     MPORThread targetThread = MPORThreadUtil.getThreadByCFunctionCall(allThreads, pFunctionCall);
     CStatementWrapper assumeCall =
@@ -703,10 +741,17 @@ public record SeqThreadStatementBuilder(
                 buildReturnValueRead(
                     targetThread.startRoutineExitVariable().orElseThrow(), pSubstituteEdge));
         return SeqThreadStatement.of(
-            data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
+            data,
+            isLoopHead(thread, data.getSubstituteEdges()),
+            pTargetPc,
+            ImmutableList.of(assumeCall, returnValueRead));
       }
     }
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall));
+    return SeqThreadStatement.of(
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pTargetPc,
+        ImmutableList.of(assumeCall));
   }
 
   private static CStatement buildReturnValueRead(
@@ -740,7 +785,7 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     CIdExpression pthreadMutexT =
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
@@ -755,6 +800,7 @@ public record SeqThreadStatementBuilder(
 
     return SeqThreadStatement.of(
         data,
+        isLoopHead(thread, data.getSubstituteEdges()),
         pTargetPc,
         ImmutableList.of(
             new CStatementWrapper(assumeCall), new CStatementWrapper(setMutexLockedTrue)));
@@ -766,7 +812,7 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     CIdExpression pthreadMutexT =
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
@@ -777,7 +823,11 @@ public record SeqThreadStatementBuilder(
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0));
 
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(lockedFalseAssignment));
+    return SeqThreadStatement.of(
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pTargetPc,
+        ImmutableList.of(lockedFalseAssignment));
   }
 
   // rw_lock statements
@@ -810,7 +860,7 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.RW_LOCK_RD_LOCK, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.RW_LOCK_RD_LOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     CStatementWrapper assumption =
         new CStatementWrapper(
@@ -820,7 +870,10 @@ public record SeqThreadStatementBuilder(
         new CStatementWrapper(pRwLockFlags.readersIncrement());
 
     return SeqThreadStatement.of(
-        data, pTargetPc, ImmutableList.of(assumption, rwLockReadersIncrement));
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pTargetPc,
+        ImmutableList.of(assumption, rwLockReadersIncrement));
   }
 
   private SeqThreadStatement buildRwLockUnlockStatement(
@@ -828,7 +881,7 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.RW_LOCK_UNLOCK, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.RW_LOCK_UNLOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     CExpressionAssignmentStatement setNumWritersToZero =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
@@ -839,7 +892,11 @@ public record SeqThreadStatementBuilder(
             new CCompoundStatement(new CStatementWrapper(pRwLockFlags.readersDecrement())),
             new CCompoundStatement(new CStatementWrapper(setNumWritersToZero)));
 
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(ifStatement));
+    return SeqThreadStatement.of(
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pTargetPc,
+        ImmutableList.of(ifStatement));
   }
 
   private SeqThreadStatement buildRwLockWrLockStatement(
@@ -847,7 +904,7 @@ public record SeqThreadStatementBuilder(
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.RW_LOCK_WR_LOCK, pSubstituteEdge, thread, pcLeftHandSide);
+            SeqThreadStatementType.RW_LOCK_WR_LOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     CExpressionAssignmentStatement setWritersToOne =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
@@ -860,6 +917,7 @@ public record SeqThreadStatementBuilder(
 
     return SeqThreadStatement.of(
         data,
+        isLoopHead(thread, data.getSubstituteEdges()),
         pTargetPc,
         ImmutableList.of(
             new CStatementWrapper(assumptionWriters),
@@ -868,6 +926,13 @@ public record SeqThreadStatementBuilder(
   }
 
   // Helpers
+
+  private static boolean isLoopHead(
+      MPORThread pThread, ImmutableSet<SubstituteEdge> pSubstituteEdges) {
+
+    return pSubstituteEdges.stream()
+        .anyMatch(e -> pThread.cfa().getLoopHeads().contains(e.cfaEdge.getPredecessor()));
+  }
 
   /**
    * Returns {@code true} if the resulting statement has only {@code pc} adjustments, i.e. no code

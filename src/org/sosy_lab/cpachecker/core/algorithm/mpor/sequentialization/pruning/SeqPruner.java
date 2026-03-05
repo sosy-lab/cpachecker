@@ -91,7 +91,7 @@ public class SeqPruner {
     Set<Integer> visitedPrePrunePc = new HashSet<>();
     ImmutableTable.Builder<Integer, Integer, Boolean> rMap = ImmutableTable.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      if (!clause.isBlank() || clause.getFirstBlock().isLoopHead()) {
+      if (clause.isNotBlankOrLoopHead()) {
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
           if (statement.targetPc().isPresent()) {
             int targetPc = statement.targetPc().orElseThrow();
@@ -115,7 +115,7 @@ public class SeqPruner {
 
     ImmutableList.Builder<SeqThreadStatementClause> rUpdatedTargetPc = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      if (!clause.isBlank() && !isEmptyAtomicBlock(clause, pLabelClauseMap)) {
+      if (clause.isNotBlankOrLoopHead() && !isEmptyAtomicBlock(clause, pLabelClauseMap)) {
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
           if (statement.targetPc().isPresent()) {
@@ -125,7 +125,9 @@ public class SeqPruner {
               Map<Integer, Boolean> rowMap = checkNotNull(pPcUpdates.rowMap().get(targetPc));
               checkState(rowMap.size() == 1, "targetPc can only map to a single post-prune pc.");
               int newPc = Iterables.getOnlyElement(rowMap.keySet());
-              boolean newIsLoopHead = Iterables.getOnlyElement(rowMap.values());
+              // only change isLoopHead from false -> true, never the other way around
+              boolean newIsLoopHead =
+                  Iterables.getOnlyElement(rowMap.values()) || statement.isLoopHead();
               newStatements.add(statement.withTargetPc(newPc).withIsLoopHead(newIsLoopHead));
               continue;
             }

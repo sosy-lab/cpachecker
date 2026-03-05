@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
  *
  * @param data The data that all statements must contain, e.g., their {@link
  *     SeqThreadStatementType}.
+ * @param pIsLoopHead Whether this statement is a loop head.
  * @param targetPc The value assigned to a threads {@code pc}, e.g. {@code 42} in {@code pc0 = 42;},
  *     used only if there is no {@code targetGoto}.
  * @param targetGoto The {@code goto stmt;} statement, used only if there is no {@code targetPc}.
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
  */
 public record SeqThreadStatement(
     SeqThreadStatementData data,
+    boolean isLoopHead,
     Optional<Integer> targetPc,
     Optional<Integer> targetGoto,
     ImmutableList<SeqInstrumentation> instrumentation,
@@ -73,11 +75,18 @@ public record SeqThreadStatement(
 
   public static SeqThreadStatement of(
       SeqThreadStatementData pData,
+      boolean pIsLoopHead,
       int pTargetPc,
       ImmutableList<CCompoundStatementElement> pExportStatements) {
+
     // the targetGoto and instrumentation are always empty on initialization
     return new SeqThreadStatement(
-        pData, Optional.of(pTargetPc), Optional.empty(), ImmutableList.of(), pExportStatements);
+        pData,
+        pIsLoopHead,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        ImmutableList.of(),
+        pExportStatements);
   }
 
   /**
@@ -115,8 +124,8 @@ public record SeqThreadStatement(
   }
 
   public SeqThreadStatement withIsLoopHead(boolean pIsLoopHead) {
-    // TODO
-    return new SeqThreadStatement(data, targetPc, targetGoto, instrumentation, exportAstNodes);
+    return new SeqThreadStatement(
+        data, pIsLoopHead, targetPc, targetGoto, instrumentation, exportAstNodes);
   }
 
   /**
@@ -132,7 +141,12 @@ public record SeqThreadStatement(
           ProgramCounterVariables.EXIT_PC);
     }
     return new SeqThreadStatement(
-        data, Optional.of(pTargetPc), Optional.empty(), instrumentation, exportAstNodes);
+        data,
+        isLoopHead,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        instrumentation,
+        exportAstNodes);
   }
 
   /**
@@ -141,7 +155,12 @@ public record SeqThreadStatement(
    */
   public SeqThreadStatement withTargetGoto(int pTargetGoto) {
     return new SeqThreadStatement(
-        data, Optional.empty(), Optional.of(pTargetGoto), instrumentation, exportAstNodes);
+        data,
+        isLoopHead,
+        Optional.empty(),
+        Optional.of(pTargetGoto),
+        instrumentation,
+        exportAstNodes);
   }
 
   /**
@@ -156,7 +175,8 @@ public record SeqThreadStatement(
   public SeqThreadStatement withInstrumentation(
       ImmutableList<SeqInstrumentation> pInstrumentation) {
 
-    return new SeqThreadStatement(data, targetPc, targetGoto, pInstrumentation, exportAstNodes);
+    return new SeqThreadStatement(
+        data, isLoopHead, targetPc, targetGoto, pInstrumentation, exportAstNodes);
   }
 
   @Override

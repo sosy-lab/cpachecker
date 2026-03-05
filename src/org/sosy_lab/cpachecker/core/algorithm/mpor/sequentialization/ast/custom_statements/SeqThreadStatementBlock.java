@@ -101,7 +101,7 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   }
 
   public boolean isLoopHead() {
-    return statements.stream().anyMatch(s -> s.data().isLoopHead());
+    return statements.stream().anyMatch(s -> s.isLoopHead());
   }
 
   public SeqThreadStatementBlock withLabelNumber(int pLabelNumber) {
