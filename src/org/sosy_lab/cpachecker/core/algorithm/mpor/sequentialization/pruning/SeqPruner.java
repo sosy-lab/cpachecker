@@ -104,8 +104,7 @@ public class SeqPruner {
             if (postPrunePc.isPresent() && visitedPrePrunePc.add(targetPc)) {
               // loop head targets e.g. while (1) are pruned, so their information has to be stored
               boolean isLoopHeadPruned =
-                  prunedClauses.stream()
-                      .anyMatch(c -> c.isBlank() && c.getFirstBlock().isLoopHead());
+                  prunedClauses.stream().anyMatch(c -> c.getFirstBlock().isLoopHead());
               rMap.put(targetPc, postPrunePc.orElseThrow(), isLoopHeadPruned);
               prunedClauses.clear();
             }
