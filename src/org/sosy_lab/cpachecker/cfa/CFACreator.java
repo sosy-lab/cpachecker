@@ -856,7 +856,7 @@ public class CFACreator {
       } else {
         CFANode n;
         try {
-          n = AcslNodeMappingUtils.addAcslToNodeMapping(comment, allComments, pCFA);
+          n = AcslNodeMappingUtils.addAcslToNodeMapping(comment, pCFA);
         } catch (AcslParseException e) {
           throw new AcslNodeMappingException(
               "Could not map acsl annotation " + comment + " to node: " + e);
