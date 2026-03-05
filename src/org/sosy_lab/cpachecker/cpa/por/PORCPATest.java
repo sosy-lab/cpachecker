@@ -68,4 +68,26 @@ public class PORCPATest {
     TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "three_threads_unsafe.c");
     results.assertIsUnsafe();
   }
+
+  // -- safe programs with mutex protection --
+
+  @Test
+  public void mutexProtectedSafe() throws Exception {
+    TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "mutex_protected_safe.c");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void c11MutexSafe() throws Exception {
+    TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "c11_mutex_safe.c");
+    results.assertIsSafe();
+  }
+
+  // -- unsafe programs without proper mutex protection --
+
+  @Test
+  public void mutexUnprotectedUnsafe() throws Exception {
+    TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "mutex_unprotected_unsafe.c");
+    results.assertIsUnsafe();
+  }
 }
