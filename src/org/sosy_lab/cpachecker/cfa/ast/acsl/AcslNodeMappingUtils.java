@@ -36,7 +36,7 @@ public class AcslNodeMappingUtils {
    *     represents the comment location in the Cfa.
    */
   public static CFANode addAcslToNodeMapping(
-      AcslComment pComment, List<AcslComment> pAllComments, CFA pCFA)
+      AcslComment pComment, CFA pCFA)
       throws AcslParseException, AcslNodeMappingException {
 
     ParseTree ctx = AcslParser.acslCommentToContext(pComment.getComment());
@@ -46,7 +46,7 @@ public class AcslNodeMappingUtils {
       case LoopAnnotContext ignored ->
           n = nodeForLoopAnnotation(pComment, pCFA.getAstCfaRelation());
       case FunctionContractContext ignored ->
-          n = nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation(), pAllComments);
+          n = nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation());
       case null ->
           throw new AcslNodeMappingException("Annotation " + pComment + " has no Antlr context.");
       default ->
@@ -112,15 +112,13 @@ public class AcslNodeMappingUtils {
   /**
    * @param pComment An AcslComment that is possibly a function contract
    * @param pAstCfaRelation The current Ast Cfa Relation
-   * @param pAllComments All Acsl Comments of the current Parse Result
    * @return - The next Function Entry Node if pComment is a function contract - Optional.empty()
    *     otherwise.
    */
   private static CFANode nodeForFunctionContract(
       AcslComment pComment,
       CFA pCFA,
-      AstCfaRelation pAstCfaRelation,
-      List<AcslComment> pAllComments) {
+      AstCfaRelation pAstCfaRelation) {
 
     FileLocation nextLocation =
         pAstCfaRelation.nextStartStatementLocation(pComment.fileLocation().getNodeOffset());
