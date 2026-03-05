@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.B
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.BindersContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ComparisonPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ExistentialQuantificationPredContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.IdentContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicalFalsePredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicalTruePredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.OldPredContext;
@@ -214,10 +213,6 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     AcslPredicateApplicationPredicate result =
         new AcslPredicateApplicationPredicate(FileLocation.DUMMY, p, parameters);
     return result;
-  }
-
-  public AcslPredicate visitIdent(IdentContext ctx) {
-    return visit(ctx.id());
   }
 
   private AcslPredicate handleQuantifiedPredicate(
