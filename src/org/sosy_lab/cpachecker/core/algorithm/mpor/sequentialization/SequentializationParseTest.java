@@ -53,7 +53,7 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
-            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "OCTAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
@@ -76,7 +76,7 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
-            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "HEXADECIMAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
@@ -143,7 +143,7 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
-            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "OCTAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")

@@ -22,14 +22,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
 
 public class BitVectorEvaluationUtil {
 
@@ -58,13 +59,29 @@ public class BitVectorEvaluationUtil {
    * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
    * Optional#empty()} if {@code pTerms} is empty.
    */
-  static Optional<BitVectorEvaluationExpression> tryBuildSparseLogicalDisjunction(
-      ImmutableList<ExpressionTree<CExpression>> pTerms) {
+  static Optional<CExportExpression> tryBuildLogicalOrExpressionFromCExpressions(
+      ImmutableList<CExpression> pTerms) {
+
+    return tryBuildLogicalOrExpression(
+        pTerms.stream().map(CExpressionWrapper::new).collect(ImmutableList.toImmutableList()));
+  }
+
+  /**
+   * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
+   * Optional#empty()} if {@code pTerms} is empty.
+   */
+  static Optional<CExportExpression> tryBuildLogicalOrExpression(
+      ImmutableList<CExportExpression> pTerms) {
 
     if (pTerms.isEmpty()) {
       return Optional.empty();
     }
-    return Optional.of(new BitVectorEvaluationExpression(Or.of(pTerms)));
+    // when there is only 1 term, use a normal CExportExpression
+    if (pTerms.size() == 1) {
+      return Optional.of(pTerms.getFirst());
+    }
+    // when there are at least 2 terms, use a CLogicalOrExpression (it needs at least 2)
+    return Optional.of(new CLogicalOrExpression(pTerms));
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A | B | C | ...)}. */
@@ -99,7 +116,7 @@ public class BitVectorEvaluationUtil {
   static ImmutableListMultimap<SeqMemoryLocation, CExpression>
       mapMemoryLocationsToSparseBitVectorsByAccessType(
           ImmutableSet<MPORThread> pOtherThreads,
-          BitVectorVariables pBitVectorVariables,
+          SeqBitVectorVariables pBitVectorVariables,
           MemoryAccessType pAccessType) {
 
     ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =

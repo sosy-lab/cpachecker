@@ -130,8 +130,6 @@ public class SubstituteEdgeBuilder {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
       CStatement substituteFunctionCall =
           pSubstitution.substitute(functionCall.getFunctionCall(), callContext, tracker);
-      assert substituteFunctionCall instanceof CFunctionCall
-          : "substitute function call must be CFunctionCall";
       CFunctionCallEdge substituteFunctionCallEdge =
           substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall);
       return Optional.of(
