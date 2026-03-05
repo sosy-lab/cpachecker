@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -28,11 +29,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -49,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -151,10 +155,35 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   protected CandidateGenerator getCandidateInvariants() {
     if (terminationMode) {
-      logger.log(
+      if (!cfa.getLoopStructure().isPresent()) {
+        logger.log(
+            Level.WARNING,
+            "Termination mode is enabled, but loop structure is unavailable.");
+        return CandidateGenerator.EMPTY_GENERATOR;
+      }
+      ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
+      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+        for (CFANode loopHead : loop.getLoopHeads()) {
+          for (CFAEdge leavingEdge : loopHead.getLeavingEdges()) {
+            if (leavingEdge instanceof AssumeEdge assumeEdge
+                && loop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
+              candidates.add(new FrontierEdgeFormulaNegation(loopHead, assumeEdge));
+            }
+          }
+        }
+      }
+      ImmutableSet<CandidateInvariant> terminationCandidates = candidates.build();
+      if (terminationCandidates.isEmpty()) {
+        logger.log(
+            Level.WARNING,
+            "Termination mode is enabled, but no loop-continuation candidates were created.");
+        return CandidateGenerator.EMPTY_GENERATOR;
+      }
+      logger.logf(
           Level.INFO,
-          "BMC termination mode is enabled; reusing the current candidate generator as a"
-              + " temporary connectivity check.");
+          "Termination mode is enabled; checking %d loop-continuation candidates.",
+          terminationCandidates.size());
+      return new StaticCandidateProvider(terminationCandidates);
     }
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;

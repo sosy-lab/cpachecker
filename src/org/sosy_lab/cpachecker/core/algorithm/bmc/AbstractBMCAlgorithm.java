@@ -502,7 +502,9 @@ abstract class AbstractBMCAlgorithm
                 && candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
               return AlgorithmStatus.UNSOUND_AND_PRECISE;
             }
-            candidateInvariantIterator.remove();
+            if (!isTerminationMode()) {
+              candidateInvariantIterator.remove();
+            }
           }
 
           if (invariantGenerator.isProgramSafe()) {

@@ -1021,6 +1021,10 @@ bmc.propagateInvGenInterrupts = false
 # improvement depends on the underlying SMT solver.
 bmc.simplifyBooleanFormula = false
 
+# Switch BMC from target-state reachability checking to an experimental
+# termination-oriented mode.
+bmc.terminationMode = false
+
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
 
