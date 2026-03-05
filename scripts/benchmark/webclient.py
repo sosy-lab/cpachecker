@@ -424,7 +424,6 @@ class WebInterface:
         self._unfinished_runs_lock = threading.Lock()
         self._downloading_result_futures = {}
         self._download_attempts = {}
-        self._banner_printed = False
         self.thread_count = thread_count
         self._executor = ThreadPoolExecutor(thread_count)
         self._thread_local = threading.local()
@@ -433,6 +432,7 @@ class WebInterface:
         self._read_hash_code_cache()
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
+        self._print_banner()
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -533,11 +533,6 @@ class WebInterface:
 
         except Exception as e:
             logging.debug("Could not fetch banner: %s", e)
-
-    def _ensure_banner_printed_once(self):
-        if not self._banner_printed:
-            self._print_banner()
-            self._banner_printed = True
 
     def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
@@ -680,7 +675,6 @@ class WebInterface:
         revision,
         counter=0,
     ):
-        self._ensure_banner_printed_once()
         params = []
         opened_files = []  # open file handles are passed to the request library
 
