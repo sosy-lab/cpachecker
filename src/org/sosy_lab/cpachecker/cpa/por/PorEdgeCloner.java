@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -71,7 +72,7 @@ final class PorEdgeCloner {
   }
 
   private CFAEdge cloneBlankEdge(final CFAEdge edge) {
-    return edge;
+    return new BlankEdge(edge.getRawStatement(), edge.getFileLocation(), edge.getPredecessor(), edge.getSuccessor(), edge.getDescription());
   }
 
   private CFAEdge cloneAssumeEdge(
@@ -82,19 +83,15 @@ final class PorEdgeCloner {
       final CFANode end) {
     if (edge instanceof CAssumeEdge pCAssumeEdge) {
       final var newAst = astCloner.cloneAstRightSide(pCAssumeEdge.getExpression());
-      if (newAst.equals(pCAssumeEdge.getExpression())) {
-        return edge;
-      } else {
-        return new CAssumeEdge(
-            rawStatement,
-            loc,
-            start,
-            end,
-            newAst,
-            pCAssumeEdge.getTruthAssumption(),
-            pCAssumeEdge.isSwapped(),
-            pCAssumeEdge.isArtificialIntermediate());
-      }
+      return new CAssumeEdge(
+          rawStatement,
+          loc,
+          start,
+          end,
+          newAst,
+          pCAssumeEdge.getTruthAssumption(),
+          pCAssumeEdge.isSwapped(),
+          pCAssumeEdge.isArtificialIntermediate());
     }
     throw new AssertionError(ONLY_C_SUPPORTED);
   }
@@ -108,10 +105,6 @@ final class PorEdgeCloner {
     if (edge instanceof CFunctionSummaryStatementEdge pCFunctionSummaryStatementEdge) {
       final var newStatement = astCloner.cloneAst(pCFunctionSummaryStatementEdge.getStatement());
       final var newFuncCall = astCloner.cloneAst(pCFunctionSummaryStatementEdge.getFunctionCall());
-      if (newStatement.equals(pCFunctionSummaryStatementEdge.getStatement())
-          && newFuncCall.equals(pCFunctionSummaryStatementEdge.getFunctionCall())) {
-        return edge;
-      } else {
         return new CFunctionSummaryStatementEdge(
             rawStatement,
             newStatement,
@@ -120,14 +113,9 @@ final class PorEdgeCloner {
             end,
             newFuncCall,
             pCFunctionSummaryStatementEdge.getFunctionName());
-      }
     } else if (edge instanceof CStatementEdge pCStatementEdge) {
       final var newStatement = astCloner.cloneAst(pCStatementEdge.getStatement());
-      if (newStatement.equals(pCStatementEdge.getStatement())) {
-        return edge;
-      } else {
         return new CStatementEdge(rawStatement, newStatement, loc, start, end);
-      }
     }
     throw new AssertionError(ONLY_C_SUPPORTED);
   }
@@ -140,11 +128,7 @@ final class PorEdgeCloner {
       final CFANode end) {
     if (edge instanceof CDeclarationEdge pCDeclarationEdge) {
       final var newDeclaration = astCloner.cloneAstLeftSide(pCDeclarationEdge.getDeclaration());
-      if (newDeclaration.equals(pCDeclarationEdge.getDeclaration())) {
-        return edge;
-      } else {
         return new CDeclarationEdge(rawStatement, loc, start, end, newDeclaration);
-      }
     }
     throw new AssertionError(ONLY_C_SUPPORTED);
   }
@@ -159,12 +143,8 @@ final class PorEdgeCloner {
         : "Expected FunctionExitNode: " + end + ", " + end.getClass();
     if (edge instanceof CReturnStatementEdge pCReturnStatementEdge) {
       final var newStatement = astCloner.cloneAst(pCReturnStatementEdge.getReturnStatement());
-      if (newStatement.equals(pCReturnStatementEdge.getReturnStatement())) {
-        return edge;
-      } else {
         return new CReturnStatementEdge(
             rawStatement, newStatement, loc, start, (FunctionExitNode) end);
-      }
     }
     throw new AssertionError(ONLY_C_SUPPORTED);
   }
@@ -180,9 +160,6 @@ final class PorEdgeCloner {
     if (edge instanceof CFunctionCallEdge pCFunctionCallEdge) {
       final var newAst =
           astCloner.cloneAst((CFunctionCall) pCFunctionCallEdge.getRawAST().orElseThrow());
-      if (newAst.equals(pCFunctionCallEdge.getRawAST().orElseThrow())) {
-        return edge;
-      } else {
         return new CFunctionCallEdge(
             rawStatement,
             loc,
@@ -190,7 +167,6 @@ final class PorEdgeCloner {
             (CFunctionEntryNode) end,
             newAst,
             pCFunctionCallEdge.getSummaryEdge());
-      }
     }
     throw new AssertionError();
   }
@@ -200,11 +176,7 @@ final class PorEdgeCloner {
     if (edge instanceof CFunctionReturnEdge pCFunctionReturnEdge) {
       final var newEdge =
           (CFunctionSummaryEdge) cloneEdgeDirect(pCFunctionReturnEdge.getSummaryEdge());
-      if (newEdge.equals(pCFunctionReturnEdge.getSummaryEdge())) {
-        return edge;
-      } else {
         return new CFunctionReturnEdge(loc, (FunctionExitNode) start, end, newEdge);
-      }
     }
     throw new AssertionError(ONLY_C_SUPPORTED);
   }
@@ -217,12 +189,8 @@ final class PorEdgeCloner {
       final CFANode end) {
     if (edge instanceof CFunctionSummaryEdge pCFunctionSummaryEdge) {
       final var newExpr = astCloner.cloneAst(pCFunctionSummaryEdge.getExpression());
-      if (newExpr.equals(pCFunctionSummaryEdge.getExpression())) {
-        return edge;
-      } else {
         return new CFunctionSummaryEdge(
             rawStatement, loc, start, end, newExpr, pCFunctionSummaryEdge.getFunctionEntry());
-      }
     }
     throw new AssertionError(ONLY_C_SUPPORTED);
   }

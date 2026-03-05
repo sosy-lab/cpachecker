@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,7 +49,7 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
   /**
    * Transient mapping from cloned outgoing edges to their originating thread PID.
    */
-  private final Map<CFAEdge, Integer> edgePidMap = new HashMap<>();
+  private final Map<CFAEdge, Integer> edgePidMap = new IdentityHashMap<>();
 
   private final EdgeDefUseData.Extractor memoryAccessExtractor =
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true));
