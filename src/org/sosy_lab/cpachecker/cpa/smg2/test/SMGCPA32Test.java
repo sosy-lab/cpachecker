@@ -23,7 +23,7 @@ public class SMGCPA32Test extends SMGBaseCPATest {
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrViaMallocProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "pointer_arithmetics/pointer_arithmetics_int_malloc_32_safe.c";
+    String testProgram = "basics/pointer_arithmetics/pointer_arithmetics_int_malloc_32_safe.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -33,7 +33,7 @@ public class SMGCPA32Test extends SMGBaseCPATest {
   public void pointerArithmeticsAndComparisonsIntPtrCastNumericViaMallocProof() throws Exception {
     doNotTestOverflowSpecification();
     String testProgram =
-        "pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_32_safe.c";
+        "basics/pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_32_safe.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
