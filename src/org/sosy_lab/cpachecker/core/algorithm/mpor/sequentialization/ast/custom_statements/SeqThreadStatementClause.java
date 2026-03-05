@@ -142,10 +142,6 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
     return true;
   }
 
-  public boolean isNotBlankOrLoopHead() {
-    return !isBlank() || getFirstBlock().isLoopHead();
-  }
-
   @Override
   public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
     ImmutableList.Builder<CCompoundStatementElement> exportedStatements = ImmutableList.builder();
