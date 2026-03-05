@@ -419,8 +419,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementBlock> pFirstBlocks) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
-    for (int i = 0; i < pReorderedBlocks.size(); i++) {
-      SeqThreadStatementBlock block = pReorderedBlocks.get(i);
+    for (SeqThreadStatementBlock block : pReorderedBlocks) {
       if (pFirstBlocks.contains(block)) {
         int start = pReorderedBlocks.indexOf(block);
         Optional<Integer> nextFirstBlockIndex =

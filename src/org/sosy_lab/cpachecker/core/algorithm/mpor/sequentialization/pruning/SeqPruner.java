@@ -108,13 +108,7 @@ public class SeqPruner {
       ImmutableMap<Integer, Integer> pPcUpdates) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rUpdatedTargetPc = ImmutableList.builder();
-    for (int i = 0; i < pClauses.size(); i++) {
-      SeqThreadStatementClause clause = pClauses.get(i);
-      if (isEmptyAtomicBlock(clause, pLabelClauseMap)) {
-        // skip the empty atomic block
-        i++;
-        continue;
-      }
+    for (SeqThreadStatementClause clause : pClauses) {
       if (!clause.isBlank() && !isEmptyAtomicBlock(clause, pLabelClauseMap)) {
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {

@@ -120,12 +120,7 @@ public record SeqThreadStatementBuilder(
       throws UnsupportedCodeException {
 
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
-
-    ImmutableList<CFAEdgeForThread> leavingEdges = pThreadNode.leavingEdges();
-    int numLeavingEdges = leavingEdges.size();
-    for (int i = 0; i < numLeavingEdges; i++) {
-      CFAEdgeForThread threadEdge = leavingEdges.get(i);
-
+    for (CFAEdgeForThread threadEdge : pThreadNode.leavingEdges()) {
       // handle const CPAchecker_TMP first because it requires successor nodes and edges
       if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
         rStatements.add(buildConstCpaCheckerTmpStatement(threadEdge, pCoveredNodes));
