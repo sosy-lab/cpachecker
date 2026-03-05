@@ -53,6 +53,8 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
   private final EdgeDefUseData.Extractor memoryAccessExtractor =
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true));
 
+  private Iterable<CFAEdge> sourceSet = null;
+
   PORState(CFA pCfa, ImmutableMap<Integer, PORThreadState> threads) {
     cfa = pCfa;
     this.threads = threads;
@@ -136,7 +138,10 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
    */
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    return getMinimalSourceSet();
+    if (sourceSet == null) {
+      sourceSet = getMinimalSourceSet();
+    }
+    return sourceSet;
   }
 
   @Override
