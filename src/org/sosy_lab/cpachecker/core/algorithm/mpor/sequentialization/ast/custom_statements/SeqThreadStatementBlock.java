@@ -35,15 +35,12 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
 
   private final ImmutableList<SeqThreadStatement> statements;
 
-  private final boolean isLoopHead;
-
   private final Optional<CLabelStatement> nextThreadLabel;
 
   public SeqThreadStatementBlock(
       int pThreadId,
       int pLabelNumber,
       ImmutableList<SeqThreadStatement> pStatements,
-      boolean pIsLoopHead,
       Optional<CLabelStatement> pNextThreadLabel) {
 
     checkArgument(
@@ -52,7 +49,6 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
     threadId = pThreadId;
     labelNumber = pLabelNumber;
     statements = pStatements;
-    isLoopHead = pIsLoopHead;
     nextThreadLabel = pNextThreadLabel;
   }
 
@@ -105,22 +101,18 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   }
 
   public boolean isLoopHead() {
-    return isLoopHead;
+    return statements.stream().anyMatch(s -> s.data().isLoopHead());
   }
 
   public SeqThreadStatementBlock withLabelNumber(int pLabelNumber) {
-    return new SeqThreadStatementBlock(
-        threadId, pLabelNumber, statements, isLoopHead, nextThreadLabel);
+    return new SeqThreadStatementBlock(threadId, pLabelNumber, statements, nextThreadLabel);
   }
 
   public SeqThreadStatementBlock withStatements(ImmutableList<SeqThreadStatement> pStatements) {
     checkArgument(
         statements.size() == pStatements.size(),
         "pStatements.size() must be equal to the existing statements.size()");
-    // cloning with updated statement does not change the validity of 'isLoopHead' because only
-    // the instrumentation of the statements changes, not the statements themselves
-    return new SeqThreadStatementBlock(
-        threadId, labelNumber, pStatements, isLoopHead, nextThreadLabel);
+    return new SeqThreadStatementBlock(threadId, labelNumber, pStatements, nextThreadLabel);
   }
 
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */

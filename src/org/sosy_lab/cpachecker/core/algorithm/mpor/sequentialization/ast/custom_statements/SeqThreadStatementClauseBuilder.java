@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -22,12 +21,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -337,82 +333,7 @@ public record SeqThreadStatementClauseBuilder(
       ImmutableList<SeqThreadStatement> pStatements) {
 
     SeqThreadStatementBlock block =
-        new SeqThreadStatementBlock(
-            pThread.id(),
-            pLabelPc,
-            pStatements,
-            isLoopHead(pThread.cfa().getLoopHeads(), pStatements),
-            pNextThreadLabel);
+        new SeqThreadStatementBlock(pThread.id(), pLabelPc, pStatements, pNextThreadLabel);
     return new SeqThreadStatementClause(options, block);
-  }
-
-  private boolean isLoopHead(
-      ImmutableSet<CFANode> pLoopHeads, ImmutableList<SeqThreadStatement> pStatements) {
-
-    for (SeqThreadStatement statement : pStatements) {
-      for (SubstituteEdge substituteEdge : statement.data().getSubstituteEdges()) {
-        CFANode predecessor = substituteEdge.cfaEdge.getPredecessor();
-        if (pLoopHeads.contains(predecessor)) {
-          // simple for / (do-)while loop -> loop head is predecessor
-          return true;
-        } else if (isWhileTrueLoopHead(pLoopHeads, predecessor, substituteEdge.getCallContext())) {
-          // infinite while (1) loop -> loop head is in another node
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  private static boolean isWhileTrueLoopHead(
-      final ImmutableSet<CFANode> pLoopHeads,
-      CFANode pCfaNode,
-      Optional<CFAEdgeForThread> pCallContext) {
-
-    if (pCfaNode.getEnteringEdges().size() == 1) {
-      CFAEdge enteringEdge = Iterables.getOnlyElement(pCfaNode.getEnteringEdges());
-      CFANode predecessor = enteringEdge.getPredecessor();
-      // while (1) loop heads are BlankEdges annotated with "1"
-      if (enteringEdge instanceof BlankEdge
-          && enteringEdge.getRawStatement().equals("1")
-          && pLoopHeads.contains(predecessor)) {
-        checkState(isWhileLoopHeadDescription(predecessor));
-        return true;
-      }
-      // edge case: while(1) starts e.g. with switch(__VERIFIER_nondet...())
-      // which is transformed into a separate declaration
-      if (enteringEdge instanceof CDeclarationEdge
-          && isWhileTrueLoopHead(pLoopHeads, predecessor, pCallContext)) {
-        return true;
-      }
-      // edge case: while(1) is followed directly by function call
-      if (predecessor instanceof CFunctionEntryNode) {
-        for (CFAEdge leavingEdge : predecessor.getLeavingEdges()) {
-          if (leavingEdge.getDescription().equals("Function start dummy edge")) {
-            for (CFAEdge functionCallEdge : predecessor.getEnteringEdges()) {
-              CFANode functionPredecessor = functionCallEdge.getPredecessor();
-              if (pCallContext.orElseThrow().cfaEdge.equals(functionCallEdge)
-                  && isWhileTrueLoopHead(pLoopHeads, functionPredecessor, pCallContext)) {
-                return true;
-              }
-            }
-          }
-        }
-      }
-    }
-    return false;
-  }
-
-  private static boolean isWhileLoopHeadDescription(CFANode pCfaNode) {
-    if (pCfaNode.isLoopStart()) {
-      for (CFAEdge enteringEdge : pCfaNode.getEnteringEdges()) {
-        if (enteringEdge instanceof BlankEdge blankEdge) {
-          if (blankEdge.getDescription().equals("while")) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
   }
 }
