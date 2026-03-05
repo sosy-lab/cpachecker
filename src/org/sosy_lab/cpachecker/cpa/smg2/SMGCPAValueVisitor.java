@@ -4414,12 +4414,18 @@ public class SMGCPAValueVisitor
       return false; // 0 is a pointer internally, but this can just be calculated normally
     }
 
+    // TODO: also calc type? Can it even happen that calc is pointer but none of the values 2?
     boolean oneTypeIsPointer =
         leftType instanceof CPointerType || rightType instanceof CPointerType;
-    boolean oneValueIsPointer = leftIsPointer || rightIsPointer;
 
-    // Check that at least 1 is a pointer type or a pointer
-    if (!(oneValueIsPointer || oneTypeIsPointer)) {
+    boolean leftValueIsPointerButNotNumeric = leftIsPointer && !leftIsNumeric;
+    boolean rightValueIsPointerButNotNumeric = rightIsPointer && !rightIsNumeric;
+
+    // Check that at least 1 is a pointer type or a pointer (but if there is only numeric/null
+    // pointers, but not a pointer type, we don't have pointer arithmetics)
+    if (!(leftValueIsPointerButNotNumeric
+        || rightValueIsPointerButNotNumeric
+        || oneTypeIsPointer)) {
       return false;
     }
 
