@@ -35,8 +35,7 @@ public class AcslNodeMappingUtils {
    * @return An updated version of pResult where each acsl comment now has a Cfa node that
    *     represents the comment location in the Cfa.
    */
-  public static CFANode addAcslToNodeMapping(
-      AcslComment pComment, CFA pCFA)
+  public static CFANode addAcslToNodeMapping(AcslComment pComment, CFA pCFA)
       throws AcslParseException, AcslNodeMappingException {
 
     ParseTree ctx = AcslParser.acslCommentToContext(pComment.getComment());
@@ -116,9 +115,7 @@ public class AcslNodeMappingUtils {
    *     otherwise.
    */
   private static CFANode nodeForFunctionContract(
-      AcslComment pComment,
-      CFA pCFA,
-      AstCfaRelation pAstCfaRelation) {
+      AcslComment pComment, CFA pCFA, AstCfaRelation pAstCfaRelation) {
 
     FileLocation nextLocation =
         pAstCfaRelation.nextStartStatementLocation(pComment.fileLocation().getNodeOffset());
