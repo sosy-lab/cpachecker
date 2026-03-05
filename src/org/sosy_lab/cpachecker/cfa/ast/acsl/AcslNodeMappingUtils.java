@@ -125,7 +125,7 @@ public class AcslNodeMappingUtils {
     FileLocation nextLocation =
         pAstCfaRelation.nextStartStatementLocation(pComment.fileLocation().getNodeOffset());
 
-    if (nextLocation.isRealLocation() && noCommentInBetween(pComment, nextLocation, pAllComments)) {
+    if (nextLocation.isRealLocation()) {
       Optional<CFANode> nextNode =
           pAstCfaRelation.getNodeForStatementLocation(
               nextLocation.getStartingLineNumber(), nextLocation.getStartColumnInLine());
@@ -149,18 +149,4 @@ public class AcslNodeMappingUtils {
             + "\nStatement contracts are not supported.");
   }
 
-  public static boolean noCommentInBetween(
-      AcslComment pComment, FileLocation nextStatement, List<AcslComment> otherComments) {
-    for (AcslComment other : otherComments) {
-      if (!other.equals(pComment)
-          && other.fileLocation().getNodeOffset()
-              > pComment.fileLocation().getNodeOffset() + pComment.fileLocation().getNodeLength()
-          && other.fileLocation().getNodeOffset() + other.fileLocation().getNodeLength()
-              < nextStatement.getNodeOffset()) {
-        // There is an annotation inbetween the comment and the statement
-        return false;
-      }
-    }
-    return true;
-  }
 }
