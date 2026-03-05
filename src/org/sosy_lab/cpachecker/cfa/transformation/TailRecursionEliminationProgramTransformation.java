@@ -33,13 +33,13 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
 
     // TODO check transformation conditions
     // check 1: are we at the start of a function with a return node
-    if (!(pNode instanceof FunctionEntryNode)) {
+    if (!(pNode instanceof FunctionEntryNode functionEntryNode)) {
       return Optional.empty();
     }
-    if (((FunctionEntryNode) pNode).getExitNode().isEmpty()) {
+    if (functionEntryNode.getExitNode().isEmpty()) {
       return Optional.empty();
     }
-    CFANode exitNode = ((FunctionEntryNode) pNode).getExitNode().get();
+    CFANode exitNode = functionEntryNode.getExitNode().get();
     String functionName = pNode.getFunctionName();
     // check 2: is the last operation a recursive function call
     FluentIterable<CFAEdge> enteringEdges = exitNode.getEnteringEdges();
