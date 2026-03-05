@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.test;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
@@ -20,6 +21,7 @@ import com.google.common.truth.FailureMetadata;
 import com.google.common.truth.SimpleSubjectBuilder;
 import com.google.common.truth.Subject;
 import com.google.common.truth.TruthJUnit;
+import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import org.junit.runner.RunWith;
@@ -210,6 +212,12 @@ public abstract class SMGBaseCPATest {
      */
     public void isExpectedResult(Result expectedResult, String expectedResultString)
         throws Exception {
+      // Check that the file exists and is a C file before running
+      checkArgument(
+          programPath.endsWith(".i") || programPath.endsWith(".c"),
+          "Test program file ending does not match allowed C files endings '.c' or '.i'");
+      checkArgument(
+          new File(programPath).isFile(), "Test program could not be found: %s", programPath);
       TestResults results = CPATestRunner.run(analysis, programPath);
       Result verdict = results.getCheckerResult().getResult();
       if (verdict == expectedResult) {
