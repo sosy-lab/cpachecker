@@ -211,11 +211,10 @@ public class SeqPruner {
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       Set<SeqThreadStatementClause> pPrunedClauses) {
 
-    if (pInitial.isPresent() && pInitial.orElseThrow().isBlank()) {
-      checkArgument(
-          pInitial.orElseThrow().getFirstBlock().isLoopHead(),
-          "If pInitial is present and not blank, then it must be a loop head.");
-    }
+    checkArgument(
+        pInitial.isEmpty() || !pInitial.orElseThrow().isBlank(),
+        "If pInitial is present, then it cannot be blank.");
+
     if (pCurrent.isBlank()) {
       pPrunedClauses.add(pCurrent);
       SeqThreadStatement singleStatement = pCurrent.getFirstBlock().getFirstStatement();
