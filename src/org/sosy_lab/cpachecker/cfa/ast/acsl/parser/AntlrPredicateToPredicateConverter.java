@@ -202,6 +202,7 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     return currentExpression;
   }
 
+  @Override
   public AcslPredicate visitPredicateApplicationPred(PredicateApplicationPredContext ctx) {
     String p = ctx.ident().getText();
     ImmutableList.Builder<AcslTerm> termBuilder = ImmutableList.builder();
