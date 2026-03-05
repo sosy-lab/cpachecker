@@ -142,6 +142,7 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
                             .map(
                                 nextStack ->
                                     old.stepThread(
+                                        cfa,
                                         pid,
                                         (LocationState) nextLoc,
                                         (CallstackState) nextStack,
@@ -173,7 +174,7 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
 
     PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula();
 
-    return old.addNewThread(initialLoc, initialStack, emptyFormula);
+    return old.addNewThread(cfa, initialLoc, initialStack, emptyFormula);
   }
 
   public Solver getSolver() {

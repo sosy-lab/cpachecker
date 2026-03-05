@@ -13,15 +13,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -30,11 +34,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
+import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class PORState implements AbstractState, AbstractStateWithLocations,
                                  AbstractStateWithLocation, Graphable {
+
+  private final CFA cfa;
 
   private final ImmutableMap<Integer, PORThreadState> threads;
 
@@ -43,12 +50,16 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
    */
   private final Map<CFAEdge, Integer> edgePidMap = new HashMap<>();
 
-  PORState(ImmutableMap<Integer, PORThreadState> threads) {
+  private final EdgeDefUseData.Extractor memoryAccessExtractor =
+      new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true));
+
+  PORState(CFA pCfa, ImmutableMap<Integer, PORThreadState> threads) {
+    cfa = pCfa;
     this.threads = threads;
   }
 
   static PORState empty() {
-    return new PORState(ImmutableMap.of());
+    return new PORState(null, ImmutableMap.of());
   }
 
   public ImmutableMap<Integer, PORThreadState> threads() {
@@ -60,6 +71,7 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
   }
 
   PORState addNewThread(
+      CFA cfa,
       LocationState pInitialLoc,
       CallstackState pInitialStack,
       PathFormula pEmptyFormula) {
@@ -71,10 +83,11 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
                 newPid,
                 new PORThreadState(pInitialLoc, pInitialStack, pEmptyFormula))
             .buildKeepingLast();
-    return new PORState(newThreads);
+    return new PORState(cfa, newThreads);
   }
 
   public PORState stepThread(
+      CFA cfa,
       int pPid,
       LocationState pNextLoc,
       CallstackState pNextStack,
@@ -88,7 +101,7 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
     }
     newThreads.put(
         pPid, new PORThreadState(pNextLoc, pNextStack, pNextFormula));
-    return new PORState(newThreads.buildKeepingLast());
+    return new PORState(cfa, newThreads.buildKeepingLast());
   }
 
   /**
@@ -123,7 +136,7 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
    */
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    return getAllThreadOutgoingEdges();
+    return getMinimalSourceSet();
   }
 
   @Override
@@ -184,12 +197,12 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
   }
 
   private ImmutableCollection<CFAEdge> getMinimalSourceSet() {
-    ImmutableCollection<CFAEdge> minimalSourceSet = null;
+    ImmutableCollection<CFAEdge> minimalSourceSet = ImmutableList.of();
     final var allOutgoingEdges = getAllThreadOutgoingEdges();
     final var sourceSetFirstActions = getSourceSetFirstActions(allOutgoingEdges);
     for (final var firstActions : sourceSetFirstActions) {
       final var sourceSet = calculateSourceSet(allOutgoingEdges, firstActions);
-      if (minimalSourceSet == null || sourceSet.size() < minimalSourceSet.size()) {
+      if (minimalSourceSet.isEmpty() || sourceSet.size() < minimalSourceSet.size()) {
         minimalSourceSet = sourceSet;
       }
     }
@@ -259,44 +272,36 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
       return true;
     }
 
-    final var sourceSetVars = getUsedGlobalVars(sourceSetEdge);
-    final var influencedVars = getInfluencedGlobalVars(edge);
-    if (intersects(sourceSetVars, influencedVars)) {
-      return true;
-    }
-
-    // TODO handle pointers
-    // first simple solution could be that we return true if any dereference is involved
-
-    return false;
+    final var sourceSetMemLocs = getUsedGlobalVars(sourceSetEdge);
+    final var influencedMemLocs = getInfluencedGlobalVars(edge);
+    return intersect(sourceSetMemLocs, influencedMemLocs);
   }
 
-  private Collection<?> getDirectlyUsedGlobalVars(CFAEdge edge) {
-    // TODO implement
+  private EdgeDefUseData getDirectlyUsedGlobalVars(CFAEdge edge) {
     // collect directly used vars by the cfa edge
-    return ImmutableList.of();
+    return memoryAccessExtractor.extract(edge);
   }
 
-  private Collection<?> getUsedGlobalVars(CFAEdge edge) {
+  private EdgeDefUseData getUsedGlobalVars(CFAEdge edge) {
     // collect directly used vars by the cfa edge
     // plus continue to successor edges until the current thread obtains any mutexes
     return getDirectlyUsedGlobalVars(edge); // TODO handle mutexes
   }
 
-  private Collection<?> getInfluencedGlobalVars(CFAEdge edge) {
+  private EdgeDefUseData getInfluencedGlobalVars(CFAEdge edge) {
     // get vars of all edges statically reachable in the cfa from the given cfa edge
     // at thread start edges, also process all edges reachable from the started thread's initial location
     return getVarsWithTraversal(edge);
   }
 
-  private Collection<?> getVarsWithTraversal(CFAEdge startEdge) {
-    final var vars = new ArrayList<>();
+  private EdgeDefUseData getVarsWithTraversal(CFAEdge startEdge) {
+    var uses = EdgeDefUseData.empty();
     final var exploredEdges = new ArrayList<CFAEdge>();
     final var edgesToExplore = new ArrayList<>(List.of(startEdge));
     while (!edgesToExplore.isEmpty()) {
       final var edge = edgesToExplore.removeFirst();
       exploredEdges.add(edge);
-      vars.addAll(getDirectlyUsedGlobalVars(edge));
+      uses = uses.merge(getDirectlyUsedGlobalVars(edge));
       final var successorEdges = getSuccessorEdges(edge);
       for (final var successorEdge : successorEdges) {
         if (!exploredEdges.contains(successorEdge)) {
@@ -304,22 +309,53 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
         }
       }
     }
-    return vars;
+    return uses;
   }
 
   private Iterable<CFAEdge> getSuccessorEdges(CFAEdge edge) {
     final var allLeavingEdges = edge.getSuccessor().getAllLeavingEdges();
     final var startedThreadEdges = new ArrayList<CFAEdge>();
     for (final var leavingEdge : allLeavingEdges) {
-      // TODO if leaving edge starts a new thread, add the first edges of the started thread as well
+      if (leavingEdge instanceof AStatementEdge statementEdge) {
+        if (statementEdge.getStatement() instanceof AFunctionCall functionCall) {
+          if (functionCall.getFunctionCallExpression()
+              .getFunctionNameExpression() instanceof AIdExpression functionName) {
+            if ("pthread_create".equals(functionName.getName())) {
+              final var params = functionCall.getFunctionCallExpression().getParameterExpressions();
+              final String startedFunctionName =
+                  ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand()).getName();
+              final CFANode initialNode = cfa.getFunctionHead(startedFunctionName);
+              for (CFAEdge initialEdge : initialNode.getAllLeavingEdges()) {
+                startedThreadEdges.add(initialEdge);
+              }
+            }
+          }
+        }
+      }
     }
     return allLeavingEdges.append(startedThreadEdges);
   }
 
-  private boolean intersects(Iterable<?> i1, Iterable<?> i2) {
-    for (var o1 : i1) {
-      for (var o2 : i2) {
-        if (o1.equals(o2)) {
+  private boolean intersect(EdgeDefUseData access1, EdgeDefUseData access2) {
+    // dependence if the same memory location is accessed and at least one of them writes it
+    if (access1.getDefs().isEmpty() && access1.getPointeeDefs().isEmpty() &&
+        access2.getDefs().isEmpty() && access2.getPointeeDefs().isEmpty()) {
+      return false;
+    }
+    // TODO properly handle pointers
+    if (!access1.getPointeeDefs().isEmpty() || !access1.getPointeeUses().isEmpty()
+        || !access2.getPointeeDefs().isEmpty() || !access2.getPointeeUses().isEmpty()) {
+      return true;
+    }
+    return intersect(access1.getDefs(), access2.getUses())
+        || intersect(access1.getUses(), access2.getDefs())
+        || intersect(access1.getDefs(), access2.getDefs());
+  }
+
+  private boolean intersect(Iterable<MemoryLocation> access1, Iterable<MemoryLocation> access2) {
+    for (var o1 : access1) {
+      for (var o2 : access2) {
+        if (o1.getExtendedQualifiedName().equals(o2.getExtendedQualifiedName())) {
           return true;
         }
       }

@@ -109,6 +109,28 @@ public final class EdgeDefUseData {
     return partialDefs;
   }
 
+  public EdgeDefUseData merge(EdgeDefUseData other) {
+    ImmutableSet<MemoryLocation> mergedDefs =
+        ImmutableSet.<MemoryLocation>builder().addAll(defs).addAll(other.defs).build();
+    ImmutableSet<MemoryLocation> mergedUses =
+        ImmutableSet.<MemoryLocation>builder().addAll(uses).addAll(other.uses).build();
+
+    ImmutableSet<CExpression> mergedPointeeDefs =
+        ImmutableSet.<CExpression>builder().addAll(pointeeDefs).addAll(other.pointeeDefs).build();
+    ImmutableSet<CExpression> mergedPointeeUses =
+        ImmutableSet.<CExpression>builder().addAll(pointeeUses).addAll(other.pointeeUses).build();
+
+    boolean mergedPartialDefs = partialDefs || other.partialDefs;
+
+    return new EdgeDefUseData(mergedDefs, mergedUses, mergedPointeeDefs, mergedPointeeUses,
+        mergedPartialDefs);
+  }
+
+  public static EdgeDefUseData empty() {
+    return new EdgeDefUseData(
+        ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), false);
+  }
+
   public static EdgeDefUseData.Extractor createExtractor(boolean pConsiderPointees) {
 
     return new Extractor() {
