@@ -331,8 +331,16 @@ public record SeqThreadStatementClauseBuilder(
       int pLabelPc,
       ImmutableList<SeqThreadStatement> pStatements) {
 
+    ImmutableSet<CFANodeForThread> loopHeads = pThread.cfa().getLoopHeads();
+    boolean isLoopHead =
+        pStatements.stream()
+            .allMatch(
+                s ->
+                    s.data().getSubstituteEdges().stream()
+                        .allMatch(e -> loopHeads.contains(e.getThreadEdge().getPredecessor())));
     SeqThreadStatementBlock block =
-        new SeqThreadStatementBlock(pThread.id(), pLabelPc, pStatements, pNextThreadLabel);
+        new SeqThreadStatementBlock(
+            pThread.id(), pLabelPc, isLoopHead, pStatements, pNextThreadLabel);
     return new SeqThreadStatementClause(options, block);
   }
 }

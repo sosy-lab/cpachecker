@@ -75,4 +75,13 @@ public enum SeqThreadStatementType {
     isLinkable = pIsLinkable;
     synchronizesThreads = pSynchronizesThreads;
   }
+
+  public boolean in(SeqThreadStatementType... pSeqThreadStatementTypes) {
+    for (SeqThreadStatementType statementType : pSeqThreadStatementTypes) {
+      if (statementType.equals(this)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

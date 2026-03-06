@@ -33,6 +33,8 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
    */
   private final int labelNumber;
 
+  private final boolean isLoopHead;
+
   private final ImmutableList<SeqThreadStatement> statements;
 
   private final Optional<CLabelStatement> nextThreadLabel;
@@ -40,14 +42,17 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   public SeqThreadStatementBlock(
       int pThreadId,
       int pLabelNumber,
+      boolean pIsLoopHead,
       ImmutableList<SeqThreadStatement> pStatements,
       Optional<CLabelStatement> pNextThreadLabel) {
 
     checkArgument(
         pStatements.size() == 1 || pStatements.size() == 2,
         "pStatements must have either 1 or 2 elements");
+
     threadId = pThreadId;
     labelNumber = pLabelNumber;
+    isLoopHead = pIsLoopHead;
     statements = pStatements;
     nextThreadLabel = pNextThreadLabel;
   }
@@ -101,18 +106,20 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   }
 
   public boolean isLoopHead() {
-    return statements.stream().anyMatch(s -> s.isLoopHead());
+    return isLoopHead;
   }
 
   public SeqThreadStatementBlock withLabelNumber(int pLabelNumber) {
-    return new SeqThreadStatementBlock(threadId, pLabelNumber, statements, nextThreadLabel);
+    return new SeqThreadStatementBlock(
+        threadId, pLabelNumber, isLoopHead, statements, nextThreadLabel);
   }
 
   public SeqThreadStatementBlock withStatements(ImmutableList<SeqThreadStatement> pStatements) {
     checkArgument(
         statements.size() == pStatements.size(),
         "pStatements.size() must be equal to the existing statements.size()");
-    return new SeqThreadStatementBlock(threadId, labelNumber, pStatements, nextThreadLabel);
+    return new SeqThreadStatementBlock(
+        threadId, labelNumber, isLoopHead, pStatements, nextThreadLabel);
   }
 
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */
