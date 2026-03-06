@@ -344,15 +344,14 @@ public record SeqThreadStatementBuilder(
       case BlankEdge blankEdge ->
           buildWhileTrueLoopHeadStatement(blankEdge, pSubstituteEdge, targetPc);
 
-      case CAssumeEdge assumeEdge ->
-          buildAssumeStatement(assumeEdge, pcLeftHandSide, pSubstituteEdge, targetPc);
+      case CAssumeEdge assumeEdge -> buildAssumeStatement(assumeEdge, pSubstituteEdge, targetPc);
 
       case CDeclarationEdge declarationEdge -> {
         // "leftover" declarations should be local variables with an initializer
         CVariableDeclaration variableDeclaration =
             (CVariableDeclaration) declarationEdge.getDeclaration();
         yield buildLocalVariableInitializationStatement(
-            variableDeclaration, pSubstituteEdge, pcLeftHandSide, targetPc);
+            variableDeclaration, pSubstituteEdge, targetPc);
       }
 
       case CFunctionCallEdge functionCallEdge ->
@@ -365,7 +364,7 @@ public record SeqThreadStatementBuilder(
           buildStatementFromPthreadFunction(pThreadEdge, pSubstituteEdge, targetPc);
 
       case CStatementEdge statementEdge ->
-          buildDefaultStatement(statementEdge, pSubstituteEdge, pcLeftHandSide, targetPc);
+          buildDefaultStatement(statementEdge, pSubstituteEdge, targetPc);
 
       default ->
           throw new AssertionError("Unhandled CFAEdge type: " + cfaEdge.getClass().getSimpleName());
@@ -391,17 +390,14 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildAssumeStatement(
-      CAssumeEdge pAssumeEdge,
-      CLeftHandSide pPcLeftHandSide,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc) {
+      CAssumeEdge pAssumeEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
     SeqThreadStatementDataWithIfExpression data =
         new SeqThreadStatementDataWithIfExpression(
             SeqThreadStatementType.ASSUME,
             ImmutableSet.of(pSubstituteEdge),
             thread.id(),
-            pPcLeftHandSide,
+            pcLeftHandSide,
             pAssumeEdge.getExpression());
 
     // just return with empty statements, the block handles the if-else branch
@@ -410,14 +406,11 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildDefaultStatement(
-      CStatementEdge pStatementEdge,
-      SubstituteEdge pSubstituteEdge,
-      CLeftHandSide pPcLeftHandSide,
-      int pTargetPc) {
+      CStatementEdge pStatementEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pPcLeftHandSide);
+            SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
         data,
         isLoopHead(thread, data.getSubstituteEdges()),
@@ -439,10 +432,7 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildLocalVariableInitializationStatement(
-      CVariableDeclaration pVariableDeclaration,
-      SubstituteEdge pSubstituteEdge,
-      CLeftHandSide pPcLeftHandSide,
-      int pTargetPc)
+      CVariableDeclaration pVariableDeclaration, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
@@ -455,7 +445,7 @@ public record SeqThreadStatementBuilder(
             SeqThreadStatementType.LOCAL_VARIABLE_INITIALIZATION,
             pSubstituteEdge,
             thread.id(),
-            pPcLeftHandSide);
+            pcLeftHandSide);
     CStatementWrapper assignmentStatement =
         buildExpressionAssignmentStatementFromVariableDeclaration(pVariableDeclaration);
     return SeqThreadStatement.of(
