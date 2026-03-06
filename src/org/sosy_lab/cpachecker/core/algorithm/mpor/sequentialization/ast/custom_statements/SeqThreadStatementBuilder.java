@@ -341,6 +341,9 @@ public record SeqThreadStatementBuilder(
     }
 
     return switch (pSubstituteEdge.cfaEdge) {
+      case BlankEdge blankEdge ->
+          buildWhileTrueLoopHeadStatement(blankEdge, pSubstituteEdge, targetPc);
+
       case CAssumeEdge assumeEdge ->
           buildAssumeStatement(assumeEdge, pcLeftHandSide, pSubstituteEdge, targetPc);
 
@@ -367,6 +370,24 @@ public record SeqThreadStatementBuilder(
       default ->
           throw new AssertionError("Unhandled CFAEdge type: " + cfaEdge.getClass().getSimpleName());
     };
+  }
+
+  private SeqThreadStatement buildWhileTrueLoopHeadStatement(
+      BlankEdge pBlankEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
+
+    checkArgument(
+        pBlankEdge.getPredecessor().isLoopStart(),
+        "The predecessor of a left over BlankEdge must be a loop head.");
+
+    SeqThreadStatementData data =
+        new SeqThreadStatementData(
+            SeqThreadStatementType.WHILE_TRUE_LOOP_HEAD,
+            ImmutableSet.of(pSubstituteEdge),
+            thread.id(),
+            pcLeftHandSide);
+    // just add a comment with "while (1)" for better overview in the output program
+    CComment commentStatement = new CComment("while (1)");
+    return SeqThreadStatement.of(data, true, pTargetPc, ImmutableList.of(commentStatement));
   }
 
   private SeqThreadStatement buildAssumeStatement(
@@ -942,7 +963,8 @@ public record SeqThreadStatementBuilder(
    *
    * <ul>
    *   <li>{@code pSuccessor} marks the termination of a thread
-   *   <li>{@code pSubstituteEdge} itself is a {@link BlankEdge}
+   *   <li>{@code pSubstituteEdge} itself is a {@link BlankEdge} that is not a {@code while (1)}
+   *       loop head
    *   <li>{@code pSubstituteEdge} is a {@code PTHREAD_MUTEX_INITIALIZER} assignment
    *   <li>{@code pSubstituteEdge} is a {@link CDeclarationEdge}, except for local variable
    *       declarations with an initializer
@@ -958,7 +980,8 @@ public record SeqThreadStatementBuilder(
         && pSuccessor.getFunction().equals(thread.startRoutine())) {
       return true;
 
-    } else if (pSubstituteEdge.cfaEdge instanceof BlankEdge) {
+    } else if (pSubstituteEdge.cfaEdge instanceof BlankEdge
+        && !pSubstituteEdge.cfaEdge.getPredecessor().isLoopStart()) {
       // blank edges have no code
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
       return true;

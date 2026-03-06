@@ -54,7 +54,8 @@ public enum SeqThreadStatementType {
   RW_LOCK_WR_LOCK(true, true),
   THREAD_CREATION(true, false),
   THREAD_EXIT(false, false),
-  THREAD_JOIN(true, true);
+  THREAD_JOIN(true, true),
+  WHILE_TRUE_LOOP_HEAD(true, false);
 
   /**
    * Whether this statement type can be linked to its target statement. This is false e.g. for
