@@ -251,8 +251,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   .orElseThrow());
       for (AbstractSimpleDeclaration varDecl :
           cfa.getAstCfaRelation().getVariablesAndParametersInScope(pLocation).orElseThrow()) {
-        if (!cfa.getMachineModel().isSigned(((CSimpleType) varDecl.getType()))
-            && varDecl.getName().equals(pureVarName)) {
+        if (varDecl.getName().equals(pureVarName)
+            && (varDecl.getType() instanceof CSimpleType
+                && !cfa.getMachineModel().isSigned(((CSimpleType) varDecl.getType())))) {
           pFormula =
               bfmgr.and(
                   pFormula,
