@@ -220,8 +220,8 @@ class PorAstCloner {
   }
 
   private CSimpleDeclaration createNewDeclaration(CSimpleDeclaration cDecl) {
+    FileLocation loc = cDecl.getFileLocation();
     if (cDecl instanceof CVariableDeclaration decl && !decl.isGlobal()) {
-      FileLocation loc = decl.getFileLocation();
       CVariableDeclaration newDecl =
           new CVariableDeclaration(
               loc,
@@ -233,6 +233,10 @@ class PorAstCloner {
               changeQualifiedName(decl),
               null);
       return newDecl;
+    } else if (cDecl instanceof CParameterDeclaration param) {
+      final CParameterDeclaration newParam = new CParameterDeclaration(loc, param.getType(), param.getName());
+      newParam.setQualifiedName(changeQualifiedName(param));
+      return newParam;
     } else {
       return cDecl;
     }
