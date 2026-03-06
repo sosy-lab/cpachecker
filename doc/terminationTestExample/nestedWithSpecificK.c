@@ -5,6 +5,8 @@
 // SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
+// k=16, 4 times inner head, 4 times outer head. 
+// The outer loop failed on the 5th execution and will not be executed again.
 
 int main() {
   unsigned int outer = 0;

@@ -6,11 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 extern unsigned __VERIFIER_nondet_uint();
 int main() {
   unsigned int n = 1;
-  unsigned int z = 100;
+  unsigned int z = __VERIFIER_nondet_uint();
   while (n <= z) {
     n = n + 1;
     z = z - 1;
