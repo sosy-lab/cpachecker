@@ -243,10 +243,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
   private BooleanFormula restrictFormulaVariablesWithIntRange(
       BooleanFormula pFormula, CFANode pLocation) {
-    for (Entry<String, Formula> variable : fmgr.extractVariables(pFormula).entrySet()) {
+    for (Formula variable : fmgr.extractVariables(pFormula).values()) {
       String pureVarName =
           TransitionInvariantUtils.removeFunctionFromVarsName(
-              fmgr.extractVariableNames(fmgr.uninstantiate(variable.getValue())).stream()
+              fmgr.extractVariableNames(fmgr.uninstantiate(variable)).stream()
                   .findAny()
                   .orElseThrow());
       for (AbstractSimpleDeclaration varDecl :
@@ -258,16 +258,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               bfmgr.and(
                   pFormula,
                   fmgr.makeGreaterOrEqual(
-                      fmgr.makeNumber(FormulaType.IntegerType, MAX_INT),
-                      variable.getValue(),
-                      true));
+                      fmgr.makeNumber(FormulaType.IntegerType, MAX_INT), variable, true));
           pFormula =
               bfmgr.and(
                   pFormula,
                   fmgr.makeLessOrEqual(
-                      fmgr.makeNumber(FormulaType.IntegerType, MIN_INT),
-                      variable.getValue(),
-                      true));
+                      fmgr.makeNumber(FormulaType.IntegerType, MIN_INT), variable, true));
         }
       }
     }
