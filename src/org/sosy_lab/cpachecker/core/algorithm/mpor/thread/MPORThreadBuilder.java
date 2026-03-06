@@ -161,11 +161,17 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
     ImmutableList<CFANodeForThread> finalThreadNodes = threadNodes.build();
 
+    ImmutableSet<CFANode> allLoopHeads = cfa.getLoopStructure().orElseThrow().getAllLoopHeads();
+    ImmutableSet<CFANodeForThread> loopHeads =
+        finalThreadNodes.stream()
+            .filter(n -> allLoopHeads.contains(n.getCfaNode()))
+            .collect(ImmutableSet.toImmutableSet());
+
     return new CFAForThread(
         pThreadId,
         pEntryNode,
         finalThreadNodes,
-        getAllLoopHeads(finalThreadNodes),
+        loopHeads,
         ImmutableList.copyOf(threadEdges.buildOrThrow().keySet()));
   }
 
@@ -304,17 +310,6 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   }
 
   // (Private) Helpers =============================================================================
-
-  private ImmutableSet<CFANode> getAllLoopHeads(ImmutableList<CFANodeForThread> pThreadNodes) {
-    ImmutableSet.Builder<CFANode> loopHeads = ImmutableSet.builder();
-    for (CFANodeForThread threadNode : pThreadNodes) {
-      CFANode cfaNode = threadNode.getCfaNode();
-      if (cfa.getLoopStructure().orElseThrow().getAllLoopHeads().contains(cfaNode)) {
-        loopHeads.add(cfaNode);
-      }
-    }
-    return loopHeads.build();
-  }
 
   private ImmutableListMultimap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
       int pThreadId, Iterable<CFAEdge> pCfaEdges, Optional<CFAEdgeForThread> pCallContext) {

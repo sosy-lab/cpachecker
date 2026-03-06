@@ -42,7 +42,7 @@ public class CFAForThread {
   public final ImmutableList<CFANodeForThread> threadNodes;
 
   /** The (sub)set of CFANode loop heads from the original input CFA that this thread can reach. */
-  private final ImmutableSet<CFANode> loopHeads;
+  private final ImmutableSet<CFANodeForThread> loopHeads;
 
   public final ImmutableList<CFAEdgeForThread> threadEdges;
 
@@ -50,18 +50,14 @@ public class CFAForThread {
       int pThreadId,
       FunctionEntryNode pEntryNode,
       ImmutableList<CFANodeForThread> pThreadNodes,
-      ImmutableSet<CFANode> pLoopHeads,
+      ImmutableSet<CFANodeForThread> pLoopHeads,
       ImmutableList<CFAEdgeForThread> pThreadEdges) {
 
     checkArgument(
         pThreadNodes.stream().anyMatch(n -> n.getCfaNode().equals(pEntryNode)),
         "pEntryNode must be present in pThreadNodes.");
     checkArgument(
-        pThreadNodes.stream()
-            .map(CFANodeForThread::getCfaNode)
-            .collect(ImmutableSet.toImmutableSet())
-            .containsAll(pLoopHeads),
-        "All pLoopHeads must be present in pThreadNodes.");
+        pThreadNodes.containsAll(pLoopHeads), "All pLoopHeads must be present in pThreadNodes.");
 
     threadId = pThreadId;
     entryNode = pEntryNode;
@@ -196,7 +192,7 @@ public class CFAForThread {
     return Optional.empty();
   }
 
-  public ImmutableSet<CFANode> getLoopHeads() {
+  public ImmutableSet<CFANodeForThread> getLoopHeads() {
     return loopHeads;
   }
 

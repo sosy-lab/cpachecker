@@ -971,7 +971,7 @@ public record SeqThreadStatementBuilder(
       MPORThread pThread, ImmutableSet<SubstituteEdge> pSubstituteEdges) {
 
     return pSubstituteEdges.stream()
-        .anyMatch(e -> pThread.cfa().getLoopHeads().contains(e.cfaEdge.getPredecessor()));
+        .anyMatch(e -> pThread.cfa().getLoopHeads().contains(e.getThreadEdge().getPredecessor()));
   }
 
   /**
