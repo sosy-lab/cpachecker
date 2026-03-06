@@ -56,6 +56,11 @@ public enum SeqThreadStatementType {
   THREAD_CREATION(true, false),
   THREAD_EXIT(false, false),
   THREAD_JOIN(true, true),
+  /**
+   * A {@code while (1)} loop head is transformed into {@code CFANode -> BlankEdge -> CFANode'}
+   * which would be pruned from the output program. This statement type preserves the {@code
+   * BlankEdge} so that the information on the loop head is not pruned.
+   */
   WHILE_TRUE_LOOP_HEAD(true, false);
 
   /**
