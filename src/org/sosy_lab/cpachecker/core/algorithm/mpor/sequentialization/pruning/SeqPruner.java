@@ -10,17 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -70,9 +67,8 @@ public class SeqPruner {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
-    // table (1) original pc (2) post prune pc (3) whether a loop head was pruned
-    ImmutableTable<Integer, Integer, Boolean> pcUpdates =
-        createPrunedPcUpdates(pClauses, labelClauseMap);
+    // maps (1) original pc (2) post prune pc
+    ImmutableMap<Integer, Integer> pcUpdates = createPrunedPcUpdates(pClauses, labelClauseMap);
     // update each target pc so that it targets a non-blank case
     ImmutableList<SeqThreadStatementClause> rUpdatedTargetPc =
         updateTargetPcToNonPruned(pClauses, labelClauseMap, pcUpdates);
@@ -84,29 +80,21 @@ public class SeqPruner {
    * Maps pre prune {@code int pc} to their post prune counterparts. Not all target {@code pc} are
    * present as keys.
    */
-  private static ImmutableTable<Integer, Integer, Boolean> createPrunedPcUpdates(
+  private static ImmutableMap<Integer, Integer> createPrunedPcUpdates(
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     Set<Integer> visitedPrePrunePc = new HashSet<>();
-    Set<SeqThreadStatementClause> prunedClauses = new HashSet<>();
-    ImmutableTable.Builder<Integer, Integer, Boolean> rMap = ImmutableTable.builder();
+    ImmutableMap.Builder<Integer, Integer> rMap = ImmutableMap.builder();
 
     for (SeqThreadStatementClause clause : pClauses) {
-      if (clause.isBlank()) {
-        prunedClauses.add(clause);
-      } else {
+      if (!clause.isBlank()) {
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
           if (statement.targetPc().isPresent()) {
-            Optional<Integer> postPrunePc =
-                findTargetPc(clause, statement, pLabelClauseMap, prunedClauses);
+            Optional<Integer> postPrunePc = findTargetPc(clause, statement, pLabelClauseMap);
             int targetPc = statement.targetPc().orElseThrow();
             if (postPrunePc.isPresent() && visitedPrePrunePc.add(targetPc)) {
-              // loop head targets e.g. while (1) are pruned, so their information has to be stored
-              boolean isLoopHeadPruned =
-                  prunedClauses.stream().anyMatch(c -> c.getFirstBlock().isLoopHead());
-              rMap.put(targetPc, postPrunePc.orElseThrow(), isLoopHeadPruned);
-              prunedClauses.clear();
+              rMap.put(targetPc, postPrunePc.orElseThrow());
             }
           }
         }
@@ -118,7 +106,7 @@ public class SeqPruner {
   private static ImmutableList<SeqThreadStatementClause> updateTargetPcToNonPruned(
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      ImmutableTable<Integer, Integer, Boolean> pPcUpdates) {
+      ImmutableMap<Integer, Integer> pPcUpdates) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rUpdatedTargetPc = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
@@ -127,15 +115,8 @@ public class SeqPruner {
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
           if (statement.targetPc().isPresent()) {
             int targetPc = statement.targetPc().orElseThrow();
-            if (pPcUpdates.containsRow(targetPc)) {
-              // if pc was updated in prune, clone statement with new target pc
-              Map<Integer, Boolean> rowMap = checkNotNull(pPcUpdates.rowMap().get(targetPc));
-              checkState(rowMap.size() == 1, "targetPc can only map to a single post-prune pc.");
-              int newPc = Iterables.getOnlyElement(rowMap.keySet());
-              // only change isLoopHead from false -> true, never the other way around
-              boolean newIsLoopHead =
-                  Iterables.getOnlyElement(rowMap.values()) || statement.isLoopHead();
-              newStatements.add(statement.withTargetPc(newPc).withIsLoopHead(newIsLoopHead));
+            if (pPcUpdates.containsKey(targetPc)) {
+              newStatements.add(statement.withTargetPc(checkNotNull(pPcUpdates.get(targetPc))));
               continue;
             }
           }
@@ -153,8 +134,7 @@ public class SeqPruner {
   private static Optional<Integer> findTargetPc(
       SeqThreadStatementClause pClause,
       SeqThreadStatement pStatement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      Set<SeqThreadStatementClause> pPrunedClauses) {
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     if (pStatement.targetPc().isPresent()) {
       int targetPc = pStatement.targetPc().orElseThrow();
@@ -162,8 +142,7 @@ public class SeqPruner {
         SeqThreadStatementClause nextClause = requireNonNull(pLabelClauseMap.get(targetPc));
         if (nextClause.isBlank() || isEmptyAtomicBlock(nextClause, pLabelClauseMap)) {
           SeqThreadStatementClause nonBlank =
-              recursivelyFindNonBlankClause(
-                  Optional.of(pClause), nextClause, pLabelClauseMap, pPrunedClauses);
+              recursivelyFindNonBlankClause(Optional.of(pClause), nextClause, pLabelClauseMap);
           return Optional.of(extractTargetPc(nonBlank));
         } else {
           return Optional.of(extractTargetPc(nextClause));
@@ -207,25 +186,22 @@ public class SeqPruner {
   public static SeqThreadStatementClause recursivelyFindNonBlankClause(
       final Optional<SeqThreadStatementClause> pInitial,
       SeqThreadStatementClause pCurrent,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      Set<SeqThreadStatementClause> pPrunedClauses) {
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     checkArgument(
         pInitial.isEmpty() || !pInitial.orElseThrow().isBlank(),
         "If pInitial is present, then it cannot be blank.");
 
     if (pCurrent.isBlank()) {
-      pPrunedClauses.add(pCurrent);
       SeqThreadStatement singleStatement = pCurrent.getFirstBlock().getFirstStatement();
       Verify.verify(validPrunableClause(pCurrent));
       int targetPc = singleStatement.targetPc().orElseThrow();
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause nextClause = requireNonNull(pLabelClauseMap.get(targetPc));
-        return recursivelyFindNonBlankClause(pInitial, nextClause, pLabelClauseMap, pPrunedClauses);
+        return recursivelyFindNonBlankClause(pInitial, nextClause, pLabelClauseMap);
       }
     }
     if (isEmptyAtomicBlock(pCurrent, pLabelClauseMap)) {
-      pPrunedClauses.add(pCurrent);
       int targetPc = pCurrent.getFirstBlock().getFirstStatement().targetPc().orElseThrow();
       assert targetPc != ProgramCounterVariables.EXIT_PC : "atomic begin should not exit thread";
       SeqThreadStatementClause nextClause = requireNonNull(pLabelClauseMap.get(targetPc));
@@ -233,9 +209,7 @@ public class SeqPruner {
       int nextTargetPc = nextSingleStatement.targetPc().orElseThrow();
       if (nextTargetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause nextNextClause = requireNonNull(pLabelClauseMap.get(nextTargetPc));
-        pPrunedClauses.add(nextNextClause);
-        return recursivelyFindNonBlankClause(
-            pInitial, nextNextClause, pLabelClauseMap, pPrunedClauses);
+        return recursivelyFindNonBlankClause(pInitial, nextNextClause, pLabelClauseMap);
       }
     }
     return pCurrent;

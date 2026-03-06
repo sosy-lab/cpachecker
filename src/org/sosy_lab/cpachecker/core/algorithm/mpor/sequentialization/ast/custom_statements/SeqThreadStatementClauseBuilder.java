@@ -142,8 +142,7 @@ public record SeqThreadStatementClauseBuilder(
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       SeqThreadStatementClause first = clauses.getFirst();
       SeqThreadStatementClause nonBlank =
-          SeqPruner.recursivelyFindNonBlankClause(
-              Optional.empty(), first, labelClauseMap, new HashSet<>());
+          SeqPruner.recursivelyFindNonBlankClause(Optional.empty(), first, labelClauseMap);
       if (SeqThreadStatementClauseUtil.isConsecutiveLabelPath(first, nonBlank, labelClauseMap)) {
         rReordered.putAll(thread, clauses); // put case clauses as they were
       } else {

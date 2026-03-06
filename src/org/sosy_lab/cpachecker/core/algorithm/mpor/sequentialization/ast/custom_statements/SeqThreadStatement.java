@@ -123,11 +123,6 @@ public record SeqThreadStatement(
     return targetPc.isPresent() ? targetPc.orElseThrow() : targetGoto.orElseThrow();
   }
 
-  public SeqThreadStatement withIsLoopHead(boolean pIsLoopHead) {
-    return new SeqThreadStatement(
-        data, pIsLoopHead, targetPc, targetGoto, instrumentation, exportAstNodes);
-  }
-
   /**
    * Clones this statement with the given pc. This function should only be called when finalizing
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
