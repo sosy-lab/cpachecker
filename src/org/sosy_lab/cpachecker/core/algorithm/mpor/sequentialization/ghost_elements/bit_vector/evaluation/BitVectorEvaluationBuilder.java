@@ -15,29 +15,31 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 
 public class BitVectorEvaluationBuilder {
 
   // variable only i.e. no literal expressions =====================================================
 
-  public static Optional<BitVectorEvaluationExpression> buildVariableOnlyEvaluation(
+  public static Optional<CExportExpression> buildVariableOnlyEvaluation(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -57,12 +59,13 @@ public class BitVectorEvaluationBuilder {
 
   // last bit vector evaluations (conflict reduction) ==============================================
 
-  public static Optional<BitVectorEvaluationExpression> buildLastBitVectorEvaluation(
+  public static Optional<CExportExpression> buildLastBitVectorEvaluation(
       MPOROptions pOptions,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pFirstBlock,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -83,7 +86,12 @@ public class BitVectorEvaluationBuilder {
                 pMemoryModel,
                 MemoryAccessType.ACCESS);
         yield buildLastAccessBitVectorEvaluationByEncoding(
-            pOptions, reachableAccessMemoryLocations, pBitVectorVariables, pMemoryModel, pUtils);
+            pOptions,
+            reachableAccessMemoryLocations,
+            pBitVectorVariables,
+            pMachineModel,
+            pMemoryModel,
+            pUtils);
       }
       case READ_AND_WRITE -> {
         ImmutableSet<SeqMemoryLocation> reachableReadMemoryLocations =
@@ -97,33 +105,39 @@ public class BitVectorEvaluationBuilder {
             reachableReadMemoryLocations,
             reachableWriteMemoryLocations,
             pBitVectorVariables,
+            pMachineModel,
             pMemoryModel,
             pUtils);
       }
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression>
-      buildLastAccessBitVectorEvaluationByEncoding(
-          MPOROptions pOptions,
-          ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
-          BitVectorVariables pBitVectorVariables,
-          MemoryModel pMemoryModel,
-          SequentializationUtils pUtils)
-          throws UnrecognizedCodeException {
+  private static Optional<CExportExpression> buildLastAccessBitVectorEvaluationByEncoding(
+      MPOROptions pOptions,
+      ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
+      SeqBitVectorVariables pBitVectorVariables,
+      MachineModel pMachineModel,
+      MemoryModel pMemoryModel,
+      SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
 
     return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> {
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
         LastDenseBitVector lastAccessBitVector =
             pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
         ImmutableSet<CExpression> otherAccessBitVectors =
             ImmutableSet.of(lastAccessBitVector.reachableVariable());
         yield BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
-            pOptions, otherAccessBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pUtils);
+            pOptions,
+            otherAccessBitVectors,
+            pDirectAccessMemoryLocations,
+            pMachineModel,
+            pMemoryModel,
+            pUtils);
       }
       case SPARSE -> {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
@@ -135,22 +149,22 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression>
-      buildLastReadWriteBitVectorEvaluationByEncoding(
-          MPOROptions pOptions,
-          ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
-          ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-          BitVectorVariables pBitVectorVariables,
-          MemoryModel pMemoryModel,
-          SequentializationUtils pUtils)
-          throws UnrecognizedCodeException {
+  private static Optional<CExportExpression> buildLastReadWriteBitVectorEvaluationByEncoding(
+      MPOROptions pOptions,
+      ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
+      SeqBitVectorVariables pBitVectorVariables,
+      MachineModel pMachineModel,
+      MemoryModel pMemoryModel,
+      SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
 
     return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> {
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
         LastDenseBitVector lastWriteBitVector =
             pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.WRITE);
         LastDenseBitVector lastAccessBitVector =
@@ -161,6 +175,7 @@ public class BitVectorEvaluationBuilder {
             ImmutableSet.of(lastAccessBitVector.reachableVariable()),
             pDirectReadMemoryLocations,
             pDirectWriteMemoryLocations,
+            pMachineModel,
             pMemoryModel,
             pUtils);
       }
@@ -184,7 +199,7 @@ public class BitVectorEvaluationBuilder {
 
   private static ImmutableListMultimap<SeqMemoryLocation, CExpression>
       mapMemoryLocationsToLastSparseBitVectorsByAccessType(
-          BitVectorVariables pBitVectorVariables, MemoryAccessType pAccessType) {
+          SeqBitVectorVariables pBitVectorVariables, MemoryAccessType pAccessType) {
 
     ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =
         ImmutableListMultimap.builder();
@@ -199,12 +214,13 @@ public class BitVectorEvaluationBuilder {
 
   // bit vector evaluations by accessed global variables (bit vector reduction) ====================
 
-  public static Optional<BitVectorEvaluationExpression> buildEvaluationByDirectVariableAccesses(
+  public static Optional<CExportExpression> buildEvaluationByDirectVariableAccesses(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pTargetBlock,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -229,6 +245,7 @@ public class BitVectorEvaluationBuilder {
             ImmutableSet.of(),
             ImmutableSet.of(),
             pBitVectorVariables,
+            pMachineModel,
             pMemoryModel,
             pUtils);
       }
@@ -246,19 +263,21 @@ public class BitVectorEvaluationBuilder {
             directReadMemoryLocations,
             directWriteMemoryLocations,
             pBitVectorVariables,
+            pMachineModel,
             pMemoryModel,
             pUtils);
       }
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression> buildEvaluationByReduction(
+  private static Optional<CExportExpression> buildEvaluationByReduction(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -274,6 +293,7 @@ public class BitVectorEvaluationBuilder {
               pOtherThreads,
               pDirectAccessMemoryLocations,
               pBitVectorVariables,
+              pMachineModel,
               pMemoryModel,
               pUtils);
       case READ_AND_WRITE ->
@@ -283,16 +303,18 @@ public class BitVectorEvaluationBuilder {
               pDirectReadMemoryLocations,
               pDirectWriteMemoryLocations,
               pBitVectorVariables,
+              pMachineModel,
               pMemoryModel,
               pUtils);
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression> buildAccessEvaluationByEncoding(
+  private static Optional<CExportExpression> buildAccessEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -302,12 +324,17 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> {
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
         ImmutableSet<CExpression> otherBitVectors =
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
                 MemoryAccessType.ACCESS, pOtherThreads);
         yield BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
-            pOptions, otherBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pUtils);
+            pOptions,
+            otherBitVectors,
+            pDirectAccessMemoryLocations,
+            pMachineModel,
+            pMemoryModel,
+            pUtils);
       }
       case SPARSE -> {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
@@ -319,12 +346,13 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static Optional<BitVectorEvaluationExpression> buildReadWriteEvaluationByEncoding(
+  private static Optional<CExportExpression> buildReadWriteEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      SeqBitVectorVariables pBitVectorVariables,
+      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -334,7 +362,7 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> {
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
         ImmutableSet<CExpression> otherWriteBitVectors =
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
                 MemoryAccessType.WRITE, pOtherThreads);
@@ -347,6 +375,7 @@ public class BitVectorEvaluationBuilder {
             otherAccessBitVectors,
             pDirectReadMemoryLocations,
             pDirectWriteMemoryLocations,
+            pMachineModel,
             pMemoryModel,
             pUtils);
       }
