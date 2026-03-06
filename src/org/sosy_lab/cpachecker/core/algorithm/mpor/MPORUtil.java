@@ -151,10 +151,27 @@ public final class MPORUtil {
         && pVariableDeclaration.getInitializer() != null;
   }
 
+  public static boolean isCpaCheckerTmpWithoutInitializer(
+      CVariableDeclaration pVariableDeclaration) {
+    return !pVariableDeclaration.getType().isConst()
+        && !pVariableDeclaration.isGlobal()
+        && pVariableDeclaration.getName().contains("__CPAchecker_TMP_")
+        && pVariableDeclaration.getInitializer() == null;
+  }
+
   public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
     if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
       if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
         return isConstCpaCheckerTmp(variableDeclaration);
+      }
+    }
+    return false;
+  }
+
+  public static boolean isCpaCheckerTmpDeclarationWithoutInitializer(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
+      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+        return isCpaCheckerTmpWithoutInitializer(variableDeclaration);
       }
     }
     return false;

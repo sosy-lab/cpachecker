@@ -34,6 +34,7 @@ public enum SeqThreadStatementType {
    * q->head}.
    */
   CONST_CPACHECKER_TMP(true, false),
+  CPACHECKER_TMP_WITHOUT_INITIALIZER(true, false),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */
   DEFAULT(true, false),
   /** A statement that contains only ghost code without any statement from the input program. */

@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CComment;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
@@ -124,6 +125,10 @@ public record SeqThreadStatementBuilder(
       // handle const CPAchecker_TMP first because it requires successor nodes and edges
       if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
         rStatements.add(buildConstCpaCheckerTmpStatement(threadEdge, pCoveredNodes));
+
+      } else if (MPORUtil.isCpaCheckerTmpDeclarationWithoutInitializer(threadEdge.cfaEdge)) {
+        rStatements.add(buildCpaCheckerTmpWithoutInitializerStatement(threadEdge));
+
       } else {
         // exclude all function summaries, the calling context is handled by return edges
         if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
@@ -325,6 +330,33 @@ public record SeqThreadStatementBuilder(
         null);
   }
 
+  // CPAchecker_TMP without initializer ============================================================
+
+  private SeqThreadStatement buildCpaCheckerTmpWithoutInitializerStatement(
+      CFAEdgeForThread pThreadEdge) {
+
+    SubstituteEdge cpaCheckerTmpEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
+    CDeclarationEdge declarationEdge = (CDeclarationEdge) cpaCheckerTmpEdge.cfaEdge;
+    CVariableDeclaration variableDeclaration =
+        (CVariableDeclaration) declarationEdge.getDeclaration();
+    CIdExpression idExpression = new CIdExpression(FileLocation.DUMMY, variableDeclaration);
+    CExpressionStatementWrapper exportStatement =
+        new CExpressionStatementWrapper(new CExpressionWrapper(idExpression));
+
+    SeqThreadStatementData data =
+        new SeqThreadStatementData(
+            SeqThreadStatementType.CPACHECKER_TMP_WITHOUT_INITIALIZER,
+            ImmutableSet.of(cpaCheckerTmpEdge),
+            thread.id(),
+            pcLeftHandSide);
+
+    return SeqThreadStatement.of(
+        data,
+        isLoopHead(thread, data.getSubstituteEdges()),
+        pThreadEdge.getSuccessor().pc,
+        ImmutableList.of(exportStatement));
+  }
+
   // Statement build methods =======================================================================
 
   private SeqThreadStatement buildStatementFromThreadEdge(
@@ -346,13 +378,10 @@ public record SeqThreadStatementBuilder(
 
       case CAssumeEdge assumeEdge -> buildAssumeStatement(assumeEdge, pSubstituteEdge, targetPc);
 
-      case CDeclarationEdge declarationEdge -> {
-        // "leftover" declarations should be local variables with an initializer
-        CVariableDeclaration variableDeclaration =
-            (CVariableDeclaration) declarationEdge.getDeclaration();
-        yield buildLocalVariableInitializationStatement(
-            variableDeclaration, pSubstituteEdge, targetPc);
-      }
+      case CDeclarationEdge declarationEdge ->
+          // "leftover" declarations should be local variables with an initializer
+          buildLocalVariableInitializationStatement(
+              (CVariableDeclaration) declarationEdge.getDeclaration(), pSubstituteEdge, targetPc);
 
       case CFunctionCallEdge functionCallEdge ->
           buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc);

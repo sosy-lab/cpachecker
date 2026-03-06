@@ -72,6 +72,10 @@ int main() {
     while (1) {
         local_increment(x);
     }
+    while (__VERIFIER_nondet_int()) {
+        x++;
+        x *= 2;
+    }
     int top;
     __VERIFIER_atomic_begin();
     if (top == 0) {
