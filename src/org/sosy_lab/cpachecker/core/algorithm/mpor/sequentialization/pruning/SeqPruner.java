@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Verify;
@@ -113,15 +112,15 @@ public class SeqPruner {
       if (!clause.isBlank() && !isEmptyAtomicBlock(clause, pLabelClauseMap)) {
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
-          if (statement.targetPc().isPresent()) {
-            int targetPc = statement.targetPc().orElseThrow();
-            if (pPcUpdates.containsKey(targetPc)) {
-              newStatements.add(statement.withTargetPc(checkNotNull(pPcUpdates.get(targetPc))));
-              continue;
-            }
-          }
-          // otherwise add unchanged statement
-          newStatements.add(statement);
+          SeqThreadStatement clonedStatement =
+              statement
+                  .targetPc()
+                  // if pc was updated in prune, clone statement with new target pc
+                  .map(pPcUpdates::get)
+                  .map(statement::withTargetPc)
+                  // otherwise add unchanged statement
+                  .orElse(statement);
+          newStatements.add(clonedStatement);
         }
         SeqThreadStatementBlock firstBlock = clause.getFirstBlock();
         SeqThreadStatementBlock newBlock = firstBlock.withStatements(newStatements.build());
