@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,13 +51,13 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
   private final Map<CFAEdge, Integer> edgePidMap = new IdentityHashMap<>();
 
   private final EdgeDefUseData.Extractor memoryAccessExtractor =
-      new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true));
+      new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
   private Iterable<CFAEdge> sourceSet = null;
 
-  PORState(CFA pCfa, ImmutableMap<Integer, PORThreadState> threads) {
+  PORState(CFA pCfa, ImmutableMap<Integer, PORThreadState> pThreads) {
     cfa = pCfa;
-    this.threads = threads;
+    threads = pThreads;
   }
 
   static PORState empty() {
@@ -158,7 +157,10 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
 
   @Override
   public String toDOTLabel() {
-    return "threads: %s".formatted(threads.entrySet());
+    return "[" + threads.keySet().stream().sorted()
+        .map(e -> e + ": " + threads.get(e).pLocationState().getLocationNode()).collect(
+            Collectors.joining(", ")) + "]";
+//    return "threads: %s".formatted(threads.entrySet());
   }
 
   @Override

@@ -132,6 +132,12 @@ public final class EdgeDefUseData {
   }
 
   public static EdgeDefUseData.Extractor createExtractor(boolean pConsiderPointees) {
+    return createExtractor(pConsiderPointees, false);
+  }
+
+  public static EdgeDefUseData.Extractor createExtractor(
+      boolean pConsiderPointees,
+      boolean pOnlyGlobals) {
 
     return new Extractor() {
 
@@ -164,7 +170,7 @@ public final class EdgeDefUseData {
 
           if (astNode instanceof CAstNode cAstNode) {
 
-            Collector collector = new Collector(pConsiderPointees);
+            Collector collector = new Collector(pConsiderPointees, pOnlyGlobals);
             cAstNode.accept(collector);
 
             return createEdgeDefUseData(collector);
@@ -178,7 +184,7 @@ public final class EdgeDefUseData {
       @Override
       public EdgeDefUseData extract(CAstNode pAstNode) {
 
-        Collector collector = new Collector(pConsiderPointees);
+        Collector collector = new Collector(pConsiderPointees, pOnlyGlobals);
         pAstNode.accept(collector);
 
         return createEdgeDefUseData(collector);
@@ -227,6 +233,7 @@ public final class EdgeDefUseData {
   private static class Collector implements CAstNodeVisitor<Void, NoException> {
 
     private final boolean considerPointees;
+    private final boolean onlyGlobals;
 
     private final Set<MemoryLocation> defs;
     private final Set<MemoryLocation> uses;
@@ -238,9 +245,10 @@ public final class EdgeDefUseData {
 
     private Mode mode;
 
-    private Collector(boolean pConsiderPointees) {
+    private Collector(boolean pConsiderPointees, boolean pOnlyGlobals) {
 
       considerPointees = pConsiderPointees;
+      onlyGlobals = pOnlyGlobals;
 
       partialDefs = false;
 
@@ -446,8 +454,9 @@ public final class EdgeDefUseData {
 
       CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
 
-      if (declaration instanceof CVariableDeclaration
-          || declaration instanceof CParameterDeclaration) {
+      if ((declaration instanceof CVariableDeclaration && (!onlyGlobals
+          || ((CVariableDeclaration) declaration).isGlobal()))
+          || (!onlyGlobals && declaration instanceof CParameterDeclaration)) {
 
         MemoryLocation memLoc = MemoryLocation.forDeclaration(declaration);
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
@@ -506,8 +515,10 @@ public final class EdgeDefUseData {
     @Override
     public Void visit(CVariableDeclaration pDecl) {
 
-      MemoryLocation memLoc = MemoryLocation.forDeclaration(pDecl);
-      defs.add(memLoc);
+      if (!onlyGlobals || pDecl.isGlobal()) {
+        MemoryLocation memLoc = MemoryLocation.forDeclaration(pDecl);
+        defs.add(memLoc);
+      }
 
       CInitializer initializer = pDecl.getInitializer();
       if (initializer != null) {
@@ -522,7 +533,7 @@ public final class EdgeDefUseData {
     public Void visit(CParameterDeclaration pDecl) {
 
       // undeclared functions don't have qualified parameter names, so we ignore them
-      if (pDecl.getQualifiedName() != null) {
+      if (!onlyGlobals && pDecl.getQualifiedName() != null) {
         pDecl.asVariableDeclaration().accept(this);
       }
 
