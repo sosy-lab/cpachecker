@@ -1744,6 +1744,10 @@ public class SMGState
    * constraints).
    */
   SMGState removeOldConstraints() {
+    if (constraintsState.isEmpty()) {
+      return this;
+    }
+
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
     // There are 3 sources of constraints, values in objects (HVEs), offsets and sizes.
