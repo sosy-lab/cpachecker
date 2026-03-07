@@ -3735,6 +3735,12 @@ cpa.smg2.initialPrecisionFile = no default value
 # get an initial precision from a predicate precision file
 cpa.smg2.initialPredicatePrecisionFile = no default value
 
+# Log level of unknown value usage in this CPA. E.g. due to
+# overapproximations, unhandled cases etc. Can be used to warn of a possible
+# inaccurate analysis (many unknown values do not lead to an inaccurate
+# analysis!), help with debugging etc.
+cpa.smg2.logLevelOfUnknownValueAssumptions = Level.FINE
+
 # If this option is enabled, a call to malloc with value zero results in a
 # return value that is equal to zero. If this option is disabled, a non-zero
 # memory section that may not be accessed but freed is returned.

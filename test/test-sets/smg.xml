@@ -24,6 +24,9 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
   <option name="--benchmark"/>
   <option name="--timelimit">900s</option>
 
+  <!-- It can help to debug incorrect results using this option, highlighting the usage of UNKNOWN values, with Level.WARNING -->
+  <option name="--option">cpa.smg2.logLevelOfUnknownValueAssumptions=Level.FINE</option>
+
 
   <!-- #################### MemSafety #################### -->
   <!-- Note: MemCleanup is below, as they need to be separate since they share the same tasks -->

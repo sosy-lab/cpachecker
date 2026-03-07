@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -31,6 +32,18 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
+
+  @Option(
+      secure = true,
+      description =
+          "Log level of unknown value usage in this CPA. E.g. due to overapproximations, unhandled"
+              + " cases etc. Can be used to warn of a possible inaccurate analysis (many unknown"
+              + " values do not lead to an inaccurate analysis!), help with debugging etc.")
+  private Level logLevelOfUnknownValueAssumptions = Level.FINE;
+
+  public Level getLogLevelOfUnknownValueAssumptions() {
+    return logLevelOfUnknownValueAssumptions;
+  }
 
   @Option(
       secure = true,

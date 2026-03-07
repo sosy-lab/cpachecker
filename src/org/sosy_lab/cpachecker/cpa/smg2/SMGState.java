@@ -404,7 +404,7 @@ public class SMGState
   }
 
   public void logUnknownValue(String msg) {
-    logger.log(Level.FINE, msg);
+    logger.log(options.getLogLevelOfUnknownValueAssumptions(), msg);
   }
 
   public void logUnknownValue(String msg, CFAEdge edge) {
