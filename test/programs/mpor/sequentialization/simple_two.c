@@ -42,6 +42,11 @@ void *task2(void *arg) {
 void local_increment(int number) {
     number += 1;
 }
+void pass_parameter(int number) {
+    number += 1;
+    local_increment(number);
+    number += 1;
+}
 const int global_const = 0;
 int main() {
     const int local_const = 7;
@@ -69,6 +74,7 @@ int main() {
             j++;
         }
     }
+    pass_parameter(x);
     while (1) {
         local_increment(x);
     }
