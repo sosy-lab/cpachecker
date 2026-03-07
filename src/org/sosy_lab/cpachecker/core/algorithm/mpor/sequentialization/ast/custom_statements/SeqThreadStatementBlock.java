@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -20,8 +21,11 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
 /**
- * A block features a {@code goto} label and a list of {@link SeqThreadStatement}. An inner block is
- * only reachable from inside a thread simulation via its {@code goto} label.
+ * Each {@link CFANode} from the input program corresponds to a {@link SeqThreadStatementBlock}.
+ *
+ * <p>A {@link SeqThreadStatementBlock} features a {@code goto} label and a list of {@link
+ * SeqThreadStatement}. An inner block is only reachable from inside a thread simulation via its
+ * {@code goto} label.
  */
 public final class SeqThreadStatementBlock implements SeqExportStatement {
 

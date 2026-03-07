@@ -23,9 +23,13 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CReturnStatementWrapper;
 
 /**
  * A clause features an {@code int} label and a list of {@link SeqThreadStatementBlock}. A clause is
- * reachable from outside a thread simulation via its {@code pc} label.
+ * reachable from outside a thread simulation via its {@code pc} label. Initially each {@link
+ * SeqThreadStatementClause} has only one {@link SeqThreadStatementBlock}, but after merging e.g.
+ * atomic blocks or linking local statements a {@link SeqThreadStatementClause} can contain multiple
+ * {@link SeqThreadStatementBlock}.
  *
- * <p>e.g. {@code case 42: fib(42); break;} when using switch cases.
+ * <p>e.g. {@code case 42: fib(42); break;} for {@link MultiSelectionStatementEncoding#SWITCH_CASE}
+ * with {@code fib(42);} as the only {@link SeqThreadStatementBlock}.
  */
 public final class SeqThreadStatementClause implements SeqExportStatement {
 

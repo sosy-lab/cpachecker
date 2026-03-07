@@ -16,6 +16,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -23,7 +24,8 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 /**
- * A statement executed by a thread simulation in the sequentialization.
+ * Each {@link CFAEdge} from the input program corresponds to a {@link SeqThreadStatement} which is
+ * executed by a thread simulation in the sequentialization.
  *
  * <p>The fields in this class are separate from the {@code exportAstNodes} because they are
  * dynamically updated during the sequentialization process. These dynamic updates include merging
