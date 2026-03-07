@@ -193,7 +193,7 @@ public class SeqValidator {
             SeqThreadStatementBlock targetBlock =
                 Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
             // ignore backward jump, if it is to a loop start and enabled in options
-            if (!targetBlock.isLoopStart() || pOptions.noBackwardLoopGoto()) {
+            if (!targetBlock.isLoopHead() || pOptions.noBackwardLoopGoto()) {
               throw new IllegalStateException(
                   String.format(
                       "block number %s is greater than target number %s in thread %s",
