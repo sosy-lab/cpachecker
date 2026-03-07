@@ -941,7 +941,8 @@ public class SMGCPABuiltins {
         } else {
           // Overapproximate buffer overflow and remove edges
           checkArgument(bufferWriteSizeArgument.isEmpty());
-            currentState.logUnknownValue("Overapproximated buffer overflow and assumed unknown value in buffer in ", pCfaEdge);
+          currentState.logUnknownValue(
+              "Overapproximated buffer overflow and assumed unknown value in buffer in ", pCfaEdge);
           finalState =
               finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
         }
@@ -1083,7 +1084,8 @@ public class SMGCPABuiltins {
     }
 
     if (returnValue.isUnknown()) {
-      currentState.logUnknownValue("Assumed unknown return value for function call to " + functionName + " in ", pCfaEdge);
+      currentState.logUnknownValue(
+          "Assumed unknown return value for function call to " + functionName + " in ", pCfaEdge);
     }
     return ImmutableList.of(ValueAndSMGState.of(returnValue, finalState));
   }
@@ -3374,7 +3376,9 @@ public class SMGCPABuiltins {
       } else {
 
         // TODO: we could associate a symbolic output with the input used to assure ==
-        currentState.logUnknownValue("Assumed unknown return value for function call to builtin popcountX() function in ", edge);
+        currentState.logUnknownValue(
+            "Assumed unknown return value for function call to builtin popcountX() function in ",
+            edge);
         result.add(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
       }
     }

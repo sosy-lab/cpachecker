@@ -903,6 +903,8 @@ public class SMGState
     // Null for new interpolants, return unknown
     @Nullable BigInteger sizeOfReadInBits = valueAndSize.getSizeInBits();
     if (sizeOfReadInBits == null) {
+      logUnknownValue(
+          "Assumed unknown equality of values due to unknown size of values to compare");
       return UnknownValue.getInstance();
     }
 
@@ -2913,11 +2915,13 @@ public class SMGState
     checkState(!(pValue instanceof AddressExpression));
 
     if (!memoryModel.isPointer(pValue)) {
+      logUnknownValue("Assumed unknown pointer offset due to value not being known as pointer");
       return UnknownValue.getInstance();
     }
 
     Optional<SMGValue> maybeSmgValue = memoryModel.getSMGValueFromValue(pValue);
     if (maybeSmgValue.isEmpty()) {
+      logUnknownValue("Assumed unknown pointer offset due to value not being known as pointer");
       return UnknownValue.getInstance();
     }
 
@@ -3938,7 +3942,9 @@ public class SMGState
     checkArgument(!(pObject instanceof SMGSinglyLinkedListSegment));
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ImmutableList.of(
-          ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject)));
+          ValueAndSMGState.ofUnknownValue(
+              withInvalidRead(pObject),
+              "Unknown value returned in read operation due to read of invalidated memory"));
     }
     SMGHasValueEdgesAndSPC valueAndNewSPC =
         memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits, preciseRead);
@@ -4059,7 +4065,9 @@ public class SMGState
       @Nullable CType readType)
       throws SMGException {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
-      return ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject));
+      return ValueAndSMGState.ofUnknownValue(
+          withInvalidRead(pObject),
+          "Read operation returned unknown value due to read of invalidated memory");
     }
     // TODO: it is an assumption that we don't need precise reads here, as the top value needs to be
     // the same?
@@ -4113,6 +4121,9 @@ public class SMGState
       shiftRight = readOffset.intValueExact() - readSMGHVValue.getOffset().intValueExact();
       if (shiftRight < 0) {
         // Read larger edge on smaller, not supported
+        logUnknownValue(
+            "Assumed unknown value due to read operation on multiple value-edges not fully"
+                + " supported for little endian");
         return UnknownValue.getInstance();
       }
       assert shiftRight >= 0;
@@ -4171,6 +4182,9 @@ public class SMGState
     }
 
     // Fallthrough. Unknown value -> unknown value
+    logUnknownValue(
+        "Returned unknown value for read operation spanning multiple value-edges due to unhandled"
+            + " case");
     return UnknownValue.getInstance();
   }
 
@@ -4253,6 +4267,7 @@ public class SMGState
         == SMGTargetSpecifier.IS_FIRST_POINTER;
   }
 
+  // TODO: use FloatValue here
   /**
    * The only important thing is that the expectedType is NOT the left hand side type or any cast
    * type, but the type of the read before any casts etc.! *
@@ -4270,9 +4285,11 @@ public class SMGState
       }
     }
 
+    logUnknownValue("Returned unknown value for union float conversion");
     return UnknownValue.getInstance();
   }
 
+  // TODO: use FloatValue here
   private Value extractFloatingPointValueAsIntegralValue(NumericValue readValue) {
     Number numberValue = readValue.getNumber();
 
@@ -4305,6 +4322,7 @@ public class SMGState
             readValue));
   }
 
+  // TODO: use FloatValue here!
   private Value extractIntegralValueAsFloatingPointValue(
       CType pReadType, NumericValue numericValue) {
     if (pReadType instanceof CSimpleType) {
@@ -4322,6 +4340,9 @@ public class SMGState
         return new NumericValue(doubleValue);
       }
     }
+
+    logUnknownValue(
+        "Returned unknown value for unhandled case in integer to floating-point conversion");
     return UnknownValue.getInstance();
   }
 
