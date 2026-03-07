@@ -1622,6 +1622,7 @@ public class SMGState
     }
 
     // We may not forget any errors already found
+    // TODO: simplify/reduce complexity for cases in which we know that the result is equal to input
     if (!copyAndPruneUnreachable()
         .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable())) {
       return false;
@@ -1688,6 +1689,9 @@ public class SMGState
    */
   private boolean treatSymbolicsAsEqualWEqualConstrains(
       SMGState pOther, @Nullable MemoryLocation possibleMemLoc) {
+    // TODO: getAllValidAbstractedObjects() is costly for cases in which there are none. Add some
+    // simplification, e.g. track whether we abstracted at least once and return a empty set of we
+    // never abstracted
     Set<SMGSinglyLinkedListSegment> allAbstr =
         getMemoryModel().getSmg().getAllValidAbstractedObjects();
     if (allAbstr.isEmpty()) {
