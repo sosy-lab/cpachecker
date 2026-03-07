@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -473,16 +475,17 @@ public record MemoryModelBuilder(
 
     return switch (pRightHandSide) {
       case CIdExpression idExpression ->
-          Optional.of(getMemoryLocationByDeclaration(pCallContext, idExpression.getDeclaration()));
+          Optional.of(
+              getMemoryLocationByDeclaration(
+                  pCallContext, toVariableDeclaration(idExpression.getDeclaration())));
       case CFieldReference fieldReference ->
           Optional.of(extractFieldReferenceMemoryLocation(pCallContext, fieldReference));
       case CUnaryExpression unaryExpression ->
           extractMemoryLocation(pCallContext, unaryExpression.getOperand());
       case CCastExpression castExpression ->
           extractMemoryLocation(pCallContext, castExpression.getOperand());
-      default ->
-          // can e.g. occur with 'param = 4' i.e. literal integer expressions
-          Optional.empty();
+      // can e.g. occur with 'param = 4' i.e. literal integer expressions
+      default -> Optional.empty();
     };
   }
 
@@ -495,24 +498,23 @@ public record MemoryModelBuilder(
         MPORUtil.recursivelyFindFieldMemberByFieldOwner(
             pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
     return getMemoryLocationByFieldReference(
-        pCallContext, fieldOwner.getDeclaration(), fieldMember);
+        pCallContext, toVariableDeclaration(fieldOwner.getDeclaration()), fieldMember);
   }
 
   private SeqMemoryLocation getMemoryLocationByDeclaration(
-      CFAEdgeForThread pCallContext, CSimpleDeclaration pDeclaration) {
+      CFAEdgeForThread pCallContext, CVariableDeclaration pVariableDeclaration) {
 
     for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
-      if (memoryLocation.declaration().equals(pDeclaration)) {
+      if (memoryLocation.declaration().equals(pVariableDeclaration)) {
         return memoryLocation;
       }
     }
-    return SeqMemoryLocation.of(
-        options, Optional.of(pCallContext), (CVariableDeclaration) pDeclaration);
+    return SeqMemoryLocation.of(options, Optional.of(pCallContext), pVariableDeclaration);
   }
 
   private SeqMemoryLocation getMemoryLocationByFieldReference(
       CFAEdgeForThread pCallContext,
-      CSimpleDeclaration pFieldOwner,
+      CVariableDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
     for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
@@ -523,8 +525,7 @@ public record MemoryModelBuilder(
         }
       }
     }
-    return SeqMemoryLocation.of(
-        options, Optional.of(pCallContext), (CVariableDeclaration) pFieldOwner, pFieldMember);
+    return SeqMemoryLocation.of(options, Optional.of(pCallContext), pFieldOwner, pFieldMember);
   }
 
   // Pointer Dereferences ==========================================================================
@@ -550,5 +551,17 @@ public record MemoryModelBuilder(
       }
     }
     return rPointers.buildOrThrow();
+  }
+
+  // Helper
+
+  private static CVariableDeclaration toVariableDeclaration(CSimpleDeclaration pSimpleDeclaration) {
+    checkArgument(
+        pSimpleDeclaration instanceof CVariableDeclaration
+            || pSimpleDeclaration instanceof CParameterDeclaration,
+        "pSimpleDeclaration must be CVariableDeclaration or CParameterDeclaration");
+    return pSimpleDeclaration instanceof CVariableDeclaration
+        ? (CVariableDeclaration) pSimpleDeclaration
+        : ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
   }
 }
