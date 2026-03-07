@@ -663,7 +663,11 @@ public class SMGCPAValueVisitor
     // Non-pointers may be numeric, symbolic or unknown.
 
     if (leftValue.isUnknown() || rightValue.isUnknown()) {
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Assume unknown return value due to at least one expression being unknown in " + e,
+              cfaEdge));
     }
     // Values might still be symbolic non-pointers!
 
@@ -1240,8 +1244,11 @@ public class SMGCPAValueVisitor
     // TODO: both the value and old SMG analysis simply return unknown in this case
     // String string = e.getContentString();
     // ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
-    logger.log(Level.WARNING, "Analysis approximated string literal expression in " + cfaEdge);
-    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            state,
+            "Analysis overapproximated string literal expression " + e + " to unknown in ",
+            cfaEdge));
   }
 
   @Override
@@ -1263,14 +1270,14 @@ public class SMGCPAValueVisitor
         BigInteger align = evaluator.getAlignOf(innerType);
         yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
       }
-      case TYPEOF -> {
-        // This can't really be solved here as we can only return Values
-        logger.log(
-            Level.WARNING,
-            "Approximated unknown value due to missing handling of type id expression in "
-                + cfaEdge);
-        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
-      }
+      case TYPEOF -> // This can't really be solved here as we can only return Values
+          ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  state,
+                  "Returned unknown value due to missing handling of typeof expression "
+                      + e
+                      + " in ",
+                  cfaEdge));
     };
   }
 
@@ -1321,12 +1328,11 @@ public class SMGCPAValueVisitor
                 createBinarySymbolicExpression(value, operandType, unaryOperator, returnType),
                 currentState);
       } else if (!(value instanceof NumericValue numericValue)) {
-        logger.logf(
-            Level.FINE,
-            "Returned unknown due to invalid argument %s for unary operator %s.",
-            value,
-            unaryOperator);
-        newValueAndState = ValueAndSMGState.ofUnknownValue(currentState);
+        newValueAndState =
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown due to non-numeric argument for unary expression " + e + " in ",
+                cfaEdge);
       } else {
 
         final NumericValue newValue =
@@ -1364,7 +1370,9 @@ public class SMGCPAValueVisitor
         // A possibility is that the program tries to deref a nondet for example
         builder.add(
             ValueAndSMGState.ofUnknownValue(
-                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge), cfaEdge));
+                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge),
+                "Returned unknown value for pointer dereference of unknown value in ",
+                cfaEdge));
         continue;
       }
 
@@ -1728,7 +1736,11 @@ public class SMGCPAValueVisitor
 
       return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value), pState));
     } else {
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              pState,
+              "Returned unknown value due to unhandled builtin function " + pName + " in ",
+              cfaEdge));
     }
   }
 
@@ -1753,7 +1765,11 @@ public class SMGCPAValueVisitor
 
       return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value1, value2), pState));
     } else {
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              pState,
+              "Returned unknown value due to unhandled builtin function " + pName + " in ",
+              cfaEdge));
     }
   }
 

@@ -456,11 +456,12 @@ public class SMGCPAExpressionEvaluator {
       if (!(offset instanceof NumericValue)) {
         if (!options.trackPredicates()) {
           // Value analysis
-          logger.log(
-              Level.FINE,
-              "Symbolic offset when creating an address not supported when not"
-                  + " tracking predicates. Unknown value returned.");
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(objectAndOffsetOrState.getSMGState()));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  objectAndOffsetOrState.getSMGState(),
+                  "Symbolic offset when creating an address not supported in case"
+                      + " predicates are not tracked. Unknown value returned in ",
+                  cfaEdge));
           continue;
         }
       }
