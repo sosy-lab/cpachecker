@@ -477,8 +477,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   }
 
   /**
-   * Handles nested assumptions. e.g. ((a != b) == c) by appyling this visitor (visit) on the nexted
-   * expressions.
+   * Handles nested assumptions. e.g. ((a != b) == c) by applying this visitor on the nested
+   * expressions in the hopes of finding assignable sub-expressions. The returned values are not to
+   * be used in any case. This is meant to only updates the states!
    */
   private List<ValueAndSMGState> updateNested(
       CExpression lVarInBinaryExp,
@@ -490,9 +491,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
     CFAEdge edge = super.getInitialVisitorCFAEdge();
-    // Just use the current state as base case (with an unknown value that we won't use)
-    List<ValueAndSMGState> updatedStates =
-        ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+
     // if (true == (unknown == concrete_value)) we set the value (for true left and right)
     if (leftValue.isExplicitlyKnown()) {
       if (!(leftValue instanceof NumericValue numLeft)) {
@@ -500,18 +499,18 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       }
       Number lNum = numLeft.getNumber();
       if (BigInteger.ONE.equals(lNum)) {
-        updatedStates =
-            rVarInBinaryExp.accept(
-                new SMGCPAAssigningValueVisitor(
-                    evaluator,
-                    solver,
-                    currentState,
-                    edge,
-                    logger,
-                    truthValue,
-                    getInitialVisitorOptions(),
-                    booleans,
-                    callerFunctionName));
+        // Assign
+        return rVarInBinaryExp.accept(
+            new SMGCPAAssigningValueVisitor(
+                evaluator,
+                solver,
+                currentState,
+                edge,
+                logger,
+                truthValue,
+                getInitialVisitorOptions(),
+                booleans,
+                callerFunctionName));
       }
     } else if (rightValue.isExplicitlyKnown()) {
       if (!(rightValue instanceof NumericValue numRight)) {
@@ -519,21 +518,46 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       }
       Number rNum = numRight.bigIntegerValue();
       if (BigInteger.ONE.equals(rNum)) {
-        updatedStates =
-            lVarInBinaryExp.accept(
-                new SMGCPAAssigningValueVisitor(
-                    evaluator,
-                    solver,
-                    currentState,
-                    edge,
-                    logger,
-                    truthValue,
-                    getInitialVisitorOptions(),
-                    booleans,
-                    callerFunctionName));
+        // Assign
+        return lVarInBinaryExp.accept(
+            new SMGCPAAssigningValueVisitor(
+                evaluator,
+                solver,
+                currentState,
+                edge,
+                logger,
+                truthValue,
+                getInitialVisitorOptions(),
+                booleans,
+                callerFunctionName));
       }
     }
-    return updatedStates;
+
+    // TODO: maybe we can find a use of the numerics, or assign them?
+    // These cases are not a problem, i just want to know how often they occur and whether we can
+    // improve it
+    if (leftValue instanceof NumericValue numLeft) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Concrete evaluation result of numeric value "
+                  + numLeft
+                  + " could not be assigned to its source in assumption evaluation. This is not a"
+                  + " problem and only to be used for internal logging. ",
+              edge));
+    } else if (rightValue instanceof NumericValue numRight) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Concrete evaluation result of numeric value "
+                  + numRight
+                  + " could not be assigned to its source in assumption evaluation. This is not a"
+                  + " problem and only to be used for internal logging. ",
+              edge));
+    }
+
+    // No need to log unknown, as it is ignored in the evaluation of the result of this method!
+    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
 
   private static AExpression unwrap(AExpression expression) {
