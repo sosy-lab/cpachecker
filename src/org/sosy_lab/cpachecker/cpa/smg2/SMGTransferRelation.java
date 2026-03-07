@@ -1397,7 +1397,12 @@ public class SMGTransferRelation
           currentState = newAddressAndState.getState();
           valueToWrite = newAddressAndState.getValue();
         } else {
-          // Offset unknown/symbolic. This is not usable!
+          // Offset unknown or symbolic (in value analysis only). This is not usable!
+          currentState.logUnknownValue(
+              "Writing unknown value(s) due to "
+                  + (options.trackPredicates() ? "unknown " : "unknown or symbolic")
+                  + "offset of a pointer that is supposed to be saved: ",
+              edge);
           valueToWrite = UnknownValue.getInstance();
         }
         Preconditions.checkArgument(
