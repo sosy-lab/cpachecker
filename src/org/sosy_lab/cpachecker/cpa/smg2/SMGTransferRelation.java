@@ -1398,6 +1398,7 @@ public class SMGTransferRelation
           valueToWrite = newAddressAndState.getValue();
         } else {
           // Offset unknown or symbolic (in value analysis only). This is not usable!
+          // TODO: always build/use symbolics. Value can at least check ==
           currentState.logUnknownValue(
               "Writing unknown value(s) due to "
                   + (options.trackPredicates() ? "unknown " : "unknown or symbolic")
