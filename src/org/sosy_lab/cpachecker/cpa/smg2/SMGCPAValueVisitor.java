@@ -575,7 +575,21 @@ public class SMGCPAValueVisitor
 
     if (isPointerArithmetics(
         leftValueWithCorrectType, rightValueWithCorrectType, e, currentState)) {
-      // Pointer Arithmetics
+      // Pointer arithmetics/comparisons
+
+      if (leftValueWithCorrectType instanceof FunctionValue
+          || rightValueWithCorrectType instanceof FunctionValue) {
+        // Function pointers
+        // TODO: we now allow unknown to end up in the values, handle here as well!
+        checkArgument(
+            !(leftValueWithCorrectType.isUnknown() || rightValueWithCorrectType.isUnknown()));
+        return ImmutableList.of(
+            ValueAndSMGState.of(
+                calculateExpressionWithFunctionValue(
+                    binaryOperator, rightValueWithCorrectType, leftValueWithCorrectType),
+                currentState));
+      }
+
       // TODO: we now allow unknown to end up in the values, handle here as well!
       checkArgument(
           !(leftValueWithCorrectType instanceof AddressExpression
@@ -592,19 +606,6 @@ public class SMGCPAValueVisitor
           currentState,
           binaryOperator,
           calculationType);
-    }
-
-    // Function pointers
-    if (leftValueWithCorrectType instanceof FunctionValue
-        || rightValueWithCorrectType instanceof FunctionValue) {
-      // TODO: we now allow unknown to end up in the values, handle here as well!
-      checkArgument(
-          !(leftValueWithCorrectType.isUnknown() || rightValueWithCorrectType.isUnknown()));
-      return ImmutableList.of(
-          ValueAndSMGState.of(
-              calculateExpressionWithFunctionValue(
-                  binaryOperator, rightValueWithCorrectType, leftValueWithCorrectType),
-              currentState));
     }
 
     // We don't want AddressExpressions beyond this point, as they might be handled/bundled as
@@ -4497,6 +4498,11 @@ public class SMGCPAValueVisitor
     // Filter out non-pointer arithmetic operators
     if (!op.isLogicalOperator() && op != PLUS && op != MINUS) {
       return false;
+    }
+
+    if (pLeftValue instanceof FunctionValue || pRightValue instanceof FunctionValue) {
+      // Function pointers
+      return true;
     }
 
     Value leftValue = unwrapPotentialAddressExpression(pLeftValue, currentState);
