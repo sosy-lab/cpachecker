@@ -1317,7 +1317,12 @@ public class SMGTransferRelation
         // This is a copy based on a pointer
         Value pointerOffset = addressInValue.getOffset();
         if (!(pointerOffset instanceof NumericValue numPointerOffset)) {
-          // Write unknown to left
+          // Write unknown to left due to symbolic/unknown offset
+          //  => copy start can not be determined
+          currentState.logUnknownValue(
+              "Writing unknown value(s) due to unknown or symbolic offset in memory copy operation"
+                  + " for struct/union type in: ",
+              edge);
           return ImmutableList.of(
               currentState.writeValueWithChecks(
                   addressToWriteTo,
