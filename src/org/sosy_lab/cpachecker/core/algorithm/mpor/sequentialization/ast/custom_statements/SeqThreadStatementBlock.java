@@ -67,14 +67,14 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   }
 
   @Override
-  public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
+  public ImmutableList<CCompoundStatementElement> toCExportStatements() {
     ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
 
     exportStatements.add(buildLabelStatement());
 
     if (statements.size() == 1) {
       // 1 statement: add its respective export statements
-      exportStatements.addAll(statements.getFirst().toCExportAstNodes());
+      exportStatements.addAll(statements.getFirst().toCExportStatements());
 
     } else {
       // 2 statements (= assume statements): create if-else statement
@@ -85,8 +85,8 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
       CIfStatement ifStatement =
           new CIfStatement(
               new CExpressionWrapper(firstAssumeData.getIfExpression()),
-              new CCompoundStatement(firstAssume.toCExportAstNodes()),
-              new CCompoundStatement(secondAssume.toCExportAstNodes()));
+              new CCompoundStatement(firstAssume.toCExportStatements()),
+              new CCompoundStatement(secondAssume.toCExportStatements()));
       exportStatements.add(ifStatement);
     }
 

@@ -91,7 +91,7 @@ public class SeqThreadStatementClauseUtil {
               pPcLeftHandSide,
               clause.labelNumber,
               pBinaryExpressionBuilder);
-      rOriginPcs.putAll(new CExpressionWrapper(labelExpression), clause.toCExportAstNodes());
+      rOriginPcs.putAll(new CExpressionWrapper(labelExpression), clause.toCExportStatements());
     }
     return rOriginPcs.build();
   }

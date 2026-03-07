@@ -147,11 +147,11 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   }
 
   @Override
-  public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
+  public ImmutableList<CCompoundStatementElement> toCExportStatements() {
     ImmutableList.Builder<CCompoundStatementElement> exportedStatements = ImmutableList.builder();
     for (int i = 0; i < blocks.size(); i++) {
       SeqThreadStatementBlock block = blocks.get(i);
-      exportedStatements.addAll(block.toCExportAstNodes());
+      exportedStatements.addAll(block.toCExportStatements());
       tryBuildBlockSuffix(block, i == blocks.size() - 1).ifPresent(s -> exportedStatements.add(s));
     }
     return exportedStatements.build();
