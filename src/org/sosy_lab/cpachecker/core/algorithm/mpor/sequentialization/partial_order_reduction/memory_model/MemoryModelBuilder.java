@@ -560,8 +560,8 @@ public record MemoryModelBuilder(
         pSimpleDeclaration instanceof CVariableDeclaration
             || pSimpleDeclaration instanceof CParameterDeclaration,
         "pSimpleDeclaration must be CVariableDeclaration or CParameterDeclaration");
-    return pSimpleDeclaration instanceof CVariableDeclaration
-        ? (CVariableDeclaration) pSimpleDeclaration
+    return pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration
+        ? variableDeclaration
         : ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
   }
 }
