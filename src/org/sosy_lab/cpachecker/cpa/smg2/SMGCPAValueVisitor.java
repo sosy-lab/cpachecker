@@ -113,7 +113,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -273,21 +272,16 @@ public class SMGCPAValueVisitor
   @Override
   protected List<ValueAndSMGState> visitDefault(CExpression pExp) throws CPATransferException {
     // Just get a default value and log
-    logger.logf(
-        Level.INFO,
-        "%s, Default value: CExpression %s could not be recognized and the default value %s was"
-            + " used for its value. Related CFAEdge: %s",
-        cfaEdge.getFileLocation(),
-        pExp,
-        SMGValue.zeroValue(),
-        cfaEdge.getRawStatement());
-    return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), state));
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            state,
+            "Unknown value assumed for default handling of unhandled expression " + pExp + "  in ",
+            cfaEdge));
   }
 
   @Override
   public List<ValueAndSMGState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
-
     return handleFunctions(pIastFunctionCallExpression);
   }
 
@@ -921,7 +915,7 @@ public class SMGCPAValueVisitor
     }
 
     // Unknown (can be equal or inequal)
-    return handleOverapproximatedMemoryAddressRelation();
+    return handleOverapproximatedMemoryAddressRelation(pCurrentState);
   }
 
   /**
@@ -930,9 +924,14 @@ public class SMGCPAValueVisitor
    * addresses, or simple cases need to be overapproximated (e.g. ptr == 1234, with results true and
    * false possible). This method either returns UNKNOWN or throws, depending on options.
    */
-  private UnknownValue handleOverapproximatedMemoryAddressRelation() throws SMGException {
+  private UnknownValue handleOverapproximatedMemoryAddressRelation(SMGState currentStateForLogging)
+      throws SMGException {
     if (options.overapproximateMemoryAddressRelations()) {
       // TODO: return a list with 1 and 0? This is guaranteed boolean.
+      currentStateForLogging.logUnknownValue(
+          "Returned unknown value for result of complex pointer relation that could not be handled"
+              + " ",
+          cfaEdge);
       return UnknownValue.getInstance();
     } else {
       throw new SMGException(
@@ -989,7 +988,12 @@ public class SMGCPAValueVisitor
         return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
       } else {
-        return ValueAndSMGState.of(UnknownValue.getInstance(), currentState);
+        return ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Overapproximated cast to type "
+                + targetType
+                + " and returned unknown value due to unhandled case ",
+            cfaEdge);
       }
     }
 
@@ -1550,6 +1554,11 @@ public class SMGCPAValueVisitor
           Optional<BigInteger> maybeInteger = numericValue.getFloatValue().toInteger();
           if (maybeInteger.isEmpty()) {
             // If the value was NaN or Infinity the result of the conversion is undefined
+            state.logUnknownValue(
+                "Returned unknown value due to undefined conversion of float value "
+                    + numericValue.getFloatValue()
+                    + " to integer value ",
+                cfaEdge);
             return UnknownValue.getInstance();
           } else {
             integerValue = maybeInteger.orElseThrow();
@@ -1582,6 +1591,11 @@ public class SMGCPAValueVisitor
           if (isGreaterThan(integerValue, signedUpperBound)
               || isLessThan(integerValue, signedLowerBound)) {
             // If the number does not fit into the target type the result is undefined
+            state.logUnknownValue(
+                "Returned unknown value due to undefined conversion of float value "
+                    + numericValue.getFloatValue()
+                    + " to integer value ",
+                cfaEdge);
             return UnknownValue.getInstance();
           } else {
             result = integerValue;
@@ -1831,7 +1845,13 @@ public class SMGCPAValueVisitor
            * return BuiltinOverflowFunctions.evaluateFunctionCall(
            *   pIastFunctionCallExpression, this, machineModel, logger);
            */
-          return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
+          return ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown result of unhandled builtin function "
+                      + calledFunctionName
+                      + " ",
+                  cfaEdge));
 
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           return handleBuiltinFunction1(
@@ -1920,7 +1940,16 @@ public class SMGCPAValueVisitor
                 return switch (machineModel.getSizeofLongInt()) {
                   case Integer.BYTES -> new NumericValue(value.integerValue());
                   case Long.BYTES -> new NumericValue(value.longValue());
-                  default -> UnknownValue.getInstance();
+                  default -> {
+                    state.logUnknownValue(
+                        "Returned unknown value due to undefined conversion of float value "
+                            + value
+                            + " in builtin function "
+                            + calledFunctionName
+                            + " ",
+                        cfaEdge);
+                    yield UnknownValue.getInstance();
+                  }
                 };
               });
 
@@ -1934,7 +1963,16 @@ public class SMGCPAValueVisitor
                 return switch (machineModel.getSizeofLongLongInt()) {
                   case Integer.BYTES -> new NumericValue(value.integerValue());
                   case Long.BYTES -> new NumericValue(value.longValue());
-                  default -> UnknownValue.getInstance();
+                  default -> {
+                    state.logUnknownValue(
+                        "Returned unknown value due to undefined conversion of float value "
+                            + value
+                            + " in builtin function "
+                            + calledFunctionName
+                            + " ",
+                        cfaEdge);
+                    yield UnknownValue.getInstance();
+                  }
                 };
               });
 
@@ -2729,6 +2767,8 @@ public class SMGCPAValueVisitor
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for addition due to at least one unknown operand ", cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -2826,6 +2866,8 @@ public class SMGCPAValueVisitor
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for subtraction due to at least one unknown operand ", cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -2950,6 +2992,10 @@ public class SMGCPAValueVisitor
       }
 
       if (leftValue.isUnknown() || rightValue.isUnknown()) {
+        state.logUnknownValue(
+            "Returned unknown value for multiplication operation due to at least one unknown"
+                + " operand ",
+            cfaEdge);
         return UnknownValue.getInstance();
       }
 
@@ -3057,6 +3103,8 @@ public class SMGCPAValueVisitor
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for division due to at least one unknown operand ", cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -3177,6 +3225,9 @@ public class SMGCPAValueVisitor
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for remainder operation due to at least one unknown operand ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -3287,6 +3338,9 @@ public class SMGCPAValueVisitor
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for left shift operation due to at least one unknown operand ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -3395,6 +3449,9 @@ public class SMGCPAValueVisitor
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for right shift operation due to at least one unknown operand ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -3488,6 +3545,10 @@ public class SMGCPAValueVisitor
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for bitwise & (AND) operation due to at least one unknown operand"
+              + " ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -3584,6 +3645,10 @@ public class SMGCPAValueVisitor
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for bitwise ^ (XOR) operation due to at least one unknown operand"
+              + " ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -3683,6 +3748,10 @@ public class SMGCPAValueVisitor
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for bitwise | (OR) operation due to at least one unknown operand"
+              + " ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -4013,6 +4082,8 @@ public class SMGCPAValueVisitor
       return new NumericValue(equals ? 1 : 0);
 
     } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for equality (==) due to at least one unknown operand ", cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -4060,6 +4131,9 @@ public class SMGCPAValueVisitor
       return new NumericValue(notEquals ? 1 : 0);
 
     } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for inequality (!=) due to at least one unknown operand ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -4105,6 +4179,9 @@ public class SMGCPAValueVisitor
       return new NumericValue(lessThan ? 1 : 0);
 
     } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for < (less than) operation due to at least one unknown operand ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -4148,6 +4225,10 @@ public class SMGCPAValueVisitor
       return new NumericValue(lessEquals ? 1 : 0);
 
     } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for <= (less equals) operation due to at least one unknown"
+              + " operand ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -4191,6 +4272,10 @@ public class SMGCPAValueVisitor
       return new NumericValue(greaterThan ? 1 : 0);
 
     } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for > (greater than) operation due to at least one unknown"
+              + " operand ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
@@ -4234,6 +4319,10 @@ public class SMGCPAValueVisitor
       return new NumericValue(greaterEquals ? 1 : 0);
 
     } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for >= (greater equals) operation due to at least one unknown"
+              + " operand ",
+          cfaEdge);
       return UnknownValue.getInstance();
 
     } else {
