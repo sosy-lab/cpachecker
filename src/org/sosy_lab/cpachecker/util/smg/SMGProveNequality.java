@@ -177,6 +177,14 @@ public class SMGProveNequality {
 
     if (targetObj.isZero()) {
       return false; // The null pointer is not out of bounds
+    } else if (targetObj.getSize() instanceof NumericValue size
+        && size.bigIntegerValue().equals(BigInteger.ZERO)
+        && targetObj.getOffset().equals(BigInteger.ZERO)
+        && pte.getOffset() instanceof NumericValue offset
+        && offset.bigIntegerValue().equals(BigInteger.ZERO)) {
+      // PTEs with offset 0 (initial pointer) towards regions with 0 size (we use those for function
+      // pointers internally, but also may be a malloc(0) pointer) do not point out-of-bounds
+      return false;
     }
 
     // Unknown -> Overapproximate
