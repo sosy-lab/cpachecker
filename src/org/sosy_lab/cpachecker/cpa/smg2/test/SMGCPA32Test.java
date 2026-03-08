@@ -101,16 +101,35 @@ public class SMGCPA32Test extends SMGBaseCPATest {
     assertThatILP32Program(testProgram).isSafe();
   }
 
-  // Tests basic usage of arrays in methods as pointers with constants
-  @Ignore // TODO: enable and see whether we pass this
+  // Tests basic usage of function pointers
   @Test
-  public void arrayUsageInMethodsAsPointersViolation() throws Exception {
+  public void functionPointerSimpleUsageViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/array_tests/array_usage_pointers_in_methods_32_false.c";
+    String testProgram = "basics/function_pointers/function_pointers_simple_concrete-false.c";
     assertThatILP32Program(testProgram).isUnsafe();
   }
 
-  protected static MachineModel getMachineModel() {
-    return MachineModel.LINUX32;
+  // Tests basic usage of function pointers
+  @Test
+  public void functionPointerSimpleUsageProof() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "basics/function_pointers/function_pointers_simple_concrete-true.c";
+    assertThatILP32Program(testProgram).isSafe();
+  }
+
+  // Tests basic usage of function pointers in/from functions
+  @Test
+  public void functionPointerSimpleUsageInFunctionsAndReturnsViolation() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "basics/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
+    assertThatILP32Program(testProgram).isUnsafe();
+  }
+
+  // Tests basic usage of function pointers in/from functions
+  @Test
+  public void functionPointerSimpleUsageInFunctionsAndReturnsProof() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "basics/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
+    assertThatILP32Program(testProgram).isSafe();
   }
 }
