@@ -4583,8 +4583,9 @@ public class SMGCPAValueVisitor
         return false;
       }
     }
-    // If both are numeric, let it be calculated using number comparisons
-    return !(leftIsNumeric && rightIsNumeric);
+    // If both are numeric or symbolic (non-pointers), let it be calculated using regular
+    // arithmetics
+    return leftIsPointer || rightIsPointer;
   }
 
   /**
