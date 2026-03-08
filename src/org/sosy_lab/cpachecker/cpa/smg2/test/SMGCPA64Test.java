@@ -127,7 +127,8 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void functionPointerSimpleUsageInFunctionsAndReturnsViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
+    String testProgram =
+        "basics/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
     assertThatLP64Program(testProgram).isUnsafe();
   }
 
@@ -135,9 +136,8 @@ public class SMGCPA64Test extends SMGBaseCPATest {
   @Test
   public void functionPointerSimpleUsageInFunctionsAndReturnsProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
+    String testProgram =
+        "basics/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
-
-
 }

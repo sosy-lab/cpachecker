@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg2.test;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 /**
  * Test class to execute the SMG2-CPA with ILP32 test programs. All programs listed here are
@@ -121,7 +120,8 @@ public class SMGCPA32Test extends SMGBaseCPATest {
   @Test
   public void functionPointerSimpleUsageInFunctionsAndReturnsViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
+    String testProgram =
+        "basics/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
     assertThatILP32Program(testProgram).isUnsafe();
   }
 
@@ -129,7 +129,8 @@ public class SMGCPA32Test extends SMGBaseCPATest {
   @Test
   public void functionPointerSimpleUsageInFunctionsAndReturnsProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
+    String testProgram =
+        "basics/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 }
