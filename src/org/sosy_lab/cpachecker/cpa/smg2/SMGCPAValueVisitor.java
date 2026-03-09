@@ -558,7 +558,7 @@ public class SMGCPAValueVisitor
     ValueAndSMGState castLeftValueAndState = castCValue(pLeftValue, calculationType, currentState);
     final Value leftValueWithCorrectType = castLeftValueAndState.getValue();
     currentState = castLeftValueAndState.getState();
-    final Value rightValueWithCorrectType;
+    Value rightValueWithCorrectType;
     if (binaryOperator != SHIFT_LEFT && binaryOperator != SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We do not even need integer-promotion,
@@ -601,6 +601,34 @@ public class SMGCPAValueVisitor
           currentState,
           binaryOperator,
           calculationType);
+    }
+
+    if (binaryOperator == MINUS
+        && leftValueWithCorrectType instanceof NumericValue numLeft
+        && !(rightValueWithCorrectType instanceof NumericValue)
+        && currentState.isPointer(
+            unwrapPotentialAddressExpression(rightValueWithCorrectType, currentState))) {
+      // Cases like '0 - pointer' or '1122 - pointer' that can happen in linux drivers
+      if (rightValueWithCorrectType instanceof AddressExpression rightAddrExpr) {
+        Value rightMemAddr = rightAddrExpr.getMemoryAddress();
+        Value rightMemAddrOffset = rightAddrExpr.getOffset();
+        if (rightMemAddrOffset instanceof NumericValue rightMemAddrOffsetNum
+            && rightMemAddrOffsetNum.bigIntegerValue().equals(BigInteger.ZERO)) {
+          rightValueWithCorrectType = rightMemAddr;
+        } else {
+          // TODO: if this is problematic, switch to finding a pointer value and subsequent symbolic
+          //  evaluation
+          return ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due to subtraction of address (pointer) value from"
+                      + " numeric value: "
+                      + numLeft
+                      + " - "
+                      + rightValueWithCorrectType,
+                  cfaEdge));
+        }
+      }
     }
 
     // We don't want AddressExpressions beyond this point, as they might be handled/bundled as
@@ -2269,7 +2297,10 @@ public class SMGCPAValueVisitor
     } else if (!leftIsPointer) {
 
       // e.g. 3 + pointer
-      // Just the reverse of above (with the caveat that 3 - pointer does not make sense ;D)
+      // Just the reverse of above (with the caveat that 3 - pointer does not make sense ;D but some
+      // SoftwareSystems/linux tasks do it for some reason. We disallow this here, as the result is
+      // numeric and not a pointer! These cases should already be filtered out and handled using
+      // symbolic handling)
       checkArgument(binaryOperator != MINUS);
       return calculatePointerArithmeticsOperationWithPointerAndNonPointer(
           rightValue,
@@ -4500,6 +4531,12 @@ public class SMGCPAValueVisitor
 
     boolean leftValueIsPointerButNotNumeric = leftIsPointer && !leftIsNumeric;
     boolean rightValueIsPointerButNotNumeric = rightIsPointer && !rightIsNumeric;
+
+    if (op == MINUS && leftIsNumeric && rightValueIsPointerButNotNumeric) {
+      // Cases like '0 - pointer' or '1122 - pointer' can happen in linux drivers.
+      // We want symbolic evaluation for those cases
+      return false;
+    }
 
     // Check that at least 1 is a pointer that needs special handling (not numeric)
     return leftValueIsPointerButNotNumeric || rightValueIsPointerButNotNumeric;
