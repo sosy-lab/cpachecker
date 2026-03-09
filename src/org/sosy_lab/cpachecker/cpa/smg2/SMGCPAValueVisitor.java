@@ -579,13 +579,6 @@ public class SMGCPAValueVisitor
       rightValueWithCorrectType = pRightValue;
     }
 
-    // TODO: remove this check once the SV-COMP benchmark set has been ran once (to make sure it
-    // never triggers)
-    checkArgument(
-        !(leftValueWithCorrectType instanceof FunctionValue)
-            && !(rightValueWithCorrectType instanceof FunctionValue),
-        "Found FunctionValues that are not supported by this analysis");
-
     if (isPointerArithmetics(
         leftValueWithCorrectType, rightValueWithCorrectType, e, currentState)) {
       // Pointer arithmetics/comparisons
