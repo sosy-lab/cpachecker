@@ -137,10 +137,14 @@ public class SMGCPAAbstractionManager {
     SMGState currentState = state;
     statistics.startTotalListSearchTime();
 
-    // Sort in DLL and SLL candidates and also order by nesting
-    // TODO: refactor and split getListCandidates()
-    List<Set<SMGCandidate>> orderedListCandidatesByNesting = getListCandidates();
-    statistics.stopTotalListSearchTime();
+    List<Set<SMGCandidate>> orderedListCandidatesByNesting;
+    try {
+      // Sort in DLL and SLL candidates and also order by nesting
+      // TODO: refactor and split getListCandidates()
+      orderedListCandidatesByNesting = getListCandidates();
+    } finally {
+      statistics.stopTotalListSearchTime();
+    }
     if (orderedListCandidatesByNesting.isEmpty()) {
       return currentState;
     }
@@ -148,56 +152,59 @@ public class SMGCPAAbstractionManager {
     assert currentState.getMemoryModel().checkSMGSanity();
 
     statistics.startTotalAbstractionTime();
-    // Abstract top level nesting first
-    for (Set<SMGCandidate> candidates : orderedListCandidatesByNesting) {
-      for (SMGCandidate candidate : candidates) {
-        // Not valid means kicked out by abstraction
-        if (!currentState.getMemoryModel().isObjectValid(candidate.getObject())) {
-          SMGValue ptrToObj = candidate.getPointerToObject();
-          Optional<SMGPointsToEdge> pte =
-              currentState.getMemoryModel().getSmg().getPTEdge(ptrToObj);
-          if (pte.isPresent()
-              && currentState.getMemoryModel().isObjectValid(pte.orElseThrow().pointsTo())) {
-            candidate =
-                SMGCandidate.moveCandidateTo(ptrToObj, pte.orElseThrow().pointsTo(), candidate);
+    try {
+      // Abstract top level nesting first
+      for (Set<SMGCandidate> candidates : orderedListCandidatesByNesting) {
+        for (SMGCandidate candidate : candidates) {
+          // Not valid means kicked out by abstraction
+          if (!currentState.getMemoryModel().isObjectValid(candidate.getObject())) {
+            SMGValue ptrToObj = candidate.getPointerToObject();
+            Optional<SMGPointsToEdge> pte =
+                currentState.getMemoryModel().getSmg().getPTEdge(ptrToObj);
+            if (pte.isPresent()
+                && currentState.getMemoryModel().isObjectValid(pte.orElseThrow().pointsTo())) {
+              candidate =
+                  SMGCandidate.moveCandidateTo(ptrToObj, pte.orElseThrow().pointsTo(), candidate);
+            } else {
+              continue;
+            }
+          }
+
+          // Check that there are pointers towards the candidate
+          Preconditions.checkArgument(
+              !currentState
+                  .getMemoryModel()
+                  .getSmg()
+                  .getPointerValuesForTarget(candidate.getObject())
+                  .isEmpty());
+
+          if (candidate.isDLL()) {
+            currentState =
+                currentState.abstractIntoDLL(
+                    candidate.getObject(),
+                    candidate.getSuspectedNfo(),
+                    candidate.getSuspectedNfoTargetOffset(),
+                    candidate.getSuspectedPfo().orElseThrow(),
+                    candidate.getSuspectedPfoTargetPointerOffset().orElseThrow(),
+                    ImmutableSet.of(),
+                    new HashSet<>());
+
           } else {
-            continue;
+            currentState =
+                currentState.abstractIntoSLL(
+                    candidate.getObject(),
+                    candidate.getSuspectedNfo(),
+                    candidate.getSuspectedNfoTargetOffset(),
+                    ImmutableSet.of(),
+                    new HashSet<>());
           }
         }
-
-        // Check that there are pointers towards the candidate
-        Preconditions.checkArgument(
-            !currentState
-                .getMemoryModel()
-                .getSmg()
-                .getPointerValuesForTarget(candidate.getObject())
-                .isEmpty());
-
-        if (candidate.isDLL()) {
-          currentState =
-              currentState.abstractIntoDLL(
-                  candidate.getObject(),
-                  candidate.getSuspectedNfo(),
-                  candidate.getSuspectedNfoTargetOffset(),
-                  candidate.getSuspectedPfo().orElseThrow(),
-                  candidate.getSuspectedPfoTargetPointerOffset().orElseThrow(),
-                  ImmutableSet.of(),
-                  new HashSet<>());
-
-        } else {
-          currentState =
-              currentState.abstractIntoSLL(
-                  candidate.getObject(),
-                  candidate.getSuspectedNfo(),
-                  candidate.getSuspectedNfoTargetOffset(),
-                  ImmutableSet.of(),
-                  new HashSet<>());
-        }
       }
-    }
 
-    currentState = currentState.removeUnusedValues();
-    statistics.stopTotalAbstractionTime();
+      currentState = currentState.removeUnusedValues();
+    } finally {
+      statistics.stopTotalAbstractionTime();
+    }
 
     currentState =
         new SMGCPAAbstractionManager(
