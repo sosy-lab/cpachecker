@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclarationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
@@ -166,10 +168,44 @@ public class AcslAnnotationParsingTest {
     AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
     aScope.registerDeclaration(predDef.getDeclaration());
 
+    AcslCVariableDeclaration x =
+        new AcslCVariableDeclaration(
+            new CVariableDeclaration(
+                FileLocation.DUMMY, true, CStorageClass.AUTO, basicInt(), "x", "x", "x", null));
+    AcslAssertion expected =
+        new AcslAssertion(
+            FileLocation.DUMMY,
+            new AcslPredicateDeclarationPredicate(
+                FileLocation.DUMMY,
+                new AcslPredicateType(ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
+                "is_positive",
+                ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, x))));
+
     String assertion = "assert is_positive(x);";
     AAcslAnnotation parsed =
         AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, getCProgramScope(), aScope);
-    assertThat(parsed.toAstString()).isEqualTo(assertion);
+    assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void assertionWithPredicateAstStringTest() throws AcslParseException {
+    AcslScope aScope = AcslScope.mutableCopy(getAcslScope());
+    String predicate = "predicate is_positive(integer i) = i >= 0";
+    AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
+    aScope.registerDeclaration(predDef.getDeclaration());
+
+    new AcslCVariableDeclaration(
+        new CVariableDeclaration(
+            FileLocation.DUMMY, true, CStorageClass.AUTO, basicInt(), "x", "x", "x", null));
+
+    String assertion = "assert is_positive(x);";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, getCProgramScope(), aScope);
+    assertThat(
+            AcslParser.parseAcslComment(
+                    parsed.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope())
+                .toAstString())
+        .isEqualTo(parsed.toAstString());
   }
 
   @Test

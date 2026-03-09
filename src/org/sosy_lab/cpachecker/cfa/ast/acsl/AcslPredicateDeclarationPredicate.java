@@ -8,20 +8,27 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class AcslPredicateApplicationPredicate implements AcslPredicate {
+public final class AcslPredicateDeclarationPredicate implements AcslPredicate {
 
   private final FileLocation fileLocation;
+  private final AcslPredicateType type;
   private final String predicate;
   private final ImmutableList<AcslTerm> parameters;
 
-  public AcslPredicateApplicationPredicate(
-      FileLocation pFileLocation, String pIdPredicate, List<AcslTerm> pParameters) {
+  public AcslPredicateDeclarationPredicate(
+      FileLocation pFileLocation,
+      AcslPredicateType pType,
+      String pIdPredicate,
+      List<AcslTerm> pParameters) {
+    type = pType;
     predicate = pIdPredicate;
     parameters = ImmutableList.copyOf(pParameters);
     fileLocation = pFileLocation;
@@ -52,12 +59,8 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder astString = new StringBuilder(predicate + "(");
-    for (AcslTerm p : parameters) {
-      astString.append(p);
-      for (int i = 1; i < parameters.size(); i++) {
-        astString.append(", ");
-      }
-    }
+    String paramString = Joiner.on(", ").join(parameters.stream().toList());
+    astString.append(paramString);
     astString.append(")");
     return astString.toString();
   }
@@ -65,5 +68,25 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "(" + toASTString(pAAstNodeRepresentation) + ")";
+  }
+
+  @Override
+  public boolean equals(Object p0) {
+    if (this == p0) {
+      return true;
+    } else {
+      return p0 instanceof AcslPredicateDeclarationPredicate other
+          && predicate.equals(other.predicate)
+          && parameters.equals(other.parameters);
+    }
+  }
+
+  @Override
+  public int hashCode() {
+    int hash = 7;
+    int prime = 31;
+    hash = prime * hash * Objects.hashCode(predicate);
+    hash = hash * prime * Objects.hashCode(parameters);
+    return hash;
   }
 }
