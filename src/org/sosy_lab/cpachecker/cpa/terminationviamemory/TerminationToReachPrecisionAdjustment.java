@@ -84,6 +84,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               + "we also have to use this option.")
   private boolean checkUFsInIntegerEncoding = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Disables checks for fix-point with transition invariants and performs" + "plain BMC.")
+  private boolean performBMC = false;
+
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
       TerminationToReachStatistics pStatistics,
@@ -180,6 +186,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             if (isOverapproximating) {
               break;
             }
+          }
+
+          // If the user sets the algorithm to perform only BMC, then it does not try to reach the
+          // fix-point
+          if (performBMC) {
+            break;
           }
 
           // Check the fix-point, i.e. check whether the new interpolant is a transition invariant

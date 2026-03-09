@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -15,7 +16,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -88,7 +88,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       for (CFANode loopHead :
           allRecursions.stream()
               .flatMap(loop -> loop.getLoopHeads().stream())
-              .collect(Collectors.toSet())) {
+              .collect(ImmutableList.toImmutableList())) {
         loopHead.setLoopStart();
         builder.add(loopHead);
       }

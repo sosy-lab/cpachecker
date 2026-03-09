@@ -3949,6 +3949,10 @@ cpa.terminationviamemory.checkUFsInIntegerEncoding = false
 # Allows the analysis to also check for infinite loops caused by recursion.
 cpa.terminationviamemory.considerRecursion = false
 
+# Disables checks for fix-point with transition invariants and performsplain
+# BMC.
+cpa.terminationviamemory.performBMC = false
+
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
 
