@@ -1025,7 +1025,9 @@ class ASTConverter {
       return null;
     }
 
-    ensureUnionHasMembers(compositeType, loc);
+    if (compositeType.getMembers().isEmpty()) {
+      throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
+    }
 
     CType operandType = castOperand.getExpressionType().getCanonicalType();
     CCompositeTypeMemberDeclaration matchingMember =
@@ -1043,11 +1045,6 @@ class ASTConverter {
     return createTemporaryVariable(loc, castType, init);
   }
 
-  private void ensureUnionHasMembers(CCompositeType unionType, FileLocation loc) {
-    if (unionType.getMembers().isEmpty()) {
-      throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
-    }
-  }
 
   /**
    * Returns the first union member whose canonical type exactly matches the given operand type.
