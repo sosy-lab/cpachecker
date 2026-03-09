@@ -57,7 +57,7 @@ public class SMGCPAAbstractionManager {
 
   private final int minimumLengthForListsForAbstraction;
 
-  private int maxTriesBeforeAbort = 3;
+  private final int maxTriesBeforeAbort;
 
   private final SMGCPAStatistics statistics;
 
@@ -127,12 +127,13 @@ public class SMGCPAAbstractionManager {
    *
    */
   public SMGState findAndAbstractLists() throws SMGException {
-    if (maxTriesBeforeAbort > 0) {
+    if (maxTriesBeforeAbort <= 0) {
       throw new SMGException(
           "Maximum tries to find abstraction for list has been reached with the following"
               + " memory-model:\n"
               + state.getMemoryModel());
     }
+
     SMGState currentState = state;
     statistics.startTotalListSearchTime();
 
