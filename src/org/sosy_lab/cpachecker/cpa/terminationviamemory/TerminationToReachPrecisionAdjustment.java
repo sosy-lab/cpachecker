@@ -195,14 +195,19 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             return Optional.of(result.withAbstractState(terminationState));
           }
 
-          // If BMC check is UNSAT, try to overapproximate the transition invariant
-          BooleanFormula interpolant =
-              itpMgr
-                  .interpolate(
-                      ImmutableList.of(
-                          bfmgr.and(firstStepFormula, iterationFormula), latestSameStateFormula))
-                  .orElseThrow()
-                  .getFirst();
+          BooleanFormula interpolant;
+          try {
+            // If BMC check is UNSAT, try to overapproximate the transition invariant
+            interpolant =
+                itpMgr
+                    .interpolate(
+                        ImmutableList.of(
+                            bfmgr.and(firstStepFormula, iterationFormula), latestSameStateFormula))
+                    .orElseThrow()
+                    .getFirst();
+          } catch (CPAException e) {
+            break;
+          }
           if (!isOverapproximating) {
             prefixFormula = bfmgr.makeFalse();
           }
