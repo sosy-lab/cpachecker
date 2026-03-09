@@ -342,6 +342,15 @@ public final class AstCfaRelation {
     }
   }
 
+  /**
+   * Returns the tightest Ast element on the same line as a starting loaction.
+   *
+   * @param pLine The line of the starting location
+   * @param pColumn The optional column of the starting location
+   * @return Optional of the tightest Ast elment for a starting location that is on the same line as
+   *     the starting location. If there is no Ast element on the same line, the result is an empty
+   *     Optional.
+   */
   public Optional<ASTElement> getTightestStatementForStarting(int pLine, OptionalInt pColumn) {
     Optional<Entry<StartingLocation, ASTElement>> startingFor = getStartingFor(pLine, pColumn);
     if (startingFor.isEmpty() || startingFor.orElseThrow().getKey().line != pLine) {
@@ -350,6 +359,15 @@ public final class AstCfaRelation {
     return Optional.of(startingFor.orElseThrow().getValue());
   }
 
+  /**
+   * Returns the tightest Ast element for a starting location. The result Ast element is not
+   * necessarily on the same line as the starting location.
+   *
+   * @param pLine The line of the starting location
+   * @param pColumn The optional column of the starting location
+   * @return An Optional of the tightest Ast element for a startiong location. If no Ast element for
+   *     the startiong location can be found, the result is an empty Optional.
+   */
   public Optional<ASTElement> getElemForStarting(int pLine, OptionalInt pColumn) {
     Optional<Entry<StartingLocation, ASTElement>> startingFor = getStartingFor(pLine, pColumn);
     if (startingFor.isEmpty()) {

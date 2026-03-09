@@ -19,9 +19,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 /**
  * This record represents the Acsl Declarations and Acsl Annotations that are associated with a Cfa.
  *
- * <p>An Acsl Annotation can be: - A single assertion (§2.4.1 of the Acsl Standard v. 1.23) - A loop
- * annotation consisting of loop invariants and loop assigns (§ 2.4.2 of the Acsl Standard v. 1.23)
- * - A function contract consisting of ensures, assigns and requires clauses (§ 2.3 of the Acsl
+ * <p>An Acsl Annotation can be:
+ *
+ * <p>A single assertion (§2.4.1 of the Acsl Standard v. 1.23)
+ *
+ * <p>A loop annotation consisting of loop invariants and loop assigns (§ 2.4.2 of the Acsl Standard
+ * v. 1.23)
+ *
+ * <p>A function contract consisting of ensures, assigns and requires clauses (§ 2.3 of the Acsl
  * Standard v.1.23)
  *
  * @param globalAcslDeclarations Global Acsl Declarations correspond to Logic specifications as
