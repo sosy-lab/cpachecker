@@ -65,7 +65,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private static final long MIN_INT = -4294967295L;
 
   private final ImmutableSet<String> UFs =
-      ImmutableSet.of("_%_", "Integer_/_", "_>>_", "_<<_", "_&_", "_!!_", "_~_", "_^_");
+      ImmutableSet.of("_>>_", "_<<_", "_&_", "_!!_", "_~_", "_^_");
 
   @Option(
       secure = true,
