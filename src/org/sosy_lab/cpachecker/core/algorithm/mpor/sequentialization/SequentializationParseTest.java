@@ -149,8 +149,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
-            .setOption(
-                "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NUM_STATEMENTS")
             .setOption("analysis.algorithm.MPOR.reduceIgnoreSleep", "true")
             .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
