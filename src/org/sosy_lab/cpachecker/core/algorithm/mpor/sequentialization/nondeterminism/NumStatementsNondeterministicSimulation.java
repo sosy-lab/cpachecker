@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -16,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -24,8 +26,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -33,11 +37,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NumStatementsNondeterministicSimulation extends NondeterministicSimulation {
@@ -77,16 +81,29 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
             VerifierNondetFunctionType.buildNondetIntegerAssignment(
                 options, SeqIdExpressions.ROUND_MAX)));
 
+    // add the ignore sleep instrumentation, if enabled:
+    // if (round_max == 0 && Ti_SYNC == 0) { assume(*Ti in at least one conflict*); }
+    if (options.reduceIgnoreSleep()) {
+      ifBlock.add(buildIgnoreSleepInstrumentation(pThread));
+    }
+
     // if (round_max > 0) ...
-    ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
-    CExportExpression innerIfCondition = buildRoundMaxGreaterZeroExpression(pThread, otherThreads);
     ImmutableList.Builder<CCompoundStatementElement> innerIfBlock = ImmutableList.builder();
+    CExpression roundMaxGreaterZero =
+        utils
+            .binaryExpressionBuilder()
+            .buildBinaryExpression(
+                SeqIdExpressions.ROUND_MAX,
+                SeqIntegerLiteralExpressions.INT_0,
+                BinaryOperator.GREATER_THAN);
+    CExportExpression innerIfCondition = new CExpressionWrapper(roundMaxGreaterZero);
 
     // add the thread simulation statements
     innerIfBlock.addAll(buildAllPrecedingStatements(pThread));
     innerIfBlock.add(buildSingleThreadMultiSelectionStatement(pThread));
     CIfStatement innerIfStatement =
         new CIfStatement(innerIfCondition, new CCompoundStatement(innerIfBlock.build()));
+
     ifBlock.add(innerIfStatement);
     CIfStatement ifStatement =
         new CIfStatement(
@@ -97,7 +114,6 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
 
   @Override
   public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
-
     ImmutableList.Builder<CCompoundStatementElement> rThreadSimulations = ImmutableList.builder();
     for (MPORThread thread : clauses.keySet()) {
       rThreadSimulations.add(buildSingleThreadSimulation(thread));
@@ -115,44 +131,42 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
             .build());
   }
 
-  private CExportExpression buildRoundMaxGreaterZeroExpression(
-      MPORThread pActiveThread, ImmutableSet<MPORThread> pOtherThreads)
+  private CIfStatement buildIgnoreSleepInstrumentation(MPORThread pActiveThread)
       throws UnrecognizedCodeException {
 
-    // round_max > 0
-    CExpression roundMaxGreaterZero =
+    checkState(options.reduceIgnoreSleep());
+
+    // (round_max == 0 && Ti_SYNC == 0)
+    CExpression roundMaxEqualsZero =
         utils
             .binaryExpressionBuilder()
             .buildBinaryExpression(
                 SeqIdExpressions.ROUND_MAX,
                 SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.GREATER_THAN);
+                BinaryOperator.EQUALS);
+    CExpression syncEqualsZero =
+        utils
+            .binaryExpressionBuilder()
+            .buildBinaryExpression(
+                ghostElements.threadSyncFlags().getSyncFlag(pActiveThread),
+                SeqIntegerLiteralExpressions.INT_0,
+                BinaryOperator.EQUALS);
+    CLogicalAndExpression logicalAnd = CLogicalAndExpression.of(roundMaxEqualsZero, syncEqualsZero);
 
-    if (!options.reduceIgnoreSleep()) {
-      return new CExpressionWrapper(roundMaxGreaterZero);
-    }
-    // if enabled, add bit vector evaluation: "round_max > 0 || {bitvector_evaluation}"
+    // assume(*Ti in at least one conflict*);
+    ImmutableSet<MPORThread> otherThreads =
+        MPORUtil.withoutElement(clauses.keySet(), pActiveThread);
+    SeqBitVectorVariables bitVectorVariables = ghostElements.bitVectorVariables().orElseThrow();
     Optional<CExportExpression> bitVectorEvaluationExpression =
         BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
-            options,
-            pActiveThread,
-            pOtherThreads,
-            ghostElements.bitVectorVariables().orElseThrow(),
-            utils);
-    // if the bv evaluation is empty, then the program contains no global memory locations -> prune
-    if (bitVectorEvaluationExpression.isEmpty()) {
-      return new CExpressionWrapper(roundMaxGreaterZero);
-    }
-    // ensure that thread is not at a thread sync location: !sync && !conflict
-    CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(pActiveThread);
-    CBinaryExpression notSync =
-        utils.binaryExpressionBuilder().negateExpressionAndSimplify(syncFlag);
-    CLogicalAndExpression notSyncAndNotConflict =
-        CLogicalAndExpression.of(
-            new CExpressionWrapper(notSync), bitVectorEvaluationExpression.orElseThrow().negate());
-    // the usual bit vector expression is true if there is a conflict
-    //  -> negate (we want no conflict if we ignore round_max == 0)
-    return CLogicalOrExpression.of(
-        new CExpressionWrapper(roundMaxGreaterZero), notSyncAndNotConflict);
+            options, pActiveThread, otherThreads, bitVectorVariables, utils);
+    CExportExpression assumeCondition =
+        bitVectorEvaluationExpression.isPresent()
+            ? bitVectorEvaluationExpression.orElseThrow()
+            : new CExpressionWrapper(CIntegerLiteralExpression.ZERO);
+    CExportStatement assumeCallStatement =
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(assumeCondition);
+
+    return new CIfStatement(logicalAnd, new CCompoundStatement(assumeCallStatement));
   }
 }
