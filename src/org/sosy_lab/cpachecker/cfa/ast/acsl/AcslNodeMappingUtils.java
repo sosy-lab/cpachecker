@@ -17,6 +17,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadataException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
@@ -36,7 +37,7 @@ public class AcslNodeMappingUtils {
    *     represents the comment location in the Cfa.
    */
   public static CFANode addAcslToNodeMapping(AcslComment pComment, CFA pCFA)
-      throws AcslParseException, AcslNodeMappingException {
+      throws AcslParseException, AcslMetadataException.AcslNodeMappingException {
 
     ParseTree ctx = AcslParser.acslCommentToContext(pComment.getComment());
     CFANode n;
@@ -47,9 +48,10 @@ public class AcslNodeMappingUtils {
       case FunctionContractContext ignored ->
           n = nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation());
       case null ->
-          throw new AcslNodeMappingException("Annotation " + pComment + " has no Antlr context.");
+          throw new AcslMetadataException.AcslNodeMappingException(
+              "Annotation " + pComment + " has no Antlr context.");
       default ->
-          throw new AcslNodeMappingException(
+          throw new AcslMetadataException.AcslNodeMappingException(
               "Unexpected annotation: "
                   + pComment
                   + ". Parsing is currently supported for assertions, loop annotations,"
@@ -69,7 +71,7 @@ public class AcslNodeMappingUtils {
         && !tightestStatement
             .orElseThrow(
                 () ->
-                    new AcslNodeMappingException(
+                    new AcslMetadataException.AcslNodeMappingException(
                         "No tightest statement found for acsl comment: " + pComment))
             .edges()
             .isEmpty()) {
@@ -87,7 +89,8 @@ public class AcslNodeMappingUtils {
 
       return nodesForComment.getFirst();
     }
-    throw new AcslNodeMappingException("Acsl assertion: " + pComment + " has no CFA node");
+    throw new AcslMetadataException.AcslNodeMappingException(
+        "Acsl assertion: " + pComment + " has no CFA node");
   }
 
   private static CFANode nodeForLoopAnnotation(
@@ -103,9 +106,12 @@ public class AcslNodeMappingUtils {
     if (iterationNode.isPresent()) {
       Verify.verify(iterationNode.orElseThrow().isLoopStart());
       return iterationNode.orElseThrow(
-          () -> new AcslNodeMappingException("Loop annotation: " + pComment + "has no loop head."));
+          () ->
+              new AcslMetadataException.AcslNodeMappingException(
+                  "Loop annotation: " + pComment + "has no loop head."));
     }
-    throw new AcslNodeMappingException("Loop annotation: " + pComment + "has no loop head.");
+    throw new AcslMetadataException.AcslNodeMappingException(
+        "Loop annotation: " + pComment + "has no loop head.");
   }
 
   /**
@@ -130,7 +136,7 @@ public class AcslNodeMappingUtils {
             nextNode
                 .orElseThrow(
                     () ->
-                        new AcslNodeMappingException(
+                        new AcslMetadataException.AcslNodeMappingException(
                             "Could not find function entry node for function contract\n"
                                 + pComment))
                 .getFunctionName();
@@ -138,7 +144,7 @@ public class AcslNodeMappingUtils {
       }
     }
 
-    throw new AcslNodeMappingException(
+    throw new AcslMetadataException.AcslNodeMappingException(
         "Could not find function entry node for function contract\n"
             + pComment
             + "\nStatement contracts are not supported.");
