@@ -1045,7 +1045,6 @@ class ASTConverter {
     return createTemporaryVariable(loc, castType, init);
   }
 
-
   /**
    * Returns the first union member whose canonical type exactly matches the given operand type.
    * Deterministic: first matching member wins.
