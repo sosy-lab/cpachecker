@@ -93,6 +93,11 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
                       params.size() == 4,
                       "Malformed pthread_create (not 4 params): %s",
                       pAFunctionCall);
+                  checkState(params.get(0) instanceof CUnaryExpression cUnaryExpression
+                          && cUnaryExpression.getOperator() == UnaryOperator.AMPER
+                          && cUnaryExpression.getOperand() instanceof CIdExpression,
+                      "Malformed/unsupported pthread_create (Thread handle not unary expression with variable reference): %s",
+                      params.get(0));
                   checkState(
                       params.get(2) instanceof CUnaryExpression cUnaryExpression
                           && cUnaryExpression.getOperator() == UnaryOperator.AMPER,
@@ -105,8 +110,29 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
                   prevState =
                       addNewThread(
                           prevState,
+                          ((CIdExpression) ((CUnaryExpression) params.get(
+                              0)).getOperand()).getDeclaration().getQualifiedName(),
                           ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
                               .getName());
+                }
+                case "pthread_join" -> {
+                  final var params =
+                      pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
+                  checkState(params.size() == 2, "Malformed pthread_join (not 2 params): %s",
+                      pAFunctionCall);
+                  final var handleParam = params.get(0);
+                  checkState(handleParam instanceof CUnaryExpression cUnaryExpression
+                          && cUnaryExpression.getOperator() == UnaryOperator.AMPER
+                          && cUnaryExpression.getOperand() instanceof CIdExpression,
+                      "Malformed/unsupported pthread_join (Thread handle not unary expression with variable reference): %s",
+                      handleParam);
+                  prevState = prevState.joinThread(
+                      ((CIdExpression) ((CUnaryExpression) handleParam).getOperand()).getDeclaration()
+                          .getQualifiedName());
+                  if (prevState == null) {
+                    // joining a thread that has not terminated yet, skip this edge
+                    return ImmutableList.of();
+                  }
                 }
                 default -> {
                   // nothing to do
@@ -115,7 +141,8 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
             }
           }
         }
-        default -> {}
+        default -> {
+        }
       }
 
       final PORState old = prevState;
@@ -142,7 +169,6 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
                             .map(
                                 nextStack ->
                                     old.stepThread(
-                                        cfa,
                                         pid,
                                         (LocationState) nextLoc,
                                         (CallstackState) nextStack,
@@ -155,11 +181,12 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
   }
 
   PORState initial() {
-    return addNewThread(PORState.empty(), "main");
+    return addNewThread(PORState.empty(cfa), null, "main");
   }
 
   PORState addNewThread(
       final PORState old,
+      final String handle,
       final String functionName) {
     CFANode functioncallNode =
         Preconditions.checkNotNull(
@@ -174,7 +201,7 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
 
     PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula();
 
-    return old.addNewThread(cfa, initialLoc, initialStack, emptyFormula);
+    return old.addNewThread(handle, initialLoc, initialStack, emptyFormula);
   }
 
   public Solver getSolver() {

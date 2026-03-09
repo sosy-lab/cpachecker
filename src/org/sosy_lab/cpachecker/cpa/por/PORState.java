@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -20,11 +22,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,6 +49,8 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
 
   private final ImmutableMap<Integer, PORThreadState> threads;
 
+  private final ImmutableMap<String, Integer> threadHandles;
+
   /**
    * Transient mapping from cloned outgoing edges to their originating thread PID.
    */
@@ -55,13 +61,16 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
 
   private Iterable<CFAEdge> sourceSet = null;
 
-  PORState(CFA pCfa, ImmutableMap<Integer, PORThreadState> pThreads) {
+  PORState(
+      CFA pCfa, ImmutableMap<Integer, PORThreadState> pThreads,
+      ImmutableMap<String, Integer> pThreadHandles) {
     cfa = pCfa;
     threads = pThreads;
+    threadHandles = pThreadHandles;
   }
 
-  static PORState empty() {
-    return new PORState(null, ImmutableMap.of());
+  static PORState empty(CFA pCfa) {
+    return new PORState(pCfa, ImmutableMap.of(), ImmutableMap.of());
   }
 
   public ImmutableMap<Integer, PORThreadState> threads() {
@@ -73,7 +82,7 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
   }
 
   PORState addNewThread(
-      CFA cfa,
+      String handle,
       LocationState pInitialLoc,
       CallstackState pInitialStack,
       PathFormula pEmptyFormula) {
@@ -85,11 +94,51 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
                 newPid,
                 new PORThreadState(pInitialLoc, pInitialStack, pEmptyFormula))
             .buildKeepingLast();
-    return new PORState(cfa, newThreads);
+    // if handle is null, we are adding the initial thread, so do not add to threadHandles
+    final ImmutableMap<String, Integer> newThreadHandles =
+        handle == null ? threadHandles :
+        ImmutableMap.<String, Integer>builder()
+            .putAll(threadHandles)
+            .put(handle, newPid)
+            .buildKeepingLast();
+    return new PORState(cfa, newThreads, newThreadHandles);
+  }
+
+  PORState joinThread(String handle) {
+    final Integer pidToRemove = canJoin(handle, true);
+    if (pidToRemove == null) {
+      return null;
+    }
+
+    final ImmutableMap<Integer, PORThreadState> newThreads = threads.entrySet().stream()
+        .filter(e -> !e.getKey().equals(pidToRemove))
+        .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
+    final ImmutableMap<String, Integer> newThreadHandles = threadHandles.entrySet().stream()
+        .filter(e -> !e.getValue().equals(pidToRemove))
+        .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
+    return new PORState(cfa, newThreads, newThreadHandles);
+  }
+
+  private Integer canJoin(String handle, boolean throwIfThreadNotFound) {
+    final Integer pidToRemove = threadHandles.get(handle);
+    var threadState = threads.get(pidToRemove);
+    if (pidToRemove == null || threadState == null) {
+      if (throwIfThreadNotFound) {
+        throw new IllegalArgumentException(
+            "No thread with handle " + handle + ". Undefined behavior or unsupported case.");
+      } else {
+        return null;
+      }
+    }
+
+    if (threadState.pLocationState().getOutgoingEdges().iterator().hasNext()) {
+      return null;
+    }
+
+    return pidToRemove;
   }
 
   public PORState stepThread(
-      CFA cfa,
       int pPid,
       LocationState pNextLoc,
       CallstackState pNextStack,
@@ -103,7 +152,7 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
     }
     newThreads.put(
         pPid, new PORThreadState(pNextLoc, pNextStack, pNextFormula));
-    return new PORState(cfa, newThreads.buildKeepingLast());
+    return new PORState(cfa, newThreads.buildKeepingLast(), threadHandles);
   }
 
   /**
@@ -196,6 +245,32 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
       if (!threadState.pLocationState().getLocationNode().getAllLeavingEdges().isEmpty()) {
         for (CFAEdge outgoingEdge : threadState.pLocationState().getOutgoingEdges()) {
           CFAEdge cloned = PorEdgeCloner.clone(outgoingEdge, pid, this);
+
+          // shortcut for pthread_join edges: only include them if the joined thread has already terminated
+          if (cloned instanceof AStatementEdge statementEdge
+              && statementEdge.getStatement() instanceof AFunctionCall functionCall
+              && functionCall.getFunctionCallExpression()
+              .getFunctionNameExpression() instanceof AIdExpression functionName
+              && "pthread_join".equals(functionName.getName())) {
+            final var params =
+                functionCall.getFunctionCallExpression().getParameterExpressions();
+            checkState(params.size() == 2, "Malformed pthread_join (not 2 params): %s",
+                functionCall);
+            final var handleParam = params.get(0);
+            checkState(handleParam instanceof CUnaryExpression cUnaryExpression
+                    && cUnaryExpression.getOperator() == UnaryOperator.AMPER
+                    && cUnaryExpression.getOperand() instanceof CIdExpression,
+                "Malformed/unsupported pthread_join (Thread handle not unary expression with variable reference): %s",
+                handleParam);
+            final var handleName =
+                ((CIdExpression) ((CUnaryExpression) handleParam).getOperand()).getDeclaration()
+                    .getQualifiedName();
+
+            if (canJoin(handleName, false) == null) {
+              continue;
+            }
+          }
+
           edgePidMap.put(cloned, pid);
           ret.add(cloned);
         }
@@ -218,10 +293,9 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
   }
 
   private ImmutableCollection<ImmutableCollection<CFAEdge>> getSourceSetFirstActions(Iterable<CFAEdge> allOutgoingEdges) {
-    final var enabledThreads = threads.entrySet().stream()
-        .filter(entry -> !entry.getValue().pLocationState().getLocationNode().getAllLeavingEdges()
-            .isEmpty())
-        .map(Entry::getKey)
+    final var enabledThreads = StreamSupport.stream(allOutgoingEdges.spliterator(), false)
+        .map(e -> edgePidMap.get(e))
+        .distinct()
         .collect(Collectors.toCollection(ArrayList::new));
     Collections.shuffle(enabledThreads);
     final ImmutableList.Builder<ImmutableCollection<CFAEdge>> sourceSetFirstActions =
