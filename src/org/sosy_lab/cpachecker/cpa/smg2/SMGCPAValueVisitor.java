@@ -98,7 +98,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -592,11 +591,7 @@ public class SMGCPAValueVisitor
                     + " to unknown due to at least one input being unknown",
                 cfaEdge));
       }
-      checkArgument(
-          !(leftValueWithCorrectType instanceof AddressExpression
-              || rightValueWithCorrectType instanceof AddressExpression
-              || state.isPointer(leftValueWithCorrectType)
-              || state.isPointer(rightValueWithCorrectType)));
+
       return handlePointerArithmetics(
           leftValueWithCorrectType,
           leftType,
@@ -653,18 +648,14 @@ public class SMGCPAValueVisitor
       CType calculationType)
       throws CPATransferException {
     // At least one value is a pointer.
-    // This pointer may not be numeric (0).
-    // If both are pointers, they may not be both numeric (0).
-    // Non-pointers may be numeric, symbolic or unknown.
-
-    if (leftValue.isUnknown() || rightValue.isUnknown()) {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState,
-              "Assume unknown return value due to at least one expression being unknown in " + e,
-              cfaEdge));
-    }
-    // Values might still be symbolic non-pointers!
+    // This pointer, if there is only one, may not be numeric (e.g. 0).
+    // If both are pointers, they may not be both numeric (e.g. 0).
+    // Non-pointers may be numeric or symbolic.
+    checkArgument(
+        leftValue instanceof AddressExpression
+            || rightValue instanceof AddressExpression
+            || state.isPointer(leftValue)
+            || state.isPointer(rightValue));
 
     // TODO: check the types used in the calculations! Make sure that we do use larger types when
     //  handling bits instead of bytes!
