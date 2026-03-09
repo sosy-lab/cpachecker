@@ -92,13 +92,6 @@ public record StatementInjector(
       pStatement =
           reduceLastThreadOrderInjector.injectLastUpdatesIntoStatement(pStatement, labelClauseMap);
     }
-    if (options.reduceIgnoreSleep()) {
-      // this needs to be last, it collects the prior injections
-      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
-          new ReduceIgnoreSleepInjector(
-              options, activeThread, otherThreads, labelClauseMap, bitVectorVariables, utils);
-      pStatement = reduceIgnoreSleepInjector.injectIgnoreSleepReductionIntoStatement(pStatement);
-    }
     // always inject bit vector assignments after evaluations i.e. reductions
     BitVectorAssignmentInjector bitVectorAssignmentInjector =
         new BitVectorAssignmentInjector(
