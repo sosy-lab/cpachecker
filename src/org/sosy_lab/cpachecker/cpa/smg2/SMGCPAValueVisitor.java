@@ -990,7 +990,7 @@ public class SMGCPAValueVisitor
         return ValueAndSMGState.of(
             AddressExpression.withZeroOffset(constValue.getValue(), targetType), currentState);
 
-      } else if (options.trackPredicates() && value instanceof SymbolicValue) {
+      } else if (value instanceof SymbolicValue) {
         return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
       } else {
