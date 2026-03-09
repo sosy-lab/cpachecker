@@ -92,7 +92,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclarationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
@@ -1414,7 +1414,7 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(
-        AcslPredicateDeclarationPredicate pAcslPredicateDeclarationPredicate) throws NoException {
+        AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) throws NoException {
       return ImmutableList.of();
     }
 

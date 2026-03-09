@@ -29,7 +29,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclarationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
@@ -169,6 +170,16 @@ public class AcslAnnotationParsingTest {
     AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
     aScope.registerDeclaration(predDef.getDeclaration());
 
+    AcslParameterDeclaration i =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+    AcslPredicateDeclaration declaration =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            new AcslPredicateType(ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
+            "is_positive",
+            "is_positive",
+            ImmutableList.of(),
+            ImmutableList.of(i));
     AcslCVariableDeclaration x =
         new AcslCVariableDeclaration(
             new CVariableDeclaration(
@@ -176,10 +187,10 @@ public class AcslAnnotationParsingTest {
     AcslAssertion expected =
         new AcslAssertion(
             FileLocation.DUMMY,
-            new AcslPredicateDeclarationPredicate(
+            new AcslPredicateApplicationPredicate(
                 FileLocation.DUMMY,
+                declaration,
                 new AcslPredicateType(ImmutableList.of(new AcslCType(basicInt())), false),
-                "is_positive",
                 ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, x))));
 
     String assertion = "assert is_positive(x);";

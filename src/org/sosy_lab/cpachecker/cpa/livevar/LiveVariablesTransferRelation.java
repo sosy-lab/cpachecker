@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclarationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -901,7 +901,7 @@ public class LiveVariablesTransferRelation
     }
 
     @Override
-    public Boolean visit(AcslPredicateDeclarationPredicate pAcslPredicateDeclarationPredicate)
+    public Boolean visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
         throws NoException {
       return false;
     }

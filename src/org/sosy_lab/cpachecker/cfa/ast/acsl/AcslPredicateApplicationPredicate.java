@@ -16,20 +16,20 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class AcslPredicateDeclarationPredicate implements AcslPredicate {
+public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
   private final FileLocation fileLocation;
-  private final AcslPredicateType type;
-  private final String predicate;
+  private final AcslPredicateDeclaration predicateDeclaration;
+  private final AcslPredicateType predicateType;
   private final ImmutableList<AcslTerm> parameters;
 
-  public AcslPredicateDeclarationPredicate(
+  public AcslPredicateApplicationPredicate(
       FileLocation pFileLocation,
-      AcslPredicateType pType,
-      String pIdPredicate,
+      AcslPredicateDeclaration pPredicateDeclaration,
+      AcslPredicateType pPredicateType,
       List<AcslTerm> pParameters) {
-    type = pType;
-    predicate = pIdPredicate;
+    predicateDeclaration = pPredicateDeclaration;
+    predicateType = pPredicateType;
     parameters = ImmutableList.copyOf(pParameters);
     fileLocation = pFileLocation;
   }
@@ -58,7 +58,7 @@ public final class AcslPredicateDeclarationPredicate implements AcslPredicate {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    StringBuilder astString = new StringBuilder(predicate + "(");
+    StringBuilder astString = new StringBuilder(predicateDeclaration + "(");
     String paramString = Joiner.on(", ").join(parameters.stream().toList());
     astString.append(paramString);
     astString.append(")");
@@ -75,9 +75,9 @@ public final class AcslPredicateDeclarationPredicate implements AcslPredicate {
     if (this == p0) {
       return true;
     }
-    return p0 instanceof AcslPredicateDeclarationPredicate other
-        && type.equals(other.type)
-        && predicate.equals(other.predicate)
+    return p0 instanceof AcslPredicateApplicationPredicate other
+        && predicateDeclaration.equals(other.predicateDeclaration)
+        && predicateType.equals(other.predicateType)
         && parameters.equals(other.parameters);
   }
 
@@ -85,8 +85,8 @@ public final class AcslPredicateDeclarationPredicate implements AcslPredicate {
   public int hashCode() {
     int hash = 7;
     int prime = 31;
-    hash = prime * hash * Objects.hashCode(predicate);
-    hash = prime * hash * Objects.hashCode(type);
+    hash = prime * hash * Objects.hashCode(predicateDeclaration);
+    hash = prime * hash * Objects.hashCode(predicateType);
     hash = hash * prime * Objects.hashCode(parameters);
     return hash;
   }
