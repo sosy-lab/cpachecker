@@ -195,6 +195,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         } else {
           checkState(abstractionOptions.errorHandling() == IGNORE);
           // Fallthrough for current state
+          stats.incrementExceptionsIgnoredDuringListAbstractions();
         }
       }
     }
