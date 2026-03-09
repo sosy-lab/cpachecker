@@ -9,12 +9,18 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -28,6 +34,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -39,6 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * store an already seen state. Transition relation allows to non-deterministically store an already
  * visiting state.
  */
+@Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private Solver solver;
   private InterpolationManager itpMgr;
@@ -48,9 +57,15 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private PrecisionAdjustment precisionAdjustment;
+  private ImmutableSet<CFANode> loopHeads;
   private final CFA cfa;
   private final TerminationToReachStatistics statistics;
   private final LogManager logger;
+
+  @Option(
+      secure = true,
+      description = "Allows the analysis to also check for infinite loops caused by recursion.")
+  private boolean considerRecursion = false;
 
   public TerminationToReachCPA(
       LogManager pLogger,
@@ -59,11 +74,26 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       CFA pCFA)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
+    pConfiguration.inject(this);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
     cfa = pCFA;
     configuration = pConfiguration;
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
+
+    ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
+    builder.addAll(cfa.getAllLoopHeads().orElseThrow());
+    if (considerRecursion) {
+      List<Loop> allRecursions = new ArrayList<>(LoopStructure.getRecursions(cfa));
+      for (CFANode loopHead :
+          allRecursions.stream()
+              .flatMap(loop -> loop.getLoopHeads().stream())
+              .collect(Collectors.toSet())) {
+        loopHead.setLoopStart();
+        builder.add(loopHead);
+      }
+    }
+    loopHeads = builder.build();
   }
 
   public static CPAFactory factory() {
@@ -103,7 +133,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableMap.of(),
         Optional.empty(),
         Optional.empty(),
-        new HashSet<>(cfa.getAllLoopHeads().orElseThrow()));
+        new HashSet<>(loopHeads));
   }
 
   @Override

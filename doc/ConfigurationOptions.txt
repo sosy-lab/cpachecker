@@ -3936,6 +3936,19 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
+# There might be programs with unsigned integer overflow, anddue to the
+# overflow, they are non-terminating.This option enforces the transition
+# invariants to have constraints to limit the mathematical integers.
+cpa.terminationviamemory.addConstraintsToPreventOverflows = false
+
+# Some bitwise operations or modulo are UFs in integer encoding, andthey
+# might lead to unsound results. If integer encoding is set,we also have to
+# use this option.
+cpa.terminationviamemory.checkUFsInIntegerEncoding = false
+
+# Allows the analysis to also check for infinite loops caused by recursion.
+cpa.terminationviamemory.considerRecursion = false
+
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
 
