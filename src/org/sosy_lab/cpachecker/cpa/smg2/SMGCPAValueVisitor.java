@@ -590,13 +590,20 @@ public class SMGCPAValueVisitor
         leftValueWithCorrectType, rightValueWithCorrectType, e, currentState)) {
       // Pointer arithmetics/comparisons
 
-      // TODO: we now allow unknown to end up in the values, handle here as well!
+      if (leftValueWithCorrectType.isUnknown() || rightValueWithCorrectType.isUnknown()) {
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Overapproximated result of binary expression "
+                    + e
+                    + " to unknown due to at least one input being unknown",
+                cfaEdge));
+      }
       checkArgument(
           !(leftValueWithCorrectType instanceof AddressExpression
-                  || rightValueWithCorrectType instanceof AddressExpression
-                  || state.isPointer(leftValueWithCorrectType)
-                  || state.isPointer(rightValueWithCorrectType))
-              || !(leftValueWithCorrectType.isUnknown() || rightValueWithCorrectType.isUnknown()));
+              || rightValueWithCorrectType instanceof AddressExpression
+              || state.isPointer(leftValueWithCorrectType)
+              || state.isPointer(rightValueWithCorrectType)));
       return handlePointerArithmetics(
           leftValueWithCorrectType,
           leftType,
