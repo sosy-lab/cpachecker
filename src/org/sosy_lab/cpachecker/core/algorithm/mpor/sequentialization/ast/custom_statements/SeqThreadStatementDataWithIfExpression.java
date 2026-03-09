@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 
@@ -33,7 +34,7 @@ public final class SeqThreadStatementDataWithIfExpression extends SeqThreadState
    * @param pType The {@link SeqThreadStatementType} of this statement.
    * @param pSubstituteEdges The set of {@link SubstituteEdge}s created from the input programs
    *     {@link CFA} that this statement represents.
-   * @param pThreadId The ID of the thread that executes this statement.
+   * @param pThreadId The ID of the {@link MPORThread} that executes this statement.
    * @param pPcLeftHandSide The {@link CLeftHandSide} of the thread simulation that executes the
    *     underlying statement. The {@link CLeftHandSide} is written to when updating the pc, e.g.
    *     {@code pc0 = 42;}.
