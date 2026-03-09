@@ -91,7 +91,7 @@ public class SeqThreadStatementClauseUtil {
               pPcLeftHandSide,
               clause.labelNumber,
               pBinaryExpressionBuilder);
-      rOriginPcs.putAll(new CExpressionWrapper(labelExpression), clause.toCExportAstNodes());
+      rOriginPcs.putAll(new CExpressionWrapper(labelExpression), clause.toCExportStatements());
     }
     return rOriginPcs.build();
   }
@@ -220,7 +220,7 @@ public class SeqThreadStatementClauseUtil {
   public static boolean isSeparateLoopStart(
       MPOROptions pOptions, SeqThreadStatementClause pClause) {
 
-    return pClause.getFirstBlock().isLoopStart() && pOptions.noBackwardLoopGoto();
+    return pClause.getFirstBlock().isLoopHead() && pOptions.noBackwardLoopGoto();
   }
 
   // Path ==========================================================================================
@@ -419,8 +419,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementBlock> pFirstBlocks) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
-    for (int i = 0; i < pReorderedBlocks.size(); i++) {
-      SeqThreadStatementBlock block = pReorderedBlocks.get(i);
+    for (SeqThreadStatementBlock block : pReorderedBlocks) {
       if (pFirstBlocks.contains(block)) {
         int start = pReorderedBlocks.indexOf(block);
         Optional<Integer> nextFirstBlockIndex =
