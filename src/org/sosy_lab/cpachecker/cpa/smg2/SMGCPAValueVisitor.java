@@ -484,6 +484,11 @@ public class SMGCPAValueVisitor
                     "Returned unknown value due to an invalid address or offset in read with"
                         + " dereference expression in ",
                     cfaEdge));
+
+          } else if (readPointerAndState.getValue() instanceof NumericValue
+              || !newState.isPointer(readPointerAndState.getValue())) {
+            returnBuilder.add(ValueAndSMGState.of(readPointerAndState.getValue(), newState));
+
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
