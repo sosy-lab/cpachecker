@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_AND;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_OR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_XOR;
@@ -308,7 +307,8 @@ public class SMGCPAValueVisitor
       Value arrayValue = arrayValueAndState.getValue();
       SMGState currentState = arrayValueAndState.getState();
 
-      if (currentState.getMemoryModel().isPointer(arrayValue)) {
+      if (currentState.getMemoryModel().isPointer(arrayValue)
+          && !(arrayValue instanceof NumericValue)) {
         arrayValue =
             AddressExpression.withZeroOffset(
                 arrayValue, SMGCPAExpressionEvaluator.getCanonicalType(arrayExpr));
@@ -350,7 +350,8 @@ public class SMGCPAValueVisitor
         Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
-          checkArgument(arrayValue instanceof AddressExpression);
+          checkArgument(
+              arrayValue instanceof AddressExpression || arrayValue instanceof NumericValue);
         } else if (arrayExpr.getExpressionType() instanceof CCompositeType
             || arrayExpr.getExpressionType() instanceof CElaboratedType
             || arrayExpr.getExpressionType() instanceof CArrayType
@@ -358,7 +359,8 @@ public class SMGCPAValueVisitor
           if (arrayValue instanceof SymbolicIdentifier) {
             checkArgument(((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent());
           } else {
-            checkArgument(arrayValue instanceof AddressExpression);
+            checkArgument(
+                arrayValue instanceof AddressExpression || arrayValue instanceof NumericValue);
           }
 
         } else {
@@ -425,9 +427,8 @@ public class SMGCPAValueVisitor
                     "Returned unknown value due to an invalid address or offset in read expression"
                         + " with dereference in ",
                     cfaEdge));
-          } else if (readValue instanceof NumericValue numValue) {
-            verify(numValue.bigIntegerValue().equals(BigInteger.ZERO));
-            returnBuilder.add(ValueAndSMGState.of(numValue, newState));
+          } else if (readValue instanceof NumericValue || !newState.isPointer(readValue)) {
+            returnBuilder.add(ValueAndSMGState.of(readValue, newState));
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
