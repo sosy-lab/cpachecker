@@ -651,11 +651,6 @@ public class SMGCPAValueVisitor
     // This pointer, if there is only one, may not be numeric (e.g. 0).
     // If both are pointers, they may not be both numeric (e.g. 0).
     // Non-pointers may be numeric or symbolic.
-    checkArgument(
-        leftValue instanceof AddressExpression
-            || rightValue instanceof AddressExpression
-            || state.isPointer(leftValue)
-            || state.isPointer(rightValue));
 
     // TODO: check the types used in the calculations! Make sure that we do use larger types when
     //  handling bits instead of bytes!
@@ -683,7 +678,10 @@ public class SMGCPAValueVisitor
         evaluator.unpackAddressExpression(nonConstRightValue, leftValueAndState.getState());
     nonConstRightValue = rightValueAndState.getValue();
     currentState = rightValueAndState.getState();
-    // From this pointer forward, there is no AddressExpressions anymore
+    // From this pointer forward, there is no AddressExpressions anymore.
+    // At least one arg needs to be a pointer!
+    checkArgument(
+        currentState.isPointer(nonConstLeftValue) || currentState.isPointer(nonConstRightValue));
 
     boolean leftIsNumeric = nonConstLeftValue instanceof NumericValue;
     boolean rightIsNumeric = nonConstRightValue instanceof NumericValue;
