@@ -1380,7 +1380,9 @@ public class SMGCPAValueVisitor
         continue;
       }
 
-      if (!(value instanceof AddressExpression) && evaluator.isPointerValue(value, currentState)) {
+      if (!(value instanceof AddressExpression)
+          && evaluator.isPointerValue(value, currentState)
+          && !(value instanceof NumericValue)) {
         // For pointer deref on arrays only
         value =
             AddressExpression.of(value, e.getExpressionType(), new NumericValue(BigInteger.ZERO));
