@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
@@ -177,7 +178,7 @@ public class AcslAnnotationParsingTest {
             FileLocation.DUMMY,
             new AcslPredicateDeclarationPredicate(
                 FileLocation.DUMMY,
-                new AcslPredicateType(ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
+                new AcslPredicateType(ImmutableList.of(new AcslCType(basicInt())), false),
                 "is_positive",
                 ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, x))));
 
@@ -193,10 +194,6 @@ public class AcslAnnotationParsingTest {
     String predicate = "predicate is_positive(integer i) = i >= 0";
     AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
     aScope.registerDeclaration(predDef.getDeclaration());
-
-    new AcslCVariableDeclaration(
-        new CVariableDeclaration(
-            FileLocation.DUMMY, true, CStorageClass.AUTO, basicInt(), "x", "x", "x", null));
 
     String assertion = "assert is_positive(x);";
     AAcslAnnotation parsed =

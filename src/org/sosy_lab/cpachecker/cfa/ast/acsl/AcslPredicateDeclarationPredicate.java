@@ -74,11 +74,11 @@ public final class AcslPredicateDeclarationPredicate implements AcslPredicate {
   public boolean equals(Object p0) {
     if (this == p0) {
       return true;
-    } else {
-      return p0 instanceof AcslPredicateDeclarationPredicate other
-          && predicate.equals(other.predicate)
-          && parameters.equals(other.parameters);
     }
+    return p0 instanceof AcslPredicateDeclarationPredicate other
+        && type.equals(other.type)
+        && predicate.equals(other.predicate)
+        && parameters.equals(other.parameters);
   }
 
   @Override
@@ -86,6 +86,7 @@ public final class AcslPredicateDeclarationPredicate implements AcslPredicate {
     int hash = 7;
     int prime = 31;
     hash = prime * hash * Objects.hashCode(predicate);
+    hash = prime * hash * Objects.hashCode(type);
     hash = hash * prime * Objects.hashCode(parameters);
     return hash;
   }
