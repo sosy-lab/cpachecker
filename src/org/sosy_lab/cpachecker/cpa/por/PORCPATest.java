@@ -44,6 +44,12 @@ public class PORCPATest {
   }
 
   @Test
+  public void twoThreadsJoinSafe() throws Exception {
+    TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "two_threads_join_safe.c");
+    results.assertIsSafe();
+  }
+
+  @Test
   public void singleThreadSafe() throws Exception {
     TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "single_thread_safe.c");
     results.assertIsSafe();
