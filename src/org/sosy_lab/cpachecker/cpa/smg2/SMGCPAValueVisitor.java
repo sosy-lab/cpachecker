@@ -1466,7 +1466,9 @@ public class SMGCPAValueVisitor
                 .getFirst();
         currentState = readValueAndState.getState();
 
-        if (returnType instanceof CPointerType) {
+        if (returnType instanceof CPointerType
+            && currentState.isPointer(readValueAndState.getValue())
+            && !(readValueAndState.getValue() instanceof NumericValue)) {
           // In the pointer case we would need to encapsulate it again
           builder.add(
               ValueAndSMGState.of(
