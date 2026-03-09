@@ -578,22 +578,14 @@ public class SMGCPAValueVisitor
       rightValueWithCorrectType = pRightValue;
     }
 
+    checkArgument(
+        !(leftValueWithCorrectType instanceof FunctionValue)
+            && !(rightValueWithCorrectType instanceof FunctionValue),
+        "Found FunctionValues that are not supported by this analysis");
+
     if (isPointerArithmetics(
         leftValueWithCorrectType, rightValueWithCorrectType, e, currentState)) {
       // Pointer arithmetics/comparisons
-
-      if (leftValueWithCorrectType instanceof FunctionValue
-          || rightValueWithCorrectType instanceof FunctionValue) {
-        // Function pointers
-        // TODO: we now allow unknown to end up in the values, handle here as well!
-        checkArgument(
-            !(leftValueWithCorrectType.isUnknown() || rightValueWithCorrectType.isUnknown()));
-        return ImmutableList.of(
-            ValueAndSMGState.of(
-                calculateExpressionWithFunctionValue(
-                    binaryOperator, rightValueWithCorrectType, leftValueWithCorrectType),
-                currentState));
-      }
 
       // TODO: we now allow unknown to end up in the values, handle here as well!
       checkArgument(
@@ -4503,11 +4495,6 @@ public class SMGCPAValueVisitor
     // Filter out non-pointer arithmetic operators
     if (!op.isLogicalOperator() && op != PLUS && op != MINUS) {
       return false;
-    }
-
-    if (pLeftValue instanceof FunctionValue || pRightValue instanceof FunctionValue) {
-      // Function pointers
-      return true;
     }
 
     Value leftValue = unwrapPotentialAddressExpression(pLeftValue, currentState);
