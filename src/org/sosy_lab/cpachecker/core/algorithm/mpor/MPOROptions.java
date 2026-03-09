@@ -299,11 +299,10 @@ public class MPOROptions {
             "controlEncodingThread is set, but nondeterminismSource does not contain NEXT_THREAD.");
       }
     }
-    if (!nondeterminismSource.isNumStatementsNondeterministic()) {
+    if (!nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
       if (reduceIgnoreSleep) {
         throw new InvalidConfigurationException(
-            "reduceIgnoreSleep cannot be enabled when nondeterminismSource does not contain"
-                + " NUM_STATEMENTS");
+            "reduceIgnoreSleep cannot be enabled when nondeterminismSource is not NUM_STATEMENTS");
       }
     }
     if (pruneBitVectorEvaluations) {
