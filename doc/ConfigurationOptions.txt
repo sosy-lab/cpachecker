@@ -3553,6 +3553,14 @@ cpa.smg2.abstraction.doEnforcePointerSensitiveLiveness = true
 # memory structures like arrays.
 cpa.smg2.abstraction.doLivenessAbstraction = true
 
+# Sets behavior of the analysis when errors/exceptions are encountered when
+# abstracting. STOP_CPACHECKER: stops CPAchecker with a RuntimeException.
+# STOP_CURRENT: throws a exception that stops only the CPA it is thrown in.
+# IGNORE: does not throw anything and continues the analysis without
+# abstracting the state causing the error.
+cpa.smg2.abstraction.errorHandling = IGNORE
+  enum:     [STOP_CPACHECKER, STOP_CURRENT, IGNORE]
+
 # skip abstraction computations until the given number of iterations are
 # reached, after that decision is based on then current level of determinism,
 # setting the option to -1 always performs abstraction computations

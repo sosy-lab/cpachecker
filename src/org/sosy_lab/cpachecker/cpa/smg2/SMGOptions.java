@@ -1014,6 +1014,22 @@ public class SMGOptions {
                 + " only supported for given value 0.")
     private int abstractConcreteValuesAboveThreshold = -1;
 
+    @Option(
+        secure = true,
+        description =
+            "Sets behavior of the analysis when errors/exceptions are encountered when abstracting."
+                + " STOP_CPACHECKER: stops CPAchecker with a RuntimeException. STOP_CURRENT: throws"
+                + " a exception that stops only the CPA it is thrown in. IGNORE: does not throw"
+                + " anything and continues the analysis without abstracting the state causing the"
+                + " error.")
+    private AbstractionErrorHandling errorHandling = AbstractionErrorHandling.IGNORE;
+
+    public enum AbstractionErrorHandling {
+      STOP_CPACHECKER,
+      STOP_CURRENT,
+      IGNORE
+    }
+
     private final @Nullable ImmutableSet<CFANode> loopHeads;
 
     public SMGAbstractionOptions(Configuration config, @Nullable CFA pCfa)
@@ -1110,6 +1126,10 @@ public class SMGOptions {
     boolean abstractAtLoop(LocationState location) {
       checkState(!alwaysAtLoop || loopHeads != null);
       return alwaysAtLoop && loopHeads.contains(location.getLocationNode());
+    }
+
+    public AbstractionErrorHandling errorHandling() {
+      return errorHandling;
     }
   }
 }

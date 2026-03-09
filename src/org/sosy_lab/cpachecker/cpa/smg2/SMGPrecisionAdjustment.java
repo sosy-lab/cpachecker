@@ -8,6 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.AbstractionErrorHandling.IGNORE;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.AbstractionErrorHandling.STOP_CPACHECKER;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.AbstractionErrorHandling.STOP_CURRENT;
+
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -175,11 +180,23 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     if (abstractionOptions.abstractLinkedLists() && checkAbstractListAt(location)) {
       // Abstract Lists at loop heads
-      resultState =
-          new SMGCPAAbstractionManager(
-                  resultState, abstractionOptions.getListAbstractionMinimumLengthThreshold(), stats)
-              .findAndAbstractLists();
-      // TODO: add option to catch and return original state
+      try {
+        resultState =
+            new SMGCPAAbstractionManager(
+                    resultState,
+                    abstractionOptions.getListAbstractionMinimumLengthThreshold(),
+                    stats)
+                .findAndAbstractLists();
+      } catch (SMGException e) {
+        if (abstractionOptions.errorHandling() == STOP_CURRENT) {
+          throw e;
+        } else if (abstractionOptions.errorHandling() == STOP_CPACHECKER) {
+          throw new RuntimeException(e);
+        } else {
+          checkState(abstractionOptions.errorHandling() == IGNORE);
+          // Fallthrough for current state
+        }
+      }
     }
 
     if (abstractionOptions.getCleanUpUnusedConstraints()) {
