@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
@@ -18,6 +19,8 @@ public final class AcslRequires extends AAcslAnnotation {
 
   public AcslRequires(FileLocation pFileLocation, AcslPredicate pPredicate) {
     super(pFileLocation);
+    Preconditions.checkNotNull(pPredicate);
+
     predicate = pPredicate;
   }
 

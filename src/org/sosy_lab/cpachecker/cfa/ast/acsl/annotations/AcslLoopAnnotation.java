@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -25,6 +26,7 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
   public AcslLoopAnnotation(
       FileLocation pFileLocation, ImmutableSet<AcslLoopInvariant> pLoopInvariants) {
     super(pFileLocation);
+    Preconditions.checkNotNull(pLoopInvariants);
     loopInvariants = pLoopInvariants;
   }
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -35,6 +36,7 @@ public abstract sealed class AAcslAnnotation
   private final FileLocation fileLocation;
 
   protected AAcslAnnotation(FileLocation pFileLocation) {
+    Preconditions.checkNotNull(pFileLocation);
     fileLocation = pFileLocation;
   }
 
