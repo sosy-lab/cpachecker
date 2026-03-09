@@ -999,9 +999,7 @@ class ASTConverter {
     CAstNode loweredUnionCast = tryLowerGccCastToUnion(loc, castType, operand);
     if (loweredUnionCast != null) {
       return loweredUnionCast;
-    }
-
-    if (options.simplifyPointerExpressions()
+    } else if (options.simplifyPointerExpressions()
         && e.getOperand() instanceof IASTFieldReference iASTFieldReference
         && iASTFieldReference.isPointerDereference()) {
       return createTemporaryVariableWithInitializer(
