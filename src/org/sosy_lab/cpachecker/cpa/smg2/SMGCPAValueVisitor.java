@@ -578,6 +578,8 @@ public class SMGCPAValueVisitor
       rightValueWithCorrectType = pRightValue;
     }
 
+    // TODO: remove this check once the SV-COMP benchmark set has been ran once (to make sure it
+    // never triggers)
     checkArgument(
         !(leftValueWithCorrectType instanceof FunctionValue)
             && !(rightValueWithCorrectType instanceof FunctionValue),
