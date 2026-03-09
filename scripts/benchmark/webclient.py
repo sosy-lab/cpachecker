@@ -703,6 +703,9 @@ class WebInterface:
         if MEMORYREQUIREMENT in requirements:
             params.append(("memoryRequirement", str(requirements[MEMORYREQUIREMENT])))
 
+        logging.warning("DEBUG requirements dict: %s", requirements)
+        logging.warning("DEBUG params before request: %s", params)
+
         if result_files_patterns:
             for pattern in result_files_patterns:
                 params.append(("resultFilesPattern", pattern))
