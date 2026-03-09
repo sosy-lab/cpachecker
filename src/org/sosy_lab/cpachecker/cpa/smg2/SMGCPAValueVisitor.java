@@ -2168,19 +2168,6 @@ public class SMGCPAValueVisitor
 
   /* ++++++++++++++++++ Below this point value arithmetics and comparisons  ++++++++++++++++++ */
 
-  // TODO: check if we can really just change the ordering / that all possible calculations are
-  //  commutative
-  private Value calculateExpressionWithFunctionValue(
-      BinaryOperator binaryOperator, Value val1, Value val2) {
-    if (val1 instanceof FunctionValue functionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val2);
-    } else if (val2 instanceof FunctionValue functionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val1);
-    } else {
-      return new UnknownValue();
-    }
-  }
-
   /**
    * Calculates pointer/address arithmetic expressions. Valid is only address + value or value +
    * address and address minus value or address minus address. All others are simply unknown value!
@@ -2545,17 +2532,6 @@ public class SMGCPAValueVisitor
 
     return BinarySymbolicExpression.of(
         leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
-  }
-
-  private NumericValue calculateOperationWithFunctionValue(
-      BinaryOperator binaryOperator, FunctionValue val1, Value val2) {
-    return switch (binaryOperator) {
-      case EQUALS -> new NumericValue(val1.equals(val2) ? 1 : 0);
-      case NOT_EQUALS -> new NumericValue(val1.equals(val2) ? 0 : 1);
-      default ->
-          throw new AssertionError(
-              "Operation " + binaryOperator + " is not supported for function values");
-    };
   }
 
   /**
