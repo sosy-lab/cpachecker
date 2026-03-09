@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
-import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest.ProgramSubject.assertUsing;
+import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest0.ProgramSubject.assertUsing;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Fact;
@@ -40,7 +40,8 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
  * Base class to execute common configurations of the SMG2-CPA with test programs for multiple
  * common specifications.
  */
-public abstract class SMGBaseCPATest {
+@RunWith(Parameterized.class)
+public abstract class SMGBaseCPATest0 {
 
   /**
    * The default configuration files to use for running SMG2 as Symbolic Execution and Value
@@ -61,12 +62,15 @@ public abstract class SMGBaseCPATest {
   private static final String CPA_CONFIG_COMMON_PREFIX = "config/";
   private static final String SPECIFICATION_COMMON_PREFIX = "config/specification/";
 
-  protected String configToUse() {
-    throw new UnsupportedOperationException();
-  }
+  @Parameter(0)
+  public String configToUse;
 
-  protected String specToUse() {
-    throw new UnsupportedOperationException();
+  @Parameter(1)
+  public String specToUse;
+
+  @Parameters(name = "CPA: {0} with specification: {1}")
+  public static String[][] getAllConfigurationsAndSpecifications() {
+    return getAllSMGCPAConfigurationsAndSpecificationsForTests();
   }
 
   private static String[][] getAllSMGCPAConfigurationsAndSpecificationsForTests() {
@@ -123,7 +127,7 @@ public abstract class SMGBaseCPATest {
    * Skips all overflow specifications for a test, starting from the position this method is used.
    */
   protected void doNotTestOverflowSpecification() {
-    assume().that(specToUse()).isNotEqualTo(OVERFLOW_SPECIFICATION);
+    assume().that(specToUse).isNotEqualTo(OVERFLOW_SPECIFICATION);
   }
 
   /**
@@ -164,8 +168,7 @@ public abstract class SMGBaseCPATest {
 
   private ProgramSubject assertThatProgram(String pathToProgram, MachineModel pMachineModel)
       throws IOException, InvalidConfigurationException {
-    return assertUsing(buildConfigForC(configToUse(), specToUse(), pMachineModel))
-        .that(pathToProgram);
+    return assertUsing(buildConfigForC(configToUse, specToUse, pMachineModel)).that(pathToProgram);
   }
 
   /**
@@ -243,31 +246,6 @@ public abstract class SMGBaseCPATest {
     public static Subject.Factory<ProgramSubject, String> programSubjectOf(
         final Configuration analysis) {
       return (metadata, pathToProgram) -> new ProgramSubject(metadata, pathToProgram, analysis);
-    }
-  }
-
-  @RunWith(Parameterized.class)
-  public abstract static class ParameterizedSMGBaseCPATest extends SMGBaseCPATest {
-
-    @Parameter(0)
-    public String configToUse;
-
-    @Parameter(1)
-    public String specToUse;
-
-    @Parameters(name = "CPA: {0} with specification: {1}")
-    public static String[][] getAllConfigurationsAndSpecifications() {
-      return getAllSMGCPAConfigurationsAndSpecificationsForTests();
-    }
-
-    @Override
-    protected String configToUse() {
-      return configToUse;
-    }
-
-    @Override
-    protected String specToUse() {
-      return specToUse;
     }
   }
 }

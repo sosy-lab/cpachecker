@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg2.test;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest.ParameterizedSMGBaseCPATest;
 
 /**
  * Test class to execute the SMG2-CPA with ILP32 test programs. All programs listed here are
@@ -18,7 +17,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest.ParameterizedSMGBase
  * MemSafety, MemCleanup, No-Overflow, in two configurations; SMG based Symbolic Execution and SMG
  * based Value Analysis.
  */
-public class SMGCPA32Test extends ParameterizedSMGBaseCPATest {
+public class SMGCPA32Test extends SMGBaseCPATest0 {
 
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrViaMallocProof() throws Exception {
