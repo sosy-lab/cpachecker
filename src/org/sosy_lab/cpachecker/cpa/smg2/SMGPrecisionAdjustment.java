@@ -139,7 +139,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       final SMGState pState,
       VariableTrackingPrecision pPrecision,
       LocationState location,
-      UniqueAssignmentsInPathConditionState assignments) {
+      UniqueAssignmentsInPathConditionState assignments)
+      throws SMGException {
     SMGState resultState = pState;
 
     if ((abstractionOptions.doLivenessAbstraction()
@@ -174,17 +175,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     if (abstractionOptions.abstractLinkedLists() && checkAbstractListAt(location)) {
       // Abstract Lists at loop heads
-      try {
-        resultState =
-            new SMGCPAAbstractionManager(
-                    resultState,
-                    abstractionOptions.getListAbstractionMinimumLengthThreshold(),
-                    stats)
-                .findAndAbstractLists();
-      } catch (SMGException e) {
-        // Do nothing. This should never happen anyway
-        throw new RuntimeException(e);
-      }
+      resultState =
+          new SMGCPAAbstractionManager(
+                  resultState, abstractionOptions.getListAbstractionMinimumLengthThreshold(), stats)
+              .findAndAbstractLists();
+      // TODO: add option to catch and return original state
     }
 
     if (abstractionOptions.getCleanUpUnusedConstraints()) {
