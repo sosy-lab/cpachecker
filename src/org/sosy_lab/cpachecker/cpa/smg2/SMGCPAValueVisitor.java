@@ -968,6 +968,11 @@ public class SMGCPAValueVisitor
 
   public ValueAndSMGState castCValue(Value value, CType targetType, SMGState currentState)
       throws CPATransferException {
+
+    if (value.isUnknown()) {
+      return ValueAndSMGState.of(value, currentState);
+    }
+
     if (targetType instanceof CPointerType) {
       if (value instanceof AddressExpression || value instanceof NumericValue) {
         // TODO: warn on non 0 numeric pointers
