@@ -12,10 +12,12 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -59,7 +61,12 @@ public class DistributedValueAnalysisCPA
   private boolean runSymExec = true;
 
   public DistributedValueAnalysisCPA(
-      ValueAnalysisCPA pValueCPA, CFA pCFA, Configuration pConfiguration, BlockNode pBlockNode)
+      ValueAnalysisCPA pValueCPA,
+      CFA pCFA,
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      BlockNode pBlockNode)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     valueCPA = pValueCPA;
@@ -75,7 +82,13 @@ public class DistributedValueAnalysisCPA
         new DeserializeValuePrecisionOperator(pConfiguration, pCFA.getVarClassification());
     proceedOperator = new ProceedValueStateOperator();
     combinePrecisionOperator = new CombineValuePrecisionOperator();
-    coverageOperator = new ValueStateCoverageOperator();
+    coverageOperator =
+        new ValueStateCoverageOperator(
+            cfa.getMachineModel(),
+            pConfiguration,
+            pLogManager,
+            pShutdownNotifier,
+            pBlockNode.getInitialLocation().getFunctionName());
     blockNode = pBlockNode;
   }
 

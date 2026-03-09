@@ -29,8 +29,7 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
     functionName = pFunctionName;
   }
 
-  @Override
-  public boolean isSubsumed(AbstractState state1, AbstractState state2)
+  public boolean isSubsumed0(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
 
     ValueAnalysisState v1 = AbstractStates.extractStateByType(state1, ValueAnalysisState.class);
@@ -44,25 +43,30 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
     if (c2.isEmpty() || c1.equals(c2)) {
       return true;
     }
+
     BooleanFormulaManagerView bfm =
         constraintsSolver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula stateAsFormula1 = bfm.and(constraintsSolver.getFullFormula(c1, functionName));
     BooleanFormula stateAsFormula2 = bfm.and(constraintsSolver.getFullFormula(c2, functionName));
 
-    // This is unnecessary with the underaproximating ValueCoverageOperator
-    // BooleanFormula compareValues =
-    //    bfm.and(
-    //        constraintsSolver.getFullFormula(
-    //            ValueAnalysisState.compareInConstraint(v1, v2), functionName));
+    BooleanFormula compareValues =
+        bfm.and(
+            constraintsSolver.getFullFormula(
+                ValueAnalysisState.compareInConstraint(v1, v2), functionName));
 
     try {
-      //  return constraintsSolver
-      //      .getSolver()
-      //      .implies(bfm.and(stateAsFormula1, compareValues), stateAsFormula2);
-      return constraintsSolver.getSolver().implies(stateAsFormula1, stateAsFormula2);
+      return constraintsSolver
+          .getSolver()
+          .implies(bfm.and(stateAsFormula1, compareValues), stateAsFormula2);
     } catch (SolverException e) {
       throw new CPAException("Solver encountered an issue when calculating implication.", e);
     }
+  }
+
+  @Override
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    return isSubsumed0(state1, state2) && isSubsumed0(state2, state1);
   }
 
   @Override
