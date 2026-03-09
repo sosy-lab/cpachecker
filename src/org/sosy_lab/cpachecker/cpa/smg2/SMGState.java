@@ -7566,7 +7566,8 @@ public class SMGState
    * @return a new {@link SMGState} with the sub-SMG updated according to the description above.
    */
   private SMGState incrementNestingLevelAndSetSpecifierOfSubSMG(
-      SMGSinglyLinkedListSegment newLinkedList, Set<SMGNode> alreadyIncremented) {
+      SMGSinglyLinkedListSegment newLinkedList, Set<SMGNode> alreadyIncremented)
+      throws SMGException {
     // TODO: check if we can replace alreadyIncremented with a simple nesting level check (see value
     // incrementation as example)
     SMGState currentState = this;
@@ -7627,11 +7628,13 @@ public class SMGState
 
         } else {
           // Non-nested region, i.e. when materializing all list elements point to the same obj.
-          checkState(
-              currentState
-                  .getMemoryModel()
-                  .getTargetSpecifier(value)
-                  .equals(SMGTargetSpecifier.IS_REGION));
+          if (!currentState
+              .getMemoryModel()
+              .getTargetSpecifier(value)
+              .equals(SMGTargetSpecifier.IS_REGION)) {
+            throw new SMGException(
+                "Error when incrementing nesting level, inconsistent target specifier");
+          }
         }
       } else if (eqCache.knownKey(value)
           && !value.isNumericValue()
