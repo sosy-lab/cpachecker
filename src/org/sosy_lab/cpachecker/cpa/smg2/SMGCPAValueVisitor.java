@@ -4488,8 +4488,8 @@ public class SMGCPAValueVisitor
    */
   private boolean isPointerArithmetics(
       Value pLeftValue, Value pRightValue, CBinaryExpression expr, SMGState currentState) {
-    CType leftType = expr.getOperand1().getExpressionType().getCanonicalType();
-    CType rightType = expr.getOperand2().getExpressionType().getCanonicalType();
+    // CType leftType = expr.getOperand1().getExpressionType().getCanonicalType();
+    // CType rightType = expr.getOperand2().getExpressionType().getCanonicalType();
     BinaryOperator op = expr.getOperator();
 
     // Filter out non-pointer arithmetic operators
@@ -4518,20 +4518,16 @@ public class SMGCPAValueVisitor
     }
 
     // TODO: also calc type? Can it even happen that calc is pointer but none of the values 2?
-    boolean oneTypeIsPointer =
-        leftType instanceof CPointerType || rightType instanceof CPointerType;
+    // boolean oneTypeIsPointer =
+    //    leftType instanceof CPointerType || rightType instanceof CPointerType;
 
     boolean leftValueIsPointerButNotNumeric = leftIsPointer && !leftIsNumeric;
     boolean rightValueIsPointerButNotNumeric = rightIsPointer && !rightIsNumeric;
 
-    // Check that at least 1 is a pointer type or a pointer (but if there is only numeric/null
-    // pointers, but not a pointer type, we don't have pointer arithmetics)
-    if (!(leftValueIsPointerButNotNumeric
-        || rightValueIsPointerButNotNumeric
-        || oneTypeIsPointer)) {
-      return false;
-    }
-
+    // Check that at least 1 is a pointer that needs special handling (not numeric)
+    return leftValueIsPointerButNotNumeric || rightValueIsPointerButNotNumeric;
+    // Below is the previous checking (before the current return was introduced). May be useful?
+    /*
     if (op.isLogicalOperator()) {
       // Both need to be pointers with the same type or numeric 0
       if ((leftIsZero && rightType instanceof CPointerType)
@@ -4577,7 +4573,7 @@ public class SMGCPAValueVisitor
     }
     // If both are numeric or symbolic (non-pointers), let it be calculated using regular
     // arithmetics
-    return leftIsPointer || rightIsPointer;
+    return leftIsPointer || rightIsPointer;*/
   }
 
   /**
