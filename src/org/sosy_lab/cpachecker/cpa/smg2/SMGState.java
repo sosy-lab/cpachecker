@@ -408,7 +408,7 @@ public class SMGState
   }
 
   public void logUnknownValue(String msg, CFAEdge edge) {
-    logUnknownValue(msg + edge);
+    logUnknownValue(msg + (edge == null ? "" : edge));
   }
 
   public void logUnknownValue(CFAEdge edge) {
