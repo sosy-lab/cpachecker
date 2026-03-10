@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -100,6 +101,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
@@ -133,7 +136,10 @@ public class SMGTransferRelation
   // (see SMGCPAAssigningValueVisitor). Used to assign boolean concrete values.
   private final Collection<String> booleanVariables;
 
+  // Loop heads do not need to be near assumptions (e.g. do-while, the do is the head, but we want
+  // the condition, which is an outgoing edge!)
   private final Optional<ImmutableSet<CFANode>> maybeLoopHeads;
+  private final ImmutableSet<CFAEdge> incomingAndOutgoingLoopEdges;
 
   private final @Nullable SMGCPAStatistics stats;
 
@@ -167,6 +173,16 @@ public class SMGTransferRelation
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = pStats;
     maybeLoopHeads = cfa.getAllLoopHeads();
+    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+    ImmutableSet.Builder<CFAEdge> incomingAndOutgoing = ImmutableSet.builder();
+    if (loopStructure.isPresent()) {
+      ImmutableCollection<Loop> allLoops = loopStructure.orElseThrow().getAllLoops();
+      for (Loop loop : allLoops) {
+        incomingAndOutgoing.addAll(loop.getOutgoingEdges());
+        incomingAndOutgoing.addAll(loop.getIncomingEdges());
+      }
+    }
+    incomingAndOutgoingLoopEdges = incomingAndOutgoing.build();
   }
 
   /* For tests only. */
@@ -219,6 +235,7 @@ public class SMGTransferRelation
     evaluator = pEvaluator;
     cfa = null;
     maybeLoopHeads = Optional.empty();
+    incomingAndOutgoingLoopEdges = ImmutableSet.of();
   }
 
   @Override
@@ -856,8 +873,9 @@ public class SMGTransferRelation
     truthValue = simplifiedExpression.getSecond();
 
     if (expression instanceof CBinaryExpression binEx
-        && maybeLoopHeads.isPresent()
-        && maybeLoopHeads.orElseThrow().contains(cfaEdge.getPredecessor())
+        && (incomingAndOutgoingLoopEdges.contains(cfaEdge)
+            || (maybeLoopHeads.isPresent()
+                && maybeLoopHeads.orElseThrow().contains(cfaEdge.getPredecessor())))
         && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound
         && loopBound.getValue().bitCount() <= 32) {
       if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
