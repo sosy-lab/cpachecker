@@ -387,7 +387,9 @@ public class SequentializationBuilder {
     }
 
     // track active thread number via thread_count
-    rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
+    if (pOptions.reduceSingleActiveThread()) {
+      rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
+    }
 
     // if enabled: round_max and round
     if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {

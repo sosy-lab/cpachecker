@@ -76,8 +76,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
             VerifierNondetFunctionType.buildNondetIntegerAssignment(
                 options, SeqIdExpressions.ROUND_MAX)));
 
-    // add the ignore sleep instrumentation, if enabled:
-    // if (round_max == 0 && Ti_SYNC == 0) { assume(*Ti in at least one conflict*); }
+    // add the ignore sleep instrumentation, if enabled
     if (options.reduceIgnoreSleep()) {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
