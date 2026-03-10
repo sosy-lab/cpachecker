@@ -63,7 +63,14 @@ public record StatementInjector(
   private SeqThreadStatement injectStatementsIntoStatement(SeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
-    // always place reduceUntilConflict first, because if the reduction succeeds then the
+    // always place reduceSingleActiveThread first, because it is very cheap
+    if (options.reduceSingleActiveThread()) {
+      ReduceSingleActiveThreadInjector reduceSingleActiveThreadInjector =
+          new ReduceSingleActiveThreadInjector(
+              options, labelClauseMap, utils.binaryExpressionBuilder());
+      pStatement = reduceSingleActiveThreadInjector.injectSingleActiveThreadReduction(pStatement);
+    }
+    // then place reduceUntilConflict, because if the reduction succeeds then the
     // subsequent ghost element updates are unnecessary
     if (options.reduceUntilConflict()) {
       ReduceUntilConflictInjector reduceUntilConflictInjector =
