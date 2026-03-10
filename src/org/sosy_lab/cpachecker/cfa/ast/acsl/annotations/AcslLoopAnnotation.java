@@ -47,8 +47,8 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
     return hash;
   }
 
-  public int numOfLoopInvariants() {
-    return loopInvariants.size();
+  public ImmutableSet<AcslLoopInvariant> getLoopInvariants() {
+    return loopInvariants;
   }
 
   @Override
@@ -56,7 +56,7 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
     StringBuilder astString = new StringBuilder();
     if (loopInvariants != null) {
       for (AcslLoopInvariant l : loopInvariants) {
-        astString.append(l.toAstString()).append("\n");
+        astString.append(l.toAstString()).append(System.lineSeparator());
       }
     }
     return astString.toString();

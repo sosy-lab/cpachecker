@@ -409,9 +409,9 @@ public class AcslMetadataParsingTest {
   boolean hasMatchingFunctionContract(
       ImmutableSet<AcslFunctionContract> pContracts, FunctionContractAttribute pAttribute) {
     for (AcslFunctionContract contract : pContracts) {
-      if (contract.numOfEnsures() == pAttribute.numEnsures
-          && contract.numOfRequires() == pAttribute.numRequires
-          && contract.numOfAssigns() == pAttribute.numAssigns) {
+      if (contract.getEnsuresClauses().size() == pAttribute.numEnsures
+          && contract.getRequiresClauses().size() == pAttribute.numRequires
+          && contract.getAssignsClauses().size() == pAttribute.numAssigns) {
         return true;
       }
     }
@@ -426,7 +426,7 @@ public class AcslMetadataParsingTest {
       if (pActualAnnotations.containsKey(node)) {
         ImmutableSet<AcslLoopAnnotation> actualAnnotations = pActualAnnotations.get(node);
         for (AcslLoopAnnotation loopAnnotation : actualAnnotations) {
-          if (loopAnnotation.numOfLoopInvariants() == pAttribute.numAnnotations) {
+          if (loopAnnotation.getLoopInvariants().size() == pAttribute.numAnnotations) {
             return true;
           }
         }

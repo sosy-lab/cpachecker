@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -63,40 +62,28 @@ public final class AcslFunctionContract extends AAcslAnnotation {
   public String toAstString() {
     StringBuilder astString = new StringBuilder();
     for (AcslEnsures e : ensuresClauses) {
-      astString.append(e.toAstString()).append("\n");
+      astString.append(e.toAstString()).append(System.lineSeparator());
     }
 
     for (AcslAssigns a : assignsClauses) {
-      astString.append(a.toAstString()).append("\n");
+      astString.append(a.toAstString()).append(System.lineSeparator());
     }
     for (AcslRequires r : requiresClauses) {
-      astString.append(r.toAstString()).append("\n");
+      astString.append(r.toAstString()).append(System.lineSeparator());
     }
 
     return astString.toString();
   }
 
-  public int numOfEnsures() {
-    return ensuresClauses.size();
-  }
-
-  public int numOfRequires() {
-    return requiresClauses.size();
-  }
-
-  public int numOfAssigns() {
-    return assignsClauses.size();
-  }
-
-  public int numOfAnnotations() {
-    return ensuresClauses.size() + requiresClauses.size() + assignsClauses.size();
-  }
-
-  public @Nullable ImmutableSet<AcslEnsures> getEnsuresClauses() {
+  public ImmutableSet<AcslEnsures> getEnsuresClauses() {
     return ensuresClauses;
   }
 
-  public @Nullable ImmutableSet<AcslRequires> getRequiresClauses() {
+  public ImmutableSet<AcslRequires> getRequiresClauses() {
     return requiresClauses;
+  }
+
+  public ImmutableSet<AcslAssigns> getAssignsClauses() {
+    return assignsClauses;
   }
 }
