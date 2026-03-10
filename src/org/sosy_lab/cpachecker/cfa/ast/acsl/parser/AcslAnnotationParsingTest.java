@@ -249,8 +249,6 @@ public class AcslAnnotationParsingTest {
     AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
     aScope.registerDeclaration(predDef.getDeclaration());
 
-    new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
-
     String assertion = "assert is_positive(x, y);";
     java.lang.RuntimeException exception =
         assertThrows(
