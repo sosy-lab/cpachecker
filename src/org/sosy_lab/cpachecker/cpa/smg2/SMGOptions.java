@@ -976,7 +976,7 @@ public class SMGOptions {
                 + " abstracted in any case. If you want to prevent dynamic increase of list"
                 + " abstraction min threshold set this to the same value as"
                 + " listAbstractionMinimumLengthThreshold.")
-    private int listAbstractionMaximumIncreaseLengthThreshold = 6;
+    private int listAbstractionMaximumIncreaseLengthThreshold = 25;
 
     @Option(
         secure = true,
