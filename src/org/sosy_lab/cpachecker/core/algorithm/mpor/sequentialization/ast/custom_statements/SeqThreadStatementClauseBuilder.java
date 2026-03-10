@@ -97,12 +97,7 @@ public record SeqThreadStatementClauseBuilder(
     // if enabled, apply partial order reduction and reduce number of clauses
     PartialOrderReducer partialOrderReducer =
         new PartialOrderReducer(
-            options,
-            consecutiveLabels,
-            ghostElements.bitVectorVariables(),
-            machineModel,
-            memoryModel,
-            utils);
+            options, consecutiveLabels, ghostElements, machineModel, memoryModel, utils);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
         partialOrderReducer.reduceClauses();
 

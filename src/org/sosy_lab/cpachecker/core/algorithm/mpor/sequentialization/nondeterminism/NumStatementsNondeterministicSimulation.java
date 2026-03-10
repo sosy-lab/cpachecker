@@ -8,17 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -26,22 +24,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceIgnoreSleepInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NumStatementsNondeterministicSimulation extends NondeterministicSimulation {
@@ -84,7 +79,13 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     // add the ignore sleep instrumentation, if enabled:
     // if (round_max == 0 && Ti_SYNC == 0) { assume(*Ti in at least one conflict*); }
     if (options.reduceIgnoreSleep()) {
-      ifBlock.add(buildIgnoreSleepInstrumentation(pThread));
+      ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
+      ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+          SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));
+      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
+          new ReduceIgnoreSleepInjector(
+              options, pThread, otherThreads, labelClauseMap, ghostElements, utils);
+      ifBlock.add(reduceIgnoreSleepInjector.buildIgnoreSleepInstrumentation());
     }
 
     // if (round_max > 0) ...
@@ -129,44 +130,5 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
         ImmutableList.<CCompoundStatementElement>builder()
             .add(new CStatementWrapper(roundReset))
             .build());
-  }
-
-  private CIfStatement buildIgnoreSleepInstrumentation(MPORThread pActiveThread)
-      throws UnrecognizedCodeException {
-
-    checkState(options.reduceIgnoreSleep());
-
-    // (round_max == 0 && Ti_SYNC == 0)
-    CExpression roundMaxEqualsZero =
-        utils
-            .binaryExpressionBuilder()
-            .buildBinaryExpression(
-                SeqIdExpressions.ROUND_MAX,
-                SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.EQUALS);
-    CExpression syncEqualsZero =
-        utils
-            .binaryExpressionBuilder()
-            .buildBinaryExpression(
-                ghostElements.threadSyncFlags().getSyncFlag(pActiveThread),
-                SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.EQUALS);
-    CLogicalAndExpression logicalAnd = CLogicalAndExpression.of(roundMaxEqualsZero, syncEqualsZero);
-
-    // assume(*Ti in at least one conflict*);
-    ImmutableSet<MPORThread> otherThreads =
-        MPORUtil.withoutElement(clauses.keySet(), pActiveThread);
-    SeqBitVectorVariables bitVectorVariables = ghostElements.bitVectorVariables().orElseThrow();
-    Optional<CExportExpression> bitVectorEvaluationExpression =
-        BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
-            options, pActiveThread, otherThreads, bitVectorVariables, utils);
-    CExportExpression assumeCondition =
-        bitVectorEvaluationExpression.isPresent()
-            ? bitVectorEvaluationExpression.orElseThrow()
-            : new CExpressionWrapper(CIntegerLiteralExpression.ZERO);
-    CExportStatement assumeCallStatement =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(assumeCondition);
-
-    return new CIfStatement(logicalAnd, new CCompoundStatement(assumeCallStatement));
   }
 }

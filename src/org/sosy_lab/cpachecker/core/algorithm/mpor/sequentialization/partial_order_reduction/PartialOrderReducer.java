@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.StatementInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public record PartialOrderReducer(
     MPOROptions options,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
-    Optional<SeqBitVectorVariables> bitVectorVariables,
+    GhostElements ghostElements,
     MachineModel machineModel,
     Optional<MemoryModel> memoryModel,
     SequentializationUtils utils) {
@@ -83,7 +83,7 @@ public record PartialOrderReducer(
               activeClauses,
               labelClauseMap,
               labelBlockMap,
-              bitVectorVariables.orElseThrow(),
+              ghostElements,
               machineModel,
               memoryModel.orElseThrow(),
               utils);

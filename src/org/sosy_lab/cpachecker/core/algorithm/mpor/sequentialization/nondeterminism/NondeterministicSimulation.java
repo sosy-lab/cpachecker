@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -153,10 +152,9 @@ public abstract class NondeterministicSimulation {
   CExportStatement buildSingleThreadMultiSelectionStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(pThread);
     ImmutableList<SeqThreadStatementClause> withInjectedStatements =
-        NondeterministicSimulationBuilder.injectStatementsIntoSingleThreadClauses(
-            options, syncFlag, clauses.get(pThread), utils.binaryExpressionBuilder());
+        NondeterministicSimulationBuilder.tryInjectStatementsIntoClauses(
+            options, clauses.get(pThread), utils.binaryExpressionBuilder());
 
     CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
     ImmutableListMultimap<CExportExpression, CCompoundStatementElement> expressionClauseMap =

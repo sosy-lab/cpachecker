@@ -61,8 +61,6 @@ public record ReduceLastThreadOrderInjector(
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 
-  // Private =======================================================================================
-
   /**
    * Returns a {@link CIfStatement} that encodes the Last Thread Order (LTO) reduction. The
    * statement precedes a thread simulation and takes the following form:

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -31,7 +31,7 @@ public record StatementInjector(
     ImmutableList<SeqThreadStatementClause> clauses,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
-    SeqBitVectorVariables bitVectorVariables,
+    GhostElements ghostElements,
     MachineModel machineModel,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
@@ -63,6 +63,8 @@ public record StatementInjector(
   private SeqThreadStatement injectStatementsIntoStatement(SeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
+    // always place reduceUntilConflict first, because if the reduction succeeds then the
+    // subsequent ghost element updates are unnecessary
     if (options.reduceUntilConflict()) {
       ReduceUntilConflictInjector reduceUntilConflictInjector =
           new ReduceUntilConflictInjector(
@@ -70,12 +72,18 @@ public record StatementInjector(
               otherThreads,
               labelClauseMap,
               labelBlockMap,
-              bitVectorVariables,
+              ghostElements.bitVectorVariables().orElseThrow(),
               machineModel,
               memoryModel,
               utils);
       pStatement =
           reduceUntilConflictInjector.injectUntilConflictReductionIntoStatement(pStatement);
+    }
+    if (options.reduceIgnoreSleep()) {
+      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
+          new ReduceIgnoreSleepInjector(
+              options, activeThread, otherThreads, labelClauseMap, ghostElements, utils);
+      pStatement = reduceIgnoreSleepInjector.tryInjectSyncUpdateIntoStatement(pStatement);
     }
     if (options.reduceLastThreadOrder()) {
       ReduceLastThreadOrderInjector reduceLastThreadOrderInjector =
@@ -85,7 +93,7 @@ public record StatementInjector(
               activeThread,
               labelClauseMap,
               labelBlockMap,
-              bitVectorVariables,
+              ghostElements.bitVectorVariables().orElseThrow(),
               machineModel,
               memoryModel,
               utils);
@@ -99,7 +107,7 @@ public record StatementInjector(
             activeThread,
             labelClauseMap,
             labelBlockMap,
-            bitVectorVariables,
+            ghostElements.bitVectorVariables().orElseThrow(),
             machineModel,
             memoryModel);
     pStatement = bitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(pStatement);
