@@ -8,7 +8,7 @@
 
 extern int __VERIFIER_nondet_int(void);
 
-//@ predicate is_positive(integer i) = i >= 0;
+//@ predicate is_positive(real i) = i >= 0;
 
 /*@ requires n >= 0;
     ensures \result >= 0;
