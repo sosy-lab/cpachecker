@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
@@ -209,17 +208,13 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     String name = ctx.ident().getText();
     AcslPredicateDeclaration declaration = getAcslScope().lookupPredicate(name);
     ImmutableList.Builder<AcslTerm> termBuilder = ImmutableList.builder();
-    ImmutableList.Builder<AcslType> typeBuilder = ImmutableList.builder();
     for (TermContext t : ctx.term()) {
       AcslTerm term = antrlToTermConverter.visit(t);
       termBuilder.add(term);
-      typeBuilder.add(term.getExpressionType());
     }
     ImmutableList<AcslTerm> parameters = termBuilder.build();
-    ImmutableList<AcslType> types = typeBuilder.build();
-    AcslPredicateType predicateType = new AcslPredicateType(types, false);
     return new AcslPredicateApplicationPredicate(
-        FileLocation.DUMMY, Objects.requireNonNull(declaration), predicateType, parameters);
+        FileLocation.DUMMY, Objects.requireNonNull(declaration), parameters);
   }
 
   private AcslPredicate handleQuantifiedPredicate(

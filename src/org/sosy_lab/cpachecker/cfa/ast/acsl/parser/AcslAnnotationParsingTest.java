@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
@@ -190,7 +189,6 @@ public class AcslAnnotationParsingTest {
             new AcslPredicateApplicationPredicate(
                 FileLocation.DUMMY,
                 declaration,
-                new AcslPredicateType(ImmutableList.of(new AcslCType(basicInt())), false),
                 ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, x))));
 
     String assertion = "assert is_positive(x);";
@@ -209,9 +207,10 @@ public class AcslAnnotationParsingTest {
     String assertion = "assert is_positive(x);";
     AAcslAnnotation parsed =
         AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, getCProgramScope(), aScope);
+    assertThat(parsed.toAstString()).isEqualTo(assertion);
     assertThat(
             AcslParser.parseAcslComment(
-                    parsed.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope())
+                    parsed.toAstString(), FileLocation.DUMMY, getCProgramScope(), aScope)
                 .toAstString())
         .isEqualTo(parsed.toAstString());
   }

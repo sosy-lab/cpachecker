@@ -20,16 +20,13 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
   private final FileLocation fileLocation;
   private final AcslPredicateDeclaration predicateDeclaration;
-  private final AcslPredicateType predicateType;
   private final ImmutableList<AcslTerm> parameters;
 
   public AcslPredicateApplicationPredicate(
       FileLocation pFileLocation,
       AcslPredicateDeclaration pPredicateDeclaration,
-      AcslPredicateType pPredicateType,
       List<AcslTerm> pParameters) {
     predicateDeclaration = pPredicateDeclaration;
-    predicateType = pPredicateType;
     parameters = ImmutableList.copyOf(pParameters);
     fileLocation = pFileLocation;
   }
@@ -58,7 +55,7 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    StringBuilder astString = new StringBuilder(predicateDeclaration + "(");
+    StringBuilder astString = new StringBuilder(predicateDeclaration.getName() + "(");
     String paramString = Joiner.on(", ").join(parameters.stream().toList());
     astString.append(paramString);
     astString.append(")");
@@ -77,7 +74,6 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
     }
     return p0 instanceof AcslPredicateApplicationPredicate other
         && predicateDeclaration.equals(other.predicateDeclaration)
-        && predicateType.equals(other.predicateType)
         && parameters.equals(other.parameters);
   }
 
@@ -86,7 +82,6 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
     int hash = 7;
     int prime = 31;
     hash = prime * hash * Objects.hashCode(predicateDeclaration);
-    hash = prime * hash * Objects.hashCode(predicateType);
     hash = hash * prime * Objects.hashCode(parameters);
     return hash;
   }
