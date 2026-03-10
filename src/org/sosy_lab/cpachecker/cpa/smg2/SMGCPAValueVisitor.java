@@ -2483,7 +2483,8 @@ public class SMGCPAValueVisitor
     }
 
     return ImmutableList.of(
-        evaluator.searchOrCreatePointer(pointerTarget, leftValueType, newOffsetInBits, state));
+        evaluator.searchOrCreatePointer(
+            pointerTarget, leftValueType, newOffsetInBits, currentState));
   }
 
   /**
