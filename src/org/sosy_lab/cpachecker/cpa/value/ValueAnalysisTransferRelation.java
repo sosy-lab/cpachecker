@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -1852,7 +1853,11 @@ public class ValueAnalysisTransferRelation
 
     if (isUnsupportedFunction(calledFunctionName)) {
       if (options.ignoreCallsToUnknownFunctions) {
-        String additionalMsg = "";
+        // CVoidType -> No return value
+        boolean hasReturnValue =
+            !(funcCallExpr.getExpressionType().getCanonicalType() instanceof CVoidType);
+        String sideEffectsMsg = "";
+
         if (functionCall.getFunctionCallExpression().getParameterExpressions().stream()
             .anyMatch(
                 p ->
@@ -1860,16 +1865,28 @@ public class ValueAnalysisTransferRelation
                         || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
           // It is UNSOUND to ignore these (in case of side effects)!!!!
           // It might be that the variable of the side effect is already overapproximated though.
-          additionalMsg =
-              " Side-effects of the function call are ignored! The analysis may no longer be"
+          sideEffectsMsg =
+              " Side-effects of function call "
+                  + functionCall
+                  + " are ignored! The analysis may no longer be"
                   + " sound!";
         }
-        logger.logOnce(
-            Level.WARNING,
-            "Return value for unknown and unhandled function call "
-                + functionCall
-                + " is overapproximated."
-                + additionalMsg);
+
+        if (hasReturnValue) {
+          logger.logOnce(
+              Level.WARNING,
+              "Return value for unknown and unhandled function call "
+                  + functionCall
+                  + " is overapproximated."
+                  + sideEffectsMsg);
+
+        } else if (!sideEffectsMsg.isEmpty()) {
+          // No return value, but possible side effects
+          logger.logOnce(
+              Level.WARNING,
+              "Found unhandled function call " + functionCall + "." + sideEffectsMsg);
+        }
+
       } else {
         throw new UnsupportedCodeException(
             "Unhandled call to function " + functionCall, cfaEdge, fn);
