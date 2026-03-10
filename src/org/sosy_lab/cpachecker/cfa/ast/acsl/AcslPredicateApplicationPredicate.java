@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -26,6 +28,26 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
       FileLocation pFileLocation,
       AcslPredicateDeclaration pPredicateDeclaration,
       List<AcslTerm> pParameters) {
+    Preconditions.checkNotNull(pFileLocation);
+    Preconditions.checkNotNull(pPredicateDeclaration);
+    Preconditions.checkNotNull(pParameters);
+
+    Verify.verify(
+        pParameters.size() == pPredicateDeclaration.getParameters().size(),
+        "Expected %s parameters but got %s.",
+        pPredicateDeclaration.getParameters().size(),
+        pParameters.size());
+
+    for (int i = 0; i < pParameters.size(); i++) {
+      AcslType providedType = pParameters.get(i).getExpressionType();
+      Type expectedType = pPredicateDeclaration.getType().getParameters().get(i);
+      Verify.verify(expectedType instanceof AcslType);
+      Verify.verify(
+          providedTypeMatchesExpectedType(providedType, (AcslType) expectedType),
+          "Provided parameter %s is not of the expected type.",
+          i);
+    }
+
     predicateDeclaration = pPredicateDeclaration;
     parameters = ImmutableList.copyOf(pParameters);
     fileLocation = pFileLocation;
@@ -65,6 +87,14 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "(" + toASTString(pAAstNodeRepresentation) + ")";
+  }
+
+  private boolean providedTypeMatchesExpectedType(AcslType provided, AcslType expected) {
+    AcslType generalType = AcslType.mostGeneralType(provided, expected);
+    if (expected.equals(generalType)) {
+      return true;
+    }
+    return false;
   }
 
   @Override
