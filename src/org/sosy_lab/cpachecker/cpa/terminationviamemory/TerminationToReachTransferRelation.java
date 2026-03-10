@@ -71,7 +71,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
-    if (location.isLoopStart()) {
+    if (terminationState.isLoopHead(location)) {
       Pair<LocationState, CallstackState> pairKey = Pair.of(locationState, callstackState);
 
       ImmutableMap.Builder<

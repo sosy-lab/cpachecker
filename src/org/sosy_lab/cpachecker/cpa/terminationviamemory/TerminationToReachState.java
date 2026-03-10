@@ -134,6 +134,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return !possiblyNonterminatingLoopHeads.contains(pLoopHead);
   }
 
+  public boolean isLoopHead(CFANode pLoopHead) {
+    return possiblyNonterminatingLoopHeads.contains(pLoopHead);
+  }
+
   public Set<CFANode> getPossiblyNonterminatingLoopHeads() {
     return possiblyNonterminatingLoopHeads;
   }

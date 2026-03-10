@@ -128,7 +128,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
     Pair<LocationState, CallstackState> keyPair = Pair.of(locationState, callstackState);
 
-    if (location.isLoopStart()
+    if (terminationState.isLoopHead(location)
         && !terminationState.isLoopTerminating(location)
         && terminationState.getStoredValues().containsKey(keyPair)) {
       if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
