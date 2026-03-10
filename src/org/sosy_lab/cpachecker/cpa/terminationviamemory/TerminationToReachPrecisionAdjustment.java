@@ -134,6 +134,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
         boolean isTargetStateReachable;
         boolean isOverapproximating = false;
+        BooleanFormula candidateTransitionInvariant = bfmgr.makeFalse();
+
         PathFormula prefixPathFormula = terminationState.getPathFormulasForPrefix().orElseThrow();
         SSAMap smallestIndices = prefixPathFormula.getSsa();
         SSAMap largestIndices =
@@ -153,14 +155,33 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         while (true) {
           // First, check that the BMC check is UNSATs
           BooleanFormula latestSameStateFormula = bfmgr.makeTrue();
-          BooleanFormula firstStepFormula = prefixFormula;
+          BooleanFormula firstStepFormula;
+          if (isOverapproximating) {
+            // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
+            if (isTransitionInvariant(
+                prefixFormula,
+                candidateTransitionInvariant,
+                iterationFormula,
+                prevIndices,
+                smallestIndices,
+                largestIndices,
+                location)) {
+              terminationState.setTerminating(locationState.getLocationNode());
+              return Optional.of(result.withAbstractState(terminationState));
+            }
+            firstStepFormula = candidateTransitionInvariant;
+          } else {
+            firstStepFormula = prefixFormula;
+          }
+
           for (BooleanFormula sameStateFormula : sameStateFormulas) {
             try {
               if (isOverapproximating) {
                 sameStateFormula =
                     instantiateTransitionInvariant(sameStateFormula, prevIndices, largestIndices);
                 firstStepFormula =
-                    instantiateTransitionInvariant(prefixFormula, prevIndices, smallestIndices);
+                    instantiateTransitionInvariant(
+                        candidateTransitionInvariant, prevIndices, smallestIndices);
                 isTargetStateReachable =
                     !solver.isUnsat(
                         bfmgr.and(firstStepFormula, iterationFormula, sameStateFormula));
@@ -180,6 +201,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                     cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
                 result = result.withAction(Action.BREAK);
               }
+              result.withAction(Action.BREAK);
               return Optional.of(result);
             }
             latestSameStateFormula = sameStateFormula;
@@ -192,19 +214,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // fix-point
           if (performBMC) {
             break;
-          }
-
-          // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
-          if (isOverapproximating
-              && isTransitionInvariant(
-                  prefixFormula,
-                  iterationFormula,
-                  prevIndices,
-                  smallestIndices,
-                  largestIndices,
-                  location)) {
-            terminationState.setTerminating(locationState.getLocationNode());
-            return Optional.of(result.withAbstractState(terminationState));
           }
 
           BooleanFormula interpolant;
@@ -220,24 +229,21 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           } catch (CPAException e) {
             break;
           }
-          if (!isOverapproximating) {
-            prefixFormula = bfmgr.makeFalse();
-          }
           isOverapproximating = true;
           BooleanFormula newInterpolant =
               instantiateTransitionInvariant(interpolant, prevIndices, currIndices);
 
           try {
             if (containsOnlyIrrelevantVariables(interpolant, callstackState)
-                || solver.implies(newInterpolant, prefixFormula)) {
+                || solver.implies(newInterpolant, candidateTransitionInvariant)) {
               break;
             }
           } catch (SolverException | InterruptedException e) {
             break;
           }
-          prefixFormula =
+          candidateTransitionInvariant =
               bfmgr.or(
-                  prefixFormula,
+                  candidateTransitionInvariant,
                   instantiateTransitionInvariant(interpolant, prevIndices, currIndices));
         }
       }
@@ -349,6 +355,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   }
 
   private boolean isTransitionInvariant(
+      BooleanFormula prefixFormula,
       BooleanFormula candidateTransitionInvariant,
       BooleanFormula iterationFormula,
       SSAMap mapForIndexTwo,
@@ -357,8 +364,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       CFANode pLocation) {
     boolean isTransitionInvariant;
     BooleanFormula firstStepInTransInv =
-        instantiateTransitionInvariant(
-            candidateTransitionInvariant, mapForIndexTwo, smallestIndicesInIteration);
+        bfmgr.and(
+            renameTransInvVarsInPrefix(prefixFormula, candidateTransitionInvariant),
+            instantiateTransitionInvariant(
+                candidateTransitionInvariant, mapForIndexTwo, smallestIndicesInIteration));
     BooleanFormula secondStepInTransInv =
         instantiateTransitionInvariant(
             candidateTransitionInvariant, mapForIndexTwo, largestIndicesInIteration);
@@ -374,7 +383,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       isTransitionInvariant =
           solver.implies(bfmgr.and(firstStepInTransInv, iterationFormula), secondStepInTransInv);
       isTransitionInvariant =
-          isTransitionInvariant && solver.implies(iterationFormula, transInvForIterationFormula);
+          isTransitionInvariant
+              && solver.implies(
+                  bfmgr.and(prefixFormula, iterationFormula), transInvForIterationFormula);
     } catch (SolverException | InterruptedException e) {
       logger.logDebugException(e);
       return false;
@@ -383,6 +394,19 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       return true;
     }
     return false;
+  }
+
+  private BooleanFormula renameTransInvVarsInPrefix(
+      BooleanFormula prefixFormula, BooleanFormula candidateTransitionInvariant) {
+    Map<Formula, Formula> renamingMap = new HashMap<>();
+    for (Entry<String, Formula> variable :
+        fmgr.extractVariables(candidateTransitionInvariant).entrySet()) {
+      renamingMap.put(
+          variable.getValue(),
+          fmgr.makeVariable(
+              fmgr.getFormulaType(variable.getValue()), "__PREFIX_" + variable.getKey()));
+    }
+    return fmgr.substitute(prefixFormula, renamingMap);
   }
 
   private ImmutableList<BooleanFormula> buildCycleFormula(
