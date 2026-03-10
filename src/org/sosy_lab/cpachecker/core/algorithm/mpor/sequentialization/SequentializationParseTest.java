@@ -145,7 +145,6 @@ public class SequentializationParseTest {
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "OCTAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
