@@ -36,6 +36,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       SimpleTargetInformation.singleton("termination");
   private boolean isTarget;
   private Set<CFANode> possiblyNonterminatingLoopHeads;
+  private ImmutableSet<CFANode> allLoopHeads;
 
   /**
    * The following map keeps track of all the variables as type of @Formula, so that they can be
@@ -77,7 +78,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
       Optional<PathFormula> pPathFormulaFull,
-      Set<CFANode> pPossiblyNonterminatingLoopHeads) {
+      Set<CFANode> pPossiblyNonterminatingLoopHeads,
+      ImmutableSet<CFANode> pAllLoopHeads) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
@@ -85,6 +87,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     pathFormulaForPrefix = pPathFormulaForPrefix;
     pathFormulaFull = pPathFormulaFull;
     possiblyNonterminatingLoopHeads = pPossiblyNonterminatingLoopHeads;
+    allLoopHeads = pAllLoopHeads;
     isTarget = false;
   }
 
@@ -135,7 +138,11 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   }
 
   public boolean isLoopHead(CFANode pLoopHead) {
-    return possiblyNonterminatingLoopHeads.contains(pLoopHead);
+    return allLoopHeads.contains(pLoopHead);
+  }
+
+  public ImmutableSet<CFANode> getAllLoopHeads() {
+    return allLoopHeads;
   }
 
   public Set<CFANode> getPossiblyNonterminatingLoopHeads() {
