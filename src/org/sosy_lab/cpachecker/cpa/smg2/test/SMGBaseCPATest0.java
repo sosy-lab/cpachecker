@@ -134,9 +134,9 @@ public abstract class SMGBaseCPATest0 {
    * Checks assertions about the verification result of a ILP32 program given via its path with
    * {@link com.google.common.truth.Truth}: <code>assertThatILP32Program(pathToProgram).is...()
    * </code>, with e.g. <code>isSafe()</code>, <code>isUnsafe()</code> etc. The verification used is
-   * defined via the current test parameters as defined in {@link SMGBaseCPATest}. You can disable
+   * defined via the current test parameters as defined in {@link SMGBaseCPATest0}. You can disable
    * certain {@link Configuration}s via methods like {@link
-   * SMGBaseCPATest#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
+   * SMGBaseCPATest0#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
    *
    * @param pathToProgram path to a ILP32 test program, e.g.
    *     'test/programs/basics/array_tests/array_usage_32_true.c'. The common path-prefix
@@ -152,9 +152,9 @@ public abstract class SMGBaseCPATest0 {
    * Checks assertions about the verification result of a LP64 program given via its path with
    * {@link com.google.common.truth.Truth}: <code>assertThatLP64Program(pathToProgram).is...()
    * </code>, with e.g. <code>isSafe()</code>, <code>isUnsafe()</code> etc. The verification used is
-   * defined via the current test parameters as defined in {@link SMGBaseCPATest}. You can disable
+   * defined via the current test parameters as defined in {@link SMGBaseCPATest0}. You can disable
    * certain {@link Configuration}s via methods like {@link
-   * SMGBaseCPATest#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
+   * SMGBaseCPATest0#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
    *
    * @param pathToProgram path to a LP64 program, e.g.
    *     'test/programs/basics/array_tests/array_usage_64_true.c'. The common path-prefix
