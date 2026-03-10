@@ -87,8 +87,8 @@ public record SeqThreadStatementClauseBuilder(
             : linked;
 
     // ensure label numbers are consecutive (start at 0, end at clauseNum - 1). this must be done
-    // before adding any injected statements, otherwise the injected statements may have to be
-    // adjusted too, e.g., to adjust a 'goto' label in a partial order reduction instrumentation.
+    // before adding any instrumentation statements, otherwise the instrumentation statements may
+    // have to be adjusted too, e.g., to adjust a 'goto' label.
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
         options.consecutiveLabels()
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
