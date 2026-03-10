@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -53,6 +54,11 @@ public class AcslAnnotationParsingTest {
   private CSimpleType basicInt() {
     return new CSimpleType(
         CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
+  }
+
+  private CSimpleType basicBool() {
+    return new CSimpleType(
+        CTypeQualifiers.NONE, CBasicType.BOOL, false, false, false, false, false, false, false);
   }
 
   private CProgramScope getCProgramScope() {
@@ -195,6 +201,64 @@ public class AcslAnnotationParsingTest {
     AAcslAnnotation parsed =
         AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, getCProgramScope(), aScope);
     assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void AssertionWithPredicateBooleanParameters() throws AcslParseException {
+    AcslScope aScope = AcslScope.mutableCopy(getAcslScope());
+    CProgramScope scope = CProgramScope.mutableCoy(getCProgramScope());
+    scope.registerDeclaration(
+        new CVariableDeclaration(
+            FileLocation.DUMMY, true, CStorageClass.AUTO, basicBool(), "a", "a", "a", null));
+    String predicate = "predicate is_false(boolean p) = !p";
+    AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
+    aScope.registerDeclaration(predDef.getDeclaration());
+
+    AcslParameterDeclaration p =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, "p");
+    AcslPredicateDeclaration declaration =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            new AcslPredicateType(ImmutableList.of(AcslBuiltinLogicType.BOOLEAN), false),
+            "is_false",
+            "is_false",
+            ImmutableList.of(),
+            ImmutableList.of(p));
+    AcslCVariableDeclaration a =
+        new AcslCVariableDeclaration(
+            new CVariableDeclaration(
+                FileLocation.DUMMY, true, CStorageClass.AUTO, basicBool(), "a", "a", "a", null));
+    AcslAssertion expected =
+        new AcslAssertion(
+            FileLocation.DUMMY,
+            new AcslPredicateApplicationPredicate(
+                FileLocation.DUMMY,
+                declaration,
+                ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, a))));
+
+    String assertion = "assert is_false(a);";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, scope, aScope);
+    assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void parseAssertionPredWrongNumParameters() throws AcslParseException {
+    AcslScope aScope = AcslScope.mutableCopy(getAcslScope());
+    String predicate = "predicate is_positive(integer i) = i >= 0";
+    AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
+    aScope.registerDeclaration(predDef.getDeclaration());
+
+    new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+
+    String assertion = "assert is_positive(x, y);";
+    java.lang.RuntimeException exception =
+        assertThrows(
+            RuntimeException.class,
+            () ->
+                AcslParser.parseAcslComment(
+                    assertion, FileLocation.DUMMY, getCProgramScope(), aScope));
+    assertThat(exception.getMessage()).isEqualTo("Expected 1 parameters but got 2.");
   }
 
   @Test

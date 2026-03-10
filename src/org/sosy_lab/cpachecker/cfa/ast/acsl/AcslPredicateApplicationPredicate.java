@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
@@ -90,6 +92,15 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
   }
 
   private boolean providedTypeMatchesExpectedType(AcslType provided, AcslType expected) {
+    if (provided instanceof AcslCType pCType) {
+      if (pCType.getType() instanceof CSimpleType pCSimpleType) {
+        if (pCSimpleType.getType() == CBasicType.BOOL
+            && expected instanceof AcslBuiltinLogicType pLogicType
+            && pLogicType == AcslBuiltinLogicType.BOOLEAN) {
+          return true;
+        }
+      }
+    }
     AcslType generalType = AcslType.mostGeneralType(provided, expected);
     if (expected.equals(generalType)) {
       return true;
