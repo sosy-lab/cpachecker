@@ -8,13 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -65,39 +62,6 @@ public class SeqInstrumentationBuilder {
     CIfStatement ifStatement =
         new CIfStatement(new CExpressionWrapper(pCondition), compoundStatement);
     return new SeqInstrumentation(SeqInstrumentationType.GUARDED_GOTO, ifStatement);
-  }
-
-  public static SeqInstrumentation buildIgnoreSleepReductionStatement(
-      CBinaryExpression pRoundMaxExpression,
-      CExportExpression pBitVectorEvaluationExpression,
-      ImmutableList<SeqInstrumentation> pReductionAssumptions,
-      CLabelStatement pTargetLabel) {
-
-    // negate the evaluation expression
-    CLogicalNotExpression ifExpression = pBitVectorEvaluationExpression.negate();
-    CGotoStatement gotoNext = new CGotoStatement(pTargetLabel);
-    CCompoundStatement compoundStatement = new CCompoundStatement(gotoNext);
-    CIfStatement innerIfStatement = new CIfStatement(ifExpression, compoundStatement);
-
-    if (pReductionAssumptions.isEmpty()) {
-      // no reduction assumptions -> just return outer if statement
-      CIfStatement outerIfStatement =
-          new CIfStatement(
-              new CExpressionWrapper(pRoundMaxExpression),
-              new CCompoundStatement(innerIfStatement));
-      return new SeqInstrumentation(
-          SeqInstrumentationType.IGNORE_SLEEP_REDUCTION, outerIfStatement);
-    }
-
-    // reduction assumptions are present -> build else branch with assumptions
-    CIfStatement outerIfStatement =
-        new CIfStatement(
-            new CExpressionWrapper(pRoundMaxExpression),
-            new CCompoundStatement(innerIfStatement),
-            new CCompoundStatement(
-                transformedImmutableListCopy(
-                    pReductionAssumptions, a -> checkNotNull(a).statement())));
-    return new SeqInstrumentation(SeqInstrumentationType.IGNORE_SLEEP_REDUCTION, outerIfStatement);
   }
 
   public static SeqInstrumentation buildLastThreadUpdateStatement(
