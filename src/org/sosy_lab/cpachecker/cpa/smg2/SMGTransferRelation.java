@@ -872,6 +872,8 @@ public class SMGTransferRelation
     CExpression cExpression = (CExpression) simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
 
+    // TODO: add option to only return proofs once we abstracted one,
+    //   as this is only a fix for certain cases, but not in general!
     if (expression instanceof CBinaryExpression binEx
         && (incomingAndOutgoingLoopEdges.contains(cfaEdge)
             || (maybeLoopHeads.isPresent()
