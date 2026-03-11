@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+import static org.junit.Assert.assertThrows;
+
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import org.junit.Test;
@@ -25,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
@@ -40,8 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 
 public class AcslParserLogicalDefinitionsTest {
@@ -560,84 +559,16 @@ public class AcslParserLogicalDefinitionsTest {
   }
 
   @Test
-  public void parseXorLogicPredicate() throws AcslParseException {
-    String input = "predicate xor(boolean p, boolean q) = ((!p) && q) || (p && (!q));";
-    AcslParameterDeclaration p =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, "p");
-    AcslParameterDeclaration q =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, "q");
-    AcslPredicateDeclaration declaration =
-        new AcslPredicateDeclaration(
-            FileLocation.DUMMY,
-            new AcslPredicateType(ImmutableList.of(p.getType(), q.getType()), false),
-            "xor",
-            "xor",
-            ImmutableList.of(),
-            ImmutableList.of(p, q));
-    AcslBinaryPredicate body =
-        // !p && q || p && !q
-        new AcslBinaryPredicate(
-            FileLocation.DUMMY,
-            // !p && q
-            new AcslBinaryPredicate(
-                FileLocation.DUMMY,
-                // !p
-                new AcslUnaryPredicate(
-                    FileLocation.DUMMY,
-                    // p
-                    new AcslIdPredicate(
-                        FileLocation.DUMMY,
-                        new AcslPredicateDeclaration(
-                            FileLocation.DUMMY,
-                            new AcslPredicateType(ImmutableList.of(), false),
-                            p.getName(),
-                            p.getOrigName(),
-                            ImmutableList.of(),
-                            ImmutableList.of())),
-                    AcslUnaryExpressionOperator.NEGATION),
-                // q
-                new AcslIdPredicate(
-                    FileLocation.DUMMY,
-                    new AcslPredicateDeclaration(
-                        FileLocation.DUMMY,
-                        new AcslPredicateType(ImmutableList.of(), false),
-                        q.getName(),
-                        q.getOrigName(),
-                        ImmutableList.of(),
-                        ImmutableList.of())),
-                AcslBinaryPredicateOperator.AND),
-            // p && !q
-            new AcslBinaryPredicate(
-                FileLocation.DUMMY,
-                // p
-                new AcslIdPredicate(
-                    FileLocation.DUMMY,
-                    new AcslPredicateDeclaration(
-                        FileLocation.DUMMY,
-                        new AcslPredicateType(ImmutableList.of(), false),
-                        p.getName(),
-                        p.getOrigName(),
-                        ImmutableList.of(),
-                        ImmutableList.of())),
-                // !q
-                new AcslUnaryPredicate(
-                    FileLocation.DUMMY,
-                    // q
-                    new AcslIdPredicate(
-                        FileLocation.DUMMY,
-                        new AcslPredicateDeclaration(
-                            FileLocation.DUMMY,
-                            new AcslPredicateType(ImmutableList.of(), false),
-                            q.getName(),
-                            q.getOrigName(),
-                            ImmutableList.of(),
-                            ImmutableList.of())),
-                    AcslUnaryExpressionOperator.NEGATION),
-                AcslBinaryPredicateOperator.AND),
-            AcslBinaryPredicateOperator.OR);
-    AcslLogicPredicateDefinition output =
-        new AcslLogicPredicateDefinition(FileLocation.DUMMY, declaration, body);
-    testLogicalFunctionParsing(input, output);
+  public void parseIsFalseLogicPredicate() {
+    // Logic definitions that take boolean parameters are not supported.
+    String definition1 = "predicate is_false(boolean p) = (!p) = \\true;";
+    String definition2 = "predicate is_false(boolean p) = !p;";
+    assertThrows(
+        NullPointerException.class,
+        () -> AcslParser.parseLogicalDefinition(definition1, getAcslScope()));
+    assertThrows(
+        NullPointerException.class,
+        () -> AcslParser.parseLogicalDefinition(definition2, getAcslScope()));
   }
 
   @Test

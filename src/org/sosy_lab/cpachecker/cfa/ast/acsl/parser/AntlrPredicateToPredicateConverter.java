@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
@@ -33,9 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
@@ -54,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.O
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ParenthesesPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.PredicateApplicationPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.PredicateTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.PredicateVariableContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TernaryConditionPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.UnaryPredContext;
@@ -219,20 +215,6 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     ImmutableList<AcslTerm> parameters = termBuilder.build();
     return new AcslPredicateApplicationPredicate(
         FileLocation.DUMMY, Objects.requireNonNull(declaration), parameters);
-  }
-
-  @Override
-  public AcslPredicate visitPredicateVariable(PredicateVariableContext ctx) {
-    AcslSimpleDeclaration declaration = getAcslScope().lookupVariable(ctx.getText());
-    AcslPredicateDeclaration predicateDeclaration =
-        new AcslPredicateDeclaration(
-            FileLocation.DUMMY,
-            new AcslPredicateType(ImmutableList.of(), false),
-            Objects.requireNonNull(declaration).getName(),
-            declaration.getOrigName(),
-            ImmutableList.of(),
-            ImmutableList.of());
-    return new AcslIdPredicate(FileLocation.DUMMY, predicateDeclaration);
   }
 
   private AcslPredicate handleQuantifiedPredicate(
