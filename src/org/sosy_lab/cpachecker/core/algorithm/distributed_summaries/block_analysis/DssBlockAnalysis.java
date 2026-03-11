@@ -19,13 +19,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
@@ -81,14 +79,10 @@ public class DssBlockAnalysis {
       Collection<StateAndPrecision> summaries,
       Collection<AbstractState> violationConditions) {}
 
-  private record SoundOrUnsoundPreconditions(
-      boolean isSound, boolean containsTopState, List<StateAndPrecision> preconditions) {}
-
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final DssMessageFactory messageFactory;
-  private final Multimap<String, @NonNull StateAndPrecision> preconditions;
-  private final Multimap<String, @NonNull StateAndPrecision> violationConditions;
-  private final SequencedSet<String> soundPredecessors;
+  public final Multimap<String, @NonNull StateAndPrecision> preconditions;
+  public final Multimap<String, @NonNull StateAndPrecision> violationConditions;
 
   private final ConfigurableProgramAnalysis cpa;
   private final BlockNode block;
@@ -141,7 +135,6 @@ public class DssBlockAnalysis {
     preconditions = ArrayListMultimap.create();
     violationConditions = ArrayListMultimap.create();
     forcefullyCollectAllArgPaths = pOptions.forcefullyCollectAllViolationConditions();
-    soundPredecessors = new LinkedHashSet<>();
 
     isOriginal = false;
   }
@@ -367,7 +360,6 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportPostconditions(
       Collection<@NonNull StateAndPrecision> summaries, boolean isSound)
       throws CPAException, InterruptedException {
-    isSound &= soundPredecessors.containsAll(block.getPredecessorIds());
 
     // reset all summaries and run cpa algorithm on them to remove redundant ones
     ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
@@ -459,13 +451,17 @@ public class DssBlockAnalysis {
       throws InterruptedException, SolverException, CPAException {
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     if (!pReceived.isReachable()) {
-      soundPredecessors.add(pReceived.getSenderId());
       preconditions.removeAll(pReceived.getSenderId());
+      if (preconditions.keySet().isEmpty()) {
+        return DssMessageProcessing.stopWith(reportUnreachableBlockEnd());
+      }
       return DssMessageProcessing.stop();
     }
-    List<StateAndPrecision> deserializedStates = deserialize(pReceived);
+    resetStates();
+    ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
+        deserialize(pReceived);
     DssMessageProcessing processing = DssMessageProcessing.proceed();
-    for (StateAndPrecision stateAndPrecision : deserializedStates) {
+    for (StateAndPrecision stateAndPrecision : deserializedStatesAndPrecisions) {
       processing =
           processing.merge(
               dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
@@ -474,64 +470,33 @@ public class DssBlockAnalysis {
       return processing;
     }
 
-    record PredecessorStateEntry(String predecessorId, StateAndPrecision stateAndPrecision) {}
-
-    resetStates();
-    ImmutableSet.Builder<PredecessorStateEntry> discard = ImmutableSet.builder();
-    int covered = 0;
-    if (pReceived.isSound()) {
-      soundPredecessors.add(pReceived.getSenderId());
-    } else {
-      soundPredecessors.remove(pReceived.getSenderId());
+    if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
+      preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
+      return processing;
     }
-    for (StateAndPrecision deserialized : deserializedStates) {
-      if (dcpa.isMostGeneralBlockEntryState(deserialized.state())) {
-        soundPredecessors.add(pReceived.getSenderId());
-        preconditions.removeAll(pReceived.getSenderId());
-        preconditions.putAll(pReceived.getSenderId(), deserializedStates);
-        return DssMessageProcessing.proceed();
-      }
-      boolean isEquivalent = false;
-      for (StateAndPrecision previous : preconditions.get(pReceived.getSenderId())) {
-        if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
-          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
-        }
-        // the reset resets the callstack state, too
-        boolean previousLessEqualDeserialized =
-            dcpa.getCoverageOperator()
-                .isSubsumed(previous.state(), dcpa.reset(deserialized.state()));
-        if (previousLessEqualDeserialized) {
-          boolean deserializedLessEqualPrevious =
-              dcpa.getCoverageOperator()
-                  .isSubsumed(dcpa.reset(deserialized.state()), previous.state());
-          if (deserializedLessEqualPrevious) {
-            if (pReceived.isSound()) {
-              soundPredecessors.add(pReceived.getSenderId());
-            }
-            isEquivalent = true;
+    int equal = 0;
+    for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
+      for (StateAndPrecision stateAndPrecision :
+          ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
+        if (dcpa.getCoverageOperator()
+            .isSubsumed(
+                dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
+          if (dcpa.getCoverageOperator()
+              .isSubsumed(
+                  stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
+            equal += 1;
+            preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
+            break;
           }
-          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
+          // preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
         }
       }
-      if (isEquivalent) {
-        covered++;
-      }
+      preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
     }
-    // summaries from non-loop predecessors are by definition stronger and unique
-    if (!block.getLoopPredecessorIds().contains(pReceived.getSenderId())) {
-      for (StateAndPrecision sp : preconditions.get(pReceived.getSenderId())) {
-        discard.add(new PredecessorStateEntry(pReceived.getSenderId(), sp));
-      }
+    if (equal == deserializedStatesAndPrecisions.size()) {
+      processing = DssMessageProcessing.stop();
     }
 
-    ImmutableSet<PredecessorStateEntry> discarded = discard.build();
-    preconditions.putAll(pReceived.getSenderId(), deserializedStates);
-    discarded.forEach(pse -> preconditions.remove(pse.predecessorId(), pse.stateAndPrecision()));
-
-    if (covered == deserializedStates.size()) {
-      // we already have a precondition equivalent to the new one
-      return DssMessageProcessing.stop();
-    }
     return processing;
   }
 
@@ -568,28 +533,18 @@ public class DssBlockAnalysis {
    *
    * @return All violations and/or abstractions that occurred while running the forward analysis.
    */
-  public Collection<DssMessage> analyzePrecondition()
+  public Collection<DssMessage> analyzePrecondition(String id)
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableList.Builder<StateAndPrecision> soundSummaries = ImmutableList.builder();
     ImmutableList.Builder<StateAndPrecision> unsoundSummaries = ImmutableList.builder();
-    if (violationConditions.isEmpty() && isOriginal) {
-      AnalysisResult result = analyzeViolationCondition(ImmutableList.of());
-      if (!result.violationConditions().isEmpty()) {
-        messages.addAll(reportViolationConditions(result.violationConditions(), false));
-      } else {
-        if (result.isSound()) {
-          soundSummaries.addAll(result.summaries());
-        } else {
-          unsoundSummaries.addAll(result.summaries());
-        }
-      }
-    }
-    for (String successor : violationConditions.keySet()) {
+    if (isOriginal || !violationConditions.isEmpty()) {
       AnalysisResult result =
           analyzeViolationCondition(
               transformedImmutableListCopy(
-                  violationConditions.get(successor), v -> (ARGState) v.state()));
+                  isOriginal ? ImmutableSet.of() : violationConditions.values(),
+                  v -> (ARGState) v.state()),
+              id);
       if (!result.violationConditions().isEmpty()) {
         messages.addAll(reportViolationConditions(result.violationConditions(), false));
       } else {
@@ -629,7 +584,7 @@ public class DssBlockAnalysis {
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
     AnalysisResult result =
         analyzeViolationCondition(
-            transformedImmutableListCopy(violations, v -> (ARGState) v.state()));
+            transformedImmutableListCopy(violations, v -> (ARGState) v.state()), "all");
     if (!result.summaries().isEmpty()) {
       messages.addAll(
           reportPostconditions(
@@ -637,6 +592,11 @@ public class DssBlockAnalysis {
     }
     if (!result.violationConditions().isEmpty()) {
       messages.addAll(reportViolationConditions(result.violationConditions(), false));
+    }
+    if (result.summaries().isEmpty()
+        && result.violationConditions().isEmpty()
+        && (preconditions.isEmpty() || pSenderId.equals("all"))) {
+      messages.addAll(reportUnreachableBlockEnd());
     }
     return messages.build();
   }
@@ -652,16 +612,41 @@ public class DssBlockAnalysis {
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
-  private AnalysisResult analyzeViolationCondition(List<ARGState> violations)
+  private AnalysisResult analyzeViolationCondition(List<ARGState> violations, String id)
       throws CPAException, InterruptedException, SolverException {
+    if (preconditions.isEmpty() && !block.isRoot()) {
+      return new AnalysisResult(true, ImmutableList.of(), ImmutableList.of());
+    }
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     ImmutableList.Builder<AbstractState> vcs = ImmutableList.builder();
-    SoundOrUnsoundPreconditions prepped = prepareReachedSet();
-    int i = 0;
-    for (StateAndPrecision stateAndPrecision : prepped.preconditions()) {
-      i++;
+    boolean calculatedTop = false;
+    ImmutableSet.Builder<StateAndPrecision> startStates = ImmutableSet.builder();
+    if (id.equals("all")) {
+      // unreachable block ends might be caused by underapproximating summaries
+      // therefore, a new violation condition cannot ignore them.
+      if (!preconditions.keySet().containsAll(block.getPredecessorIds()) && !block.isRoot()) {
+        startStates.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
+      } else {
+        startStates.addAll(preconditions.values());
+      }
+    } else {
+      startStates.addAll(preconditions.get(id));
+    }
+    if (block.isRoot()) {
+      startStates.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
+    }
+    Optional<Precision> maybePrecision = combinePrecisionIfPossible();
+    for (StateAndPrecision stateAndPrecision : startStates.build()) {
+      if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
+        if (calculatedTop) {
+          continue;
+        }
+        calculatedTop = true;
+      }
+      resetStates();
       reachedSet.clear();
-      reachedSet.add(stateAndPrecision.state(), stateAndPrecision.precision());
+      reachedSet.add(
+          stateAndPrecision.state(), maybePrecision.orElse(stateAndPrecision.precision()));
       reachedSet.forEach(
           abstractState ->
               Objects.requireNonNull(
@@ -673,7 +658,7 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        if (!result.getSummaries().isEmpty()) {
+        if (!result.getSummaries().isEmpty() && result.getAllViolations().isEmpty()) {
           ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           for (AbstractState summary : result.getSummaries()) {
             summaryWithPrecision.add(
@@ -681,12 +666,10 @@ public class DssBlockAnalysis {
           }
           summaries.addAll(summaryWithPrecision.build());
         }
-        if (!prepped.containsTopState() || i == 1) {
-          if (!result.getAllViolations().isEmpty()) {
-            vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
-            if (isOriginal) {
-              vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
-            }
+        if (!result.getAllViolations().isEmpty()) {
+          vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
+          if (isOriginal) {
+            vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
           }
         }
       } else {
@@ -695,7 +678,7 @@ public class DssBlockAnalysis {
                 result.getFinalLocationStates(), violations));
       }
     }
-    return new AnalysisResult(prepped.isSound(), summaries.build(), vcs.build());
+    return new AnalysisResult(true, summaries.build(), vcs.build());
   }
 
   private AbstractState makeStartState() throws InterruptedException {
@@ -738,71 +721,6 @@ public class DssBlockAnalysis {
             .combine(
                 transformedImmutableListCopy(
                     preconditions.values(), StateAndPrecision::precision)));
-  }
-
-  /**
-   * Prepare the reached set for next analysis by merging all received preconditions into a
-   * non-empty set of start states.
-   *
-   * @throws CPAException thrown in merge or stop operation runs into an error
-   * @throws InterruptedException thrown if thread is interrupted unexpectedly.
-   */
-  private SoundOrUnsoundPreconditions prepareReachedSet()
-      throws CPAException, InterruptedException {
-    // clear stateful data structures
-    reachedSet.clear();
-    resetStates();
-    boolean isSound = true;
-
-    // prepare states to be added to the reached set
-    Optional<Precision> combinedPrecision = combinePrecisionIfPossible();
-    ImmutableList.Builder<StateAndPrecision> precondition = ImmutableList.builder();
-    for (String predecessorId : preconditions.keySet()) {
-      Collection<StateAndPrecision> statesAndPrecisions = preconditions.get(predecessorId);
-      boolean putStates = true;
-
-      // check whether a loop predecessor is top
-      if (block.hasLoopPredecessor(predecessorId) && !block.allPredecessorsAreLoopPredecessors()) {
-        for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
-          if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-            putStates = false;
-            isSound = false;
-            break;
-          }
-        }
-      }
-
-      // if not, add the states to the precondition
-      if (putStates) {
-        for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
-          if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-            isSound = true;
-          }
-          precondition.add(
-              new StateAndPrecision(
-                  stateAndPrecision.state(),
-                  combinedPrecision.orElse(stateAndPrecision.precision())));
-        }
-      }
-    }
-    // execute the CPA algorithm with the prepared states at the start location of the block
-    DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, precondition.build());
-    if (reachedSet.isEmpty()) {
-      return new SoundOrUnsoundPreconditions(
-          true,
-          true,
-          ImmutableList.of(new StateAndPrecision(makeStartState(), makeStartPrecision())));
-    }
-    ImmutableList.Builder<StateAndPrecision> toProcess = ImmutableList.builder();
-    boolean containsTopState =
-        (!isSound || block.allPredecessorsAreLoopPredecessors())
-            && !soundPredecessors.containsAll(block.getPredecessorIds());
-    if (containsTopState) {
-      toProcess.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
-    }
-    reachedSet.forEach((s, p) -> toProcess.add(new StateAndPrecision(s, p)));
-    reachedSet.clear();
-    return new SoundOrUnsoundPreconditions(isSound, containsTopState, toProcess.build());
   }
 
   public DistributedConfigurableProgramAnalysis getDcpa() {

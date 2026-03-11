@@ -81,11 +81,14 @@ public class ValueStateCoverageOperator implements CoverageOperator {
     functionName = pFunctionName;
   }
 
-  public boolean isSubsumed0(AbstractState state1, AbstractState state2)
+  @Override
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
 
     ValueAnalysisState valState1 = (ValueAnalysisState) state1;
     ValueAnalysisState valState2 = (ValueAnalysisState) state2;
+
+    if (valState1.isLessOrEqual(valState2)) return true;
 
     Set<SymbolicIdentifier> identifiersState1 = new HashSet<>();
     Set<SymbolicIdentifier> identifiersState2 = new HashSet<>();
@@ -164,12 +167,6 @@ public class ValueStateCoverageOperator implements CoverageOperator {
     } catch (SolverException pE) {
       throw new RuntimeException(pE);
     }
-  }
-
-  @Override
-  public boolean isSubsumed(AbstractState state1, AbstractState state2)
-      throws CPAException, InterruptedException {
-    return isSubsumed0(state1, state2) && isSubsumed0(state2, state1);
   }
 
   @Override
