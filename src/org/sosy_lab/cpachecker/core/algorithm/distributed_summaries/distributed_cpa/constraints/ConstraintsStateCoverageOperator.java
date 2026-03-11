@@ -29,7 +29,8 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
     functionName = pFunctionName;
   }
 
-  public boolean isSubsumed0(AbstractState state1, AbstractState state2)
+  @Override
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
 
     ValueAnalysisState v1 = AbstractStates.extractStateByType(state1, ValueAnalysisState.class);
@@ -40,7 +41,7 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
 
     assert v1 != null && v2 != null && c1 != null && c2 != null;
 
-    if (c2.isEmpty() || c1.equals(c2)) {
+    if (c2.isEmpty() || c1.equals(c2) || c1.containsAll(c2)) {
       return true;
     }
 
@@ -61,12 +62,6 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
     } catch (SolverException e) {
       throw new CPAException("Solver encountered an issue when calculating implication.", e);
     }
-  }
-
-  @Override
-  public boolean isSubsumed(AbstractState state1, AbstractState state2)
-      throws CPAException, InterruptedException {
-    return isSubsumed0(state1, state2) && isSubsumed0(state2, state1);
   }
 
   @Override

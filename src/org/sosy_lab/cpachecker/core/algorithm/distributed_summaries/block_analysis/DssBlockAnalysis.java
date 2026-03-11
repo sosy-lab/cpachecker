@@ -488,7 +488,7 @@ public class DssBlockAnalysis {
             preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
             break;
           }
-          preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
+          // preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
         }
       }
       preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
