@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
@@ -41,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 
 public class AcslParserLogicalDefinitionsTest {
@@ -561,7 +565,7 @@ public class AcslParserLogicalDefinitionsTest {
   @Test
   public void parseIsFalseLogicPredicate() {
     // Logic definitions that take boolean parameters are not supported.
-    String definition1 = "predicate is_false(boolean p) = (!p) = \\true;";
+    String definition1 = "predicate is_false(boolean p) = (!p) == \\true;";
     String definition2 = "predicate is_false(boolean p) = !p;";
     assertThrows(
         NullPointerException.class,
@@ -569,6 +573,33 @@ public class AcslParserLogicalDefinitionsTest {
     assertThrows(
         NullPointerException.class,
         () -> AcslParser.parseLogicalDefinition(definition2, getAcslScope()));
+  }
+
+  @Test
+  public void parseIsFalseTermPredicate() throws AcslParseException {
+    String definition = "predicate is_false(boolean p) = !(p == \\true);";
+    AcslParameterDeclaration p =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, "p");
+    AcslPredicateDeclaration declaration =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            new AcslPredicateType(ImmutableList.of(AcslBuiltinLogicType.BOOLEAN), false),
+            "is_false",
+            "is_false",
+            ImmutableList.of(),
+            ImmutableList.of(p));
+    AcslPredicate body =
+        new AcslUnaryPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslIdTerm(FileLocation.DUMMY, p),
+                new AcslBooleanLiteralTerm(FileLocation.DUMMY, true),
+                AcslBinaryTermExpressionOperator.EQUALS),
+            AcslUnaryExpressionOperator.NEGATION);
+    AcslLogicPredicateDefinition expected =
+        new AcslLogicPredicateDefinition(FileLocation.DUMMY, declaration, body);
+    testLogicalFunctionParsing(definition, expected);
   }
 
   @Test
