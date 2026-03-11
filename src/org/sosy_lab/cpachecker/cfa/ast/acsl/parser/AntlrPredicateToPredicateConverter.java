@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
@@ -33,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
@@ -42,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslVariablePredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AntlrToInternalNotImplementedException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.BinaryPredicateContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.BinderContext;
@@ -224,15 +223,7 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
   @Override
   public AcslPredicate visitPredicateVariable(PredicateVariableContext ctx) {
     AcslSimpleDeclaration declaration = getAcslScope().lookupVariable(ctx.getText());
-    AcslPredicateDeclaration predicateDeclaration =
-        new AcslPredicateDeclaration(
-            FileLocation.DUMMY,
-            new AcslPredicateType(ImmutableList.of(), false),
-            Objects.requireNonNull(declaration).getName(),
-            declaration.getOrigName(),
-            ImmutableList.of(),
-            ImmutableList.of());
-    return new AcslIdPredicate(FileLocation.DUMMY, predicateDeclaration);
+    return new AcslVariablePredicate(FileLocation.DUMMY, Objects.requireNonNull(declaration));
   }
 
   private AcslPredicate handleQuantifiedPredicate(

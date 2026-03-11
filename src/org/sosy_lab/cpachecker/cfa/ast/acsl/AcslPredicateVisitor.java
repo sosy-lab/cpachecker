@@ -31,4 +31,6 @@ public interface AcslPredicateVisitor<R, X extends Exception> {
   R visit(AcslExistsPredicate pAcslExistsPredicate) throws X;
 
   R visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) throws X;
+
+  R visit(AcslVariablePredicate pAcslVariablePredicate) throws X;
 }
