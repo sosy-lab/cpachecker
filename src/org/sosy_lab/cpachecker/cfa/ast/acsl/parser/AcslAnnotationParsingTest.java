@@ -56,11 +56,6 @@ public class AcslAnnotationParsingTest {
         CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
   }
 
-  private CSimpleType basicBool() {
-    return new CSimpleType(
-        CTypeQualifiers.NONE, CBasicType.BOOL, false, false, false, false, false, false, false);
-  }
-
   private CProgramScope getCProgramScope() {
     String currentFunctionName = "f";
 
