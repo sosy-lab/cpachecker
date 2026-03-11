@@ -243,6 +243,47 @@ public class AcslAnnotationParsingTest {
   }
 
   @Test
+  public void assertionPredXorTest() throws AcslParseException {
+    AcslScope aScope = AcslScope.mutableCopy(getAcslScope());
+    CProgramScope scope = CProgramScope.mutableCoy(getCProgramScope());
+    scope.registerDeclaration(
+        new CVariableDeclaration(
+            FileLocation.DUMMY, true, CStorageClass.AUTO, basicBool(), "a", "a", "a", null));
+    scope.registerDeclaration(
+        new CVariableDeclaration(
+            FileLocation.DUMMY, true, CStorageClass.AUTO, basicBool(), "b", "b", "b", null));
+
+    String definition = "predicate xor(boolean p, boolean q) = ((!p) && q) || (p && (!q));";
+    AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(definition, aScope);
+    aScope.registerDeclaration(predDef.getDeclaration());
+
+    AcslPredicateDeclaration declaration = aScope.lookupPredicate("xor");
+
+    AcslCVariableDeclaration a =
+        new AcslCVariableDeclaration(
+            new CVariableDeclaration(
+                FileLocation.DUMMY, true, CStorageClass.AUTO, basicBool(), "a", "a", "a", null));
+    AcslCVariableDeclaration b =
+        new AcslCVariableDeclaration(
+            new CVariableDeclaration(
+                FileLocation.DUMMY, true, CStorageClass.AUTO, basicBool(), "b", "b", "b", null));
+
+    AAcslAnnotation expected =
+        new AcslAssertion(
+            FileLocation.DUMMY,
+            new AcslPredicateApplicationPredicate(
+                FileLocation.DUMMY,
+                declaration,
+                ImmutableList.of(
+                    new AcslIdTerm(FileLocation.DUMMY, a), new AcslIdTerm(FileLocation.DUMMY, b))));
+
+    String assertion = "assert xor(a,b);";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, scope, aScope);
+    assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
   public void parseAssertionPredWrongNumParameters() throws AcslParseException {
     AcslScope aScope = AcslScope.mutableCopy(getAcslScope());
     String predicate = "predicate is_positive(integer i) = i >= 0";

@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
@@ -222,15 +223,16 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
 
   @Override
   public AcslPredicate visitPredicateVariable(PredicateVariableContext ctx) {
-    return new AcslIdPredicate(
-        FileLocation.DUMMY,
+    AcslSimpleDeclaration declaration = getAcslScope().lookupVariable(ctx.getText());
+    AcslPredicateDeclaration predicateDeclaration =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
             new AcslPredicateType(ImmutableList.of(), false),
-            "p",
-            "p",
+            Objects.requireNonNull(declaration).getName(),
+            declaration.getOrigName(),
             ImmutableList.of(),
-            ImmutableList.of()));
+            ImmutableList.of());
+    return new AcslIdPredicate(FileLocation.DUMMY, predicateDeclaration);
   }
 
   private AcslPredicate handleQuantifiedPredicate(
