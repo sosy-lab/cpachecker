@@ -82,7 +82,7 @@ public sealed interface AcslType extends Type
         (x, y) ->
             x == AcslBuiltinLogicType.BOOLEAN
                 && y instanceof AcslCType pCType
-                && canBePromotedToInteger(pCType),
+                && canBePromotedToBoolean(pCType),
         pType1,
         pType2)) {
       return AcslBuiltinLogicType.BOOLEAN;
