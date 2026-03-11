@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
@@ -113,45 +114,58 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
         List<SMGState> handledStates = ImmutableList.of(currentState);
 
-        // We handle non-equality assumptions a little differently, see below
-        if (!isNonEqualityAssumption(binaryOperator)) {
-          // TODO: might be inefficient due to multiple checks for nested equality/inequality
-          // expressions
-          // Check SAT and add constraints if eligible (the method returns the initial state if we
-          // don't
-          // use a solver in this analysis. But also might return null for UNSAT)
-          Optional<SMGState> maybeStatesWithConstraints =
-              addConstraintsAndCheckSat(currentState, pE);
+        try {
+          // We handle non-equality assumptions a little differently, see below
+          if (!isNonEqualityAssumption(binaryOperator)) {
+            // TODO: might be inefficient due to multiple checks for nested equality/inequality
+            // expressions
+            // Check SAT and add constraints if eligible (the method returns the initial state if we
+            // don't
+            // use a solver in this analysis. But also might return null for UNSAT)
+            Optional<SMGState> maybeStatesWithConstraints =
+                addConstraintsAndCheckSat(currentState, pE);
 
-          if (maybeStatesWithConstraints.isEmpty()) {
-            // Don't add any states as we know its UNSAT
-            continue;
+            if (maybeStatesWithConstraints.isEmpty()) {
+              // Don't add any states as we know its UNSAT
+              continue;
+            }
+
+            // SAT, try to assign values
+            SMGState stateWithConstraints = maybeStatesWithConstraints.orElseThrow();
+
+            // (a == b) case
+            if (isEqualityAssumption(binaryOperator)) {
+              handledStates =
+                  handleEqualityAssumption(
+                      lVarInBinaryExp,
+                      leftValue,
+                      rVarInBinaryExp,
+                      rightValue,
+                      stateWithConstraints,
+                      edge);
+            } else {
+              handledStates = ImmutableList.of(stateWithConstraints);
+            }
           }
 
-          // SAT, try to assign values
-          SMGState stateWithConstraints = maybeStatesWithConstraints.orElseThrow();
-
-          // (a == b) case
-          if (isEqualityAssumption(binaryOperator)) {
+          // !(a == b) case
+          if (isNonEqualityAssumption(binaryOperator)) {
+            // SAT check is performed inside
             handledStates =
-                handleEqualityAssumption(
+                handleInEqualityAssumption(
+                    pE,
                     lVarInBinaryExp,
                     leftValue,
                     rVarInBinaryExp,
                     rightValue,
-                    stateWithConstraints,
+                    currentState,
                     edge);
-          } else {
-            handledStates = ImmutableList.of(stateWithConstraints);
           }
-        }
-
-        // !(a == b) case
-        if (isNonEqualityAssumption(binaryOperator)) {
-          // SAT check is performed inside
-          handledStates =
-              handleInEqualityAssumption(
-                  pE, lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState, edge);
+        } catch (AssertionError | UnrecognizedCodeException exception) {
+          // Some cases of pointer arithmetics/comparisons that can not be resolved cause
+          // exceptions to be thrown. This is fine, the solver can not determine the correct result
+          // anyway, as it is a pointer, and we made sure it can not be 0.
+          // We just skip those for now, as we simply overapproximate if we do not use a solver.
         }
 
         for (SMGState handledState : handledStates) {
