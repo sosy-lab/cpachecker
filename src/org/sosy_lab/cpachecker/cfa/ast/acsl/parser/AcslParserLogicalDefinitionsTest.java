@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
@@ -41,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslVariablePredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 
 public class AcslParserLogicalDefinitionsTest {
@@ -585,21 +585,53 @@ public class AcslParserLogicalDefinitionsTest {
                 new AcslUnaryPredicate(
                     FileLocation.DUMMY,
                     // p
-                    new AcslVariablePredicate(FileLocation.DUMMY, p),
+                    new AcslIdPredicate(
+                        FileLocation.DUMMY,
+                        new AcslPredicateDeclaration(
+                            FileLocation.DUMMY,
+                            new AcslPredicateType(ImmutableList.of(), false),
+                            p.getName(),
+                            p.getOrigName(),
+                            ImmutableList.of(),
+                            ImmutableList.of())),
                     AcslUnaryExpressionOperator.NEGATION),
                 // q
-                new AcslVariablePredicate(FileLocation.DUMMY, q),
+                new AcslIdPredicate(
+                    FileLocation.DUMMY,
+                    new AcslPredicateDeclaration(
+                        FileLocation.DUMMY,
+                        new AcslPredicateType(ImmutableList.of(), false),
+                        q.getName(),
+                        q.getOrigName(),
+                        ImmutableList.of(),
+                        ImmutableList.of())),
                 AcslBinaryPredicateOperator.AND),
             // p && !q
             new AcslBinaryPredicate(
                 FileLocation.DUMMY,
                 // p
-                new AcslVariablePredicate(FileLocation.DUMMY, p),
+                new AcslIdPredicate(
+                    FileLocation.DUMMY,
+                    new AcslPredicateDeclaration(
+                        FileLocation.DUMMY,
+                        new AcslPredicateType(ImmutableList.of(), false),
+                        p.getName(),
+                        p.getOrigName(),
+                        ImmutableList.of(),
+                        ImmutableList.of())),
                 // !q
                 new AcslUnaryPredicate(
                     FileLocation.DUMMY,
                     // q
-                    new AcslVariablePredicate(FileLocation.DUMMY, q),
+                    new AcslIdPredicate(
+                        FileLocation.DUMMY,
+                        new AcslPredicateDeclaration(
+                            FileLocation.DUMMY,
+                            new AcslPredicateType(ImmutableList.of(), false),
+                            q.getName(),
+                            q.getOrigName(),
+                            ImmutableList.of(),
+                            ImmutableList.of())),
                     AcslUnaryExpressionOperator.NEGATION),
                 AcslBinaryPredicateOperator.AND),
             AcslBinaryPredicateOperator.OR);

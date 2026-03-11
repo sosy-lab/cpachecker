@@ -104,7 +104,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressi
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslVariablePredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -1416,12 +1415,6 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(
         AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) throws NoException {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(AcslVariablePredicate pAcslVariablePredicate)
-        throws NoException {
       return ImmutableList.of();
     }
 
