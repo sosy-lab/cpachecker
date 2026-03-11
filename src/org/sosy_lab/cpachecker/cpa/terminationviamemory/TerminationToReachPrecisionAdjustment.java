@@ -364,11 +364,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       CFANode pLocation) {
     boolean isTransitionInvariant;
     BooleanFormula firstStepInTransInv =
-        instantiateTransitionInvariant(
-            candidateTransitionInvariant, mapForIndexTwo, smallestIndicesInIteration);
-    firstStepInTransInv =
         bfmgr.and(
-            renameTransInvVarsInPrefix(prefixFormula, firstStepInTransInv), firstStepInTransInv);
+            renameTransInvVarsInPrefix(prefixFormula, candidateTransitionInvariant),
+            instantiateTransitionInvariant(
+                candidateTransitionInvariant, mapForIndexTwo, smallestIndicesInIteration));
     BooleanFormula secondStepInTransInv =
         instantiateTransitionInvariant(
             candidateTransitionInvariant, mapForIndexTwo, largestIndicesInIteration);
