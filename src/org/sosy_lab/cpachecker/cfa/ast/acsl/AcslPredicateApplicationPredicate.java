@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
@@ -42,10 +40,9 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
     for (int i = 0; i < pParameters.size(); i++) {
       AcslType providedType = pParameters.get(i).getExpressionType();
-      Type expectedType = pPredicateDeclaration.getType().getParameters().get(i);
-      Verify.verify(expectedType instanceof AcslType);
+      AcslType expectedType = (AcslType) pPredicateDeclaration.getType().getParameters().get(i);
       Verify.verify(
-          providedTypeMatchesExpectedType(providedType, (AcslType) expectedType),
+          providedTypeMatchesExpectedType(providedType, expectedType),
           "Provided parameter %s is not of the expected type.",
           i);
     }
@@ -92,15 +89,6 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
   }
 
   private boolean providedTypeMatchesExpectedType(AcslType provided, AcslType expected) {
-    if (provided instanceof AcslCType pCType) {
-      if (pCType.getType() instanceof CSimpleType pCSimpleType) {
-        if (pCSimpleType.getType() == CBasicType.BOOL
-            && expected instanceof AcslBuiltinLogicType pLogicType
-            && pLogicType == AcslBuiltinLogicType.BOOLEAN) {
-          return true;
-        }
-      }
-    }
     AcslType generalType = AcslType.mostGeneralType(provided, expected);
     if (expected.equals(generalType)) {
       return true;

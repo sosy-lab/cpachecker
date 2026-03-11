@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUtils.anyPermutationOf;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public sealed interface AcslType extends Type
@@ -33,6 +34,11 @@ public sealed interface AcslType extends Type
         && !pSimpleType.hasComplexSpecifier()
         && !pSimpleType.hasImaginarySpecifier()
         && pSimpleType.getType().isFloatingPointType();
+  }
+
+  private static boolean canBePromotedToBoolean(AcslCType pCType) {
+    return pCType.getType() instanceof CSimpleType pSimpleType
+        && pSimpleType.getType() == CBasicType.BOOL;
   }
 
   static AcslType mostGeneralType(AcslType pType1, AcslType pType2) {
@@ -72,6 +78,14 @@ public sealed interface AcslType extends Type
         pType1,
         pType2)) {
       return AcslBuiltinLogicType.REAL;
+    } else if (anyPermutationOf(
+        (x, y) ->
+            x == AcslBuiltinLogicType.BOOLEAN
+                && y instanceof AcslCType pCType
+                && canBePromotedToInteger(pCType),
+        pType1,
+        pType2)) {
+      return AcslBuiltinLogicType.BOOLEAN;
     }
 
     throw new AssertionError(
