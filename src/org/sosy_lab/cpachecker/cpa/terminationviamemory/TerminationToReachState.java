@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -23,6 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -35,8 +37,9 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
       SimpleTargetInformation.singleton("termination");
   private boolean isTarget;
-  private Set<CFANode> possiblyNonterminatingLoopHeads;
-  private ImmutableSet<CFANode> allLoopHeads;
+  private Set<Loop> possiblyNonterminatingLoops;
+  private ImmutableSet<Loop> allLoops;
+  private Set<CFANode> visitedNodes;
 
   /**
    * The following map keeps track of all the variables as type of @Formula, so that they can be
@@ -78,17 +81,19 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
       Optional<PathFormula> pPathFormulaFull,
-      Set<CFANode> pPossiblyNonterminatingLoopHeads,
-      ImmutableSet<CFANode> pAllLoopHeads) {
+      Set<Loop> pPossiblyNonterminatingLoopHeads,
+      ImmutableSet<Loop> pAllLoops,
+      Set<CFANode> alreadyVisitedNodes) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     pathFormulaForPrefix = pPathFormulaForPrefix;
     pathFormulaFull = pPathFormulaFull;
-    possiblyNonterminatingLoopHeads = pPossiblyNonterminatingLoopHeads;
-    allLoopHeads = pAllLoopHeads;
+    possiblyNonterminatingLoops = pPossiblyNonterminatingLoopHeads;
+    allLoops = pAllLoops;
     isTarget = false;
+    visitedNodes = alreadyVisitedNodes;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -125,28 +130,46 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = true;
   }
 
-  public void setTerminating(CFANode loopHead) {
-    possiblyNonterminatingLoopHeads.remove(loopHead);
+  public void visitNode(CFANode pNode) {
+    visitedNodes.add(pNode);
+  }
+
+  public Set<CFANode> visitedNodes() {
+    return visitedNodes;
+  }
+
+  public void setTerminatingIfAllNodesVisited(CFANode loopHead) {
+    possiblyNonterminatingLoops =
+        possiblyNonterminatingLoops.stream()
+            // Keep the loops that do not contain the loopHead
+            .filter(
+                loop ->
+                    !loop.getLoopHeads().contains(loopHead)
+                        // Keep the loops that still have some unvisited CFANodes
+                        || loop.getLoopNodes().stream()
+                            .anyMatch(node -> !visitedNodes.contains(node)))
+            .collect(Collectors.toSet());
   }
 
   public boolean isTerminating() {
-    return possiblyNonterminatingLoopHeads.isEmpty();
+    return possiblyNonterminatingLoops.isEmpty();
   }
 
   public boolean isLoopTerminating(CFANode pLoopHead) {
-    return !possiblyNonterminatingLoopHeads.contains(pLoopHead);
+    return possiblyNonterminatingLoops.stream()
+        .noneMatch(loop -> loop.getLoopHeads().contains(pLoopHead));
   }
 
   public boolean isLoopHead(CFANode pLoopHead) {
-    return allLoopHeads.contains(pLoopHead);
+    return allLoops.stream().anyMatch(loop -> loop.getLoopHeads().contains(pLoopHead));
   }
 
-  public ImmutableSet<CFANode> getAllLoopHeads() {
-    return allLoopHeads;
+  public ImmutableSet<Loop> getAllLoops() {
+    return allLoops;
   }
 
-  public Set<CFANode> getPossiblyNonterminatingLoopHeads() {
-    return possiblyNonterminatingLoopHeads;
+  public Set<Loop> getPossiblyNonterminatingLoopHeads() {
+    return possiblyNonterminatingLoops;
   }
 
   @Override

@@ -71,6 +71,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
+    terminationState.visitNode(location);
     if (terminationState.isLoopHead(location)) {
       Pair<LocationState, CallstackState> pairKey = Pair.of(locationState, callstackState);
 
@@ -138,7 +139,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
       }
-      return ImmutableList.of(
+      TerminationToReachState newState =
           new TerminationToReachState(
               newStoredValues.buildOrThrow(),
               newNumberOfIterations.buildOrThrow(),
@@ -146,7 +147,10 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newPrefixFormula,
               newFullFormula,
               new HashSet<>(terminationState.getPossiblyNonterminatingLoopHeads()),
-              terminationState.getAllLoopHeads()));
+              terminationState.getAllLoops(),
+              terminationState.visitedNodes());
+      newState.visitNode(location);
+      return ImmutableList.of(newState);
     }
     return ImmutableList.of(pState);
   }

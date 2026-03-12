@@ -11,10 +11,8 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,7 +55,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private PrecisionAdjustment precisionAdjustment;
-  private ImmutableSet<CFANode> loopHeads;
+  private ImmutableSet<Loop> possiblyNonTerminatingLoops;
   private final CFA cfa;
   private final TerminationToReachStatistics statistics;
   private final LogManager logger;
@@ -81,19 +79,18 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
 
-    ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
-    builder.addAll(cfa.getAllLoopHeads().orElseThrow());
+    ImmutableSet.Builder<Loop> builder = ImmutableSet.builder();
+    builder.addAll(cfa.getLoopStructure().orElseThrow().getAllLoops());
     if (considerRecursion) {
-      List<Loop> allRecursions = new ArrayList<>(LoopStructure.getRecursions(cfa));
+      builder.addAll(LoopStructure.getRecursions(cfa));
       for (CFANode loopHead :
-          allRecursions.stream()
+          LoopStructure.getRecursions(cfa).stream()
               .flatMap(loop -> loop.getLoopHeads().stream())
               .collect(ImmutableList.toImmutableList())) {
         loopHead.setLoopStart();
-        builder.add(loopHead);
       }
     }
-    loopHeads = builder.build();
+    possiblyNonTerminatingLoops = builder.build();
   }
 
   public static CPAFactory factory() {
@@ -133,8 +130,9 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableMap.of(),
         Optional.empty(),
         Optional.empty(),
-        new HashSet<>(loopHeads),
-        ImmutableSet.copyOf(loopHeads));
+        new HashSet<>(possiblyNonTerminatingLoops),
+        possiblyNonTerminatingLoops,
+        new HashSet<>());
   }
 
   @Override
