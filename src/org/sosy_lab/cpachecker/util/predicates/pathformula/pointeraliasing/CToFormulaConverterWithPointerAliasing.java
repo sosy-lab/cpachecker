@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.getCallStackDepth;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -222,8 +223,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param baseName The name of the memory location
    * @param baseType The type of the memory location (not the type of the pointer to it)
    */
-  Formula makeBaseAddress(final String baseName, final CType baseType) {
-    return makeConstant(PointerTargetSet.getBaseName(baseName), CTypeUtils.getBaseType(baseType));
+  Formula makeBaseAddress(final String baseName, final CType baseType, Integer pCallStackDepth) {
+    return makeConstant(
+        PointerTargetSet.getBaseName(baseName, pCallStackDepth), CTypeUtils.getBaseType(baseType));
   }
 
   /**
@@ -954,7 +956,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkForLargeArray(declarationEdge, declarationType);
 
     if (errorConditions.isEnabled()) {
-      final Formula address = makeBaseAddress(declaration.getQualifiedName(), declarationType);
+      String varName = declaration.getQualifiedName();
+      final Formula address =
+          makeBaseAddress(
+              varName,
+              declarationType,
+              getCallStackDepth(varName, pts.build().getCallstackDepth()));
       constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
     }
 
@@ -1348,7 +1355,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     } else if (pContextPTS.isActualBase(pVarName)
         || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
-      address = makeBaseAddress(pVarName, pType);
+      address =
+          makeBaseAddress(
+              pVarName, pType, getCallStackDepth(pVarName, pContextPTS.getCallstackDepth()));
 
     } else {
       return super.makeFormulaForUninstantiatedVariable(
@@ -1373,7 +1382,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (pContextPTS.isActualBase(pVarName)
         || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
 
-      final Formula address = makeBaseAddress(pVarName, pType);
+      final Formula address =
+          makeBaseAddress(
+              pVarName, pType, getCallStackDepth(pVarName, pContextPTS.getCallstackDepth()));
       final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
       formula = makeSafeDereference(pType, address, ssa, region);
 

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.getCallStackDepth;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -408,7 +409,11 @@ class CExpressionVisitorWithPointerAliasing
         return Value.ofValue(conv.makeConstant(variableName, resultType));
       }
     } else {
-      final Formula address = conv.makeBaseAddress(variableName, resultType);
+      final Formula address =
+          conv.makeBaseAddress(
+              variableName,
+              resultType,
+              getCallStackDepth(variableName, pts.build().getCallstackDepth()));
       return AliasedLocation.ofAddress(address);
     }
   }
@@ -506,7 +511,11 @@ class CExpressionVisitorWithPointerAliasing
         return Value.ofValue(dereference(operand, operand.accept(this)).getAddress());
       } else {
         final Variable base = baseVisitor.getLastBase();
-        final Formula baseAddress = conv.makeBaseAddress(base.getName(), base.getType());
+        final Formula baseAddress =
+            conv.makeBaseAddress(
+                base.getName(),
+                base.getType(),
+                getCallStackDepth(base.getName(), pts.build().getCallstackDepth()));
         conv.addValueImportConstraints(
             baseAddress, base.getName(), base.getType(), initializedFields, ssa, constraints, null);
         if (pts.isPreparedBase(base.getName())) {

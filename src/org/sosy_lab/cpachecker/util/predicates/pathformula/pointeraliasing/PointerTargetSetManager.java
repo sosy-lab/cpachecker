@@ -15,9 +15,12 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.getCallStackDepth;
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -338,13 +341,15 @@ class PointerTargetSetManager {
             basesOnlyPts1.getSnapshot(),
             pts2.getBases().keySet(),
             highestAllocatedAddresses2,
-            mergeConstraints2);
+            mergeConstraints2,
+            pts1.getCallstackDepth());
     highestAllocatedAddresses1 =
         makeBaseAddressConstraintsForMergedBases(
             basesOnlyPts2.getSnapshot(),
             pts1.getBases().keySet(),
             highestAllocatedAddresses1,
-            mergeConstraints1);
+            mergeConstraints1,
+            pts2.getCallstackDepth());
 
     // Handle fields
 
@@ -415,9 +420,14 @@ class PointerTargetSetManager {
 
     int allocationCount = Math.max(pts1.getAllocationCount(), pts2.getAllocationCount());
 
+    Verify.verify(
+        pts1.getCallstackDepth().equals(pts2.getCallstackDepth()),
+        "Callstacks must be equal when merging pointer target sets");
+
     PointerTargetSet resultPTS =
         new PointerTargetSet(
             mergedBases,
+            pts1.getCallstackDepth(),
             mergedFields,
             mergedDeferredAllocations,
             mergedTargets,
@@ -427,8 +437,18 @@ class PointerTargetSetManager {
     // Handle value-import constraints
 
     final List<CompositeField> sharedFields = new ArrayList<>();
-    makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, ssa, mergeConstraints2);
-    makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, ssa, mergeConstraints1);
+    makeValueImportConstraints(
+        basesOnlyPts1.getSnapshot(),
+        sharedFields,
+        ssa,
+        mergeConstraints2,
+        pts1.getCallstackDepth());
+    makeValueImportConstraints(
+        basesOnlyPts2.getSnapshot(),
+        sharedFields,
+        ssa,
+        mergeConstraints1,
+        pts2.getCallstackDepth());
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder =
@@ -572,7 +592,8 @@ class PointerTargetSetManager {
       final Map<String, CType> pBases,
       final Set<String> pIgnoredBases,
       PersistentList<Formula> highestAllocatedAddresses,
-      final Constraints pConstraints) {
+      final Constraints pConstraints,
+      PersistentSortedMap<String, Integer> pCallstackDepth) {
 
     for (Map.Entry<String, CType> base : pBases.entrySet()) {
       final String baseName = base.getKey();
@@ -583,7 +604,13 @@ class PointerTargetSetManager {
           && !DynamicMemoryHandler.isAllocVariableName(baseName)) {
         highestAllocatedAddresses =
             makeBaseAddressConstraints(
-                baseName, base.getValue(), null, false, highestAllocatedAddresses, pConstraints);
+                baseName,
+                pCallstackDepth.get(Splitter.on("::").splitToList(baseName).getFirst()),
+                base.getValue(),
+                null,
+                false,
+                highestAllocatedAddresses,
+                pConstraints);
       }
     }
 
@@ -612,6 +639,7 @@ class PointerTargetSetManager {
    */
   PersistentList<Formula> makeBaseAddressConstraints(
       final String pNewBase,
+      Integer pCallstackDepth,
       final @Nullable CType pType,
       final @Nullable Formula pAllocationSize,
       final boolean pIsDynamicAllocation,
@@ -629,7 +657,7 @@ class PointerTargetSetManager {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula =
         formulaManager.makeVariableWithoutSSAIndex(
-            pointerType, PointerTargetSet.getBaseName(pNewBase));
+            pointerType, PointerTargetSet.getBaseName(pNewBase, pCallstackDepth));
 
     // Create constraints for the new base address and store them
     if (pHighestAllocatedAddresses.isEmpty()) {
@@ -715,11 +743,14 @@ class PointerTargetSetManager {
       final PersistentSortedMap<String, CType> newBases,
       final List<CompositeField> sharedFields,
       final SSAMapBuilder ssaBuilder,
-      final Constraints constraints) {
+      final Constraints constraints,
+      PersistentSortedMap<String, Integer> pCallStackDepth) {
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
-        final Formula baseVar = conv.makeBaseAddress(base.getKey(), base.getValue());
+        final Formula baseVar =
+            conv.makeBaseAddress(
+                base.getKey(), base.getValue(), getCallStackDepth(base.getKey(), pCallStackDepth));
         conv.addValueImportConstraints(
             baseVar, base.getKey(), base.getValue(), sharedFields, ssaBuilder, constraints, null);
       }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.getCallStackDepth;
 
 import com.google.common.collect.ImmutableSortedSet;
 import java.math.BigInteger;
@@ -325,8 +326,7 @@ class DynamicMemoryHandler {
                           parameter.getExpressionType(),
                           BigInteger.valueOf(s))),
           newBase);
-      address =
-          conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
+      address = conv.makeConstant(pts.build().getBaseName(newBase), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
           conv.fmgr.makeGreaterThan(
               address, conv.fmgr.makeNumber(typeHandler.getPointerType(), 0L), true));
@@ -366,7 +366,10 @@ class DynamicMemoryHandler {
 
       for (String base : pts.getAllBases()) {
         Formula baseF =
-            conv.makeBaseAddress(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID);
+            conv.makeBaseAddress(
+                base,
+                CPointerType.POINTER_TO_VOID,
+                getCallStackDepth(base, pts.build().getCallstackDepth()));
         validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));
       }
       errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
@@ -390,7 +393,8 @@ class DynamicMemoryHandler {
   private Formula makeAllocation(
       final boolean isZeroing, final CType type, final String base, final Optional<Formula> pSize)
       throws UnrecognizedCodeException, InterruptedException {
-    final Formula result = conv.makeBaseAddress(base, type);
+    final Formula result =
+        conv.makeBaseAddress(base, type, getCallStackDepth(base, pts.build().getCallstackDepth()));
     if (isZeroing) {
       // the zeroing currently uses low-level SMT formulas, assigning zero to each simple location
       // this is done recursively using the type parameter

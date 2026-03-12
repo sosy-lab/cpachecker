@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
+import static org.sosy_lab.java_smt.api.SolverContext.ProverOptions.GENERATE_MODELS;
 import static org.sosy_lab.java_smt.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -380,7 +381,7 @@ public final class Solver implements AutoCloseable {
    */
   public OptimizationProverEnvironment newOptEnvironment() {
     OptimizationProverEnvironment environment =
-        solvingContext.newOptimizationProverEnvironment(ProverOptions.GENERATE_MODELS);
+        solvingContext.newOptimizationProverEnvironment(GENERATE_MODELS);
     environment = new OptimizationProverEnvironmentView(environment, solvingFmgr);
     return environment;
   }
@@ -515,9 +516,14 @@ public final class Solver implements AutoCloseable {
   }
 
   private boolean isUnsatUncached(BooleanFormula f) throws SolverException, InterruptedException {
-    try (ProverEnvironment prover = newProverEnvironment()) {
+    try (ProverEnvironment prover = newProverEnvironment(GENERATE_MODELS)) {
       prover.push(f);
-      return prover.isUnsat();
+
+      boolean unsat = prover.isUnsat();
+      if (!unsat) {
+        Object model = prover.getModel();
+      }
+      return unsat;
     }
   }
 

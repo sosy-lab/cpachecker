@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.IOException;
@@ -33,8 +36,30 @@ import org.sosy_lab.java_smt.api.Formula;
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public final class PointerTargetSet implements Serializable {
 
-  static String getBaseName(final String name) {
-    return BASE_PREFIX + name;
+  static Integer getCallStackDepth(
+      String name, PersistentSortedMap<String, Integer> callstackDepth) {
+    if (!name.contains("::")) {
+      return 0;
+    }
+
+    return callstackDepth.get(Splitter.on("::").splitToList(name).getFirst());
+  }
+
+  static String getBaseName(String name, Integer pCallStackDepth) {
+    checkNotNull(pCallStackDepth);
+    assert !isBaseName(name);
+    final String suffix;
+    if (name.contains("::")) {
+      suffix = "$$" + pCallStackDepth;
+    } else {
+      suffix = "";
+    }
+
+    return BASE_PREFIX + name + suffix;
+  }
+
+  String getBaseName(final String name) {
+    return getBaseName(name, getCallStackDepth(name, callstackDepth));
   }
 
   public static boolean isBaseName(final String name) {
@@ -67,6 +92,7 @@ public final class PointerTargetSet implements Serializable {
 
   boolean isEmpty() {
     return bases.isEmpty()
+        && callstackDepth.isEmpty()
         && fields.isEmpty()
         && deferredAllocations.isEmpty()
         && highestAllocatedAddresses.isEmpty()
@@ -107,6 +133,7 @@ public final class PointerTargetSet implements Serializable {
 
   PointerTargetSet(
       final PersistentSortedMap<String, CType> bases,
+      final PersistentSortedMap<String, Integer> pCallstackDepth,
       final PersistentSortedMap<CompositeField, Boolean> fields,
       final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations,
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
@@ -114,6 +141,7 @@ public final class PointerTargetSet implements Serializable {
       final int pAllocationCount) {
     this.bases = bases;
     this.fields = fields;
+    callstackDepth = pCallstackDepth;
 
     this.deferredAllocations = deferredAllocations;
 
@@ -154,6 +182,10 @@ public final class PointerTargetSet implements Serializable {
     return targets;
   }
 
+  PersistentSortedMap<String, Integer> getCallstackDepth() {
+    return callstackDepth;
+  }
+
   /**
    * Get the highest allocated addresses, i.e., which guarantee that a fresh address that is larger
    * than all addresses returned here was previously not yet allocated.
@@ -171,6 +203,7 @@ public final class PointerTargetSet implements Serializable {
       new PointerTargetSet(
           PathCopyingPersistentTreeMap.of(),
           PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
           PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
@@ -186,6 +219,20 @@ public final class PointerTargetSet implements Serializable {
   // Apart from distinguishing between "fake" and real bases,
   // the type for each base is mostly relevant for the UF-based encoding.
   private final PersistentSortedMap<String, CType> bases;
+
+  // This map tracks for each function what the current index of the call-stack
+  // location of the variable is. This index is present to uniquely identify variables/memory
+  // locations in recursive procedures. It maps each function name to the current recursion
+  // callstack depth, i.e., how many times in the call-stack has this function been called.
+  // This allows us to assign to the address of each local variable a unique index.
+  // Note that we can use the current callstack depth, even though it may repeat itself
+  // in the variable name, since each local variable needs to be written to before being used,
+  // else it is undefined behavior.
+  // This is also how local variables in functions are handled normally, where they all get the
+  // same address, since they all have the same name. As mentioned this is not a problem, since
+  // a variable needs to be written before being read, so there is no danger of reading the old
+  // value of the address.
+  private final PersistentSortedMap<String, Integer> callstackDepth;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
@@ -237,6 +284,7 @@ public final class PointerTargetSet implements Serializable {
 
     @Serial private static final long serialVersionUID = 8022025017590667769L;
     private final PersistentSortedMap<String, CType> bases;
+    private final PersistentSortedMap<String, Integer> callstackDepth;
     private final PersistentSortedMap<CompositeField, Boolean> fields;
     private final List<Pair<String, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
@@ -246,6 +294,7 @@ public final class PointerTargetSet implements Serializable {
     private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
       fields = pts.fields;
+      callstackDepth = pts.callstackDepth;
       deferredAllocations = new ArrayList<>(pts.deferredAllocations);
       targets =
           pts.targets == null
@@ -269,6 +318,7 @@ public final class PointerTargetSet implements Serializable {
 
       return new PointerTargetSet(
           bases,
+          callstackDepth,
           fields,
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(
