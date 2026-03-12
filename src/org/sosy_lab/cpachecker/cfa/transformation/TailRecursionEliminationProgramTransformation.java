@@ -114,11 +114,8 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
                 ProgramTransformationCFAEdgeCreator.copyCFAEdge(
                     currentEdge, nodesList.get(newPredecessorNodeIndex), nodesList.get(newSuccessorNodeIndex.get())));
           } else {
-            // TODO how to handle jumps out of the function?
-            // TODO exclude normal function exit
-            edges.add(
-                ProgramTransformationCFAEdgeCreator.copyCFAEdge(
-                    currentEdge, nodesList.get(newPredecessorNodeIndex), currentEdge.getSuccessor()));
+            // C does not allow jumps out of functions
+            return Optional.empty();
           }
         }
       }
