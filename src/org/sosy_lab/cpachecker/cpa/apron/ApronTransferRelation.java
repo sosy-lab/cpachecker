@@ -225,7 +225,7 @@ public class ApronTransferRelation
     for (Texpr0Node left : leftCoeffs) {
       for (Texpr0Node right : rightCoeffs) {
         switch (binExp.getOperator()) {
-          case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_RIGHT, SHIFT_LEFT -> {
+          case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_RIGHT, SHIFT_LEFT -> {
             return Collections.singleton(state);
           }
           case EQUALS -> {
@@ -421,12 +421,12 @@ public class ApronTransferRelation
                           new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
             }
           }
-          case DIVIDE, MINUS, MODULO, MULTIPLY, PLUS -> {
+          case DIVIDE, MINUS, REMAINDER, MULTIPLY, PLUS -> {
             Texpr0BinNode innerExp =
                 switch (binExp.getOperator()) {
                   case DIVIDE -> new Texpr0BinNode(Texpr0BinNode.OP_DIV, left, right);
                   case MINUS -> new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right);
-                  case MODULO -> new Texpr0BinNode(Texpr0BinNode.OP_MOD, left, right);
+                  case REMAINDER -> new Texpr0BinNode(Texpr0BinNode.OP_MOD, left, right);
                   case MULTIPLY -> new Texpr0BinNode(Texpr0BinNode.OP_MUL, left, right);
                   case PLUS -> new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, right);
                   default -> throw new AssertionError();
@@ -459,7 +459,7 @@ public class ApronTransferRelation
       double pLeftVal, double pRightVal, BinaryOperator pBinaryOperator, boolean truthAssumption) {
     boolean result;
     switch (pBinaryOperator) {
-      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
+      case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
         return Collections.singleton(state);
       }
       case NOT_EQUALS -> result = pLeftVal != pRightVal;
@@ -469,7 +469,7 @@ public class ApronTransferRelation
       case LESS_EQUAL -> result = pLeftVal <= pRightVal;
       case LESS_THAN -> result = pLeftVal < pRightVal;
       case MINUS -> result = (pLeftVal - pRightVal) != 0;
-      case MODULO -> result = (pLeftVal % pRightVal) != 0;
+      case REMAINDER -> result = (pLeftVal % pRightVal) != 0;
       case MULTIPLY -> result = (pLeftVal * pRightVal) != 0;
       case DIVIDE -> result = (pLeftVal / pRightVal) != 0;
       case PLUS -> result = (pLeftVal + pRightVal) != 0;
@@ -866,10 +866,10 @@ public class ApronTransferRelation
       for (Texpr0Node leftCoeffs : left) {
         for (Texpr0Node rightCoeffs : right) {
           switch (e.getOperator()) {
-            case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
+            case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
               return ImmutableSet.of();
             }
-            case MODULO ->
+            case REMAINDER ->
                 returnCoefficients.add(
                     new Texpr0BinNode(Texpr0BinNode.OP_MOD, leftCoeffs, rightCoeffs));
             case DIVIDE ->
@@ -1097,7 +1097,7 @@ public class ApronTransferRelation
         return null;
       }
       return switch (e.getOperator()) {
-        case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> null;
+        case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT -> null;
         case DIVIDE -> left / right;
         case EQUALS -> left.equals(right) ? 1.0 : 0;
         case GREATER_EQUAL -> left >= right ? 1.0 : 0;
@@ -1106,7 +1106,7 @@ public class ApronTransferRelation
         case LESS_THAN -> left < right ? 1.0 : 0;
         case NOT_EQUALS -> null;
         case MINUS -> left - right;
-        case MODULO -> left % right;
+        case REMAINDER -> left % right;
         case MULTIPLY -> left * right;
         case PLUS -> left + right;
       };

@@ -85,7 +85,10 @@ public class CPAchecker {
     private final ShutdownManager shutdownManager;
 
     CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
-      super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
+      super(
+          "org.sosy_lab.cpachecker:type=CPAchecker,name=Thread-"
+              + Thread.currentThread().threadId(),
+          logger);
       reached = pReached;
       shutdownManager = pShutdownManager;
     }
@@ -288,7 +291,6 @@ public class CPAchecker {
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
-    CoreComponentsFactory factory;
     MainCPAStatistics stats = null;
     ImmutableCFA cfa = null;
 
@@ -300,13 +302,14 @@ public class CPAchecker {
       stats.creationTime.start();
 
       cfa = parse(programDenotation, stats);
+
+      logAboutSpecification();
+      Specification specification =
+          Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+
       shutdownNotifier.shutdownIfNecessary();
-      factory =
-          new CoreComponentsFactory(
-              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
 
-      return run0(cfa, factory, stats);
-
+      return run0(cfa, specification, stats);
     } catch (InvalidConfigurationException
         | ParserException
         | IOException
@@ -324,27 +327,26 @@ public class CPAchecker {
    * <p>Returns a {@link CPAcheckerResult}, which should be closed after processing to free any
    * native memory that was allocated by the run.
    */
-  public CPAcheckerResult run(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
+  public CPAcheckerResult run(CFA cfa, Specification specification, MainCPAStatistics stats) {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      return run0(cfa, factory, stats);
+      return run0(cfa, specification, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
   }
 
-  private CPAcheckerResult run0(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
+  private CPAcheckerResult run0(CFA cfa, Specification specification, MainCPAStatistics stats) {
 
     ConfigurableProgramAnalysis cpa = null;
     Algorithm algorithm = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
     String targetDescription = "";
-    Specification specification;
 
     // create reached set, cpa, algorithm
     try {
@@ -353,11 +355,13 @@ public class CPAchecker {
       if (!stats.creationTime.isRunning()) {
         stats.creationTime.start();
       }
+
+      CoreComponentsFactory factory =
+          new CoreComponentsFactory(
+              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
+
       stats.cpaCreationTime.start();
       try {
-        logAboutSpecification();
-        specification =
-            Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
         cpa = factory.createCPA(specification);
       } finally {
         stats.cpaCreationTime.stop();

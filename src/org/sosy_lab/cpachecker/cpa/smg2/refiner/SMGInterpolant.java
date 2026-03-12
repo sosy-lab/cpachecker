@@ -96,7 +96,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     cfaEntryFunctionDeclaration = pCFAEntryFunctionDef;
     allowedHeapValues = ImmutableSet.of();
     memoryModel =
-        SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
+        SymbolicProgramConfiguration.of(
+            BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), options);
     errorInfo = ImmutableList.of();
     evaluator = pEvaluator;
     statistics = pStatistics;
@@ -186,7 +187,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
               .getMemoryModel();
     } catch (SMGException | SMGSolverException e) {
       memoryModel =
-          SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
+          SymbolicProgramConfiguration.of(
+              BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), options);
     }
     errorInfo = pErrorInfo;
   }
