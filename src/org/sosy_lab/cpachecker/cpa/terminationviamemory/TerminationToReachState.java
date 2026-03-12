@@ -16,7 +16,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -37,7 +36,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
       SimpleTargetInformation.singleton("termination");
   private boolean isTarget;
-  private Set<Loop> possiblyNonterminatingLoops;
+  private ImmutableSet<Loop> possiblyNonterminatingLoops;
   private ImmutableSet<Loop> allLoops;
   private Set<CFANode> visitedNodes;
 
@@ -81,7 +80,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
       Optional<PathFormula> pPathFormulaFull,
-      Set<Loop> pPossiblyNonterminatingLoopHeads,
+      ImmutableSet<Loop> pPossiblyNonterminatingLoopHeads,
       ImmutableSet<Loop> pAllLoops,
       Set<CFANode> alreadyVisitedNodes) {
 
@@ -148,7 +147,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
                         // Keep the loops that still have some unvisited CFANodes
                         || loop.getLoopNodes().stream()
                             .anyMatch(node -> !visitedNodes.contains(node)))
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
   }
 
   public boolean isTerminating() {
@@ -168,7 +167,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return allLoops;
   }
 
-  public Set<Loop> getPossiblyNonterminatingLoopHeads() {
+  public ImmutableSet<Loop> getPossiblyNonterminatingLoopHeads() {
     return possiblyNonterminatingLoops;
   }
 

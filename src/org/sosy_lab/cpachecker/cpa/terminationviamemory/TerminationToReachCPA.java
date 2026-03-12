@@ -130,7 +130,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableMap.of(),
         Optional.empty(),
         Optional.empty(),
-        new HashSet<>(possiblyNonTerminatingLoops),
+        possiblyNonTerminatingLoops,
         possiblyNonTerminatingLoops,
         new HashSet<>());
   }
