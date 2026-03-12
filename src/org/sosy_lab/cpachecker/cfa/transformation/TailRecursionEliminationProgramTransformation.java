@@ -19,6 +19,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,16 +44,29 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     CFANode exitNode = functionEntryNode.getExitNode().get();
     String functionName = pNode.getFunctionName();
     // check 2: is the last operation a recursive function call
+    // i.e. declaration of a __CPAchecker_TMP_0 variable + assignment with the recursive function call + return of this variable
     FluentIterable<CFAEdge> enteringEdges = exitNode.getEnteringEdges();
     for(CFAEdge edge : enteringEdges) {
       CReturnStatement returnStatement = ((CReturnStatementEdge) edge).getReturnStatement();
-      // TODO check return expressions
       if (returnStatement.getReturnValue().isEmpty()) {
         return  Optional.empty();
       }
       CExpression returnExpression = returnStatement.getReturnValue().get();
+      if (returnExpression instanceof CLeftHandSide returnLeftHandSide) {
+        if (returnLeftHandSide instanceof CIdExpression returnIdExpression) {
+          // check for __CPAchecker_TMP_0
+          if(returnIdExpression.getName().equals("__CPAchecker_TMP_0")) {
+
+          }
+        } else {
+          return Optional.empty();
+        }
+      } else {
+        return Optional.empty();
+      }
     }
     // check 3: the first statement must be a conditional check of the exit condition
+    // i.e. 1 Function start dummy edge followed by a node with two assertion edges
 
     // TODO perform transformation
     CFANode newEntryNode = null;
@@ -90,6 +105,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       for(CFAEdge currentEdge : currentNode.getAllLeavingEdges()){
         if (currentEdge.getSuccessor().getFunctionName().equals(functionName)) {
           // TODO check if edge is the recursive function call
+          // i.e. the declaration of __CPAchecker_TMP_0
           // TODO if true skip edge copying and add new edges for parameter nodes
           int newPredecessorNodeIndex = getNodeIndex(nodeMap.get(currentNode.getNodeNumber()), nodesList).orElseThrow();
           Optional<Integer> newSuccessorNodeIndex = getNodeIndex(nodeMap.get(currentEdge.getSuccessor().getNodeNumber()), nodesList);
