@@ -22,12 +22,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -149,10 +151,27 @@ public final class MPORUtil {
         && pVariableDeclaration.getInitializer() != null;
   }
 
+  public static boolean isCpaCheckerTmpWithoutInitializer(
+      CVariableDeclaration pVariableDeclaration) {
+    return !pVariableDeclaration.getType().isConst()
+        && !pVariableDeclaration.isGlobal()
+        && pVariableDeclaration.getName().contains("__CPAchecker_TMP_")
+        && pVariableDeclaration.getInitializer() == null;
+  }
+
   public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
     if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
       if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
         return isConstCpaCheckerTmp(variableDeclaration);
+      }
+    }
+    return false;
+  }
+
+  public static boolean isCpaCheckerTmpDeclarationWithoutInitializer(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
+      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+        return isCpaCheckerTmpWithoutInitializer(variableDeclaration);
       }
     }
     return false;
@@ -181,6 +200,20 @@ public final class MPORUtil {
       if (initializerExpression.getExpression() instanceof CIdExpression idExpression) {
         if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
           return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static boolean isVoidPointer(CExpression pExpression) {
+    if (pExpression instanceof CCastExpression castExpression) {
+      if (castExpression.getCastType().equals(CPointerType.POINTER_TO_VOID)) {
+        if (castExpression.getOperand()
+            instanceof CIntegerLiteralExpression integerLiteralExpression) {
+          if (integerLiteralExpression.equals(CIntegerLiteralExpression.ZERO)) {
+            return true;
+          }
         }
       }
     }
@@ -222,7 +255,9 @@ public final class MPORUtil {
    * Recursively tries to find the field owner of {@code pFieldReference}, e.g. {@code outer} in
    * {@code outer.intermediary.inner}.
    */
-  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference) {
+  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference)
+      throws UnsupportedCodeException {
+
     if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
       return idExpression;
     }
@@ -235,7 +270,11 @@ public final class MPORUtil {
     if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
       return recursivelyFindFieldOwner(fieldReference);
     }
-    throw new IllegalArgumentException("could not find CIdExpression field owner");
+    throw new UnsupportedCodeException(
+        String.format(
+            "Could not find CIdExpression field owner from CFieldRerefence %s",
+            pFieldReference.toASTString()),
+        null);
   }
 
   private static CType getTypeByIdExpression(CIdExpression pIdExpression) {

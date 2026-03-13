@@ -22,14 +22,15 @@ Steps used to generate new SV-Comp configurations (might be incomplete, update a
 - change the configuration names in all benchmark definitions in `test/test-sets` from svcompXX to svcompYY 
 - change the configuration ran in `scripts/smoketest.sh` to be executed with the latest svcomp config
 
-Example commands to copy, rename and sanity check from svcomp25 to svcomp26:
+Example commands to copy, rename and sanity check from svcomp27 to svcomp28:
 (Add more folders with svcomp configurations when necessary!)
 ```bash
-cp -a config/svcomp25* config/unmaintained/
-cp -a config/components/svcomp25* config/unmaintained/components/
-cp -a config/includes/svcomp25* config/unmaintained/includes/
-rename 's/svcomp25/svcomp26/' config/svcomp25* config/components/svcomp25* config/includes/svcomp25*
-sed -e "s/svcomp25/svcomp26/g" -e "s/SV-COMP'25/SV-COMP'26/g" -i config/**/svcomp26*
+cp -a config/svcomp27* config/unmaintained/
+cp -a config/components/smg/svcomp27* config/unmaintained/components/smg/
+cp -a config/components/svcomp27* config/unmaintained/components/
+cp -a config/includes/svcomp27* config/unmaintained/includes/
+rename 's/svcomp27/svcomp28/' config/svcomp27* config/components/svcomp27* config/includes/svcomp27* config/components/smg/svcomp27*
+sed -e "s/svcomp27/svcomp28/g" -e "s/SV-COMP'27/SV-COMP'28/g" e "s/SV-COMP27/SV-COMP28/g" -i config/**/svcomp28*
 ```
 
 Additional information: https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/347

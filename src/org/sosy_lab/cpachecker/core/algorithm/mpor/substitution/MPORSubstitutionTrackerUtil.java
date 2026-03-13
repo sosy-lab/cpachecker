@@ -148,9 +148,9 @@ public class MPORSubstitutionTrackerUtil {
     // only track the global variables when actually substituting the declaration. otherwise when
     // we use the local, non-pointer variable, the global variable is considered as accessed too
     if (pIsDeclaration) {
-      if (pLocalVariableDeclarationSubstitute.isTrackerPresent()) {
+      if (pLocalVariableDeclarationSubstitute.tracker().isPresent()) {
         MPORSubstitutionTrackerUtil.copyContents(
-            pLocalVariableDeclarationSubstitute.getTracker(), pTracker);
+            pLocalVariableDeclarationSubstitute.tracker().orElseThrow(), pTracker);
       }
     }
   }
@@ -244,8 +244,7 @@ public class MPORSubstitutionTrackerUtil {
       throws UnsupportedCodeException {
 
     if (pFieldReference.isPointerDereference()) {
-      assert pFieldReference.getFieldOwner().getExpressionType() instanceof CPointerType
-          : "if pFieldReference is a pointer dereference, its owner type must be CPointerType";
+      // if pFieldReference is a pointer dereference, its owner type must be CPointerType
       CPointerType pointerType = (CPointerType) pFieldReference.getFieldOwner().getExpressionType();
       CSimpleDeclaration fieldOwner =
           MPORUtil.recursivelyFindFieldOwner(pFieldReference).getDeclaration();

@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public record SeqMemoryLocation(
@@ -46,8 +45,7 @@ public record SeqMemoryLocation(
     name.append(buildThreadPrefix());
     name.append(declaration.getName());
     if (fieldMember.isPresent()) {
-      name.append(SeqSyntax.UNDERSCORE);
-      name.append(fieldMember.orElseThrow().getName());
+      name.append("_").append(fieldMember.orElseThrow().getName());
     }
     return name.toString();
   }
@@ -55,7 +53,7 @@ public record SeqMemoryLocation(
   private String buildThreadPrefix() {
     // global variable declarations have no thread prefix, they "belong" to no thread
     if (declaration.isGlobal()) {
-      return SeqSyntax.EMPTY_STRING;
+      return "";
     }
     // use call context ID if possible, otherwise use 0 (only main() declarations have no context)
     int threadId = callContext.isPresent() ? callContext.orElseThrow().threadId : 0;
