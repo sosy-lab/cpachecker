@@ -52,13 +52,15 @@ class DeferredAllocation implements Serializable {
   @Serial private static final long serialVersionUID = -6882598785306470437L;
 
   DeferredAllocation(
-      final String base, final Optional<CIntegerLiteralExpression> size, final boolean isZeroed) {
+      final PointerBase base,
+      final Optional<CIntegerLiteralExpression> size,
+      final boolean isZeroed) {
     this.isZeroed = isZeroed;
     this.size = size;
     this.base = base;
   }
 
-  String getBase() {
+  PointerBase getBase() {
     return base;
   }
 
@@ -99,7 +101,7 @@ class DeferredAllocation implements Serializable {
 
   private final boolean isZeroed;
   private final Optional<CIntegerLiteralExpression> size;
-  private final String base;
+  private PointerBase base;
 
   @Serial
   private Object writeReplace() {
@@ -121,7 +123,7 @@ class DeferredAllocation implements Serializable {
 
     @Serial private static final long serialVersionUID = 4850967154964188729L;
     private final boolean isZeroed;
-    private final String base;
+    private final PointerBase base;
     private final long size;
     private final @Nullable CType sizeType;
 

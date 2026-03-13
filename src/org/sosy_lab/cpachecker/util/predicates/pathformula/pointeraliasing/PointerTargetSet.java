@@ -33,34 +33,6 @@ import org.sosy_lab.java_smt.api.Formula;
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public final class PointerTargetSet implements Serializable {
 
-  /**
-   * Return how to encode the given name as a term in formulas. The result should not be used for
-   * anything except creating formula terms!
-   */
-  static String getBaseNameForFormula(final String name) {
-    assert !isBaseNameInFormulas(name);
-    return BASE_PREFIX + name;
-  }
-
-  /**
-   * Check if the given string is the name of a base as it appears in formulas (cf. {@link
-   * #getBaseNameForFormula(String)}).
-   */
-  public static boolean isBaseNameInFormulas(final String encodedBaseName) {
-    return encodedBaseName.startsWith(BASE_PREFIX);
-  }
-
-  /**
-   * Get the actual name of the base from the form how it is encoded in formulas (cf. {@link
-   * #getBaseNameForFormula(String)}).
-   *
-   * @param encodedBaseName must be a base as determined by {@link #isBaseNameInFormulas(String)}
-   */
-  public static String getBaseFromFormulaName(final String encodedBaseName) {
-    assert isBaseNameInFormulas(encodedBaseName);
-    return encodedBaseName.substring(BASE_PREFIX.length());
-  }
-
   PersistentList<PointerTarget> getAllTargets(final String regionName) {
     return targets.getOrDefault(regionName, PersistentLinkedList.of());
   }
@@ -110,9 +82,9 @@ public final class PointerTargetSet implements Serializable {
   }
 
   PointerTargetSet(
-      final PersistentSortedMap<String, CType> bases,
+      final PersistentSortedMap<PointerBase, CType> bases,
       final PersistentSortedMap<CompositeField, Boolean> fields,
-      final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations,
+      final PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations,
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentList<Formula> pHighestAllocatedAddresess,
       final int pAllocationCount) {
@@ -132,25 +104,25 @@ public final class PointerTargetSet implements Serializable {
     }
   }
 
-  public PersistentSortedMap<String, CType> getBases() {
+  public PersistentSortedMap<PointerBase, CType> getBases() {
     return bases;
   }
 
   /**
    * Returns, if a variable is the actual base of a pointer.
    *
-   * @param name The name of the variable.
+   * @param base The base.
    * @return True, if the variable is an actual base, false otherwise.
    */
-  public boolean isActualBase(final String name) {
-    return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
+  public boolean isActualBase(final PointerBase base) {
+    return bases.containsKey(base) && !PointerTargetSetManager.isFakeBaseType(bases.get(base));
   }
 
   PersistentSortedMap<CompositeField, Boolean> getFields() {
     return fields;
   }
 
-  PersistentList<Pair<String, DeferredAllocation>> getDeferredAllocations() {
+  PersistentList<Pair<PointerBase, DeferredAllocation>> getDeferredAllocations() {
     return deferredAllocations;
   }
 
@@ -184,12 +156,11 @@ public final class PointerTargetSet implements Serializable {
 
   // The set of known memory objects.
   // This includes allocated memory regions and global/local structs/arrays.
-  // The key of the map is the name of the base (without the BASE_PREFIX).
   // There are also "fake" bases in the map for variables that have their address
   // taken somewhere but are not yet tracked. These are marked with a special fake-base type.
   // Apart from distinguishing between "fake" and real bases,
   // the type for each base is mostly relevant for the UF-based encoding.
-  private final PersistentSortedMap<String, CType> bases;
+  private final PersistentSortedMap<PointerBase, CType> bases;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
@@ -200,7 +171,7 @@ public final class PointerTargetSet implements Serializable {
   // This is a list of allocations that have already occurred were not yet added to bases
   // because we do not know the type of the allocation yet and hope to find out later.
   // This is only used if revealAllocationTypeFromLhs or deferUntypedAllocations are true.
-  private final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
+  private final PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
 
   // The complete set of tracked memory locations.
   // The map key is the type of the memory location.
@@ -216,8 +187,6 @@ public final class PointerTargetSet implements Serializable {
   private final PersistentList<Formula> highestAllocatedAddresses;
 
   private final int allocationCount;
-
-  private static final String BASE_PREFIX = "__ADDRESS_OF_";
 
   @Serial private static final long serialVersionUID = 2102505458322248624L;
 
@@ -240,9 +209,9 @@ public final class PointerTargetSet implements Serializable {
   private static class SerializationProxy implements Serializable {
 
     @Serial private static final long serialVersionUID = 8022025017590667769L;
-    private final PersistentSortedMap<String, CType> bases;
+    private final PersistentSortedMap<PointerBase, CType> bases;
     private final PersistentSortedMap<CompositeField, Boolean> fields;
-    private final List<Pair<String, DeferredAllocation>> deferredAllocations;
+    private final List<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
     private final List<String> highestAllocatedAddresses;
     private final int allocationCount;

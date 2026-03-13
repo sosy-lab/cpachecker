@@ -25,6 +25,10 @@ final class Variable {
     return name;
   }
 
+  PointerBase asPointerBase() {
+    return new PointerBase(name);
+  }
+
   CType getType() {
     return type;
   }

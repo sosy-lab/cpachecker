@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
-import com.google.common.collect.ImmutableSortedSet;
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -303,8 +304,7 @@ public final class DynamicMemoryHandler {
             edge);
     Formula address;
     if (newType != null) {
-      final String newBase =
-          makeAllocVariableName(functionName, newType, pts.getFreshAllocationId());
+      final PointerBase newBase = makeAllocBase(functionName, newType, pts.getFreshAllocationId());
       address =
           makeAllocation(
               conv.options.isSuccessfulZallocFunctionName(functionName),
@@ -312,8 +312,8 @@ public final class DynamicMemoryHandler {
               newBase,
               Optional.of(sizeExp));
     } else {
-      final String newBase =
-          makeAllocVariableName(functionName, CVoidType.VOID, pts.getFreshAllocationId());
+      final PointerBase newBase =
+          makeAllocBase(functionName, CVoidType.VOID, pts.getFreshAllocationId());
       pts.addNextBaseAddressConstraints(newBase, null, sizeExp, true, constraints);
       pts.addTemporaryDeferredAllocation(
           conv.options.isSuccessfulZallocFunctionName(functionName),
@@ -325,9 +325,7 @@ public final class DynamicMemoryHandler {
                           parameter.getExpressionType(),
                           BigInteger.valueOf(s))),
           newBase);
-      address =
-          conv.makeConstant(
-              PointerTargetSet.getBaseNameForFormula(newBase), CPointerType.POINTER_TO_VOID);
+      address = conv.makeConstant(newBase.formulaEncoding(), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
           conv.fmgr.makeGreaterThan(
               address, conv.fmgr.makeNumber(typeHandler.getPointerType(), 0L), true));
@@ -365,7 +363,7 @@ public final class DynamicMemoryHandler {
               typeHandler.getSimplifiedType(parameters.getFirst()));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
-      for (String base : pts.getAllBases()) {
+      for (PointerBase base : pts.getAllBases()) {
         Formula baseF = conv.makeBaseAddress(base, CPointerType.POINTER_TO_VOID);
         validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));
       }
@@ -380,7 +378,7 @@ public final class DynamicMemoryHandler {
    *
    * @param isZeroing A flag indicating if the variable is zeroing.
    * @param type The type.
-   * @param base The name of the base.
+   * @param base The base.
    * @param pSize An expression for the size in bytes of the new base. If absent, this was a
    *     previously deferred base.
    * @return A formula for the memory allocation.
@@ -388,7 +386,10 @@ public final class DynamicMemoryHandler {
    * @throws InterruptedException If the execution gets interrupted.
    */
   private Formula makeAllocation(
-      final boolean isZeroing, final CType type, final String base, final Optional<Formula> pSize)
+      final boolean isZeroing,
+      final CType type,
+      final PointerBase base,
+      final Optional<Formula> pSize)
       throws UnrecognizedCodeException, InterruptedException {
     final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
@@ -445,28 +446,30 @@ public final class DynamicMemoryHandler {
   }
 
   /**
-   * Creates a name for an allocation.
+   * Creates a base for an allocation.
    *
    * @param functionName The name of the function.
    * @param type The type of the function.
    * @param allocationId A unique ID for this allocation
    * @return A name for allocations.
    */
-  private String makeAllocVariableName(
+  private PointerBase makeAllocBase(
       final String functionName, final CType type, final int allocationId) {
-    return MALLOC_INDEX_SEPARATOR
-        + functionName
-        + "_"
-        + typeHandler.getPointerAccessNameForType(type)
-        + MALLOC_INDEX_SEPARATOR
-        + allocationId;
+    return new PointerBase(
+        MALLOC_INDEX_SEPARATOR
+            + functionName
+            + "_"
+            + typeHandler.getPointerAccessNameForType(type)
+            + MALLOC_INDEX_SEPARATOR
+            + allocationId);
   }
 
   /**
-   * Checks whether a given (non-empty) string is one that could be returned by {@link
-   * #makeAllocVariableName(String, CType, int)}.
+   * Checks whether a given base is one that could be returned by {@link #makeAllocBase(String,
+   * CType, int)}.
    */
-  public static boolean isAllocVariableName(String name) {
+  public static boolean isAllocBase(PointerBase base) {
+    String name = base.name();
     // Check could be stricter, but should reliably distinguish everything returned from
     // makeAllocVariableName from other bases anyway.
     return name.charAt(0) == MALLOC_INDEX_SEPARATOR && name.lastIndexOf(MALLOC_INDEX_SEPARATOR) > 2;
@@ -621,7 +624,7 @@ public final class DynamicMemoryHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException if the execution was interrupted.
    */
-  private void handleDeferredAllocationTypeRevelation(final String pointer, final CType type)
+  private void handleDeferredAllocationTypeRevelation(final PointerBase pointer, final CType type)
       throws UnrecognizedCodeException, InterruptedException {
     for (DeferredAllocation d : pts.removeDeferredAllocations(pointer)) {
       makeAllocation(
@@ -648,8 +651,8 @@ public final class DynamicMemoryHandler {
       final CRightHandSide rhs,
       final Expression rhsExpression,
       final CType lhsType,
-      final Map<String, CType> lhsLearnedPointerTypes,
-      final Map<String, CType> rhsLearnedPointerTypes)
+      final Map<PointerBase, CType> lhsLearnedPointerTypes,
+      final Map<PointerBase, CType> rhsLearnedPointerTypes)
       throws UnrecognizedCodeException, InterruptedException {
     // Handle allocations: reveal the actual type form the LHS type or defer the allocation until
     // later
@@ -666,9 +669,11 @@ public final class DynamicMemoryHandler {
       // allocation address)
       for (final String mangledVariable : rhsVariables) {
         final String nameWithoutIndex = FormulaManagerView.parseName(mangledVariable).getFirst();
-        if (PointerTargetSet.isBaseNameInFormulas(nameWithoutIndex)) {
+        final Optional<PointerBase> potentialBase =
+            PointerBase.fromFormulaEncoding(nameWithoutIndex);
+        if (potentialBase.isPresent()) {
           assert FormulaManagerView.parseName(mangledVariable).getSecond().isEmpty();
-          final String variable = PointerTargetSet.getBaseFromFormulaName(nameWithoutIndex);
+          final PointerBase variable = potentialBase.orElseThrow();
           if (pts.isTemporaryDeferredAllocationPointer(variable)) {
             if (!isAllocation) {
               if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
@@ -676,7 +681,7 @@ public final class DynamicMemoryHandler {
                 handleDeferredAllocationTypeRevelation(variable, lhsType);
               } else {
                 // We can defer the allocation and start tracking the variable in the LHS
-                final Optional<String> lhsPointer =
+                final Optional<PointerBase> lhsPointer =
                     lhs.accept(new PointerApproximatingVisitor(typeHandler, edge));
                 lhsPointer.ifPresent(
                     s -> {
@@ -704,7 +709,7 @@ public final class DynamicMemoryHandler {
             }
           }
         } else {
-          assert !pts.isTemporaryDeferredAllocationPointer(mangledVariable);
+          assert !pts.isTemporaryDeferredAllocationPointer(new PointerBase(mangledVariable));
         }
       }
     }
@@ -732,8 +737,8 @@ public final class DynamicMemoryHandler {
       final CLeftHandSide lhs,
       final CRightHandSide rhs,
       final CType lhsType,
-      final Map<String, CType> lhsLearnedPointerTypes,
-      final Map<String, CType> rhsLearnedPointerTypes)
+      final Map<PointerBase, CType> lhsLearnedPointerTypes,
+      final Map<PointerBase, CType> rhsLearnedPointerTypes)
       throws UnrecognizedCodeException, InterruptedException {
     if (!(lhsType instanceof CPointerType || lhsType instanceof CArrayType)) {
       return;
@@ -763,16 +768,17 @@ public final class DynamicMemoryHandler {
         new PointerApproximatingVisitor(typeHandler, edge);
 
     // Reveal the type from usages (type casts, comparisons) in both sides
-    for (Map.Entry<String, CType> entry : lhsLearnedPointerTypes.entrySet()) {
+    for (Map.Entry<PointerBase, CType> entry : lhsLearnedPointerTypes.entrySet()) {
       handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
     }
-    for (Map.Entry<String, CType> entry : rhsLearnedPointerTypes.entrySet()) {
+    for (Map.Entry<PointerBase, CType> entry : rhsLearnedPointerTypes.entrySet()) {
       handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
     }
 
     // Reveal the type from the assignment itself (i.e. lhs from rhs and vice versa)
     if (toHandle.isPresent()) {
-      Optional<String> s = toHandle.orElseThrow().getFirst().accept(pointerApproximatingVisitor);
+      Optional<PointerBase> s =
+          toHandle.orElseThrow().getFirst().accept(pointerApproximatingVisitor);
       if (s.isPresent()
           && !lhsLearnedPointerTypes.containsKey(s.orElseThrow())
           && !rhsLearnedPointerTypes.containsKey(s.orElseThrow())) {
@@ -782,11 +788,11 @@ public final class DynamicMemoryHandler {
 
     if (lhs instanceof CIdExpression cIdExpression) {
       // If LHS is a variable, remove previous points-to bindings containing it
-      pts.removeDeferredAllocationPointer(cIdExpression.getDeclaration().getQualifiedName())
+      pts.removeDeferredAllocationPointer(new PointerBase(cIdExpression.getDeclaration()))
           .forEach(d -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises
-      Optional<String> lhsPointer = lhs.accept(pointerApproximatingVisitor);
+      Optional<PointerBase> lhsPointer = lhs.accept(pointerApproximatingVisitor);
       if (lhsPointer.isPresent()
           && pts.canRemoveDeferredAllocationPointer(lhsPointer.orElseThrow())) {
         pts.removeDeferredAllocationPointer(lhsPointer.orElseThrow());
@@ -794,7 +800,7 @@ public final class DynamicMemoryHandler {
     }
 
     // And now propagate points-to bindings from the RHS to the LHS
-    Optional<String> l = lhs.accept(pointerApproximatingVisitor);
+    Optional<PointerBase> l = lhs.accept(pointerApproximatingVisitor);
     if (l.isPresent() && rhs != null) {
       rhs.accept(pointerApproximatingVisitor)
           .ifPresent(r -> pts.addDeferredAllocationPointer(l.orElseThrow(), r));
@@ -810,9 +816,9 @@ public final class DynamicMemoryHandler {
    * @throws InterruptedException If the execution gets interrupted.
    */
   void handleDeferredAllocationsInAssume(
-      final CExpression e, final Map<String, CType> learnedPointerTypes)
+      final CExpression e, final Map<PointerBase, CType> learnedPointerTypes)
       throws UnrecognizedCodeException, InterruptedException {
-    for (Map.Entry<String, CType> entry : learnedPointerTypes.entrySet()) {
+    for (Map.Entry<PointerBase, CType> entry : learnedPointerTypes.entrySet()) {
       handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
     }
   }
@@ -841,8 +847,11 @@ public final class DynamicMemoryHandler {
   void handleDeferredAllocationInFunctionExit(final String function) {
     for (String v :
         CFAUtils.filterVariablesOfFunction(
-            ImmutableSortedSet.copyOf(pts.getDeferredAllocationPointers()), function)) {
-      if (!pts.removeDeferredAllocationPointer(v).isEmpty()) {
+            from(pts.getDeferredAllocationPointers())
+                .transform(PointerBase::name)
+                .toSortedSet(Comparator.naturalOrder()),
+            function)) {
+      if (!pts.removeDeferredAllocationPointer(new PointerBase(v)).isEmpty()) {
         conv.logger.logfOnce(
             Level.WARNING,
             "%s: Destroying the void* pointer %s produces garbage or the memory pointed by it is"
