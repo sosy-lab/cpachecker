@@ -326,7 +326,8 @@ public final class DynamicMemoryHandler {
                           BigInteger.valueOf(s))),
           newBase);
       address =
-          conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
+          conv.makeConstant(
+              PointerTargetSet.getBaseNameForFormula(newBase), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
           conv.fmgr.makeGreaterThan(
               address, conv.fmgr.makeNumber(typeHandler.getPointerType(), 0L), true));
@@ -366,7 +367,8 @@ public final class DynamicMemoryHandler {
 
       for (String base : pts.getAllBases()) {
         Formula baseF =
-            conv.makeBaseAddress(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID);
+            conv.makeBaseAddress(
+                PointerTargetSet.getBaseNameForFormula(base), CPointerType.POINTER_TO_VOID);
         validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));
       }
       errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
@@ -666,9 +668,9 @@ public final class DynamicMemoryHandler {
       // allocation address)
       for (final String mangledVariable : rhsVariables) {
         final String nameWithoutIndex = FormulaManagerView.parseName(mangledVariable).getFirst();
-        if (PointerTargetSet.isBaseName(nameWithoutIndex)) {
+        if (PointerTargetSet.isBaseNameInFormulas(nameWithoutIndex)) {
           assert FormulaManagerView.parseName(mangledVariable).getSecond().isEmpty();
-          final String variable = PointerTargetSet.getBase(nameWithoutIndex);
+          final String variable = PointerTargetSet.getBaseFromFormulaName(nameWithoutIndex);
           if (pts.isTemporaryDeferredAllocationPointer(variable)) {
             if (!isAllocation) {
               if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {

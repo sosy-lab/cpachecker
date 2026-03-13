@@ -487,9 +487,9 @@ public class AssignmentToPathAllocator {
 
     for (ValueAssignment constant : assignableTerms.getConstants()) {
       String name = FormulaManagerView.parseName(constant.getName()).getFirst();
-      if (PointerTargetSet.isBaseName(name)) {
+      if (PointerTargetSet.isBaseNameInFormulas(name)) {
         assert FormulaManagerView.parseName(constant.getName()).getSecond().isEmpty();
-        String baseName = PointerTargetSet.getBase(name);
+        String baseName = PointerTargetSet.getBaseFromFormulaName(name);
         if (!DynamicMemoryHandler.isAllocVariableName(baseName)) {
           Address address = Address.valueOf(constant.getValue());
 

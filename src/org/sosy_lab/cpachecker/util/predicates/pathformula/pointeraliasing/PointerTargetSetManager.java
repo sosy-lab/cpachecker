@@ -629,7 +629,7 @@ class PointerTargetSetManager {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula =
         formulaManager.makeVariableWithoutSSAIndex(
-            pointerType, PointerTargetSet.getBaseName(pNewBase));
+            pointerType, PointerTargetSet.getBaseNameForFormula(pNewBase));
 
     // Create constraints for the new base address and store them
     if (pHighestAllocatedAddresses.isEmpty()) {
