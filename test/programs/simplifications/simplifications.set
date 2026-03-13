@@ -1,0 +1,27 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+arithmetic_constant_folding.yml
+arithmetic_identities.yml
+logical_short_circuit.yml
+comparison_identities.yml
+bitwise_identities.yml
+bitwise_shift_identities.yml
+structural_loop_simplification.yml
+constant_condition_branches.yml
+bool_type_bounds.yml
+signed_unsigned_boundaries.yml
+cast_truncation_boundaries.yml
+cast_roundtrip.yml
+bool_normalization.yml
+integer_promotions.yml
+signed_unsigned_comparisons.yml
+side_effects_preserved.yml
+pointer_null_basics.yml
+type_sizes_32.yml
+type_sizes_64.yml
