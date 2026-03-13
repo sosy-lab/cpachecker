@@ -38,6 +38,7 @@ public final class PointerTargetSet implements Serializable {
    * anything except creating formula terms!
    */
   static String getBaseNameForFormula(final String name) {
+    assert !isBaseNameInFormulas(name);
     return BASE_PREFIX + name;
   }
 
