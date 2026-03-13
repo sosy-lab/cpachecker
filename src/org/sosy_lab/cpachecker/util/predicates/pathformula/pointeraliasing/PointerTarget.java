@@ -19,23 +19,15 @@ public final class PointerTarget implements Serializable {
 
   /** This constructor is for fields of nested structures and arrays */
   PointerTarget(
-      String base, @Nullable CType containerType, long properOffset, long containerOffset) {
+      PointerBase base, @Nullable CType containerType, long properOffset, long containerOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;
     this.containerOffset = containerOffset;
   }
 
-  String getBase() {
+  PointerBase getBase() {
     return base;
-  }
-
-  /**
-   * Return how to encode the base of this target in formulas. The result should not be used for
-   * anything except creating formula terms!
-   */
-  public String getBaseNameForFormula() {
-    return PointerTargetSet.getBaseNameForFormula(base);
   }
 
   public long getOffset() {
@@ -87,7 +79,7 @@ public final class PointerTarget implements Serializable {
         base, containerType, properOffset, containerOffset);
   }
 
-  final String base;
+  final PointerBase base;
   final @Nullable CType containerType;
   final long properOffset;
   final long containerOffset;

@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
   private PointerTargetPattern(
-      @Nullable String pBase,
+      @Nullable PointerBase pBase,
       @Nullable CType pContainerType,
       @Nullable Long pProperOffset,
       @Nullable Long pContainerOffset) {
@@ -44,11 +44,11 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
    *
    * @param base the base name specified
    */
-  static PointerTargetPattern forBase(String base) {
+  static PointerTargetPattern forBase(PointerBase base) {
     return new PointerTargetPattern(base, null, 0L, 0L);
   }
 
-  static Predicate<PointerTarget> forRange(String base, long startOffset, long size) {
+  static Predicate<PointerTarget> forRange(PointerBase base, long startOffset, long size) {
     return new RangePointerTargetPattern(base, startOffset, size);
   }
 
@@ -108,7 +108,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     return new PointerTarget(base, containerType, properOffset, containerOffset);
   }
 
-  private final @Nullable String base;
+  private final @Nullable PointerBase base;
   private final @Nullable CType containerType;
   private final @Nullable Long properOffset;
   private final @Nullable Long containerOffset;
@@ -117,12 +117,12 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
   private static class RangePointerTargetPattern implements Predicate<PointerTarget> {
 
-    private final String base;
+    private final PointerBase base;
     private final long startOffset;
     private final long endOffset;
 
     private RangePointerTargetPattern(
-        final String pBase, final long pStartOffset, final long pSize) {
+        final PointerBase pBase, final long pStartOffset, final long pSize) {
       base = pBase;
       startOffset = pStartOffset;
       endOffset = pStartOffset + pSize;
@@ -143,7 +143,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
   static class PointerTargetPatternBuilder {
 
-    private @Nullable String base = null;
+    private @Nullable PointerBase base = null;
     private @Nullable CType containerType = null;
     private @Nullable Long properOffset = null;
     private @Nullable Long containerOffset = null;
@@ -154,7 +154,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
       return new PointerTargetPatternBuilder();
     }
 
-    static PointerTargetPatternBuilder forBase(String pBase) {
+    static PointerTargetPatternBuilder forBase(PointerBase pBase) {
       PointerTargetPatternBuilder result = new PointerTargetPatternBuilder();
       result.base = pBase;
       result.properOffset = 0L;

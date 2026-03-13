@@ -296,30 +296,30 @@ class PointerTargetSetManager {
 
     // Handle bases
 
-    final CopyOnWriteSortedMap<String, CType> basesOnlyPts1 =
-        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<String, CType>of());
-    final CopyOnWriteSortedMap<String, CType> basesOnlyPts2 =
-        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<String, CType>of());
+    final CopyOnWriteSortedMap<PointerBase, CType> basesOnlyPts1 =
+        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<PointerBase, CType>of());
+    final CopyOnWriteSortedMap<PointerBase, CType> basesOnlyPts2 =
+        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<PointerBase, CType>of());
 
-    PersistentSortedMap<String, CType> mergedBases =
+    PersistentSortedMap<PointerBase, CType> mergedBases =
         merge(
             pts1.getBases(),
             pts2.getBases(),
             Equivalence.equals(),
             BaseUnitingConflictHandler.INSTANCE,
-            new MapsDifference.DefaultVisitor<String, CType>() {
+            new MapsDifference.DefaultVisitor<PointerBase, CType>() {
               @Override
-              public void leftValueOnly(String pKey, CType pLeftValue) {
+              public void leftValueOnly(PointerBase pKey, CType pLeftValue) {
                 basesOnlyPts1.put(pKey, pLeftValue);
               }
 
               @Override
-              public void rightValueOnly(String pKey, CType pRightValue) {
+              public void rightValueOnly(PointerBase pKey, CType pRightValue) {
                 basesOnlyPts2.put(pKey, pRightValue);
               }
 
               @Override
-              public void differingValues(String pKey, CType pLeftValue, CType pRightValue) {
+              public void differingValues(PointerBase pKey, CType pLeftValue, CType pRightValue) {
                 if (isFakeBaseType(pLeftValue) && !(pRightValue instanceof CElaboratedType)) {
                   basesOnlyPts2.put(pKey, pRightValue);
                 } else if (isFakeBaseType(pRightValue)
@@ -404,7 +404,7 @@ class PointerTargetSetManager {
     mergedTargets =
         addAllTargets(mergedTargets, basesOnlyPts1.getSnapshot(), fieldsOnlyPts2.getSnapshot());
 
-    final PersistentList<Pair<String, DeferredAllocation>> mergedDeferredAllocations =
+    final PersistentList<Pair<PointerBase, DeferredAllocation>> mergedDeferredAllocations =
         mergeLists(pts1.getDeferredAllocations(), pts2.getDeferredAllocations());
     shutdownNotifier.shutdownIfNecessary();
 
@@ -444,7 +444,7 @@ class PointerTargetSetManager {
   }
 
   /** A handler for merge conflicts that appear when merging bases. */
-  private enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
+  private enum BaseUnitingConflictHandler implements MergeConflictHandler<PointerBase, CType> {
     INSTANCE;
 
     /**
@@ -458,7 +458,7 @@ class PointerTargetSetManager {
      * @return A conflict resolving C type.
      */
     @Override
-    public CType resolveConflict(final String key, final CType type1, final CType type2) {
+    public CType resolveConflict(final PointerBase key, final CType type1, final CType type2) {
       if (isFakeBaseType(type1) || type1.isIncomplete()) {
         return type2;
       } else if (isFakeBaseType(type2) || type2.isIncomplete()) {
@@ -569,21 +569,20 @@ class PointerTargetSetManager {
    * @return The now highest allocated addresses to use for future base constraints
    */
   private PersistentList<Formula> makeBaseAddressConstraintsForMergedBases(
-      final Map<String, CType> pBases,
-      final Set<String> pIgnoredBases,
+      final Map<PointerBase, CType> pBases,
+      final Set<PointerBase> pIgnoredBases,
       PersistentList<Formula> highestAllocatedAddresses,
       final Constraints pConstraints) {
 
-    for (Map.Entry<String, CType> base : pBases.entrySet()) {
-      final String baseName = base.getKey();
+    for (Map.Entry<PointerBase, CType> baseEntry : pBases.entrySet()) {
+      final PointerBase base = baseEntry.getKey();
 
       // We do not need constraints for bases resulting from dynamic memory allocation,
       // because these bases cannot occur later again.
-      if (!pIgnoredBases.contains(baseName)
-          && !DynamicMemoryHandler.isAllocVariableName(baseName)) {
+      if (!pIgnoredBases.contains(base) && !DynamicMemoryHandler.isAllocBase(base)) {
         highestAllocatedAddresses =
             makeBaseAddressConstraints(
-                baseName, base.getValue(), null, false, highestAllocatedAddresses, pConstraints);
+                base, baseEntry.getValue(), null, false, highestAllocatedAddresses, pConstraints);
       }
     }
 
@@ -611,7 +610,7 @@ class PointerTargetSetManager {
    *     these
    */
   PersistentList<Formula> makeBaseAddressConstraints(
-      final String pNewBase,
+      final PointerBase pNewBase,
       final @Nullable CType pType,
       final @Nullable Formula pAllocationSize,
       final boolean pIsDynamicAllocation,
@@ -628,8 +627,7 @@ class PointerTargetSetManager {
 
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula =
-        formulaManager.makeVariableWithoutSSAIndex(
-            pointerType, PointerTargetSet.getBaseNameForFormula(pNewBase));
+        formulaManager.makeVariableWithoutSSAIndex(pointerType, pNewBase.formulaEncoding());
 
     // Create constraints for the new base address and store them
     if (pHighestAllocatedAddresses.isEmpty()) {
@@ -712,12 +710,12 @@ class PointerTargetSetManager {
    * @param constraints Where the import constraint(s) should be added.
    */
   private void makeValueImportConstraints(
-      final PersistentSortedMap<String, CType> newBases,
+      final PersistentSortedMap<PointerBase, CType> newBases,
       final List<CompositeField> sharedFields,
       final SSAMapBuilder ssaBuilder,
       final Constraints constraints) {
-    for (final Map.Entry<String, CType> base : newBases.entrySet()) {
-      if (!DynamicMemoryHandler.isAllocVariableName(base.getKey())
+    for (final Map.Entry<PointerBase, CType> base : newBases.entrySet()) {
+      if (!DynamicMemoryHandler.isAllocBase(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
         final Formula baseVar = conv.makeBaseAddress(base.getKey(), base.getValue());
         conv.addValueImportConstraints(
@@ -746,7 +744,7 @@ class PointerTargetSetManager {
    */
   @CheckReturnValue
   PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
-      final String base,
+      final PointerBase base,
       final @Nullable MemoryRegion region,
       final CType cType,
       final @Nullable CType containerType,
@@ -835,16 +833,16 @@ class PointerTargetSetManager {
   @CheckReturnValue
   private PersistentSortedMap<String, PersistentList<PointerTarget>> addAllTargets(
       PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
-      final PersistentSortedMap<String, CType> bases,
+      final PersistentSortedMap<PointerBase, CType> bases,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
     if (options.useArraysForHeap()) {
       return targets;
     }
 
-    for (final Map.Entry<String, CType> entry : bases.entrySet()) {
-      String name = entry.getKey();
+    for (final Map.Entry<PointerBase, CType> entry : bases.entrySet()) {
+      PointerBase base = entry.getKey();
       CType type = checkIsSimplified(entry.getValue());
-      targets = addToTargets(name, null, type, null, 0, 0, targets, fields);
+      targets = addToTargets(base, null, type, null, 0, 0, targets, fields);
     }
     return targets;
   }
