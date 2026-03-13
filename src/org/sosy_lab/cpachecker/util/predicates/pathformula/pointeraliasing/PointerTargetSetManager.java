@@ -629,7 +629,7 @@ class PointerTargetSetManager {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula =
         formulaManager.makeVariableWithoutSSAIndex(
-            pointerType, PointerTargetSet.getBaseName(pNewBase));
+            pointerType, PointerTargetSet.getBaseNameForFormula(pNewBase));
 
     // Create constraints for the new base address and store them
     if (pHighestAllocatedAddresses.isEmpty()) {
@@ -717,7 +717,7 @@ class PointerTargetSetManager {
       final SSAMapBuilder ssaBuilder,
       final Constraints constraints) {
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
-      if (!options.isDynamicAllocVariableName(base.getKey())
+      if (!DynamicMemoryHandler.isAllocVariableName(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
         final Formula baseVar = conv.makeBaseAddress(base.getKey(), base.getValue());
         conv.addValueImportConstraints(

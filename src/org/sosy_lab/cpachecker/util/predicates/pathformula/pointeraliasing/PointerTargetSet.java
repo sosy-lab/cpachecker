@@ -33,28 +33,32 @@ import org.sosy_lab.java_smt.api.Formula;
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public final class PointerTargetSet implements Serializable {
 
-  static String getBaseName(final String name) {
+  /**
+   * Return how to encode the given name as a term in formulas. The result should not be used for
+   * anything except creating formula terms!
+   */
+  static String getBaseNameForFormula(final String name) {
+    assert !isBaseNameInFormulas(name);
     return BASE_PREFIX + name;
   }
 
-  public static boolean isBaseName(final String name) {
-    return name.startsWith(BASE_PREFIX);
-  }
-
-  public static String getBase(final String baseName) {
-    assert isBaseName(baseName);
-    return baseName.substring(BASE_PREFIX.length());
+  /**
+   * Check if the given string is the name of a base as it appears in formulas (cf. {@link
+   * #getBaseNameForFormula(String)}).
+   */
+  public static boolean isBaseNameInFormulas(final String encodedBaseName) {
+    return encodedBaseName.startsWith(BASE_PREFIX);
   }
 
   /**
-   * Check whether the given string is a base as it is created for dynamic memory allocation, i.e.,
-   * for malloc. Other bases would be those created for local and global variables.
+   * Get the actual name of the base from the form how it is encoded in formulas (cf. {@link
+   * #getBaseNameForFormula(String)}).
    *
-   * @param baseName must be a base as determined by {@link #isBaseName(String)}
+   * @param encodedBaseName must be a base as determined by {@link #isBaseNameInFormulas(String)}
    */
-  public static boolean isMallocBase(final String baseName) {
-    assert isBaseName(baseName);
-    return DynamicMemoryHandler.isAllocVariableName(getBase(baseName));
+  public static String getBaseFromFormulaName(final String encodedBaseName) {
+    assert isBaseNameInFormulas(encodedBaseName);
+    return encodedBaseName.substring(BASE_PREFIX.length());
   }
 
   PersistentList<PointerTarget> getAllTargets(final String regionName) {

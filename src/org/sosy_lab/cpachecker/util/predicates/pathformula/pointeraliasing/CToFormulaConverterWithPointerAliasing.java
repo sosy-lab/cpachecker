@@ -223,7 +223,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param baseType The type of the memory location (not the type of the pointer to it)
    */
   Formula makeBaseAddress(final String baseName, final CType baseType) {
-    return makeConstant(PointerTargetSet.getBaseName(baseName), CTypeUtils.getBaseType(baseType));
+    return makeConstant(
+        PointerTargetSet.getBaseNameForFormula(baseName), CTypeUtils.getBaseType(baseType));
   }
 
   /**
@@ -375,7 +376,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   Formula makeFormulaForTarget(final PointerTarget target) {
     return fmgr.makePlus(
-        fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, target.getBaseName()),
+        fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, target.getBaseNameForFormula()),
         fmgr.makeNumber(voidPointerFormulaType, target.getOffset()));
   }
 

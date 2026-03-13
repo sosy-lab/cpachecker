@@ -195,10 +195,6 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
     return successfulZallocFunctionName.equals(name);
   }
 
-  boolean isDynamicAllocVariableName(final String name) {
-    return isSuccessfulAllocFunctionName(name) || isSuccessfulZallocFunctionName(name);
-  }
-
   String getSuccessfulAllocFunctionName() {
     return successfulAllocFunctionName;
   }

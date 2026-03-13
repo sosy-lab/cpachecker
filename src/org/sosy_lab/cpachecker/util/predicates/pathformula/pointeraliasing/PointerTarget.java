@@ -30,8 +30,12 @@ public final class PointerTarget implements Serializable {
     return base;
   }
 
-  public String getBaseName() {
-    return PointerTargetSet.getBaseName(base);
+  /**
+   * Return how to encode the base of this target in formulas. The result should not be used for
+   * anything except creating formula terms!
+   */
+  public String getBaseNameForFormula() {
+    return PointerTargetSet.getBaseNameForFormula(base);
   }
 
   public long getOffset() {
