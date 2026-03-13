@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DynamicMemoryHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -488,12 +489,12 @@ public class AssignmentToPathAllocator {
       String name = FormulaManagerView.parseName(constant.getName()).getFirst();
       if (PointerTargetSet.isBaseName(name)) {
         assert FormulaManagerView.parseName(constant.getName()).getSecond().isEmpty();
-        if (!PointerTargetSet.isMallocBase(name)) {
+        String baseName = PointerTargetSet.getBase(name);
+        if (!DynamicMemoryHandler.isAllocVariableName(baseName)) {
           Address address = Address.valueOf(constant.getValue());
 
           // TODO ugly, refactor?
-          String constantName = PointerTargetSet.getBase(name);
-          LeftHandSide leftHandSide = createLeftHandSide(constantName);
+          LeftHandSide leftHandSide = createLeftHandSide(baseName);
           addressOfVariables.put(leftHandSide, address);
         }
       }

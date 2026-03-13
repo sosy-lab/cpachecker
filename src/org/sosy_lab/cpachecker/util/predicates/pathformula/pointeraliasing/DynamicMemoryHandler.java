@@ -61,7 +61,7 @@ import org.sosy_lab.java_smt.api.Formula;
  * malloc() and free(), and for handling deferred allocations (calls to malloc() where the assumed
  * type of the memory is not yet known).
  */
-class DynamicMemoryHandler {
+public final class DynamicMemoryHandler {
 
   private static final String CALLOC_FUNCTION = "calloc";
 
@@ -466,7 +466,7 @@ class DynamicMemoryHandler {
    * Checks whether a given (non-empty) string is one that could be returned by {@link
    * #makeAllocVariableName(String, CType, int)}.
    */
-  static boolean isAllocVariableName(String name) {
+  public static boolean isAllocVariableName(String name) {
     // Check could be stricter, but should reliably distinguish everything returned from
     // makeAllocVariableName from other bases anyway.
     return name.charAt(0) == MALLOC_INDEX_SEPARATOR && name.lastIndexOf(MALLOC_INDEX_SEPARATOR) > 2;
