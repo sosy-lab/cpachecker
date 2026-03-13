@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-void reach_error() {}
+extern void reach_error();
 
 int g = 0;
 int max = 3;
@@ -15,9 +15,8 @@ void count(int *c, int offset) {
   if (*(c - offset) < max) {
     (*(c - offset))++;
     int** a = &c;
-    count((*a) + 1, offset + 1);
-
-    (*((*a) - offset)) += 1;
+    count(*a + 1, offset + 1);
+    (**a) += 1;
   }
 }
 
@@ -26,6 +25,5 @@ int main() {
   count(&g, 0);
   if (g == 2*max) {
     ERROR: reach_error();
-    return 1;
   }
 }

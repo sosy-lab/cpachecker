@@ -31,7 +31,7 @@ public final class PointerTarget implements Serializable {
   }
 
   public String getBaseName() {
-    return PointerTargetSet.getBaseName(base, null);
+    return PointerTargetSet.getBaseName(base);
   }
 
   public long getOffset() {

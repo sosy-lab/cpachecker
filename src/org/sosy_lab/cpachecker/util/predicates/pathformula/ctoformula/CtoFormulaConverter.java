@@ -57,9 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -1026,10 +1024,6 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     SSAMapBuilder ssa = oldFormula.getTopmostStackSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
-    // TODO: Move to make assignment
-    if (edge instanceof FunctionCallEdge pCallEdge) {
-      pts.enterFunction(pCallEdge.getFunctionCallExpression().getDeclaration().getName());
-    }
 
     // param-constraints must be added _before_ handling the edge (some lines below),
     // because this edge could write a global value.
@@ -1066,13 +1060,6 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-
-    if (edge instanceof FunctionReturnEdge pReturnEdge) {
-      PointerTargetSetBuilder pointerTargetSetBuilder = createPointerTargetSetBuilder(newPts);
-      pointerTargetSetBuilder.exitFunction(
-          pReturnEdge.getFunctionCall().getFunctionCallExpression().getDeclaration().getName());
-      newPts = pointerTargetSetBuilder.build();
-    }
 
     @SuppressWarnings("deprecation")
     // This is an intended use, CtoFormulaConverter just does not have access to the constructor

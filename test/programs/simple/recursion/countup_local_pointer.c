@@ -15,7 +15,6 @@ int max = 3;
 void count(int *c) {
   if (*c < max) {
     int* a = c;
-    (*a)++;
     count(a);
     int* b = a;
     (*b) += 1;
@@ -28,7 +27,7 @@ int main() {
   if (max >= 3 || max <= 0) return 0;
 
   count(&g);
-  if (g != 2*max) {
+  if (g != max) {
     ERROR: reach_error();
   }
 }

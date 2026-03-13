@@ -16,7 +16,6 @@ import static java.util.stream.Collectors.toCollection;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.collect.PersistentLinkedList.toPersistentLinkedList;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.getCallStackDepth;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -108,10 +107,6 @@ public interface PointerTargetSetBuilder {
   /** Returns an immutable PointerTargetSet with all the changes made to the builder. */
   PointerTargetSet build();
 
-  void enterFunction(String pFunctionName);
-
-  void exitFunction(String pFunctionName);
-
   /**
    * Actual builder implementation for PointerTargetSet.
    *
@@ -130,7 +125,6 @@ public interface PointerTargetSetBuilder {
 
     // These fields all exist in PointerTargetSet and are documented there.
     private PersistentSortedMap<String, CType> bases;
-    private PersistentSortedMap<String, Integer> callstackDepth;
     private PersistentSortedMap<CompositeField, Boolean> fields;
     private PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
@@ -151,7 +145,6 @@ public interface PointerTargetSetBuilder {
         final CFormulaEncodingWithPointerAliasingOptions pOptions,
         final MemoryRegionManager pRegionMgr) {
       bases = pointerTargetSet.getBases();
-      callstackDepth = pointerTargetSet.getCallstackDepth();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
       verify(
@@ -216,14 +209,15 @@ public interface PointerTargetSetBuilder {
     /**
      * Shares a base of a pointer.
      *
-     * @param baseName The name of the base.
+     * @param name The variable name.
      * @param type The type of the variable.
      */
     @Override
-    public void shareBase(final String baseName, CType type) {
+    public void shareBase(final String name, CType type) {
       checkIsSimplified(type);
       // checkArgument(bases.containsKey(name),
       //     "The base should be prepared before with prepareBase()");
+
       if (type instanceof CElaboratedType cElaboratedType) {
         assert cElaboratedType.getRealType() == null
             : "Elaborated type " + type + " that was not simplified but could have been.";
@@ -232,10 +226,10 @@ public interface PointerTargetSetBuilder {
         // so we don't add targets.
 
       } else {
-        addTargets(baseName, type);
+        addTargets(name, type);
       }
 
-      bases = bases.putAndCopy(baseName, type);
+      bases = bases.putAndCopy(name, type);
     }
 
     /**
@@ -291,7 +285,6 @@ public interface PointerTargetSetBuilder {
       highestAllocatedAddresses =
           ptsMgr.makeBaseAddressConstraints(
               newBase,
-              getCallStackDepth(newBase, callstackDepth),
               type,
               allocationSize,
               isDynamicAllocation,
@@ -536,7 +529,6 @@ public interface PointerTargetSetBuilder {
     @Override
     public void addDeferredAllocationPointer(
         final String newPointer, final String originalPointer) {
-      // TODO: The strings here also need to be indexed by the callstack
       final Set<Pair<String, DeferredAllocation>> cache = new HashSet<>(deferredAllocations);
       deferredAllocations.stream()
           .filter(p -> p.getFirst().equals(originalPointer))
@@ -751,7 +743,6 @@ public interface PointerTargetSetBuilder {
       PointerTargetSet result =
           new PointerTargetSet(
               bases,
-              callstackDepth,
               fields,
               deferredAllocations,
               targets,
@@ -761,22 +752,6 @@ public interface PointerTargetSetBuilder {
         return PointerTargetSet.emptyPointerTargetSet();
       } else {
         return result;
-      }
-    }
-
-    @Override
-    public void enterFunction(String pFunctionName) {
-      callstackDepth =
-          callstackDepth.putAndCopy(
-              pFunctionName, callstackDepth.getOrDefault(pFunctionName, 0) + 1);
-    }
-
-    @Override
-    public void exitFunction(String pFunctionName) {
-      callstackDepth =
-          callstackDepth.putAndCopy(pFunctionName, callstackDepth.get(pFunctionName) - 1);
-      if (callstackDepth.get(pFunctionName) == 0) {
-        callstackDepth = callstackDepth.removeAndCopy(pFunctionName);
       }
     }
 
@@ -917,12 +892,6 @@ public interface PointerTargetSetBuilder {
     public PointerTargetSet build() {
       return PointerTargetSet.emptyPointerTargetSet();
     }
-
-    @Override
-    public void enterFunction(String pFunctionName) {}
-
-    @Override
-    public void exitFunction(String pFunctionName) {}
 
     @Override
     public boolean canRemoveDeferredAllocationPointer(String pPointer) {
