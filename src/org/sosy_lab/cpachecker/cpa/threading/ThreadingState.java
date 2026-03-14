@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class ThreadingState
     implements AbstractState,
         AbstractStateWithLocations,
+        AbstractStateWithThreads,
         Graphable,
         Partitionable,
         AbstractQueryableState {
@@ -147,6 +149,11 @@ public class ThreadingState
 
   public Set<String> getThreadIds() {
     return threads.keySet();
+  }
+
+  @Override
+  public int getNumberOfActiveThreads() {
+    return threads.size();
   }
 
   public AbstractState getThreadCallstack(String id) {

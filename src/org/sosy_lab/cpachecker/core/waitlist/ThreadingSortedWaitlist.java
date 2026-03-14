@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -26,10 +26,11 @@ public class ThreadingSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    ThreadingState state = AbstractStates.extractStateByType(pState, ThreadingState.class);
+    AbstractStateWithThreads state =
+        AbstractStates.extractStateByType(pState, AbstractStateWithThreads.class);
 
     // negate size so that the highest key corresponds to the smallest map
-    return (state == null) ? 0 : -state.getThreadIds().size();
+    return (state == null) ? 0 : state.getNumberOfActiveThreads();
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

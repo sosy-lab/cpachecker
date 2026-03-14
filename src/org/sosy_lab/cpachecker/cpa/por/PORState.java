@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class PORState implements AbstractState, AbstractStateWithLocations,
-                                 AbstractStateWithLocation, Graphable {
+public class PORState
+    implements AbstractState, AbstractStateWithLocations, AbstractStateWithThreads, Graphable {
 
   private final CFA cfa;
 
@@ -164,6 +164,11 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
   }
 
   @Override
+  public int getNumberOfActiveThreads() {
+    return threads.size();
+  }
+
+  @Override
   public Iterable<CFANode> getLocationNodes() {
     ImmutableList.Builder<CFANode> nodes = ImmutableList.builder();
     for (PORThreadState threadState : threads.values()) {
@@ -172,13 +177,6 @@ public class PORState implements AbstractState, AbstractStateWithLocations,
       }
     }
     return nodes.build();
-  }
-
-
-  // needed, otherwise cannot sort states (gives exception).
-  @Override
-  public CFANode getLocationNode() {
-    return getLocationNodes().iterator().next();
   }
 
   /**

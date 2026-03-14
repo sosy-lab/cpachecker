@@ -131,7 +131,7 @@ public class ReachedSetFactory {
   @Option(
       secure = true,
       name = "traversal.useNumberOfThreads",
-      description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)")
+      description = "handle abstract states with fewer running threads first? (needs AbstractStateWithThreads)")
   private boolean useNumberOfThreads = false;
 
   @Option(
