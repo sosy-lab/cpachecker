@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="30 s" hardtimelimit="45 s" memlimit="3 GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">2000M</option>
+
+  <!--
+    This suite is intentionally restricted to analyses with dedicated memory-safety support.
+    The reach-safety simplification suite lives in integration-simplifications.xml.
+  -->
+  <rundefinition name="SMGSymbolicExecution">
+    <option name="--smgSymbolicExecution"/>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+  </rundefinition>
+
+  <tasks>
+    <includesfile>../programs/simplifications/simplifications-memsafety.set</includesfile>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <columns>
+    <column title="status">status</column>
+    <column title="cputime">cputime</column>
+    <column title="walltime">walltime</column>
+  </columns>
+</benchmark>

@@ -1,0 +1,13 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+memsafety_short_circuit_or_safe.yml
+memsafety_short_circuit_and_safe.yml
+memsafety_zero_and_deref_unsafe.yml
+memsafety_zero_mul_deref_unsafe.yml
+memsafety_conditional_operator_safe.yml
