@@ -19,6 +19,14 @@ import org.junit.Test;
  */
 public class SMGCPA64Test extends SMGBaseCPATest0 {
 
+  @Ignore // Arrays have a problem in SMG2 currently
+  @Test
+  public void arrayUsageWithPointerComplex64Proof() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "basics/arrays/array_usage_modified_pointers_in_methods_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrViaMallocProof() throws Exception {
     doNotTestOverflowSpecification();
@@ -58,7 +66,7 @@ public class SMGCPA64Test extends SMGBaseCPATest0 {
   @Test
   public void arrayUsageProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/array_tests/array_usage_64_true.c";
+    String testProgram = "basics/arrays/array_usage_64_true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
 
@@ -67,7 +75,7 @@ public class SMGCPA64Test extends SMGBaseCPATest0 {
   @Test
   public void arrayUsageViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/array_tests/array_usage_64_false.c";
+    String testProgram = "basics/arrays/array_usage_64_false.c";
     assertThatLP64Program(testProgram).isUnsafe();
   }
 
@@ -76,7 +84,7 @@ public class SMGCPA64Test extends SMGBaseCPATest0 {
   @Test
   public void arrayUsageInMethodsProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/array_tests/array_usage_methods_64_true.c";
+    String testProgram = "basics/arrays/array_usage_methods_64_true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
 
@@ -85,7 +93,7 @@ public class SMGCPA64Test extends SMGBaseCPATest0 {
   @Test
   public void arrayUsageInMethodsViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/array_tests/array_usage_methods_64_false.c";
+    String testProgram = "basics/arrays/array_usage_methods_64_false.c";
     assertThatLP64Program(testProgram).isUnsafe();
   }
 
@@ -94,7 +102,7 @@ public class SMGCPA64Test extends SMGBaseCPATest0 {
   @Test
   public void arrayUsageInMethodsAsPointersProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/array_tests/array_usage_pointers_in_methods_64_true.c";
+    String testProgram = "basics/arrays/array_usage_pointers_in_methods_64_true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
 
@@ -103,7 +111,7 @@ public class SMGCPA64Test extends SMGBaseCPATest0 {
   @Test
   public void arrayUsageInMethodsAsPointersViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/array_tests/array_usage_pointers_in_methods_64_false.c";
+    String testProgram = "basics/arrays/array_usage_pointers_in_methods_64_false.c";
     assertThatLP64Program(testProgram).isUnsafe();
   }
 
