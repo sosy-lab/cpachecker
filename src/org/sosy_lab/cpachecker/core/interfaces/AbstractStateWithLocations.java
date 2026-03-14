@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -49,4 +52,8 @@ public interface AbstractStateWithLocations extends AbstractState {
 
   /** same as {@link #getOutgoingEdges()}, but swap "incoming" and "outgoing" */
   Iterable<CFAEdge> getIncomingEdges();
+
+  default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
+    return null;
+  }
 }

@@ -185,23 +185,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     // multiedges, it is guaranteed that there is exactly one path and no other
     // leaving edges from the parent to the child
     if (singleEdge == null) {
-      ImmutableList.Builder<CFAEdge> allEdges = ImmutableList.builder();
-      CFANode currentLoc = AbstractStates.extractLocation(this);
-      CFANode childLoc = AbstractStates.extractLocation(pChild);
-
-      if (currentLoc != null && childLoc != null) {
-        while (!currentLoc.equals(childLoc)) {
-          // we didn't find a proper connection to the child so we return an empty list
-          if (currentLoc.getNumLeavingEdges() != 1) {
-            return ImmutableList.of();
-          }
-
-          final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
-          allEdges.add(leavingEdge);
-          currentLoc = leavingEdge.getSuccessor();
-        }
-      }
-      return allEdges.build();
+      return AbstractStates.getEdgesToChild(this, pChild);
     } else {
       return Collections.singletonList(singleEdge);
     }

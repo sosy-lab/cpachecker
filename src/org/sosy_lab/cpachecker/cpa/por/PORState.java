@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -33,8 +34,8 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -200,6 +201,43 @@ public class PORState
       }
     }
     return edges.build();
+  }
+
+  @Override
+  public @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
+    if (pChild instanceof PORState child) {
+      PORThreadState parentThreadState = null;
+      PORThreadState childThreadState = null;
+      for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
+        int threadId = entry.getKey();
+        PORThreadState currentParentState = entry.getValue();
+        PORThreadState currentChildState = child.threads().get(threadId);
+        if (currentChildState != null && !currentParentState.pLocationState().getLocationNode()
+            .equals(currentChildState.pLocationState().getLocationNode())) {
+          if (parentThreadState != null) {
+            // more than one thread has a different location in the child,
+            // we cannot determine a unique path of edges to the child
+            return null;
+          }
+          parentThreadState = currentParentState;
+          childThreadState = currentChildState;
+        }
+      }
+
+      if (parentThreadState == null) {
+        if (threads.keySet().equals(child.threads().keySet())) {
+          // all threads have the same location in parent and child, so the path is empty
+          return ImmutableList.of();
+        } else {
+          // weird case: some new/destroyed threads but no other stepping thread,
+          // we cannot determine a path of edges to the child
+          return null;
+        }
+      }
+
+      return parentThreadState.pLocationState().getEdgesToChild(childThreadState.pLocationState());
+    }
+    return null;
   }
 
   @Override

@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -43,5 +46,31 @@ public interface AbstractStateWithLocation extends AbstractStateWithLocations {
   @Override
   default Iterable<CFAEdge> getIncomingEdges() {
     return getLocationNode().getEnteringEdges();
+  }
+
+  @Override
+  default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
+    if (pChild instanceof AbstractStateWithLocation child) {
+      return getEdgesToChild(child);
+    }
+    return null;
+  }
+
+  default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocation pChild) {
+    ImmutableList.Builder<CFAEdge> allEdges = ImmutableList.builder();
+    CFANode currentLoc = getLocationNode();
+    CFANode childLoc = pChild.getLocationNode();
+
+    while (!currentLoc.equals(childLoc)) {
+      // we didn't find a proper connection to the child so we return an empty list
+      if (currentLoc.getNumLeavingEdges() != 1) {
+        return null;
+      }
+
+      final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
+      allEdges.add(leavingEdge);
+      currentLoc = leavingEdge.getSuccessor();
+    }
+    return allEdges.build();
   }
 }
