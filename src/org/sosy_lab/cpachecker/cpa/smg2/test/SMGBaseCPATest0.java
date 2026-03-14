@@ -220,14 +220,24 @@ public abstract class SMGBaseCPATest0 {
           new File(programPath).isFile(), "Test program could not be found: %s", programPath);
       TestResults results = CPATestRunner.run(analysis, programPath);
       Result verdict = results.getCheckerResult().getResult();
+
       if (verdict == expectedResult) {
         return;
       }
+
+      String log = checkNotNull(results.getLog()).trim();
+      if (verdict == Result.NOT_YET_STARTED) {
+        failWithoutActual(
+            Fact.fact("analysis result expected to be", expectedResultString),
+            Fact.fact("but was", verdict),
+            Fact.fact("which has log", log));
+      }
+
       failWithActual(
           Fact.fact("analysis result expected to be", expectedResultString),
           Fact.fact("but was", verdict),
           Fact.fact("due to", results.getCheckerResult().getTargetDescription()),
-          Fact.fact("which has log", results.getLog().trim()));
+          Fact.fact("which has log", log));
     }
 
     /**
