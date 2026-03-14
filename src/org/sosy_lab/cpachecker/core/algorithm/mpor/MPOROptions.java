@@ -67,12 +67,6 @@ public class MPOROptions {
 
   @Option(
       secure = true,
-      description = "defines the syntax in which the next thread executing a statement is chosen.")
-  private MultiSelectionStatementEncoding controlEncodingThread =
-      MultiSelectionStatementEncoding.NONE;
-
-  @Option(
-      secure = true,
       description =
           "include original function declarations from input file? including them may result in"
               + " unsound analysis (e.g. false alarms for CBMC + ignored function calls through"
@@ -249,20 +243,6 @@ public class MPOROptions {
           String.format(
               "controlEncodingStatement cannot be %s", MultiSelectionStatementEncoding.NONE));
     }
-    if (nondeterminismSource.isNextThreadNondeterministic()) {
-      if (!controlEncodingThread.isEnabled()) {
-        // if loopUnrolling is enabled, then choosing controlEncodingThread=NONE is allowed even
-        // when nondeterminismSource contains NEXT_THREAD, because then there is no multi control
-        // statement for next_thread in the main() function anyway
-        if (!loopUnrolling) {
-          throw new InvalidConfigurationException(
-              String.format(
-                  "controlEncodingThread cannot be %s when nondeterminismSource contains"
-                      + " NEXT_THREAD",
-                  MultiSelectionStatementEncoding.NONE));
-        }
-      }
-    }
     if (!linkReduction) {
       if (bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
@@ -291,12 +271,6 @@ public class MPOROptions {
       if (validateNoBackwardGoto) {
         throw new InvalidConfigurationException(
             "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
-      }
-    }
-    if (!nondeterminismSource.isNextThreadNondeterministic()) {
-      if (controlEncodingThread.isEnabled()) {
-        throw new InvalidConfigurationException(
-            "controlEncodingThread is set, but nondeterminismSource does not contain NEXT_THREAD.");
       }
     }
     if (!nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
@@ -404,10 +378,6 @@ public class MPOROptions {
 
   public MultiSelectionStatementEncoding controlEncodingStatement() {
     return controlEncodingStatement;
-  }
-
-  public MultiSelectionStatementEncoding controlEncodingThread() {
-    return controlEncodingThread;
   }
 
   public boolean inputFunctionDeclarations() {
