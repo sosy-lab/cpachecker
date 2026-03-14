@@ -60,7 +60,7 @@ public record ReduceIgnoreSleepInjector(
    * precedes a thread simulation and takes the following form:
    *
    * <pre>{@code
-   * if (round_max == 0 < Ti_SYNC == 0) {
+   * if (round_max == 0 && Ti_SYNC == 0) {
    *     assume(*Ti in at least one conflict*);
    * }
    * }</pre>
