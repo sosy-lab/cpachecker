@@ -82,6 +82,16 @@ public final class CompositeCPA
               + " ARGState but it may instead be a list.")
   private boolean aggregateBasicBlocks = false;
 
+  @Option(
+      secure = true,
+      description =
+          "If enabled, the basic block aggregation will only include a single global statement"
+              + " (i.e., a statement that accesses global variables or shared memory locations)"
+              + " per basic block. This is necessary to ensure soundness of the analysis of"
+              + " multi-threaded programs."
+  )
+  private boolean singleGlobalStatementPerBasicBlock = false;
+
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
     private CFA cfa = null;
@@ -148,7 +158,8 @@ public final class CompositeCPA
     return new CompositeTransferRelation(
         transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getTransferRelation),
         cfa,
-        aggregateBasicBlocks);
+        aggregateBasicBlocks,
+        singleGlobalStatementPerBasicBlock);
   }
 
   @Override

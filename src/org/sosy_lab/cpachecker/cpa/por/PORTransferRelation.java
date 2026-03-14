@@ -51,6 +51,8 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
   private final PathFormulaManager pathFormulaManager;
   private final CFA cfa;
 
+  private Integer lastPid = null;
+
   public PORTransferRelation(
       Configuration pConfig, CFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -70,10 +72,12 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
     if (state instanceof PORState originalState) {
       // Determine which thread this edge belongs to (populated by getOutgoingEdges)
-      final Integer pid = originalState.getEdgePid(cfaEdge);
+      Integer edgePid = originalState.getEdgePid(cfaEdge);
+      final Integer pid = edgePid != null ? edgePid : lastPid;
       if (pid == null) {
-        return ImmutableList.of();
+        throw new CPATransferException("Could not determine thread for edge " + cfaEdge);
       }
+      lastPid = pid;
 
       PORState prevState = originalState;
 
