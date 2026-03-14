@@ -20,7 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -112,11 +112,11 @@ public class OctagonTransferRelation
    */
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
   private final ImmutableSet<CFANode> loopHeads;
 
-  public OctagonTransferRelation(LogManager log, LoopStructure loops) {
+  public OctagonTransferRelation(LogManagerWithoutDuplicates log, LoopStructure loops) {
     logger = log;
 
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();

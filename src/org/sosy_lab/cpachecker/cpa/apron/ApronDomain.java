@@ -13,16 +13,16 @@ import apron.ApronException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
 
 class ApronDomain implements AbstractDomain {
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
-  public ApronDomain(LogManager log) {
+  public ApronDomain(LogManagerWithoutDuplicates log) {
     logger = log;
   }
 

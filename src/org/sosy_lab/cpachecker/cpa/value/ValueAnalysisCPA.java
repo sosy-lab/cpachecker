@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
@@ -123,7 +124,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final StateToFormulaWriter writer;
 
   private final Configuration config;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
@@ -140,29 +141,31 @@ public class ValueAnalysisCPA extends AbstractCPA
   private SymbolicStatistics symbolicStats;
 
   private ValueAnalysisCPA(
-      Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
-    this.config = config;
-    this.logger = logger;
+    this.config = pConfig;
+    this.logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
-    this.cfa = cfa;
+    this.cfa = pCfa;
 
-    config.inject(this, ValueAnalysisCPA.class);
+    pConfig.inject(this, ValueAnalysisCPA.class);
 
-    converterToValPrec = new ToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+    converterToValPrec =
+        new ToValuePrecisionConverter(pConfig, this.logger, pShutdownNotifier, pCfa);
 
-    precision = initializePrecision(config, cfa);
-    statistics = new ValueAnalysisCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
-    writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
+    precision = initializePrecision(pConfig, pCfa);
+    statistics =
+        new ValueAnalysisCPAStatistics(this, pCfa, pConfig, this.logger, pShutdownNotifier);
+    writer = new StateToFormulaWriter(pConfig, this.logger, shutdownNotifier, pCfa);
     errorPathAllocator =
-        new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
+        new ValueAnalysisConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
 
     unknownValueHandler = createUnknownValueHandler();
 
-    constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
-    transferOptions = new ValueTransferOptions(config);
-    precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
+    constraintsStrengthenOperator = new ConstraintsStrengthenOperator(pConfig, this.logger);
+    transferOptions = new ValueTransferOptions(pConfig);
+    precisionAdjustmentOptions = new PrecAdjustmentOptions(pConfig, pCfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
   }
 
@@ -313,7 +316,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     return config;
   }
 
-  public LogManager getLogger() {
+  public LogManagerWithoutDuplicates getLogger() {
     return logger;
   }
 

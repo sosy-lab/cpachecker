@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -30,9 +30,11 @@ public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnal
    * @param pCfa the CFA in use
    */
   public ValueAnalysisPrefixProvider(
-      LogManager pLogger, CFA pCfa, Configuration config, ShutdownNotifier pShutdownNotifier)
+      LogManagerWithoutDuplicates pLogger,
+      CFA pCfa,
+      Configuration config,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-
     super(
         new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa),
         new ValueAnalysisState(pCfa.getMachineModel()),

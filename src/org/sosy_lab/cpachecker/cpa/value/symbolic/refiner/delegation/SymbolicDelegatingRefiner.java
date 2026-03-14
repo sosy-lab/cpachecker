@@ -16,6 +16,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -81,7 +82,7 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
-    final LogManager logger = valueAnalysisCpa.getLogger();
+    final LogManagerWithoutDuplicates logger = valueAnalysisCpa.getLogger();
 
     valueAnalysisCpa.injectRefinablePrecision();
     constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config, cfa, logger));

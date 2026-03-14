@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
@@ -36,7 +36,7 @@ public class SerializationInfoStorage {
   private FormulaManagerView assumptionFormulaManagerView;
   private AbstractionManager absManager;
   private ApronManager apronManager;
-  private LogManager apronLogger;
+  private LogManagerWithoutDuplicates apronLogger;
 
   private SerializationInfoStorage() {}
 
@@ -114,7 +114,7 @@ public class SerializationInfoStorage {
     return checkNotNull(apronManager);
   }
 
-  public LogManager getApronLogManager() {
+  public LogManagerWithoutDuplicates getApronLogManager() {
     return checkNotNull(apronLogger);
   }
 

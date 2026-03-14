@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -32,7 +32,7 @@ public abstract class BddRefiner implements Refiner {
       throws InvalidConfigurationException {
     BDDCPA bddCpa = CPAs.retrieveCPAOrFail(cpa, BDDCPA.class, BddRefiner.class);
     Configuration config = bddCpa.getConfiguration();
-    LogManager logger = bddCpa.getLogger();
+    LogManagerWithoutDuplicates logger = new LogManagerWithoutDuplicates(bddCpa.getLogger());
     CFA cfa = bddCpa.getCFA();
     ShutdownNotifier shutdownNotifier = bddCpa.getShutdownNotifier();
 

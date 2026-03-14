@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -76,10 +76,10 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   private Map<MemoryLocation, Type> variableToTypeMap;
   private final boolean isLoopHead;
 
-  private transient LogManager logger;
+  private transient LogManagerWithoutDuplicates logger;
 
   // also top element
-  public ApronState(LogManager log, ApronManager manager) {
+  public ApronState(LogManagerWithoutDuplicates log, ApronManager manager) {
     apronManager = manager;
     try {
       apronState = new Abstract0(apronManager.getManager(), 0, 0);
@@ -102,7 +102,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       List<MemoryLocation> realMap,
       Map<MemoryLocation, Type> typeMap,
       boolean pIsLoopHead,
-      LogManager log) {
+      LogManagerWithoutDuplicates log) {
     apronState = apronNativeState;
     apronManager = manager;
     integerToIndexMap = intMap;

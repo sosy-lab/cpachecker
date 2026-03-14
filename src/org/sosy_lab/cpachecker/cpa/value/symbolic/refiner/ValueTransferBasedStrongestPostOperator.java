@@ -15,7 +15,7 @@ import java.util.Deque;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -52,7 +52,7 @@ public class ValueTransferBasedStrongestPostOperator
 
   public ValueTransferBasedStrongestPostOperator(
       final ConstraintsSolver pSolver,
-      final LogManager pLogger,
+      final LogManagerWithoutDuplicates pLogger,
       final Configuration pConfig,
       final CFA pCfa)
       throws InvalidConfigurationException {

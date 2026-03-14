@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -142,7 +143,7 @@ public class ValueAnalysisRefiner
 
     valueAnalysisCpa.injectRefinablePrecision();
 
-    final LogManager logger = valueAnalysisCpa.getLogger();
+    final LogManagerWithoutDuplicates logger = valueAnalysisCpa.getLogger();
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
 

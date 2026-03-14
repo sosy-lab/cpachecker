@@ -14,6 +14,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -62,7 +63,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final Precision precision;
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
@@ -76,7 +77,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       throw new CPAException("OctagonCPA cannot work without loop-structure information in CFA.");
     }
     config.inject(this);
-    logger = log;
+    logger = new LogManagerWithoutDuplicates(log);
     OctagonDomain octagonDomain = new OctagonDomain(logger);
 
     if (octagonLibrary.equals("FLOAT")) {
@@ -146,7 +147,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     return config;
   }
 
-  public LogManager getLogger() {
+  public LogManagerWithoutDuplicates getLogger() {
     return logger;
   }
 

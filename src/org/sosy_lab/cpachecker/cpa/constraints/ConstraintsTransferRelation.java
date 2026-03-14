@@ -19,7 +19,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -84,13 +83,13 @@ public class ConstraintsTransferRelation
       final ConstraintsSolver pSolver,
       final ConstraintsStatistics pStats,
       final MachineModel pMachineModel,
-      final LogManager pLogger,
+      final LogManagerWithoutDuplicates pLogger,
       final Configuration pConfig)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    logger = pLogger;
     machineModel = pMachineModel;
     simplifier = new StateSimplifier(pConfig, pStats);
     solver = pSolver;

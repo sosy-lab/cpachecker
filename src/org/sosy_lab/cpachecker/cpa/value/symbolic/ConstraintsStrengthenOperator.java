@@ -21,7 +21,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -53,9 +53,10 @@ public class ConstraintsStrengthenOperator implements Statistics {
   private final Timer totalTime = new Timer();
   private int replacedSymbolicExpressions = 0;
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
-  public ConstraintsStrengthenOperator(final Configuration pConfig, final LogManager pLogger)
+  public ConstraintsStrengthenOperator(
+      final Configuration pConfig, final LogManagerWithoutDuplicates pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 

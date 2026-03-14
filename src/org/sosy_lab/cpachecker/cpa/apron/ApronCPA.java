@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -97,7 +98,7 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final Precision precision;
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
@@ -111,7 +112,7 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
       throw new CPAException("ApronCPA cannot work without loop-structure information in CFA.");
     }
     pConfig.inject(this);
-    logger = pLog;
+    logger = new LogManagerWithoutDuplicates(pLog);
     ApronDomain apronDomain = new ApronDomain(logger);
 
     apronManager = new ApronManager(domainType);
@@ -188,7 +189,7 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
     return config;
   }
 
-  public LogManager getLogger() {
+  public LogManagerWithoutDuplicates getLogger() {
     return logger;
   }
 

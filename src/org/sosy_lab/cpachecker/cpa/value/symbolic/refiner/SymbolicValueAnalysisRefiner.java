@@ -156,7 +156,7 @@ public class SymbolicValueAnalysisRefiner
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
-    final LogManager logger = valueAnalysisCpa.getLogger();
+    final LogManagerWithoutDuplicates logger = valueAnalysisCpa.getLogger();
 
     valueAnalysisCpa.injectRefinablePrecision();
     constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config, cfa, logger));

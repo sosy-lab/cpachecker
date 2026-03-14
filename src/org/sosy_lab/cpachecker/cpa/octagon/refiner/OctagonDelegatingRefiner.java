@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -36,7 +36,7 @@ public abstract class OctagonDelegatingRefiner implements Refiner {
       throws InvalidConfigurationException {
     OctagonCPA octagonCPA =
         CPAs.retrieveCPAOrFail(cpa, OctagonCPA.class, OctagonDelegatingRefiner.class);
-    final LogManager logger = octagonCPA.getLogger();
+    final LogManagerWithoutDuplicates logger = octagonCPA.getLogger();
     final Configuration config = octagonCPA.getConfiguration();
     final CFA cfa = octagonCPA.getCFA();
     final ShutdownNotifier shutdownNotifier = octagonCPA.getShutdownNotifier();

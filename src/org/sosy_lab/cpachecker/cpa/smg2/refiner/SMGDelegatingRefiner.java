@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -39,7 +39,7 @@ public abstract class SMGDelegatingRefiner implements Refiner {
         CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, SMGDelegatingRefiner.class);
 
     Configuration config = valueCpa.getConfiguration();
-    LogManager logger = valueCpa.getLogger();
+    LogManagerWithoutDuplicates logger = valueCpa.getLogger();
     CFA cfa = valueCpa.getCFA();
 
     return AbstractARGBasedRefiner.forARGBasedRefiner(

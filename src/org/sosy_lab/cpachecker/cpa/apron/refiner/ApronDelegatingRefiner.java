@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.apron.refiner;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -36,7 +36,7 @@ public abstract class ApronDelegatingRefiner implements Refiner {
       throws InvalidConfigurationException {
     ApronCPA apronCPA = CPAs.retrieveCPAOrFail(cpa, ApronCPA.class, ApronDelegatingRefiner.class);
     final Configuration config = apronCPA.getConfiguration();
-    final LogManager logger = apronCPA.getLogger();
+    final LogManagerWithoutDuplicates logger = apronCPA.getLogger();
     final ShutdownNotifier shutdownNotifier = apronCPA.getShutdownNotifier();
     final CFA cfa = apronCPA.getCFA();
 
