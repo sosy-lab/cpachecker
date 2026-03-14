@@ -294,11 +294,6 @@ analysis.algorithm.MPOR.consecutiveLabels = true
 analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
   enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
-# defines the syntax in which the next thread executing a statement is
-# chosen.
-analysis.algorithm.MPOR.controlEncodingThread = NONE
-  enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
-
 # include original function declarations from input file? including them may
 # result in unsound analysis (e.g. false alarms for CBMC + ignored function
 # calls through function pointers for CPAchecker)
