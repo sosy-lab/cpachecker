@@ -165,6 +165,18 @@ public class PORState
   }
 
   @Override
+  public CFAEdge getNextBasicBlockEdge(CFAEdge previousEdge) {
+    Integer pid = PorEdgeCloner.getPid(previousEdge);
+    if (pid == null) {
+      throw new IllegalArgumentException("Thread could not be found for the edge: " + previousEdge);
+    }
+    CFAEdge successor = previousEdge.getSuccessor().getLeavingEdge(0);
+    CFAEdge cloned = PorEdgeCloner.clone(successor, pid, this);
+    edgePidMap.put(cloned, pid);
+    return cloned;
+  }
+
+  @Override
   public int getNumberOfActiveThreads() {
     return threads.size();
   }
@@ -186,9 +198,9 @@ public class PORState
    */
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    if (sourceSet == null) {
+//    if (sourceSet == null) {
       sourceSet = getMinimalSourceSet();
-    }
+//    }
     return sourceSet;
   }
 

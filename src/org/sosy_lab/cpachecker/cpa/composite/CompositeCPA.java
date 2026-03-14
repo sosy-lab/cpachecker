@@ -85,6 +85,23 @@ public final class CompositeCPA
   @Option(
       secure = true,
       description =
+          "If enabled, the location CPA (a current AbstractStateWithLocations) is called to provide"
+              + "the next CFA edge while computing the abstract successors in a chain during basic"
+              + "block aggregation. Otherwise, simply the single outgoing edge of the current CFA"
+              + "node is taken. This option is necessary to ensure soundness of the analysis of"
+              + "multi-threaded programs where variable accesses must be replaced by thread-scoped"
+              + "variable accesses on-the-fly by the threading CPA. Note that it is assumed that"
+              + "the location CPA deterministically provides the same next edge even if successor"
+              + "states accumulate during the basic block aggregation due to other CPAs returning"
+              + "multiple successor states: the location CPA is only called once after calculating"
+              + "successors for an edge even if the previous successor calculation resulted in"
+              + "multiple successor states, and the same next edge is used for all of them."
+  )
+  private boolean callLocationCPAForAllEdgesInBasicBlocks = false;
+
+  @Option(
+      secure = true,
+      description =
           "If enabled, the basic block aggregation will only include a single global statement"
               + " (i.e., a statement that accesses global variables or shared memory locations)"
               + " per basic block. This is necessary to ensure soundness of the analysis of"
@@ -159,6 +176,7 @@ public final class CompositeCPA
         transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getTransferRelation),
         cfa,
         aggregateBasicBlocks,
+        callLocationCPAForAllEdgesInBasicBlocks,
         singleGlobalStatementPerBasicBlock);
   }
 

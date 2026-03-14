@@ -52,16 +52,19 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   private final int size;
   private final boolean predicatesPresent;
   private final boolean aggregateBasicBlocks;
+  private final boolean callLocationCPAForAllEdgesInBasicBlocks;
   private final BasicBlockAggregator basicBlockAggregator;
 
   CompositeTransferRelation(
       ImmutableList<TransferRelation> pTransferRelations,
       CFA pCFA,
       boolean pAggregateBasicBlocks,
+      boolean pCallLocationCPAForAllEdgesInBasicBlocks,
       boolean pSingleGlobalStatementPerBasicBlock) {
     transferRelations = pTransferRelations;
     size = pTransferRelations.size();
     aggregateBasicBlocks = pAggregateBasicBlocks;
+    callLocationCPAForAllEdgesInBasicBlocks = pCallLocationCPAForAllEdgesInBasicBlocks;
     basicBlockAggregator =
         pSingleGlobalStatementPerBasicBlock ? new SingleGlobalStatementBlockAggregator(pCFA)
                                             : new StraightLineBlockAggregator(pCFA);
@@ -166,6 +169,11 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
                 currentState, compositePrecision, cfaEdge, successorStates);
           }
 
+          // if there are no successors for the current edge, we do not need to continue
+          if (successorStates.isEmpty()) {
+            return;
+          }
+
           // if we found a target state in the current successors immediately return
           if (from(successorStates).anyMatch(AbstractStates::isTargetState)) {
             compositeSuccessors.addAll(successorStates);
@@ -178,7 +186,18 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
           // if there is more than one leaving edge we do not create a further
           // multi edge part
           if (cfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
-            cfaEdge = cfaEdge.getSuccessor().getLeavingEdge(0);
+            if (callLocationCPAForAllEdgesInBasicBlocks) {
+              CompositeState arbitraryCurrentState = currentStates.iterator().next();
+              AbstractStateWithLocations locState =
+                  extractStateByType(arbitraryCurrentState, AbstractStateWithLocations.class);
+              if (locState != null) {
+                cfaEdge = locState.getNextBasicBlockEdge(cfaEdge);
+              } else {
+                cfaEdge = cfaEdge.getSuccessor().getLeavingEdge(0);
+              }
+            } else {
+              cfaEdge = cfaEdge.getSuccessor().getLeavingEdge(0);
+            }
           } else {
             break;
           }
