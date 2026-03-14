@@ -15,6 +15,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -52,7 +53,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private VariableTrackingPrecision precision;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final CFA cfa;
   private final BDDStatistics stats;
   private final BitvectorComputer bvComputer;
@@ -82,7 +83,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     pConfig.inject(this);
 
     config = pConfig;
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     cfa = pCfa;
     shutdownNotifier = pShutdownNotifier;
 
