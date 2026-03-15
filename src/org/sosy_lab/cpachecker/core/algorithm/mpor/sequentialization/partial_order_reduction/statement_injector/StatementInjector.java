@@ -99,17 +99,19 @@ public record StatementInjector(
       pStatement =
           reduceLastThreadOrderInjector.injectLastUpdatesIntoStatement(pStatement, labelClauseMap);
     }
-    // always inject bit vector assignments after evaluations i.e. reductions
-    BitVectorAssignmentInjector bitVectorAssignmentInjector =
-        new BitVectorAssignmentInjector(
-            options,
-            activeThread,
-            labelClauseMap,
-            labelBlockMap,
-            ghostElements.bitVectorVariables().orElseThrow(),
-            machineModel,
-            memoryModel);
-    pStatement = bitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(pStatement);
+    if (ghostElements.bitVectorVariables().isPresent()) {
+      // always inject bit vector assignments after evaluations i.e. reductions
+      BitVectorAssignmentInjector bitVectorAssignmentInjector =
+          new BitVectorAssignmentInjector(
+              options,
+              activeThread,
+              labelClauseMap,
+              labelBlockMap,
+              ghostElements.bitVectorVariables().orElseThrow(),
+              machineModel,
+              memoryModel);
+      pStatement = bitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(pStatement);
+    }
     return pStatement;
   }
 }
