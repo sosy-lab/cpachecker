@@ -208,7 +208,7 @@ public class MPOROptions {
       description =
           "check if CPAchecker can parse sequentialization? note that it may take several seconds"
               + " to parse a program")
-  private boolean validateParse = true;
+  private boolean validateParse = false;
 
   @Option(
       secure = true,

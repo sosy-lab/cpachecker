@@ -62,6 +62,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -84,6 +85,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -104,6 +106,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NUM_STATEMENTS")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -129,6 +132,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -153,6 +157,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -172,6 +177,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -197,6 +203,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -217,6 +224,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -240,6 +248,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -266,6 +275,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -290,6 +300,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -312,6 +323,7 @@ public class SequentializationParseTest {
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -334,6 +346,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.validateParse", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
