@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -157,7 +158,7 @@ public final class SeqMainFunctionBuilder {
         loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
       }
       loopBlock.add(
-          NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
+          new NondeterministicSimulation(
                   pOptions,
                   pFields.machineModel,
                   pFields.memoryModel,

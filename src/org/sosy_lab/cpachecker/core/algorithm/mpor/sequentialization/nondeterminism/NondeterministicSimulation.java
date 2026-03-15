@@ -8,25 +8,33 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.common.collect.Collections3.listAndElement;
-
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.MultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceIgnoreSleepInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceLastThreadOrderInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -34,8 +42,11 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementBuilder;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement;
 
 /**
@@ -83,7 +94,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement;
  * <p>As shown, the code generated for {@code main()} cannot be reused for single thread functions,
  * since the control flow for the next-thread selection differs.
  */
-public abstract class NondeterministicSimulation {
+public class NondeterministicSimulation {
 
   final MPOROptions options;
 
@@ -97,7 +108,7 @@ public abstract class NondeterministicSimulation {
 
   final SequentializationUtils utils;
 
-  NondeterministicSimulation(
+  public NondeterministicSimulation(
       MPOROptions pOptions,
       MachineModel pMachineModel,
       Optional<MemoryModel> pMemoryModel,
@@ -105,13 +116,6 @@ public abstract class NondeterministicSimulation {
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
-    // ensure that only the specified nondeterministic simulation is created
-    switch (pOptions.nondeterminismSource()) {
-      case NEXT_THREAD -> checkArgument(this instanceof NextThreadNondeterministicSimulation);
-      case NEXT_THREAD_AND_NUM_STATEMENTS ->
-          checkArgument(this instanceof NextThreadAndNumStatementsNondeterministicSimulation);
-      case NUM_STATEMENTS -> checkArgument(this instanceof NumStatementsNondeterministicSimulation);
-    }
     options = pOptions;
     machineModel = pMachineModel;
     memoryModel = pMemoryModel;
@@ -121,68 +125,82 @@ public abstract class NondeterministicSimulation {
   }
 
   /**
-   * Creates the {@link CExportStatement} based on the specified {@link
-   * MultiSelectionStatementEncoding}.
+   * Builds the {@link CCompoundStatement} code of a single simulation for the given {@code
+   * pThread}, including the {@link MultiSelectionStatementEncoding} statement.
+   *
+   * <p>The resulting {@link CCompoundStatement} makes it possible for the simulation to be placed
+   * in a separate function that can be called without any additional wrappers or preceding
+   * statements. This is needed when {@link MPOROptions#loopUnrolling()} is enabled.
    */
-  static CExportStatement buildMultiSelectionStatementByEncoding(
-      MultiSelectionStatementEncoding pEncoding,
-      CLeftHandSide pExpression,
-      ImmutableListMultimap<CExportExpression, CCompoundStatementElement> pStatements,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+  CCompoundStatement buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    return switch (pEncoding) {
-      case NONE ->
-          throw new IllegalArgumentException(
-              "cannot build statements for control encoding " + pEncoding);
-      case BINARY_SEARCH_TREE ->
-          CMultiSelectionStatementBuilder.buildBinarySearchTree(
-              ProgramCounterVariables.INIT_PC, pExpression, pStatements, pBinaryExpressionBuilder);
-      case IF_ELSE_CHAIN -> CMultiSelectionStatementBuilder.buildIfElseChain(pStatements);
-      case SWITCH_CASE -> new CSwitchStatement(pExpression, pStatements);
-    };
+    Builder<CCompoundStatementElement> rSimulation = ImmutableList.builder();
+
+    // add "T{thread_id}: label", if present
+    Optional<CLabelStatement> threadLabel =
+        Optional.ofNullable(ghostElements.threadLabels().get(pThread));
+    if (threadLabel.isPresent()) {
+      rSimulation.add(threadLabel.orElseThrow());
+    }
+
+    // add "if (pc != 0 ...)" condition
+    CBinaryExpression ifCondition =
+        ghostElements.getPcVariables().getThreadActiveExpression(pThread.id());
+    Builder<CCompoundStatementElement> ifBlock = ImmutableList.builder();
+
+    // add the "{round_max, next_thread} = nondet;" assignments for this thread
+    ifBlock.addAll(buildNondeterministicAssignments());
+
+    // add the ignore sleep instrumentation, if enabled
+    if (options.reduceIgnoreSleep()) {
+      ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
+      ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+          SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));
+      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
+          new ReduceIgnoreSleepInjector(
+              options, pThread, otherThreads, labelClauseMap, ghostElements, utils);
+      ifBlock.add(reduceIgnoreSleepInjector.buildIgnoreSleepInstrumentation());
+    }
+
+    // if ({round_max > 0, next_thread == i}) ...
+    Builder<CCompoundStatementElement> innerIfBlock = ImmutableList.builder();
+    CExportExpression nondeterministicIfCondition = buildNondeterministicIfCondition(pThread);
+
+    // add the thread simulation statements
+    innerIfBlock.addAll(buildAllPrecedingStatements(pThread));
+    innerIfBlock.add(buildSingleThreadMultiSelectionStatement(pThread));
+    CIfStatement innerIfStatement =
+        new CIfStatement(nondeterministicIfCondition, new CCompoundStatement(innerIfBlock.build()));
+
+    ifBlock.add(innerIfStatement);
+    CIfStatement ifStatement =
+        new CIfStatement(
+            new CExpressionWrapper(ifCondition), new CCompoundStatement(ifBlock.build()));
+
+    return new CCompoundStatement(rSimulation.add(ifStatement).build());
   }
 
   /**
-   * Creates the core i.e. the {@link MultiSelectionStatementEncoding} statement of a thread
-   * simulation used for {@link NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}.
-   * The logic is common for all {@link NondeterminismSource}s, so this is not tied to the separate
-   * implementations of {@link NondeterministicSimulation}.
+   * Builds the {@link CCompoundStatement} code of all thread simulations, including wrapper
+   * statements such as {@code if} guards. This is used only when {@link
+   * MPOROptions#loopUnrolling()} is disabled, since then all thread simulations are placed as one
+   * code block in the {@code main()} function.
    */
-  CExportStatement buildSingleThreadMultiSelectionStatement(MPORThread pThread)
-      throws UnrecognizedCodeException {
-
-    ImmutableList<SeqThreadStatementClause> withInjectedStatements =
-        NondeterministicSimulationBuilder.tryInjectStatementsIntoClauses(
-            options, clauses.get(pThread), utils.binaryExpressionBuilder());
-
-    CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
-    ImmutableListMultimap<CExportExpression, CCompoundStatementElement> expressionClauseMap =
-        SeqThreadStatementClauseUtil.mapExpressionToClause(
-            options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
-
-    return buildMultiSelectionStatementByEncoding(
-        options.controlEncodingStatement(),
-        pcLeftHandSide,
-        expressionClauseMap,
-        utils.binaryExpressionBuilder());
+  public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
+    Builder<CCompoundStatementElement> rThreadSimulations = ImmutableList.builder();
+    for (MPORThread thread : clauses.keySet()) {
+      rThreadSimulations.add(buildSingleThreadSimulation(thread));
+    }
+    return new CCompoundStatement(rThreadSimulations.build());
   }
 
-  ImmutableList<CExportStatement> buildAllPrecedingStatements(MPORThread pThread)
+  // Preceding Statements
+
+  private ImmutableList<CExportStatement> buildAllPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    return listAndElement(
-        buildPrecedingReductionStatements(pThread), buildPrecedingStatements(pThread));
-  }
-
-  /**
-   * Builds the core reduction instrumentation of {@link MPOROptions#reduceLastThreadOrder()} that
-   * precedes all thread simulations, if enabled.
-   */
-  private ImmutableList<CExportStatement> buildPrecedingReductionStatements(MPORThread pThread)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<CExportStatement> rStatements = ImmutableList.builder();
+    ImmutableList.Builder<CExportStatement> allPreceding = ImmutableList.builder();
 
     if (options.reduceLastThreadOrder()) {
       // do not create the statement for the main thread, since LAST_THREAD < 0 never holds
@@ -203,43 +221,103 @@ public abstract class NondeterministicSimulation {
                     memoryModel.orElseThrow(),
                     utils)
                 .buildLastThreadOrderStatement(pThread);
-        rStatements.add(lastThreadOrderStatement);
+        allPreceding.add(lastThreadOrderStatement);
       }
     }
+    if (options.nondeterminismSource().isNumStatementsNondeterministic()) {
+      allPreceding.add(new CStatementWrapper(NondeterministicSimulationBuilder.buildRoundReset()));
+    }
 
-    return rStatements.build();
+    return allPreceding.build();
+  }
+
+  // Nondeterministic Assignments and Conditions
+
+  private ImmutableList<CExportStatement> buildNondeterministicAssignments() {
+    ImmutableList.Builder<CExportStatement> assignments = ImmutableList.builder();
+    if (options.nondeterminismSource().isNextThreadNondeterministic()) {
+      assignments.add(
+          new CStatementWrapper(
+              VerifierNondetFunctionType.buildNondetIntegerAssignment(
+                  options, SeqIdExpressions.NEXT_THREAD)));
+    }
+    if (options.nondeterminismSource().isNumStatementsNondeterministic()) {
+      assignments.add(
+          new CStatementWrapper(
+              VerifierNondetFunctionType.buildNondetIntegerAssignment(
+                  options, SeqIdExpressions.ROUND_MAX)));
+    }
+    return assignments.build();
+  }
+
+  private CExportExpression buildNondeterministicIfCondition(MPORThread pThread)
+      throws UnrecognizedCodeException {
+
+    CExpression ifCondition =
+        switch (options.nondeterminismSource()) {
+          case NEXT_THREAD, NEXT_THREAD_AND_NUM_STATEMENTS ->
+              utils
+                  .binaryExpressionBuilder()
+                  .buildBinaryExpression(
+                      SeqIdExpressions.NEXT_THREAD,
+                      SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
+                      BinaryOperator.EQUALS);
+          case NUM_STATEMENTS ->
+              utils
+                  .binaryExpressionBuilder()
+                  .buildBinaryExpression(
+                      SeqIdExpressions.ROUND_MAX,
+                      SeqIntegerLiteralExpressions.INT_0,
+                      BinaryOperator.GREATER_THAN);
+        };
+    return new CExpressionWrapper(ifCondition);
+  }
+
+  // Multi Selection Statements
+
+  /**
+   * Creates the {@link CExportStatement} based on the specified {@link
+   * MultiSelectionStatementEncoding}.
+   */
+  private static CExportStatement buildMultiSelectionStatementByEncoding(
+      MultiSelectionStatementEncoding pEncoding,
+      CLeftHandSide pExpression,
+      ImmutableListMultimap<CExportExpression, CCompoundStatementElement> pStatements,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build statements for control encoding " + pEncoding);
+      case BINARY_SEARCH_TREE ->
+          CMultiSelectionStatementBuilder.buildBinarySearchTree(
+              ProgramCounterVariables.INIT_PC, pExpression, pStatements, pBinaryExpressionBuilder);
+      case IF_ELSE_CHAIN -> CMultiSelectionStatementBuilder.buildIfElseChain(pStatements);
+      case SWITCH_CASE -> new CSwitchStatement(pExpression, pStatements);
+    };
   }
 
   /**
-   * Builds the {@link String} code of a single simulation for the given {@code pThread}, including
-   * the {@link MultiSelectionStatementEncoding} statement.
-   *
-   * <p>The resulting {@link String} must make it possible for the simulation to be placed in a
-   * separate function that can be called without any additional wrappers or preceding statements.
-   * This is needed when {@link MPOROptions#loopUnrolling()} is enabled.
-   *
-   * <p>E.g., the code must check that {@code pThread} is currently active (e.g. {@code pc0 != 0}
-   * for thread 0) and that it is non-deterministically chosen for simulation (e.g. that {@code
-   * next_thread == 0} for {@link NondeterminismSource#NEXT_THREAD} or that {@code round_max > 0}
-   * for {@link NondeterminismSource#NUM_STATEMENTS}). These checks can then be placed in {@code if}
-   * statements or calls to {@code assume}. The latter should always be used if the analysis can
-   * soundly prune the exploration of a thread simulation without underapproximating the state
-   * space.
+   * Creates the core i.e. the {@link MultiSelectionStatementEncoding} statement of a thread
+   * simulation. The logic is common for all {@link NondeterminismSource}s.
    */
-  abstract CCompoundStatement buildSingleThreadSimulation(MPORThread pThread)
-      throws UnrecognizedCodeException;
+  private CExportStatement buildSingleThreadMultiSelectionStatement(MPORThread pThread)
+      throws UnrecognizedCodeException {
 
-  /**
-   * Builds the {@link String} code of all thread simulations, including wrapper statements such as
-   * {@code if} guards. This is used only when {@link MPOROptions#loopUnrolling()} is disabled,
-   * since then all thread simulations are placed as one code block in the {@code main()} function.
-   */
-  public abstract CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException;
+    ImmutableList<SeqThreadStatementClause> withInjectedStatements =
+        NondeterministicSimulationBuilder.tryInjectStatementsIntoClauses(
+            options, clauses.get(pThread), utils.binaryExpressionBuilder());
 
-  /**
-   * Builds the list of statements, e.g. assumptions or assignments, that are placed directly before
-   * the {@link MultiSelectionStatementEncoding} statement of a single {@code pThread}.
-   */
-  abstract CCompoundStatement buildPrecedingStatements(MPORThread pThread)
-      throws UnrecognizedCodeException;
+    CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
+    ImmutableListMultimap<CExportExpression, CCompoundStatementElement> expressionClauseMap =
+        SeqThreadStatementClauseUtil.mapExpressionToClause(
+            options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
+
+    return buildMultiSelectionStatementByEncoding(
+        options.controlEncodingStatement(),
+        pcLeftHandSide,
+        expressionClauseMap,
+        utils.binaryExpressionBuilder());
+  }
 }

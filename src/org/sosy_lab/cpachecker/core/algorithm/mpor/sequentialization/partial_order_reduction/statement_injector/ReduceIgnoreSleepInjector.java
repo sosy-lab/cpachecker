@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
@@ -58,33 +59,33 @@ public record ReduceIgnoreSleepInjector(
   }
 
   /**
-   * Returns a {@link CIfStatement} that encodes the Ignore Sleep (IS) reduction for {@link
-   * NondeterminismSource#NUM_STATEMENTS}. The statement precedes a thread simulation and takes the
-   * following form:
+   * Returns a {@link CIfStatement} that encodes the Ignore Sleep (IS) based on {@link
+   * NondeterminismSource}. The statement precedes a thread simulation and takes the following form:
    *
    * <pre>{@code
-   * if (round_max == 0 && Ti_SYNC == 0) {
+   * if ({round_max == 0, next_thread != i} && Ti_SYNC == 0) {
    *     assume(*Ti in at least one conflict*);
    * }
    * }</pre>
    *
    * <p>This ensures that if thread {@code i} was not chosen for execution, i.e., {@code round_max
-   * == 0}, then it must be in conflict with at least one other thread. Otherwise, the simulation
-   * aborts and the thread always executes and ignores that it should actually sleep.
+   * == 0} or {@code next_thread != i}, then it must be in conflict with at least one other thread.
+   * Otherwise, the simulation aborts and the thread always executes and ignores that it should
+   * actually sleep.
    */
   public CIfStatement buildIgnoreSleepInstrumentation() throws UnrecognizedCodeException {
-    checkState(options.nondeterminismSource().equals(NondeterminismSource.NUM_STATEMENTS));
-
-    // (round_max == 0 && Ti_SYNC == 0)
-    CExpression roundMaxEqualsZero =
+    // ({round_max == 0, next_thread != i} && Ti_SYNC == 0)
+    CExportExpression sleepExpression = buildSleepExpression();
+    CExpression syncEqualsZero =
         utils
             .binaryExpressionBuilder()
             .buildBinaryExpression(
-                SeqIdExpressions.ROUND_MAX,
+                ghostElements.threadSyncFlags().getSyncFlag(activeThread),
                 SeqIntegerLiteralExpressions.INT_0,
                 BinaryOperator.EQUALS);
-    CExpression syncEqualsZero = buildSyncEqualsZeroExpression();
-    CLogicalAndExpression logicalAnd = CLogicalAndExpression.of(roundMaxEqualsZero, syncEqualsZero);
+
+    CLogicalAndExpression logicalAnd =
+        CLogicalAndExpression.of(sleepExpression, new CExpressionWrapper(syncEqualsZero));
 
     // assume(*Ti in at least one conflict*);
     CExportExpression bitVectorExpression = buildBitVectorEvaluationExpression();
@@ -92,6 +93,27 @@ public record ReduceIgnoreSleepInjector(
         SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(bitVectorExpression);
 
     return new CIfStatement(logicalAnd, new CCompoundStatement(assumeCallStatement));
+  }
+
+  private CExportExpression buildSleepExpression() throws UnrecognizedCodeException {
+    CExpression sleepExpression =
+        switch (options.nondeterminismSource()) {
+          case NEXT_THREAD, NEXT_THREAD_AND_NUM_STATEMENTS ->
+              utils
+                  .binaryExpressionBuilder()
+                  .buildBinaryExpression(
+                      SeqIdExpressions.NEXT_THREAD,
+                      SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
+                      BinaryOperator.NOT_EQUALS);
+          case NUM_STATEMENTS ->
+              utils
+                  .binaryExpressionBuilder()
+                  .buildBinaryExpression(
+                      SeqIdExpressions.ROUND_MAX,
+                      SeqIntegerLiteralExpressions.INT_0,
+                      BinaryOperator.EQUALS);
+        };
+    return new CExpressionWrapper(sleepExpression);
   }
 
   /**
