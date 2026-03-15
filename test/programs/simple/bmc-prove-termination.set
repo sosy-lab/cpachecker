@@ -1,0 +1,11 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 CPAchecker contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
+termination/nestedWithSpecificK.c
+termination/simpleWithSpecificK.c
+termination/test.c
