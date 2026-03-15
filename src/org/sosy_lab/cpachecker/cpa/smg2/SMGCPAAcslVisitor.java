@@ -220,7 +220,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   private final LogManagerWithoutDuplicates logger;
   private final SMGOptions options;
 
-  private SMGCPAAcslVisitor(
+  SMGCPAAcslVisitor(
       SMGState pInitialState,
       boolean pTruthAssumption,
       SMGOptions pOptions,
