@@ -39,25 +39,19 @@ public record StatementInjector(
   public ImmutableList<SeqThreadStatementClause> injectStatementsIntoClauses()
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
+    ImmutableList.Builder<SeqThreadStatementClause> newClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : clauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        newBlocks.add(injectStatementsIntoBlock(block));
+        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+        for (SeqThreadStatement statement : block.getStatements()) {
+          newStatements.add(injectStatementsIntoStatement(statement));
+        }
+        newBlocks.add(block.withStatements(newStatements.build()));
       }
-      rInjected.add(clause.withBlocks(newBlocks.build()));
+      newClauses.add(clause.withBlocks(newBlocks.build()));
     }
-    return rInjected.build();
-  }
-
-  private SeqThreadStatementBlock injectStatementsIntoBlock(SeqThreadStatementBlock pBlock)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      newStatements.add(injectStatementsIntoStatement(statement));
-    }
-    return pBlock.withStatements(newStatements.build());
+    return newClauses.build();
   }
 
   private SeqThreadStatement injectStatementsIntoStatement(SeqThreadStatement pStatement)
