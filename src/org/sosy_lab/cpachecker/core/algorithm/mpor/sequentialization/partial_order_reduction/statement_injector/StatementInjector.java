@@ -17,8 +17,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -113,18 +111,5 @@ public record StatementInjector(
             memoryModel);
     pStatement = bitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(pStatement);
     return pStatement;
-  }
-
-  // boolean helpers ===============================================================================
-
-  /**
-   * Checks whether bit vector injections are allowed, i.e. if they do not result in interleaving
-   * loss.
-   */
-  static boolean isReductionAllowed(MPOROptions pOptions, SeqThreadStatementClause pTarget) {
-    // if the target starts with a thread synchronization (i.e. assume), do not inject
-    return !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
-        // check based on pOptions if the target is a loop head that must remain separate
-        && !SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, pTarget);
   }
 }
