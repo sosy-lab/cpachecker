@@ -60,7 +60,7 @@ public record PartialOrderReducer(
               labelBlockMap,
               ghostElements,
               machineModel,
-              memoryModel.orElseThrow(),
+              memoryModel,
               utils);
       rInjected.putAll(activeThread, statementInjector.injectStatementsIntoClauses());
     }
