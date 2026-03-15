@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -30,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NextThreadAndNumStatementsNondeterministicSimulation
@@ -52,7 +52,7 @@ class NextThreadAndNumStatementsNondeterministicSimulation
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
         tryBuildPcUnequalExitAssumption(pThread);
-    Optional<ImmutableList<CStatement>> nextThreadStatements =
+    Optional<ImmutableList<CExportStatement>> nextThreadStatements =
         tryBuildNextThreadStatements(pThread);
 
     CFunctionCallAssignmentStatement roundMaxNondetAssignment =
@@ -70,7 +70,7 @@ class NextThreadAndNumStatementsNondeterministicSimulation
 
     ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
     pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
-    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(new CStatementWrapper(s))));
+    nextThreadStatements.ifPresent(l -> rStatements.addAll(l));
     rStatements.add(new CStatementWrapper(roundMaxNondetAssignment));
     rStatements.add(new CStatementWrapper(roundMaxGreaterZeroAssumption));
     rStatements.add(new CStatementWrapper(roundReset));

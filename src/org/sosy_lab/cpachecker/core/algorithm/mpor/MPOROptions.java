@@ -273,12 +273,6 @@ public class MPOROptions {
             "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
       }
     }
-    if (!nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
-      if (reduceIgnoreSleep) {
-        throw new InvalidConfigurationException(
-            "reduceIgnoreSleep cannot be enabled when nondeterminismSource is not NUM_STATEMENTS");
-      }
-    }
     if (pruneBitVectorEvaluations) {
       if (!isAnyBitVectorReductionEnabled()) {
         throw new InvalidConfigurationException(

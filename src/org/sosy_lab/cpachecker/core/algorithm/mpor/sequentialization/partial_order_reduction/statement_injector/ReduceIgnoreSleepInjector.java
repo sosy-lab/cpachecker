@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -56,8 +58,9 @@ public record ReduceIgnoreSleepInjector(
   }
 
   /**
-   * Returns a {@link CIfStatement} that encodes the Ignore Sleep (IS) reduction. The statement
-   * precedes a thread simulation and takes the following form:
+   * Returns a {@link CIfStatement} that encodes the Ignore Sleep (IS) reduction for {@link
+   * NondeterminismSource#NUM_STATEMENTS}. The statement precedes a thread simulation and takes the
+   * following form:
    *
    * <pre>{@code
    * if (round_max == 0 && Ti_SYNC == 0) {
@@ -70,6 +73,8 @@ public record ReduceIgnoreSleepInjector(
    * aborts and the thread always executes and ignores that it should actually sleep.
    */
   public CIfStatement buildIgnoreSleepInstrumentation() throws UnrecognizedCodeException {
+    checkState(options.nondeterminismSource().equals(NondeterminismSource.NUM_STATEMENTS));
+
     // (round_max == 0 && Ti_SYNC == 0)
     CExpression roundMaxEqualsZero =
         utils
@@ -78,28 +83,58 @@ public record ReduceIgnoreSleepInjector(
                 SeqIdExpressions.ROUND_MAX,
                 SeqIntegerLiteralExpressions.INT_0,
                 BinaryOperator.EQUALS);
-    CExpression syncEqualsZero =
-        utils
-            .binaryExpressionBuilder()
-            .buildBinaryExpression(
-                ghostElements.threadSyncFlags().getSyncFlag(activeThread),
-                SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.EQUALS);
+    CExpression syncEqualsZero = buildSyncEqualsZeroExpression();
     CLogicalAndExpression logicalAnd = CLogicalAndExpression.of(roundMaxEqualsZero, syncEqualsZero);
 
     // assume(*Ti in at least one conflict*);
+    CExportExpression bitVectorExpression = buildBitVectorEvaluationExpression();
+    CExportStatement assumeCallStatement =
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(bitVectorExpression);
+
+    return new CIfStatement(logicalAnd, new CCompoundStatement(assumeCallStatement));
+  }
+
+  /**
+   * Returns a {@link CExportExpression} that encodes the Ignore Sleep (IS) reduction when the
+   * {@link NondeterminismSource} is {@link NondeterminismSource#NEXT_THREAD} or {@link
+   * NondeterminismSource#NEXT_THREAD_AND_NUM_STATEMENTS}. The expression is used to check whether a
+   * thread can be soundly executed, even if it was not chosen for execution:
+   *
+   * <pre>{@code
+   * if (next_thread == i || (Ti_SYNC == 0 && *Ti not in any conflict*)) {
+   *    ... // execute thread
+   * }
+   * }</pre>
+   *
+   * <p>This ensures that if thread {@code i} was not chosen for execution, i.e., {@code next_thread
+   * != i}, then it is still executed if it is not in conflict with another thread.
+   */
+  public CExportExpression buildIgnoreSleepExpression() throws UnrecognizedCodeException {
+    checkState(options.nondeterminismSource().isNextThreadNondeterministic());
+
+    CExpression syncEqualsZero = buildSyncEqualsZeroExpression();
+    CExportExpression bitVectorExpression = buildBitVectorEvaluationExpression();
+    return CLogicalAndExpression.of(
+        new CExpressionWrapper(syncEqualsZero), bitVectorExpression.negate());
+  }
+
+  private CExpression buildSyncEqualsZeroExpression() throws UnrecognizedCodeException {
+    return utils
+        .binaryExpressionBuilder()
+        .buildBinaryExpression(
+            ghostElements.threadSyncFlags().getSyncFlag(activeThread),
+            SeqIntegerLiteralExpressions.INT_0,
+            BinaryOperator.EQUALS);
+  }
+
+  private CExportExpression buildBitVectorEvaluationExpression() throws UnrecognizedCodeException {
     SeqBitVectorVariables bitVectorVariables = ghostElements.bitVectorVariables().orElseThrow();
     Optional<CExportExpression> bitVectorEvaluationExpression =
         BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
             options, activeThread, otherThreads, bitVectorVariables, utils);
-    CExportExpression assumeCondition =
-        bitVectorEvaluationExpression.isPresent()
-            ? bitVectorEvaluationExpression.orElseThrow()
-            : new CExpressionWrapper(CIntegerLiteralExpression.ZERO);
-    CExportStatement assumeCallStatement =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(assumeCondition);
-
-    return new CIfStatement(logicalAnd, new CCompoundStatement(assumeCallStatement));
+    return bitVectorEvaluationExpression.isPresent()
+        ? bitVectorEvaluationExpression.orElseThrow()
+        : new CExpressionWrapper(CIntegerLiteralExpression.ZERO);
   }
 
   SeqThreadStatement tryInjectSyncUpdateIntoStatement(SeqThreadStatement pStatement) {

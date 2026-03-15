@@ -165,8 +165,7 @@ public final class SeqThreadStatementUtil {
     return ImmutableList.of();
   }
 
-  // Instrumentation Statements
-  // ========================================================================================
+  // Instrumentation Statements ====================================================================
 
   static ImmutableList<SeqInstrumentation> prepareInstrumentationByTargetPc(
       CLeftHandSide pPcLeftHandSide,

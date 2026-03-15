@@ -12,33 +12,38 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceIgnoreSleepInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CContinueStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
@@ -68,14 +73,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
     ImmutableList.Builder<CCompoundStatementElement> simulations = ImmutableList.builder();
     for (MPORThread thread : clauses.keySet()) {
-      // create the 'if (next_thread == i)' condition
-      CIntegerLiteralExpression threadIdExpression =
-          SeqExpressionBuilder.buildIntegerLiteralExpression(thread.id());
-      CExpression ifCondition =
-          utils
-              .binaryExpressionBuilder()
-              .buildBinaryExpression(
-                  SeqIdExpressions.NEXT_THREAD, threadIdExpression, BinaryOperator.EQUALS);
+      // create the 'if (next_thread == i ...)' condition
+      CExportExpression ifCondition = buildNextThreadExpression(thread);
       // create the compound statement '{ ... }'
       ImmutableList.Builder<CCompoundStatementElement> statements =
           ImmutableList.<CCompoundStatementElement>builder()
@@ -86,7 +85,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
         statements.add(new CContinueStatement());
       }
       CCompoundStatement compoundStatement = new CCompoundStatement(statements.build());
-      simulations.add(new CIfStatement(new CExpressionWrapper(ifCondition), compoundStatement));
+      simulations.add(new CIfStatement(ifCondition, compoundStatement));
     }
     return new CCompoundStatement(simulations.build());
   }
@@ -97,12 +96,12 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
         tryBuildPcUnequalExitAssumption(pThread);
-    Optional<ImmutableList<CStatement>> nextThreadStatements =
+    Optional<ImmutableList<CExportStatement>> nextThreadStatements =
         tryBuildNextThreadStatements(pThread);
 
     ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
     pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
-    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(new CStatementWrapper(s))));
+    nextThreadStatements.ifPresent(l -> rStatements.addAll(l));
     return new CCompoundStatement(rStatements.build());
   }
 
@@ -124,8 +123,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
    * next_thread} is a preceding statement in the respective {@link
    * SeqThreadSimulationFunctionBuilder}.
    */
-  protected Optional<ImmutableList<CStatement>> tryBuildNextThreadStatements(MPORThread pThread)
-      throws UnrecognizedCodeException {
+  protected Optional<ImmutableList<CExportStatement>> tryBuildNextThreadStatements(
+      MPORThread pThread) throws UnrecognizedCodeException {
 
     if (!options.loopUnrolling()) {
       // when loopUnrolling is disabled, the next_thread is chosen -> no assumption needed
@@ -136,6 +135,15 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
         VerifierNondetFunctionType.buildNondetIntegerAssignment(
             options, SeqIdExpressions.NEXT_THREAD);
     // assume(next_thread == {thread_id})
+    CExportExpression nextThreadExpression = buildNextThreadExpression(pThread);
+    CExportStatement nextThreadAssumption =
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(nextThreadExpression);
+    return Optional.of(
+        ImmutableList.of(new CStatementWrapper(nextThreadAssignment), nextThreadAssumption));
+  }
+
+  CExportExpression buildNextThreadExpression(MPORThread pThread) throws UnrecognizedCodeException {
+    // "next_thread == i"
     CBinaryExpression nextThreadEqualsThreadId =
         utils
             .binaryExpressionBuilder()
@@ -143,8 +151,22 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
                 SeqIdExpressions.NEXT_THREAD,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
                 BinaryOperator.EQUALS);
-    CFunctionCallStatement nextThreadAssumption =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
-    return Optional.of(ImmutableList.of(nextThreadAssignment, nextThreadAssumption));
+    CExportExpression wrappedExpression = new CExpressionWrapper(nextThreadEqualsThreadId);
+
+    if (!options.reduceIgnoreSleep()) {
+      return wrappedExpression;
+    }
+
+    // optionally add a reduction "next_thread == i || (Ti_SYNC == 0 && *Ti not in conflict*)"
+    ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
+    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));
+    ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
+        new ReduceIgnoreSleepInjector(
+            options, pThread, otherThreads, labelClauseMap, ghostElements, utils);
+    CExportExpression ignoreSleepExpression =
+        reduceIgnoreSleepInjector.buildIgnoreSleepExpression();
+
+    return CLogicalOrExpression.of(wrappedExpression, ignoreSleepExpression);
   }
 }
