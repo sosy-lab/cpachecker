@@ -104,37 +104,6 @@ public final class SeqMainFunctionBuilder {
         }
       }
 
-      // add if next_thread is a non-determinism source
-      if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
-        if (pOptions.comments()) {
-          loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
-        }
-        // next_thread = __VERIFIER_nondet_...()
-        CFunctionCallAssignmentStatement nextThreadAssignment =
-            VerifierNondetFunctionType.buildNondetIntegerAssignment(
-                pOptions, SeqIdExpressions.NEXT_THREAD);
-        loopBlock.add(new CStatementWrapper(nextThreadAssignment));
-
-        // assume(0 <= next_thread && next_thread < NUM_THREADS)
-        CExportStatement nextThreadAssumption =
-            SeqAssumeFunctionBuilder.buildNextThreadAssumeCallFunctionCallStatement(
-                pOptions.nondeterminismSigned(),
-                pFields.numThreads,
-                pUtils.binaryExpressionBuilder());
-        loopBlock.add(nextThreadAssumption);
-
-        // for scalar pc, this is done separately at the start of the respective thread
-        if (!pOptions.scalarPc()) {
-          // assumptions over next_thread being active: pc[next_thread] != 0
-          if (pOptions.comments()) {
-            loopBlock.add(SeqComment.NEXT_THREAD_ACTIVE);
-          }
-          CFunctionCallStatement nextThreadActiveAssumption =
-              pFields.ghostElements.programCounterVariables().buildArrayPcUnequalExitPcAssumption();
-          loopBlock.add(new CStatementWrapper(nextThreadActiveAssumption));
-        }
-      }
-
       // assumptions that at least one thread is still active: assume(thread_count > 0)
       if (pOptions.reduceSingleActiveThread()) {
         if (pOptions.comments()) {
