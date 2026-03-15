@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -135,7 +134,7 @@ public class NondeterministicSimulation {
   CCompoundStatement buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    Builder<CCompoundStatementElement> rSimulation = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> rSimulation = ImmutableList.builder();
 
     // add "T{thread_id}: label", if present
     Optional<CLabelStatement> threadLabel =
@@ -147,7 +146,7 @@ public class NondeterministicSimulation {
     // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
         ghostElements.getPcVariables().getThreadActiveExpression(pThread.id());
-    Builder<CCompoundStatementElement> ifBlock = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> ifBlock = ImmutableList.builder();
 
     // add the "{round_max, next_thread} = nondet;" assignments for this thread
     ifBlock.addAll(buildNondeterministicAssignments());
@@ -164,7 +163,7 @@ public class NondeterministicSimulation {
     }
 
     // if ({round_max > 0, next_thread == i}) ...
-    Builder<CCompoundStatementElement> innerIfBlock = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> innerIfBlock = ImmutableList.builder();
     CExportExpression nondeterministicIfCondition = buildNondeterministicIfCondition(pThread);
 
     // add the thread simulation statements
@@ -188,7 +187,7 @@ public class NondeterministicSimulation {
    * code block in the {@code main()} function.
    */
   public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
-    Builder<CCompoundStatementElement> rThreadSimulations = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> rThreadSimulations = ImmutableList.builder();
     for (MPORThread thread : clauses.keySet()) {
       rThreadSimulations.add(buildSingleThreadSimulation(thread));
     }
