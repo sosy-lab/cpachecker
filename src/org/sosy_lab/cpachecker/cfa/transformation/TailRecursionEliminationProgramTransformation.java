@@ -19,16 +19,20 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 public class TailRecursionEliminationProgramTransformation extends ProgramTransformation{
-  public ProgramTransformationBehaviour behaviour = ProgramTransformationBehaviour.PRECISE;
 
   @Override
   public Optional<SubCFA> transform(CFA pCFA, CFANode pNode) {
@@ -43,30 +47,85 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     }
     CFANode exitNode = functionEntryNode.getExitNode().get();
     String functionName = pNode.getFunctionName();
-    // check 2: is the last operation a recursive function call
+    // check 2: is one of the return statements a recursive function call
     // i.e. declaration of a __CPAchecker_TMP_0 variable + assignment with the recursive function call + return of this variable
+    boolean isTailRecursive = false;
+    Optional<String> tmpVarName = Optional.empty();
+    Optional<CFAEdge> tmpVarDeclarationEdge = Optional.empty();
+    Optional<CFAEdge> tmpVarAssignmentEdge = Optional.empty();
+    Optional<CFAEdge> tmpVarReturnEdge = Optional.empty();
     FluentIterable<CFAEdge> enteringEdges = exitNode.getEnteringEdges();
     for(CFAEdge edge : enteringEdges) {
       CReturnStatement returnStatement = ((CReturnStatementEdge) edge).getReturnStatement();
-      if (returnStatement.getReturnValue().isEmpty()) {
-        return  Optional.empty();
-      }
-      CExpression returnExpression = returnStatement.getReturnValue().get();
-      if (returnExpression instanceof CLeftHandSide returnLeftHandSide) {
-        if (returnLeftHandSide instanceof CIdExpression returnIdExpression) {
-          // check for __CPAchecker_TMP_0
-          if(returnIdExpression.getName().equals("__CPAchecker_TMP_0")) {
-
+      if (returnStatement.getReturnValue().isPresent()) {
+        CExpression returnExpression = returnStatement.getReturnValue().get();
+        if (returnExpression instanceof CLeftHandSide returnLeftHandSide) {
+          if (returnLeftHandSide instanceof CIdExpression returnIdExpression) {
+            //if(returnIdExpression.getName().equals("__CPAchecker_TMP_0")) {
+              FluentIterable<CFAEdge> predecessorEdges = edge.getPredecessor().getEnteringEdges();
+              if (predecessorEdges.size() == 1) {
+                CFAEdge predecessorEdge = predecessorEdges.first().get();
+                if (predecessorEdge instanceof CStatementEdge predecessorStatementEdge) {
+                  if (predecessorStatementEdge.getStatement() instanceof CFunctionCallAssignmentStatement predecessorFunctionCallAssignmentStatement) {
+                    if(predecessorFunctionCallAssignmentStatement.getFunctionCallExpression().getDeclaration().getQualifiedName().equals(functionName)){
+                      if (predecessorEdge.getPredecessor().getEnteringEdges().size() == 1) {
+                        if (predecessorEdge.getPredecessor().getEnteringEdges().first().get() instanceof CDeclarationEdge) {
+                          tmpVarName = Optional.of(returnIdExpression.getName());
+                          tmpVarDeclarationEdge = Optional.of(predecessorEdge.getPredecessor().getEnteringEdges().first().get());
+                          tmpVarAssignmentEdge = Optional.of(predecessorEdge);
+                          tmpVarReturnEdge = Optional.of(edge);
+                          isTailRecursive = true;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            //}
           }
-        } else {
-          return Optional.empty();
         }
-      } else {
-        return Optional.empty();
       }
     }
+    if (!isTailRecursive || tmpVarName.isEmpty() || tmpVarDeclarationEdge.isEmpty() || tmpVarAssignmentEdge.isEmpty() || tmpVarReturnEdge.isEmpty()) {
+      return Optional.empty();
+    }
     // check 3: the first statement must be a conditional check of the exit condition
-    // i.e. 1 Function start dummy edge followed by a node with two assertion edges
+    // i.e. 1 Function start dummy edges followed by a node with two assertion edges
+    if (pNode.getLeavingEdges().size() != 1) {
+      return Optional.empty();
+    } else {
+      CFAEdge currentFunctionStartEdge = pNode.getLeavingEdges().first().get();
+      FluentIterable<CFAEdge> nextFunctionStartEdges = currentFunctionStartEdge.getSuccessor().getLeavingEdges();
+      if (currentFunctionStartEdge.getEdgeType() != CFAEdgeType.BlankEdge) {
+        return Optional.empty();
+      }
+      if (nextFunctionStartEdges.size() != 1) {
+        return Optional.empty();
+      } else {
+        currentFunctionStartEdge = nextFunctionStartEdges.first().get();
+        nextFunctionStartEdges = currentFunctionStartEdge.getSuccessor().getLeavingEdges();
+      }
+      if (!(currentFunctionStartEdge instanceof CDeclarationEdge)) {
+        return Optional.empty();
+      }
+      if (nextFunctionStartEdges.size() != 1) {
+        return Optional.empty();
+      } else {
+        currentFunctionStartEdge = nextFunctionStartEdges.first().get();
+        nextFunctionStartEdges = currentFunctionStartEdge.getSuccessor().getLeavingEdges();
+      }
+      if (currentFunctionStartEdge.getEdgeType() != CFAEdgeType.BlankEdge) {
+        return Optional.empty();
+      }
+      if (nextFunctionStartEdges.size() != 2) {
+        return Optional.empty();
+      } else {
+        if (!(nextFunctionStartEdges.first().get() instanceof CAssumeEdge && nextFunctionStartEdges.last().get() instanceof CAssumeEdge)) {
+          return Optional.empty();
+        }
+      }
+    }
 
     // TODO perform transformation
     CFANode newEntryNode = null;
@@ -84,15 +143,20 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
 
     // add new nodes
     for(CFANode currentNode : cfaNodeIterable) {
-      CFANode newNode = CFANode.newDummyCFANode(functionName);
-      nodeMap.put(currentNode.getNodeNumber(), newNode.getNodeNumber());
-      if (currentNode.getNodeNumber() == exitNode.getNodeNumber()) {
-        newExitNode = newNode;
-      } else if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
-        newNode.setLoopStart();
-        newEntryNode = newNode;
+      // dont add nodes for tail recursive call nodes
+      if (currentNode.getNodeNumber() != tmpVarDeclarationEdge.get().getSuccessor().getNodeNumber()
+          && currentNode.getNodeNumber()
+              != tmpVarAssignmentEdge.get().getSuccessor().getNodeNumber()) {
+        CFANode newNode = CFANode.newDummyCFANode(functionName);
+        nodeMap.put(currentNode.getNodeNumber(), newNode.getNodeNumber());
+        if (currentNode.getNodeNumber() == exitNode.getNodeNumber()) {
+          newExitNode = newNode;
+        } else if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
+          newNode.setLoopStart();
+          newEntryNode = newNode;
+        }
+        nodes.add(newNode);
       }
-      nodes.add(newNode);
     }
     for (int i = 0; i < parameters.size(); i++) {
       CFANode newNode = CFANode.newDummyCFANode(functionName);

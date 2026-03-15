@@ -37,23 +37,27 @@ public class ProgramTransformationCFAEdgeCreator {
     if (! (pCFAEdge instanceof CCfaEdge)) {
       return null;
     }
-    switch(pCFAEdge) {
-      case CAssumeEdge edge:
-        return new CAssumeEdge(edge.getRawStatement(), null, pNewPredecessor, pNewSuccessor, edge.getExpression(), edge.getTruthAssumption());
-      case CDeclarationEdge edge:
-        return new CDeclarationEdge(edge.getRawStatement(), null, pNewPredecessor, pNewSuccessor, edge.getDeclaration());
-      case CFunctionCallEdge edge:
-        return new CFunctionCallEdge(edge.getRawStatement(), null, pNewPredecessor, edge.getSuccessor(), edge.getFunctionCall(), edge.getSummaryEdge());
-      case CFunctionReturnEdge edge:
-        return edge;
-      case CFunctionSummaryEdge edge:
-        return new CFunctionSummaryEdge(edge.getRawStatement(), null, pNewPredecessor, pNewSuccessor, edge.getExpression(), edge.getFunctionEntry());
-      case CReturnStatementEdge edge:
-        return new CReturnStatementEdge(edge.getRawStatement(), edge.getReturnStatement(), null, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
-      case CStatementEdge edge:
-        return new CStatementEdge(edge.getRawStatement(), edge.getStatement(), null, pNewPredecessor, pNewSuccessor);
-      default:
-        return null;
-    }
+    return switch (pCFAEdge) {
+      case CAssumeEdge edge ->
+          new CAssumeEdge(edge.getRawStatement(), null, pNewPredecessor, pNewSuccessor,
+              edge.getExpression(), edge.getTruthAssumption());
+      case CDeclarationEdge edge ->
+          new CDeclarationEdge(edge.getRawStatement(), null, pNewPredecessor, pNewSuccessor,
+              edge.getDeclaration());
+      case CFunctionCallEdge edge ->
+          new CFunctionCallEdge(edge.getRawStatement(), null, pNewPredecessor, edge.getSuccessor(),
+              edge.getFunctionCall(), edge.getSummaryEdge());
+      case CFunctionReturnEdge edge -> edge;
+      case CFunctionSummaryEdge edge ->
+          new CFunctionSummaryEdge(edge.getRawStatement(), null, pNewPredecessor, pNewSuccessor,
+              edge.getExpression(), edge.getFunctionEntry());
+      case CReturnStatementEdge edge ->
+          new CReturnStatementEdge(edge.getRawStatement(), edge.getReturnStatement(), null,
+              pNewPredecessor, (FunctionExitNode) pNewSuccessor);
+      case CStatementEdge edge ->
+          new CStatementEdge(edge.getRawStatement(), edge.getStatement(), null, pNewPredecessor,
+              pNewSuccessor);
+      default -> null;
+    };
   }
 }

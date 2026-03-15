@@ -20,8 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class CFAProgramTransformer {
 
   public static MutableCFA applyTransformations(MutableCFA pCFA) {
-    MutableCFA modifiedCFA = MutableCFA.copyOf(pCFA, null, null);
-    boolean finished = false;
+    //boolean finished = false;
     ArrayList<ProgramTransformationEnum> selectedProgramTransformations = new ArrayList<ProgramTransformationEnum>();
     selectedProgramTransformations.add(ProgramTransformationEnum.JUMP_THREADING);
     selectedProgramTransformations.add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION);
@@ -30,19 +29,19 @@ public class CFAProgramTransformer {
 
     for(CFANode currentNode : cfaNodeIterable) {
       if (selectedProgramTransformations.contains(ProgramTransformationEnum.JUMP_THREADING)) {
-        Optional<SubCFA> transformationResult = new JumpThreadingProramTransformation().transform(pCFA, currentNode);
+        Optional<SubCFA> transformationResult = new JumpThreadingProgramTransformation().transform(pCFA, currentNode);
         if (transformationResult.isPresent()) {
-          modifiedCFA = transformationResult.get().insertSubCFA(pCFA);
+          transformationResult.get().insertSubCFA(pCFA);
         }
       }
       if (selectedProgramTransformations.contains(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)) {
         Optional<SubCFA> transformationResult = new TailRecursionEliminationProgramTransformation().transform(pCFA, currentNode);
         if (transformationResult.isPresent()) {
-          modifiedCFA = transformationResult.get().insertSubCFA(pCFA);
+          transformationResult.get().insertSubCFA(pCFA);
         }
       }
     }
 
-    return modifiedCFA;
+    return pCFA;
   }
 }

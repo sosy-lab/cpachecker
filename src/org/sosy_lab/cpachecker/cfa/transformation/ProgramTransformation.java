@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public abstract class ProgramTransformation {
-  private ProgramTransformationBehaviour behaviour;
 
   /**
    * Perform the program transformation on a given CFANode and return the resulting SubCFA or Optional.empty.

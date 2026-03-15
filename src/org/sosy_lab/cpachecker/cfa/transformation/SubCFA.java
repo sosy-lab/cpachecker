@@ -31,9 +31,12 @@ public record SubCFA (
    * Inserts the CFANodes and CFAEdges plus additional CFAMetadata into the given MutableCFA.
    *
    * @param pCFA MutableCFA
-   * @return MutableCFA with the added program transformation
    */
-  public MutableCFA insertSubCFA(MutableCFA pCFA) {
-    return pCFA;
+  public void insertSubCFA(MutableCFA pCFA) {
+    // add nodes
+    for (CFANode node : allNodes) {
+      pCFA.addNode(node);
+    }
+    // set metadata
   }
 }
