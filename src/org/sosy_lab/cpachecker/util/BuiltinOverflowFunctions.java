@@ -87,13 +87,11 @@ public class BuiltinOverflowFunctions {
     }
 
     private static String getOperatorName(BinaryOperator pOperator) {
-      if (pOperator == BinaryOperator.PLUS) {
-        return "add";
-      } else if (pOperator == BinaryOperator.MINUS) {
-        return "sub";
-      } else {
-        return "mul";
-      }
+      return switch (pOperator) {
+        case PLUS -> "add";
+        case MINUS -> "sub";
+        default -> "mul";
+      };
     }
 
     private static String getDataTypePrefix(@Nullable CSimpleType pType) {
@@ -263,8 +261,8 @@ public class BuiltinOverflowFunctions {
           CSimpleType resultType = getTargetType(nameOfCalledFunc, parameters.get(2));
 
           if (resultType.getType().isIntegerType()
-              && firstParameterValue.isExplicitlyKnown()
-              && secondParameterValue.isExplicitlyKnown()) {
+              && firstParameterValue instanceof NumericValue
+              && secondParameterValue instanceof NumericValue) {
             // cast arguments to matching values
             if (!isFunctionWithArbitraryArgumentTypes(nameOfCalledFunc)) {
               firstParameterValue =
@@ -273,11 +271,12 @@ public class BuiltinOverflowFunctions {
               secondParameterValue =
                   AbstractExpressionValueVisitor.castCValue(
                       secondParameterValue, resultType, machineModel, logger);
+              // Expected to return NumericValue, as we give it a NumericValue
             }
 
             // perform operation with infinite precision
-            BigInteger p1 = firstParameterValue.asNumericValue().bigIntegerValue();
-            BigInteger p2 = secondParameterValue.asNumericValue().bigIntegerValue();
+            BigInteger p1 = ((NumericValue) firstParameterValue).bigIntegerValue();
+            BigInteger p2 = ((NumericValue) secondParameterValue).bigIntegerValue();
 
             BigInteger resultOfComputation;
             BinaryOperator operator = getOperator(nameOfCalledFunc);
@@ -291,13 +290,13 @@ public class BuiltinOverflowFunctions {
                           "Can not determine operator of function " + nameOfCalledFunc, null, null);
                 };
 
-            // cast result type of third parameter
-            Value resultValue = new NumericValue(resultOfComputation);
-            resultValue =
+            // cast result type of third parameter (expected to return NumericValue, as we give it a
+            // NumericValue)
+            Value resultValue =
                 AbstractExpressionValueVisitor.castCValue(
-                    resultValue, resultType, machineModel, logger);
+                    new NumericValue(resultOfComputation), resultType, machineModel, logger);
 
-            if (resultValue.asNumericValue().bigIntegerValue().equals(resultOfComputation)) {
+            if (((NumericValue) resultValue).bigIntegerValue().equals(resultOfComputation)) {
               return new NumericValue(0);
             } else {
               return new NumericValue(1);

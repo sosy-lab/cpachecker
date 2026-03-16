@@ -14,13 +14,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
 public class SequentializationFields {
 
@@ -55,13 +56,16 @@ public class SequentializationFields {
 
   public final ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges;
 
+  public final MachineModel machineModel;
+
   public final Optional<MemoryModel> memoryModel;
 
   public final GhostElements ghostElements;
 
   public final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
-  public final ImmutableList<SeqThreadSimulationFunction> threadSimulationFunctions;
+  public final Optional<ImmutableMap<MPORThread, CExportFunctionDefinition>>
+      threadSimulationFunctions;
 
   // TODO split into separate function so that unit tests create only what they test
   SequentializationFields(MPOROptions pOptions, CFA pInputCfa, SequentializationUtils pUtils)
@@ -69,7 +73,7 @@ public class SequentializationFields {
 
     resetStaticFields();
     MPORThreadBuilder threadBuilder = new MPORThreadBuilder(pOptions, pInputCfa);
-    threads = threadBuilder.createThreads();
+    threads = threadBuilder.extractThreadsFromCfa();
     numThreads = threads.size();
     allGlobalVariableDeclarations = CFAUtils.getGlobalVariableDeclarations(pInputCfa);
 
@@ -79,11 +83,14 @@ public class SequentializationFields {
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
 
+    machineModel = pInputCfa.getMachineModel();
+
     MemoryModelBuilder memoryModelBuilder =
         new MemoryModelBuilder(
             pOptions,
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
-            substituteEdges.values());
+            substituteEdges.values(),
+            machineModel);
     memoryModel = memoryModelBuilder.tryBuildMemoryModel();
 
     GhostElementBuilder ghostElementBuilder =
@@ -98,11 +105,22 @@ public class SequentializationFields {
 
     SeqThreadStatementClauseBuilder clauseBuilder =
         new SeqThreadStatementClauseBuilder(
-            pOptions, threads, substitutions, substituteEdges, memoryModel, ghostElements, pUtils);
+            pOptions,
+            threads,
+            substitutions,
+            substituteEdges,
+            machineModel,
+            memoryModel,
+            ghostElements,
+            pUtils);
     clauses = clauseBuilder.buildClauses();
+
     threadSimulationFunctions =
-        NondeterministicSimulationUtil.buildThreadSimulationFunctions(
-            pOptions, ghostElements, clauses, pUtils);
+        pOptions.loopUnrolling()
+            ? Optional.of(
+                NondeterministicSimulationBuilder.buildThreadSimulationFunctions(
+                    pOptions, machineModel, memoryModel, ghostElements, clauses, pUtils))
+            : Optional.empty();
   }
 
   /** Resets all static fields, e.g. used for IDs. This may be necessary for unit tests. */

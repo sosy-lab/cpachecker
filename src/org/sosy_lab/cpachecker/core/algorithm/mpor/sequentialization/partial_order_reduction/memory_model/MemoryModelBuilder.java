@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -28,8 +31,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -37,7 +42,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -45,7 +49,10 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 public record MemoryModelBuilder(
     MPOROptions options,
     ImmutableList<SeqMemoryLocation> initialMemoryLocations,
-    ImmutableCollection<SubstituteEdge> substituteEdges) {
+    ImmutableCollection<SubstituteEdge> substituteEdges,
+    MachineModel machineModel) {
+
+  private static final int INITIAL_MEMORY_LOCATION_ID = 0;
 
   public Optional<MemoryModel> tryBuildMemoryModel() throws UnsupportedCodeException {
     if (options.linkReduction()) {
@@ -76,7 +83,8 @@ public record MemoryModelBuilder(
               startRoutineArgAssignments,
               parameterAssignments,
               pointerParameterAssignments,
-              pointerDereferences);
+              pointerDereferences,
+              machineModel);
       return Optional.of(memoryModel);
     } else {
       return Optional.empty();
@@ -89,7 +97,8 @@ public record MemoryModelBuilder(
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences,
+      MachineModel pMachineModel)
       throws UnsupportedCodeException {
 
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
@@ -107,7 +116,8 @@ public record MemoryModelBuilder(
         pStartRoutineArgAssignments,
         pParameterAssignments,
         pPointerParameterAssignments,
-        pPointerDereferences);
+        pPointerDereferences,
+        pMachineModel);
   }
 
   // All Memory Locations ==========================================================================
@@ -130,7 +140,7 @@ public record MemoryModelBuilder(
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     ImmutableMap.Builder<SeqMemoryLocation, Integer> rRelevantIds = ImmutableMap.builder();
-    int currentId = BitVectorUtil.RIGHT_INDEX;
+    int currentId = INITIAL_MEMORY_LOCATION_ID;
     for (SeqMemoryLocation memoryLocation : pAllMemoryLocations) {
       if (isRelevantMemoryLocation(
           memoryLocation,
@@ -152,11 +162,11 @@ public record MemoryModelBuilder(
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     // exclude const CPAchecker_TMP, they do not have any effect in the input program
-    if (pMemoryLocation.isConstCpaCheckerTmp()) {
+    if (MPORUtil.isConstCpaCheckerTmp(pMemoryLocation.declaration())) {
       return false;
     }
     // relevant locations are either explicit or implicit (e.g. through pointers) global
-    if (pMemoryLocation.isExplicitGlobal()
+    if (pMemoryLocation.declaration().isGlobal()
         || isImplicitGlobal(
             pMemoryLocation,
             pPointerAssignments,
@@ -179,7 +189,7 @@ public record MemoryModelBuilder(
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
-    if (pMemoryLocation.isExplicitGlobal()) {
+    if (pMemoryLocation.declaration().isGlobal()) {
       return false;
     }
     // e.g. (void*) arg = &local_var -> local_var can be accessed by creating and created threads
@@ -233,7 +243,7 @@ public record MemoryModelBuilder(
       SeqMemoryLocation pMemoryLocation,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments) {
 
-    return pMemoryLocation.isExplicitGlobal()
+    return pMemoryLocation.declaration().isGlobal()
         || pStartRoutineArgAssignments.containsValue(pMemoryLocation);
   }
 
@@ -376,7 +386,9 @@ public record MemoryModelBuilder(
 
   // start_routine arg Assignments =================================================================
 
-  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapStartRoutineArgAssignments() {
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapStartRoutineArgAssignments()
+      throws UnsupportedCodeException {
+
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : substituteEdges) {
@@ -399,12 +411,14 @@ public record MemoryModelBuilder(
             // use the ID of the created thread for the parameter declaration
             CFunctionDeclaration functionDeclaration =
                 PthreadUtil.extractStartRoutineDeclaration(functionCall);
-            assert functionDeclaration.getParameters().size() == 1
-                : "start_routine functions can only have a single parameter";
+            // start_routine functions can only have a single parameter
             CParameterDeclaration parameterDeclaration =
-                functionDeclaration.getParameters().getFirst();
+                Iterables.getOnlyElement(functionDeclaration.getParameters());
             rAssignments.put(
-                SeqMemoryLocation.of(options, Optional.of(callContext), parameterDeclaration),
+                SeqMemoryLocation.of(
+                    options,
+                    Optional.of(callContext),
+                    parameterDeclaration.asVariableDeclaration()),
                 rhsMemoryLocation.orElseThrow());
           }
         }
@@ -415,7 +429,9 @@ public record MemoryModelBuilder(
 
   // Parameter Assignments =========================================================================
 
-  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments() {
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments()
+      throws UnsupportedCodeException {
+
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : substituteEdges) {
@@ -430,23 +446,24 @@ public record MemoryModelBuilder(
   }
 
   private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> buildParameterAssignments(
-      CFAEdgeForThread pCallContext, CFunctionCallEdge pFunctionCallEdge) {
+      CFAEdgeForThread pCallContext, CFunctionCallEdge pFunctionCallEdge)
+      throws UnsupportedCodeException {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
+    CFunctionDeclaration functionDeclaration =
+        pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
     List<CExpression> arguments = pFunctionCallEdge.getArguments();
-    List<CParameterDeclaration> parameterDeclarations =
-        pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
-    assert arguments.size() == parameterDeclarations.size()
-        : "function argument number should be same as parameter declaration number";
     for (int i = 0; i < arguments.size(); i++) {
       // we use both pointer and non-pointer parameters, e.g. 'global_ptr = &non_ptr_param;'
-      CParameterDeclaration leftHandSide = parameterDeclarations.get(i);
+      CParameterDeclaration leftHandSide =
+          MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
       Optional<SeqMemoryLocation> rhsMemoryLocation =
           extractMemoryLocation(pCallContext, arguments.get(i));
       if (rhsMemoryLocation.isPresent()) {
         rAssignments.put(
-            SeqMemoryLocation.of(options, Optional.of(pCallContext), leftHandSide),
+            SeqMemoryLocation.of(
+                options, Optional.of(pCallContext), leftHandSide.asVariableDeclaration()),
             rhsMemoryLocation.orElseThrow());
       }
     }
@@ -454,54 +471,56 @@ public record MemoryModelBuilder(
   }
 
   private Optional<SeqMemoryLocation> extractMemoryLocation(
-      CFAEdgeForThread pCallContext, CExpression pRightHandSide) {
+      CFAEdgeForThread pCallContext, CExpression pRightHandSide) throws UnsupportedCodeException {
 
     return switch (pRightHandSide) {
       case CIdExpression idExpression ->
-          Optional.of(getMemoryLocationByDeclaration(pCallContext, idExpression.getDeclaration()));
+          Optional.of(
+              getMemoryLocationByDeclaration(
+                  pCallContext, toVariableDeclaration(idExpression.getDeclaration())));
       case CFieldReference fieldReference ->
           Optional.of(extractFieldReferenceMemoryLocation(pCallContext, fieldReference));
       case CUnaryExpression unaryExpression ->
           extractMemoryLocation(pCallContext, unaryExpression.getOperand());
       case CCastExpression castExpression ->
           extractMemoryLocation(pCallContext, castExpression.getOperand());
-      default ->
-          // can e.g. occur with 'param = 4' i.e. literal integer expressions
-          Optional.empty();
+      // can e.g. occur with 'param = 4' i.e. literal integer expressions
+      default -> Optional.empty();
     };
   }
 
   private SeqMemoryLocation extractFieldReferenceMemoryLocation(
-      CFAEdgeForThread pCallContext, CFieldReference pFieldReference) {
+      CFAEdgeForThread pCallContext, CFieldReference pFieldReference)
+      throws UnsupportedCodeException {
 
     CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
     CCompositeTypeMemberDeclaration fieldMember =
         MPORUtil.recursivelyFindFieldMemberByFieldOwner(
             pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
     return getMemoryLocationByFieldReference(
-        pCallContext, fieldOwner.getDeclaration(), fieldMember);
+        pCallContext, toVariableDeclaration(fieldOwner.getDeclaration()), fieldMember);
   }
 
   private SeqMemoryLocation getMemoryLocationByDeclaration(
-      CFAEdgeForThread pCallContext, CSimpleDeclaration pDeclaration) {
+      CFAEdgeForThread pCallContext, CVariableDeclaration pVariableDeclaration) {
 
     for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
-      if (memoryLocation.declaration.equals(pDeclaration)) {
+      if (memoryLocation.declaration().equals(pVariableDeclaration)) {
         return memoryLocation;
       }
     }
-    return SeqMemoryLocation.of(options, Optional.of(pCallContext), pDeclaration);
+    return SeqMemoryLocation.of(options, Optional.of(pCallContext), pVariableDeclaration);
   }
 
   private SeqMemoryLocation getMemoryLocationByFieldReference(
       CFAEdgeForThread pCallContext,
-      CSimpleDeclaration pFieldOwner,
+      CVariableDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
     for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
-      if (memoryLocation.fieldMember.isPresent()) {
-        CCompositeTypeMemberDeclaration fieldMember = memoryLocation.fieldMember.orElseThrow();
-        if (memoryLocation.declaration.equals(pFieldOwner) && fieldMember.equals(pFieldMember)) {
+      if (memoryLocation.fieldMember().isPresent()) {
+        CCompositeTypeMemberDeclaration fieldMember = memoryLocation.fieldMember().orElseThrow();
+        if (memoryLocation.declaration().equals(pFieldOwner) && fieldMember.equals(pFieldMember)) {
           return memoryLocation;
         }
       }
@@ -527,10 +546,22 @@ public record MemoryModelBuilder(
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rPointers = ImmutableMap.builder();
     for (var entry : pParameterAssignments.entrySet()) {
-      if (entry.getKey().declaration.getType() instanceof CPointerType) {
+      if (entry.getKey().declaration().getType() instanceof CPointerType) {
         rPointers.put(entry);
       }
     }
     return rPointers.buildOrThrow();
+  }
+
+  // Helper
+
+  private static CVariableDeclaration toVariableDeclaration(CSimpleDeclaration pSimpleDeclaration) {
+    checkArgument(
+        pSimpleDeclaration instanceof CVariableDeclaration
+            || pSimpleDeclaration instanceof CParameterDeclaration,
+        "pSimpleDeclaration must be CVariableDeclaration or CParameterDeclaration");
+    return pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration
+        ? variableDeclaration
+        : ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
   }
 }
