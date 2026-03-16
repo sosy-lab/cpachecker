@@ -71,6 +71,11 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     if (state instanceof PORState originalState) {
+      var sourceSet = originalState.getSourceSet(precision);
+      if (!sourceSet.contains(cfaEdge)) {
+        return ImmutableList.of(); // POR algorithm says we should not explore this edge
+      }
+
       // Determine which thread this edge belongs to (populated by getOutgoingEdges)
       Integer edgePid = originalState.getEdgePid(cfaEdge);
       final Integer pid = edgePid != null ? edgePid : lastPid;
@@ -181,7 +186,7 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
         return nextStates.toList();
       }
     }
-    return ImmutableList.of();
+    throw new CPATransferException("State is not a PORState.");
   }
 
   PORState initial() {

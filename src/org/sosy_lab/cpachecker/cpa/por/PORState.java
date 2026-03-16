@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
@@ -60,7 +62,7 @@ public class PORState
   private final EdgeDefUseData.Extractor memoryAccessExtractor =
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
-  private Iterable<CFAEdge> sourceSet = null;
+  private Collection<CFAEdge> sourceSet = null;
 
   PORState(
       CFA pCfa, ImmutableMap<Integer, PORThreadState> pThreads,
@@ -198,10 +200,7 @@ public class PORState
    */
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-//    if (sourceSet == null) {
-      sourceSet = getMinimalSourceSet();
-//    }
-    return sourceSet;
+    return getAllThreadOutgoingEdges();
   }
 
   @Override
@@ -281,9 +280,6 @@ public class PORState
     return threads.hashCode();
   }
 
-
-  // POR algorithm
-
   private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() {
     edgePidMap.clear();
     ImmutableList.Builder<CFAEdge> ret = ImmutableList.builder();
@@ -327,17 +323,22 @@ public class PORState
     return ret.build();
   }
 
-  private ImmutableCollection<CFAEdge> getMinimalSourceSet() {
-    ImmutableCollection<CFAEdge> minimalSourceSet = ImmutableList.of();
-    final var allOutgoingEdges = getAllThreadOutgoingEdges();
-    final var sourceSetFirstActions = getSourceSetFirstActions(allOutgoingEdges);
-    for (final var firstActions : sourceSetFirstActions) {
-      final var sourceSet = calculateSourceSet(allOutgoingEdges, firstActions);
-      if (minimalSourceSet.isEmpty() || sourceSet.size() < minimalSourceSet.size()) {
-        minimalSourceSet = sourceSet;
+  // POR algorithm
+
+  Collection<CFAEdge> getSourceSet(Precision precision) {
+    if (sourceSet == null) {
+      ImmutableCollection<CFAEdge> minimalSourceSet = ImmutableList.of();
+      final var allOutgoingEdges = getAllThreadOutgoingEdges();
+      final var sourceSetFirstActions = getSourceSetFirstActions(allOutgoingEdges);
+      for (final var firstActions : sourceSetFirstActions) {
+        final var sourceSet = calculateSourceSet(allOutgoingEdges, firstActions);
+        if (minimalSourceSet.isEmpty() || sourceSet.size() < minimalSourceSet.size()) {
+          minimalSourceSet = sourceSet;
+        }
       }
+      sourceSet = minimalSourceSet;
     }
-    return minimalSourceSet;
+    return sourceSet;
   }
 
   private ImmutableCollection<ImmutableCollection<CFAEdge>> getSourceSetFirstActions(Iterable<CFAEdge> allOutgoingEdges) {

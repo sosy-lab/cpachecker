@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
-import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 public record PORThreadState(
