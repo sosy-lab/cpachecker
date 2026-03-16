@@ -445,6 +445,8 @@ public class TerminationWitnessValidator implements Algorithm {
                       scope,
                       pMapPrevToCurrVars)));
     }
+
+    // Construct the formula R^k
     for (int i = 1; i < k; i++) {
       loopFormula =
           pfmgr.makeConjunction(
