@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.mutex;
+package org.sosy_lab.cpachecker.cpa.por;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -61,12 +61,25 @@ public final class MutexFunctions {
     return getLockMutexName(edge) != null;
   }
 
+  /** Returns {@code true} if the given CFA edge is a mutex unlock function call. */
+  public static boolean isUnlockCall(CFAEdge edge) {
+    return getUnlockMutexName(edge) != null;
+  }
+
   /**
    * If the given CFA edge is a mutex lock call, returns the mutex variable name; otherwise returns
    * {@code null}.
    */
   public static String getLockMutexName(CFAEdge edge) {
     return getMutexNameForFunctionSet(edge, LOCK_FUNCTIONS);
+  }
+
+  /**
+   * If the given CFA edge is a mutex unlock call, returns the mutex variable name; otherwise
+   * returns {@code null}.
+   */
+  public static String getUnlockMutexName(CFAEdge edge) {
+    return getMutexNameForFunctionSet(edge, UNLOCK_FUNCTIONS);
   }
 
   /** Returns {@code true} if the given function name is a mutex lock function. */
@@ -87,6 +100,15 @@ public final class MutexFunctions {
   /** Returns {@code true} if the given function name is a mutex destroy function. */
   public static boolean isDestroyFunction(String functionName) {
     return DESTROY_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * Returns {@code true} if the given function name is any mutex-related function (lock, unlock,
+   * init, destroy).
+   */
+  public static boolean isMutexFunction(String functionName) {
+    return isLockFunction(functionName) || isUnlockFunction(functionName)
+        || isInitFunction(functionName) || isDestroyFunction(functionName);
   }
 
   private static String getMutexNameForFunctionSet(

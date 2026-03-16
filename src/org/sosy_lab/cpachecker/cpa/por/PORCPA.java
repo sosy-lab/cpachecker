@@ -14,32 +14,64 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class PORCPA extends AbstractCPA {
+/**
+ * POR (Partial Order Reduction) CPA that wraps a composite CPA. The POR CPA manages thread
+ * interleaving and delegates per-thread analysis to the wrapped CPA. It also integrates mutex
+ * awareness for lock-based filtering during source-set computation.
+ */
+public class PORCPA extends AbstractSingleWrapperCPA {
+
+  private final PORTransferRelation transferRelation;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PORCPA.class);
   }
 
-  public PORCPA(
-      Configuration config, LogManager pLogger, CFA pCfa, ShutdownNotifier pShutdownNotifier)
+  @SuppressWarnings("unused")
+  private PORCPA(
+      ConfigurableProgramAnalysis pCpa,
+      Configuration config,
+      LogManager pLogger,
+      CFA pCfa,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    super(
-        "sep",
-        "sep",
-        new PORTransferRelation(config, pCfa, pLogger, pShutdownNotifier));
+    super(pCpa);
+    transferRelation = new PORTransferRelation(config, pCfa, pLogger, pShutdownNotifier);
+  }
+
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return new FlatLatticeDomain();
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return transferRelation;
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return ((PORTransferRelation) getTransferRelation()).initial();
+    return transferRelation.initial();
   }
 
   @Override
@@ -55,6 +87,21 @@ public class PORCPA extends AbstractCPA {
             "PORCPA does not support merge operators over non-PORState");
       }
       return state2;
+    };
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    return (state, reached, precision) -> {
+      for (AbstractState reachedState : reached) {
+        if (state instanceof PORState porState
+            && reachedState instanceof PORState reachedPorState) {
+          if (porState.equals(reachedPorState)) {
+            return true;
+          }
+        }
+      }
+      return false;
     };
   }
 }

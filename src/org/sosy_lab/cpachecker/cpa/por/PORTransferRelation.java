@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -22,17 +21,14 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -44,7 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-public class PORTransferRelation extends SingleEdgeTransferRelation {
+public class PORTransferRelation implements TransferRelation {
   private final LocationCPA locationCPA;
   private final CallstackCPA callstackCPA;
   private final Solver solver;
@@ -67,6 +63,21 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState state, Precision precision)
+      throws CPATransferException, InterruptedException {
+    if (!(state instanceof PORState porState)) {
+      throw new CPATransferException("State is not a PORState.");
+    }
+    Collection<CFAEdge> sourceSet = porState.getSourceSet(precision);
+    ArrayList<AbstractState> allSuccessors = new ArrayList<>();
+    for (CFAEdge edge : sourceSet) {
+      allSuccessors.addAll(getAbstractSuccessorsForEdge(state, precision, edge));
+    }
+    return allSuccessors;
+  }
+
+  @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
@@ -85,6 +96,7 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
       lastPid = pid;
 
       PORState prevState = originalState;
+      MutexState newMutexState = null;
 
       switch (cfaEdge.getEdgeType()) {
         case StatementEdge -> {
@@ -94,57 +106,39 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
                 pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
             if (functionNameExp instanceof AIdExpression pFunctionName) {
               final String functionName = pFunctionName.getName();
-              switch (functionName) {
-                case "pthread_create" -> {
-                  final var params =
-                      pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
-                  checkState(
-                      params.size() == 4,
-                      "Malformed pthread_create (not 4 params): %s",
-                      pAFunctionCall);
-                  checkState(params.get(0) instanceof CUnaryExpression cUnaryExpression
-                          && cUnaryExpression.getOperator() == UnaryOperator.AMPER
-                          && cUnaryExpression.getOperand() instanceof CIdExpression,
-                      "Malformed/unsupported pthread_create (Thread handle not unary expression with variable reference): %s",
-                      params.get(0));
-                  checkState(
-                      params.get(2) instanceof CUnaryExpression cUnaryExpression
-                          && cUnaryExpression.getOperator() == UnaryOperator.AMPER,
-                      "Malformed pthread_create (Thread not unary expression with reference): %s",
-                      params.get(2));
-                  checkState(
-                      ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
-                      "Malformed pthread_create (Thread not CIdExpression): %s",
-                      ((CUnaryExpression) params.get(2)).getOperand());
-                  prevState =
-                      addNewThread(
-                          prevState,
-                          ((CIdExpression) ((CUnaryExpression) params.get(
-                              0)).getOperand()).getDeclaration().getQualifiedName(),
-                          ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
-                              .getName());
+              final var params =
+                  pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
+
+              if (PthreadFunctions.isCreateFunction(functionName)) {
+                String handle = PthreadFunctions.extractCreateHandle(params);
+                String threadFunc = PthreadFunctions.extractCreateFunctionName(params);
+                prevState = addNewThread(prevState, handle, threadFunc);
+
+              } else if (PthreadFunctions.isJoinFunction(functionName)) {
+                String handle = PthreadFunctions.extractJoinHandle(params);
+                prevState = prevState.joinThread(handle);
+                if (prevState == null) {
+                  // joining a thread that has not terminated yet, skip this edge
+                  return ImmutableList.of();
                 }
-                case "pthread_join" -> {
-                  final var params =
-                      pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
-                  checkState(params.size() == 2, "Malformed pthread_join (not 2 params): %s",
-                      pAFunctionCall);
-                  final var handleParam = params.get(0);
-                  checkState(handleParam instanceof CUnaryExpression cUnaryExpression
-                          && cUnaryExpression.getOperator() == UnaryOperator.AMPER
-                          && cUnaryExpression.getOperand() instanceof CIdExpression,
-                      "Malformed/unsupported pthread_join (Thread handle not unary expression with variable reference): %s",
-                      handleParam);
-                  prevState = prevState.joinThread(
-                      ((CIdExpression) ((CUnaryExpression) handleParam).getOperand()).getDeclaration()
-                          .getQualifiedName());
-                  if (prevState == null) {
-                    // joining a thread that has not terminated yet, skip this edge
-                    return ImmutableList.of();
+
+              } else if (!params.isEmpty()) {
+                String mutexName = MutexFunctions.extractMutexName(params.get(0));
+                if (mutexName != null) {
+                  MutexState currentMutex = prevState.getMutexState();
+                  if (MutexFunctions.isInitFunction(functionName)) {
+                    newMutexState = currentMutex.withInit(mutexName);
+                  } else if (MutexFunctions.isLockFunction(functionName)) {
+                    if (currentMutex.isLockedByOther(mutexName, pid)) {
+                      // Blocked: another thread holds the mutex
+                      return ImmutableList.of();
+                    }
+                    newMutexState = currentMutex.withLock(mutexName, pid);
+                  } else if (MutexFunctions.isUnlockFunction(functionName)) {
+                    newMutexState = currentMutex.withUnlock(mutexName);
+                  } else if (MutexFunctions.isDestroyFunction(functionName)) {
+                    newMutexState = currentMutex.withDestroy(mutexName);
                   }
-                }
-                default -> {
-                  // nothing to do
                 }
               }
             }
@@ -155,6 +149,8 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
       }
 
       final PORState old = prevState;
+      final MutexState finalMutexState =
+          newMutexState != null ? newMutexState : old.getMutexState();
       final PORThreadState threadState = old.threads().get(pid);
 
       if (threadState != null) {
@@ -181,7 +177,8 @@ public class PORTransferRelation extends SingleEdgeTransferRelation {
                                         pid,
                                         (LocationState) nextLoc,
                                         (CallstackState) nextStack,
-                                        nextFormula)));
+                                        nextFormula,
+                                        finalMutexState)));
 
         return nextStates.toList();
       }
