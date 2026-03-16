@@ -101,6 +101,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
@@ -1125,14 +1127,36 @@ public class SMGTransferRelation
         //  Return merged state to continue analysis with.
 
         result.clear();
+
+        ExpressionTree<AExpression> invariants = automatonState.getCandidateInvariants();
+        // We expect only 1 item in the ExpressionTree due to ACSL
+        Optional<AExpression> invariant = Optional.empty();
+        if (invariants instanceof LeafExpression<AExpression> leaf) {
+          invariant = Optional.of(leaf.getExpression());
+        }
+
+        List<AExpression> assumptions = automatonState.getAssumptions();
+
         for (SMGState stateToStrengthen : toStrengthen) {
           super.setInfo(element, pPrecision, cfaEdge);
 
-          // TODO: include CFAEdge in visitor? We use dummys inside currently.
-          SMGCPAAcslVisitor acslVisitor =
-              new SMGCPAAcslVisitor(stateToStrengthen, true, options, logger, evaluator);
+          try {
+            @NonNull Collection<SMGState> strengthenedStates =
+                strengthenStateWithAssumptions(assumptions, stateToStrengthen, cfaEdge);
 
-          result.addAll(automatonState.getACSL().accept(acslVisitor));
+            if (invariant.isPresent()) {
+              // TODO: include CFAEdge in visitor? We use dummys inside currently.
+              for (SMGState strengthenedState : strengthenedStates) {
+                SMGCPAAcslVisitor acslVisitor =
+                    new SMGCPAAcslVisitor(strengthenedState, true, options, logger, evaluator);
+
+                result.addAll(invariant.orElseThrow().accept_(acslVisitor));
+              }
+            }
+
+          } catch (SolverException e) {
+            throw new CPATransferException("Solver error while strengthening. " + e);
+          }
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
@@ -1152,7 +1176,8 @@ public class SMGTransferRelation
             super.setInfo(element, pPrecision, cfaEdge);
 
             result.addAll(
-                strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, cfaEdge));
+                strengthenStateWithAssumptionsState(
+                    stateWithAssumptions, stateToStrengthen, cfaEdge));
           }
           toStrengthen.clear();
           toStrengthen.addAll(result);
@@ -1184,13 +1209,20 @@ public class SMGTransferRelation
   /*
    * Used e.g. for witness validation through this CPA.
    */
-  private @NonNull Collection<SMGState> strengthenWithAssumptions(
+  private @NonNull Collection<SMGState> strengthenStateWithAssumptionsState(
       AbstractStateWithAssumptions pStateWithAssumptions, SMGState pState, CFAEdge pCfaEdge)
       throws CPATransferException, SolverException, InterruptedException {
+    return strengthenStateWithAssumptions(pStateWithAssumptions.getAssumptions(), pState, pCfaEdge);
+  }
 
+  private @NonNull Collection<SMGState> strengthenStateWithAssumptions(
+      List<? extends AExpression> assumptions, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException, SolverException, InterruptedException {
+
+    // TODO the handling of this is wrong!
     Collection<SMGState> newStates = ImmutableList.of(pState);
 
-    for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
+    for (AExpression assumption : assumptions) {
       newStates = handleAssumption(assumption, pCfaEdge, true);
 
       if (newStates == null) {
