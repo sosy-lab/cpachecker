@@ -14,10 +14,16 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
- * This class is a representation of Acsl function_contract
+ * This class is a representation of Acsl function contract ANSI/ISO C Specification Language
+ * Version 1.23 §2.3.5 Default contracts, multiple contracts
  *
- * <p>A loop annotation can have an arbirtary number of loop invariants and loop-assigns. A loop
- * invariant is a loop-clause. (§2.4.2 Acsl standard v 1.23)
+ * <p>A C function can be defined only once but declared several times. It is allowed to annotate
+ * each of these declarations with contracts. Those contracts are seen as a single contract with the
+ * union of the requires clauses and behaviors.
+ *
+ * <p>A function may have no contract at all, or a contract with missing clauses. Missing requires
+ * and ensures clauses default to \true. Missing exits clauses default to \false. If no assigns
+ * clause is given, it remains unspecified
  */
 public final class AcslFunctionContract extends AAcslAnnotation {
 

@@ -816,6 +816,14 @@ public class CFACreator {
     return immutableCFA;
   }
 
+  /**
+   * Creates the acsl metadata for a CFA from its parse result. Parses all acsl comments into their
+   * corresponding data structures. Maps assertions, loop annotations and function contracts to CFA nodes.
+   *
+   * @param pCFA The CFA for the current source program.
+   * @param pResult The parse result which contains all acsl comments and their locations in the source file
+   * @return The acsl metadata from all acsl comments for the CFA.
+   */
   private AcslMetadata createAcslMetadata(CFA pCFA, ParseResult pResult) {
     CProgramScope scope = new CProgramScope(pCFA, logger);
     AcslScope acslScope = AcslScope.mutableCopy(AcslScope.empty());

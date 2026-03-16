@@ -60,6 +60,14 @@ public class AcslNodeMappingUtils {
     return n;
   }
 
+  /**
+   * Finds the next CFA node for an acsl assertion
+   *
+   * @param pComment The comment containing the assertion.
+   * @param pAstCfaRelation The current AstCfaRelation
+   * @return The CFA node for the tightest c statement for the assertion. Throws an exception, if no
+   *     matching node can be found.
+   */
   private static CFANode nodeForAssertion(AcslComment pComment, AstCfaRelation pAstCfaRelation) {
     FileLocation location = pComment.fileLocation();
 
@@ -93,6 +101,14 @@ public class AcslNodeMappingUtils {
         "Acsl assertion: " + pComment + " has no CFA node");
   }
 
+  /**
+   * Finds the loop head for an acsl loop annotation
+   *
+   * @param pComment The comment containing the annotation
+   * @param pAstCfaRelation The current AstCfaRelation
+   * @return The next CFA node with the 'isLoopHead' flag set to true. Throws an exception if no
+   *     matching node can be found.
+   */
   private static CFANode nodeForLoopAnnotation(
       AcslComment pComment, AstCfaRelation pAstCfaRelation) {
     FileLocation location = pComment.fileLocation();
@@ -115,10 +131,12 @@ public class AcslNodeMappingUtils {
   }
 
   /**
+   * Maps a function contract to the next function entry node.
+   *
    * @param pComment An AcslComment that is possibly a function contract
    * @param pAstCfaRelation The current Ast Cfa Relation
-   * @return - The next Function Entry Node if pComment is a function contract - Optional.empty()
-   *     otherwise.
+   * @return - The next Function Entry Node if pComment is a function contract - Throws an
+   *     exception, otherwise.
    */
   private static CFANode nodeForFunctionContract(
       AcslComment pComment, CFA pCFA, AstCfaRelation pAstCfaRelation) {
