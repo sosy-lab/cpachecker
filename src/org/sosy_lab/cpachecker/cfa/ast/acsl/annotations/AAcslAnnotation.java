@@ -31,7 +31,8 @@ public abstract sealed class AAcslAnnotation
         AcslLoopInvariant,
         AcslRequires,
         AcslEnsures,
-        AcslAssigns, AcslLogicDefinitionAnnotation {
+        AcslAssigns,
+        AcslLogicDefinitionAnnotation {
 
   private final FileLocation fileLocation;
 

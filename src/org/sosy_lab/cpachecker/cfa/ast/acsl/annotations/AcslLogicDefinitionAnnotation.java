@@ -25,8 +25,13 @@ public final class AcslLogicDefinitionAnnotation extends AAcslAnnotation {
     definition = pDefinition;
   }
 
-  public AcslLogicDefinition getDefinition(){return definition;}
-  public AcslLogicDeclaration getDeclaration(){return definition.getDeclaration();}
+  public AcslLogicDefinition getDefinition() {
+    return definition;
+  }
+
+  public AcslLogicDeclaration getDeclaration() {
+    return definition.getDeclaration();
+  }
 
   @Override
   public boolean equals(Object pO) {
