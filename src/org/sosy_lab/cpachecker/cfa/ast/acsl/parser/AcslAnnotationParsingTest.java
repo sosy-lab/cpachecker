@@ -104,25 +104,14 @@ public class AcslAnnotationParsingTest {
   }
 
   @Test
-  public void parseAssertionTest() throws AcslParseException {
-    String input = "assert x == 10;";
-
-    AcslAssertion expected = getAssertion();
-    AAcslAnnotation parsed =
-        AcslParser.parseAcslStatement(
-            input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
-    assertThat(parsed).isEqualTo(expected);
-  }
-
-  @Test
   public void parseLoopInvariantTest() throws AcslParseException {
     String input = "loop invariant x <= 10;";
 
     AcslLoopInvariant expected = getLoopInvariant();
     AAcslAnnotation parsed =
-        AcslParser.parseAcslStatement(
-            input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
-    assertThat(parsed).isEqualTo(expected);
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslLoopAnnotation annotation = (AcslLoopAnnotation) parsed;
+    assertThat(annotation.getLoopInvariants()).containsExactly(expected);
   }
 
   @Test
@@ -130,9 +119,9 @@ public class AcslAnnotationParsingTest {
     String input = "ensures x <= 10;";
     AcslEnsures expected = getEnsures();
     AAcslAnnotation parsed =
-        AcslParser.parseAcslStatement(
-            input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
-    assertThat(parsed).isEqualTo(expected);
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslFunctionContract functionContract = (AcslFunctionContract) parsed;
+    assertThat(functionContract.getEnsuresClauses()).containsExactly(expected);
   }
 
   @Test
@@ -140,9 +129,9 @@ public class AcslAnnotationParsingTest {
     String input = "requires x == 10;";
     AcslRequires expected = getRequires();
     AAcslAnnotation parsed =
-        AcslParser.parseAcslStatement(
-            input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
-    assertThat(parsed).isEqualTo(expected);
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslFunctionContract functionContract = (AcslFunctionContract) parsed;
+    assertThat(functionContract.getRequiresClauses()).containsExactly(expected);
   }
 
   @Test
@@ -288,7 +277,7 @@ public class AcslAnnotationParsingTest {
                 AcslBinaryTermExpressionOperator.EQUALS));
     String input = "assert is_positive(a) == 1;";
     AAcslAnnotation parsed =
-        AcslParser.parseAcslStatement(input, FileLocation.DUMMY, scope, acslScope);
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, scope, acslScope);
     assertThat(parsed.toAstString()).isEqualTo(expected.toAstString());
   }
 
