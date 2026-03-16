@@ -225,13 +225,19 @@ public class TerminationWitnessValidator implements Algorithm {
         return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
       // Do k-inductivity checks for k > 1
-      while (isCandidateInvariantTransitionInvariant(
-          loop,
-          loopsToTransitionInvariants.get(loop),
-          supportingInvariants,
-          loopsToSupportingInvariants,
-          mapPrevVarsToCurrVars,
-          k)) {
+      while (true) {
+        // Base case of the induction, i.e. R^k(s,s') => T(s,s')
+        if (!isCandidateInvariantTransitionInvariant(
+            loop,
+            loopsToTransitionInvariants.get(loop),
+            supportingInvariants,
+            loopsToSupportingInvariants,
+            mapPrevVarsToCurrVars,
+            k)) {
+          return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+        }
+
+        // Step case of the induction, i.e. T(s,s') && R^k(s',s'') => T(s,s'')
         if (isCandidateInvariantInductiveTransitionInvariant(
             loop,
             loopsToTransitionInvariants.get(loop),
