@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -23,10 +24,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * POR (Partial Order Reduction) CPA that wraps a composite CPA. The POR CPA manages thread
@@ -50,7 +55,7 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     super(pCpa);
-    transferRelation = new PORTransferRelation(config, pCfa, pLogger, pShutdownNotifier);
+    transferRelation = new PORTransferRelation(pCpa, config, pCfa, pLogger, pShutdownNotifier);
   }
 
   @Override
@@ -65,7 +70,24 @@ public class PORCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+    return (state, precision, states, stateProjection, fullState) -> {
+      if(state instanceof PORState pPORState && precision instanceof AbstractionAwarePORPrecision pPORPrecision) {
+        Optional<PrecisionAdjustmentResult> prec = getWrappedCpa().getPrecisionAdjustment()
+            .prec(pPORState.getWrappedState(), pPORPrecision.getWrappedPrecision(), states,
+                stateProjection, fullState);
+        return prec.map(pPrecisionAdjustmentResult -> pPrecisionAdjustmentResult
+            .withAbstractState(pPORState.withWrappedState(pPrecisionAdjustmentResult.abstractState()))
+            .withPrecision(new AbstractionAwarePORPrecision(pPrecisionAdjustmentResult.precision())));
+      } else {
+        throw new CPATransferException("Not PORstate or WrapperPrecision");
+      }
+    };
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
+    return new AbstractionAwarePORPrecision(getWrappedCpa().getInitialPrecision(pNode, pPartition));
   }
 
   @Override

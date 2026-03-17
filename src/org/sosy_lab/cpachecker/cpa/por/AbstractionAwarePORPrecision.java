@@ -86,4 +86,8 @@ class AbstractionAwarePORPrecision implements PORPrecision, WrapperPrecision {
   public Iterable<Precision> getWrappedPrecisions() {
     return ImmutableList.of(wrappedPrecision);
   }
+
+  public Precision getWrappedPrecision() {
+    return wrappedPrecision;
+  }
 }

@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -26,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -46,12 +48,20 @@ public class PORTransferRelation implements TransferRelation {
   private final Solver solver;
   private final PathFormulaManager pathFormulaManager;
   private final CFA cfa;
+  private final ConfigurableProgramAnalysis wrappedCPA;
+  private final TransferRelation wrappedTransfer;
 
   private Integer lastPid = null;
 
   public PORTransferRelation(
-      Configuration pConfig, CFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      ConfigurableProgramAnalysis pWrappedCpa,
+      Configuration pConfig,
+      CFA pCfa,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+    wrappedCPA = pWrappedCpa;
+    wrappedTransfer = pWrappedCpa.getTransferRelation();
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
     cfa = pCfa;
@@ -166,7 +176,7 @@ public class PORTransferRelation implements TransferRelation {
                 .getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
         final var nextFormula = pathFormulaManager.makeAnd(pathFormula, cfaEdge);
 
-        final var nextStates =
+        final var porSuccessors =
             nextLocs.stream()
                 .flatMap(
                     nextLoc ->
@@ -178,16 +188,32 @@ public class PORTransferRelation implements TransferRelation {
                                         (LocationState) nextLoc,
                                         (CallstackState) nextStack,
                                         nextFormula,
-                                        finalMutexState)));
+                                        finalMutexState)))
+                .toList();
 
-        return nextStates.toList();
+        // Advance wrapped CPA state along this edge
+        Collection<? extends AbstractState> wrappedSuccessors =
+            wrappedTransfer.getAbstractSuccessorsForEdge(
+                originalState.getWrappedState(), ((AbstractionAwarePORPrecision)precision).getWrappedPrecision(), cfaEdge);
+
+        // Combine POR successors with wrapped CPA successors
+        List<AbstractState> list = porSuccessors.stream()
+            .flatMap(
+                porSucc ->
+                    wrappedSuccessors.stream()
+                        .map(ws -> (AbstractState) porSucc.withWrappedState(ws)))
+            .toList();
+        return list;
       }
     }
     throw new CPATransferException("State is not a PORState.");
   }
 
-  PORState initial() {
-    return addNewThread(PORState.empty(cfa), null, "main");
+  PORState initial() throws InterruptedException {
+    AbstractState wrappedInitial =
+        wrappedCPA.getInitialState(
+            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    return addNewThread(PORState.empty(cfa, wrappedInitial), null, "main");
   }
 
   PORState addNewThread(

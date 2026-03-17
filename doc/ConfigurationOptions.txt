@@ -788,7 +788,7 @@ analysis.traversal.useLoopstack = false
 analysis.traversal.useNumberOfHeapObjects = false
 
 # handle abstract states with fewer running threads first? (needs
-# ThreadingCPA)
+# AbstractStateWithThreads)
 analysis.traversal.useNumberOfThreads = false
 
 # Use an implementation of postorder strategy that allows to select a
@@ -2086,6 +2086,21 @@ cpa.callstack.unsupportedFunctions = {
 # a list.
 cpa.composite.aggregateBasicBlocks = false
 
+# If enabled, the location CPA (a current AbstractStateWithLocations) is
+# called to providethe next CFA edge while computing the abstract successors
+# in a chain during basicblock aggregation. Otherwise, simply the single
+# outgoing edge of the current CFAnode is taken. This option is necessary to
+# ensure soundness of the analysis ofmulti-threaded programs where variable
+# accesses must be replaced by thread-scopedvariable accesses on-the-fly by
+# the threading CPA. Note that it is assumed thatthe location CPA
+# deterministically provides the same next edge even if successorstates
+# accumulate during the basic block aggregation due to other CPAs
+# returningmultiple successor states: the location CPA is only called once
+# after calculatingsuccessors for an edge even if the previous successor
+# calculation resulted inmultiple successor states, and the same next edge is
+# used for all of them.
+cpa.composite.callLocationCPAForAllEdgesInBasicBlocks = false
+
 # inform Composite CPA if it is run in a CPA enabled analysis because then it
 # must behave differently during merge.
 cpa.composite.inCPAEnabledAnalysis = false
@@ -2095,6 +2110,12 @@ cpa.composite.inCPAEnabledAnalysis = false
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
+
+# If enabled, the basic block aggregation will only include a single global
+# statement (i.e., a statement that accesses global variables or shared
+# memory locations) per basic block. This is necessary to ensure soundness of
+# the analysis of multi-threaded programs.
+cpa.composite.singleGlobalStatementPerBasicBlock = false
 
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)

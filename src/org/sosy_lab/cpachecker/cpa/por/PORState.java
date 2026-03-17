@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.por;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.cpa.por.PthreadFunctions.extractJoinHandle;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -21,8 +22,10 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -34,10 +37,12 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
@@ -45,7 +50,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class PORState
-    implements AbstractState, AbstractStateWithLocations, AbstractStateWithThreads, Graphable {
+    implements AbstractState, AbstractWrapperState, AbstractStateWithLocations,
+               AbstractStateWithThreads, Graphable, Targetable {
 
   private final CFA cfa;
 
@@ -63,25 +69,43 @@ public class PORState
 
   private final MutexState mutexState;
 
+  private final AbstractState wrappedState;
+
   private Collection<CFAEdge> sourceSet = null;
 
   PORState(
       CFA pCfa,
       ImmutableMap<Integer, PORThreadState> pThreads,
       ImmutableMap<String, Integer> pThreadHandles,
-      MutexState pMutexState) {
+      MutexState pMutexState,
+      AbstractState pWrappedState) {
     cfa = pCfa;
     threads = pThreads;
     threadHandles = pThreadHandles;
     mutexState = pMutexState;
+    wrappedState = pWrappedState;
   }
 
-  static PORState empty(CFA pCfa) {
-    return new PORState(pCfa, ImmutableMap.of(), ImmutableMap.of(), MutexState.EMPTY);
+  static PORState empty(CFA pCfa, AbstractState pWrappedState) {
+    return new PORState(
+        pCfa, ImmutableMap.of(), ImmutableMap.of(), MutexState.EMPTY, pWrappedState);
   }
 
   public MutexState getMutexState() {
     return mutexState;
+  }
+
+  public AbstractState getWrappedState() {
+    return wrappedState;
+  }
+
+  @Override
+  public Iterable<AbstractState> getWrappedStates() {
+    return ImmutableList.of(wrappedState);
+  }
+
+  public PORState withWrappedState(AbstractState pWrappedState) {
+    return new PORState(cfa, threads, threadHandles, mutexState, pWrappedState);
   }
 
   public ImmutableMap<Integer, PORThreadState> threads() {
@@ -112,7 +136,7 @@ public class PORState
             .putAll(threadHandles)
             .put(handle, newPid)
             .buildKeepingLast();
-    return new PORState(cfa, newThreads, newThreadHandles, mutexState);
+    return new PORState(cfa, newThreads, newThreadHandles, mutexState, wrappedState);
   }
 
   PORState joinThread(String handle) {
@@ -127,7 +151,7 @@ public class PORState
     final ImmutableMap<String, Integer> newThreadHandles = threadHandles.entrySet().stream()
         .filter(e -> !e.getValue().equals(pidToRemove))
         .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
-    return new PORState(cfa, newThreads, newThreadHandles, mutexState);
+    return new PORState(cfa, newThreads, newThreadHandles, mutexState, wrappedState);
   }
 
   private Integer canJoin(String handle, boolean throwIfThreadNotFound) {
@@ -172,7 +196,8 @@ public class PORState
     }
     newThreads.put(
         pPid, new PORThreadState(pNextLoc, pNextStack, pNextFormula));
-    return new PORState(cfa, newThreads.buildKeepingLast(), threadHandles, pMutexState);
+    return new PORState(
+        cfa, newThreads.buildKeepingLast(), threadHandles, pMutexState, wrappedState);
   }
 
   /**
@@ -277,7 +302,7 @@ public class PORState
 
   @Override
   public boolean shouldBeHighlighted() {
-    return false;
+    return true;
   }
 
   @Override
@@ -289,12 +314,13 @@ public class PORState
       return false;
     }
     return Objects.equals(threads, other.threads)
-        && Objects.equals(mutexState, other.mutexState);
+        && Objects.equals(mutexState, other.mutexState)
+        && Objects.equals(wrappedState, other.wrappedState);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, mutexState);
+    return Objects.hash(threads, mutexState, wrappedState);
   }
 
   private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() {
@@ -324,15 +350,7 @@ public class PORState
                 functionCall.getFunctionCallExpression().getParameterExpressions();
             checkState(params.size() == 2, "Malformed pthread_join (not 2 params): %s",
                 functionCall);
-            final var handleParam = params.get(0);
-            checkState(handleParam instanceof CUnaryExpression cUnaryExpression
-                    && cUnaryExpression.getOperator() == UnaryOperator.AMPER
-                    && cUnaryExpression.getOperand() instanceof CIdExpression,
-                "Malformed/unsupported pthread_join (Thread handle not unary expression with variable reference): %s",
-                handleParam);
-            final var handleName =
-                ((CIdExpression) ((CUnaryExpression) handleParam).getOperand()).getDeclaration()
-                    .getQualifiedName();
+            final var handleName = extractJoinHandle(params);
 
             if (canJoin(handleName, false) == null) {
               continue;
@@ -529,5 +547,24 @@ public class PORState
       }
     }
     return false;
+  }
+
+  @Override
+  public boolean isTarget() {
+    if ((wrappedState instanceof Targetable targetable) && targetable.isTarget()) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    checkState(isTarget());
+    ImmutableSet.Builder<TargetInformation> properties = ImmutableSet.builder();
+    if ((wrappedState instanceof Targetable targetable) && targetable.isTarget()) {
+      properties.addAll(targetable.getTargetInformation());
+    }
+    return properties.build();
   }
 }

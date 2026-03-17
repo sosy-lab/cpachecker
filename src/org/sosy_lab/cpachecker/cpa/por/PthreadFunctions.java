@@ -92,14 +92,10 @@ public final class PthreadFunctions {
     checkState(params.size() == 2, "Malformed pthread_join (not 2 params): %s", params);
     final var handleParam = params.get(0);
     checkState(
-        handleParam instanceof CUnaryExpression cUnaryExpression
-            && cUnaryExpression.getOperator() == UnaryOperator.AMPER
-            && cUnaryExpression.getOperand() instanceof CIdExpression,
+        handleParam instanceof CIdExpression,
         "Malformed/unsupported pthread_join"
-            + " (Thread handle not unary expression with variable reference): %s",
+            + " (Thread handle not a variable): %s",
         handleParam);
-    return ((CIdExpression) ((CUnaryExpression) handleParam).getOperand())
-        .getDeclaration()
-        .getQualifiedName();
+    return ((CIdExpression) handleParam).getDeclaration().getQualifiedName();
   }
 }

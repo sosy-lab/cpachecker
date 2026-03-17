@@ -32,6 +32,8 @@ int main() {
   pthread_create(&t1, 0, thread1, 0);
   pthread_create(&t2, 0, thread2, 0);
 
+  pthread_join(t1, 0);
+  pthread_join(t2, 0);
   // In at least one interleaving x == 1 (thread2 runs first, then thread1)
   if (x == 1) {
     ERROR: {reach_error();abort();}

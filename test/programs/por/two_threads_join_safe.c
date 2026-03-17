@@ -26,8 +26,8 @@ int main() {
   pthread_t t1, t2;
   pthread_create(&t1, 0, thread1, 0);
   pthread_create(&t2, 0, thread2, 0);
-  pthread_join(&t1, 0);
-  pthread_join(&t2, 0);
+  pthread_join(t1, 0);
+  pthread_join(t2, 0);
   if (x == 3) {
       ERROR: {reach_error();abort();}
   }
