@@ -789,7 +789,9 @@ public class CFACreator {
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
-    if (pParseResult.blocks().isPresent() && pParseResult.acslComments().isPresent()) {
+    if (pParseResult.blocks().isPresent()
+        && pParseResult.acslComments().isPresent()
+        && !withAcslMetadata) {
       for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
         commentPositions.add(comment.fileLocation());
       }

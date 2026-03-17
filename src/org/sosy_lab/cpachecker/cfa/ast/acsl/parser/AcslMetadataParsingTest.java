@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadataException.AcslNod
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AntlrToInternalNotImplementedException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -224,6 +223,29 @@ public class AcslMetadataParsingTest {
             1,
             0,
             ImmutableList.of(new FunctionContractAttribute("power", 1, 2, 0))));
+    b.add(
+        task(
+            "multiple_function_contracts.c",
+            2,
+            0,
+            ImmutableList.of(
+                new FunctionContractAttribute("multiply", 0, 1, 0),
+                new FunctionContractAttribute("multiply", 1, 0, 0))));
+    b.add(
+        task(
+            "seperate_declaration_definition.c",
+            2,
+            0,
+            ImmutableList.of(
+                new FunctionContractAttribute("area", 1, 0, 0),
+                new FunctionContractAttribute("area", 0, 2, 0))));
+    b.add(task("annotation_at_wrong_location.c", 0, 0, ImmutableList.of()));
+    b.add(
+        task(
+            "increment_pointer.c",
+            1,
+            0,
+            ImmutableList.of(new FunctionContractAttribute("pointer_increment", 1, 1, 1))));
     return b.build();
   }
 
@@ -259,12 +281,12 @@ public class AcslMetadataParsingTest {
           // ToDo: Implement TypeSpecifierContext
           AntlrToInternalNotImplementedException.class,
           () -> cfaCreator.parseFileAndCreateCFA(files));
-    } else if (programName.equals("square_with_logic_function.c")
-        || programName.equals("square_root_with_predicate.c")
-        || programName.equals("square_with_predicate.c")) {
-      // ToDo: Replace ACSLdeprectade
-      // The deprecated acsl parser can't handle acsl logic specifications.
-      assertThrows(CParserException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+    } else if (programName.equals("annotation_at_wrong_location.c")) {
+      AcslNodeMappingException expected =
+          assertThrows(
+              AcslNodeMappingException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(expected.getMessage())
+          .isEqualTo("Acsl assertion: 'assert \\false;' at line 13 has no CFA node");
     } else {
 
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
@@ -296,12 +318,12 @@ public class AcslMetadataParsingTest {
           // ToDo: Implement TypeSpecifierContext
           AntlrToInternalNotImplementedException.class,
           () -> cfaCreator.parseFileAndCreateCFA(files));
-    } else if (programName.equals("square_with_logic_function.c")
-        || programName.equals("square_root_with_predicate.c")
-        || programName.equals("square_with_predicate.c")) {
-      // ToDo: Replace ACSLdeprectade
-      // The deprecated acsl parse can't handle acsl logic specifications.
-      assertThrows(CParserException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+    } else if (programName.equals("annotation_at_wrong_location.c")) {
+      AcslNodeMappingException expected =
+          assertThrows(
+              AcslNodeMappingException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(expected.getMessage())
+          .isEqualTo("Acsl assertion: 'assert \\false;' at line 13 has no CFA node");
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata acslMetadata = cfa.getAcslMetadata();
@@ -333,12 +355,13 @@ public class AcslMetadataParsingTest {
           // ToDo: Implement TypeSpecifierContext
           AntlrToInternalNotImplementedException.class,
           () -> cfaCreator.parseFileAndCreateCFA(files));
-    } else if (programName.equals("square_with_logic_function.c")
-        || programName.equals("square_root_with_predicate.c")
-        || programName.equals("square_with_predicate.c")) {
-      // ToDo: Replace ACSLdeprectade
-      // The deprecated acsl parser can't handle acsl logic specifications.
-      assertThrows(CParserException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+    } else if (programName.equals("annotation_at_wrong_location.c")) {
+      // The wrong type of annotation at the wrong file location should raise an exception!
+      AcslNodeMappingException expected =
+          assertThrows(
+              AcslNodeMappingException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(expected.getMessage())
+          .isEqualTo("Acsl assertion: 'assert \\false;' at line 13 has no CFA node");
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata metadata = cfa.getAcslMetadata();

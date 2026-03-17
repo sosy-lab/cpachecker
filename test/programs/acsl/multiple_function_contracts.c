@@ -8,14 +8,13 @@
 
 extern int __VERIFIER_nondet_int(void);
 
-/*@ requires a > 0;
-    requires b >= 0;
-    ensures c > 0;
-*/
-int power (int a, int b){
-  int c = 1;
+/*@ requires b >= 0; */
+
+/*@ ensures \result == a * b; */
+int multiply (int a, int b){
+  int c = 0;
   for(int i = 0 ; i < b; i++){
-    c = c * a;
+    c = c + a;
   }
   return c;
 }
@@ -26,8 +25,8 @@ int main() {
   while(y < 0){
     y = __VERIFIER_nondet_int();
   }
-  int z = power(x, y);
-  if(z <= 0) ERROR: return 1;
+  int z = multiply(x, y);
+  if(z != x * y) ERROR: return 1;
   
   return 0;
 }
