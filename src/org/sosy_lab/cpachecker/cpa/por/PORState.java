@@ -57,6 +57,12 @@ public class PORState
   private final ImmutableMap<String, Integer> threadHandles;
 
   /**
+   * The PID of the thread that was stepped to produce this successor state, or {@code null} for the
+   * initial state or states not produced by {@link #stepThread}.
+   */
+  private final @Nullable Integer lastSteppedPid;
+
+  /**
    * Transient mapping from cloned outgoing edges to their originating thread PID.
    */
   private final IdentityHashMap<CFAEdge, Integer> edgePidMap = new IdentityHashMap<>();
@@ -75,10 +81,19 @@ public class PORState
   PORState(
       CFA pCfa,
       ImmutableMap<Integer, PORThreadState> pThreads,
-      ImmutableMap<String, Integer> pThreadHandles) {
+      ImmutableMap<String, Integer> pThreadHandles,
+      @Nullable Integer pLastSteppedPid) {
     cfa = pCfa;
     threads = pThreads;
     threadHandles = pThreadHandles;
+    lastSteppedPid = pLastSteppedPid;
+  }
+
+  PORState(
+      CFA pCfa,
+      ImmutableMap<Integer, PORThreadState> pThreads,
+      ImmutableMap<String, Integer> pThreadHandles) {
+    this(pCfa, pThreads, pThreadHandles, null);
   }
 
   static PORState empty(CFA pCfa) {
@@ -176,7 +191,7 @@ public class PORState
       }
     }
     newThreads.put(pPid, new PORThreadState(pNextLoc, pNextStack, pNextFormula));
-    return new PORState(cfa, newThreads.buildKeepingLast(), threadHandles);
+    return new PORState(cfa, newThreads.buildKeepingLast(), threadHandles, pPid);
   }
 
   /**
@@ -185,6 +200,16 @@ public class PORState
    */
   public Integer getEdgePid(CFAEdge edge) {
     return edgePidMap.get(edge);
+  }
+
+  /**
+   * Returns the PID of the thread that was stepped to produce this successor state.
+   *
+   * <p>This is set by {@link #stepThread} and is available on successor states even after the
+   * transient {@link #edgePidMap} has been cleared. Returns {@code null} for the initial state.
+   */
+  public @Nullable Integer getLastSteppedPid() {
+    return lastSteppedPid;
   }
 
   @Override

@@ -52,12 +52,15 @@ class MutexTransferRelation extends SingleEdgeTransferRelation {
 
     MutexState state = (MutexState) pState;
 
-    // Get the PID of the active thread from the PORState
+    // Get the PID of the active thread from the PORState.
+    // We use getLastSteppedPid() because this strengthen call receives the *successor* PORState
+    // (after stepThread), whose transient edgePidMap is empty. The lastSteppedPid is set by
+    // stepThread and reliably identifies which thread just executed.
     PORState porState =
         AbstractStates.projectToType(otherStates, PORState.class).iterator().next();
-    Integer pid = porState.getEdgePid(cfaEdge);
+    Integer pid = porState.getLastSteppedPid();
     if (pid == null) {
-      // Not a POR-managed edge, pass through
+      // Initial state or no thread stepped yet, pass through
       return Collections.singleton(state);
     }
 
