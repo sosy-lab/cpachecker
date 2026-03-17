@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -168,6 +169,14 @@ public class PORTransferRelation implements TransferRelation {
                                       (CallstackState) nextStack,
                                       nextFormula)))
               .toList();
+
+      // Handle __VERIFIER_atomic_begin / __VERIFIER_atomic_end:
+      // set or clear the atomic holder on each successor state.
+      if (MutexFunctions.isAtomicBeginCall(cfaEdge)) {
+        successors = successors.stream().map(s -> s.withAtomicHolder(pid)).toList();
+      } else if (MutexFunctions.isAtomicEndCall(cfaEdge)) {
+        successors = successors.stream().map(s -> s.withAtomicHolder(null)).toList();
+      }
 
       return ImmutableList.copyOf(successors);
     }

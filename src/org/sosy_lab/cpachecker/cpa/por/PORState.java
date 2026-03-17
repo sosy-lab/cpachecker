@@ -63,6 +63,14 @@ public class PORState
   private final @Nullable Integer lastSteppedPid;
 
   /**
+   * The PID of the thread currently inside a {@code __VERIFIER_atomic_begin/end} block, or {@code
+   * null} if no thread is executing atomically. Set directly during {@link
+   * PORTransferRelation#getAbstractSuccessorsForEdge} to avoid stale-caching issues with the
+   * composite strengthen order.
+   */
+  private final @Nullable Integer atomicHolder;
+
+  /**
    * Transient mapping from cloned outgoing edges to their originating thread PID.
    */
   private final IdentityHashMap<CFAEdge, Integer> edgePidMap = new IdentityHashMap<>();
@@ -82,18 +90,20 @@ public class PORState
       CFA pCfa,
       ImmutableMap<Integer, PORThreadState> pThreads,
       ImmutableMap<String, Integer> pThreadHandles,
-      @Nullable Integer pLastSteppedPid) {
+      @Nullable Integer pLastSteppedPid,
+      @Nullable Integer pAtomicHolder) {
     cfa = pCfa;
     threads = pThreads;
     threadHandles = pThreadHandles;
     lastSteppedPid = pLastSteppedPid;
+    atomicHolder = pAtomicHolder;
   }
 
   PORState(
       CFA pCfa,
       ImmutableMap<Integer, PORThreadState> pThreads,
       ImmutableMap<String, Integer> pThreadHandles) {
-    this(pCfa, pThreads, pThreadHandles, null);
+    this(pCfa, pThreads, pThreadHandles, null, null);
   }
 
   static PORState empty(CFA pCfa) {
@@ -139,7 +149,7 @@ public class PORState
                 .putAll(threadHandles)
                 .put(handle, newPid)
                 .buildKeepingLast();
-    return new PORState(cfa, newThreads, newThreadHandles);
+    return new PORState(cfa, newThreads, newThreadHandles, null, atomicHolder);
   }
 
   PORState joinThread(String handle) {
@@ -156,7 +166,7 @@ public class PORState
         threadHandles.entrySet().stream()
             .filter(e -> !e.getValue().equals(pidToRemove))
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
-    return new PORState(cfa, newThreads, newThreadHandles);
+    return new PORState(cfa, newThreads, newThreadHandles, null, atomicHolder);
   }
 
   private Integer canJoin(String handle, boolean throwIfThreadNotFound) {
@@ -191,7 +201,20 @@ public class PORState
       }
     }
     newThreads.put(pPid, new PORThreadState(pNextLoc, pNextStack, pNextFormula));
-    return new PORState(cfa, newThreads.buildKeepingLast(), threadHandles, pPid);
+    return new PORState(cfa, newThreads.buildKeepingLast(), threadHandles, pPid, atomicHolder);
+  }
+
+  /**
+   * Returns a new state with the atomic holder set to the given PID (for {@code
+   * __VERIFIER_atomic_begin}) or cleared ({@code null}, for {@code __VERIFIER_atomic_end}).
+   */
+  PORState withAtomicHolder(@Nullable Integer pAtomicHolder) {
+    return new PORState(cfa, threads, threadHandles, lastSteppedPid, pAtomicHolder);
+  }
+
+  /** Returns the PID of the thread currently in an atomic block, or {@code null}. */
+  public @Nullable Integer getAtomicHolder() {
+    return atomicHolder;
   }
 
   /**
@@ -317,12 +340,13 @@ public class PORState
     if (!(o instanceof PORState other)) {
       return false;
     }
-    return Objects.equals(threads, other.threads);
+    return Objects.equals(threads, other.threads)
+        && Objects.equals(atomicHolder, other.atomicHolder);
   }
 
   @Override
   public int hashCode() {
-    return threads.hashCode();
+    return Objects.hash(threads, atomicHolder);
   }
 
   private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() {
@@ -332,6 +356,12 @@ public class PORState
     for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
       int pid = entry.getKey();
       PORThreadState threadState = entry.getValue();
+
+      // Atomic block filtering: if another thread holds the atomic block, this thread is blocked.
+      if (atomicHolder != null && atomicHolder != pid) {
+        continue;
+      }
+
       if (!threadState.pLocationState().getLocationNode().getAllLeavingEdges().isEmpty()) {
         for (CFAEdge outgoingEdge : threadState.pLocationState().getOutgoingEdges()) {
           CFAEdge cloned = PorEdgeCloner.clone(outgoingEdge, pid, this);

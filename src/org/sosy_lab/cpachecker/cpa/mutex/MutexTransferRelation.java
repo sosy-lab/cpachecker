@@ -72,6 +72,18 @@ class MutexTransferRelation extends SingleEdgeTransferRelation {
         String functionName = funcName.getName();
         var params = funcCall.getFunctionCallExpression().getParameterExpressions();
 
+        // Handle __VERIFIER_atomic_begin / __VERIFIER_atomic_end (no parameters needed)
+        if (MutexFunctions.isAtomicBegin(functionName)) {
+          if (state.isAtomicBlockedFor(pid)) {
+            // Another thread already holds the atomic block — should not happen (POR filters it)
+            return ImmutableSet.of();
+          }
+          return Collections.singleton(state.withAtomicBegin(pid));
+        } else if (MutexFunctions.isAtomicEnd(functionName)) {
+          return Collections.singleton(state.withAtomicEnd());
+        }
+
+        // Handle mutex operations (require parameters)
         if (!params.isEmpty()) {
           String mutexName = MutexFunctions.extractMutexName(params.get(0));
           if (mutexName != null) {

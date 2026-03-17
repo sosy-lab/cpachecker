@@ -36,6 +36,9 @@ public final class MutexFunctions {
   private static final ImmutableSet<String> DESTROY_FUNCTIONS =
       ImmutableSet.of("pthread_mutex_destroy", "mtx_destroy");
 
+  private static final String ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
+  private static final String ATOMIC_END = "__VERIFIER_atomic_end";
+
   private MutexFunctions() {}
 
   /**
@@ -102,15 +105,55 @@ public final class MutexFunctions {
     return DESTROY_FUNCTIONS.contains(functionName);
   }
 
+  /** Returns {@code true} if the given function name is {@code __VERIFIER_atomic_begin}. */
+  public static boolean isAtomicBegin(String functionName) {
+    return ATOMIC_BEGIN.equals(functionName);
+  }
+
+  /** Returns {@code true} if the given function name is {@code __VERIFIER_atomic_end}. */
+  public static boolean isAtomicEnd(String functionName) {
+    return ATOMIC_END.equals(functionName);
+  }
+
+  /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_begin} call. */
+  public static boolean isAtomicBeginCall(CFAEdge edge) {
+    String name = getFunctionCallName(edge);
+    return name != null && isAtomicBegin(name);
+  }
+
+  /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_end} call. */
+  public static boolean isAtomicEndCall(CFAEdge edge) {
+    String name = getFunctionCallName(edge);
+    return name != null && isAtomicEnd(name);
+  }
+
   /**
    * Returns {@code true} if the given function name is any mutex-related function (lock, unlock,
-   * init, destroy).
+   * init, destroy) or an atomic begin/end function.
    */
   public static boolean isMutexFunction(String functionName) {
     return isLockFunction(functionName)
         || isUnlockFunction(functionName)
         || isInitFunction(functionName)
-        || isDestroyFunction(functionName);
+        || isDestroyFunction(functionName)
+        || isAtomicBegin(functionName)
+        || isAtomicEnd(functionName);
+  }
+
+  /**
+   * Extracts the function name from a CFA edge if it is a function call statement, or returns
+   * {@code null}.
+   */
+  public static String getFunctionCallName(CFAEdge edge) {
+    if (edge instanceof AStatementEdge sEdge
+        && sEdge.getStatement() instanceof AFunctionCall funcCall) {
+      AExpression funcNameExpr =
+          funcCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (funcNameExpr instanceof AIdExpression funcName) {
+        return funcName.getName();
+      }
+    }
+    return null;
   }
 
   private static String getMutexNameForFunctionSet(

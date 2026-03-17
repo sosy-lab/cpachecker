@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.mutex;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
@@ -22,17 +23,27 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
  */
 public class MutexState implements AbstractState {
 
-  public static final MutexState EMPTY = new MutexState(ImmutableSet.of(), ImmutableMap.of());
+  public static final MutexState EMPTY =
+      new MutexState(ImmutableSet.of(), ImmutableMap.of(), null);
 
   private final ImmutableSet<String> initializedMutexes;
 
   /** Maps mutex name to the PID of the thread that currently holds the lock. */
   private final ImmutableMap<String, Integer> lockedMutexes;
 
+  /**
+   * The PID of the thread currently inside a {@code __VERIFIER_atomic_begin/end} block, or {@code
+   * null} if no thread is executing atomically. While non-null, all other threads are blocked.
+   */
+  private final @Nullable Integer atomicHolder;
+
   MutexState(
-      ImmutableSet<String> pInitializedMutexes, ImmutableMap<String, Integer> pLockedMutexes) {
+      ImmutableSet<String> pInitializedMutexes,
+      ImmutableMap<String, Integer> pLockedMutexes,
+      @Nullable Integer pAtomicHolder) {
     initializedMutexes = pInitializedMutexes;
     lockedMutexes = pLockedMutexes;
+    atomicHolder = pAtomicHolder;
   }
 
   public ImmutableSet<String> getInitializedMutexes() {
@@ -53,6 +64,19 @@ public class MutexState implements AbstractState {
     return lockedMutexes.get(mutex);
   }
 
+  /** Returns the PID of the thread currently in an atomic block, or {@code null}. */
+  public @Nullable Integer getAtomicHolder() {
+    return atomicHolder;
+  }
+
+  /**
+   * Returns {@code true} if there is an active atomic block held by a thread other than the
+   * specified one.
+   */
+  public boolean isAtomicBlockedFor(int pid) {
+    return atomicHolder != null && atomicHolder != pid;
+  }
+
   /**
    * Returns {@code true} if the given mutex is currently locked by a thread other than the
    * specified one.
@@ -70,7 +94,8 @@ public class MutexState implements AbstractState {
   public MutexState withInit(String mutex) {
     return new MutexState(
         ImmutableSet.<String>builder().addAll(initializedMutexes).add(mutex).build(),
-        lockedMutexes);
+        lockedMutexes,
+        atomicHolder);
   }
 
   /**
@@ -94,7 +119,8 @@ public class MutexState implements AbstractState {
         ImmutableMap.<String, Integer>builder()
             .putAll(lockedMutexes)
             .put(mutex, holderPid)
-            .build());
+            .build(),
+        atomicHolder);
   }
 
   /** Returns a new state with the given mutex marked as unlocked. */
@@ -108,7 +134,7 @@ public class MutexState implements AbstractState {
         builder.put(entry);
       }
     }
-    return new MutexState(initializedMutexes, builder.build());
+    return new MutexState(initializedMutexes, builder.build(), atomicHolder);
   }
 
   /** Returns a new state with the given mutex removed (destroyed). */
@@ -125,12 +151,28 @@ public class MutexState implements AbstractState {
         lockBuilder.put(entry);
       }
     }
-    return new MutexState(initBuilder.build(), lockBuilder.build());
+    return new MutexState(initBuilder.build(), lockBuilder.build(), atomicHolder);
+  }
+
+  /** Returns a new state with the specified thread entering an atomic block. */
+  public MutexState withAtomicBegin(int pid) {
+    if (atomicHolder != null && atomicHolder != pid) {
+      throw new IllegalStateException(
+          "Thread %d cannot enter atomic block: thread %d already holds it"
+              .formatted(pid, atomicHolder));
+    }
+    return new MutexState(initializedMutexes, lockedMutexes, pid);
+  }
+
+  /** Returns a new state with the atomic block released. */
+  public MutexState withAtomicEnd() {
+    return new MutexState(initializedMutexes, lockedMutexes, null);
   }
 
   @Override
   public String toString() {
-    return "mutexes: init=%s, locked=%s".formatted(initializedMutexes, lockedMutexes);
+    String atomicStr = atomicHolder != null ? ", atomic=T" + atomicHolder : "";
+    return "mutexes: init=%s, locked=%s%s".formatted(initializedMutexes, lockedMutexes, atomicStr);
   }
 
   @Override
@@ -142,11 +184,12 @@ public class MutexState implements AbstractState {
       return false;
     }
     return Objects.equals(initializedMutexes, other.initializedMutexes)
-        && Objects.equals(lockedMutexes, other.lockedMutexes);
+        && Objects.equals(lockedMutexes, other.lockedMutexes)
+        && Objects.equals(atomicHolder, other.atomicHolder);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(initializedMutexes, lockedMutexes);
+    return Objects.hash(initializedMutexes, lockedMutexes, atomicHolder);
   }
 }

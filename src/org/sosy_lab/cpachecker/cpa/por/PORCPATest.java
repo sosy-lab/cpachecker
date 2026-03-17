@@ -96,4 +96,26 @@ public class PORCPATest {
     TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "mutex_unprotected_unsafe.c");
     results.assertIsUnsafe();
   }
+
+  // -- safe programs with atomic blocks --
+
+  @Test
+  public void atomicIncrementSafe() throws Exception {
+    TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "atomic_increment_safe.c");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void atomicSwapSafe() throws Exception {
+    TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "atomic_swap_safe.c");
+    results.assertIsSafe();
+  }
+
+  // -- unsafe programs with broken atomic blocks --
+
+  @Test
+  public void atomicSplitUnsafe() throws Exception {
+    TestResults results = CPATestRunner.run(getConfig(), TEST_DIR + "atomic_split_unsafe.c");
+    results.assertIsUnsafe();
+  }
 }
