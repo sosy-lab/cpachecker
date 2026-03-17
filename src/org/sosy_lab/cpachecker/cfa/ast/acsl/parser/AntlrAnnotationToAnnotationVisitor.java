@@ -15,6 +15,7 @@ import java.util.List;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
@@ -23,16 +24,19 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLogicDefinitionAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AntlrToInternalNotImplementedException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslCommentContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssignsClauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.EnsuresClauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LocationContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicDefContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopClauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
@@ -43,6 +47,7 @@ public class AntlrAnnotationToAnnotationVisitor
     extends AntlrToInternalAbstractConverter<AAcslAnnotation> {
   private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
   private final AntlrTsetToMemorySetConverter antlrTsetToMemorySetConverter;
+  private final AntlrLogicalDefinitionToLogicalDefinitionConverter logicalDefinitionConverter;
   private final FileLocation fileLocation;
 
   protected AntlrAnnotationToAnnotationVisitor(
@@ -52,6 +57,12 @@ public class AntlrAnnotationToAnnotationVisitor
     antlrPredicateToPredicateConverter =
         new AntlrPredicateToPredicateConverter(pCProgramScope, pAcslScope);
     antlrTsetToMemorySetConverter = new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope);
+    logicalDefinitionConverter = new AntlrLogicalDefinitionToLogicalDefinitionConverter(pAcslScope);
+  }
+
+  @Override
+  public AAcslAnnotation visitAcslComment(AcslCommentContext ctx) {
+    return super.visit(ctx.children.getFirst());
   }
 
   @Override
@@ -135,6 +146,12 @@ public class AntlrAnnotationToAnnotationVisitor
   @Override
   public AAcslAnnotation visitSimpleClause(SimpleClauseContext ctx) {
     return super.visit(ctx.children.getFirst());
+  }
+
+  @Override
+  public AAcslAnnotation visitLogicDef(LogicDefContext ctx) {
+    AcslLogicDefinition definition = logicalDefinitionConverter.visit(ctx);
+    return new AcslLogicDefinitionAnnotation(fileLocation, definition);
   }
 
   @Override

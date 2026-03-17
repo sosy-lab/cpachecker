@@ -13,16 +13,13 @@ import com.google.common.collect.FluentIterable;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment.AcslCommentType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadataException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FunctionContractContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
@@ -36,16 +33,15 @@ public class AcslNodeMappingUtils {
    * @return An updated version of pResult where each acsl comment now has a Cfa node that
    *     represents the comment location in the Cfa.
    */
-  public static CFANode addAcslToNodeMapping(AcslComment pComment, CFA pCFA)
+  public static Optional<CFANode> addAcslToNodeMapping(AcslComment pComment, CFA pCFA)
       throws AcslParseException, AcslMetadataException.AcslNodeMappingException {
 
-    ParseTree ctx = AcslParser.acslCommentToContext(pComment.getComment());
+    AcslCommentType commentType = AcslParser.acslCommentToCommentType(pComment.getComment());
     CFANode n;
-    switch (ctx) {
-      case AssertionContext ignored -> n = nodeForAssertion(pComment, pCFA.getAstCfaRelation());
-      case LoopAnnotContext ignored ->
-          n = nodeForLoopAnnotation(pComment, pCFA.getAstCfaRelation());
-      case FunctionContractContext ignored ->
+    switch (commentType) {
+      case ASSERTION -> n = nodeForAssertion(pComment, pCFA.getAstCfaRelation());
+      case LOOP_ANNOTATION -> n = nodeForLoopAnnotation(pComment, pCFA.getAstCfaRelation());
+      case FUNCTION_CONTRACT ->
           n = nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation());
       case null ->
           throw new AcslMetadataException.AcslNodeMappingException(
@@ -57,7 +53,7 @@ public class AcslNodeMappingUtils {
                   + ". Parsing is currently supported for assertions, loop annotations,"
                   + " function contracts.");
     }
-    return n;
+    return Optional.of(n);
   }
 
   /**
@@ -131,7 +127,7 @@ public class AcslNodeMappingUtils {
   }
 
   /**
-   * Maps a function contract to the next function entry node.
+   * Finds the next function entry node for a funciton contract.
    *
    * @param pComment An AcslComment that is possibly a function contract
    * @param pAstCfaRelation The current Ast Cfa Relation
@@ -144,22 +140,19 @@ public class AcslNodeMappingUtils {
     FileLocation nextLocation =
         pAstCfaRelation.nextStartStatementLocation(pComment.fileLocation().getNodeOffset());
 
-    if (nextLocation.isRealLocation()) {
-      Optional<CFANode> nextNode =
-          pAstCfaRelation.getNodeForStatementLocation(
-              nextLocation.getStartingLineNumber(), nextLocation.getStartColumnInLine());
+    Optional<CFANode> nextNode =
+        pAstCfaRelation.getNodeForStatementLocation(
+            nextLocation.getStartingLineNumber(), nextLocation.getStartColumnInLine());
 
-      if (nextNode.isPresent()) {
-        String functionName =
-            nextNode
-                .orElseThrow(
-                    () ->
-                        new AcslMetadataException.AcslNodeMappingException(
-                            "Could not find function entry node for function contract\n"
-                                + pComment))
-                .getFunctionName();
-        return pCFA.getFunctionHead(functionName);
-      }
+    if (nextNode.isPresent()) {
+      String functionName =
+          nextNode
+              .orElseThrow(
+                  () ->
+                      new AcslMetadataException.AcslNodeMappingException(
+                          "Could not find function entry node for function contract\n" + pComment))
+              .getFunctionName();
+      return pCFA.getFunctionHead(functionName);
     }
 
     throw new AcslMetadataException.AcslNodeMappingException(

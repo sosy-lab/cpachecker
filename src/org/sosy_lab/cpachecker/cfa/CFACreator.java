@@ -42,7 +42,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Concurrency;
@@ -66,20 +65,21 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslNodeMappingUtils;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLogicDefinitionAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment.AcslCommentType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadataException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadataException.AcslMetadataCreationException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadataException.AcslNodeMappingException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicDefContext;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlockStructureBuilder;
@@ -847,24 +847,18 @@ public class CFACreator {
         ImmutableSetMultimap.builder();
 
     for (AcslComment comment : allComments) {
-      ParseTree ctx;
+      AcslCommentType commentType;
+      Optional<CFANode> n = Optional.empty();
+
       try {
-        ctx = AcslParser.acslCommentToContext(comment.getComment());
+        commentType = AcslParser.acslCommentToCommentType(comment.getComment());
       } catch (AcslParseException e) {
         throw new AcslMetadataCreationException(e.getMessage());
       }
 
-      if (ctx instanceof LogicDefContext) {
-        try {
-          AcslLogicDefinition logicDefinition =
-              AcslParser.parseLogicalDefinition(comment.getComment(), acslScope);
-          globalDeclarationBuilder.add(logicDefinition.getDeclaration());
-          acslScope.registerDeclaration(logicDefinition.getDeclaration());
-        } catch (AcslParseException e) {
-          throw new AcslMetadataCreationException(e.getMessage());
-        }
-      } else {
-        CFANode n;
+      if (commentType != AcslCommentType.LOGIC_DEF) {
+        // For other annotation types than logic definitions, we need to do the node mapping before
+        // the parsing.
         try {
           n = AcslNodeMappingUtils.addAcslToNodeMapping(comment, pCFA);
         } catch (AcslParseException e) {
@@ -872,34 +866,60 @@ public class CFACreator {
               "Could not map acsl annotation " + comment + " to node: " + e);
         }
 
-        if (n instanceof FunctionEntryNode fn) {
+        if (n.orElseThrow(
+                () ->
+                    new AcslMetadataException(
+                        "Acsl function contract at "
+                            + comment.fileLocation()
+                            + " has no CFA node."))
+            instanceof FunctionEntryNode fn) {
           scope = scope.withFunctionScope(fn.getFunctionName());
         }
+      }
 
-        AAcslAnnotation annotation;
-        try {
-          annotation =
-              AcslParser.parseAcslComment(
-                  comment.getComment(), comment.fileLocation(), scope, acslScope);
-        } catch (AcslParseException e) {
-          throw new AcslMetadataCreationException(
-              "Could not parse acsl annotation " + comment + ": " + e);
-        }
-        switch (annotation) {
-          case AcslAssertion pAssertion -> assertionBuilder.put(n, pAssertion);
-          case AcslLoopAnnotation pLoopAnnotation -> loopAnnotationBuilder.put(n, pLoopAnnotation);
-          case AcslFunctionContract pFunctionContract ->
-              functionContractBuilder.put(n, pFunctionContract);
-          case null ->
-              throw new AcslMetadataCreationException(
-                  "Annotation for acsl comment " + comment + " is null.");
-          default ->
-              throw new AcslMetadataCreationException(
-                  "Unexpected annotation type: "
-                      + comment
-                      + ". Only assertions, loop annotations and function contracts are"
-                      + " supported.");
-        }
+      AAcslAnnotation annotation;
+      try {
+        annotation =
+            AcslParser.parseAcslComment(
+                comment.getComment(), comment.fileLocation(), scope, acslScope);
+      } catch (AcslParseException e) {
+        throw new AcslMetadataCreationException(
+            "Could not parse acsl annotation " + comment + ": " + e);
+      }
+
+      switch (annotation) {
+        case AcslAssertion pAssertion ->
+            assertionBuilder.put(
+                n.orElseThrow(
+                    () ->
+                        new AcslMetadataCreationException(
+                            "Annotation at " + comment.fileLocation() + " has no CFA node.")),
+                pAssertion);
+        case AcslLoopAnnotation pLoopAnnotation ->
+            loopAnnotationBuilder.put(
+                n.orElseThrow(
+                    () ->
+                        new AcslMetadataCreationException(
+                            "Annotation at " + comment.fileLocation() + " has no CFA node.")),
+                pLoopAnnotation);
+        case AcslFunctionContract pFunctionContract ->
+            functionContractBuilder.put(
+                n.orElseThrow(
+                    () ->
+                        new AcslMetadataCreationException(
+                            "Annotation at " + comment.fileLocation() + " has no CFA node.")),
+                pFunctionContract);
+        case AcslLogicDefinitionAnnotation pLogicDef ->
+            globalDeclarationBuilder.add(pLogicDef.getDeclaration());
+        case null ->
+            throw new AcslMetadataCreationException(
+                "Annotation for acsl comment " + comment + " is null.");
+        default ->
+            throw new AcslMetadataCreationException(
+                "Unexpected annotation type: "
+                    + comment
+                    + ". Only assertions, loop annotations and function contracts are"
+                    + " supported.");
       }
     }
 

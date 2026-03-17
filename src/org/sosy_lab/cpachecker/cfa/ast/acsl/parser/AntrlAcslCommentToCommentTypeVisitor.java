@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
-import org.antlr.v4.runtime.ParserRuleContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment.AcslCommentType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarBaseVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AcslCommentContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
@@ -16,30 +16,30 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.F
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicDefContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
 
-public class AntrlAcslCommentToContextVisitor extends AcslGrammarBaseVisitor<ParserRuleContext> {
+public class AntrlAcslCommentToCommentTypeVisitor extends AcslGrammarBaseVisitor<AcslCommentType> {
 
   @Override
-  public ParserRuleContext visitAcslComment(AcslCommentContext ctx) {
+  public AcslCommentType visitAcslComment(AcslCommentContext ctx) {
     return super.visitAcslComment(ctx);
   }
 
   @Override
-  public AssertionContext visitAssertion(AssertionContext ctx) {
-    return ctx;
+  public AcslCommentType visitAssertion(AssertionContext ctx) {
+    return AcslCommentType.ASSERTION;
   }
 
   @Override
-  public LoopAnnotContext visitLoopAnnot(LoopAnnotContext ctx) {
-    return ctx;
+  public AcslCommentType visitLoopAnnot(LoopAnnotContext ctx) {
+    return AcslCommentType.LOOP_ANNOTATION;
   }
 
   @Override
-  public FunctionContractContext visitFunctionContract(FunctionContractContext ctx) {
-    return ctx;
+  public AcslCommentType visitFunctionContract(FunctionContractContext ctx) {
+    return AcslCommentType.FUNCTION_CONTRACT;
   }
 
   @Override
-  public LogicDefContext visitLogicDef(LogicDefContext ctx) {
-    return ctx;
+  public AcslCommentType visitLogicDef(LogicDefContext ctx) {
+    return AcslCommentType.LOGIC_DEF;
   }
 }

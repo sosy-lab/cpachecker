@@ -20,4 +20,11 @@ public record AcslComment(FileLocation fileLocation, String commentString) {
   public String toString() {
     return "'" + commentString + "'" + " at " + fileLocation;
   }
+
+  public enum AcslCommentType {
+    ASSERTION,
+    LOOP_ANNOTATION,
+    FUNCTION_CONTRACT,
+    LOGIC_DEF
+  }
 }

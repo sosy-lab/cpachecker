@@ -17,7 +17,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jspecify.annotations.NonNull;
@@ -27,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment.AcslCommentType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
 
@@ -93,28 +93,30 @@ public class AcslParser {
   public static AAcslAnnotation parseAcslComment(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
-    ParserRuleContext ctx = acslCommentToContext(pInput);
-    return parseAcslContext(ctx, pFileLocation, pCProgramScope, pAcslScope);
-  }
-
-  public static ParserRuleContext acslCommentToContext(String pInput) throws AcslParseException {
     String comment = stripCommentMarker(pInput);
     ParseTree tree = generateParseTree(comment, pParser -> pParser.acslComment());
-    AntrlAcslCommentToContextVisitor converter = new AntrlAcslCommentToContextVisitor();
-    ParserRuleContext ctx = converter.visit(tree);
-    return ctx;
+    AntlrAnnotationToAnnotationVisitor parser =
+        new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
+    return parser.visit(tree);
   }
 
-  public static AAcslAnnotation parseAcslContext(
-      ParserRuleContext pContext,
-      FileLocation pLocation,
-      CProgramScope pCScope,
-      AcslScope pAcslScope) {
-
-    AntlrAnnotationToAnnotationVisitor parser =
-        new AntlrAnnotationToAnnotationVisitor(pCScope, pAcslScope, pLocation);
-
-    return parser.visit(pContext);
+  /**
+   * This method returns the type of annotation (assertion, function contract, loop annotation,
+   * logic definition) for an acsl comment without having to parse the entire comment. This is
+   * useful to differntiate between different types of annotations before the program scope, that is
+   * necessary for parsing, has been built up.
+   *
+   * @param pInput The string containing the acsl comment
+   * @return An Enum that indicates the type of the acsl comment (assertion, loop annotation,
+   *     function contract, logic definition)
+   * @throws AcslParseException When no parse tree can be generated for the comment.
+   */
+  public static AcslCommentType acslCommentToCommentType(String pInput) throws AcslParseException {
+    String comment = stripCommentMarker(pInput);
+    ParseTree tree = generateParseTree(comment, pParser -> pParser.acslComment());
+    AntrlAcslCommentToCommentTypeVisitor converter = new AntrlAcslCommentToCommentTypeVisitor();
+    AcslCommentType type = converter.visit(tree);
+    return type;
   }
 
   /**
