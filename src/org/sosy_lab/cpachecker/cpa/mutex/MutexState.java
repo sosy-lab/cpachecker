@@ -6,20 +6,21 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.mutex;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
- * Tracks the state of mutexes in concurrent programs. Unlike a simple locked/unlocked model, this
- * state records <em>which thread</em> (by PID) holds each lock. A thread that already holds a lock
- * may re-lock it (no-op), which models recursive/reentrant locking behavior.
+ * Tracks the state of mutexes in concurrent programs. Records <em>which thread</em> (by PID) holds
+ * each lock. A thread that already holds a lock may re-lock it (no-op), which models
+ * recursive/reentrant locking behavior.
  *
  * <p>Supports both POSIX pthread mutexes and C11 threading mutexes.
  */
-public class MutexState {
+public class MutexState implements AbstractState {
 
   public static final MutexState EMPTY = new MutexState(ImmutableSet.of(), ImmutableMap.of());
 
@@ -28,7 +29,8 @@ public class MutexState {
   /** Maps mutex name to the PID of the thread that currently holds the lock. */
   private final ImmutableMap<String, Integer> lockedMutexes;
 
-  MutexState(ImmutableSet<String> pInitializedMutexes, ImmutableMap<String, Integer> pLockedMutexes) {
+  MutexState(
+      ImmutableSet<String> pInitializedMutexes, ImmutableMap<String, Integer> pLockedMutexes) {
     initializedMutexes = pInitializedMutexes;
     lockedMutexes = pLockedMutexes;
   }
@@ -89,7 +91,10 @@ public class MutexState {
     }
     return new MutexState(
         initializedMutexes,
-        ImmutableMap.<String, Integer>builder().putAll(lockedMutexes).put(mutex, holderPid).build());
+        ImmutableMap.<String, Integer>builder()
+            .putAll(lockedMutexes)
+            .put(mutex, holderPid)
+            .build());
   }
 
   /** Returns a new state with the given mutex marked as unlocked. */

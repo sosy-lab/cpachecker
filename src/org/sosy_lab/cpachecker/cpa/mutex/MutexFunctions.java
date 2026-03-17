@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.mutex;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -107,8 +107,10 @@ public final class MutexFunctions {
    * init, destroy).
    */
   public static boolean isMutexFunction(String functionName) {
-    return isLockFunction(functionName) || isUnlockFunction(functionName)
-        || isInitFunction(functionName) || isDestroyFunction(functionName);
+    return isLockFunction(functionName)
+        || isUnlockFunction(functionName)
+        || isInitFunction(functionName)
+        || isDestroyFunction(functionName);
   }
 
   private static String getMutexNameForFunctionSet(

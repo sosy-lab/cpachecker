@@ -12,7 +12,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -27,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -35,7 +36,9 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -48,20 +51,15 @@ public class PORTransferRelation implements TransferRelation {
   private final Solver solver;
   private final PathFormulaManager pathFormulaManager;
   private final CFA cfa;
-  private final ConfigurableProgramAnalysis wrappedCPA;
-  private final TransferRelation wrappedTransfer;
 
   private Integer lastPid = null;
 
   public PORTransferRelation(
-      ConfigurableProgramAnalysis pWrappedCpa,
       Configuration pConfig,
       CFA pCfa,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    wrappedCPA = pWrappedCpa;
-    wrappedTransfer = pWrappedCpa.getTransferRelation();
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
     cfa = pCfa;
@@ -91,145 +89,130 @@ public class PORTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    if (state instanceof PORState originalState) {
-      var sourceSet = originalState.getSourceSet(precision);
-      if (!sourceSet.contains(cfaEdge)) {
-        return ImmutableList.of(); // POR algorithm says we should not explore this edge
-      }
+    if (!(state instanceof PORState originalState)) {
+      throw new CPATransferException("State is not a PORState.");
+    }
 
-      // Determine which thread this edge belongs to (populated by getOutgoingEdges)
-      Integer edgePid = originalState.getEdgePid(cfaEdge);
-      final Integer pid = edgePid != null ? edgePid : lastPid;
-      if (pid == null) {
-        throw new CPATransferException("Could not determine thread for edge " + cfaEdge);
-      }
-      lastPid = pid;
+    var sourceSet = originalState.getSourceSet(precision);
+    if (!sourceSet.contains(cfaEdge)) {
+      return ImmutableList.of(); // POR algorithm says we should not explore this edge
+    }
 
-      PORState prevState = originalState;
-      MutexState newMutexState = null;
+    // Determine which thread this edge belongs to (populated by getOutgoingEdges)
+    Integer edgePid = originalState.getEdgePid(cfaEdge);
+    final Integer pid = edgePid != null ? edgePid : lastPid;
+    if (pid == null) {
+      throw new CPATransferException("Could not determine thread for edge " + cfaEdge);
+    }
+    lastPid = pid;
 
-      switch (cfaEdge.getEdgeType()) {
-        case StatementEdge -> {
-          AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-          if (statement instanceof AFunctionCall pAFunctionCall) {
-            AExpression functionNameExp =
-                pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression pFunctionName) {
-              final String functionName = pFunctionName.getName();
-              final var params =
-                  pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
+    PORState prevState = originalState;
 
-              if (PthreadFunctions.isCreateFunction(functionName)) {
-                String handle = PthreadFunctions.extractCreateHandle(params);
-                String threadFunc = PthreadFunctions.extractCreateFunctionName(params);
-                prevState = addNewThread(prevState, handle, threadFunc);
+    switch (cfaEdge.getEdgeType()) {
+      case StatementEdge -> {
+        AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
+        if (statement instanceof AFunctionCall pAFunctionCall) {
+          AExpression functionNameExp =
+              pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression pFunctionName) {
+            final String functionName = pFunctionName.getName();
+            final var params =
+                pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
 
-              } else if (PthreadFunctions.isJoinFunction(functionName)) {
-                String handle = PthreadFunctions.extractJoinHandle(params);
-                prevState = prevState.joinThread(handle);
-                if (prevState == null) {
-                  // joining a thread that has not terminated yet, skip this edge
-                  return ImmutableList.of();
-                }
+            if (PthreadFunctions.isCreateFunction(functionName)) {
+              String handle = PthreadFunctions.extractCreateHandle(params);
+              String threadFunc = PthreadFunctions.extractCreateFunctionName(params);
+              prevState = addNewThread(prevState, handle, threadFunc);
 
-              } else if (!params.isEmpty()) {
-                String mutexName = MutexFunctions.extractMutexName(params.get(0));
-                if (mutexName != null) {
-                  MutexState currentMutex = prevState.getMutexState();
-                  if (MutexFunctions.isInitFunction(functionName)) {
-                    newMutexState = currentMutex.withInit(mutexName);
-                  } else if (MutexFunctions.isLockFunction(functionName)) {
-                    if (currentMutex.isLockedByOther(mutexName, pid)) {
-                      // Blocked: another thread holds the mutex
-                      return ImmutableList.of();
-                    }
-                    newMutexState = currentMutex.withLock(mutexName, pid);
-                  } else if (MutexFunctions.isUnlockFunction(functionName)) {
-                    newMutexState = currentMutex.withUnlock(mutexName);
-                  } else if (MutexFunctions.isDestroyFunction(functionName)) {
-                    newMutexState = currentMutex.withDestroy(mutexName);
-                  }
-                }
+            } else if (PthreadFunctions.isJoinFunction(functionName)) {
+              String handle = PthreadFunctions.extractJoinHandle(params);
+              prevState = prevState.joinThread(handle);
+              if (prevState == null) {
+                return ImmutableList.of();
               }
             }
           }
         }
-        default -> {
-        }
       }
+      default -> {}
+    }
 
-      final PORState old = prevState;
-      final MutexState finalMutexState =
-          newMutexState != null ? newMutexState : old.getMutexState();
-      final PORThreadState threadState = old.threads().get(pid);
+    final PORState old = prevState;
+    final PORThreadState threadState = old.threads().get(pid);
 
-      if (threadState != null) {
-        final var loc = threadState.pLocationState();
-        final var stack = threadState.pCallstackState();
-        final var pathFormula = threadState.pPathFormula();
+    if (threadState != null) {
+      final var loc = threadState.pLocationState();
+      final var stack = threadState.pCallstackState();
+      final var pathFormula = threadState.pPathFormula();
 
-        final var nextLocs =
-            locationCPA.getTransferRelation().getAbstractSuccessorsForEdge(loc, precision, cfaEdge);
-        final var nextStacks =
-            callstackCPA
-                .getTransferRelation()
-                .getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
-        final var nextFormula = pathFormulaManager.makeAnd(pathFormula, cfaEdge);
+      final var nextLocs =
+          locationCPA
+              .getTransferRelation()
+              .getAbstractSuccessorsForEdge(loc, precision, cfaEdge);
+      final var nextStacks =
+          callstackCPA
+              .getTransferRelation()
+              .getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
+      final var nextFormula = pathFormulaManager.makeAnd(pathFormula, cfaEdge);
 
-        final var porSuccessors =
-            nextLocs.stream()
-                .flatMap(
-                    nextLoc ->
-                        nextStacks.stream()
-                            .map(
-                                nextStack ->
-                                    old.stepThread(
-                                        pid,
-                                        (LocationState) nextLoc,
-                                        (CallstackState) nextStack,
-                                        nextFormula,
-                                        finalMutexState)))
-                .toList();
+      List<PORState> successors =
+          nextLocs.stream()
+              .flatMap(
+                  nextLoc ->
+                      nextStacks.stream()
+                          .map(
+                              nextStack ->
+                                  old.stepThread(
+                                      pid,
+                                      (LocationState) nextLoc,
+                                      (CallstackState) nextStack,
+                                      nextFormula)))
+              .toList();
 
-        // Advance wrapped CPA state along this edge
-        Collection<? extends AbstractState> wrappedSuccessors =
-            wrappedTransfer.getAbstractSuccessorsForEdge(
-                originalState.getWrappedState(), ((AbstractionAwarePORPrecision)precision).getWrappedPrecision(), cfaEdge);
+      return ImmutableList.copyOf(successors);
+    }
 
-        // Combine POR successors with wrapped CPA successors
-        List<AbstractState> list = porSuccessors.stream()
-            .flatMap(
-                porSucc ->
-                    wrappedSuccessors.stream()
-                        .map(ws -> (AbstractState) porSucc.withWrappedState(ws)))
-            .toList();
-        return list;
+    throw new CPATransferException("Thread state not found for PID " + pid);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState,
+      Iterable<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    if (!(pState instanceof PORState porState)) {
+      return Collections.singleton(pState);
+    }
+
+    // Read the MutexState from the sibling MutexCPA and cache it in PORState
+    // for source-set computation.
+    for (AbstractState other : otherStates) {
+      if (other instanceof MutexState mutexState) {
+        porState.setCachedMutexState(mutexState);
+        break;
       }
     }
-    throw new CPATransferException("State is not a PORState.");
+
+    return Collections.singleton(porState);
   }
 
   PORState initial() throws InterruptedException {
-    AbstractState wrappedInitial =
-        wrappedCPA.getInitialState(
-            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-    return addNewThread(PORState.empty(cfa, wrappedInitial), null, "main");
+    return addNewThread(PORState.empty(cfa), null, "main");
   }
 
-  PORState addNewThread(
-      final PORState old,
-      final String handle,
-      final String functionName) {
-    CFANode functioncallNode =
+  PORState addNewThread(final PORState old, final String handle, final String functionName) {
+    CFANode functionCallNode =
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
 
     CallstackState initialStack =
         (CallstackState)
             callstackCPA.getInitialState(
-                functioncallNode, StateSpacePartition.getDefaultPartition());
+                functionCallNode, StateSpacePartition.getDefaultPartition());
     LocationState initialLoc =
-        locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
+        locationCPA.getInitialState(functionCallNode, StateSpacePartition.getDefaultPartition());
 
     PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula();
 
