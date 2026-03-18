@@ -8,21 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.mutex;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Collections;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.por.PORState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Transfer relation for the MutexCPA. The {@link #getAbstractSuccessorsForEdge} method passes the
@@ -35,76 +27,16 @@ class MutexTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
-    // Pass through — actual work is done in strengthen where we can read the PID from PORState.
-    return Collections.singleton(pState);
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState pState,
-      Iterable<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
-      Precision pPrecision)
-      throws CPATransferException, InterruptedException {
-    if (cfaEdge == null) {
-      return Collections.singleton(pState);
-    }
-
     MutexState state = (MutexState) pState;
-
-    // Get the PID of the active thread from the PORState.
-    // We use getLastSteppedPid() because this strengthen call receives the *successor* PORState
-    // (after stepThread), whose transient edgePidMap is empty. The lastSteppedPid is set by
-    // stepThread and reliably identifies which thread just executed.
-    PORState porState =
-        AbstractStates.projectToType(otherStates, PORState.class).iterator().next();
-    Integer pid = porState.getLastSteppedPid();
+    Integer pid = state.getEdgePid(pCfaEdge);
     if (pid == null) {
-      // Initial state or no thread stepped yet, pass through
-      return Collections.singleton(state);
+      throw new CPATransferException("PID for edge not found in MutexState.");
     }
 
-    if (cfaEdge instanceof AStatementEdge sEdge
-        && sEdge.getStatement() instanceof AFunctionCall funcCall) {
-      AExpression funcNameExpr =
-          funcCall.getFunctionCallExpression().getFunctionNameExpression();
-      if (funcNameExpr instanceof AIdExpression funcName) {
-        String functionName = funcName.getName();
-        var params = funcCall.getFunctionCallExpression().getParameterExpressions();
-
-        // Handle __VERIFIER_atomic_begin / __VERIFIER_atomic_end (no parameters needed)
-        if (MutexFunctions.isAtomicBegin(functionName)) {
-          if (state.isAtomicBlockedFor(pid)) {
-            // Another thread already holds the atomic block — should not happen (POR filters it)
-            return ImmutableSet.of();
-          }
-          return Collections.singleton(state.withAtomicBegin(pid));
-        } else if (MutexFunctions.isAtomicEnd(functionName)) {
-          return Collections.singleton(state.withAtomicEnd());
-        }
-
-        // Handle mutex operations (require parameters)
-        if (!params.isEmpty()) {
-          String mutexName = MutexFunctions.extractMutexName(params.get(0));
-          if (mutexName != null) {
-            if (MutexFunctions.isInitFunction(functionName)) {
-              return Collections.singleton(state.withInit(mutexName));
-            } else if (MutexFunctions.isLockFunction(functionName)) {
-              if (state.isLockedByOther(mutexName, pid)) {
-                // Blocked: another thread holds the mutex — bottom (no successor)
-                return ImmutableSet.of();
-              }
-              return Collections.singleton(state.withLock(mutexName, pid));
-            } else if (MutexFunctions.isUnlockFunction(functionName)) {
-              return Collections.singleton(state.withUnlock(mutexName));
-            } else if (MutexFunctions.isDestroyFunction(functionName)) {
-              return Collections.singleton(state.withDestroy(mutexName));
-            }
-          }
-        }
-      }
+    MutexState updated = state.update(pCfaEdge, pid);
+    if (updated == null) {
+      return ImmutableList.of();
     }
-
-    return Collections.singleton(state);
+    return ImmutableList.of(updated);
   }
 }

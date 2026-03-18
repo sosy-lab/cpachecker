@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.mutex;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -17,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.mutex.MutexLock.MutexLockType;
 
 /**
  * Utility class for detecting and extracting information from mutex-related C function calls.
@@ -24,11 +26,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  */
 public final class MutexFunctions {
 
-  private static final ImmutableSet<String> LOCK_FUNCTIONS =
-      ImmutableSet.of("pthread_mutex_lock", "mtx_lock");
+  private static final ImmutableMap<String, MutexLockType> LOCK_FUNCTIONS =
+      ImmutableMap.of(
+          "pthread_mutex_lock", MutexLockType.WRITE,
+          "mtx_lock", MutexLockType.WRITE
+      );
 
-  private static final ImmutableSet<String> UNLOCK_FUNCTIONS =
-      ImmutableSet.of("pthread_mutex_unlock", "mtx_unlock");
+  private static final ImmutableMap<String, MutexLockType> UNLOCK_FUNCTIONS =
+      ImmutableMap.of(
+          "pthread_mutex_unlock", MutexLockType.WRITE,
+          "mtx_unlock", MutexLockType.WRITE
+      );
 
   private static final ImmutableSet<String> INIT_FUNCTIONS =
       ImmutableSet.of("pthread_mutex_init", "mtx_init");
@@ -61,38 +69,28 @@ public final class MutexFunctions {
 
   /** Returns {@code true} if the given CFA edge is a mutex lock function call. */
   public static boolean isLockCall(CFAEdge edge) {
-    return getLockMutexName(edge) != null;
+    return getLockMutex(edge) != null;
   }
 
   /** Returns {@code true} if the given CFA edge is a mutex unlock function call. */
   public static boolean isUnlockCall(CFAEdge edge) {
-    return getUnlockMutexName(edge) != null;
+    return getUnlockMutex(edge) != null;
   }
 
   /**
    * If the given CFA edge is a mutex lock call, returns the mutex variable name; otherwise returns
    * {@code null}.
    */
-  public static String getLockMutexName(CFAEdge edge) {
-    return getMutexNameForFunctionSet(edge, LOCK_FUNCTIONS);
+  public static MutexLock getLockMutex(CFAEdge edge) {
+    return getMutexLockForFunctionSet(edge, LOCK_FUNCTIONS);
   }
 
   /**
    * If the given CFA edge is a mutex unlock call, returns the mutex variable name; otherwise
    * returns {@code null}.
    */
-  public static String getUnlockMutexName(CFAEdge edge) {
-    return getMutexNameForFunctionSet(edge, UNLOCK_FUNCTIONS);
-  }
-
-  /** Returns {@code true} if the given function name is a mutex lock function. */
-  public static boolean isLockFunction(String functionName) {
-    return LOCK_FUNCTIONS.contains(functionName);
-  }
-
-  /** Returns {@code true} if the given function name is a mutex unlock function. */
-  public static boolean isUnlockFunction(String functionName) {
-    return UNLOCK_FUNCTIONS.contains(functionName);
+  public static MutexLock getUnlockMutex(CFAEdge edge) {
+    return getMutexLockForFunctionSet(edge, UNLOCK_FUNCTIONS);
   }
 
   /** Returns {@code true} if the given function name is a mutex init function. */
@@ -118,26 +116,13 @@ public final class MutexFunctions {
   /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_begin} call. */
   public static boolean isAtomicBeginCall(CFAEdge edge) {
     String name = getFunctionCallName(edge);
-    return name != null && isAtomicBegin(name);
+    return isAtomicBegin(name);
   }
 
   /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_end} call. */
   public static boolean isAtomicEndCall(CFAEdge edge) {
     String name = getFunctionCallName(edge);
-    return name != null && isAtomicEnd(name);
-  }
-
-  /**
-   * Returns {@code true} if the given function name is any mutex-related function (lock, unlock,
-   * init, destroy) or an atomic begin/end function.
-   */
-  public static boolean isMutexFunction(String functionName) {
-    return isLockFunction(functionName)
-        || isUnlockFunction(functionName)
-        || isInitFunction(functionName)
-        || isDestroyFunction(functionName)
-        || isAtomicBegin(functionName)
-        || isAtomicEnd(functionName);
+    return isAtomicEnd(name);
   }
 
   /**
@@ -156,17 +141,19 @@ public final class MutexFunctions {
     return null;
   }
 
-  private static String getMutexNameForFunctionSet(
-      CFAEdge edge, ImmutableSet<String> functionNames) {
+  private static MutexLock getMutexLockForFunctionSet(
+      CFAEdge edge, ImmutableMap<String, MutexLockType> functions) {
     if (edge instanceof AStatementEdge sEdge
         && sEdge.getStatement() instanceof AFunctionCall funcCall) {
       AExpression funcNameExpr =
           funcCall.getFunctionCallExpression().getFunctionNameExpression();
-      if (funcNameExpr instanceof AIdExpression funcName
-          && functionNames.contains(funcName.getName())) {
-        var params = funcCall.getFunctionCallExpression().getParameterExpressions();
-        if (!params.isEmpty()) {
-          return extractMutexName(params.get(0));
+      if (funcNameExpr instanceof AIdExpression funcName) {
+        MutexLockType lockType = functions.get(funcName.getName());
+        if (lockType != null) {
+          var params = funcCall.getFunctionCallExpression().getParameterExpressions();
+          if (!params.isEmpty()) {
+            return new MutexLock(extractMutexName(params.getFirst()), lockType);
+          }
         }
       }
     }

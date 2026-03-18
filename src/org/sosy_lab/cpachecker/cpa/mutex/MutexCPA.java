@@ -33,7 +33,7 @@ public class MutexCPA extends AbstractCPA {
   }
 
   @SuppressWarnings("unused")
-  public MutexCPA(Configuration config, LogManager logger)
+  public MutexCPA()
       throws InvalidConfigurationException {
     super("sep", "sep", new MutexTransferRelation());
   }
