@@ -225,6 +225,18 @@ public class AcslMetadataParsingTest {
             ImmutableList.of(new FunctionContractAttribute("power", 1, 2, 0))));
     b.add(
         task(
+            "function_contract_empty_lines_before_func.c",
+            1,
+            0,
+            ImmutableList.of(new FunctionContractAttribute("power", 1, 2, 0))));
+    b.add(
+        task(
+            "function_contract_directly_before_func.c",
+            1,
+            0,
+            ImmutableList.of(new FunctionContractAttribute("power", 1, 2, 0))));
+    b.add(
+        task(
             "multiple_function_contracts.c",
             2,
             0,
