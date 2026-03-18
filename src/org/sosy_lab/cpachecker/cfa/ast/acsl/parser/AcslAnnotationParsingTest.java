@@ -104,6 +104,20 @@ public class AcslAnnotationParsingTest {
   }
 
   @Test
+  public void testAssertionToAstString() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    String input = "//@ assert x == 10;";
+    AcslAssertion parsed =
+        (AcslAssertion)
+            AcslParser.parseAcslComment(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
+    AcslAssertion parsedFromAstString =
+        (AcslAssertion)
+            AcslParser.parseAcslComment(
+                parsed.toAstString(), FileLocation.DUMMY, cProgramScope, getAcslScope());
+    assertThat(parsed).isEqualTo(parsedFromAstString);
+  }
+
+  @Test
   public void parseLoopInvariantTest() throws AcslParseException {
     String input = "loop invariant x <= 10;";
 
@@ -112,6 +126,19 @@ public class AcslAnnotationParsingTest {
         AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     AcslLoopAnnotation annotation = (AcslLoopAnnotation) parsed;
     assertThat(annotation.getLoopInvariants()).containsExactly(expected);
+  }
+
+  @Test
+  public void TestLoopAnnotationToAstString() throws AcslParseException {
+    String input = "loop invariant x <= 10;";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslLoopAnnotation annotation = (AcslLoopAnnotation) parsed;
+    AcslLoopAnnotation parsedFromAstString =
+        (AcslLoopAnnotation)
+            AcslParser.parseAcslComment(
+                annotation.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(parsedFromAstString);
   }
 
   @Test
@@ -136,11 +163,34 @@ public class AcslAnnotationParsingTest {
 
   @Test
   public void parseFunctionContractTest() throws AcslParseException {
-    String input = "/*@ requires x == 10; ensures x <= 10;*/";
+    String input =
+"""
+requires x == 10;
+ensures x <= 10;
+""";
     AcslFunctionContract expected = getFunctionContract();
     AAcslAnnotation parsed =
         AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void functionContractAstStringTest() throws AcslParseException {
+    String input =
+        """
+        requires x == 10;
+        ensures x <= 10;
+        """;
+    AcslFunctionContract parsed =
+        (AcslFunctionContract)
+            AcslParser.parseAcslComment(
+                input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    String astString = parsed.toAstString();
+    AcslFunctionContract parsedFromAstString =
+        (AcslFunctionContract)
+            AcslParser.parseAcslComment(
+                astString, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(parsedFromAstString);
   }
 
   @Test
@@ -150,6 +200,20 @@ public class AcslAnnotationParsingTest {
     AAcslAnnotation parsed =
         AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void loopAnnotationAstStringTest() throws AcslParseException {
+    String input = "loop invariant x <= 10;";
+    AcslLoopAnnotation parsed =
+        (AcslLoopAnnotation)
+            AcslParser.parseAcslComment(
+                input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslLoopAnnotation parsedFromAstString =
+        (AcslLoopAnnotation)
+            AcslParser.parseAcslComment(
+                parsed.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(parsedFromAstString);
   }
 
   @Test
@@ -348,9 +412,9 @@ public class AcslAnnotationParsingTest {
   private AcslFunctionContract getFunctionContract() {
     return new AcslFunctionContract(
         FileLocation.DUMMY,
+        ImmutableSet.of(getRequires()),
         ImmutableSet.of(getEnsures()),
-        ImmutableSet.of(),
-        ImmutableSet.of(getRequires()));
+        ImmutableSet.of());
   }
 
   private AcslLoopAnnotation getLoopAnnotation() {
@@ -371,14 +435,14 @@ public class AcslAnnotationParsingTest {
         """
         /*@
         ensures x = 0;
-        assumes /true;
+        assumes \\true;
         ensures !(x < 0);
         */\
         """;
     String blockCommentExpected =
         """
         ensures x = 0;
-        assumes /true;
+        assumes \\true;
         ensures !(x < 0);
         """;
 
