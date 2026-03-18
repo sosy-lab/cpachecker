@@ -52,6 +52,14 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       description = "Use an abstraction-aware POR algorithm.")
   private boolean isAbstractionAware = false;
 
+  @Option(
+      secure = true,
+      description = "Aggregate basic blocks to MultiEdges. Only one global statement (i.e., a"
+          + "statement that accesses a global variable or uses heap memory) is included in a"
+          + "MultiEdge, so that all concurrent behavior is explored."
+  )
+  private boolean aggregateBasicBlocks = false;
+
   private final PORTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
 
@@ -64,7 +72,8 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     super(pCpa);
-    transferRelation = new PORTransferRelation(pCpa, pConfig, pCfa, pLogger, pShutdownNotifier);
+    transferRelation = new PORTransferRelation(pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger,
+        pShutdownNotifier);
 
     final PrecisionAdjustment wrappedPrecisionAdjustment = pCpa.getPrecisionAdjustment();
     precisionAdjustment = (state, precision, states, stateProjection, fullState) -> {
@@ -81,7 +90,8 @@ public class PORCPA extends AbstractSingleWrapperCPA {
 
       return result.map(r -> new PrecisionAdjustmentResult(
           porState.withWrappedState(r.abstractState()),
-          porPrecision.replaceWrappedPrecision(r.precision(), Predicates.instanceOf(r.precision().getClass())),
+          porPrecision.replaceWrappedPrecision(r.precision(),
+              Predicates.instanceOf(r.precision().getClass())),
           r.action()
       ));
 
@@ -117,6 +127,7 @@ public class PORCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public MergeOperator getMergeOperator() {
+    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
     return (state1, state2, precision) -> {
       if (state1 instanceof PORState porState1 && state2 instanceof PORState porState2) {
         if (porState1.canMerge(porState2)) {

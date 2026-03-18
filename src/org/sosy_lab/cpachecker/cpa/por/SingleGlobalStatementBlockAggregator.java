@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.composite;
+package org.sosy_lab.cpachecker.cpa.por;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.composite.StraightLineBlockAggregator;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 
 class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {

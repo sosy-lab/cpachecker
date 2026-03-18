@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * This interface defines the methods that are needed to aggregate basic blocks into dynamic
  * MultiEdges.
  */
-interface BasicBlockAggregator {
+public interface BasicBlockAggregator {
 
   /**
    * This method checks if the given node is a valid start for a dynamic MultiEdge.

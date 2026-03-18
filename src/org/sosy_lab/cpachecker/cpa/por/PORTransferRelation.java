@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -31,13 +34,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.mutex.MutexCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -47,29 +50,26 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 public class PORTransferRelation implements TransferRelation {
   private final LocationCPA locationCPA;
   private final CallstackCPA callstackCPA;
-  private final MutexCPA mutexCPA;
   private final TransferRelation wrappedTransferRelation;
+
   private final Solver solver;
   private final PathFormulaManager pathFormulaManager;
   private final CFA cfa;
+
+  private final boolean aggregateBasicBlocks;
+  private final BasicBlockAggregator basicBlockAggregator;
 
   public PORTransferRelation(
       ConfigurableProgramAnalysis wrappedCpa,
       Configuration pConfig,
       CFA pCfa,
+      boolean pAggregateBasicBlocks,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     wrappedTransferRelation = wrappedCpa.getTransferRelation();
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
-    if (wrappedCpa instanceof MutexCPA wrappedMutexCpa) {
-      this.mutexCPA = wrappedMutexCpa;
-    } else if (wrappedCpa instanceof WrapperCPA wrappedWrapperCPA) {
-      this.mutexCPA = wrappedWrapperCPA.retrieveWrappedCpa(MutexCPA.class);
-    } else {
-      this.mutexCPA = null;
-    }
 
     cfa = pCfa;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
@@ -77,6 +77,9 @@ public class PORTransferRelation implements TransferRelation {
     pathFormulaManager =
         new PathFormulaManagerImpl(
             formulaManager, pConfig, pLogger, pShutdownNotifier, pCfa, AnalysisDirection.FORWARD);
+
+    aggregateBasicBlocks = pAggregateBasicBlocks;
+    basicBlockAggregator = new SingleGlobalStatementBlockAggregator(pCfa);
   }
 
   @Override
@@ -102,7 +105,7 @@ public class PORTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    if (!(state instanceof PORState originalState)) {
+    if (!(state instanceof PORState porState)) {
       throw new CPATransferException("State is not a PORState.");
     }
     if (!(precision instanceof PORPrecision porPrecision)) {
@@ -110,52 +113,102 @@ public class PORTransferRelation implements TransferRelation {
     }
 
     // Determine which thread this edge belongs to (populated by getOutgoingEdges)
-    final Integer pid = originalState.getEdgePid(cfaEdge);
+    final Integer pid = porState.getEdgePid(cfaEdge);
     if (pid == null) {
       throw new CPATransferException("Could not determine thread for edge " + cfaEdge);
     }
 
+    if (aggregateBasicBlocks) {
+      final CFANode startNode = cfaEdge.getPredecessor();
+
+      // dynamic multiEdges may be used if the following conditions apply
+      if (basicBlockAggregator.isValidMultiEdgeStart(startNode)
+          && basicBlockAggregator.isValidMultiEdgeComponent(startNode, cfaEdge)) {
+
+        Collection<PORState> currentStates = new ArrayList<>(1);
+        currentStates.add(porState);
+
+        while (basicBlockAggregator.isValidMultiEdgeComponent(startNode, cfaEdge)) {
+          Collection<PORState> successorStates = new ArrayList<>(currentStates.size());
+
+          for (PORState currentState : currentStates) {
+            getAbstractSuccessorsForEdge(currentState, porPrecision, cfaEdge, pid, successorStates);
+          }
+
+          // if there are no successors for the current edge, we do not need to continue
+          if (successorStates.isEmpty()) {
+            return ImmutableList.of();
+          }
+
+          // if we found a target state in the current successors immediately return
+          if (from(successorStates).anyMatch(AbstractStates::isTargetState)) {
+            return successorStates;
+          }
+
+          // make successor states the new to-be-handled states for the next edge
+          currentStates = Collections.unmodifiableCollection(successorStates);
+
+          // if there is more than one leaving edge we do not create a further multi edge part
+          if (cfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
+            // all current states should be the same PORState
+            cfaEdge = currentStates.iterator().next().getNextBasicBlockEdge(pid);
+          } else {
+            break;
+          }
+        }
+
+        return currentStates;
+      }
+    }
+
+    Collection<PORState> results = new ArrayList<>(1);
+    getAbstractSuccessorsForEdge(porState, porPrecision, cfaEdge, pid, results);
+    return results;
+  }
+
+  private void getAbstractSuccessorsForEdge(
+      PORState state,
+      PORPrecision precision,
+      CFAEdge cfaEdge,
+      int pid,
+      Collection<PORState> result) throws CPATransferException, InterruptedException {
     // Call wrapped CPA transfer relation
     Collection<? extends AbstractState> wrappedSuccessors =
         wrappedTransferRelation.getAbstractSuccessorsForEdge(
-            originalState.getWrappedState(),
-            porPrecision.getWrappedPrecision(),
+            state.getWrappedState(),
+            precision.getWrappedPrecision(),
             cfaEdge
         );
 
     if (wrappedSuccessors.isEmpty()) {
-      return ImmutableList.of();
+      return;
     }
 
-    PORState prevState = originalState;
+    PORState prevState = state;
 
-    switch (cfaEdge.getEdgeType()) {
-      case StatementEdge -> {
-        AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-        if (statement instanceof AFunctionCall pAFunctionCall) {
-          AExpression functionNameExp =
-              pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression pFunctionName) {
-            final String functionName = pFunctionName.getName();
-            final var params =
-                pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
+    if (cfaEdge instanceof AStatementEdge statementEdge) {
+      AStatement statement = statementEdge.getStatement();
+      if (statement instanceof AFunctionCall pAFunctionCall) {
+        AExpression functionNameExp =
+            pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression pFunctionName) {
+          final String functionName = pFunctionName.getName();
+          final var params =
+              pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
 
-            if (PthreadFunctions.isCreateFunction(functionName)) {
-              String handle = PthreadFunctions.extractCreateHandle(params);
-              String threadFunc = PthreadFunctions.extractCreateFunctionName(params);
-              prevState = addNewThread(prevState, handle, threadFunc);
+          if (PthreadFunctions.isCreateFunction(functionName)) {
+            String handle = PthreadFunctions.extractCreateHandle(params);
+            String threadFunc = PthreadFunctions.extractCreateFunctionName(params);
+            prevState = addNewThread(prevState, handle, threadFunc);
 
-            } else if (PthreadFunctions.isJoinFunction(functionName)) {
-              String handle = PthreadFunctions.extractJoinHandle(params);
-              prevState = prevState.joinThread(handle);
-              if (prevState == null) {
-                return ImmutableList.of();
-              }
+          } else if (PthreadFunctions.isJoinFunction(functionName)) {
+            String handle = PthreadFunctions.extractJoinHandle(params);
+            prevState = prevState.joinThread(handle);
+            if (prevState == null) {
+              return;
             }
           }
         }
-      }
-      default -> {
       }
     }
 
@@ -192,14 +245,13 @@ public class PORTransferRelation implements TransferRelation {
               .toList();
 
       // Combine POR successors with wrapped CPA successors
-      ImmutableList.Builder<PORState> combinedSuccessors = ImmutableList.builder();
       for (PORState porSuccessor : successors) {
         for (AbstractState wrappedSuccessor : wrappedSuccessors) {
-          combinedSuccessors.add(porSuccessor.withWrappedState(wrappedSuccessor));
+          result.add(porSuccessor.withWrappedState(wrappedSuccessor));
         }
       }
 
-      return combinedSuccessors.build();
+      return;
     }
 
     throw new CPATransferException("Thread state not found for PID " + pid);

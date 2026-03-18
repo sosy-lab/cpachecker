@@ -18,11 +18,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
 
-class StraightLineBlockAggregator implements BasicBlockAggregator {
+public class StraightLineBlockAggregator implements BasicBlockAggregator {
 
   private final CFA cfa;
 
-  StraightLineBlockAggregator(CFA pCfa) {
+  public StraightLineBlockAggregator(CFA pCfa) {
     cfa = pCfa;
   }
 

@@ -22,6 +22,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Random;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -54,6 +55,8 @@ public class PORState
     implements AbstractState, AbstractStateWithLocations,
                AbstractStateWithThreads, Graphable {
 
+  private final Random random = new Random(1);
+
   private final CFA cfa;
 
   private final ImmutableMap<Integer, PORThreadState> threads;
@@ -76,6 +79,7 @@ public class PORState
       ImmutableMap<Integer, PORThreadState> pThreads,
       ImmutableMap<String, Integer> pThreadHandles) {
     super(pWrappedState);
+
     cfa = pCfa;
     threads = pThreads;
     threadHandles = pThreadHandles;
@@ -90,7 +94,7 @@ public class PORState
   }
 
   boolean canMerge(PORState other) {
-    return threads.equals(other.threads);
+    return this.equals(other);
   }
 
   PORState addNewThread(
@@ -176,6 +180,27 @@ public class PORState
    */
   public Integer getEdgePid(CFAEdge edge) {
     return edgePidMap.get(edge);
+  }
+
+  public CFAEdge getNextBasicBlockEdge(int pid) {
+    var threadState = threads.get(pid);
+    if (threadState == null) {
+      throw new IllegalArgumentException("No thread with pid " + pid);
+    }
+
+    var leavingEdges = threadState.pLocationState().getLocationNode().getLeavingEdges();
+    assert leavingEdges.size() == 1 : "Expected exactly one leaving edge for basic block stepping";
+    CFAEdge successor = leavingEdges.get(0);
+    CFAEdge cloned = PorEdgeCloner.clone(successor, pid, this);
+    edgePidMap.put(cloned, pid);
+
+    MutexState mutexState =
+        AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
+    if (mutexState != null) {
+      mutexState.setEdgePidMap(edgePidMap);
+    }
+
+    return cloned;
   }
 
   @Override
@@ -368,7 +393,7 @@ public class PORState
             .map(e -> edgePidMap.get(e))
             .distinct()
             .collect(Collectors.toCollection(ArrayList::new));
-    Collections.shuffle(enabledThreads);
+    Collections.shuffle(enabledThreads, random);
     final ImmutableList.Builder<ImmutableCollection<CFAEdge>> sourceSetFirstActions =
         ImmutableList.builder();
     for (final var pid : enabledThreads) {
