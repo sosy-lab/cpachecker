@@ -55,8 +55,4 @@ public interface AbstractStateWithLocations extends AbstractState {
   default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
     return null;
   }
-
-  default CFAEdge getNextBasicBlockEdge(CFAEdge previousEdge) {
-    return previousEdge.getSuccessor().getLeavingEdge(0);
-  }
 }

@@ -22,6 +22,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -33,20 +34,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
+import org.sosy_lab.cpachecker.cpa.mutex.MutexLock;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class PORState
+    extends AbstractSingleWrapperState
     implements AbstractState, AbstractStateWithLocations,
                AbstractStateWithThreads, Graphable {
 
@@ -57,20 +61,6 @@ public class PORState
   private final ImmutableMap<String, Integer> threadHandles;
 
   /**
-   * The PID of the thread that was stepped to produce this successor state, or {@code null} for the
-   * initial state or states not produced by {@link #stepThread}.
-   */
-  private final @Nullable Integer lastSteppedPid;
-
-  /**
-   * The PID of the thread currently inside a {@code __VERIFIER_atomic_begin/end} block, or {@code
-   * null} if no thread is executing atomically. Set directly during {@link
-   * PORTransferRelation#getAbstractSuccessorsForEdge} to avoid stale-caching issues with the
-   * composite strengthen order.
-   */
-  private final @Nullable Integer atomicHolder;
-
-  /**
    * Transient mapping from cloned outgoing edges to their originating thread PID.
    */
   private final IdentityHashMap<CFAEdge, Integer> edgePidMap = new IdentityHashMap<>();
@@ -78,36 +68,21 @@ public class PORState
   private final EdgeDefUseData.Extractor memoryAccessExtractor =
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
-  /**
-   * Cached mutex state, populated during the strengthen phase from the MutexCPA's state. Used for
-   * source-set computation (mutex-aware POR).
-   */
-  private @Nullable MutexState cachedMutexState = null;
-
   private Collection<CFAEdge> sourceSet = null;
 
   PORState(
-      CFA pCfa,
-      ImmutableMap<Integer, PORThreadState> pThreads,
-      ImmutableMap<String, Integer> pThreadHandles,
-      @Nullable Integer pLastSteppedPid,
-      @Nullable Integer pAtomicHolder) {
-    cfa = pCfa;
-    threads = pThreads;
-    threadHandles = pThreadHandles;
-    lastSteppedPid = pLastSteppedPid;
-    atomicHolder = pAtomicHolder;
-  }
-
-  PORState(
+      AbstractState pWrappedState,
       CFA pCfa,
       ImmutableMap<Integer, PORThreadState> pThreads,
       ImmutableMap<String, Integer> pThreadHandles) {
-    this(pCfa, pThreads, pThreadHandles, null, null);
+    super(pWrappedState);
+    cfa = pCfa;
+    threads = pThreads;
+    threadHandles = pThreadHandles;
   }
 
-  static PORState empty(CFA pCfa) {
-    return new PORState(pCfa, ImmutableMap.of(), ImmutableMap.of());
+  static PORState empty(AbstractState pWrappedInitialState, CFA pCfa) {
+    return new PORState(pWrappedInitialState, pCfa, ImmutableMap.of(), ImmutableMap.of());
   }
 
   public ImmutableMap<Integer, PORThreadState> threads() {
@@ -116,19 +91,6 @@ public class PORState
 
   boolean canMerge(PORState other) {
     return threads.equals(other.threads);
-  }
-
-  /**
-   * Updates the cached mutex state. Called from PORTransferRelation.strengthen when the MutexCPA's
-   * state is available.
-   */
-  void setCachedMutexState(MutexState pMutexState) {
-    cachedMutexState = pMutexState;
-  }
-
-  /** Returns the cached mutex state (may be null if strengthen has not been called yet). */
-  @Nullable MutexState getCachedMutexState() {
-    return cachedMutexState;
   }
 
   PORState addNewThread(
@@ -144,12 +106,12 @@ public class PORState
             .buildKeepingLast();
     final ImmutableMap<String, Integer> newThreadHandles =
         handle == null
-            ? threadHandles
-            : ImmutableMap.<String, Integer>builder()
-                .putAll(threadHandles)
-                .put(handle, newPid)
-                .buildKeepingLast();
-    return new PORState(cfa, newThreads, newThreadHandles, null, atomicHolder);
+        ? threadHandles
+        : ImmutableMap.<String, Integer>builder()
+            .putAll(threadHandles)
+            .put(handle, newPid)
+            .buildKeepingLast();
+    return new PORState(getWrappedState(), cfa, newThreads, newThreadHandles);
   }
 
   PORState joinThread(String handle) {
@@ -166,7 +128,7 @@ public class PORState
         threadHandles.entrySet().stream()
             .filter(e -> !e.getValue().equals(pidToRemove))
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
-    return new PORState(cfa, newThreads, newThreadHandles, null, atomicHolder);
+    return new PORState(getWrappedState(), cfa, newThreads, newThreadHandles);
   }
 
   private Integer canJoin(String handle, boolean throwIfThreadNotFound) {
@@ -201,20 +163,11 @@ public class PORState
       }
     }
     newThreads.put(pPid, new PORThreadState(pNextLoc, pNextStack, pNextFormula));
-    return new PORState(cfa, newThreads.buildKeepingLast(), threadHandles, pPid, atomicHolder);
+    return new PORState(getWrappedState(), cfa, newThreads.buildKeepingLast(), threadHandles);
   }
 
-  /**
-   * Returns a new state with the atomic holder set to the given PID (for {@code
-   * __VERIFIER_atomic_begin}) or cleared ({@code null}, for {@code __VERIFIER_atomic_end}).
-   */
-  PORState withAtomicHolder(@Nullable Integer pAtomicHolder) {
-    return new PORState(cfa, threads, threadHandles, lastSteppedPid, pAtomicHolder);
-  }
-
-  /** Returns the PID of the thread currently in an atomic block, or {@code null}. */
-  public @Nullable Integer getAtomicHolder() {
-    return atomicHolder;
+  PORState withWrappedState(AbstractState pWrappedState) {
+    return new PORState(pWrappedState, cfa, threads, threadHandles);
   }
 
   /**
@@ -223,29 +176,6 @@ public class PORState
    */
   public Integer getEdgePid(CFAEdge edge) {
     return edgePidMap.get(edge);
-  }
-
-  /**
-   * Returns the PID of the thread that was stepped to produce this successor state.
-   *
-   * <p>This is set by {@link #stepThread} and is available on successor states even after the
-   * transient {@link #edgePidMap} has been cleared. Returns {@code null} for the initial state.
-   */
-  public @Nullable Integer getLastSteppedPid() {
-    return lastSteppedPid;
-  }
-
-  @Override
-  public CFAEdge getNextBasicBlockEdge(CFAEdge previousEdge) {
-    Integer pid = PorEdgeCloner.getPid(previousEdge);
-    if (pid == null) {
-      throw new IllegalArgumentException(
-          "Thread could not be found for the edge: " + previousEdge);
-    }
-    CFAEdge successor = previousEdge.getSuccessor().getLeavingEdge(0);
-    CFAEdge cloned = PorEdgeCloner.clone(successor, pid, this);
-    edgePidMap.put(cloned, pid);
-    return cloned;
   }
 
   @Override
@@ -291,9 +221,9 @@ public class PORState
         PORThreadState currentChildState = child.threads().get(threadId);
         if (currentChildState != null
             && !currentParentState
-                .pLocationState()
-                .getLocationNode()
-                .equals(currentChildState.pLocationState().getLocationNode())) {
+            .pLocationState()
+            .getLocationNode()
+            .equals(currentChildState.pLocationState().getLocationNode())) {
           if (parentThreadState != null) {
             return null;
           }
@@ -321,9 +251,9 @@ public class PORState
   public String toDOTLabel() {
     return "["
         + threads.keySet().stream()
-            .sorted()
-            .map(e -> e + ": " + threads.get(e).pLocationState().getLocationNode())
-            .collect(Collectors.joining(", "))
+        .sorted()
+        .map(e -> e + ": " + threads.get(e).pLocationState().getLocationNode())
+        .collect(Collectors.joining(", "))
         + "]";
   }
 
@@ -341,16 +271,16 @@ public class PORState
       return false;
     }
     return Objects.equals(threads, other.threads)
-        && Objects.equals(atomicHolder, other.atomicHolder);
+        && Objects.equals(threadHandles, other.threadHandles);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, atomicHolder);
+    return Objects.hash(threads, threadHandles);
   }
 
   private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() {
-    MutexState mutexState = cachedMutexState != null ? cachedMutexState : MutexState.EMPTY;
+    MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     edgePidMap.clear();
     ImmutableList.Builder<CFAEdge> ret = ImmutableList.builder();
     for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
@@ -358,51 +288,57 @@ public class PORState
       PORThreadState threadState = entry.getValue();
 
       // Atomic block filtering: if another thread holds the atomic block, this thread is blocked.
+      Integer atomicHolder = mutexState != null ? mutexState.getAtomicHolder() : null;
       if (atomicHolder != null && atomicHolder != pid) {
         continue;
       }
 
-      if (!threadState.pLocationState().getLocationNode().getAllLeavingEdges().isEmpty()) {
-        for (CFAEdge outgoingEdge : threadState.pLocationState().getOutgoingEdges()) {
-          CFAEdge cloned = PorEdgeCloner.clone(outgoingEdge, pid, this);
+      for (CFAEdge outgoingEdge : threadState.pLocationState().getOutgoingEdges()) {
+        CFAEdge cloned = PorEdgeCloner.clone(outgoingEdge, pid, this);
 
+        if (mutexState != null) {
           // Mutex lock filtering: if this edge is a lock call and the mutex is held by another
           // thread, this thread is blocked and cannot proceed along this edge.
-          String lockMutex = MutexFunctions.getLockMutexName(cloned);
-          if (lockMutex != null && mutexState.isLockedByOther(lockMutex, pid)) {
+          MutexLock lockMutex = MutexFunctions.getLockMutex(cloned);
+          if (lockMutex != null && mutexState.isMutexBlockedFor(lockMutex, pid)) {
             continue;
           }
-
-          // Shortcut for pthread_join: only include if the joined thread has terminated
-          if (cloned instanceof AStatementEdge statementEdge
-              && statementEdge.getStatement() instanceof AFunctionCall functionCall
-              && functionCall
-                      .getFunctionCallExpression()
-                      .getFunctionNameExpression()
-                  instanceof AIdExpression functionName
-              && "pthread_join".equals(functionName.getName())) {
-            final var params =
-                functionCall.getFunctionCallExpression().getParameterExpressions();
-            checkState(
-                params.size() == 2, "Malformed pthread_join (not 2 params): %s", functionCall);
-            final var handleName = extractJoinHandle(params);
-
-            if (canJoin(handleName, false) == null) {
-              continue;
-            }
-          }
-
-          edgePidMap.put(cloned, pid);
-          ret.add(cloned);
         }
+
+        // Shortcut for pthread_join: only include if the joined thread has terminated
+        if (cloned instanceof AStatementEdge statementEdge
+            && statementEdge.getStatement() instanceof AFunctionCall functionCall
+            && functionCall
+            .getFunctionCallExpression()
+            .getFunctionNameExpression()
+            instanceof AIdExpression functionName
+            && "pthread_join".equals(functionName.getName())) {
+          final var params =
+              functionCall.getFunctionCallExpression().getParameterExpressions();
+          checkState(
+              params.size() == 2, "Malformed pthread_join (not 2 params): %s", functionCall);
+          final var handleName = extractJoinHandle(params);
+
+          if (canJoin(handleName, false) == null) {
+            continue;
+          }
+        }
+
+        edgePidMap.put(cloned, pid);
+        ret.add(cloned);
       }
     }
+
+    if (mutexState != null) {
+      mutexState.setEdgePidMap(edgePidMap);
+    }
+
     return ret.build();
   }
 
   // POR algorithm
 
-  Collection<CFAEdge> getSourceSet(Precision precision) {
+  Collection<CFAEdge> getSourceSet(PORPrecision precision) {
     if (sourceSet == null) {
       ImmutableCollection<CFAEdge> minimalSourceSet = ImmutableList.of();
       final var allOutgoingEdges = getAllThreadOutgoingEdges();
@@ -414,13 +350,19 @@ public class PORState
         }
       }
       sourceSet = minimalSourceSet;
+    } else {
+      MutexState mutexState =
+          AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
+      if (mutexState != null) {
+        mutexState.setEdgePidMap(edgePidMap);
+      }
     }
     return sourceSet;
   }
 
   private ImmutableCollection<ImmutableCollection<CFAEdge>> getSourceSetFirstActions(
       Iterable<CFAEdge> allOutgoingEdges) {
-    MutexState mutexState = cachedMutexState != null ? cachedMutexState : MutexState.EMPTY;
+    MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     final var enabledThreads =
         StreamSupport.stream(allOutgoingEdges.spliterator(), false)
             .map(e -> edgePidMap.get(e))
@@ -430,23 +372,22 @@ public class PORState
     final ImmutableList.Builder<ImmutableCollection<CFAEdge>> sourceSetFirstActions =
         ImmutableList.builder();
     for (final var pid : enabledThreads) {
-      final ImmutableList.Builder<CFAEdge> firstActions = ImmutableList.builder();
+      final Collection<CFAEdge> firstActions = new ArrayList<>();
       for (final var edge : allOutgoingEdges) {
         if (pid.equals(edgePidMap.get(edge))) {
           firstActions.add(edge);
         }
       }
-      final ImmutableCollection<CFAEdge> built = firstActions.build();
       boolean allBlocked =
-          !built.isEmpty()
-              && built.stream()
-                  .allMatch(
-                      e -> {
-                        String lockMutex = MutexFunctions.getLockMutexName(e);
-                        return lockMutex != null && mutexState.isLocked(lockMutex);
-                      });
+          !firstActions.isEmpty() && mutexState != null
+              && firstActions.stream()
+              .allMatch(
+                  e -> {
+                    MutexLock lockMutex = MutexFunctions.getLockMutex(e);
+                    return lockMutex != null && mutexState.isMutexBlockedFor(lockMutex, pid);
+                  });
       if (!allBlocked) {
-        sourceSetFirstActions.add(built);
+        sourceSetFirstActions.add(ImmutableList.copyOf(firstActions));
       }
     }
     return sourceSetFirstActions.build();
@@ -503,17 +444,39 @@ public class PORState
   }
 
   private EdgeDefUseData getUsedGlobalVars(CFAEdge edge) {
+    // collect directly used vars by the cfa edge
+    // plus continue to successor edges until the current thread obtains any mutexes
     if (MutexFunctions.isLockCall(edge)) {
-      return getDirectlyUsedGlobalVars(edge);
+      MutexState currentMutexState =
+          AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
+      MutexState currentInitialMutexState = MutexState.EMPTY;
+      if (currentMutexState != null) {
+        for (String initializedMutex : currentMutexState.getInitializedMutexes()) {
+          currentInitialMutexState = currentInitialMutexState.withInit(initializedMutex);
+        }
+      }
+      final MutexState finalCurrentInitialMutexState = currentInitialMutexState;
+      final Integer pid = getEdgePid(edge);
+      return getVarsWithTraversal(edge, new Predicate<>() {
+
+        private MutexState mutexState = finalCurrentInitialMutexState;
+
+        @Override
+        public boolean test(CFAEdge pCFAEdge) {
+          mutexState = mutexState.update(pCFAEdge, pid);
+          return mutexState != null && !mutexState.getLockedMutexes().isEmpty();
+        }
+      });
     }
+
     return getDirectlyUsedGlobalVars(edge);
   }
 
   private EdgeDefUseData getInfluencedGlobalVars(CFAEdge edge) {
-    return getVarsWithTraversal(edge);
+    return getVarsWithTraversal(edge, e -> true);
   }
 
-  private EdgeDefUseData getVarsWithTraversal(CFAEdge startEdge) {
+  private EdgeDefUseData getVarsWithTraversal(CFAEdge startEdge, Predicate<CFAEdge> goFurther) {
     var uses = EdgeDefUseData.empty();
     final var exploredEdges = new ArrayList<CFAEdge>();
     final var edgesToExplore = new ArrayList<>(List.of(startEdge));
@@ -521,10 +484,11 @@ public class PORState
       final var edge = edgesToExplore.removeFirst();
       exploredEdges.add(edge);
       uses = uses.merge(getDirectlyUsedGlobalVars(edge));
-      final var successorEdges = getSuccessorEdges(edge);
-      for (final var successorEdge : successorEdges) {
-        if (!exploredEdges.contains(successorEdge)) {
-          edgesToExplore.add(successorEdge);
+      if (goFurther.test(edge)) {
+        for (final var successorEdge : getSuccessorEdges(edge)) {
+          if (!exploredEdges.contains(successorEdge)) {
+            edgesToExplore.add(successorEdge);
+          }
         }
       }
     }
@@ -538,8 +502,8 @@ public class PORState
       if (leavingEdge instanceof AStatementEdge statementEdge) {
         if (statementEdge.getStatement() instanceof AFunctionCall functionCall) {
           if (functionCall
-                  .getFunctionCallExpression()
-                  .getFunctionNameExpression()
+              .getFunctionCallExpression()
+              .getFunctionNameExpression()
               instanceof AIdExpression functionName) {
             if ("pthread_create".equals(functionName.getName())) {
               final var params =
