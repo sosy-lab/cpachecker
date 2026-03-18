@@ -52,22 +52,16 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   private final int size;
   private final boolean predicatesPresent;
   private final boolean aggregateBasicBlocks;
-  private final boolean callLocationCPAForAllEdgesInBasicBlocks;
   private final BasicBlockAggregator basicBlockAggregator;
 
   CompositeTransferRelation(
       ImmutableList<TransferRelation> pTransferRelations,
       CFA pCFA,
-      boolean pAggregateBasicBlocks,
-      boolean pCallLocationCPAForAllEdgesInBasicBlocks,
-      boolean pSingleGlobalStatementPerBasicBlock) {
+      boolean pAggregateBasicBlocks) {
     transferRelations = pTransferRelations;
     size = pTransferRelations.size();
     aggregateBasicBlocks = pAggregateBasicBlocks;
-    callLocationCPAForAllEdgesInBasicBlocks = pCallLocationCPAForAllEdgesInBasicBlocks;
-    basicBlockAggregator =
-        pSingleGlobalStatementPerBasicBlock ? new SingleGlobalStatementBlockAggregator(pCFA)
-                                            : new StraightLineBlockAggregator(pCFA);
+    basicBlockAggregator = new StraightLineBlockAggregator(pCFA);
 
     // prepare special case handling if both predicates and assumptions are used
     predicatesPresent =
@@ -186,18 +180,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
           // if there is more than one leaving edge we do not create a further
           // multi edge part
           if (cfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
-            if (callLocationCPAForAllEdgesInBasicBlocks) {
-              CompositeState arbitraryCurrentState = currentStates.iterator().next();
-              AbstractStateWithLocations locState =
-                  extractStateByType(arbitraryCurrentState, AbstractStateWithLocations.class);
-              if (locState != null) {
-                cfaEdge = locState.getNextBasicBlockEdge(cfaEdge);
-              } else {
-                cfaEdge = cfaEdge.getSuccessor().getLeavingEdge(0);
-              }
-            } else {
-              cfaEdge = cfaEdge.getSuccessor().getLeavingEdge(0);
-            }
+            cfaEdge = cfaEdge.getSuccessor().getLeavingEdge(0);
           } else {
             break;
           }
