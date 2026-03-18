@@ -12,8 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -21,19 +19,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceIgnoreSleepInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -43,7 +38,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
@@ -151,22 +145,6 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
                 SeqIdExpressions.NEXT_THREAD,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
                 BinaryOperator.EQUALS);
-    CExportExpression wrappedExpression = new CExpressionWrapper(nextThreadEqualsThreadId);
-
-    if (!options.reduceIgnoreSleep()) {
-      return wrappedExpression;
-    }
-
-    // optionally add a reduction "next_thread == i || (Ti_SYNC == 0 && *Ti not in conflict*)"
-    ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
-    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));
-    ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
-        new ReduceIgnoreSleepInjector(
-            options, pThread, otherThreads, labelClauseMap, ghostElements, utils);
-    CExportExpression ignoreSleepExpression =
-        reduceIgnoreSleepInjector.buildIgnoreSleepExpression();
-
-    return CLogicalOrExpression.of(wrappedExpression, ignoreSleepExpression);
+    return new CExpressionWrapper(nextThreadEqualsThreadId);
   }
 }

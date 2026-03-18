@@ -38,7 +38,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceIgnoreSleepInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
@@ -103,37 +105,6 @@ public final class SeqMainFunctionBuilder {
         }
       }
 
-      // add if next_thread is a non-determinism source
-      if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
-        if (pOptions.comments()) {
-          loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
-        }
-        // next_thread = __VERIFIER_nondet_...()
-        CFunctionCallAssignmentStatement nextThreadAssignment =
-            VerifierNondetFunctionType.buildNondetIntegerAssignment(
-                pOptions, SeqIdExpressions.NEXT_THREAD);
-        loopBlock.add(new CStatementWrapper(nextThreadAssignment));
-
-        // assume(0 <= next_thread && next_thread < NUM_THREADS)
-        CExportStatement nextThreadAssumption =
-            SeqAssumeFunctionBuilder.buildNextThreadAssumeCallFunctionCallStatement(
-                pOptions.nondeterminismSigned(),
-                pFields.numThreads,
-                pUtils.binaryExpressionBuilder());
-        loopBlock.add(nextThreadAssumption);
-
-        // for scalar pc, this is done separately at the start of the respective thread
-        if (!pOptions.scalarPc()) {
-          // assumptions over next_thread being active: pc[next_thread] != 0
-          if (pOptions.comments()) {
-            loopBlock.add(SeqComment.NEXT_THREAD_ACTIVE);
-          }
-          CFunctionCallStatement nextThreadActiveAssumption =
-              pFields.ghostElements.programCounterVariables().buildArrayPcUnequalExitPcAssumption();
-          loopBlock.add(new CStatementWrapper(nextThreadActiveAssumption));
-        }
-      }
-
       // assumptions that at least one thread is still active: assume(thread_count > 0)
       if (pOptions.reduceSingleActiveThread()) {
         if (pOptions.comments()) {
@@ -150,6 +121,25 @@ public final class SeqMainFunctionBuilder {
         CFunctionCallStatement countAssumption =
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
         loopBlock.add(new CStatementWrapper(countAssumption));
+      }
+
+      // add if next_thread is a non-determinism source
+      if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
+        if (pOptions.comments()) {
+          loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
+        }
+        if (pOptions.reduceIgnoreSleep()) {
+          loopBlock.add(
+              ReduceIgnoreSleepInjector.buildNextThreadIgnoreSleepInstrumentation(
+                  pOptions, pFields, pUtils));
+        } else {
+          loopBlock.addAll(
+              buildNextThreadNondeterministicStatements(
+                  pOptions,
+                  pFields.numThreads,
+                  pFields.ghostElements,
+                  pUtils.binaryExpressionBuilder()));
+        }
       }
 
       // add all thread simulation control flow statements
@@ -244,5 +234,39 @@ public final class SeqMainFunctionBuilder {
               elementAndList(new CStatementWrapper(iterationIncrement), pLoopBody.statements()));
       return new CWhileLoopStatement(new CExpressionWrapper(loopExpression), loopBodyWithIncrement);
     }
+  }
+
+  public static ImmutableList<CCompoundStatementElement> buildNextThreadNondeterministicStatements(
+      MPOROptions pOptions,
+      int pNumThreads,
+      GhostElements pGhostElements,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
+
+    // next_thread = __VERIFIER_nondet_...()
+    CFunctionCallAssignmentStatement nextThreadAssignment =
+        VerifierNondetFunctionType.buildNondetIntegerAssignment(
+            pOptions, SeqIdExpressions.NEXT_THREAD);
+    rStatements.add(new CStatementWrapper(nextThreadAssignment));
+
+    // assume(0 <= next_thread && next_thread < NUM_THREADS)
+    CExportStatement nextThreadAssumption =
+        SeqAssumeFunctionBuilder.buildNextThreadAssumeCallFunctionCallStatement(
+            pOptions.nondeterminismSigned(), pNumThreads, pBinaryExpressionBuilder);
+    rStatements.add(nextThreadAssumption);
+
+    // for scalar pc, this is done separately at the start of the respective thread
+    if (!pOptions.scalarPc()) {
+      // assumptions over next_thread being active: pc[next_thread] != 0
+      if (pOptions.comments()) {
+        rStatements.add(SeqComment.NEXT_THREAD_ACTIVE);
+      }
+      CFunctionCallStatement nextThreadActiveAssumption =
+          pGhostElements.programCounterVariables().buildArrayPcUnequalExitPcAssumption();
+      rStatements.add(new CStatementWrapper(nextThreadActiveAssumption));
+    }
+    return rStatements.build();
   }
 }

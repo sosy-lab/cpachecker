@@ -11,24 +11,32 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
@@ -37,11 +45,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermin
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementBuilder;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 public record ReduceIgnoreSleepInjector(
     MPOROptions options,
@@ -95,27 +106,74 @@ public record ReduceIgnoreSleepInjector(
   }
 
   /**
-   * Returns a {@link CExportExpression} that encodes the Ignore Sleep (IS) reduction when the
-   * {@link NondeterminismSource} is {@link NondeterminismSource#NEXT_THREAD} or {@link
-   * NondeterminismSource#NEXT_THREAD_AND_NUM_STATEMENTS}. The expression is used to check whether a
-   * thread can be soundly executed, even if it was not chosen for execution:
+   * Returns a {@link CIfStatement} that encodes the Ignore Sleep (IS) reduction when the {@link
+   * NondeterminismSource} is {@link NondeterminismSource#NEXT_THREAD} or {@link
+   * NondeterminismSource#NEXT_THREAD_AND_NUM_STATEMENTS}. The statement is used to check whether a
+   * thread can soundly be chosen deterministically. Example with two threads:
    *
    * <pre>{@code
-   * if (next_thread == i || (Ti_SYNC == 0 && *Ti not in any conflict*)) {
-   *    ... // execute thread
+   * if (pc1 != 0 && T1_SYNC == 0 && *T1 not in any conflict*) {
+   *    next_thread = 1;
+   * } else {
+   *    if (pc2 != 0 && T2_SYNC == 0 && *T2 not in any conflict*) {
+   *      next_thread = 2;
+   *    } else {
+   *      // if all threads are in at least one conflict, choose nondeterministically
+   *      next_thread = nondet();
+   *    }
    * }
    * }</pre>
-   *
-   * <p>This ensures that if thread {@code i} was not chosen for execution, i.e., {@code next_thread
-   * != i}, then it is still executed if it is not in conflict with another thread.
    */
-  public CExportExpression buildIgnoreSleepExpression() throws UnrecognizedCodeException {
-    checkState(options.nondeterminismSource().isNextThreadNondeterministic());
+  public static CIfStatement buildNextThreadIgnoreSleepInstrumentation(
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
 
+    ImmutableListMultimap.Builder<CExportExpression, CCompoundStatementElement> ifElseChain =
+        ImmutableListMultimap.builder();
+
+    for (MPORThread thread : pFields.threads) {
+      ImmutableSet<MPORThread> otherThreads =
+          MPORUtil.withoutElement(pFields.clauses.keySet(), thread);
+      ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+          SeqThreadStatementClauseUtil.mapLabelNumberToClause(pFields.clauses.get(thread));
+      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
+          new ReduceIgnoreSleepInjector(
+              pOptions, thread, otherThreads, labelClauseMap, pFields.ghostElements, pUtils);
+
+      // create the expression used for the 'if (...)' conditions
+      CExportExpression ifCondition =
+          reduceIgnoreSleepInjector.buildNextThreadIgnoreSleepExpression();
+
+      // create the 'next_thread = {thread_id};' assignment
+      CExpressionAssignmentStatement nextThreadAssignment =
+          SeqStatementBuilder.buildExpressionAssignmentStatement(
+              SeqIdExpressions.NEXT_THREAD,
+              SeqExpressionBuilder.buildIntegerLiteralExpression(thread.id()));
+
+      ifElseChain.put(ifCondition, new CStatementWrapper(nextThreadAssignment));
+    }
+
+    // for the nondeterministic choice add an 'if (1) { ... }' statements
+    ifElseChain.putAll(
+        new CExpressionWrapper(CIntegerLiteralExpression.ONE),
+        SeqMainFunctionBuilder.buildNextThreadNondeterministicStatements(
+            pOptions, pFields.numThreads, pFields.ghostElements, pUtils.binaryExpressionBuilder()));
+
+    return CMultiSelectionStatementBuilder.buildIfElseChain(ifElseChain.build());
+  }
+
+  /** Returns the expression {@code (pci != 0 && Ti_SYNC == 0 && *Ti not in conflict*)}. */
+  private CExportExpression buildNextThreadIgnoreSleepExpression()
+      throws UnrecognizedCodeException {
+
+    CExpression threadActiveExpression =
+        ghostElements.getPcVariables().getThreadActiveExpression(activeThread.id());
     CExpression syncEqualsZero = buildSyncEqualsZeroExpression();
     CExportExpression bitVectorExpression = buildBitVectorEvaluationExpression();
     return CLogicalAndExpression.of(
-        new CExpressionWrapper(syncEqualsZero), bitVectorExpression.negate());
+        new CExpressionWrapper(threadActiveExpression),
+        new CExpressionWrapper(syncEqualsZero),
+        bitVectorExpression.negate());
   }
 
   private CExpression buildSyncEqualsZeroExpression() throws UnrecognizedCodeException {
