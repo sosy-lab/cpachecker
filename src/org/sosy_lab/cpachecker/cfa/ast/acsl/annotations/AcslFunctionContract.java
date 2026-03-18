@@ -24,25 +24,30 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * <p>A function may have no contract at all, or a contract with missing clauses. Missing requires
  * and ensures clauses default to \true. Missing exits clauses default to \false. If no assigns
  * clause is given, it remains unspecified
+ *
+ * <p>Note, that because of the order in the grammar rule for funciton contracts the requires
+ * clauses of the contract neeed to be listed before assigns and ensures clauses:
+ *
+ * <p>functionContract : requiresClause* simpleClause* namedBehavior*;
  */
 public final class AcslFunctionContract extends AAcslAnnotation {
 
+  private final ImmutableSet<AcslRequires> requiresClauses;
   private final ImmutableSet<AcslEnsures> ensuresClauses;
   private final ImmutableSet<AcslAssigns> assignsClauses;
-  private final ImmutableSet<AcslRequires> requiresClauses;
 
   public AcslFunctionContract(
       FileLocation pFileLocation,
+      ImmutableSet<AcslRequires> pRequiresClauses,
       ImmutableSet<AcslEnsures> pEnsuresClauses,
-      ImmutableSet<AcslAssigns> pAssignsClauses,
-      ImmutableSet<AcslRequires> pRequiresClauses) {
+      ImmutableSet<AcslAssigns> pAssignsClauses) {
     super(pFileLocation);
+    Preconditions.checkNotNull(pRequiresClauses);
     Preconditions.checkNotNull(pEnsuresClauses);
     Preconditions.checkNotNull(pAssignsClauses);
-    Preconditions.checkNotNull(pRequiresClauses);
+    requiresClauses = pRequiresClauses;
     ensuresClauses = pEnsuresClauses;
     assignsClauses = pAssignsClauses;
-    requiresClauses = pRequiresClauses;
   }
 
   @Override
@@ -67,15 +72,17 @@ public final class AcslFunctionContract extends AAcslAnnotation {
   @Override
   public String toAstString() {
     StringBuilder astString = new StringBuilder();
+
+    for (AcslRequires r : requiresClauses) {
+      astString.append(r.toAstString()).append(System.lineSeparator());
+    }
+
     for (AcslEnsures e : ensuresClauses) {
       astString.append(e.toAstString()).append(System.lineSeparator());
     }
 
     for (AcslAssigns a : assignsClauses) {
       astString.append(a.toAstString()).append(System.lineSeparator());
-    }
-    for (AcslRequires r : requiresClauses) {
-      astString.append(r.toAstString()).append(System.lineSeparator());
     }
 
     return astString.toString();

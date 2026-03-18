@@ -86,12 +86,9 @@ public class AntlrAnnotationToAnnotationVisitor
     FluentIterable<AAcslAnnotation> annotations = FluentIterable.from(as);
     return new AcslFunctionContract(
         fileLocation,
+        annotations.filter(a -> a instanceof AcslRequires).transform(a -> (AcslRequires) a).toSet(),
         annotations.filter(a -> a instanceof AcslEnsures).transform(a -> (AcslEnsures) a).toSet(),
-        annotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a).toSet(),
-        annotations
-            .filter(a -> a instanceof AcslRequires)
-            .transform(a -> (AcslRequires) a)
-            .toSet());
+        annotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a).toSet());
   }
 
   @Override
@@ -136,7 +133,7 @@ public class AntlrAnnotationToAnnotationVisitor
   public AcslAssigns visitAssignsClause(AssignsClauseContext ctx) {
     ImmutableSet.Builder<AcslMemoryLocationSet> locationSetBuilder = ImmutableSet.builder();
     for (LocationContext loc : ctx.locations().location()) {
-      AcslMemoryLocationSet memLocation = antlrTsetToMemorySetConverter.visit(loc);
+      AcslMemoryLocationSet memLocation = antlrTsetToMemorySetConverter.visit(loc.tset());
       locationSetBuilder.add(memLocation);
     }
     ImmutableSet<AcslMemoryLocationSet> locationsSet = locationSetBuilder.build();
