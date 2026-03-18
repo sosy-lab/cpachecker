@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -20,8 +21,11 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
 /**
- * A block features a {@code goto} label and a list of {@link SeqThreadStatement}. An inner block is
- * only reachable from inside a thread simulation via its {@code goto} label.
+ * Each {@link CFANode} from the input program corresponds to a {@link SeqThreadStatementBlock}.
+ *
+ * <p>A {@link SeqThreadStatementBlock} features a {@code goto} label and a list of {@link
+ * SeqThreadStatement}. An inner block is only reachable from inside a thread simulation via its
+ * {@code goto} label.
  */
 public final class SeqThreadStatementBlock implements SeqExportStatement {
 
@@ -33,25 +37,27 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
    */
   private final int labelNumber;
 
-  private final ImmutableList<SeqThreadStatement> statements;
+  private final boolean isLoopHead;
 
-  private final boolean isLoopStart;
+  private final ImmutableList<SeqThreadStatement> statements;
 
   private final Optional<CLabelStatement> nextThreadLabel;
 
   public SeqThreadStatementBlock(
       int pThreadId,
       int pLabelNumber,
+      boolean pIsLoopHead,
       ImmutableList<SeqThreadStatement> pStatements,
       Optional<CLabelStatement> pNextThreadLabel) {
 
     checkArgument(
         pStatements.size() == 1 || pStatements.size() == 2,
         "pStatements must have either 1 or 2 elements");
+
     threadId = pThreadId;
     labelNumber = pLabelNumber;
+    isLoopHead = pIsLoopHead;
     statements = pStatements;
-    isLoopStart = SeqThreadStatementBlockUtil.isLoopStart(statements);
     nextThreadLabel = pNextThreadLabel;
   }
 
@@ -61,14 +67,14 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
   }
 
   @Override
-  public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
+  public ImmutableList<CCompoundStatementElement> toCExportStatements() {
     ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
 
     exportStatements.add(buildLabelStatement());
 
     if (statements.size() == 1) {
       // 1 statement: add its respective export statements
-      exportStatements.addAll(statements.getFirst().toCExportAstNodes());
+      exportStatements.addAll(statements.getFirst().toCExportStatements());
 
     } else {
       // 2 statements (= assume statements): create if-else statement
@@ -79,8 +85,8 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
       CIfStatement ifStatement =
           new CIfStatement(
               new CExpressionWrapper(firstAssumeData.getIfExpression()),
-              new CCompoundStatement(firstAssume.toCExportAstNodes()),
-              new CCompoundStatement(secondAssume.toCExportAstNodes()));
+              new CCompoundStatement(firstAssume.toCExportStatements()),
+              new CCompoundStatement(secondAssume.toCExportStatements()));
       exportStatements.add(ifStatement);
     }
 
@@ -103,16 +109,21 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
     return nextThreadLabel;
   }
 
-  public boolean isLoopStart() {
-    return isLoopStart;
+  public boolean isLoopHead() {
+    return isLoopHead;
   }
 
   public SeqThreadStatementBlock withLabelNumber(int pLabelNumber) {
-    return new SeqThreadStatementBlock(threadId, pLabelNumber, statements, nextThreadLabel);
+    return new SeqThreadStatementBlock(
+        threadId, pLabelNumber, isLoopHead, statements, nextThreadLabel);
   }
 
   public SeqThreadStatementBlock withStatements(ImmutableList<SeqThreadStatement> pStatements) {
-    return new SeqThreadStatementBlock(threadId, labelNumber, pStatements, nextThreadLabel);
+    checkArgument(
+        statements.size() == pStatements.size(),
+        "pStatements.size() must be equal to the existing statements.size()");
+    return new SeqThreadStatementBlock(
+        threadId, labelNumber, isLoopHead, pStatements, nextThreadLabel);
   }
 
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */

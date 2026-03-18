@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CComment;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
@@ -120,15 +121,14 @@ public record SeqThreadStatementBuilder(
       throws UnsupportedCodeException {
 
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
-
-    ImmutableList<CFAEdgeForThread> leavingEdges = pThreadNode.leavingEdges();
-    int numLeavingEdges = leavingEdges.size();
-    for (int i = 0; i < numLeavingEdges; i++) {
-      CFAEdgeForThread threadEdge = leavingEdges.get(i);
-
+    for (CFAEdgeForThread threadEdge : pThreadNode.leavingEdges()) {
       // handle const CPAchecker_TMP first because it requires successor nodes and edges
       if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
         rStatements.add(buildConstCpaCheckerTmpStatement(threadEdge, pCoveredNodes));
+
+      } else if (MPORUtil.isCpaCheckerTmpDeclarationWithoutInitializer(threadEdge.cfaEdge)) {
+        rStatements.add(buildCpaCheckerTmpWithoutInitializerStatement(threadEdge));
+
       } else {
         // exclude all function summaries, the calling context is handled by return edges
         if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
@@ -326,6 +326,30 @@ public record SeqThreadStatementBuilder(
         null);
   }
 
+  // CPAchecker_TMP without initializer ============================================================
+
+  private SeqThreadStatement buildCpaCheckerTmpWithoutInitializerStatement(
+      CFAEdgeForThread pThreadEdge) {
+
+    SubstituteEdge cpaCheckerTmpEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
+    CDeclarationEdge declarationEdge = (CDeclarationEdge) cpaCheckerTmpEdge.cfaEdge;
+    CVariableDeclaration variableDeclaration =
+        (CVariableDeclaration) declarationEdge.getDeclaration();
+    CIdExpression idExpression = new CIdExpression(FileLocation.DUMMY, variableDeclaration);
+    CExpressionStatementWrapper exportStatement =
+        new CExpressionStatementWrapper(new CExpressionWrapper(idExpression));
+
+    SeqThreadStatementData data =
+        new SeqThreadStatementData(
+            SeqThreadStatementType.CPACHECKER_TMP_WITHOUT_INITIALIZER,
+            ImmutableSet.of(cpaCheckerTmpEdge),
+            thread.id(),
+            pcLeftHandSide);
+
+    return SeqThreadStatement.of(
+        data, pThreadEdge.getSuccessor().pc, ImmutableList.of(exportStatement));
+  }
+
   // Statement build methods =======================================================================
 
   private SeqThreadStatement buildStatementFromThreadEdge(
@@ -334,23 +358,23 @@ public record SeqThreadStatementBuilder(
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
-    CFANode successor = pThreadEdge.getSuccessor().cfaNode;
+    CFANode successor = pThreadEdge.getSuccessor().getCfaNode();
 
     if (resultsInBlankStatement(pSubstituteEdge, successor)) {
-      return buildGhostOnlyStatement(thread.id(), pcLeftHandSide, targetPc);
+      return buildGhostOnlyStatement(
+          thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, targetPc);
     }
 
     return switch (pSubstituteEdge.cfaEdge) {
-      case CAssumeEdge assumeEdge ->
-          buildAssumeStatement(assumeEdge, pcLeftHandSide, pSubstituteEdge, targetPc);
+      case BlankEdge blankEdge ->
+          buildWhileTrueLoopHeadStatement(blankEdge, pSubstituteEdge, targetPc);
 
-      case CDeclarationEdge declarationEdge -> {
-        // "leftover" declarations should be local variables with an initializer
-        CVariableDeclaration variableDeclaration =
-            (CVariableDeclaration) declarationEdge.getDeclaration();
-        yield buildLocalVariableInitializationStatement(
-            variableDeclaration, pSubstituteEdge, pcLeftHandSide, targetPc);
-      }
+      case CAssumeEdge assumeEdge -> buildAssumeStatement(assumeEdge, pSubstituteEdge, targetPc);
+
+      case CDeclarationEdge declarationEdge ->
+          // "leftover" declarations should be local variables with an initializer
+          buildLocalVariableInitializationStatement(
+              (CVariableDeclaration) declarationEdge.getDeclaration(), pSubstituteEdge, targetPc);
 
       case CFunctionCallEdge functionCallEdge ->
           buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc);
@@ -362,25 +386,40 @@ public record SeqThreadStatementBuilder(
           buildStatementFromPthreadFunction(pThreadEdge, pSubstituteEdge, targetPc);
 
       case CStatementEdge statementEdge ->
-          buildDefaultStatement(statementEdge, pSubstituteEdge, pcLeftHandSide, targetPc);
+          buildDefaultStatement(statementEdge, pSubstituteEdge, targetPc);
 
       default ->
           throw new AssertionError("Unhandled CFAEdge type: " + cfaEdge.getClass().getSimpleName());
     };
   }
 
+  private SeqThreadStatement buildWhileTrueLoopHeadStatement(
+      BlankEdge pBlankEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
+
+    checkArgument(
+        pBlankEdge.getPredecessor().isLoopStart(),
+        "The predecessor of a left over BlankEdge must be a loop head.");
+
+    SeqThreadStatementData data =
+        new SeqThreadStatementData(
+            SeqThreadStatementType.WHILE_TRUE_LOOP_HEAD,
+            ImmutableSet.of(pSubstituteEdge),
+            thread.id(),
+            pcLeftHandSide);
+    // just add a comment with "while (1)" for better overview in the output program
+    CComment commentStatement = new CComment("while (1)");
+    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(commentStatement));
+  }
+
   private SeqThreadStatement buildAssumeStatement(
-      CAssumeEdge pAssumeEdge,
-      CLeftHandSide pPcLeftHandSide,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc) {
+      CAssumeEdge pAssumeEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
     SeqThreadStatementDataWithIfExpression data =
         new SeqThreadStatementDataWithIfExpression(
             SeqThreadStatementType.ASSUME,
             ImmutableSet.of(pSubstituteEdge),
             thread.id(),
-            pPcLeftHandSide,
+            pcLeftHandSide,
             pAssumeEdge.getExpression());
 
     // just return with empty statements, the block handles the if-else branch
@@ -388,32 +427,29 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildDefaultStatement(
-      CStatementEdge pStatementEdge,
-      SubstituteEdge pSubstituteEdge,
-      CLeftHandSide pPcLeftHandSide,
-      int pTargetPc) {
+      CStatementEdge pStatementEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pPcLeftHandSide);
+            SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
         data, pTargetPc, ImmutableList.of(new CStatementWrapper(pStatementEdge.getStatement())));
   }
 
   static SeqThreadStatement buildGhostOnlyStatement(
-      int pThreadId, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+      MPORThread pThread,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.GHOST_ONLY, ImmutableSet.of(), pThreadId, pPcLeftHandSide);
+            SeqThreadStatementType.GHOST_ONLY, pSubstituteEdges, pThread.id(), pPcLeftHandSide);
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of());
   }
 
   private SeqThreadStatement buildLocalVariableInitializationStatement(
-      CVariableDeclaration pVariableDeclaration,
-      SubstituteEdge pSubstituteEdge,
-      CLeftHandSide pPcLeftHandSide,
-      int pTargetPc)
+      CVariableDeclaration pVariableDeclaration, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
@@ -426,7 +462,7 @@ public record SeqThreadStatementBuilder(
             SeqThreadStatementType.LOCAL_VARIABLE_INITIALIZATION,
             pSubstituteEdge,
             thread.id(),
-            pPcLeftHandSide);
+            pcLeftHandSide);
     CStatementWrapper assignmentStatement =
         buildExpressionAssignmentStatementFromVariableDeclaration(pVariableDeclaration);
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assignmentStatement));
@@ -468,10 +504,11 @@ public record SeqThreadStatementBuilder(
         functionDeclaration.getParameters().isEmpty(),
         "function has parameters, but they are not present in pFunctionStatements");
 
-    return buildGhostOnlyStatement(thread.id(), pcLeftHandSide, pTargetPc);
+    return buildGhostOnlyStatement(
+        thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, pTargetPc);
   }
 
-  private static SeqThreadStatement buildParameterAssignmentStatement(
+  private SeqThreadStatement buildParameterAssignmentStatement(
       String pFunctionName,
       ImmutableList<FunctionParameterAssignment> pFunctionParameterAssignments,
       SeqThreadStatementData pData,
@@ -481,15 +518,17 @@ public record SeqThreadStatementBuilder(
         !pFunctionParameterAssignments.isEmpty() || pFunctionName.equals(REACH_ERROR_FUNCTION_NAME),
         "If pAssignments is empty, then the function name must be reach_error.");
 
-    ImmutableList.Builder<CCompoundStatementElement> functionStatements = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> functionStatementBuilder =
+        ImmutableList.builder();
     // if the function name is "reach_error", inject a "reach_error()" call for reachability
     if (pFunctionName.equals(REACH_ERROR_FUNCTION_NAME)) {
-      functionStatements.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
+      functionStatementBuilder.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
     }
     for (FunctionParameterAssignment assignment : pFunctionParameterAssignments) {
-      functionStatements.add(new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
+      functionStatementBuilder.add(
+          new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
     }
-    return SeqThreadStatement.of(pData, pTargetPc, functionStatements.build());
+    return SeqThreadStatement.of(pData, pTargetPc, functionStatementBuilder.build());
   }
 
   private SeqThreadStatement buildReturnValueAssignmentStatement(
@@ -507,7 +546,8 @@ public record SeqThreadStatementBuilder(
     }
 
     // -> function does not return anything, i.e. return;
-    return buildGhostOnlyStatement(thread.id(), pcLeftHandSide, pTargetPc);
+    return buildGhostOnlyStatement(
+        thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, pTargetPc);
   }
 
   private SeqThreadStatement buildStatementFromPthreadFunction(
@@ -670,7 +710,8 @@ public record SeqThreadStatementBuilder(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
     if (!functionStatements.startRoutineExitAssignments().containsKey(pThreadEdge)) {
-      return buildGhostOnlyStatement(thread.id(), pcLeftHandSide, pTargetPc);
+      return buildGhostOnlyStatement(
+          thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, pTargetPc);
     }
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
@@ -881,7 +922,8 @@ public record SeqThreadStatementBuilder(
    *
    * <ul>
    *   <li>{@code pSuccessor} marks the termination of a thread
-   *   <li>{@code pSubstituteEdge} itself is a {@link BlankEdge}
+   *   <li>{@code pSubstituteEdge} itself is a {@link BlankEdge} that is not a {@code while (1)}
+   *       loop head
    *   <li>{@code pSubstituteEdge} is a {@code PTHREAD_MUTEX_INITIALIZER} assignment
    *   <li>{@code pSubstituteEdge} is a {@link CDeclarationEdge}, except for local variable
    *       declarations with an initializer
@@ -897,7 +939,8 @@ public record SeqThreadStatementBuilder(
         && pSuccessor.getFunction().equals(thread.startRoutine())) {
       return true;
 
-    } else if (pSubstituteEdge.cfaEdge instanceof BlankEdge) {
+    } else if (pSubstituteEdge.cfaEdge instanceof BlankEdge
+        && !pSubstituteEdge.cfaEdge.getPredecessor().isLoopStart()) {
       // blank edges have no code
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
       return true;

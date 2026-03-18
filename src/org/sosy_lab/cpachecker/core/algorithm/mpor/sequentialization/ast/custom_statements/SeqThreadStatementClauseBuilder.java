@@ -12,6 +12,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Objects;
@@ -224,10 +225,15 @@ public record SeqThreadStatementClauseBuilder(
     } else {
       CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
       ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
-      if (pThreadNode.cfaNode instanceof FunctionExitNode) {
+      if (pThreadNode.getCfaNode() instanceof FunctionExitNode) {
+        ImmutableSet<SubstituteEdge> edges =
+            pThreadNode.leavingEdges().stream()
+                .map(substituteEdges::get)
+                .filter(Objects::nonNull)
+                .collect(ImmutableSet.toImmutableSet());
         statements.add(
             SeqThreadStatementBuilder.buildGhostOnlyStatement(
-                pThread.id(), pcLeftHandSide, targetPc));
+                pThread, edges, pcLeftHandSide, targetPc));
       } else {
         statements.addAll(
             pStatementBuilder.buildStatementsFromThreadNode(pThreadNode, pCoveredNodes));
@@ -245,7 +251,7 @@ public record SeqThreadStatementClauseBuilder(
           : "A CFANodeForThread without any leaving edges must have EXIT_PC.";
       return true;
     }
-    FluentIterable<CFAEdge> enteringEdges = pThreadNode.cfaNode.getEnteringEdges();
+    FluentIterable<CFAEdge> enteringEdges = pThreadNode.getCfaNode().getEnteringEdges();
     if (enteringEdges.size() == 1) {
       if (Iterables.getOnlyElement(enteringEdges) instanceof CFunctionSummaryStatementEdge) {
         return true;
@@ -325,8 +331,16 @@ public record SeqThreadStatementClauseBuilder(
       int pLabelPc,
       ImmutableList<SeqThreadStatement> pStatements) {
 
+    ImmutableSet<CFANodeForThread> loopHeads = pThread.cfa().getLoopHeads();
+    boolean isLoopHead =
+        pStatements.stream()
+            .allMatch(
+                s ->
+                    s.data().getSubstituteEdges().stream()
+                        .allMatch(e -> loopHeads.contains(e.getThreadEdge().getPredecessor())));
     SeqThreadStatementBlock block =
-        new SeqThreadStatementBlock(pThread.id(), pLabelPc, pStatements, pNextThreadLabel);
+        new SeqThreadStatementBlock(
+            pThread.id(), pLabelPc, isLoopHead, pStatements, pNextThreadLabel);
     return new SeqThreadStatementClause(options, block);
   }
 }
