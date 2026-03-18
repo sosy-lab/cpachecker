@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -38,25 +40,55 @@ public class ProgramTransformationCFAEdgeCreator {
       return null;
     }
     return switch (pCFAEdge) {
+      case BlankEdge edge ->
+          new BlankEdge(
+              edge.getRawStatement(),
+              FileLocation.DUMMY,
+              pNewPredecessor,
+              pNewSuccessor,
+              edge.getDescription());
       case CAssumeEdge edge ->
-          new CAssumeEdge(edge.getRawStatement(), null, pNewPredecessor, pNewSuccessor,
-              edge.getExpression(), edge.getTruthAssumption());
+          new CAssumeEdge(
+              edge.getRawStatement(),
+              FileLocation.DUMMY,
+              pNewPredecessor,
+              pNewSuccessor,
+              edge.getExpression(),
+              edge.getTruthAssumption());
       case CDeclarationEdge edge ->
-          new CDeclarationEdge(edge.getRawStatement(), null, pNewPredecessor, pNewSuccessor,
+          new CDeclarationEdge(
+              edge.getRawStatement(),
+              FileLocation.DUMMY,
+              pNewPredecessor,
+              pNewSuccessor,
               edge.getDeclaration());
       case CFunctionCallEdge edge ->
-          new CFunctionCallEdge(edge.getRawStatement(), null, pNewPredecessor, edge.getSuccessor(),
-              edge.getFunctionCall(), edge.getSummaryEdge());
-      case CFunctionReturnEdge edge -> edge;
+          new CFunctionCallEdge(
+              edge.getRawStatement(),
+              FileLocation.DUMMY,
+              pNewPredecessor,
+              edge.getSuccessor(),
+              edge.getFunctionCall(),
+              edge.getSummaryEdge());
+      //case CFunctionReturnEdge edge -> null;
       case CFunctionSummaryEdge edge ->
-          new CFunctionSummaryEdge(edge.getRawStatement(), null, pNewPredecessor, pNewSuccessor,
-              edge.getExpression(), edge.getFunctionEntry());
+          new CFunctionSummaryEdge(
+              edge.getRawStatement(),
+              FileLocation.DUMMY,
+              pNewPredecessor,
+              pNewSuccessor,
+              edge.getExpression(),
+              edge.getFunctionEntry());
       case CReturnStatementEdge edge ->
-          new CReturnStatementEdge(edge.getRawStatement(), edge.getReturnStatement(), null,
-              pNewPredecessor, (FunctionExitNode) pNewSuccessor);
+          new CReturnStatementEdge(
+              edge.getRawStatement(),
+              edge.getReturnStatement(),
+              FileLocation.DUMMY,
+              pNewPredecessor,
+              (FunctionExitNode) pNewSuccessor);
       case CStatementEdge edge ->
-          new CStatementEdge(edge.getRawStatement(), edge.getStatement(), null, pNewPredecessor,
-              pNewSuccessor);
+          new CStatementEdge(
+              edge.getRawStatement(), edge.getStatement(), null, pNewPredecessor, pNewSuccessor);
       default -> null;
     };
   }

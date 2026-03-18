@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -141,20 +142,28 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       return node.getFunctionName().equals(functionName);
     });
 
-    // add new nodes
+    // first pass: add new nodes
     for(CFANode currentNode : cfaNodeIterable) {
-      // dont add nodes for tail recursive call nodes
-      if (currentNode.getNodeNumber() != tmpVarDeclarationEdge.get().getSuccessor().getNodeNumber()
-          && currentNode.getNodeNumber()
-              != tmpVarAssignmentEdge.get().getSuccessor().getNodeNumber()) {
-        CFANode newNode = CFANode.newDummyCFANode(functionName);
-        nodeMap.put(currentNode.getNodeNumber(), newNode.getNodeNumber());
-        if (currentNode.getNodeNumber() == exitNode.getNodeNumber()) {
-          newExitNode = newNode;
-        } else if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
-          newNode.setLoopStart();
-          newEntryNode = newNode;
+      // dont add a normal node for the function exit node
+      if (currentNode.getNodeNumber() != exitNode.getNodeNumber()) {
+        // dont add nodes for tail recursive call nodes
+        if (currentNode.getNodeNumber()
+                != tmpVarDeclarationEdge.get().getSuccessor().getNodeNumber()
+            && currentNode.getNodeNumber()
+                != tmpVarAssignmentEdge.get().getSuccessor().getNodeNumber()) {
+          CFANode newNode = CFANode.newDummyCFANode(functionName);
+          nodeMap.put(currentNode.getNodeNumber(), newNode.getNodeNumber());
+          if (currentNode.getNodeNumber() == exitNode.getNodeNumber()) {
+            newExitNode = newNode;
+          } else if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
+            newNode.setLoopStart();
+            newEntryNode = newNode;
+          }
+          nodes.add(newNode);
         }
+        } else {
+        FunctionExitNode newNode = new FunctionExitNode(pNode.getFunction());
+        nodeMap.put(currentNode.getNodeNumber(), newNode.getNodeNumber());
         nodes.add(newNode);
       }
     }
@@ -164,26 +173,29 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     }
     ImmutableList<CFANode> nodesList = nodes.build();
 
-    // add new edges
-    for(CFANode currentNode : cfaNodeIterable) {  // TODO can Iterables be reused??
+    // second pass: add new edges
+    cfaNodeIterable = cfaNetworkTraverser.breadthFirst(pNode);
+    cfaNodeIterable = Iterables.filter(cfaNodeIterable, (CFANode node) -> {
+      assert node != null;
+      return node.getFunctionName().equals(functionName);
+    });
+    for(CFANode currentNode : cfaNodeIterable) {
       for(CFAEdge currentEdge : currentNode.getAllLeavingEdges()){
-        if (currentEdge.getSuccessor().getFunctionName().equals(functionName)) {
-          // TODO check if edge is the recursive function call
-          // i.e. the declaration of __CPAchecker_TMP_0
-          // TODO if true skip edge copying and add new edges for parameter nodes
-          int newPredecessorNodeIndex = getNodeIndex(nodeMap.get(currentNode.getNodeNumber()), nodesList).orElseThrow();
+        if (currentEdge.getSuccessor().getFunctionName().equals(functionName) && nodeMap.containsKey(currentNode.getNodeNumber()) && nodeMap.containsKey(currentEdge.getSuccessor().getNodeNumber())) {
+          Optional<Integer> newPredecessorNodeIndex = getNodeIndex(nodeMap.get(currentNode.getNodeNumber()), nodesList);
           Optional<Integer> newSuccessorNodeIndex = getNodeIndex(nodeMap.get(currentEdge.getSuccessor().getNodeNumber()), nodesList);
-          if (newSuccessorNodeIndex.isPresent()) {
-            edges.add(
-                ProgramTransformationCFAEdgeCreator.copyCFAEdge(
-                    currentEdge, nodesList.get(newPredecessorNodeIndex), nodesList.get(newSuccessorNodeIndex.get())));
-          } else {
-            // C does not allow jumps out of functions
-            return Optional.empty();
+          if (newPredecessorNodeIndex.isPresent() && newSuccessorNodeIndex.isPresent()) {
+            CFAEdge newEdge = ProgramTransformationCFAEdgeCreator.copyCFAEdge(
+                currentEdge, nodesList.get(newPredecessorNodeIndex.get()), nodesList.get(newSuccessorNodeIndex.get()));
+            edges.add(newEdge);
+            newEdge.getPredecessor().addLeavingEdge(newEdge);
+            newEdge.getSuccessor().addEnteringEdge(newEdge);
           }
         }
       }
     }
+    // TODO add parameter edges
+
     ImmutableList<CFAEdge> edgesList = edges.build();
 
 
