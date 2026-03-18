@@ -55,7 +55,7 @@ public class PORState
     implements AbstractState, AbstractStateWithLocations,
                AbstractStateWithThreads, Graphable {
 
-  private final Random random = new Random(1);
+  private final Random random = new Random();
 
   private final CFA cfa;
 
@@ -94,7 +94,7 @@ public class PORState
   }
 
   boolean canMerge(PORState other) {
-    return this.equals(other);
+    return threads.equals(other.threads) && threadHandles.equals(other.threadHandles);
   }
 
   PORState addNewThread(
@@ -296,12 +296,13 @@ public class PORState
       return false;
     }
     return Objects.equals(threads, other.threads)
-        && Objects.equals(threadHandles, other.threadHandles);
+        && Objects.equals(threadHandles, other.threadHandles)
+        && Objects.equals(getWrappedState(), other.getWrappedState());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, threadHandles);
+    return Objects.hash(threads, threadHandles, getWrappedState());
   }
 
   private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() {

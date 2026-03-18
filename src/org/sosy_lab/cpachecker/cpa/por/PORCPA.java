@@ -129,9 +129,15 @@ public class PORCPA extends AbstractSingleWrapperCPA {
   public MergeOperator getMergeOperator() {
     MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
     return (state1, state2, precision) -> {
-      if (state1 instanceof PORState porState1 && state2 instanceof PORState porState2) {
+      if (state1 instanceof PORState porState1 && state2 instanceof PORState porState2
+          && precision instanceof PORPrecision porPrecision) {
         if (porState1.canMerge(porState2)) {
-          return porState1;
+          AbstractState wrapped1 = porState1.getWrappedState();
+          AbstractState wrapped2 = porState2.getWrappedState();
+          Precision wrappedPrecision = porPrecision.getWrappedPrecision();
+          AbstractState mergedWrapped =
+              wrappedMergeOperator.merge(wrapped1, wrapped2, wrappedPrecision);
+          return porState1.withWrappedState(mergedWrapped);
         }
       }
       return state2;
