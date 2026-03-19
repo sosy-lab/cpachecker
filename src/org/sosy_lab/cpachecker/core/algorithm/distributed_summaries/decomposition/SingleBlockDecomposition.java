@@ -47,15 +47,10 @@ public class SingleBlockDecomposition implements DssBlockDecomposition {
         waitlist.add(leavingEdge.getSuccessor());
       }
     }
-    assert seen.containsAll(cfa.nodes());
     assert lastNode != null;
     return BlockGraph.fromBlockNodesWithoutGraphInformation(
         ImmutableSet.of(
             new BlockNodeWithoutGraphInformation(
-                "SB1",
-                cfa.getMainFunction(),
-                lastNode,
-                ImmutableSet.copyOf(cfa.nodes()),
-                edges.build())));
+                "SB1", cfa.getMainFunction(), lastNode, ImmutableSet.copyOf(seen), edges.build())));
   }
 }
