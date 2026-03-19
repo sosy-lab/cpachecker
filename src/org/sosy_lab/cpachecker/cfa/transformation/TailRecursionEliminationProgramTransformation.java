@@ -97,6 +97,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     }
     // check 3: the first statement must be a conditional check of the exit condition
     // i.e. 1 Function start dummy edges followed by a node with two assertion edges
+    int nodeBeforeConditionCheck;
     if (pNode.getLeavingEdges().size() != 1) {
       return Optional.empty();
     } else {
@@ -128,6 +129,8 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       } else {
         if (!(nextFunctionStartEdges.first().get() instanceof CAssumeEdge && nextFunctionStartEdges.last().get() instanceof CAssumeEdge)) {
           return Optional.empty();
+        } else {
+          nodeBeforeConditionCheck = currentFunctionStartEdge.getSuccessor().getNodeNumber();
         }
       }
     }
@@ -157,16 +160,14 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
                 != tmpVarAssignmentEdge.get().getSuccessor().getNodeNumber()) {
           CFANode newNode = CFANode.newDummyCFANode(functionName);
           nodeMap.put(currentNode.getNodeNumber(), newNode.getNodeNumber());
-          if (currentNode.getNodeNumber() == exitNode.getNodeNumber()) {
-            newExitNode = newNode;
-          } else if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
-            newNode.setLoopStart();
+          if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
             newEntryNode = newNode;
           }
           nodes.add(newNode);
         }
         } else {
         FunctionExitNode newNode = new FunctionExitNode(pNode.getFunction());
+        newExitNode = newNode;
         nodeMap.put(currentNode.getNodeNumber(), newNode.getNodeNumber());
         nodes.add(newNode);
       }
@@ -208,7 +209,8 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     CFANode succNode = nodesList.get(nodeBeforeParams.get());
     for (int i = 0; i < parameters.size(); i++) {
       if (i == parameters.size()-1) {
-        succNode = nodesList.getFirst();
+        succNode = nodesList.get(getNodeIndex(nodeMap.get(nodeBeforeConditionCheck), nodesList).get());
+        succNode.setLoopStart();
       } else {
         succNode = nodesList.get(nodeMap.size() + i);
       }
