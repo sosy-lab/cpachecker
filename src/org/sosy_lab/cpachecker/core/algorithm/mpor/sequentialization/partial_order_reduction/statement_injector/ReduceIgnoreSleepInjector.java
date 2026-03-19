@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -153,13 +154,13 @@ public record ReduceIgnoreSleepInjector(
       ifElseChain.put(ifCondition, new CStatementWrapper(nextThreadAssignment));
     }
 
-    // for the nondeterministic choice add an 'if (1) { ... }' statements
-    ifElseChain.putAll(
-        new CExpressionWrapper(CIntegerLiteralExpression.ONE),
+    // for the nondeterministic choice create the final else statements without any condition
+    ImmutableList<CCompoundStatementElement> finalElseStatements =
         SeqMainFunctionBuilder.buildNextThreadNondeterministicStatements(
-            pOptions, pFields.numThreads, pFields.ghostElements, pUtils.binaryExpressionBuilder()));
+            pOptions, pFields.numThreads, pFields.ghostElements, pUtils.binaryExpressionBuilder());
 
-    return CMultiSelectionStatementBuilder.buildIfElseChain(ifElseChain.build());
+    return CMultiSelectionStatementBuilder.buildIfElseChainWithoutFinalCondition(
+        ifElseChain.build(), finalElseStatements);
   }
 
   /** Returns the expression {@code (pci != 0 && Ti_SYNC == 0 && *Ti not in conflict*)}. */

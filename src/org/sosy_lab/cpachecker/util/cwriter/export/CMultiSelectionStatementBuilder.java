@@ -14,6 +14,7 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -161,15 +162,56 @@ public class CMultiSelectionStatementBuilder {
   public static CIfStatement buildIfElseChain(
       ImmutableListMultimap<CExportExpression, CCompoundStatementElement> pStatements) {
 
+    return buildIfElseChain(pStatements, Optional.empty());
+  }
+
+  /**
+   * Represents a chain of {@code if-else} branches with a final {@code else} branch that has no
+   * {@link CExportExpression} condition. Example for an {@code int expression} between {@code 0}
+   * and {@code 1}:
+   *
+   * <pre>{@code
+   * if (expression == 0) {
+   *    ...
+   * } else {
+   *   if (expression == 1) {
+   *      ...
+   *   } else {
+   *      ... // final else branch, without condition
+   *   }
+   * }
+   * }</pre>
+   *
+   * <p>For most verifiers, the if-else chain generally scales much worse with a growing number of
+   * statements compared to {@link CSwitchStatement} and a binary search tree.
+   */
+  public static CIfStatement buildIfElseChainWithoutFinalCondition(
+      ImmutableListMultimap<CExportExpression, CCompoundStatementElement> pStatements,
+      ImmutableList<CCompoundStatementElement> pFinalElseStatements) {
+
+    return buildIfElseChain(pStatements, Optional.of(pFinalElseStatements));
+  }
+
+  private static CIfStatement buildIfElseChain(
+      ImmutableListMultimap<CExportExpression, CCompoundStatementElement> pStatements,
+      Optional<ImmutableList<CCompoundStatementElement>> pFinalElseStatements) {
+
     ImmutableList<Entry<CExportExpression, Collection<CCompoundStatementElement>>> statementList =
         pStatements.asMap().entrySet().asList();
 
+    CExportExpression lastExpression = statementList.getLast().getKey();
+    CCompoundStatement lastCompoundStatement =
+        new CCompoundStatement(
+            (ImmutableList<CCompoundStatementElement>) statementList.getLast().getValue());
+
     // start with the very last element (the innermost branch)
     CIfStatement chain =
-        new CIfStatement(
-            statementList.getLast().getKey(),
-            new CCompoundStatement(
-                (ImmutableList<CCompoundStatementElement>) statementList.getLast().getValue()));
+        pFinalElseStatements.isPresent()
+            ? new CIfStatement(
+                lastExpression,
+                lastCompoundStatement,
+                new CCompoundStatement(pFinalElseStatements.orElseThrow()))
+            : new CIfStatement(lastExpression, lastCompoundStatement);
 
     // wrap it backwards
     for (int i = statementList.size() - 2; i >= 0; i--) {
