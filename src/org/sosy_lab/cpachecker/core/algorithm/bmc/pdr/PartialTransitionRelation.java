@@ -258,7 +258,9 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
                                   name,
                                   (CType) ssaMap.getType(name),
                                   pathFormula.getPointerTargetSet(),
-                                  false));
+                                  false,
+                                  // TODO: how do we handle this?
+                                  null));
                 })
             .distinct()
             .collect(

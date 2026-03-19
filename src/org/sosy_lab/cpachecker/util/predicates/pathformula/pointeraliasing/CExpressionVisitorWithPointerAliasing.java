@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -340,7 +341,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   private PointerApproximatingVisitor getPointerApproximatingVisitor() {
-    return new PointerApproximatingVisitor(typeHandler, edge);
+    return new PointerApproximatingVisitor(typeHandler, edge, pts, function);
   }
 
   /**
@@ -394,15 +395,17 @@ class CExpressionVisitorWithPointerAliasing
    */
   @Override
   public Expression visit(final CIdExpression e) throws UnrecognizedCodeException {
-    if (e.getDeclaration() instanceof CEnumerator) {
+    CSimpleDeclaration declaration = e.getDeclaration();
+    if (declaration instanceof CEnumerator) {
       return visitDefault(e); // delegate to super class
     }
     final CType resultType = typeHandler.getSimplifiedType(e);
 
-    final String variableName = e.getDeclaration().getQualifiedName();
-    final PointerBase base = new PointerBase(e.getDeclaration());
-    if (!pts.isActualBase(base) && !CTypeUtils.containsArray(resultType, e.getDeclaration())) {
-      if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
+    final String variableName = declaration.getQualifiedName();
+    final PointerBase base =
+        new PointerBase(declaration, pts.getCallstackDepth(declaration, function));
+    if (!pts.isActualBase(base) && !CTypeUtils.containsArray(resultType, declaration)) {
+      if (!(declaration instanceof CFunctionDeclaration)) {
         return UnaliasedLocation.ofVariableName(variableName);
       } else {
         return Value.ofValue(conv.makeConstant(variableName, resultType));

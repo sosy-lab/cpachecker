@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -461,7 +462,8 @@ public final class DynamicMemoryHandler {
             + "_"
             + typeHandler.getPointerAccessNameForType(type)
             + MALLOC_INDEX_SEPARATOR
-            + allocationId);
+            + allocationId,
+        OptionalInt.of(pts.getCallstackDepth(functionName)));
   }
 
   /**
@@ -682,7 +684,14 @@ public final class DynamicMemoryHandler {
               } else {
                 // We can defer the allocation and start tracking the variable in the LHS
                 final Optional<PointerBase> lhsPointer =
-                    lhs.accept(new PointerApproximatingVisitor(typeHandler, edge));
+                    lhs.accept(
+                        new PointerApproximatingVisitor(
+                            typeHandler,
+                            edge,
+                            pts,
+                            // For the LHS we need the function of the successor as we are
+                            // in the LHS of the assignment
+                            edge.getSuccessor().getFunctionName()));
                 lhsPointer.ifPresent(
                     s -> {
                       pts.removeDeferredAllocationPointer(s)
@@ -709,7 +718,8 @@ public final class DynamicMemoryHandler {
             }
           }
         } else {
-          assert !pts.isTemporaryDeferredAllocationPointer(new PointerBase(mangledVariable));
+          assert !pts.isTemporaryDeferredAllocationPointer(
+              new PointerBase(mangledVariable, pts.getCallstackDepth(edge, mangledVariable)));
         }
       }
     }
@@ -764,8 +774,12 @@ public final class DynamicMemoryHandler {
     } else {
       toHandle = Optional.empty();
     }
-    final PointerApproximatingVisitor pointerApproximatingVisitor =
-        new PointerApproximatingVisitor(typeHandler, edge);
+    final PointerApproximatingVisitor lhsPointerApproximatingVisitor =
+        new PointerApproximatingVisitor(
+            typeHandler, edge, pts, edge.getSuccessor().getFunctionName());
+    final PointerApproximatingVisitor rhsPointerApproximatingVisitor =
+        new PointerApproximatingVisitor(
+            typeHandler, edge, pts, edge.getPredecessor().getFunctionName());
 
     // Reveal the type from usages (type casts, comparisons) in both sides
     for (Map.Entry<PointerBase, CType> entry : lhsLearnedPointerTypes.entrySet()) {
@@ -778,7 +792,7 @@ public final class DynamicMemoryHandler {
     // Reveal the type from the assignment itself (i.e. lhs from rhs and vice versa)
     if (toHandle.isPresent()) {
       Optional<PointerBase> s =
-          toHandle.orElseThrow().getFirst().accept(pointerApproximatingVisitor);
+          toHandle.orElseThrow().getFirst().accept(lhsPointerApproximatingVisitor);
       if (s.isPresent()
           && !lhsLearnedPointerTypes.containsKey(s.orElseThrow())
           && !rhsLearnedPointerTypes.containsKey(s.orElseThrow())) {
@@ -788,11 +802,18 @@ public final class DynamicMemoryHandler {
 
     if (lhs instanceof CIdExpression cIdExpression) {
       // If LHS is a variable, remove previous points-to bindings containing it
-      pts.removeDeferredAllocationPointer(new PointerBase(cIdExpression.getDeclaration()))
+      pts.removeDeferredAllocationPointer(
+              new PointerBase(
+                  cIdExpression.getDeclaration(),
+                  pts.getCallstackDepth(
+                      cIdExpression.getDeclaration(),
+                      // We need the function of the successor as we are in the LHS of the
+                      // assignment
+                      edge.getSuccessor().getFunctionName())))
           .forEach(d -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises
-      Optional<PointerBase> lhsPointer = lhs.accept(pointerApproximatingVisitor);
+      Optional<PointerBase> lhsPointer = lhs.accept(lhsPointerApproximatingVisitor);
       if (lhsPointer.isPresent()
           && pts.canRemoveDeferredAllocationPointer(lhsPointer.orElseThrow())) {
         pts.removeDeferredAllocationPointer(lhsPointer.orElseThrow());
@@ -800,9 +821,9 @@ public final class DynamicMemoryHandler {
     }
 
     // And now propagate points-to bindings from the RHS to the LHS
-    Optional<PointerBase> l = lhs.accept(pointerApproximatingVisitor);
+    Optional<PointerBase> l = lhs.accept(lhsPointerApproximatingVisitor);
     if (l.isPresent() && rhs != null) {
-      rhs.accept(pointerApproximatingVisitor)
+      rhs.accept(rhsPointerApproximatingVisitor)
           .ifPresent(r -> pts.addDeferredAllocationPointer(l.orElseThrow(), r));
     }
   }
@@ -851,7 +872,9 @@ public final class DynamicMemoryHandler {
                 .transform(PointerBase::name)
                 .toSortedSet(Comparator.naturalOrder()),
             function)) {
-      if (!pts.removeDeferredAllocationPointer(new PointerBase(v)).isEmpty()) {
+      if (!pts.removeDeferredAllocationPointer(
+              new PointerBase(v, OptionalInt.of(pts.getCallstackDepth(function))))
+          .isEmpty()) {
         conv.logger.logfOnce(
             Level.WARNING,
             "%s: Destroying the void* pointer %s produces garbage or the memory pointed by it is"

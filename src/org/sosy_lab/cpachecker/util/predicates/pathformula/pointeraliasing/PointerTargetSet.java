@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -20,6 +22,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.OptionalInt;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -46,6 +50,7 @@ public final class PointerTargetSet implements Serializable {
         && fields.isEmpty()
         && deferredAllocations.isEmpty()
         && highestAllocatedAddresses.isEmpty()
+        && callStackDepth.isEmpty()
         && allocationCount == 0;
   }
 
@@ -61,6 +66,7 @@ public final class PointerTargetSet implements Serializable {
     result = prime * result + bases.hashCode();
     result = prime * result + fields.hashCode();
     result = prime * result + deferredAllocations.hashCode();
+    result = prime * result + callStackDepth.hashCode();
     result = prime * result + highestAllocatedAddresses.hashCode();
     result = prime * result + Integer.hashCode(allocationCount);
     return result;
@@ -77,6 +83,7 @@ public final class PointerTargetSet implements Serializable {
         && bases.equals(other.bases)
         && fields.equals(other.fields)
         && deferredAllocations.equals(other.deferredAllocations)
+        && callStackDepth.equals(other.callStackDepth)
         && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
         && allocationCount == other.allocationCount;
   }
@@ -86,14 +93,18 @@ public final class PointerTargetSet implements Serializable {
       final PersistentSortedMap<CompositeField, Boolean> fields,
       final PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations,
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+      PersistentSortedMap<String, Integer> pCallStackDepth,
       final PersistentList<Formula> pHighestAllocatedAddresess,
       final int pAllocationCount) {
+    checkNotNull(pCallStackDepth);
+
     this.bases = bases;
     this.fields = fields;
 
     this.deferredAllocations = deferredAllocations;
 
     this.targets = targets;
+    callStackDepth = pCallStackDepth;
     highestAllocatedAddresses = pHighestAllocatedAddresess;
     allocationCount = pAllocationCount;
 
@@ -149,6 +160,7 @@ public final class PointerTargetSet implements Serializable {
           PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
           PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
           0);
 
@@ -184,6 +196,13 @@ public final class PointerTargetSet implements Serializable {
   // and will be empty or null in the latter case.
   private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
+  // The call stack depth for each function. This is used to determine the bases
+  // for variables which appear multiple times in each recursive call.
+  // This information is tracked here, since it needs to be passed to the {@link
+  // PointerTargetSetBuilder}, and this way we do not need to pass it separately across hundreds of
+  // functions.
+  private final PersistentSortedMap<String, Integer> callStackDepth;
+
   private final PersistentList<Formula> highestAllocatedAddresses;
 
   private final int allocationCount;
@@ -194,6 +213,20 @@ public final class PointerTargetSet implements Serializable {
   private Object writeReplace() {
     return new SerializationProxy(this);
   }
+
+  PersistentSortedMap<String, Integer> getCallStackDepth() {
+    return callStackDepth;
+  }
+
+  public OptionalInt getCallStackDepth(String functionName, String variableName) {
+    if (variableName.contains("::")) {
+      return OptionalInt.empty();
+    }
+
+    return OptionalInt.of(Objects.requireNonNull(callStackDepth.get(functionName)));
+  }
+
+
 
   /**
    * javadoc to remove unused parameter warning
@@ -211,6 +244,7 @@ public final class PointerTargetSet implements Serializable {
     @Serial private static final long serialVersionUID = 8022025017590667769L;
     private final PersistentSortedMap<PointerBase, CType> bases;
     private final PersistentSortedMap<CompositeField, Boolean> fields;
+    private final PersistentSortedMap<String, Integer> callStackDepth;
     private final List<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
     private final List<String> highestAllocatedAddresses;
@@ -224,6 +258,7 @@ public final class PointerTargetSet implements Serializable {
           pts.targets == null
               ? new HashMap<>()
               : new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
+      callStackDepth = pts.callStackDepth;
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
@@ -246,6 +281,7 @@ public final class PointerTargetSet implements Serializable {
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(
               Maps.transformValues(targets, PersistentLinkedList::copyOf)),
+          PathCopyingPersistentTreeMap.copyOf(callStackDepth),
           highestAllocatedAddressesFormulas,
           allocationCount);
     }

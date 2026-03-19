@@ -477,7 +477,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    */
   @Override
   public Formula makeFormulaForUninstantiatedVariable(
-      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+      String pVarName,
+      CType pType,
+      PointerTargetSet pContextPTS,
+      boolean forcePointerDereference,
+      String pFunctionName) {
     // Need to call fmgr.makeVariable directly instead of makeConstant,
     // because otherwise the variable gets marked as "never needs an SSA index"
     return fmgr.makeVariable(getFormulaTypeFromType(pType), pVarName);
@@ -496,7 +500,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    */
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+      SSAMap pContextSSA,
+      PointerTargetSet pContextPTS,
+      String pVarName,
+      CType pType,
+      String pFunctionName) {
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula = makeVariable(pVarName, pType, ssa);
 
@@ -1024,6 +1032,15 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     SSAMapBuilder ssa = oldFormula.getTopmostStackSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
+
+    // Tell the pointer target set to enter/exit a function
+    // This needs to come before the creation of any formula such that the
+    // bases, i.e., memory regions get the correct function context.
+    if (edge instanceof CFunctionCallEdge callEdge) {
+      pts.enterFunction(callEdge.getSuccessor().getFunctionName());
+    } else if (edge instanceof CFunctionReturnEdge returnEdge) {
+      pts.leaveFunction(returnEdge.getPredecessor().getFunctionName());
+    }
 
     // param-constraints must be added _before_ handling the edge (some lines below),
     // because this edge could write a global value.

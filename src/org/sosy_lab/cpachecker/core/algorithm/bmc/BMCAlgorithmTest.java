@@ -29,27 +29,30 @@ public class BMCAlgorithmTest {
         .build();
   }
 
+  // Actualy takes around 200 milisenconds, but when running it in isolation in an IDE, the startup
+  // time takes around 1.5 seconds, so we give it a bit more time to be safe.
+  // The same applies to all functions here.
   @Test(timeout = 3000)
   public void count_local() throws Exception {
     TestResults results = CPATestRunner.run(getConfiguration(), getProgramPath("countup_local.c"));
     results.assertIsSafe();
   }
 
-  @Test(timeout = 500)
+  @Test(timeout = 3000)
   public void count_local_wrong() throws Exception {
     TestResults results =
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_local_wrong.c"));
     results.assertIsUnsafe();
   }
 
-  @Test(timeout = 500)
+  @Test(timeout = 3000)
   public void count_local_wrong2() throws Exception {
     TestResults results =
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_local_wrong2.c"));
     results.assertIsUnsafe();
   }
 
-  @Test(timeout = 50000000)
+  @Test(timeout = 3000)
   public void count_local_pointer() throws Exception {
     TestResults results =
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_local_pointer.c"));

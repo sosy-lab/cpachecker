@@ -468,27 +468,36 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   /** {@inheritDoc} */
   @Override
   @SuppressWarnings("unchecked")
-  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
+  public Formula makeFormulaForVariable(
+      PathFormula pContext, String pVarName, CType pType, String pFunctionName) {
     // TODO: This needs to be properly cleaned up to be polymorphic. The problem
     //    is that the type is only known at runtime
     // TODO: Think if we should delete this method since it is unused
     return ((LanguageToSmtConverter<CType>) converter)
         .makeFormulaForVariable(
-            pContext.getTopmostStackSsa(), pContext.getPointerTargetSet(), pVarName, pType);
+            pContext.getTopmostStackSsa(),
+            pContext.getPointerTargetSet(),
+            pVarName,
+            pType,
+            pFunctionName);
   }
 
   /** {@inheritDoc} */
   @Override
   @SuppressWarnings("unchecked")
   public Formula makeFormulaForUninstantiatedVariable(
-      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+      String pVarName,
+      CType pType,
+      PointerTargetSet pContextPTS,
+      boolean forcePointerDereference,
+      String pFunctionName) {
     // TODO: This needs to be properly cleaned up to be polymorphic. The problem
     //    is that the type is only known at runtime
     // TODO: Think if we should move this method to the LanguageToSmtConverter and
     //  provide two methods which delegate to the converter depending on the type
     return ((LanguageToSmtConverter<CType>) converter)
         .makeFormulaForUninstantiatedVariable(
-            pVarName, pType, pContextPTS, forcePointerDereference);
+            pVarName, pType, pContextPTS, forcePointerDereference, pFunctionName);
   }
 
   /**

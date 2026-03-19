@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -92,13 +93,18 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   private static class AddPointerInformationVisitor extends FormulaTransformationVisitor {
 
     private final PathFormula context;
+    private final String functionName;
     private final PathFormulaManager pfgmr;
 
     AddPointerInformationVisitor(
-        FormulaManagerView pFmgr, PathFormula pContext, PathFormulaManager pPfmgr) {
+        FormulaManagerView pFmgr,
+        PathFormula pContext,
+        PathFormulaManager pPfmgr,
+        String pFunctionName) {
       super(pFmgr);
       pfgmr = pPfmgr;
       context = pContext;
+      functionName = pFunctionName;
     }
 
     @Override
@@ -106,13 +112,12 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       // varName comes from a formula that was not created by our usual formula encoding.
       // It could refer to an aliased variable that CtoFormulaConverter encodes differently.
       // We need to check whether this is such a case and if yes, replace it.
-      PointerBase base = new PointerBase(varName);
-      if (context.getPointerTargetSet().isActualBase(base)) {
+      PointerTargetSet pointerTargetSet = context.getPointerTargetSet();
+      PointerBase base =
+          new PointerBase(varName, pointerTargetSet.getCallStackDepth(varName, functionName));
+      if (pointerTargetSet.isActualBase(base)) {
         return pfgmr.makeFormulaForUninstantiatedVariable(
-            varName,
-            context.getPointerTargetSet().getBases().get(base),
-            context.getPointerTargetSet(),
-            false);
+            varName, pointerTargetSet.getBases().get(base), pointerTargetSet, false, functionName);
       } else {
         SSAMap ssa = context.getTopmostStackSsa();
 
@@ -127,7 +132,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
             CType type = ((CPointerType) ssa.getType(unwrappedVarName)).getType();
             atom =
                 pfgmr.makeFormulaForUninstantiatedVariable(
-                    unwrappedVarName, type, context.getPointerTargetSet(), true);
+                    unwrappedVarName, type, pointerTargetSet, true, functionName);
             return atom;
           }
           // Variable needs to be eliminated later
@@ -202,7 +207,9 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
           // Handle pointer aliasing
           BooleanFormula inv =
               pFmgr.transformRecursively(
-                  invariant, new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr));
+                  invariant,
+                  new AddPointerInformationVisitor(
+                      pFmgr, pContext, pPfmgr, pNode.getFunctionName()));
           // Drop information about unknown variables
           if (!variables.containsAll(pFmgr.extractVariableNames(inv))) {
             inv =

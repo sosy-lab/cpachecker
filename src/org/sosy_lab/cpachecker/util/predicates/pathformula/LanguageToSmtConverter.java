@@ -13,7 +13,6 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.PrintStream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -153,9 +152,17 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             pConstraints.addConstraint(
                 fmgr.makeEqual(
                     makeFormulaForVariable(
-                        callerSsa, oldFormula.getPointerTargetSet(), var, varType),
+                        callerSsa,
+                        oldFormula.getPointerTargetSet(),
+                        var,
+                        varType,
+                        pEdge.getPredecessor().getFunctionName()),
                     makeFormulaForVariable(
-                        functionReturnSsaBuilder.build(), newPts, var, varType)));
+                        functionReturnSsaBuilder.build(),
+                        newPts,
+                        var,
+                        varType,
+                        pEdge.getPredecessor().getFunctionName())));
           }
         }
 
@@ -195,10 +202,18 @@ public abstract class LanguageToSmtConverter<T extends Type> {
       throws InterruptedException;
 
   public abstract Formula makeFormulaForVariable(
-      SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, T pType);
+      SSAMap pSsa,
+      PointerTargetSet pPointerTargetSet,
+      String pVarName,
+      T pType,
+      String pFunctionName);
 
   public abstract Formula makeFormulaForUninstantiatedVariable(
-      String pVarName, T pType, PointerTargetSet pContextPTS, boolean pForcePointerDereference);
+      String pVarName,
+      T pType,
+      PointerTargetSet pContextPTS,
+      boolean pForcePointerDereference,
+      String pFunctionName);
 
   public abstract Formula buildTermFromPathFormula(
       PathFormula pFormula, CIdExpression pExpr, CFAEdge pEdge) throws UnrecognizedCodeException;

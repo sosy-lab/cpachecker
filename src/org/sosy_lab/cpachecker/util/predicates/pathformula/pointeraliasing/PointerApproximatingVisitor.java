@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -35,10 +36,18 @@ class PointerApproximatingVisitor
 
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
+  private final PointerTargetSetBuilder pts;
+  private final String functionName;
 
-  PointerApproximatingVisitor(TypeHandlerWithPointerAliasing pTypeHandler, CFAEdge pEdge) {
+  PointerApproximatingVisitor(
+      TypeHandlerWithPointerAliasing pTypeHandler,
+      CFAEdge pEdge,
+      PointerTargetSetBuilder pPts,
+      String pFunctionName) {
     typeHandler = pTypeHandler;
     edge = pEdge;
+    pts = pPts;
+    functionName = pFunctionName;
   }
 
   @Override
@@ -64,7 +73,11 @@ class PointerApproximatingVisitor
   public Optional<PointerBase> visit(final CFieldReference e) throws UnrecognizedCodeException {
     CType t = typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner());
     if (t instanceof CCompositeType cCompositeType) {
-      return Optional.of(new PointerBase(getFieldAccessName(cCompositeType.getQualifiedName(), e)));
+      return Optional.of(
+          new PointerBase(
+              getFieldAccessName(cCompositeType.getQualifiedName(), e),
+              // since we are creating a pointer base for a type, this is a global field
+              OptionalInt.empty()));
     } else {
       throw new UnrecognizedCodeException("Field owner of a non-composite type", edge, e);
     }
@@ -72,7 +85,9 @@ class PointerApproximatingVisitor
 
   @Override
   public Optional<PointerBase> visit(CIdExpression e) throws UnrecognizedCodeException {
-    return Optional.of(new PointerBase(e.getDeclaration()));
+    return Optional.of(
+        new PointerBase(
+            e.getDeclaration(), pts.getCallstackDepth(e.getDeclaration(), functionName)));
   }
 
   @Override

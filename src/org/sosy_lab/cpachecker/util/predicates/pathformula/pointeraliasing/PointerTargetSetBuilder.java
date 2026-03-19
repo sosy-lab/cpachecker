@@ -28,13 +28,18 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -54,9 +59,32 @@ public interface PointerTargetSetBuilder {
       boolean isDynamicAllocation,
       Constraints constraints);
 
+  void enterFunction(String functionName);
+
+  void leaveFunction(String functionName);
+
   void prepareBase(PointerBase base, CType type);
 
   void shareBase(PointerBase base, CType type);
+
+  /**
+   * Returns the current call stack depth for the given function name. This is used to distinguish
+   * different instances of the same function in recursive calls.
+   *
+   * <p>Prefer using {@link #getCallstackDepth(CSimpleDeclaration, String)} if the declaration of
+   * the variable whose call stack depth should be returned is available, because it can be used to
+   * detect if the variable is global and therefore the callstack depth for the encoding is zero.
+   *
+   * @param pFunctionName
+   * @return
+   */
+  Integer getCallstackDepth(String pFunctionName);
+
+  OptionalInt getCallstackDepth(CFAEdge pEdge, String pVariableName);
+
+  OptionalInt getCallstackDepth(CSimpleDeclaration pDeclaration, CFAEdge pEdge);
+
+  OptionalInt getCallstackDepth(CSimpleDeclaration pDeclaration, String pFunctionName);
 
   /**
    * Adds the newly allocated base of the given type for tracking along with all its tracked
@@ -125,6 +153,8 @@ public interface PointerTargetSetBuilder {
 
     // These fields all exist in PointerTargetSet and are documented there.
     private PersistentSortedMap<PointerBase, CType> bases;
+    // Used to uniquely identify the bases by variable name and callStackDepth
+    private PersistentSortedMap<String, Integer> callstackDepth;
     private PersistentSortedMap<CompositeField, Boolean> fields;
     private PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
@@ -147,6 +177,7 @@ public interface PointerTargetSetBuilder {
       bases = pointerTargetSet.getBases();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
+      callstackDepth = pointerTargetSet.getCallStackDepth();
       verify(
           pOptions.revealAllocationTypeFromLHS()
               || pOptions.deferUntypedAllocations()
@@ -749,6 +780,7 @@ public interface PointerTargetSetBuilder {
               fields,
               deferredAllocations,
               targets,
+              callstackDepth,
               highestAllocatedAddresses,
               allocationCount);
       if (result.isEmpty()) {
@@ -763,6 +795,57 @@ public interface PointerTargetSetBuilder {
     public int getFreshAllocationId() {
       allocationCount = Math.incrementExact(allocationCount);
       return allocationCount;
+    }
+
+    @Override
+    public void enterFunction(String functionName) {
+      int depth = callstackDepth.getOrDefault(functionName, 0);
+      callstackDepth = callstackDepth.putAndCopy(functionName, depth + 1);
+    }
+
+    @Override
+    public void leaveFunction(String functionName) {
+      int depth = callstackDepth.get(functionName);
+      checkState(depth > 0, "Call stack depth for function %s is already zero", functionName);
+      if (depth == 1) {
+        callstackDepth = callstackDepth.removeAndCopy(functionName);
+      } else {
+        callstackDepth = callstackDepth.putAndCopy(functionName, depth - 1);
+      }
+    }
+
+    public Integer getCallstackDepth(String pFunctionName) {
+      return Objects.requireNonNull(callstackDepth.get(pFunctionName));
+    }
+
+    public OptionalInt getCallstackDepth(CFAEdge pEdge, String pVariableName) {
+      if (!pVariableName.contains("::")) {
+        return OptionalInt.empty();
+      }
+
+      return OptionalInt.of(getCallstackDepth(pEdge.getPredecessor().getFunctionName()));
+    }
+
+    public OptionalInt getCallstackDepth(CSimpleDeclaration pSimpleDeclaration, CFAEdge pCfaEdge) {
+      return getCallstackDepth(pSimpleDeclaration, pCfaEdge.getPredecessor().getFunctionName());
+    }
+
+    public OptionalInt getCallstackDepth(
+        CSimpleDeclaration pSimpleDeclaration, String pFunctionName) {
+      // In this
+      if (pSimpleDeclaration instanceof CEnumerator
+          || (pSimpleDeclaration instanceof CDeclaration pDeclaration && pDeclaration.isGlobal())) {
+        return OptionalInt.empty();
+      }
+
+      // Special case for C
+      if (pSimpleDeclaration.getName().equals("__retval__")
+          && pFunctionName.equals("main")
+          && !callstackDepth.keySet().contains(pFunctionName)) {
+        return OptionalInt.empty();
+      }
+
+      return OptionalInt.of(Objects.requireNonNull(callstackDepth.get(pFunctionName)));
     }
   }
 
@@ -782,6 +865,12 @@ public interface PointerTargetSetBuilder {
         Constraints pConstraints) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void enterFunction(String functionName) {}
+
+    @Override
+    public void leaveFunction(String functionName) {}
 
     @Override
     public void prepareBase(PointerBase pBase, CType pType) {
@@ -884,6 +973,26 @@ public interface PointerTargetSetBuilder {
     @Override
     public Iterable<PointerTarget> getNonMatchingTargets(
         MemoryRegion region, Predicate<PointerTarget> pPattern) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Integer getCallstackDepth(String pFunctionName) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public OptionalInt getCallstackDepth(CFAEdge pEdge, String pVariableName) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public OptionalInt getCallstackDepth(CSimpleDeclaration pSimpleDeclaration, CFAEdge pCfaEdge) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public OptionalInt getCallstackDepth(CSimpleDeclaration pDeclaration, String pFunctionName) {
       throw new UnsupportedOperationException();
     }
 

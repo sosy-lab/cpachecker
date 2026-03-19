@@ -15,9 +15,8 @@ int max = 3;
 void count(int *c) {
   if (*c < max) {
     int* a = c;
+    (*a) += 1;
     count(a);
-    int* b = a;
-    (*b) += 1;
   }
 }
 

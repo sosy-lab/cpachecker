@@ -127,7 +127,8 @@ class LvalueToPointerTargetPatternVisitor
     public PointerTargetPatternBuilder visit(final CIdExpression e)
         throws UnrecognizedCodeException {
       final CType expressionType = typeHandler.getSimplifiedType(e);
-      final PointerBase base = new PointerBase(e.getDeclaration());
+      final PointerBase base =
+          new PointerBase(e.getDeclaration(), pts.getCallstackDepth(e.getDeclaration(), cfaEdge));
       if (!pts.isBase(base, expressionType)
           && !CTypeUtils.containsArray(expressionType, e.getDeclaration())) {
         return null;
@@ -225,7 +226,8 @@ class LvalueToPointerTargetPatternVisitor
   @Override
   public PointerTargetPatternBuilder visit(final CIdExpression e) throws UnrecognizedCodeException {
     final CType expressionType = typeHandler.getSimplifiedType(e);
-    final PointerBase base = new PointerBase(e.getDeclaration());
+    final PointerBase base =
+        new PointerBase(e.getDeclaration(), pts.getCallstackDepth(e.getDeclaration(), cfaEdge));
     if (!pts.isActualBase(base) && !CTypeUtils.containsArray(expressionType, e.getDeclaration())) {
       return null;
     } else {

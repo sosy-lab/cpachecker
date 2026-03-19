@@ -18,6 +18,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -415,12 +416,18 @@ class PointerTargetSetManager {
 
     int allocationCount = Math.max(pts1.getAllocationCount(), pts2.getAllocationCount());
 
+    // Check the call stacks
+    Verify.verify(
+        pts1.getCallStackDepth().equals(pts2.getCallStackDepth()),
+        "Cannot merge PointerTargetSets with different call stack depth");
+
     PointerTargetSet resultPTS =
         new PointerTargetSet(
             mergedBases,
             mergedFields,
             mergedDeferredAllocations,
             mergedTargets,
+            pts1.getCallStackDepth(),
             highestAllocatedAddresses,
             allocationCount);
 

@@ -112,7 +112,8 @@ public interface PathFormulaManager {
    * @param pType the type of the variable
    * @return the created formula, which is always <b>instantiated</b>
    */
-  Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType);
+  Formula makeFormulaForVariable(
+      PathFormula pContext, String pVarName, CType pType, String pFunctionName);
 
   /**
    * Takes a variable name and its type to create the corresponding formula out of it, without
@@ -129,7 +130,11 @@ public interface PathFormulaManager {
    * @return the created formula, which is always <b>instantiated</b>
    */
   Formula makeFormulaForUninstantiatedVariable(
-      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference);
+      String pVarName,
+      CType pType,
+      PointerTargetSet pContextPTS,
+      boolean forcePointerDereference,
+      String pFunctionName);
 
   /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
