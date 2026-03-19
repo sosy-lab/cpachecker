@@ -123,6 +123,7 @@ public class SequentializationParseTest {
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.loopIterations", "1")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
@@ -148,10 +149,12 @@ public class SequentializationParseTest {
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "OCTAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
-            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NUM_STATEMENTS")
+            .setOption(
+                "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
             .setOption("analysis.algorithm.MPOR.reduceIgnoreSleep", "true")
             .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
@@ -170,6 +173,7 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.loopIterations", "7")
             .setOption("analysis.algorithm.MPOR.loopUnrolling", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
@@ -192,6 +196,7 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "HEXADECIMAL")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
@@ -217,6 +222,7 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.linkReduction", "false")
             .setOption("analysis.algorithm.MPOR.loopIterations", "2000000000")
@@ -240,6 +246,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
@@ -266,6 +273,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
@@ -290,6 +298,7 @@ public class SequentializationParseTest {
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "SPARSE")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.loopIterations", "9999")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
@@ -315,6 +324,7 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.loopIterations", "16")
             .setOption("analysis.algorithm.MPOR.loopUnrolling", "true")
@@ -338,6 +348,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "SPARSE")
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "false")
             .setOption("analysis.algorithm.MPOR.loopIterations", "32")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
