@@ -197,7 +197,7 @@ public class PORState
     MutexState mutexState =
         AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     if (mutexState != null) {
-      mutexState.setEdgePidMap(edgePidMap);
+      mutexState.addEdgePids(edgePidMap);
     }
 
     return cloned;
@@ -356,7 +356,7 @@ public class PORState
     }
 
     if (mutexState != null) {
-      mutexState.setEdgePidMap(edgePidMap);
+      mutexState.addEdgePids(edgePidMap);
     }
 
     return ret.build();
@@ -370,7 +370,7 @@ public class PORState
       final var allOutgoingEdges = getAllThreadOutgoingEdges();
       final var sourceSetFirstActions = getSourceSetFirstActions(allOutgoingEdges);
       for (final var firstActions : sourceSetFirstActions) {
-        final var currentSourceSet = calculateSourceSet(allOutgoingEdges, firstActions);
+        final var currentSourceSet = calculateSourceSet(allOutgoingEdges, firstActions, precision);
         if (minimalSourceSet.isEmpty() || currentSourceSet.size() < minimalSourceSet.size()) {
           minimalSourceSet = currentSourceSet;
         }
@@ -380,7 +380,7 @@ public class PORState
       MutexState mutexState =
           AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
       if (mutexState != null) {
-        mutexState.setEdgePidMap(edgePidMap);
+        mutexState.addEdgePids(edgePidMap);
       }
     }
     return sourceSet;
@@ -421,7 +421,8 @@ public class PORState
 
   private ImmutableCollection<CFAEdge> calculateSourceSet(
       ImmutableCollection<CFAEdge> allOutgoingEdges,
-      ImmutableCollection<CFAEdge> firstActions) {
+      ImmutableCollection<CFAEdge> firstActions,
+      PORPrecision precision) {
     final var currentSourceSet = new ArrayList<CFAEdge>();
     final var otherEdges = new ArrayList<CFAEdge>();
     for (final var edge : allOutgoingEdges) {
@@ -440,7 +441,7 @@ public class PORState
       addedNewEdge = false;
       final ImmutableSet.Builder<CFAEdge> edgesToRemove = ImmutableSet.builder();
       for (final var edge : otherEdges) {
-        if (currentSourceSet.stream().anyMatch(s -> dependent(s, edge))) {
+        if (currentSourceSet.stream().anyMatch(s -> dependent(s, edge, precision))) {
           if (edge.getPredecessor().isLoopStart()) {
             return allOutgoingEdges;
           }
@@ -455,14 +456,14 @@ public class PORState
     return ImmutableList.copyOf(currentSourceSet);
   }
 
-  private boolean dependent(CFAEdge sourceSetEdge, CFAEdge edge) {
+  private boolean dependent(CFAEdge sourceSetEdge, CFAEdge edge, PORPrecision precision) {
     if (edgePidMap.get(sourceSetEdge).equals(edgePidMap.get(edge))) {
       return true;
     }
 
     final var sourceSetMemLocs = getUsedGlobalVars(sourceSetEdge);
     final var influencedMemLocs = getInfluencedGlobalVars(edge);
-    return intersect(sourceSetMemLocs, influencedMemLocs);
+    return intersect(sourceSetMemLocs, influencedMemLocs, precision);
   }
 
   private EdgeDefUseData getDirectlyUsedGlobalVars(CFAEdge edge) {
@@ -548,7 +549,10 @@ public class PORState
     return allLeavingEdges.append(startedThreadEdges);
   }
 
-  private boolean intersect(EdgeDefUseData access1, EdgeDefUseData access2) {
+  private boolean intersect(
+      EdgeDefUseData access1,
+      EdgeDefUseData access2,
+      PORPrecision precision) {
     if (access1.getDefs().isEmpty()
         && access1.getPointeeDefs().isEmpty()
         && access2.getDefs().isEmpty()
@@ -561,16 +565,19 @@ public class PORState
         || !access2.getPointeeUses().isEmpty()) {
       return true;
     }
-    return intersect(access1.getDefs(), access2.getUses())
-        || intersect(access1.getUses(), access2.getDefs())
-        || intersect(access1.getDefs(), access2.getDefs());
+    return intersect(access1.getDefs(), access2.getUses(), precision)
+        || intersect(access1.getUses(), access2.getDefs(), precision)
+        || intersect(access1.getDefs(), access2.getDefs(), precision);
   }
 
-  private boolean intersect(Iterable<MemoryLocation> access1, Iterable<MemoryLocation> access2) {
+  private boolean intersect(
+      Iterable<MemoryLocation> access1,
+      Iterable<MemoryLocation> access2,
+      PORPrecision precision) {
     for (var o1 : access1) {
       for (var o2 : access2) {
         if (o1.getExtendedQualifiedName().equals(o2.getExtendedQualifiedName())) {
-          return true;
+          return !precision.canIgnoreVariable(o1);
         }
       }
     }

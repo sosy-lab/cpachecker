@@ -32,7 +32,12 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.PredicatePrecisionVariableManager;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 /**
  * POR (Partial Order Reduction) CPA that manages thread interleaving in concurrent programs. This
@@ -49,14 +54,17 @@ public class PORCPA extends AbstractSingleWrapperCPA {
 
   @Option(
       secure = true,
-      description = "Use an abstraction-aware POR algorithm.")
-  private boolean isAbstractionAware = false;
+      description = "Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignore"
+          + "certain variables during dependency calculation if there is no information about them"
+          + "in the precision (e.g., no predicates referring to them).")
+  private boolean abstractionAware = false;
 
   @Option(
       secure = true,
-      description = "Aggregate basic blocks to MultiEdges. Only one global statement (i.e., a"
+      description = "Aggregate basic blocks to MultiEdges. Similar to basic block aggregation in"
+          + "the CompositeCPA transfer relation, but only one global statement (i.e., a"
           + "statement that accesses a global variable or uses heap memory) is included in a"
-          + "MultiEdge, so that all concurrent behavior is explored."
+          + "MultiEdge, so that all concurrent thread interleavings are explored."
   )
   private boolean aggregateBasicBlocks = false;
 
@@ -72,6 +80,8 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     super(pCpa);
+    pConfig.inject(this);
+
     transferRelation = new PORTransferRelation(pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger,
         pShutdownNotifier);
 
@@ -112,10 +122,30 @@ public class PORCPA extends AbstractSingleWrapperCPA {
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    if (isAbstractionAware) {
-      return new AbstractionAwarePORPrecision(
-          getWrappedCpa().getInitialPrecision(pNode, pPartition));
+    if (abstractionAware) {
+      Precision initialWrappedPrecision = getWrappedCpa().getInitialPrecision(pNode, pPartition);
+      PrecisionVariableManager variableExtractor = null;
+
+      PredicatePrecision predicatePrecision =
+          Precisions.extractPrecisionByType(initialWrappedPrecision, PredicatePrecision.class);
+      if (predicatePrecision != null) {
+        var predicateCPA = CPAs.retrieveCPA(getWrappedCpa(), PredicateCPA.class);
+        if (predicateCPA == null) {
+          throw new IllegalStateException(
+              "Abstraction-aware POR requires PredicateCPA when using PredicatePrecision, but it is not present.");
+        }
+        var fmgr = predicateCPA.getSolver().getFormulaManager();
+        variableExtractor = new PredicatePrecisionVariableManager(fmgr);
+      }
+
+      if (variableExtractor == null) {
+        throw new IllegalStateException(
+            "Abstraction-aware POR does not support this precision: " + initialWrappedPrecision);
+      }
+
+      return new AbstractionAwarePORPrecision(variableExtractor, initialWrappedPrecision);
     }
+
     return new AbstractionUnawarePORPrecision(
         getWrappedCpa().getInitialPrecision(pNode, pPartition));
   }

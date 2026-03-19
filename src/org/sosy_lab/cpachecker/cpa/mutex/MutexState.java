@@ -56,8 +56,12 @@ public class MutexState implements AbstractState {
     atomicHolder = pAtomicHolder;
   }
 
-  public void setEdgePidMap(Map<CFAEdge, Integer> pEdgePidMap) {
-    edgePidMap = pEdgePidMap;
+  public void addEdgePids(Map<CFAEdge, Integer> pEdgePidMap) {
+    if (edgePidMap == null) {
+      edgePidMap = pEdgePidMap;
+    } else {
+      edgePidMap.putAll(pEdgePidMap);
+    }
   }
 
   public Integer getEdgePid(CFAEdge edge) {

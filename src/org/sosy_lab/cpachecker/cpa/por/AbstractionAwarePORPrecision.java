@@ -9,36 +9,27 @@
 package org.sosy_lab.cpachecker.cpa.por;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class AbstractionAwarePORPrecision extends PORPrecision {
 
-  AbstractionAwarePORPrecision(Precision pWrappedPrecision) {
-    super(pWrappedPrecision);
+  private final PrecisionVariableManager variableManager;
+
+  AbstractionAwarePORPrecision(
+      PrecisionVariableManager pVariableManager,
+      Precision wrappedPrecision) {
+    super(wrappedPrecision);
+    variableManager = pVariableManager;
+    variableManager.setNewPrecision(wrappedPrecision);
   }
 
   @Override
   protected PORPrecision withWrappedPrecision(Precision newWrappedPrecision) {
-    return new AbstractionAwarePORPrecision(newWrappedPrecision);
+    return new AbstractionAwarePORPrecision(variableManager, newWrappedPrecision);
   }
 
   @Override
   public boolean canIgnoreVariable(MemoryLocation memoryLocation) {
-    if (getWrappedPrecision() instanceof PredicatePrecision predicatePrecision) {
-      if (!predicatePrecision.getLocalPredicates().isEmpty() ||
-          !predicatePrecision.getFunctionPredicates().isEmpty() ||
-          !predicatePrecision.getLocationInstancePredicates().isEmpty()) {
-        return false;
-      }
-
-      var globalPredicates = predicatePrecision.getGlobalPredicates();
-      for (var predicate : globalPredicates) {
-        // TODO
-      }
-
-      return true;
-    }
-    return false;
+    return !variableManager.contains(memoryLocation);
   }
 }
