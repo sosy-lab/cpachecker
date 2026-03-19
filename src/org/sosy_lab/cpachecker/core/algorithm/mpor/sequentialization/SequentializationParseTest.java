@@ -173,7 +173,6 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.loopIterations", "7")
             .setOption("analysis.algorithm.MPOR.loopUnrolling", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
@@ -324,7 +323,6 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.loopIterations", "16")
             .setOption("analysis.algorithm.MPOR.loopUnrolling", "true")
