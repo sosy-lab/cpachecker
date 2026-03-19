@@ -356,8 +356,7 @@ analysis.algorithm.MPOR.pruneSparseBitVectorWrites = false
 analysis.algorithm.MPOR.pruneSparseBitVectors = false
 
 # ignore that the current thread should not execute if it is not in conflict
-# with any other thread? only works when nondeterminismSource contains
-# NUM_STATEMENTS.
+# with any other thread?
 analysis.algorithm.MPOR.reduceIgnoreSleep = false
 
 # enforce an execution order when the current and previous thread commute?

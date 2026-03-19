@@ -50,10 +50,9 @@ class NextThreadAndNumStatementsNondeterministicSimulation
   public CCompoundStatement buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-        tryBuildPcUnequalExitAssumption(pThread);
+    Optional<CExportStatement> pcStatement = tryBuildPcPrecedingStatement(pThread);
     Optional<ImmutableList<CExportStatement>> nextThreadStatements =
-        tryBuildNextThreadStatements(pThread);
+        tryBuildNextThreadPrecedingStatements(pThread);
 
     CFunctionCallAssignmentStatement roundMaxNondetAssignment =
         VerifierNondetFunctionType.buildNondetIntegerAssignment(
@@ -69,8 +68,8 @@ class NextThreadAndNumStatementsNondeterministicSimulation
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
 
     ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
-    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
     nextThreadStatements.ifPresent(l -> rStatements.addAll(l));
+    pcStatement.ifPresent(s -> rStatements.add(s));
     rStatements.add(new CStatementWrapper(roundMaxNondetAssignment));
     rStatements.add(new CStatementWrapper(roundMaxGreaterZeroAssumption));
     rStatements.add(new CStatementWrapper(roundReset));

@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
@@ -38,6 +36,8 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CReturnStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
@@ -103,61 +103,63 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   public CCompoundStatement buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-        tryBuildPcUnequalExitAssumption(pThread);
+    Optional<CExportStatement> pcStatement = tryBuildPcPrecedingStatement(pThread);
     Optional<ImmutableList<CExportStatement>> nextThreadStatements =
-        tryBuildNextThreadStatements(pThread);
+        tryBuildNextThreadPrecedingStatements(pThread);
 
     ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
-    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
     nextThreadStatements.ifPresent(l -> rStatements.addAll(l));
+    pcStatement.ifPresent(s -> rStatements.add(s));
     return new CCompoundStatement(rStatements.build());
   }
 
   /**
-   * Returns the {@link CFunctionCallStatement} to {@code assume(pc{pThread.id} != 0);} if {@link
-   * MPOROptions#scalarPc()} is enabled. In that case, the assumptions needs to be placed inside the
-   * simulation. For array {@code pc}, it is placed at the loop head already (see {@link
-   * SeqMainFunctionBuilder}).
+   * Returns the preceding statement for {@code pc} but only if {@link MPOROptions#scalarPc()} is
+   * enabled. In that case, the statement needs to be placed inside the simulation. For array {@code
+   * pc}, it is placed at the loop head already (see {@link SeqMainFunctionBuilder}).
    */
-  Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(MPORThread pThread) {
-    return options.scalarPc()
-        ? Optional.of(ghostElements.getPcVariables().buildScalarPcUnequalExitPcAssumption(pThread))
-        : Optional.empty();
+  Optional<CExportStatement> tryBuildPcPrecedingStatement(MPORThread pThread) {
+    if (!options.loopUnrolling() && !options.scalarPc()) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        new CStatementWrapper(
+            ghostElements.getPcVariables().buildScalarPcUnequalExitPcAssumption(pThread)));
   }
 
   /**
-   * Returns {@code next_thread = __VERIFIER_nondet_...(); assume(next_thread == {thread_id};}, but
-   * only if {@link MPOROptions#loopUnrolling()} is enabled since choosing and assuming over {@code
-   * next_thread} is a preceding statement in the respective {@link
-   * SeqThreadSimulationFunctionBuilder}.
+   * Returns the preceding statements for {@code next_thread}, but only if {@link
+   * MPOROptions#loopUnrolling()} is enabled since otherwise {@code next_thread} is chosen at the
+   * loop head already {@link SeqThreadSimulationFunctionBuilder} and is not required in the
+   * simulation itself.
    */
-  Optional<ImmutableList<CExportStatement>> tryBuildNextThreadStatements(MPORThread pThread)
-      throws UnrecognizedCodeException {
+  Optional<ImmutableList<CExportStatement>> tryBuildNextThreadPrecedingStatements(
+      MPORThread pThread) throws UnrecognizedCodeException {
 
     if (!options.loopUnrolling()) {
-      // when loopUnrolling is disabled, the next_thread is chosen -> no assumption needed
       return Optional.empty();
     }
+
     // next_thread = __VERIFIER_nondet_...()
     CFunctionCallAssignmentStatement nextThreadAssignment =
         VerifierNondetFunctionType.buildNondetIntegerAssignment(
             options, SeqIdExpressions.NEXT_THREAD);
 
-    // assume(next_thread == {thread_id})
+    // if (next_thread != {thread_id}) { return; }
     CBinaryExpression nextThreadEqualsThreadId =
         utils
             .binaryExpressionBuilder()
             .buildBinaryExpression(
                 SeqIdExpressions.NEXT_THREAD,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
-                BinaryOperator.EQUALS);
-    CFunctionCallStatement nextThreadAssumption =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
+                BinaryOperator.NOT_EQUALS);
+    CReturnStatementWrapper returnStatement = new CReturnStatementWrapper(Optional.empty());
+    CIfStatement nextThreadIfStatement =
+        new CIfStatement(
+            new CExpressionWrapper(nextThreadEqualsThreadId),
+            new CCompoundStatement(returnStatement));
 
     return Optional.of(
-        ImmutableList.of(
-            new CStatementWrapper(nextThreadAssignment),
-            new CStatementWrapper(nextThreadAssumption)));
+        ImmutableList.of(new CStatementWrapper(nextThreadAssignment), nextThreadIfStatement));
   }
 }
