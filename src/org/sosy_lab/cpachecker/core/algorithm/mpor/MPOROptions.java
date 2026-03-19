@@ -160,7 +160,7 @@ public class MPOROptions {
       secure = true,
       description =
           "ignore that the current thread should not execute if it is not in conflict with any"
-              + " other thread? only works when nondeterminismSource contains NUM_STATEMENTS.")
+              + " other thread?")
   private boolean reduceIgnoreSleep = false;
 
   @Option(
