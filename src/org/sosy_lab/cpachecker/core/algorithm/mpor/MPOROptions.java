@@ -247,7 +247,7 @@ public class MPOROptions {
     if (controlEncodingStatement.equals(MultiSelectionStatementEncoding.NONE)) {
       throw new InvalidConfigurationException(
           String.format(
-              "controlEncodingStatement cannot be %s", MultiSelectionStatementEncoding.NONE));
+              "controlEncodingStatement cannot be %s", controlEncodingStatement));
     }
     if (nondeterminismSource.isNextThreadNondeterministic()) {
       if (!controlEncodingThread.isEnabled()) {
@@ -259,8 +259,18 @@ public class MPOROptions {
               String.format(
                   "controlEncodingThread cannot be %s when nondeterminismSource contains"
                       + " NEXT_THREAD",
-                  MultiSelectionStatementEncoding.NONE));
+                  controlEncodingThread));
         }
+      }
+    }
+    if (controlEncodingThread.isEnabled()) {
+      if (loopUnrolling) {
+        throw new InvalidConfigurationException(
+            String.format(
+                "controlEncodingThread cannot be %s when loopUnrolling is enabled, because the"
+                    + " controlEncodingThread is only used when all thread simulations are placed"
+                    + " inside the main() function.",
+                controlEncodingThread));
       }
     }
     if (!linkReduction) {
