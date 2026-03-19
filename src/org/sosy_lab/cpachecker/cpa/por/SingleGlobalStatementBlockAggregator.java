@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.composite.StraightLineBlockAggregator;
+import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 
 class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
@@ -40,7 +41,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
     if (startNode.equals(edge.getPredecessor())) {
       return true;
     }
-    if (isThreadJoin(edge)) {
+    if (MutexFunctions.isAtomicBeginCall(edge) || isThreadJoin(edge)) {
       return false;
     }
     if (initializationPhaseNodes.contains(edge.getPredecessor())) {

@@ -69,7 +69,7 @@ public class PORCPATest {
     );
   }
 
-  @Parameters(name = "{0} with {1}")
+  @Parameters(name = "{0} [{1}]")
   public static Object[][] testData() {
     List<String> configs = getConfigs();
     List<Pair<String, Boolean>> testCases = getTestCases();
