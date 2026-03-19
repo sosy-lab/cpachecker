@@ -246,8 +246,7 @@ public class MPOROptions {
   private void handleOptionRejections() throws InvalidConfigurationException {
     if (controlEncodingStatement.equals(MultiSelectionStatementEncoding.NONE)) {
       throw new InvalidConfigurationException(
-          String.format(
-              "controlEncodingStatement cannot be %s", controlEncodingStatement));
+          String.format("controlEncodingStatement cannot be %s", controlEncodingStatement));
     }
     if (nondeterminismSource.isNextThreadNondeterministic()) {
       if (!controlEncodingThread.isEnabled()) {
