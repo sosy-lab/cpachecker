@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.mutex;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -28,14 +30,17 @@ public final class MutexFunctions {
 
   private static final ImmutableMap<String, MutexLockType> LOCK_FUNCTIONS =
       ImmutableMap.of(
-          "pthread_mutex_lock", MutexLockType.WRITE,
-          "mtx_lock", MutexLockType.WRITE
+          "pthread_mutex_lock", MutexLockType.BOTH,
+          "mtx_lock", MutexLockType.BOTH,
+          "pthread_rwlock_rdlock", MutexLockType.READ,
+          "pthread_rwlock_wrlock", MutexLockType.WRITE
       );
 
   private static final ImmutableMap<String, MutexLockType> UNLOCK_FUNCTIONS =
       ImmutableMap.of(
-          "pthread_mutex_unlock", MutexLockType.WRITE,
-          "mtx_unlock", MutexLockType.WRITE
+          "pthread_mutex_unlock", MutexLockType.BOTH,
+          "mtx_unlock", MutexLockType.BOTH,
+          "pthread_rwlock_unlock", MutexLockType.BOTH
       );
 
   private static final ImmutableSet<String> INIT_FUNCTIONS =
@@ -47,7 +52,8 @@ public final class MutexFunctions {
   private static final String ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String ATOMIC_END = "__VERIFIER_atomic_end";
 
-  private MutexFunctions() {}
+  private MutexFunctions() {
+  }
 
   /**
    * Extracts the mutex variable name from a function argument expression. Handles both {@code
@@ -67,12 +73,16 @@ public final class MutexFunctions {
     return null;
   }
 
-  /** Returns {@code true} if the given CFA edge is a mutex lock function call. */
+  /**
+   * Returns {@code true} if the given CFA edge is a mutex lock function call.
+   */
   public static boolean isLockCall(CFAEdge edge) {
     return getLockMutex(edge) != null;
   }
 
-  /** Returns {@code true} if the given CFA edge is a mutex unlock function call. */
+  /**
+   * Returns {@code true} if the given CFA edge is a mutex unlock function call.
+   */
   public static boolean isUnlockCall(CFAEdge edge) {
     return getUnlockMutex(edge) != null;
   }
@@ -93,33 +103,45 @@ public final class MutexFunctions {
     return getMutexLockForFunctionSet(edge, UNLOCK_FUNCTIONS);
   }
 
-  /** Returns {@code true} if the given function name is a mutex init function. */
+  /**
+   * Returns {@code true} if the given function name is a mutex init function.
+   */
   public static boolean isInitFunction(String functionName) {
     return INIT_FUNCTIONS.contains(functionName);
   }
 
-  /** Returns {@code true} if the given function name is a mutex destroy function. */
+  /**
+   * Returns {@code true} if the given function name is a mutex destroy function.
+   */
   public static boolean isDestroyFunction(String functionName) {
     return DESTROY_FUNCTIONS.contains(functionName);
   }
 
-  /** Returns {@code true} if the given function name is {@code __VERIFIER_atomic_begin}. */
+  /**
+   * Returns {@code true} if the given function name is {@code __VERIFIER_atomic_begin}.
+   */
   public static boolean isAtomicBegin(String functionName) {
     return ATOMIC_BEGIN.equals(functionName);
   }
 
-  /** Returns {@code true} if the given function name is {@code __VERIFIER_atomic_end}. */
+  /**
+   * Returns {@code true} if the given function name is {@code __VERIFIER_atomic_end}.
+   */
   public static boolean isAtomicEnd(String functionName) {
     return ATOMIC_END.equals(functionName);
   }
 
-  /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_begin} call. */
+  /**
+   * Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_begin} call.
+   */
   public static boolean isAtomicBeginCall(CFAEdge edge) {
     String name = getFunctionCallName(edge);
     return isAtomicBegin(name);
   }
 
-  /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_end} call. */
+  /**
+   * Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_end} call.
+   */
   public static boolean isAtomicEndCall(CFAEdge edge) {
     String name = getFunctionCallName(edge);
     return isAtomicEnd(name);

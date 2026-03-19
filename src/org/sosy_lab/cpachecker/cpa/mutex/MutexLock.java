@@ -15,13 +15,21 @@ import com.google.common.collect.ImmutableList;
 public record MutexLock(String handle, MutexLockType type) {
   enum MutexLockType {
     READ,
-    WRITE
+    WRITE,
+    BOTH,
   }
 
   ImmutableCollection<MutexLock> getBlockingLocks() {
-    if (type == MutexLockType.WRITE) {
-      return ImmutableList.of(this, new MutexLock(handle, MutexLockType.READ));
+    if (type == MutexLockType.READ) {
+      return ImmutableList.of(
+          new MutexLock(handle, MutexLockType.WRITE),
+          new MutexLock(handle, MutexLockType.BOTH)
+      );
     }
-    return ImmutableList.of(new MutexLock(handle, MutexLockType.WRITE));
+    return ImmutableList.of(
+        new MutexLock(handle, MutexLockType.READ),
+        new MutexLock(handle, MutexLockType.WRITE),
+        new MutexLock(handle, MutexLockType.BOTH)
+    );
   }
 }

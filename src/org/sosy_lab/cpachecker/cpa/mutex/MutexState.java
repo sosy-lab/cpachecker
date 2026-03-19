@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.mutex.MutexLock.MutexLockType;
 
 /**
  * Tracks the state of mutexes in concurrent programs. Records <em>which thread</em> (by PID) holds
@@ -174,7 +175,8 @@ public class MutexState implements AbstractState {
     }
     ImmutableMap.Builder<MutexLock, ImmutableSet<Integer>> builder = ImmutableMap.builder();
     for (var entry : lockedMutexes.entrySet()) {
-      if (entry.getKey().equals(mutex)) {
+      if (entry.getKey().equals(mutex) ||
+          (entry.getKey().handle().equals(mutex.handle()) && mutex.type() == MutexLockType.BOTH)) {
         ImmutableSet<Integer> holders = entry.getValue();
         if (!holders.contains(holderPid)) {
           return this;
