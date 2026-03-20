@@ -226,8 +226,6 @@ public final class PointerTargetSet implements Serializable {
     return OptionalInt.of(Objects.requireNonNull(callStackDepth.get(functionName)));
   }
 
-
-
   /**
    * javadoc to remove unused parameter warning
    *
