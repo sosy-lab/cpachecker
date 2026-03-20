@@ -75,8 +75,8 @@ public interface PointerTargetSetBuilder {
    * the variable whose call stack depth should be returned is available, because it can be used to
    * detect if the variable is global and therefore the callstack depth for the encoding is zero.
    *
-   * @param pFunctionName
-   * @return
+   * @param pFunctionName The name of the function.
+   * @return The current call stack depth for the given function name.
    */
   Integer getCallstackDepth(String pFunctionName);
 
@@ -814,10 +814,12 @@ public interface PointerTargetSetBuilder {
       }
     }
 
+    @Override
     public Integer getCallstackDepth(String pFunctionName) {
       return Objects.requireNonNull(callstackDepth.get(pFunctionName));
     }
 
+    @Override
     public OptionalInt getCallstackDepth(CFAEdge pEdge, String pVariableName) {
       if (!pVariableName.contains("::")) {
         return OptionalInt.empty();
@@ -826,10 +828,12 @@ public interface PointerTargetSetBuilder {
       return OptionalInt.of(getCallstackDepth(pEdge.getPredecessor().getFunctionName()));
     }
 
+    @Override
     public OptionalInt getCallstackDepth(CSimpleDeclaration pSimpleDeclaration, CFAEdge pCfaEdge) {
       return getCallstackDepth(pSimpleDeclaration, pCfaEdge.getPredecessor().getFunctionName());
     }
 
+    @Override
     public OptionalInt getCallstackDepth(
         CSimpleDeclaration pSimpleDeclaration, String pFunctionName) {
       // In this

@@ -31,7 +31,7 @@ public record PointerBase(String name, OptionalInt callStackDepth)
 
   /**
    * Create a PointerBase from a plain name. Make sure that this is not the encoded form of the
-   * name! Prefer {@link #PointerBase(CSimpleDeclaration)} where possible.
+   * name! Prefer {@link #PointerBase(CSimpleDeclaration, OptionalInt)} where possible.
    */
   public PointerBase {
     checkNotNull(name);
