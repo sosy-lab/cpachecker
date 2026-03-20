@@ -542,8 +542,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
 
-    // Delete SSA index to signal that baseName should not be used anymore.
-    ssa.deleteVariable(base.name());
+    // We do not delete the SSA Index of the variable now being used as aliased
+    // out of the ssa map, since we may need it again if we encounter the same
+    // variable at a different call stack depth, where we would need to use
+    // a different SSA index for the variable.
   }
 
   /**

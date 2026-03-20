@@ -59,7 +59,15 @@ public class BMCAlgorithmTest {
     results.assertIsSafe();
   }
 
-  @Test(timeout = 50000000)
+  @Test(timeout = 3000)
+  public void count_local_pointer_wrong_simple() throws Exception {
+    TestResults results =
+        CPATestRunner.run(
+            getConfiguration(), getProgramPath("countup_local_pointer_wrong_simple.c"));
+    results.assertIsUnsafe();
+  }
+
+  @Test(timeout = 3000)
   public void count_local_pointer_wrong() throws Exception {
     TestResults results =
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_local_pointer_wrong.c"));
