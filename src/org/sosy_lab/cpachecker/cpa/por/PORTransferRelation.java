@@ -193,6 +193,11 @@ public class PORTransferRelation implements TransferRelation {
             if (prevState == null) {
               return;
             }
+          } else if (ThreadFunctions.isThreadExitFunction(functionName)) {
+            prevState = prevState.exitThread(pid, locationCPA.getStateFactory());
+            if (prevState == null) {
+              return;
+            }
           }
         }
       }

@@ -21,21 +21,34 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
  * Utility class for detecting and extracting information from pthread-related C function calls
  * ({@code pthread_create}, {@code pthread_join}).
  */
-public final class PthreadFunctions {
+public final class ThreadFunctions {
 
   private static final ImmutableSet<String> CREATE_FUNCTIONS = ImmutableSet.of("pthread_create");
   private static final ImmutableSet<String> JOIN_FUNCTIONS = ImmutableSet.of("pthread_join");
+  private static final ImmutableSet<String> THREAD_EXIT_FUNCTIONS = ImmutableSet.of("pthread_exit");
 
-  private PthreadFunctions() {}
+  private ThreadFunctions() {
+  }
 
-  /** Returns {@code true} if the given function name is a thread creation function. */
+  /**
+   * Returns {@code true} if the given function name is a thread creation function.
+   */
   public static boolean isCreateFunction(String functionName) {
     return CREATE_FUNCTIONS.contains(functionName);
   }
 
-  /** Returns {@code true} if the given function name is a thread join function. */
+  /**
+   * Returns {@code true} if the given function name is a thread join function.
+   */
   public static boolean isJoinFunction(String functionName) {
     return JOIN_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * Returns {@code true} if the given function name is a thread exit function.
+   */
+  public static boolean isThreadExitFunction(String functionName) {
+    return THREAD_EXIT_FUNCTIONS.contains(functionName);
   }
 
   /**
@@ -43,7 +56,7 @@ public final class PthreadFunctions {
    * list.
    *
    * @param params the parameter expressions of the {@code pthread_create} call (must have 4
-   *     elements)
+   *               elements)
    * @return the qualified name of the thread handle variable
    */
   public static String extractCreateHandle(List<? extends AExpression> params) {
@@ -64,7 +77,7 @@ public final class PthreadFunctions {
    * Extracts the started function's name from a {@code pthread_create} call's parameter list.
    *
    * @param params the parameter expressions of the {@code pthread_create} call (must have 4
-   *     elements)
+   *               elements)
    * @return the simple name of the function to be started in the new thread
    */
   public static String extractCreateFunctionName(List<? extends AExpression> params) {
@@ -85,7 +98,7 @@ public final class PthreadFunctions {
    * Extracts the thread handle's qualified name from a {@code pthread_join} call's parameter list.
    *
    * @param params the parameter expressions of the {@code pthread_join} call (must have 2
-   *     elements)
+   *               elements)
    * @return the qualified name of the thread handle variable
    */
   public static String extractJoinHandle(List<? extends AExpression> params) {

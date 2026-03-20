@@ -169,6 +169,23 @@ public class PORState
     return new PORState(getWrappedState(), cfa, newThreads.buildKeepingLast(), threadHandles);
   }
 
+  public PORState exitThread(int pPid, LocationStateFactory pLocationStateFactory) {
+    PORThreadState threadState = threads.get(pPid);
+    assert threadState != null : "threads must contain pid to exit " + pPid;
+    CFANode currentNode = threadState.pLocationState().getLocationNode();
+    String function = currentNode.getFunctionName();
+
+    CFANode exitNode = cfa.nodes().stream().filter(
+        n -> n instanceof FunctionExitNode && function.equals(n.getFunctionName())
+            && n.getNumLeavingEdges() == 0).findAny().orElseThrow();
+    LocationState exitLocationState = pLocationStateFactory.getState(exitNode);
+
+    CallstackState exitCallstackState =
+        new CallstackState(null, function, cfa.getFunctionHead(function));
+
+    return stepThread(pPid, exitLocationState, exitCallstackState);
+  }
+
   PORState withWrappedState(AbstractState pWrappedState) {
     return new PORState(pWrappedState, cfa, threads, threadHandles);
   }

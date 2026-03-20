@@ -65,7 +65,8 @@ public class PORCPATest {
         Pair.of("mutex_unprotected_unsafe.c", false),
         Pair.of("atomic_increment_safe.c", true),
         Pair.of("atomic_swap_safe.c", true),
-        Pair.of("atomic_split_unsafe.c", false)
+        Pair.of("atomic_split_unsafe.c", false),
+        Pair.of("pthread_exit_safe.c", true)
     );
   }
 
