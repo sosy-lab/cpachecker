@@ -838,11 +838,11 @@ public interface PointerTargetSetBuilder {
         return OptionalInt.empty();
       }
 
-      // Special case for C
-      if (pSimpleDeclaration.getName().equals("__retval__")
-          && pFunctionName.equals("main")
-          && !callstackDepth.keySet().contains(pFunctionName)) {
-        return OptionalInt.empty();
+      // Special case where the main function was called through a blank edge and not through a
+      // a function call edge, happens for example for
+      // the test `fib_correct` in `BMCAlgorithmTest`.
+      if (!callstackDepth.keySet().contains(pFunctionName)) {
+        return OptionalInt.of(0);
       }
 
       return OptionalInt.of(Objects.requireNonNull(callstackDepth.get(pFunctionName)));

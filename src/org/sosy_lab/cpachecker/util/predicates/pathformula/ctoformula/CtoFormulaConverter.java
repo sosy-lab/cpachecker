@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -1036,10 +1037,13 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     // Tell the pointer target set to enter/exit a function
     // This needs to come before the creation of any formula such that the
     // bases, i.e., memory regions get the correct function context.
-    if (edge instanceof CFunctionCallEdge callEdge) {
-      pts.enterFunction(callEdge.getSuccessor().getFunctionName());
-    } else if (edge instanceof CFunctionReturnEdge returnEdge) {
-      pts.leaveFunction(returnEdge.getPredecessor().getFunctionName());
+    switch (edge) {
+      case CFunctionCallEdge callEdge ->
+          pts.enterFunction(callEdge.getSuccessor().getFunctionName());
+      // Special case for calling the main function of the program
+      case CFunctionReturnEdge returnEdge ->
+          pts.leaveFunction(returnEdge.getPredecessor().getFunctionName());
+      default -> {}
     }
 
     // param-constraints must be added _before_ handling the edge (some lines below),
