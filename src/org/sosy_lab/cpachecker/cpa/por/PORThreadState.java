@@ -15,24 +15,26 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 public record PORThreadState(
     LocationState pLocationState,
-    CallstackState pCallstackState,
-    PathFormula pPathFormula) {
+    CallstackState pCallstackState) {
   @Override
   public String toString() {
-    return "(loc=%s, callstack=%s, pathFormula=%s)"
-        .formatted(pLocationState, pCallstackState, pPathFormula);
+    return "(loc=%s, callstack=%s)"
+        .formatted(pLocationState, pCallstackState);
   }
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof PORThreadState that)) return false;
-    return Objects.equals(pPathFormula, that.pPathFormula)
-        && Objects.equals(pLocationState, that.pLocationState)
-        && Objects.equals(pCallstackState, that.pCallstackState);
+    if (!(pO instanceof PORThreadState(
+        LocationState pPLocationState, CallstackState pPCallstackState
+    ))) {
+      return false;
+    }
+    return Objects.equals(pLocationState, pPLocationState)
+        && Objects.equals(pCallstackState, pPCallstackState);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(pLocationState, pCallstackState, pPathFormula);
+    return Objects.hash(pLocationState, pCallstackState);
   }
 }

@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -41,19 +40,12 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class PORTransferRelation implements TransferRelation {
   private final LocationCPA locationCPA;
   private final CallstackCPA callstackCPA;
   private final TransferRelation wrappedTransferRelation;
 
-  private final Solver solver;
-  private final PathFormulaManager pathFormulaManager;
   private final CFA cfa;
 
   private final boolean aggregateBasicBlocks;
@@ -64,19 +56,13 @@ public class PORTransferRelation implements TransferRelation {
       Configuration pConfig,
       CFA pCfa,
       boolean pAggregateBasicBlocks,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
+      LogManager pLogger)
       throws InvalidConfigurationException {
     wrappedTransferRelation = wrappedCpa.getTransferRelation();
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
 
     cfa = pCfa;
-    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
-    FormulaManagerView formulaManager = solver.getFormulaManager();
-    pathFormulaManager =
-        new PathFormulaManagerImpl(
-            formulaManager, pConfig, pLogger, pShutdownNotifier, pCfa, AnalysisDirection.FORWARD);
 
     aggregateBasicBlocks = pAggregateBasicBlocks;
     basicBlockAggregator = new SingleGlobalStatementBlockAggregator(pCfa);
@@ -196,13 +182,13 @@ public class PORTransferRelation implements TransferRelation {
           final var params =
               pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
 
-          if (PthreadFunctions.isCreateFunction(functionName)) {
-            String handle = PthreadFunctions.extractCreateHandle(params);
-            String threadFunc = PthreadFunctions.extractCreateFunctionName(params);
+          if (ThreadFunctions.isCreateFunction(functionName)) {
+            String handle = ThreadFunctions.extractCreateHandle(params);
+            String threadFunc = ThreadFunctions.extractCreateFunctionName(params);
             prevState = addNewThread(prevState, handle, threadFunc);
 
-          } else if (PthreadFunctions.isJoinFunction(functionName)) {
-            String handle = PthreadFunctions.extractJoinHandle(params);
+          } else if (ThreadFunctions.isJoinFunction(functionName)) {
+            String handle = ThreadFunctions.extractJoinHandle(params);
             prevState = prevState.joinThread(handle);
             if (prevState == null) {
               return;
@@ -218,7 +204,6 @@ public class PORTransferRelation implements TransferRelation {
     if (threadState != null) {
       final var loc = threadState.pLocationState();
       final var stack = threadState.pCallstackState();
-      final var pathFormula = threadState.pPathFormula();
 
       final var nextLocs =
           locationCPA
@@ -228,7 +213,6 @@ public class PORTransferRelation implements TransferRelation {
           callstackCPA
               .getTransferRelation()
               .getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
-      final var nextFormula = pathFormulaManager.makeAnd(pathFormula, cfaEdge);
 
       List<PORState> successors =
           nextLocs.stream()
@@ -240,8 +224,7 @@ public class PORTransferRelation implements TransferRelation {
                                   old.stepThread(
                                       pid,
                                       (LocationState) nextLoc,
-                                      (CallstackState) nextStack,
-                                      nextFormula)))
+                                      (CallstackState) nextStack)))
               .toList();
 
       // Combine POR successors with wrapped CPA successors
@@ -273,16 +256,6 @@ public class PORTransferRelation implements TransferRelation {
     LocationState initialLoc =
         locationCPA.getInitialState(functionCallNode, StateSpacePartition.getDefaultPartition());
 
-    PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula();
-
-    return old.addNewThread(handle, initialLoc, initialStack, emptyFormula);
-  }
-
-  public Solver getSolver() {
-    return solver;
-  }
-
-  public PathFormulaManager getPathFormulaManager() {
-    return pathFormulaManager;
+    return old.addNewThread(handle, initialLoc, initialStack);
   }
 }

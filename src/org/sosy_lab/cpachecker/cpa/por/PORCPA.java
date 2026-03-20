@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
 import java.util.Optional;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -76,14 +75,12 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
-      CFA pCfa,
-      ShutdownNotifier pShutdownNotifier)
+      CFA pCfa)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
 
-    transferRelation = new PORTransferRelation(pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger,
-        pShutdownNotifier);
+    transferRelation = new PORTransferRelation(pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger);
 
     final PrecisionAdjustment wrappedPrecisionAdjustment = pCpa.getPrecisionAdjustment();
     precisionAdjustment = (state, precision, states, stateProjection, fullState) -> {
@@ -104,7 +101,6 @@ public class PORCPA extends AbstractSingleWrapperCPA {
               Predicates.instanceOf(r.precision().getClass())),
           r.action()
       ));
-
     };
   }
 

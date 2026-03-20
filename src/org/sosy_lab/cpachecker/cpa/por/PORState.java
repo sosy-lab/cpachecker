@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.por;
 
 import static com.google.common.base.Preconditions.checkState;
-import static org.sosy_lab.cpachecker.cpa.por.PthreadFunctions.extractJoinHandle;
+import static org.sosy_lab.cpachecker.cpa.por.ThreadFunctions.extractJoinHandle;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
@@ -42,12 +43,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexLock;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class PORState
@@ -100,13 +101,12 @@ public class PORState
   PORState addNewThread(
       String handle,
       LocationState pInitialLoc,
-      CallstackState pInitialStack,
-      PathFormula pEmptyFormula) {
+      CallstackState pInitialStack) {
     final int newPid = threads.size();
     final ImmutableMap<Integer, PORThreadState> newThreads =
         ImmutableMap.<Integer, PORThreadState>builder()
             .putAll(threads)
-            .put(newPid, new PORThreadState(pInitialLoc, pInitialStack, pEmptyFormula))
+            .put(newPid, new PORThreadState(pInitialLoc, pInitialStack))
             .buildKeepingLast();
     final ImmutableMap<String, Integer> newThreadHandles =
         handle == null
@@ -157,8 +157,7 @@ public class PORState
   public PORState stepThread(
       int pPid,
       LocationState pNextLoc,
-      CallstackState pNextStack,
-      PathFormula pNextFormula) {
+      CallstackState pNextStack) {
     assert threads.containsKey(pPid) : "threads must contain pid to step " + pPid;
     final ImmutableMap.Builder<Integer, PORThreadState> newThreads = ImmutableMap.builder();
     for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
@@ -166,7 +165,7 @@ public class PORState
         newThreads.put(entry.getKey(), entry.getValue());
       }
     }
-    newThreads.put(pPid, new PORThreadState(pNextLoc, pNextStack, pNextFormula));
+    newThreads.put(pPid, new PORThreadState(pNextLoc, pNextStack));
     return new PORState(getWrappedState(), cfa, newThreads.buildKeepingLast(), threadHandles);
   }
 
