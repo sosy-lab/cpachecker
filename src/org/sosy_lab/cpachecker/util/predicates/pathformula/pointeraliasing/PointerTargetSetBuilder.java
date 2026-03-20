@@ -841,7 +841,7 @@ public interface PointerTargetSetBuilder {
       // Special case where the main function was called through a blank edge and not through a
       // a function call edge, happens for example for
       // the test `fib_correct` in `BMCAlgorithmTest`.
-      if (!callstackDepth.keySet().contains(pFunctionName)) {
+      if (!callstackDepth.containsKey(pFunctionName)) {
         return OptionalInt.of(0);
       }
 
