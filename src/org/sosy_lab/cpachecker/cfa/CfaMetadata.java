@@ -14,6 +14,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -21,8 +22,10 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.cfa.transformation.ProgramTransformationInformation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -50,6 +53,7 @@ public final class CfaMetadata {
   private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
 
   private final @Nullable CfaTransformationMetadata transformationMetadata;
+  private final @Nullable ImmutableMap<CFANode, ProgramTransformationInformation> nodesToProgramTransformations;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -64,7 +68,8 @@ public final class CfaMetadata {
       @Nullable LiveVariables pLiveVariables,
       @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
       @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
-      @Nullable CfaTransformationMetadata pCfaTransformationMetadata) {
+      @Nullable CfaTransformationMetadata pCfaTransformationMetadata,
+      @Nullable ImmutableMap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformations) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -79,6 +84,7 @@ public final class CfaMetadata {
     edgesToAnnotations = pEdgesToAnnotations;
     svLibCfaMetadata = pSvLibCfaMetadata;
     transformationMetadata = pCfaTransformationMetadata;
+    nodesToProgramTransformations = pNodesToProgramTransformations;
   }
 
   /**
@@ -111,6 +117,7 @@ public final class CfaMetadata {
         pFileNames,
         pMainFunctionEntry,
         pConnectedness,
+        null,
         null,
         null,
         null,
@@ -151,7 +158,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        nodesToProgramTransformations);
   }
 
   public CfaMetadata withTransformationMetadata(CfaTransformationMetadata pTransformationMetadata) {
@@ -169,7 +177,8 @@ public final class CfaMetadata {
             liveVariables,
             edgesToAnnotations,
             svLibCfaMetadata,
-            pTransformationMetadata);
+            pTransformationMetadata,
+            nodesToProgramTransformations);
     return newMetadata;
   }
 
@@ -236,7 +245,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        nodesToProgramTransformations);
   }
 
   /**
@@ -269,7 +279,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        nodesToProgramTransformations);
   }
 
   /**
@@ -315,7 +326,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        nodesToProgramTransformations);
   }
 
   /**
@@ -352,7 +364,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         pSvLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        nodesToProgramTransformations);
   }
 
   /**
@@ -376,7 +389,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        nodesToProgramTransformations);
   }
 
   /**
@@ -412,7 +426,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        nodesToProgramTransformations);
   }
 
   /**
@@ -447,7 +462,8 @@ public final class CfaMetadata {
         pLiveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        nodesToProgramTransformations);
   }
 
   /**
@@ -486,7 +502,42 @@ public final class CfaMetadata {
         liveVariables,
         pedgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        nodesToProgramTransformations);
+  }
+
+  /**
+   * TODO
+   *
+   * @return TODO
+   */
+  public Optional<ImmutableMap<CFANode, ProgramTransformationInformation>> getNodesToProgramTransformations() {
+    return Optional.ofNullable(nodesToProgramTransformations);
+  }
+
+  /**
+   * TODO
+   *
+   * @param TODO
+   * @return TODO
+   */
+  public CfaMetadata withNodesToProgramTransformations(
+      @Nullable ImmutableMap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformations) {
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata,
+        pNodesToProgramTransformations);
   }
 
   @Override

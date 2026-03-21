@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -56,5 +57,10 @@ public record SubCFA (
     originalCFAExitNode.addEnteringEdge(exitEdge);
     subCFAExitNode.addLeavingEdge(exitEdge);
     // set metadata
+    ImmutableMap<CFANode, ProgramTransformationInformation> nodeToProgramTransformation = pCFA.getMetadata().getNodesToProgramTransformations().isEmpty()? ImmutableMap.of() : pCFA.getMetadata().getNodesToProgramTransformations().get();
+    ImmutableMap.Builder<CFANode, ProgramTransformationInformation> newMapBuilder = ImmutableMap.builder();
+    newMapBuilder.putAll(nodeToProgramTransformation);
+    newMapBuilder.put(originalCFAEntryNode, new ProgramTransformationInformation(this));
+    pCFA.setMetadata(pCFA.getMetadata().withNodesToProgramTransformations(newMapBuilder.build()));
   }
 }
