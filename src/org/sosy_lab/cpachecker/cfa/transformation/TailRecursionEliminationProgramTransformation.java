@@ -22,10 +22,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,7 +44,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
   @Override
   public Optional<SubCFA> transform(CFA pCFA, CFANode pNode) {
 
-    // TODO check transformation conditions
+    // check transformation conditions
     // check 1: are we at the start of a function with a return node
     if (!(pNode instanceof FunctionEntryNode functionEntryNode)) {
       return Optional.empty();
@@ -135,7 +137,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       }
     }
 
-    // TODO perform transformation
+    // perform transformation
     CFANode newEntryNode = null;
     CFANode newExitNode = null;
     ImmutableList.Builder<CFANode> nodes = ImmutableList.builder();
@@ -199,7 +201,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
         }
       }
     }
-    // TODO add parameter edges
+    // add parameter edges
     Optional<Integer> nodeBeforeParams = getNodeIndex(nodeMap.get(tmpVarDeclarationEdge.get().getPredecessor().getNodeNumber()), nodesList);
     if (nodeBeforeParams.isEmpty()) {
       return Optional.empty();
@@ -215,9 +217,16 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
         succNode = nodesList.get(nodeMap.size() + i);
       }
       CExpression parameterExpression = parameterExpressions.get(i);
+      CVariableDeclaration parameterDeclaration;
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) pNode.getLeavingEdges().first().get().getSuccessor().getLeavingEdges().first().get();
+      if (declarationEdge.getDeclaration() instanceof CFunctionDeclaration cFunctionDeclaration) {
+        parameterDeclaration = cFunctionDeclaration.getParameters().get(i).asVariableDeclaration();
+      } else {
+        return Optional.empty();
+      }
       CStatement parameterAssignment = new CExpressionAssignmentStatement(FileLocation.DUMMY, new CIdExpression(FileLocation.DUMMY,
-          (CType) parameters.get(i).getType(), parameters.get(i).getName(), null), parameterExpression);
-      CStatementEdge newEdge = new CStatementEdge("", parameterAssignment, FileLocation.DUMMY, preNode, succNode);
+          (CType) parameters.get(i).getType(), parameters.get(i).getName(), parameterDeclaration), parameterExpression);
+      CStatementEdge newEdge = new CStatementEdge(parameterAssignment.toASTString(), parameterAssignment, FileLocation.DUMMY, preNode, succNode);
       edges.add(newEdge);
       preNode.addLeavingEdge(newEdge);
       succNode.addEnteringEdge(newEdge);

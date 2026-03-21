@@ -10,8 +10,13 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 
 /**
  * Representation of the result of a successful program transformation.
@@ -37,6 +42,19 @@ public record SubCFA (
     for (CFANode node : allNodes) {
       pCFA.addNode(node);
     }
+    // connect entry and exit nodes
+    BlankEdge entryEdge =
+        new BlankEdge(
+            "enter program transformation: " + programTransformationEnum.name(),
+            FileLocation.DUMMY,
+            originalCFAEntryNode,
+            subCFAEntryNode,
+            "enter program transformation: " + programTransformationEnum.name());
+    originalCFAEntryNode.addLeavingEdge(entryEdge);
+    subCFAEntryNode.addEnteringEdge(entryEdge);
+    BlankEdge exitEdge = new BlankEdge("exit program transformation: " + programTransformationEnum.name(), FileLocation.DUMMY, subCFAExitNode, originalCFAExitNode, "exit program transformation: " + programTransformationEnum.name());
+    originalCFAExitNode.addEnteringEdge(exitEdge);
+    subCFAExitNode.addLeavingEdge(exitEdge);
     // set metadata
   }
 }
