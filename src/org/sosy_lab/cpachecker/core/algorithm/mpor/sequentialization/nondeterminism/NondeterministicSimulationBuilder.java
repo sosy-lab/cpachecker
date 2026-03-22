@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -127,11 +129,16 @@ public class NondeterministicSimulationBuilder {
 
   // injections ====================================================================================
 
-  static ImmutableList<SeqThreadStatementClause> tryInjectStatementsIntoClauses(
+  static ImmutableList<SeqThreadStatementClause> injectRoundGotoIntoClauses(
       MPOROptions pOptions,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
+
+    checkArgument(
+        pOptions.nondeterminismSource().isNumStatementsNondeterministic(),
+        "round goto statements should only be injected when nondeterminismSource contains"
+            + " NUM_STATEMENTS.");
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
@@ -140,12 +147,8 @@ public class NondeterministicSimulationBuilder {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {
-          newBlocks.add(
-              injectRoundGotoIntoBlock(pOptions, block, labelClauseMap, pBinaryExpressionBuilder));
-        } else {
-          newBlocks.add(block);
-        }
+        newBlocks.add(
+            injectRoundGotoIntoBlock(pOptions, block, labelClauseMap, pBinaryExpressionBuilder));
       }
       updatedClauses.add(clause.withBlocks(newBlocks.build()));
     }

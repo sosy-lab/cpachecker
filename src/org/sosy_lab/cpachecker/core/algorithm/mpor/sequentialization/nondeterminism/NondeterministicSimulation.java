@@ -151,9 +151,12 @@ public abstract class NondeterministicSimulation {
   CExportStatement buildSingleThreadMultiSelectionStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
+    // inject the round goto statements, but only if nondeterminismSource contains NUM_STATEMENTS
     ImmutableList<SeqThreadStatementClause> withInjectedStatements =
-        NondeterministicSimulationBuilder.tryInjectStatementsIntoClauses(
-            options, clauses.get(pThread), utils.binaryExpressionBuilder());
+        options.nondeterminismSource().isNumStatementsNondeterministic()
+            ? NondeterministicSimulationBuilder.injectRoundGotoIntoClauses(
+                options, clauses.get(pThread), utils.binaryExpressionBuilder())
+            : clauses.get(pThread);
 
     CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
     ImmutableMap<CExportExpression, CCompoundStatement> expressionClauseMap =
