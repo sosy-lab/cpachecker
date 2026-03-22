@@ -666,16 +666,6 @@ class WebInterface:
         counter=0,
     ):
         params = []
-        # normalize requirements
-        if requirements is None:
-            requirements = {}
-        if not isinstance(requirements, dict):
-            requirements = {}
-
-        # remove None values
-        requirements = {
-            k: v for k, v in requirements.items() if v is not None
-        }
         opened_files = []  # open file handles are passed to the request library
 
         for programPath in run.sourcefiles:
