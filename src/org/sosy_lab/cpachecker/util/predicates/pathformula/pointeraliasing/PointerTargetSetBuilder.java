@@ -805,8 +805,21 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void leaveFunction(String functionName) {
-      int depth = callstackDepth.get(functionName);
-      checkState(depth > 0, "Call stack depth for function %s is already zero", functionName);
+      Integer depth =
+          callstackDepth.getOrDefault(
+              functionName,
+              // In this case we are doing partial formula assignments, like for example for
+              // FaultLocation, specifically check the test
+              // `testCorrectCalculationOfPreAndPostCondition`
+              //
+              // We return -2, since 0 and -1 are already reserved as default values for
+              // non-existing and global variables respectively, but the exact value doesn't matter
+              // as long as it's negative.
+              -2);
+      checkState(
+          depth > 0 || !callstackDepth.containsKey(functionName),
+          "Call stack depth for function %s is already zero",
+          functionName);
       if (depth == 1) {
         callstackDepth = callstackDepth.removeAndCopy(functionName);
       } else {
