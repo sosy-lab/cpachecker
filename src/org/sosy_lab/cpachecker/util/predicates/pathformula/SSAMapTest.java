@@ -44,6 +44,7 @@ public class SSAMapTest {
                 PathCopyingPersistentTreeMap.of(),
                 PersistentLinkedList.of(),
                 PathCopyingPersistentTreeMap.of(),
+                PathCopyingPersistentTreeMap.of(),
                 PersistentLinkedList.of(),
                 0);
 
