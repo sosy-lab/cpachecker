@@ -9,7 +9,8 @@
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
+import java.util.Objects;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -40,8 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public final class CSwitchStatement implements CExportStatement {
 
-  record CSwitchCaseStatement(
-      CExportExpression expression, ImmutableList<CCompoundStatementElement> statements)
+  record CSwitchCaseStatement(CExportExpression expression, CCompoundStatement statement)
       implements CExportStatement {
 
     @Override
@@ -50,9 +50,7 @@ public final class CSwitchStatement implements CExportStatement {
 
       StringJoiner caseStatement = new StringJoiner(System.lineSeparator());
       caseStatement.add("case " + expression.toASTString(pAAstNodeRepresentation) + ":");
-      for (CCompoundStatementElement statement : statements) {
-        caseStatement.add(statement.toASTString(pAAstNodeRepresentation));
-      }
+      caseStatement.add(statement.toASTString(pAAstNodeRepresentation));
       caseStatement.add("break;");
       return caseStatement.toString();
     }
@@ -60,11 +58,11 @@ public final class CSwitchStatement implements CExportStatement {
 
   private final CExpression switchExpression;
 
-  private final ImmutableListMultimap<CExportExpression, CCompoundStatementElement> statements;
+  private final ImmutableMap<CExportExpression, CCompoundStatement> statements;
 
   public CSwitchStatement(
       CExpression pSwitchExpression,
-      ImmutableListMultimap<CExportExpression, CCompoundStatementElement> pStatements) {
+      ImmutableMap<CExportExpression, CCompoundStatement> pStatements) {
 
     switchExpression = pSwitchExpression;
     statements = pStatements;
@@ -81,7 +79,8 @@ public final class CSwitchStatement implements CExportStatement {
     ImmutableList.Builder<CCompoundStatementElement> caseStatements = ImmutableList.builder();
     // add all case expression: stmt1; ... break;
     for (CExportExpression expression : statements.keySet()) {
-      caseStatements.add(new CSwitchCaseStatement(expression, statements.get(expression)));
+      caseStatements.add(
+          new CSwitchCaseStatement(expression, Objects.requireNonNull(statements.get(expression))));
     }
     switchCase.add(
         new CCompoundStatement(caseStatements.build()).toASTString(pAAstNodeRepresentation));

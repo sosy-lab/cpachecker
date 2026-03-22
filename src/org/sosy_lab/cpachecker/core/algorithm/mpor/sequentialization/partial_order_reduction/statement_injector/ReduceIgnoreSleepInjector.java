@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
@@ -46,7 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermin
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
@@ -129,8 +126,8 @@ public record ReduceIgnoreSleepInjector(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    ImmutableListMultimap.Builder<CExportExpression, CCompoundStatementElement> ifElseChain =
-        ImmutableListMultimap.builder();
+    ImmutableMap.Builder<CExportExpression, CCompoundStatement> ifElseChain =
+        ImmutableMap.builder();
 
     for (MPORThread thread : pFields.threads) {
       ImmutableSet<MPORThread> otherThreads =
@@ -150,17 +147,19 @@ public record ReduceIgnoreSleepInjector(
           SeqStatementBuilder.buildExpressionAssignmentStatement(
               SeqIdExpressions.NEXT_THREAD,
               SeqExpressionBuilder.buildIntegerLiteralExpression(thread.id()));
+      CCompoundStatement nextThreadAssignmentWrapped =
+          new CCompoundStatement(new CStatementWrapper(nextThreadAssignment));
 
-      ifElseChain.put(ifCondition, new CStatementWrapper(nextThreadAssignment));
+      ifElseChain.put(ifCondition, nextThreadAssignmentWrapped);
     }
 
     // for the nondeterministic choice create the final else statements without any condition
-    ImmutableList<CCompoundStatementElement> finalElseStatements =
+    CCompoundStatement finalElseStatement =
         SeqMainFunctionBuilder.buildNextThreadNondeterministicStatements(
             pOptions, pFields.numThreads, pFields.ghostElements, pUtils.binaryExpressionBuilder());
 
     return CMultiSelectionStatementBuilder.buildIfElseChainWithoutFinalCondition(
-        ifElseChain.build(), finalElseStatements);
+        ifElseChain.build(), finalElseStatement);
   }
 
   /** Returns the expression {@code (pci != 0 && Ti_SYNC == 0 && *Ti not in conflict*)}. */

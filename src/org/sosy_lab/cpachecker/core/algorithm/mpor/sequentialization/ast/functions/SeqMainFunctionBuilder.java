@@ -133,7 +133,7 @@ public final class SeqMainFunctionBuilder {
               ReduceIgnoreSleepInjector.buildNextThreadIgnoreSleepInstrumentation(
                   pOptions, pFields, pUtils));
         } else {
-          loopBlock.addAll(
+          loopBlock.add(
               buildNextThreadNondeterministicStatements(
                   pOptions,
                   pFields.numThreads,
@@ -236,7 +236,7 @@ public final class SeqMainFunctionBuilder {
     }
   }
 
-  public static ImmutableList<CCompoundStatementElement> buildNextThreadNondeterministicStatements(
+  public static CCompoundStatement buildNextThreadNondeterministicStatements(
       MPOROptions pOptions,
       int pNumThreads,
       GhostElements pGhostElements,
@@ -267,6 +267,6 @@ public final class SeqMainFunctionBuilder {
           pGhostElements.programCounterVariables().buildArrayPcUnequalExitPcAssumption();
       rStatements.add(new CStatementWrapper(nextThreadActiveAssumption));
     }
-    return rStatements.build();
+    return new CCompoundStatement(rStatements.build());
   }
 }

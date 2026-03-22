@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 
@@ -74,16 +74,15 @@ public class SeqThreadStatementClauseUtil {
     };
   }
 
-  public static ImmutableListMultimap<CExportExpression, CCompoundStatementElement>
-      mapExpressionToClause(
+  public static ImmutableMap<CExportExpression, CCompoundStatement>
+      mapExpressionsToCompoundStatements(
           MPOROptions pOptions,
           CLeftHandSide pPcLeftHandSide,
           ImmutableList<SeqThreadStatementClause> pClauses,
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
           throws UnrecognizedCodeException {
 
-    ImmutableListMultimap.Builder<CExportExpression, CCompoundStatementElement> rOriginPcs =
-        ImmutableListMultimap.builder();
+    ImmutableMap.Builder<CExportExpression, CCompoundStatement> rOriginPcs = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       CExpression labelExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
@@ -91,7 +90,9 @@ public class SeqThreadStatementClauseUtil {
               pPcLeftHandSide,
               clause.labelNumber,
               pBinaryExpressionBuilder);
-      rOriginPcs.putAll(new CExpressionWrapper(labelExpression), clause.toCExportStatements());
+      rOriginPcs.put(
+          new CExpressionWrapper(labelExpression),
+          new CCompoundStatement(clause.toCExportStatements()));
     }
     return rOriginPcs.build();
   }

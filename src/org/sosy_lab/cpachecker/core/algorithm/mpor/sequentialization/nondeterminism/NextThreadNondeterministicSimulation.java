@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -66,8 +67,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   @Override
   public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
     // the inner multi control statements choose the next statement, e.g. "pc0 == 1"
-    ImmutableListMultimap<CExportExpression, CCompoundStatementElement>
-        innerMultiControlStatements = buildInnerMultiControlStatements();
+    ImmutableMap<CExportExpression, CCompoundStatement> innerMultiControlStatements =
+        buildInnerMultiControlStatements();
     // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
     CExportStatement outerMultiControlStatement =
         buildMultiSelectionStatementByEncoding(
@@ -78,11 +79,11 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     return new CCompoundStatement(ImmutableList.of(outerMultiControlStatement));
   }
 
-  private ImmutableListMultimap<CExportExpression, CCompoundStatementElement>
-      buildInnerMultiControlStatements() throws UnrecognizedCodeException {
+  private ImmutableMap<CExportExpression, CCompoundStatement> buildInnerMultiControlStatements()
+      throws UnrecognizedCodeException {
 
-    ImmutableListMultimap.Builder<CExportExpression, CCompoundStatementElement> rStatements =
-        ImmutableListMultimap.builder();
+    ImmutableMap.Builder<CExportExpression, CCompoundStatement> rStatements =
+        ImmutableMap.builder();
     for (MPORThread thread : clauses.keySet()) {
       CExpression clauseExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
@@ -90,11 +91,11 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
               SeqIdExpressions.NEXT_THREAD,
               thread.id(),
               utils.binaryExpressionBuilder());
-      ImmutableList<CExportStatement> statements =
+      ImmutableList<CCompoundStatementElement> statements =
           listAndElement(
               buildAllPrecedingStatements(thread),
               buildSingleThreadMultiSelectionStatement(thread));
-      rStatements.putAll(new CExpressionWrapper(clauseExpression), statements);
+      rStatements.put(new CExpressionWrapper(clauseExpression), new CCompoundStatement(statements));
     }
     return rStatements.build();
   }
