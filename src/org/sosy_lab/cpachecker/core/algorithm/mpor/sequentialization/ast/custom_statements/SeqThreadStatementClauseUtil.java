@@ -94,7 +94,7 @@ public class SeqThreadStatementClauseUtil {
           new CExpressionWrapper(labelExpression),
           new CCompoundStatement(clause.toCExportStatements()));
     }
-    return rOriginPcs.build();
+    return rOriginPcs.buildOrThrow();
   }
 
   /**

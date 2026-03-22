@@ -97,7 +97,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
               buildSingleThreadMultiSelectionStatement(thread));
       rStatements.put(new CExpressionWrapper(clauseExpression), new CCompoundStatement(statements));
     }
-    return rStatements.build();
+    return rStatements.buildOrThrow();
   }
 
   @Override
