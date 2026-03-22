@@ -463,7 +463,7 @@ public final class DynamicMemoryHandler {
             + typeHandler.getPointerAccessNameForType(type)
             + MALLOC_INDEX_SEPARATOR
             + allocationId,
-        OptionalInt.of(pts.getCallstackDepth(functionName)));
+        OptionalInt.of(pts.getCallstackDepth(contextFunction)));
   }
 
   /**
