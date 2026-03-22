@@ -676,9 +676,6 @@ class WebInterface:
         requirements = {
             k: v for k, v in requirements.items() if v is not None
         }
-        logging.warning("RAW requirements BEFORE submit: %s", requirements)
-        logging.warning("RAW limitations BEFORE submit: %s", limits)
-
         opened_files = []  # open file handles are passed to the request library
 
         for programPath in run.sourcefiles:
@@ -716,7 +713,8 @@ class WebInterface:
         if MEMORYREQUIREMENT in requirements:
             params.append(("memoryRequirement", str(requirements[MEMORYREQUIREMENT])))
 
-        logging.warning("FINAL REQUEST PARAMS: %s", params)
+        logging.warning("DEBUG requirements dict: %s", requirements)
+        logging.warning("DEBUG limitations dict: %s", limits)
 
         if result_files_patterns:
             for pattern in result_files_patterns:
