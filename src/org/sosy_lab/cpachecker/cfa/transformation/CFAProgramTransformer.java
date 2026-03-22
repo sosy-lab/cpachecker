@@ -27,19 +27,25 @@ public class CFAProgramTransformer {
     Traverser<CFANode> cfaNetworkTraverser = Traverser.forGraph(pCFA.asGraph());
     Iterable<CFANode> cfaNodeIterable = cfaNetworkTraverser.breadthFirst(pCFA.getMainFunction());
 
+    ArrayList<SubCFA> newSubCFAs = new ArrayList<>();
+
     for(CFANode currentNode : cfaNodeIterable) {
       if (selectedProgramTransformations.contains(ProgramTransformationEnum.JUMP_THREADING)) {
         Optional<SubCFA> transformationResult = new JumpThreadingProgramTransformation().transform(pCFA, currentNode);
         if (transformationResult.isPresent()) {
-          transformationResult.get().insertSubCFA(pCFA);
+          newSubCFAs.add(transformationResult.get());
         }
       }
       if (selectedProgramTransformations.contains(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)) {
         Optional<SubCFA> transformationResult = new TailRecursionEliminationProgramTransformation().transform(pCFA, currentNode);
         if (transformationResult.isPresent()) {
-          transformationResult.get().insertSubCFA(pCFA);
+          newSubCFAs.add(transformationResult.get());
         }
       }
+    }
+
+    for (SubCFA subCFA : newSubCFAs) {
+      subCFA.insertSubCFA(pCFA);
     }
 
     return pCFA;
