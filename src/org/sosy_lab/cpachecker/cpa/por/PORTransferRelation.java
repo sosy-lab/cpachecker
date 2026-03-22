@@ -128,7 +128,7 @@ public class PORTransferRelation implements TransferRelation {
 
           // if we found a target state in the current successors immediately return
           if (from(successorStates).anyMatch(AbstractStates::isTargetState)) {
-            return successorStates;
+            return ImmutableList.copyOf(successorStates);
           }
 
           // make successor states the new to-be-handled states for the next edge
@@ -143,13 +143,13 @@ public class PORTransferRelation implements TransferRelation {
           }
         }
 
-        return currentStates;
+        return ImmutableList.copyOf(currentStates);
       }
     }
 
     Collection<PORState> results = new ArrayList<>(1);
     getAbstractSuccessorsForEdge(porState, porPrecision, cfaEdge, pid, results);
-    return results;
+    return ImmutableList.copyOf(results);
   }
 
   private void getAbstractSuccessorsForEdge(

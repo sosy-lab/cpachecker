@@ -35,7 +35,7 @@ public class PORCPATest {
   private static Configuration getConfig(String config, Map<String, String> extra)
       throws InvalidConfigurationException, IOException {
     return TestDataTools.configurationForTest()
-        .loadFromFile("config/por-pred.properties")
+        .loadFromFile(config)
         .setOptions(extra)
         .build();
   }
