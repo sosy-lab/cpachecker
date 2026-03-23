@@ -329,7 +329,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         pf = pfmgr.makeEmptyPathFormulaWithContextFrom(pf); // reset formula, keep SSAMap
       }
 
-      formulas.add(bfmgr.not(fmgr.instantiate(w.getStateFormula(), pf.getSsa().withDefault(1))));
+      formulas.add(
+          bfmgr.not(fmgr.instantiate(w.getStateFormula(), pf.getTopmostStackSsa().withDefault(1))));
     }
 
     path.addFirst(x); // now path is [x; v] (including x and v)

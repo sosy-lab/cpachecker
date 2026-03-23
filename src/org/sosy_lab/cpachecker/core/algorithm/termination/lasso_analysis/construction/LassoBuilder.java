@@ -219,12 +219,12 @@ public class LassoBuilder {
     PathFormula stemPathFormula = pathFormulaManager.makeFormulaForPath(stemEdges);
     PathFormula loopPathFormula =
         pathFormulaManager.makeEmptyPathFormulaWithContextFrom(stemPathFormula);
-    SSAMapBuilder loopInVars = stemPathFormula.getSsa().builder();
+    SSAMapBuilder loopInVars = stemPathFormula.getTopmostStackSsa().builder();
     for (CFAEdge edge : loopEdges) {
       loopPathFormula = pathFormulaManager.makeAnd(loopPathFormula, edge);
 
       // update SSA index of input variables
-      SSAMap currentSsa = loopPathFormula.getSsa();
+      SSAMap currentSsa = loopPathFormula.getTopmostStackSsa();
       currentSsa.allVariables().stream()
           .filter(v -> !loopInVars.allVariables().contains(v))
           .forEach(v -> loopInVars.setIndex(v, currentSsa.getType(v), currentSsa.getIndex(v)));
@@ -468,7 +468,7 @@ public class LassoBuilder {
     }
 
     public SSAMap getStemOutVars() {
-      return stem.getSsa();
+      return stem.getTopmostStackSsa();
     }
 
     public BooleanFormula getLoop() {
@@ -480,7 +480,7 @@ public class LassoBuilder {
     }
 
     public SSAMap getLoopOutVars() {
-      return loop.getSsa();
+      return loop.getTopmostStackSsa();
     }
   }
 

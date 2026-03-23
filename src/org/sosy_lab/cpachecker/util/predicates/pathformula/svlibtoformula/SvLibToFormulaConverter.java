@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Verify;
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.List;
@@ -40,11 +39,9 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -148,7 +145,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     String function =
         (pEdge.getPredecessor() != null) ? pEdge.getPredecessor().getFunctionName() : null;
 
-    SSAMapBuilder ssa = pOldFormula.getSsa().builder();
+    SSAMapBuilder ssa = pOldFormula.getTopmostStackSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
 
     BooleanFormula edgeFormula =
@@ -170,17 +167,12 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
           default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
         };
 
+    PersistentStack<SSAMap> newSsaStack =
+        handleSsaStack(
+            pEdge, constraints, pOldFormula, ssa.build(), pOldFormula.getPointerTargetSet(), fmgr);
+
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
-    SSAMap newSsa = ssa.build();
     BooleanFormula newFormula = bfmgr.and(pOldFormula.getFormula(), edgeFormula);
-
-    Pair<PersistentStack<SSAMap>, ImmutableList<BooleanFormula>> newSsaStackWithConstraints =
-        handleSsaStackForFunctionReturn(
-            pEdge, pOldFormula, newSsa, pOldFormula.getPointerTargetSet(), fmgr);
-
-    PersistentStack<SSAMap> newSsaStack = newSsaStackWithConstraints.getFirst();
-    newFormula = fmgr.makeAnd(newFormula, bfmgr.and(newSsaStackWithConstraints.getSecond()));
-
     int newLength = pOldFormula.getLength() + 1;
 
     @SuppressWarnings("deprecation")
@@ -342,16 +334,21 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
 
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, CType pType) {
+      SSAMap pSsa,
+      PointerTargetSet pPointerTargetSet,
+      String pVarName,
+      SvLibType pType,
+      String pFunctionName) {
     throw new RuntimeException("Not implemented yet");
   }
 
   @Override
   public Formula makeFormulaForUninstantiatedVariable(
       String pVarName,
-      CType pType,
+      SvLibType pType,
       PointerTargetSet pContextPTS,
-      boolean pForcePointerDereference) {
+      boolean pForcePointerDereference,
+      String pFunctionName) {
     throw new RuntimeException("Not implemented yet");
   }
 

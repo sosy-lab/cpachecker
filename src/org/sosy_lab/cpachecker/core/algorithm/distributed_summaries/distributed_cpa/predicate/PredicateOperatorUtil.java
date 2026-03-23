@@ -111,7 +111,7 @@ public class PredicateOperatorUtil {
       FormulaManagerView pFormulaManagerView,
       UniqueIndexProvider pUniqueIndexProvider) {
     BooleanFormula booleanFormula = pPathFormula.getFormula();
-    SSAMap ssaMap = pPathFormula.getSsa();
+    SSAMap ssaMap = pPathFormula.getTopmostStackSsa();
     Map<String, Formula> variableToFormula = pFormulaManagerView.extractVariables(booleanFormula);
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
     Map<Formula, Formula> substitutions = new HashMap<>();

@@ -411,7 +411,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         ImmutableMap.copyOf(
             Maps.filterKeys(
                 fmgr.extractVariables(toExist),
-                varName -> fmgr.isIntermediate(varName, pathFormula.getSsa())));
+                varName -> fmgr.isIntermediate(varName, pathFormula.getTopmostStackSsa())));
 
     // If there are no intermediate Variables, no quantification is necessary
     if (intermediateVars.isEmpty()) {

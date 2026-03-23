@@ -440,8 +440,6 @@ public class MPORSubstitution {
       // no substitute found -> function declaration contains only parameter types, not names
       // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
       // -> void assume_abort_if_not(int);
-      assert pCallContext.cfaEdge instanceof CFunctionCallEdge
-          : "call context of parameter declaration must be CFunctionCallEdge";
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCallContext.cfaEdge;
       List<CParameterDeclaration> parameterDeclarations =
           functionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
@@ -484,7 +482,7 @@ public class MPORSubstitution {
   public ImmutableList<CVariableDeclaration> getLocalVariableDeclarationSubstitutes() {
     ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
     for (LocalVariableDeclarationSubstitute localSubstitute : localVariableSubstitutes.values()) {
-      rLocalDeclarations.add(localSubstitute.getSubstituteVariableDeclaration());
+      rLocalDeclarations.add((CVariableDeclaration) localSubstitute.expression().getDeclaration());
     }
     return rLocalDeclarations.build();
   }

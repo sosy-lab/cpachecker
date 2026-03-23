@@ -53,7 +53,9 @@ public class WitnessExporterTest {
 
     VALUE_ANALYSIS("valueAnalysis"),
 
-    BAM("valueAnalysis-predicateAnalysis-bam");
+    BAM("valueAnalysis-predicateAnalysis-bam"),
+
+    BMC_REC("bmc-rec");
 
     private final String fileName;
 
@@ -163,6 +165,14 @@ public class WitnessExporterTest {
             "weekdays_no_termination.c",
             ExpectedVerdict.TRUE,
             WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  @Ignore // The witness cannot be confirmed even though it seems to be correct
+  public void countup_local_wrong_false() throws Exception {
+    new WitnessTester(
+            "countup_recursive_false.c", ExpectedVerdict.FALSE, WitnessGenerationConfig.BMC_REC)
         .performTest();
   }
 

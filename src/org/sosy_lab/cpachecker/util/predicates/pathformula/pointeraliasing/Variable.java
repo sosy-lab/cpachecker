@@ -10,23 +10,35 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 final class Variable {
   private final String name;
   private final CType type;
 
-  private Variable(String pName, CType pType) {
+  private final OptionalInt callStackDepth;
+
+  private Variable(String pName, CType pType, OptionalInt pCallStackDepth) {
     name = pName;
     type = pType;
+    callStackDepth = pCallStackDepth;
   }
 
   String getName() {
     return name;
   }
 
+  PointerBase asPointerBase() {
+    return new PointerBase(name, callStackDepth);
+  }
+
   CType getType() {
     return type;
+  }
+
+  public OptionalInt getCallStackDepth() {
+    return callStackDepth;
   }
 
   @Override
@@ -47,8 +59,8 @@ final class Variable {
     return type.toASTString(name);
   }
 
-  static Variable create(String pName, CType pT) {
+  static Variable create(String pName, CType pT, OptionalInt pCallStackDepth) {
     CTypeUtils.checkIsSimplified(pT);
-    return new Variable(checkNotNull(pName), checkNotNull(pT));
+    return new Variable(checkNotNull(pName), checkNotNull(pT), checkNotNull(pCallStackDepth));
   }
 }

@@ -274,7 +274,7 @@ analysis.algorithm.MPOR.atomicBlockMerge = true
 
 # the encoding of the partial order reduction bit vectors.
 analysis.algorithm.MPOR.bitVectorEncoding = NONE
-  enum:     [NONE, BINARY, DECIMAL, HEXADECIMAL, SPARSE]
+  enum:     [NONE, BINARY, OCTAL, DECIMAL, HEXADECIMAL, SPARSE]
 
 # the style preset used by clang-format to format the output program. use
 # NONE to disable formatting.

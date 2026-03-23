@@ -380,7 +380,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   solver,
                   firstNodeInCycle,
                   loopPath.asStatesList(),
-                  stemPathFormula.getSsa(),
+                  stemPathFormula.getTopmostStackSsa(),
                   stemPathFormulaList.getLast().getPointerTargetSet(),
                   AbstractionPosition.NONE);
           PathFormula loopPathFormula =
@@ -427,7 +427,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
           // argument (or more specifically, a ranking function).
           StemAndLoop stemAndLoop =
               new LassoBuilder.StemAndLoop(
-                  stemPathFormula, loopPathFormula, stemPathFormula.getSsa());
+                  stemPathFormula, loopPathFormula, stemPathFormula.getTopmostStackSsa());
 
           Dnf stemDnf = lassoBuilder.toDnf(stemAndLoop.getStem());
           Dnf loopDnf = lassoBuilder.toDnf(stemAndLoop.getLoop(), stemDnf.getUfEliminationResult());

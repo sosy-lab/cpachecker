@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -20,6 +22,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.OptionalInt;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -32,30 +36,6 @@ import org.sosy_lab.java_smt.api.Formula;
 
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public final class PointerTargetSet implements Serializable {
-
-  static String getBaseName(final String name) {
-    return BASE_PREFIX + name;
-  }
-
-  public static boolean isBaseName(final String name) {
-    return name.startsWith(BASE_PREFIX);
-  }
-
-  public static String getBase(final String baseName) {
-    assert isBaseName(baseName);
-    return baseName.substring(BASE_PREFIX.length());
-  }
-
-  /**
-   * Check whether the given string is a base as it is created for dynamic memory allocation, i.e.,
-   * for malloc. Other bases would be those created for local and global variables.
-   *
-   * @param baseName must be a base as determined by {@link #isBaseName(String)}
-   */
-  public static boolean isMallocBase(final String baseName) {
-    assert isBaseName(baseName);
-    return DynamicMemoryHandler.isAllocVariableName(getBase(baseName));
-  }
 
   PersistentList<PointerTarget> getAllTargets(final String regionName) {
     return targets.getOrDefault(regionName, PersistentLinkedList.of());
@@ -70,6 +50,7 @@ public final class PointerTargetSet implements Serializable {
         && fields.isEmpty()
         && deferredAllocations.isEmpty()
         && highestAllocatedAddresses.isEmpty()
+        && callStackDepth.isEmpty()
         && allocationCount == 0;
   }
 
@@ -85,6 +66,7 @@ public final class PointerTargetSet implements Serializable {
     result = prime * result + bases.hashCode();
     result = prime * result + fields.hashCode();
     result = prime * result + deferredAllocations.hashCode();
+    result = prime * result + callStackDepth.hashCode();
     result = prime * result + highestAllocatedAddresses.hashCode();
     result = prime * result + Integer.hashCode(allocationCount);
     return result;
@@ -101,23 +83,28 @@ public final class PointerTargetSet implements Serializable {
         && bases.equals(other.bases)
         && fields.equals(other.fields)
         && deferredAllocations.equals(other.deferredAllocations)
+        && callStackDepth.equals(other.callStackDepth)
         && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
         && allocationCount == other.allocationCount;
   }
 
   PointerTargetSet(
-      final PersistentSortedMap<String, CType> bases,
+      final PersistentSortedMap<PointerBase, CType> bases,
       final PersistentSortedMap<CompositeField, Boolean> fields,
-      final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations,
+      final PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations,
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+      PersistentSortedMap<String, Integer> pCallStackDepth,
       final PersistentList<Formula> pHighestAllocatedAddresess,
       final int pAllocationCount) {
+    checkNotNull(pCallStackDepth);
+
     this.bases = bases;
     this.fields = fields;
 
     this.deferredAllocations = deferredAllocations;
 
     this.targets = targets;
+    callStackDepth = pCallStackDepth;
     highestAllocatedAddresses = pHighestAllocatedAddresess;
     allocationCount = pAllocationCount;
 
@@ -128,25 +115,25 @@ public final class PointerTargetSet implements Serializable {
     }
   }
 
-  public PersistentSortedMap<String, CType> getBases() {
+  public PersistentSortedMap<PointerBase, CType> getBases() {
     return bases;
   }
 
   /**
    * Returns, if a variable is the actual base of a pointer.
    *
-   * @param name The name of the variable.
+   * @param base The base.
    * @return True, if the variable is an actual base, false otherwise.
    */
-  public boolean isActualBase(final String name) {
-    return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
+  public boolean isActualBase(final PointerBase base) {
+    return bases.containsKey(base) && !PointerTargetSetManager.isFakeBaseType(bases.get(base));
   }
 
   PersistentSortedMap<CompositeField, Boolean> getFields() {
     return fields;
   }
 
-  PersistentList<Pair<String, DeferredAllocation>> getDeferredAllocations() {
+  PersistentList<Pair<PointerBase, DeferredAllocation>> getDeferredAllocations() {
     return deferredAllocations;
   }
 
@@ -173,6 +160,7 @@ public final class PointerTargetSet implements Serializable {
           PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
           PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
           0);
 
@@ -180,12 +168,11 @@ public final class PointerTargetSet implements Serializable {
 
   // The set of known memory objects.
   // This includes allocated memory regions and global/local structs/arrays.
-  // The key of the map is the name of the base (without the BASE_PREFIX).
   // There are also "fake" bases in the map for variables that have their address
   // taken somewhere but are not yet tracked. These are marked with a special fake-base type.
   // Apart from distinguishing between "fake" and real bases,
   // the type for each base is mostly relevant for the UF-based encoding.
-  private final PersistentSortedMap<String, CType> bases;
+  private final PersistentSortedMap<PointerBase, CType> bases;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
@@ -196,7 +183,7 @@ public final class PointerTargetSet implements Serializable {
   // This is a list of allocations that have already occurred were not yet added to bases
   // because we do not know the type of the allocation yet and hope to find out later.
   // This is only used if revealAllocationTypeFromLhs or deferUntypedAllocations are true.
-  private final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
+  private final PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
 
   // The complete set of tracked memory locations.
   // The map key is the type of the memory location.
@@ -209,17 +196,34 @@ public final class PointerTargetSet implements Serializable {
   // and will be empty or null in the latter case.
   private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
+  // The call stack depth for each function. This is used to determine the bases
+  // for variables which appear multiple times in each recursive call.
+  // This information is tracked here, since it needs to be passed to the {@link
+  // PointerTargetSetBuilder}, and this way we do not need to pass it separately across hundreds of
+  // functions.
+  private final PersistentSortedMap<String, Integer> callStackDepth;
+
   private final PersistentList<Formula> highestAllocatedAddresses;
 
   private final int allocationCount;
-
-  private static final String BASE_PREFIX = "__ADDRESS_OF_";
 
   @Serial private static final long serialVersionUID = 2102505458322248624L;
 
   @Serial
   private Object writeReplace() {
     return new SerializationProxy(this);
+  }
+
+  PersistentSortedMap<String, Integer> getCallStackDepth() {
+    return callStackDepth;
+  }
+
+  public OptionalInt getCallStackDepth(String functionName, String variableName) {
+    if (variableName.contains("::")) {
+      return OptionalInt.empty();
+    }
+
+    return OptionalInt.of(Objects.requireNonNull(callStackDepth.get(functionName)));
   }
 
   /**
@@ -233,12 +237,24 @@ public final class PointerTargetSet implements Serializable {
     throw new InvalidObjectException("Proxy required");
   }
 
+  public PointerTargetSet copyWithCallstackInformationFrom(PointerTargetSet pRootPts) {
+    return new PointerTargetSet(
+        bases,
+        fields,
+        deferredAllocations,
+        targets,
+        pRootPts.callStackDepth,
+        highestAllocatedAddresses,
+        allocationCount);
+  }
+
   private static class SerializationProxy implements Serializable {
 
     @Serial private static final long serialVersionUID = 8022025017590667769L;
-    private final PersistentSortedMap<String, CType> bases;
+    private final PersistentSortedMap<PointerBase, CType> bases;
     private final PersistentSortedMap<CompositeField, Boolean> fields;
-    private final List<Pair<String, DeferredAllocation>> deferredAllocations;
+    private final PersistentSortedMap<String, Integer> callStackDepth;
+    private final List<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
     private final List<String> highestAllocatedAddresses;
     private final int allocationCount;
@@ -251,6 +267,7 @@ public final class PointerTargetSet implements Serializable {
           pts.targets == null
               ? new HashMap<>()
               : new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
+      callStackDepth = pts.callStackDepth;
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
@@ -273,6 +290,7 @@ public final class PointerTargetSet implements Serializable {
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(
               Maps.transformValues(targets, PersistentLinkedList::copyOf)),
+          PathCopyingPersistentTreeMap.copyOf(callStackDepth),
           highestAllocatedAddressesFormulas,
           allocationCount);
     }

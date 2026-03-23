@@ -213,7 +213,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
         bfmgr.and(
             backpointerFormula,
             pIState.getPathFormula().getFormula(),
-            fmgr.instantiate(pExtraInvariant, pIState.getPathFormula().getSsa()));
+            fmgr.instantiate(pExtraInvariant, pIState.getPathFormula().getTopmostStackSsa()));
 
     try {
       return solver.isUnsat(bfmgr.toConjunctionArgs(constraint, true), pIState.getNode());

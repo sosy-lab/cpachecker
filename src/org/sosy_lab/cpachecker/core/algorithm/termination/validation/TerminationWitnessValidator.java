@@ -404,7 +404,7 @@ public class TerminationWitnessValidator implements Algorithm {
             pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), -1, pLoopsToSupportingInvariants);
     SSAMap fullSSAMap =
         SSAMap.merge(
-            loopFormula.getSsa(),
+            loopFormula.getTopmostStackSsa(),
             TransitionInvariantUtils.setIndicesToDifferentValues(
                 pCandidateInvariant,
                 PrevStateIndices.INDEX_FIRST,
@@ -511,7 +511,7 @@ public class TerminationWitnessValidator implements Algorithm {
         fmgr.instantiate(
             pCandidateInvariant,
             SSAMap.merge(
-                loopFormula.getSsa(),
+                loopFormula.getTopmostStackSsa(),
                 TransitionInvariantUtils.setIndicesToDifferentValues(
                         pCandidateInvariant,
                         PrevStateIndices.INDEX_FIRST,
@@ -549,7 +549,7 @@ public class TerminationWitnessValidator implements Algorithm {
     PathFormula formulaForLoop = pfmgr.makeEmptyPathFormula();
     formulaForLoop =
         formulaForLoop.withContext(
-            formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
+            formulaForLoop.getTopmostStackSsa().withDefault(pInitialSSAIndex),
             PointerTargetSet.emptyPointerTargetSet());
 
     ImmutableSet<LoopStructure.Loop> AllLoops = pLoopsToSupportingInvariants.keySet();
@@ -558,7 +558,7 @@ public class TerminationWitnessValidator implements Algorithm {
       PathFormula anotherPath = pfmgr.makeEmptyPathFormula();
       anotherPath =
           anotherPath.withContext(
-              anotherPath.getSsa().withDefault(pInitialSSAIndex),
+              anotherPath.getTopmostStackSsa().withDefault(pInitialSSAIndex),
               PointerTargetSet.emptyPointerTargetSet());
       boolean followingDifferentLoop = false;
       for (CFAEdge edge : path) {
@@ -591,13 +591,13 @@ public class TerminationWitnessValidator implements Algorithm {
             pfmgr
                 .makeOr(formulaForLoop, anotherPath)
                 .withContext(
-                    formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
+                    formulaForLoop.getTopmostStackSsa().withDefault(pInitialSSAIndex),
                     PointerTargetSet.emptyPointerTargetSet());
       }
     }
     formulaForLoop =
         formulaForLoop.withContext(
-            formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
+            formulaForLoop.getTopmostStackSsa().withDefault(pInitialSSAIndex),
             PointerTargetSet.emptyPointerTargetSet());
     return formulaForLoop;
   }

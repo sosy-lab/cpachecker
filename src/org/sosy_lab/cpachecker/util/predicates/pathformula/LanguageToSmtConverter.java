@@ -8,19 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Verify;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.PrintStream;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -38,6 +35,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
+  @CanIgnoreReturnValue
   protected int makeFreshIndex(String name, T type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
@@ -86,18 +84,15 @@ public abstract class LanguageToSmtConverter<T extends Type> {
     return idx;
   }
 
-  public Pair<PersistentStack<SSAMap>, ImmutableList<BooleanFormula>>
-      handleSsaStackForFunctionReturn(
-          CFAEdge pEdge,
-          PathFormula oldFormula,
-          SSAMap newSsa,
-          PointerTargetSet newPts,
-          FormulaManagerView fmgr) {
+  public PersistentStack<SSAMap> handleSsaStack(
+      CFAEdge pEdge,
+      Constraints pConstraints,
+      PathFormula oldFormula,
+      SSAMap newSsa,
+      PointerTargetSet newPts,
+      FormulaManagerView fmgr) {
     return switch (pEdge.getEdgeType()) {
-      case FunctionCallEdge ->
-          Pair.of(
-              oldFormula.getSsaStack().pushAndCopy(newSsa),
-              ImmutableList.of(fmgr.getBooleanFormulaManager().makeTrue()));
+      case FunctionCallEdge -> oldFormula.getSsaStack().pushAndCopy(newSsa);
       case FunctionReturnEdge -> {
         // We now need to reset all SSA indices of local variables of the caller function to the
         // state before the call, because after a return edge we are back in the caller
@@ -105,9 +100,8 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         // these variables, which can lead to unsound results.
         //
         // For example, if we have a
-        // function "f" with a local variable "x", and we call "f" (f_new) from the same
-        // function "f" (f_old),
-        // then after the return edge of f_old we are back in f_new, but if we do not reset the
+        // function "f" (f_old) with a local variable "x", and we call "f" (f_new)
+        // then after the return edge of f_new we are back in f_old, but if we do not reset the
         // SSA
         // indices of "x", then we would have the SSA index of "x" from the f_new call,
         // and not the ones for f_old.
@@ -128,56 +122,47 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           callerSsa = oldFormula.getSsaStack().popAndCopy().peek();
         }
 
-        ImmutableList.Builder<BooleanFormula> constraintsBuilder = ImmutableList.builder();
         for (String var : callerSsa.allVariables()) {
-
-          // Compute the representation of the return term as a string. This is the easiest
-          // way to commonly handle C and SV-LIB, since SV-LIB can return a tuple and C
-          // only returns a single variable. One could change the interface, but that seems
-          // unnecessarily complex, since the variable in the SSAMap is still definitely a string.
-          String leftHandSide = "";
-          if (((FunctionReturnEdge) pEdge).getFunctionCall()
-              instanceof AFunctionCallAssignmentStatement pAssignmentStatement) {
-            leftHandSide =
-                pAssignmentStatement
-                    .getLeftHandSide()
-                    .toASTString(AAstNodeRepresentation.QUALIFIED);
-          }
-
           if (
           // Only reset the variables of the caller function, which we can identify
           // by the variable name starting with the function name of the caller function (which
           // is the successor function of the return edge).
           var.startsWith(pEdge.getSuccessor().getFunctionName() + "::")
-              // In addition, we should only update those which are not being
-              // written by the return function, for example for `a = f(a);`,
-              // we do not want to reset the index of the `a` to the state before the call, since
-              // it is being written by the return function, and thus we need to keep the new index
-              // for`a`
-              && !leftHandSide.contains(var.replace("::", "__"))
+              // In case a variable is being written by the return value, i.e., the
+              // return has the form `a = f();`, then we dont't need to update the
+              // local variable `a`. This can be read seen by comparing the SSAMap
+              // of the old pathformula with the current SSAMap, and if this variable
+              // was updated between them, then we don't need to reset it to its
+              // caller value
+              && newSsa.getIndex(var) == oldFormula.getTopmostStackSsa().getIndex(var)
               // If we are not in a recursive call, then we do not need to reset the index, we know
               // this since if the same variable has not been written we are not in a recursive call
               && newSsa.getIndex(var) != callerSsa.getIndex(var)) {
-            functionReturnSsaBuilder.setIndex(
-                var,
-                callerSsa.getType(var),
-                // we need to guarantee that we are monotonically increasing in the SSA indices,
-                // because otherwise we can return from a recursive call into a previous state
-                // making the whole formula unsat.
-                newSsa.getIndex(var) + 1);
+
+            // The SSAMap is not polymorphic so it does not know that it should only contain a T.
+            @SuppressWarnings("unchecked")
+            T varType = (T) callerSsa.getType(var);
+            Verify.verify(
+                varType == newSsa.getType(var),
+                "Variable %s has different types in caller and callee SSA",
+                var);
+
+            makeFreshIndex(var, varType, functionReturnSsaBuilder);
             // Now make it such that the new variable is equal to the old one
-            constraintsBuilder.add(
+            pConstraints.addConstraint(
                 fmgr.makeEqual(
                     makeFormulaForVariable(
                         callerSsa,
                         oldFormula.getPointerTargetSet(),
                         var,
-                        (CType) callerSsa.getType(var)),
+                        varType,
+                        pEdge.getPredecessor().getFunctionName()),
                     makeFormulaForVariable(
                         functionReturnSsaBuilder.build(),
                         newPts,
                         var,
-                        (CType) newSsa.getType(var))));
+                        varType,
+                        pEdge.getPredecessor().getFunctionName())));
           }
         }
 
@@ -196,12 +181,9 @@ public abstract class LanguageToSmtConverter<T extends Type> {
                   .pushAndCopy(functionReturnSsaBuilder.build());
         }
 
-        yield Pair.of(callerStack, constraintsBuilder.build());
+        yield callerStack;
       }
-      default ->
-          Pair.of(
-              oldFormula.getSsaStack().popAndCopy().pushAndCopy(newSsa),
-              ImmutableList.of(fmgr.getBooleanFormulaManager().makeTrue()));
+      default -> oldFormula.getSsaStack().popAndCopy().pushAndCopy(newSsa);
     };
   }
 
@@ -220,10 +202,18 @@ public abstract class LanguageToSmtConverter<T extends Type> {
       throws InterruptedException;
 
   public abstract Formula makeFormulaForVariable(
-      SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, CType pType);
+      SSAMap pSsa,
+      PointerTargetSet pPointerTargetSet,
+      String pVarName,
+      T pType,
+      String pFunctionName);
 
   public abstract Formula makeFormulaForUninstantiatedVariable(
-      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean pForcePointerDereference);
+      String pVarName,
+      T pType,
+      PointerTargetSet pContextPTS,
+      boolean pForcePointerDereference,
+      String pFunctionName);
 
   public abstract Formula buildTermFromPathFormula(
       PathFormula pFormula, CIdExpression pExpr, CFAEdge pEdge) throws UnrecognizedCodeException;

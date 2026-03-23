@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.cpachecker.util.templates.Template.Kind;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -154,7 +155,9 @@ class PolicyReducer implements Reducer {
     @SuppressWarnings("deprecation")
     // TODO Can we refactor and move part of the code into an appropriate high-level method in
     // PathFormulaManager?
-    PathFormula pf = PathFormula.createManually(formula, ssa, pointerTargetSet, 1);
+    PathFormula pf =
+        PathFormula.createManually(
+            formula, PersistentStack.<SSAMap>of().pushAndCopy(ssa), pointerTargetSet, 1);
 
     // Fake that the control has come from the entry state.
     PolicyIntermediateState generator = PolicyIntermediateState.of(node, pf, aEntryState);

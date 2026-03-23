@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -378,9 +380,18 @@ class AssignmentHandler {
       List<CompositeField> rhsAddressedFields)
       throws UnrecognizedCodeException, InterruptedException {
     // resolve LHS base using visitor
+
+    // Correctly set the function name for the LHS visitor
+    final String lhsFunction;
+    if (edge instanceof CFunctionCallEdge || edge instanceof CFunctionReturnEdge) {
+      lhsFunction = edge.getSuccessor().getFunctionName();
+    } else {
+      lhsFunction = function;
+    }
+
     final CExpressionVisitorWithPointerAliasing lhsBaseVisitor =
         new CExpressionVisitorWithPointerAliasing(
-            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+            conv, edge, lhsFunction, ssa, constraints, errorConditions, pts, regionMgr);
     final CRightHandSide lhsBase = assignment.lhs.base();
     ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
 
@@ -405,11 +416,30 @@ class AssignmentHandler {
     }
     final SliceExpression rhs = assignment.rhs.orElseThrow();
 
+    // Since we are on the right hand of an assignment, we need to check if we are
+    // entering/returning
+    // from a function and adapt accordingly. We know that the pointer target set already correctly
+    // entered/exited the function, so we only need to exit to get the correct left hand side call
+    // stack if we entered the function
+    if (edge instanceof CFunctionCallEdge pCallEdge) {
+      pts.leaveFunction(pCallEdge.getSuccessor().getFunctionName());
+    } else if (edge instanceof CFunctionReturnEdge pReturnEdge) {
+      pts.enterFunction(pReturnEdge.getPredecessor().getFunctionName());
+    }
+
+    // Correctly identify the function for the RHS of the assignment
+    String rhsFunction;
+    if (edge instanceof CFunctionCallEdge || edge instanceof CFunctionReturnEdge) {
+      rhsFunction = edge.getPredecessor().getFunctionName();
+    } else {
+      rhsFunction = function;
+    }
+
     // resolve RHS base using visitor
     final CRightHandSide rhsBase = rhs.base();
     final CExpressionVisitorWithPointerAliasing rhsBaseVisitor =
         new CExpressionVisitorWithPointerAliasing(
-            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+            conv, edge, rhsFunction, ssa, constraints, errorConditions, pts, regionMgr);
     final ResolvedSlice resolvedRhsBase = resolveBase(rhsBase, rhsBaseVisitor);
 
     // add initialized and used fields of RHS to pointer-target set as essential
@@ -423,6 +453,15 @@ class AssignmentHandler {
 
     // add RHS to resolution map
     rhsBaseResolutionMap.put(rhsBase, resolvedRhsBase);
+
+    // Now reset the pointer target set if we entered a function, so the visitor for RHS will have
+    // the correct pointer target set for the current function; we have to do it after resolving LHS
+    // base, otherwise, we would not have the correct resolution for LHS base
+    if (edge instanceof CFunctionCallEdge pCallEdge) {
+      pts.enterFunction(pCallEdge.getSuccessor().getFunctionName());
+    } else if (edge instanceof CFunctionReturnEdge pReturnEdge) {
+      pts.leaveFunction(pReturnEdge.getPredecessor().getFunctionName());
+    }
 
     // apply the deferred memory handler: if there is a malloc with void* type, the allocation
     // can be deferred until the assignment that uses the value; the allocation type can then be

@@ -113,7 +113,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
           splitAbstractionForReduction(abstraction.asRegion(), pContext).getFirst();
       abstraction =
           pamgr.makeAbstractionFormula(
-              reducedAbstraction, pathFormula.getSsa(), abstraction.getBlockFormula());
+              reducedAbstraction, pathFormula.getTopmostStackSsa(), abstraction.getBlockFormula());
     }
 
     return PredicateAbstractState.mkAbstractionState(
@@ -256,11 +256,11 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
         "Formula should be TRUE, but formula is %s",
         pathFormula.getFormula());
 
-    SSAMap ssa = pathFormula.getSsa();
+    SSAMap ssa = pathFormula.getTopmostStackSsa();
     AbstractionFormula abstractionFormula = reducedState.getAbstractionFormula();
 
     if (useAbstractionReduction) {
-      ssa = copyMissingIndizes(rootState.getPathFormula().getSsa(), ssa);
+      ssa = copyMissingIndizes(rootState.getPathFormula().getTopmostStackSsa(), ssa);
       Region removedPredicates =
           splitAbstractionForReduction(
                   rootState.getAbstractionFormula().asRegion(), pReducedContext)
@@ -273,6 +273,16 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
     PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
     PointerTargetSet reducedPts = reducedState.getPathFormula().getPointerTargetSet();
+    // From reverse engineering the BAM related code, it seems that when it cannot correctly
+    // merge the information between the root and the reduced state, it takes the information
+    // from the reduced state.
+    //
+    // This can be clearly seen in the reduction of the call stack state, and location state, where
+    // it simply takes the reduced value
+    //
+    // Therefore, we explicitly take the callstack information of the reduced state for the pointer
+    // target sets, since especially for BAM this does not need to always agree.
+    reducedPts = reducedPts.copyWithCallstackInformationFrom(rootPts);
 
     SSAMapBuilder ssaBuilder = ssa.builder();
     PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, ssaBuilder);
@@ -388,12 +398,12 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
     // pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
 
     PathFormula oldPathFormula = reducedState.getPathFormula();
-    SSAMap oldSSA = oldPathFormula.getSsa();
+    SSAMap oldSSA = oldPathFormula.getTopmostStackSsa();
 
     // pathFormula.getSSa() might not contain index for the newly added variables in predicates;
     // while the actual index is not really important at this point,
     // there still should be at least _some_ index for each variable of the abstraction formula.
-    SSAMap newSSA = copyMissingIndizes(rootState.getPathFormula().getSsa(), oldSSA);
+    SSAMap newSSA = copyMissingIndizes(rootState.getPathFormula().getTopmostStackSsa(), oldSSA);
     // FIXME: seems buggy because it completely forgets the PointerTargetSet!
     PathFormula newPathFormula =
         pmgr.makeEmptyPathFormulaWithContext(newSSA, PointerTargetSet.emptyPointerTargetSet());
@@ -433,12 +443,13 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
     //           - all other vars are distinct
     final String calledFunction = exitLocation.getFunctionName();
     final PathFormula functionCall = entryState.getAbstractionFormula().getBlockFormula();
-    final SSAMap entrySsaWithRet = functionCall.getSsa();
+    final SSAMap entrySsaWithRet = functionCall.getTopmostStackSsa();
     final SSAMapBuilder entrySsaWithRetBuilder = entrySsaWithRet.builder();
     final SSAMapBuilder summSsa =
-        rootState.getAbstractionFormula().getBlockFormula().getSsa().builder();
+        rootState.getAbstractionFormula().getBlockFormula().getTopmostStackSsa().builder();
 
-    final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
+    final SSAMap expandedSSA =
+        expandedState.getAbstractionFormula().getBlockFormula().getTopmostStackSsa();
     for (String var : expandedSSA.allVariables()) {
       final Type type = expandedSSA.getType(var);
       if (var.startsWith(calledFunction + "::") && var.endsWith(PARAM_VARIABLE_NAME)) {

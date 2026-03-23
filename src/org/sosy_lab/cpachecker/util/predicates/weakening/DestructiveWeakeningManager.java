@@ -68,7 +68,7 @@ public class DestructiveWeakeningManager {
     if (preRunSyntacticWeakening) {
       selectorsToAbstractOverApproximation =
           swmgr.performWeakening(
-              fromSSA, selectionsVarsInfo, transition.getSsa(), pFromStateLemmas);
+              fromSSA, selectionsVarsInfo, transition.getTopmostStackSsa(), pFromStateLemmas);
     } else {
       selectorsToAbstractOverApproximation = selectionsVarsInfo.keySet();
     }

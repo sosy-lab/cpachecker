@@ -158,7 +158,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
             fmgr.instantiate(
                 invariants.getInvariantFor(
                     loc, callstackWrapper, fmgr, pathFormulaManager, pathFormula),
-                pathFormula.getSsa());
+                pathFormula.getTopmostStackSsa());
         invariantFormulas.add(invariant);
       }
     }

@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -361,7 +362,7 @@ public final class PredicateAbstractionManager {
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
     BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
-    final SSAMap ssa = pathFormula.getSsa();
+    final SSAMap ssa = pathFormula.getTopmostStackSsa();
 
     // Try to reuse stored abstractions
     if (reuseAbstractionsFrom != null && !abstractionReuseDisabledBecauseOfAmbiguity) {
@@ -652,7 +653,7 @@ public final class PredicateAbstractionManager {
           reuseIds.add(an.getId());
         }
         BooleanFormula instantiatedReuseFormula =
-            fmgr.instantiate(reuseFormula, pathFormula.getSsa());
+            fmgr.instantiate(reuseFormula, pathFormula.getTopmostStackSsa());
 
         stats.abstractionReuseImplicationTime.start();
         reuseEnv.push(bfmgr.not(instantiatedReuseFormula));
@@ -751,7 +752,7 @@ public final class PredicateAbstractionManager {
       final PathFormula pBlockFormula)
       throws SolverException, InterruptedException {
 
-    final SSAMap ssa = pBlockFormula.getSsa();
+    final SSAMap ssa = pBlockFormula.getTopmostStackSsa();
     final Set<String> blockVariables = fmgr.extractVariableNames(pBlockFormula.getFormula());
     final Region oldAbs = pOldAbs.asRegion();
 
@@ -1038,7 +1039,11 @@ public final class PredicateAbstractionManager {
     @SuppressWarnings("deprecation")
     // safe here because weakeningManager cares only about formula and SSAMap
     PathFormula pf =
-        PathFormula.createManually(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0);
+        PathFormula.createManually(
+            f,
+            PersistentStack.<SSAMap>of().pushAndCopy(ssa),
+            PointerTargetSet.emptyPointerTargetSet(),
+            0);
     stats.cartesianAbstractionTime.start();
     try {
       filteredLemmas =
@@ -1217,7 +1222,7 @@ public final class PredicateAbstractionManager {
     BooleanFormula a = bfmgr.and(absFormula, symbFormula);
 
     // get formula of a2 with the indices of p1
-    BooleanFormula b = fmgr.instantiate(a2.asFormula(), p1.getSsa());
+    BooleanFormula b = fmgr.instantiate(a2.asFormula(), p1.getTopmostStackSsa());
 
     return solver.implies(a, b);
   }
@@ -1258,7 +1263,7 @@ public final class PredicateAbstractionManager {
   public AbstractionFormula asAbstraction(final BooleanFormula f, final PathFormula blockFormula)
       throws InterruptedException {
     Region r = amgr.convertFormulaToRegion(f);
-    return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
+    return makeAbstractionFormula(r, blockFormula.getTopmostStackSsa(), blockFormula);
   }
 
   public AbstractionFormula makeTrueAbstractionFormula(PathFormula pPreviousBlockFormula) {

@@ -45,7 +45,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     FormulaManagerView formulaManagerView = predicateCPA.getSolver().getFormulaManager();
     BooleanFormula booleanFormula;
-    SSAMap ssaMap = state.getPathFormula().getSsa();
+    SSAMap ssaMap = state.getPathFormula().getTopmostStackSsa();
     if (state.isAbstractionState()) {
       booleanFormula = state.getAbstractionFormula().asFormula();
       SSAMapBuilder reset = SSAMap.emptySSAMap().builder();
@@ -66,7 +66,8 @@ public class SerializePredicateStateOperator implements SerializeOperator {
       serializedSSAMap = DssSerializeObjectUtil.serialize(ssaMap);
       pts = DssSerializeObjectUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException e) {
-      throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
+      throw new AssertionError(
+          "Unable to serialize SSAMap " + state.getPathFormula().getTopmostStackSsa());
     } finally {
       SerializationInfoStorage.clear();
     }

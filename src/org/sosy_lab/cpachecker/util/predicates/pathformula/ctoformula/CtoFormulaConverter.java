@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.FormatMethod;
@@ -478,7 +477,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    */
   @Override
   public Formula makeFormulaForUninstantiatedVariable(
-      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+      String pVarName,
+      CType pType,
+      PointerTargetSet pContextPTS,
+      boolean forcePointerDereference,
+      String pFunctionName) {
     // Need to call fmgr.makeVariable directly instead of makeConstant,
     // because otherwise the variable gets marked as "never needs an SSA index"
     return fmgr.makeVariable(getFormulaTypeFromType(pType), pVarName);
@@ -497,7 +500,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    */
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+      SSAMap pContextSSA,
+      PointerTargetSet pContextPTS,
+      String pVarName,
+      CType pType,
+      String pFunctionName) {
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula = makeVariable(pVarName, pType, ssa);
 
@@ -1022,9 +1029,21 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     String function =
         (edge.getPredecessor() != null) ? edge.getPredecessor().getFunctionName() : null;
 
-    SSAMapBuilder ssa = oldFormula.getSsa().builder();
+    SSAMapBuilder ssa = oldFormula.getTopmostStackSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
+
+    // Tell the pointer target set to enter/exit a function
+    // This needs to come before the creation of any formula such that the
+    // bases, i.e., memory regions get the correct function context.
+    switch (edge) {
+      case CFunctionCallEdge callEdge ->
+          pts.enterFunction(callEdge.getSuccessor().getFunctionName());
+      // Special case for calling the main function of the program
+      case CFunctionReturnEdge returnEdge ->
+          pts.leaveFunction(returnEdge.getPredecessor().getFunctionName());
+      default -> {}
+    }
 
     // param-constraints must be added _before_ handling the edge (some lines below),
     // because this edge could write a global value.
@@ -1050,19 +1069,17 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
           edge, function, ssa, pts, constraints, errorConditions, RETURN_VARIABLE_NAME, true);
     }
 
-    edgeFormula = bfmgr.and(edgeFormula, constraints.get());
-
+    // Compute the new SSA stack
     SSAMap newSsa = ssa.build();
     PointerTargetSet newPts = pts.build();
 
+    PersistentStack<SSAMap> newSsaStack =
+        handleSsaStack(edge, constraints, oldFormula, newSsa, newPts, fmgr);
+
+    // Now build the new formula
+    edgeFormula = bfmgr.and(edgeFormula, constraints.get());
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-
-    Pair<PersistentStack<SSAMap>, ImmutableList<BooleanFormula>> newSsaStackWithConstraints =
-        handleSsaStackForFunctionReturn(edge, oldFormula, newSsa, newPts, fmgr);
-
-    PersistentStack<SSAMap> newSsaStack = newSsaStackWithConstraints.getFirst();
-    newFormula = fmgr.makeAnd(newFormula, bfmgr.and(newSsaStackWithConstraints.getSecond()));
 
     @SuppressWarnings("deprecation")
     // This is an intended use, CtoFormulaConverter just does not have access to the constructor
@@ -1688,7 +1705,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
         expr,
         edge,
         functionName,
-        pFormula.getSsa().builder(),
+        pFormula.getTopmostStackSsa().builder(),
         createPointerTargetSetBuilder(pFormula.getPointerTargetSet()),
         constraints,
         ErrorConditions.dummyInstance(bfmgr));

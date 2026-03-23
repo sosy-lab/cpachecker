@@ -65,8 +65,8 @@ public class CombinePredicateStateOperator implements CombineOperator {
     // Merge SSAMaps
     SSAMapBuilder ssaMap = SSAMap.emptySSAMap().builder();
     for (PathFormula formula : predicateAbstractStates.transform(s -> s.getPathFormula())) {
-      for (String variable : formula.getSsa().allVariables()) {
-        ssaMap.setIndex(variable, formula.getSsa().getType(variable), 1);
+      for (String variable : formula.getTopmostStackSsa().allVariables()) {
+        ssaMap.setIndex(variable, formula.getTopmostStackSsa().getType(variable), 1);
       }
     }
 

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -30,24 +31,32 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class PointerApproximatingVisitor
-    extends DefaultCExpressionVisitor<Optional<String>, UnrecognizedCodeException>
-    implements CRightHandSideVisitor<Optional<String>, UnrecognizedCodeException> {
+    extends DefaultCExpressionVisitor<Optional<PointerBase>, UnrecognizedCodeException>
+    implements CRightHandSideVisitor<Optional<PointerBase>, UnrecognizedCodeException> {
 
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
+  private final PointerTargetSetBuilder pts;
+  private final String functionName;
 
-  PointerApproximatingVisitor(TypeHandlerWithPointerAliasing pTypeHandler, CFAEdge pEdge) {
+  PointerApproximatingVisitor(
+      TypeHandlerWithPointerAliasing pTypeHandler,
+      CFAEdge pEdge,
+      PointerTargetSetBuilder pPts,
+      String pFunctionName) {
     typeHandler = pTypeHandler;
     edge = pEdge;
+    pts = pPts;
+    functionName = pFunctionName;
   }
 
   @Override
-  public Optional<String> visit(CArraySubscriptExpression e) throws UnrecognizedCodeException {
+  public Optional<PointerBase> visit(CArraySubscriptExpression e) throws UnrecognizedCodeException {
     return e.getArrayExpression().accept(this);
   }
 
   @Override
-  public Optional<String> visit(CBinaryExpression e) throws UnrecognizedCodeException {
+  public Optional<PointerBase> visit(CBinaryExpression e) throws UnrecognizedCodeException {
     final CType t = typeHandler.getSimplifiedType(e);
     if (t instanceof CPointerType || t instanceof CArrayType) {
       return e.getOperand1().accept(this);
@@ -56,42 +65,49 @@ class PointerApproximatingVisitor
   }
 
   @Override
-  public Optional<String> visit(CCastExpression e) throws UnrecognizedCodeException {
+  public Optional<PointerBase> visit(CCastExpression e) throws UnrecognizedCodeException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  public Optional<String> visit(final CFieldReference e) throws UnrecognizedCodeException {
+  public Optional<PointerBase> visit(final CFieldReference e) throws UnrecognizedCodeException {
     CType t = typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner());
     if (t instanceof CCompositeType cCompositeType) {
-      return Optional.of(getFieldAccessName(cCompositeType.getQualifiedName(), e));
+      return Optional.of(
+          new PointerBase(
+              getFieldAccessName(cCompositeType.getQualifiedName(), e),
+              // since we are creating a pointer base for a type, this is a global field
+              OptionalInt.empty()));
     } else {
       throw new UnrecognizedCodeException("Field owner of a non-composite type", edge, e);
     }
   }
 
   @Override
-  public Optional<String> visit(CIdExpression e) throws UnrecognizedCodeException {
-    return Optional.of(e.getDeclaration().getQualifiedName());
+  public Optional<PointerBase> visit(CIdExpression e) throws UnrecognizedCodeException {
+    return Optional.of(
+        new PointerBase(
+            e.getDeclaration(), pts.getCallstackDepth(e.getDeclaration(), functionName)));
   }
 
   @Override
-  public Optional<String> visit(CPointerExpression e) throws UnrecognizedCodeException {
+  public Optional<PointerBase> visit(CPointerExpression e) throws UnrecognizedCodeException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  public Optional<String> visit(CUnaryExpression e) throws UnrecognizedCodeException {
+  public Optional<PointerBase> visit(CUnaryExpression e) throws UnrecognizedCodeException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  protected Optional<String> visitDefault(CExpression pExp) {
+  protected Optional<PointerBase> visitDefault(CExpression pExp) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<String> visit(CFunctionCallExpression call) throws UnrecognizedCodeException {
+  public Optional<PointerBase> visit(CFunctionCallExpression call)
+      throws UnrecognizedCodeException {
     return Optional.empty();
   }
 }

@@ -232,8 +232,8 @@ public class InterpolationAutomatonBuilder {
 
     PredicateAbstractState predicateParentState =
         PredicateAbstractState.getPredicateState(pCurrentState);
-    SSAMap ssaParent = predicateParentState.getPathFormula().getSsa();
-    SSAMap ssaChild = predChildState.getPathFormula().getSsa();
+    SSAMap ssaParent = predicateParentState.getPathFormula().getTopmostStackSsa();
+    SSAMap ssaChild = predChildState.getPathFormula().getTopmostStackSsa();
     logger.logf(Level.FINE, "SSA-Maps: Parent-node %s, Child-node: %s     ", ssaParent, ssaChild);
 
     if (anyVariableModified(ssaParent, ssaChild, pPredVariables)) {

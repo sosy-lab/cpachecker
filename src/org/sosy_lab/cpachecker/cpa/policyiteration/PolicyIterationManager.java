@@ -332,7 +332,7 @@ public class PolicyIterationManager {
                 node,
                 locationID,
                 stateFormulaConversionManager,
-                iState.getPathFormula().getSsa(),
+                iState.getPathFormula().getTopmostStackSsa(),
                 iState.getPathFormula().getPointerTargetSet(),
                 extraInvariant,
                 iState,
@@ -690,7 +690,10 @@ public class PolicyIterationManager {
     PathFormula pf = state.getPathFormula();
 
     BooleanFormula constraint =
-        bfmgr.and(startConstraints, pf.getFormula(), fmgr.instantiate(extraInvariant, pf.getSsa()));
+        bfmgr.and(
+            startConstraints,
+            pf.getFormula(),
+            fmgr.instantiate(extraInvariant, pf.getTopmostStackSsa()));
 
     try {
       statistics.checkSATTimer.start();
@@ -925,7 +928,7 @@ public class PolicyIterationManager {
         generatorState.getNode(),
         locationID,
         stateFormulaConversionManager,
-        generatorState.getPathFormula().getSsa(),
+        generatorState.getPathFormula().getTopmostStackSsa(),
         generatorState.getPathFormula().getPointerTargetSet(),
         extraInvariant,
         Optional.of(generatorState),
@@ -1023,7 +1026,10 @@ public class PolicyIterationManager {
     PolicyBound firstBound = policyBounds.getFirst();
     for (PolicyBound bound : policyBounds) {
       if (!bound.getPredecessor().equals(firstBound.getPredecessor())
-          || !bound.getFormula().getSsa().equals(firstBound.getFormula().getSsa())
+          || !bound
+              .getFormula()
+              .getTopmostStackSsa()
+              .equals(firstBound.getFormula().getTopmostStackSsa())
           || !bound
               .getFormula()
               .getPointerTargetSet()

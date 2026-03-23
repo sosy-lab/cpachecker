@@ -153,8 +153,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
-    return delegate.makeFormulaForVariable(pContext, pVarName, pType);
+  public Formula makeFormulaForVariable(
+      PathFormula pContext, String pVarName, CType pType, String pFunctionName) {
+    return delegate.makeFormulaForVariable(pContext, pVarName, pType, pFunctionName);
   }
 
   @Override
@@ -162,9 +163,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       String pVarName,
       CType pType,
       PointerTargetSet pContextPTS,
-      boolean pForcePointerDereference) {
+      boolean pForcePointerDereference,
+      String pFunctionName) {
     return delegate.makeFormulaForUninstantiatedVariable(
-        pVarName, pType, pContextPTS, pForcePointerDereference);
+        pVarName, pType, pContextPTS, pForcePointerDereference, pFunctionName);
   }
 
   @Override

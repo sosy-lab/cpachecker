@@ -219,11 +219,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /**
    * Create a formula for an address of a base (a memory location).
    *
-   * @param baseName The name of the memory location
+   * @param base The memory location
    * @param baseType The type of the memory location (not the type of the pointer to it)
    */
-  Formula makeBaseAddress(final String baseName, final CType baseType) {
-    return makeConstant(PointerTargetSet.getBaseName(baseName), CTypeUtils.getBaseType(baseType));
+  Formula makeBaseAddress(final PointerBase base, final CType baseType) {
+    return makeConstant(base.formulaEncoding(), CTypeUtils.getBaseType(baseType));
   }
 
   /**
@@ -375,7 +375,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   Formula makeFormulaForTarget(final PointerTarget target) {
     return fmgr.makePlus(
-        fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, target.getBaseName()),
+        fmgr.makeVariableWithoutSSAIndex(
+            voidPointerFormulaType, target.getBase().formulaEncoding()),
         fmgr.makeNumber(voidPointerFormulaType, target.getOffset()));
   }
 
@@ -436,18 +437,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       size = getSizeExpression(decayedType, edge, function, ssa, pts, constraints, errorConditions);
     }
 
+    PointerBase base = new PointerBase(declaration, pts.getCallstackDepth(declaration, function));
     if (CTypeUtils.containsArray(type, originalDeclaration)) {
-      pts.addNextBaseAddressConstraints(
-          declaration.getQualifiedName(), type, size, false, constraints);
-      pts.addBase(declaration.getQualifiedName(), type);
+      pts.addNextBaseAddressConstraints(base, type, size, false, constraints);
+      pts.addBase(base, type);
 
     } else if (isAddressedVariable(declaration) || !CTypeUtils.isSimpleType(decayedType)) {
-      pts.addNextBaseAddressConstraints(
-          declaration.getQualifiedName(), type, size, false, constraints);
+      pts.addNextBaseAddressConstraints(base, type, size, false, constraints);
       if (options.useConstraintOptimization()) {
-        pts.prepareBase(declaration.getQualifiedName(), type);
+        pts.prepareBase(base, type);
       } else {
-        pts.addBase(declaration.getQualifiedName(), type);
+        pts.addBase(base, type);
       }
     }
   }
@@ -482,7 +482,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * Adds constraints for the value import.
    *
    * @param address A formula for the current address.
-   * @param baseName The name of the base of the variable.
+   * @param base The variable as memory region.
    * @param baseType The type of the base of the variable.
    * @param fields A list of fields of the composite type.
    * @param ssa The SSA map.
@@ -490,7 +490,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   void addValueImportConstraints(
       final Formula address,
-      final String baseName,
+      final PointerBase base,
       final CType baseType,
       final List<CompositeField> fields,
       final SSAMapBuilder ssa,
@@ -509,13 +509,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           continue; // TODO this loses values of bit fields
         }
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
-        final String newBaseName = getFieldAccessName(baseName, memberDeclaration);
+        final PointerBase newBase =
+            new PointerBase(
+                getFieldAccessName(base.name(), memberDeclaration), base.callStackDepth());
         if (isRelevantField(compositeType, memberDeclaration)) {
           fields.add(CompositeField.of(compositeType, memberDeclaration));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
               fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset.orElseThrow())),
-              newBaseName,
+              newBase,
               memberType,
               fields,
               ssa,
@@ -524,7 +526,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         }
       }
     } else if (!(baseType instanceof CFunctionType) && !baseType.isIncomplete()) {
-      if (hasIndex(baseName, baseType, ssa)) {
+      if (hasIndex(base.name(), baseType, ssa)) {
         // This adds a constraint *a = a for the case where we previously tracked
         // a variable directly and now via its address (we do not want to loose
         // the value previously stored in the variable).
@@ -536,12 +538,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         constraints.addConstraint(
             fmgr.assignment(
                 makeSafeDereference(baseType, address, ssa, newRegion),
-                makeVariable(baseName, baseType, ssa)));
+                makeVariable(base.name(), baseType, ssa)));
       }
     }
 
-    // Delete SSA index to signal that baseName should not be used anymore.
-    ssa.deleteVariable(baseName);
+    // We do not delete the SSA Index of the variable now being used as aliased
+    // out of the ssa map, since we may need it again if we encounter the same
+    // variable at a different call stack depth, where we would need to use
+    // a different SSA index for the variable.
   }
 
   /**
@@ -954,7 +958,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkForLargeArray(declarationEdge, declarationType);
 
     if (errorConditions.isEnabled()) {
-      final Formula address = makeBaseAddress(declaration.getQualifiedName(), declarationType);
+      final Formula address =
+          makeBaseAddress(
+              new PointerBase(declaration, pts.getCallstackDepth(declaration, function)),
+              declarationType);
       constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
     }
 
@@ -1338,21 +1345,27 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForUninstantiatedVariable(
-      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+      String pVarName,
+      CType pType,
+      PointerTargetSet pContextPTS,
+      boolean forcePointerDereference,
+      String pFunctionName) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
 
     final Formula address;
+    final PointerBase base =
+        new PointerBase(pVarName, pContextPTS.getCallStackDepth(null, pVarName));
 
     if (forcePointerDereference) {
       address = fmgr.makeVariable(getFormulaTypeFromType(CTypeUtils.getBaseType(pType)), pVarName);
 
-    } else if (pContextPTS.isActualBase(pVarName)
+    } else if (pContextPTS.isActualBase(base)
         || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
-      address = makeBaseAddress(pVarName, pType);
+      address = makeBaseAddress(base, pType);
 
     } else {
       return super.makeFormulaForUninstantiatedVariable(
-          pVarName, pType, pContextPTS, forcePointerDereference);
+          pVarName, pType, pContextPTS, forcePointerDereference, pFunctionName);
     }
 
     checkIsSimplified(pType);
@@ -1365,15 +1378,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+      SSAMap pContextSSA,
+      PointerTargetSet pContextPTS,
+      String pVarName,
+      CType pType,
+      String pFunctionName) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
     final Formula formula;
     final SSAMapBuilder ssa = pContextSSA.builder();
 
-    if (pContextPTS.isActualBase(pVarName)
-        || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
+    final PointerBase base =
+        new PointerBase(pVarName, pContextPTS.getCallStackDepth(null, pVarName));
+    if (pContextPTS.isActualBase(base) || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
 
-      final Formula address = makeBaseAddress(pVarName, pType);
+      final Formula address = makeBaseAddress(base, pType);
       final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
       formula = makeSafeDereference(pType, address, ssa, region);
 
