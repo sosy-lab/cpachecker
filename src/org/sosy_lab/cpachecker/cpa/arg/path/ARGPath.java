@@ -158,7 +158,7 @@ public class ARGPath extends AbstractAppender {
       // compute path between cur and next node
       if (curOutgoingEdge == null) {
         final List<CFAEdge> intermediateEdges = prev.getEdgesToChild(succ);
-        if (intermediateEdges.isEmpty()) {
+        if (intermediateEdges == null || intermediateEdges.isEmpty()) {
           return ImmutableList.of();
         }
         newFullPath.addAll(intermediateEdges);

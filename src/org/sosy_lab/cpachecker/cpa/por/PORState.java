@@ -272,7 +272,22 @@ public class PORState
             .getLocationNode()
             .equals(currentChildState.pLocationState().getLocationNode())) {
           if (parentThreadState != null) {
-            return null;
+            // Multiple threads changed: collect edges from all changed threads
+            ImmutableList.Builder<CFAEdge> allEdges = ImmutableList.builder();
+            for (Entry<Integer, PORThreadState> entry2 : threads.entrySet()) {
+              int tid = entry2.getKey();
+              PORThreadState pState = entry2.getValue();
+              PORThreadState cState = child.threads().get(tid);
+              if (cState != null
+                  && !pState.pLocationState().getLocationNode()
+                      .equals(cState.pLocationState().getLocationNode())) {
+                var edges = pState.pLocationState().getEdgesToChild(cState.pLocationState());
+                if (edges != null) {
+                  allEdges.addAll(edges);
+                }
+              }
+            }
+            return allEdges.build();
           }
           parentThreadState = currentParentState;
           childThreadState = currentChildState;
@@ -283,7 +298,20 @@ public class PORState
         if (threads.keySet().equals(child.threads().keySet())) {
           return ImmutableList.of();
         } else {
-          return null;
+          // Thread set changed (thread created/destroyed) but no location changed.
+          // Find a thread that exists in parent whose location edges lead to the child.
+          for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
+            int threadId = entry.getKey();
+            PORThreadState pState = entry.getValue();
+            PORThreadState cState = child.threads().get(threadId);
+            if (cState != null) {
+              var edges = pState.pLocationState().getEdgesToChild(cState.pLocationState());
+              if (edges != null && !edges.isEmpty()) {
+                return edges;
+              }
+            }
+          }
+          return ImmutableList.of();
         }
       }
 
