@@ -1166,30 +1166,9 @@ class WebInterface:
             counter += 1
             # send request
             try:
-                if files and not data:
-                    form_data = {}
-                    multipart_files = []
-
-                    for k, v in files:
-                        if isinstance(v, tuple):
-                            # file
-                            multipart_files.append((k, v))
-                        else:
-                            # normal field
-                            form_data[k] = v
-
-                    response = self._connection.request(
-                        method,
-                        url,
-                        data=form_data,
-                        files=multipart_files,
-                        headers=headers,
-                        auth=auth,
-                    )
-                else:
-                    response = self._connection.request(
-                        method, url, data=data, files=files, headers=headers, auth=auth
-                    )
+                response = self._connection.request(
+                    method, url, data=data, files=files, headers=headers, auth=auth
+                )
 
             except Exception as e:
                 if counter < 5:
