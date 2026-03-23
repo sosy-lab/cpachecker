@@ -137,7 +137,8 @@ public abstract class NondeterministicSimulation {
       case BINARY_SEARCH_TREE ->
           CMultiSelectionStatementBuilder.buildBinarySearchTree(
               ProgramCounterVariables.INIT_PC, pExpression, pStatements, pBinaryExpressionBuilder);
-      case IF_ELSE_CHAIN -> CMultiSelectionStatementBuilder.buildIfElseChain(pStatements);
+      case IF_ELSE_CHAIN ->
+          CMultiSelectionStatementBuilder.buildIfElseChain(pStatements, Optional.empty());
       case SWITCH_CASE -> new CSwitchStatement(pExpression, pStatements);
     };
   }

@@ -158,8 +158,8 @@ public record ReduceIgnoreSleepInjector(
         SeqMainFunctionBuilder.buildNextThreadNondeterministicStatements(
             pOptions, pFields.numThreads, pFields.ghostElements, pUtils.binaryExpressionBuilder());
 
-    return CMultiSelectionStatementBuilder.buildIfElseChainWithoutFinalCondition(
-        ifElseChain.buildOrThrow(), finalElseStatement);
+    return CMultiSelectionStatementBuilder.buildIfElseChain(
+        ifElseChain.buildOrThrow(), Optional.of(finalElseStatement));
   }
 
   /** Returns the expression {@code (pci != 0 && Ti_SYNC == 0 && *Ti not in conflict*)}. */

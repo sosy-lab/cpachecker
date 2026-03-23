@@ -147,19 +147,8 @@ public class CMultiSelectionStatementBuilder {
    * }
    * }</pre>
    *
-   * <p>For most verifiers, the if-else chain generally scales much worse with a growing number of
-   * statements compared to {@link CSwitchStatement} and a binary search tree.
-   */
-  public static CIfStatement buildIfElseChain(
-      ImmutableMap<CExportExpression, CCompoundStatement> pStatements) {
-
-    return buildIfElseChain(pStatements, Optional.empty());
-  }
-
-  /**
-   * Represents a chain of {@code if-else} branches with a final {@code else} branch that has no
-   * {@link CExportExpression} condition. Example for an {@code int expression} between {@code 0}
-   * and {@code 1}:
+   * If the final, innermost {@code if} statement should not have any {@link CExportExpression}, set
+   * {@code pFinalElseStatement} to {@link Optional#empty()} to create the following:
    *
    * <pre>{@code
    * if (expression == 0) {
@@ -176,14 +165,7 @@ public class CMultiSelectionStatementBuilder {
    * <p>For most verifiers, the if-else chain generally scales much worse with a growing number of
    * statements compared to {@link CSwitchStatement} and a binary search tree.
    */
-  public static CIfStatement buildIfElseChainWithoutFinalCondition(
-      ImmutableMap<CExportExpression, CCompoundStatement> pStatements,
-      CCompoundStatement pFinalElseStatements) {
-
-    return buildIfElseChain(pStatements, Optional.of(pFinalElseStatements));
-  }
-
-  private static CIfStatement buildIfElseChain(
+  public static CIfStatement buildIfElseChain(
       ImmutableMap<CExportExpression, CCompoundStatement> pStatements,
       Optional<CCompoundStatement> pFinalElseStatement) {
 
