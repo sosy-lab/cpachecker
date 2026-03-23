@@ -544,7 +544,7 @@ public class DssBlockAnalysis {
               transformedImmutableListCopy(
                   isOriginal ? ImmutableSet.of() : violationConditions.values(),
                   v -> (ARGState) v.state()),
-              id);
+              Optional.of(id));
       if (!result.violationConditions().isEmpty()) {
         messages.addAll(reportViolationConditions(result.violationConditions(), false));
       } else {
@@ -584,7 +584,7 @@ public class DssBlockAnalysis {
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
     AnalysisResult result =
         analyzeViolationCondition(
-            transformedImmutableListCopy(violations, v -> (ARGState) v.state()), "all");
+            transformedImmutableListCopy(violations, v -> (ARGState) v.state()), Optional.empty());
     if (!result.summaries().isEmpty()) {
       messages.addAll(
           reportPostconditions(
@@ -595,7 +595,7 @@ public class DssBlockAnalysis {
     }
     if (result.summaries().isEmpty()
         && result.violationConditions().isEmpty()
-        && (preconditions.isEmpty() || pSenderId.equals("all"))) {
+        && preconditions.isEmpty()) {
       messages.addAll(reportUnreachableBlockEnd());
     }
     return messages.build();
@@ -612,7 +612,7 @@ public class DssBlockAnalysis {
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
-  private AnalysisResult analyzeViolationCondition(List<ARGState> violations, String id)
+  private AnalysisResult analyzeViolationCondition(List<ARGState> violations, Optional<String> id)
       throws CPAException, InterruptedException, SolverException {
     if (preconditions.isEmpty() && !block.isRoot()) {
       return new AnalysisResult(true, ImmutableList.of(), ImmutableList.of());
@@ -621,7 +621,7 @@ public class DssBlockAnalysis {
     ImmutableList.Builder<AbstractState> vcs = ImmutableList.builder();
     boolean calculatedTop = false;
     ImmutableSet.Builder<StateAndPrecision> startStates = ImmutableSet.builder();
-    if (id.equals("all")) {
+    if (id.isEmpty()) {
       // unreachable block ends might be caused by underapproximating summaries
       // therefore, a new violation condition cannot ignore them.
       if (!preconditions.keySet().containsAll(block.getPredecessorIds()) && !block.isRoot()) {
@@ -630,7 +630,7 @@ public class DssBlockAnalysis {
         startStates.addAll(preconditions.values());
       }
     } else {
-      startStates.addAll(preconditions.get(id));
+      startStates.addAll(preconditions.get(id.orElseThrow()));
     }
     if (block.isRoot()) {
       startStates.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
