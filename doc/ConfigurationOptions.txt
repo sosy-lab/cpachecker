@@ -393,7 +393,7 @@ analysis.algorithm.MPOR.validateNoBackwardGoto = true
 
 # check if CPAchecker can parse sequentialization? note that it may take
 # several seconds to parse a program
-analysis.algorithm.MPOR.validateParse = false
+analysis.algorithm.MPOR.validateParse = true
 
 # check if all label pc (except initial) are target pc and all target pc
 # (except  termination) are label pc within a thread simulation?
