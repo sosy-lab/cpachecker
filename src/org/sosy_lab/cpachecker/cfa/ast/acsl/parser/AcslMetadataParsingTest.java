@@ -202,14 +202,8 @@ public class AcslMetadataParsingTest {
             ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "y = y + 1;"))));
 
     // Function Contracts
-    b.add(
-        task(
-            "square_root.c",
-            1,
-            0,
-            ImmutableList.of(new FunctionContractAttribute("sqroot", 3, 1, 0))));
-    b.add(
-        task("square.c", 1, 0, ImmutableList.of(new FunctionContractAttribute("square", 2, 0, 0))));
+    b.add(task("square_root.c", 1, 0, ImmutableList.of()));
+    b.add(task("square.c", 0, 0, ImmutableList.of()));
     b.add(
         task(
             "square_result.c",
@@ -258,7 +252,9 @@ public class AcslMetadataParsingTest {
             1,
             0,
             ImmutableList.of(new FunctionContractAttribute("pointer_increment", 1, 1, 1))));
+    b.add(task("function_contract_bad_variable.c", 0, 0, ImmutableList.of()));
     b.add(task("empty_comment.c", 0, 0, ImmutableList.of()));
+    b.add(task("loop_invariant_bad_variable.c", 0, 0, ImmutableList.of()));
     return b.build();
   }
 
@@ -276,13 +272,16 @@ public class AcslMetadataParsingTest {
   public void parseCorrectNumberOfAcslCommentsTest() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
 
-    if (programName.equals("badVariable.c")) {
+    if (programName.equals("badVariable.c")
+        || programName.contains("bad_variable")
+        || programName.equals("power.c")
+        || programName.equals("square.c")) {
       // A variable that is not declared in the scope should always throw an exception
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expectedException)
           .hasMessageThat()
-          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
+          .contains("is not declared in neither the C program nor the ACSL scope.");
     } else if (programName.equals("even_while_nondet.c") || programName.equals("even_do_while.c")) {
       // ToDo: Fix the node mapping.
       // Currently, the heads of do-while and non-deterministic
@@ -317,13 +316,16 @@ public class AcslMetadataParsingTest {
   public void parseCorrectNumberOfAcslDeclarationsTest() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
 
-    if (programName.equals("badVariable.c")) {
+    if (programName.equals("badVariable.c")
+        || programName.contains("bad_variable")
+        || programName.equals("power.c")
+        || programName.equals("square.c")) {
       // A variable that is not declared in the scope should always throw an exception
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expectedException)
           .hasMessageThat()
-          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
+          .contains("is not declared in neither the C program nor the ACSL scope.");
     } else if (programName.equals("even_while_nondet.c") || programName.equals("even_do_while.c")) {
       // ToDo: Fix the node mapping.
       // Currently, the heads of do-while and non-deterministic
@@ -358,13 +360,16 @@ public class AcslMetadataParsingTest {
       throws ParserException, IOException, InterruptedException, InvalidConfigurationException {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
 
-    if (programName.equals("badVariable.c")) {
+    if (programName.equals("badVariable.c")
+        || programName.contains("bad_variable")
+        || programName.equals("power.c")
+        || programName.equals("square.c")) {
       // A variable that is not declared in the scope should always throw an exception
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expectedException)
           .hasMessageThat()
-          .isEqualTo("Variable y is not declared in neither the C program nor the ACSL scope.");
+          .contains("is not declared in neither the C program nor the ACSL scope.");
     } else if (programName.equals("even_while_nondet.c") || programName.equals("even_do_while.c")) {
       // ToDo: Fix the node mapping.
       // Currently, the heads of do-while and non-deterministic

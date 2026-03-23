@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
@@ -829,7 +830,19 @@ public class CFACreator {
    * @return The acsl metadata from all acsl comments for the CFA.
    */
   private AcslMetadata createAcslMetadata(CFA pCFA, ParseResult pResult) {
-    CProgramScope scope = new CProgramScope(pCFA, logger);
+    // The scope for the source program
+    CProgramScope programScope = new CProgramScope(pCFA, logger);
+    // A scope containing the global variables from the source
+    CProgramScope globalScope = CProgramScope.mutableCoy(CProgramScope.empty());
+    ImmutableSet<AVariableDeclaration> globalVariables =
+        FluentIterable.from(pResult.globalDeclarations())
+            .transform(Pair::getFirst)
+            .filter(AVariableDeclaration.class)
+            .toSet();
+    for (AVariableDeclaration declaration : globalVariables) {
+      globalScope.registerDeclaration(declaration);
+    }
+
     AcslScope acslScope = AcslScope.mutableCopy(AcslScope.empty());
     ImmutableList<AcslComment> allComments =
         ImmutableList.copyOf(
@@ -849,6 +862,8 @@ public class CFACreator {
         ImmutableSetMultimap.builder();
 
     for (AcslComment comment : allComments) {
+      // Build a scope with all variables and parameters that are in scope at the current node
+      CProgramScope scopeForNode = CProgramScope.mutableCoy(globalScope);
       AcslCommentType commentType;
       Optional<CFANode> n = Optional.empty();
 
@@ -862,31 +877,75 @@ public class CFACreator {
       }
 
       if (commentType != AcslCommentType.LOGIC_DEF) {
-        // For other annotation types than logic definitions, we need to do the node mapping before
+        // For other annotations that are not logic definitions we need to do the node mapping
+        // before
         // the parsing.
+        CFANode currentNode;
         try {
           n = AcslNodeMappingUtils.addAcslToNodeMapping(comment, pCFA);
         } catch (AcslParseException e) {
           throw new AcslNodeMappingException(
               "Could not map acsl annotation " + comment + " to node: " + e);
         }
-
-        if (n.orElseThrow(
+        currentNode =
+            n.orElseThrow(
                 () ->
                     new AcslMetadataException(
-                        "Acsl function contract at "
-                            + comment.fileLocation()
-                            + " has no CFA node."))
-            instanceof FunctionEntryNode fn) {
-          scope = scope.withFunctionScope(fn.getFunctionName());
+                        "Acsl function contract at " + comment.fileLocation()));
+        if (currentNode instanceof FunctionEntryNode fn) {
+          scopeForNode = scopeForNode.withFunctionScope(fn.getFunctionName());
+          scopeForNode.registerDeclaration(programScope.lookupFunction(fn.getFunctionName()));
+        }
+
+        // Add variables and parameters that are in scope to the scope for the current node
+        ImmutableSet<AVariableDeclaration> variablesInScope;
+        if (pResult.cfaNodeToAstLocalVariablesInScope().isPresent()
+            && pResult
+                    .cfaNodeToAstLocalVariablesInScope()
+                    .orElseThrow(
+                        () ->
+                            new AcslMetadataCreationException(
+                                "No variables are in scope for comment " + comment))
+                    .get(currentNode)
+                != null) {
+
+          variablesInScope =
+              ImmutableSet.copyOf(
+                  pResult
+                      .cfaNodeToAstLocalVariablesInScope()
+                      .orElseThrow(
+                          () ->
+                              new AcslMetadataCreationException(
+                                  "No variables are in scope for comment " + comment))
+                      .get(currentNode));
+          for (AVariableDeclaration variableDeclaration : variablesInScope) {
+            scopeForNode.registerDeclaration(variableDeclaration);
+          }
+
+          ImmutableSet<AParameterDeclaration> parametersInScope;
+          if (pResult.cfaNodeToAstParametersInScope().isPresent()
+              && pResult.cfaNodeToAstParametersInScope().orElseThrow().get(currentNode) != null) {
+            parametersInScope =
+                ImmutableSet.copyOf(
+                    pResult
+                        .cfaNodeToAstParametersInScope()
+                        .orElseThrow(
+                            () ->
+                                new AcslMetadataCreationException(
+                                    "No parameters are in scope for comment " + comment))
+                        .get(n.orElseThrow()));
+
+            for (AParameterDeclaration parameterDeclaration : parametersInScope) {
+              scopeForNode.registerDeclaration(parameterDeclaration);
+            }
+          }
         }
       }
-
       AAcslAnnotation annotation;
       try {
         annotation =
             AcslParser.parseAcslComment(
-                comment.getComment(), comment.fileLocation(), scope, acslScope);
+                comment.getComment(), comment.fileLocation(), scopeForNode, acslScope);
       } catch (AcslParseException e) {
         throw new AcslMetadataCreationException(
             "Could not parse acsl annotation " + comment + ": " + e);
