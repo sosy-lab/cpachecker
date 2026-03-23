@@ -255,6 +255,29 @@ public class AcslMetadataParsingTest {
     b.add(task("function_contract_bad_variable.c", 0, 0, ImmutableList.of()));
     b.add(task("empty_comment.c", 0, 0, ImmutableList.of()));
     b.add(task("loop_invariant_bad_variable.c", 0, 0, ImmutableList.of()));
+    b.add(
+        task(
+            "double_assertion.c",
+            2,
+            0,
+            ImmutableList.of(
+                new AssertionAttribute("main", "int z = x * x;", "[x != 10]", "assert x == 10;"),
+                new AssertionAttribute(
+                    "main", "int z = x * x;", "[x != 10]", "assert z == 100;"))));
+    b.add(
+        task(
+            "loop_invariant_after_assertion.c",
+            2,
+            0,
+            ImmutableList.of(
+                new AssertionAttribute("main", "unsigned int x = 1;", "", "assert x == 1;"),
+                new LoopAnnotationAttribute("main", 2, 2, 2, "int i = 0;"))));
+    b.add(
+        task(
+            "inv_counter_for.c",
+            1,
+            0,
+            ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 2, "int i = 0;"))));
     return b.build();
   }
 
