@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Objects;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -78,10 +77,7 @@ public final class CSwitchStatement implements CExportStatement {
     switchCase.add("switch (" + switchExpression.toASTString(pAAstNodeRepresentation) + ")");
     ImmutableList.Builder<CCompoundStatementElement> caseStatements = ImmutableList.builder();
     // add all case expression: stmt1; ... break;
-    for (CExportExpression expression : statements.keySet()) {
-      caseStatements.add(
-          new CSwitchCaseStatement(expression, Objects.requireNonNull(statements.get(expression))));
-    }
+    statements.forEach((key, value) -> caseStatements.add(new CSwitchCaseStatement(key, value)));
     switchCase.add(
         new CCompoundStatement(caseStatements.build()).toASTString(pAAstNodeRepresentation));
     return switchCase.toString();
