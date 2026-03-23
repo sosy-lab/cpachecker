@@ -129,10 +129,14 @@ public final class SeqMainFunctionBuilder {
           loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
         }
         if (pOptions.reduceIgnoreSleep()) {
+          // with reduceIgnoreSleep enabled, the nondeterministic next_thread assignment is
+          // embedded into the reduction instrumentation, not added on top
           loopBlock.add(
               ReduceIgnoreSleepInjector.buildNextThreadIgnoreSleepInstrumentation(
                   pOptions, pFields, pUtils));
         } else {
+          // with reduceIgnoreSleep disabled, the nondeterministic next_thread choice is placed
+          // in isolation: next_thread = __VERIFIER_nondet_uint();
           loopBlock.add(
               buildNextThreadNondeterministicStatements(
                   pOptions,
