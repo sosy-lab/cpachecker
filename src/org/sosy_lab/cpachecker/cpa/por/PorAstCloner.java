@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
-import static org.sosy_lab.cpachecker.cpa.oc.EventType.READ;
-import static org.sosy_lab.cpachecker.cpa.oc.EventType.WRITE;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -51,8 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * AST cloner for POR that renames variables using only the thread ID prefix (never fresh CSSA
@@ -60,17 +55,10 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 class PorAstCloner {
 
-  private static int mutableUniqueCounter = 0;
-
   private final int threadId;
-  private boolean isLhs = false;
 
   PorAstCloner(int pThreadId) {
     this.threadId = pThreadId;
-  }
-
-  CExpression cloneExpression(CExpression exp) {
-    return exp.accept(new CExpressionCloner());
   }
 
   @SuppressWarnings("unchecked")
@@ -80,13 +68,11 @@ class PorAstCloner {
 
   @SuppressWarnings("unchecked")
   <T extends AAstNode> T cloneAstRightSide(T ast) {
-    isLhs = false;
     return (T) cloneAstDirect(ast);
   }
 
   @SuppressWarnings("unchecked")
   <T extends AAstNode> T cloneAstLeftSide(T ast) {
-    isLhs = true;
     return (T) cloneAstDirect(ast);
   }
 

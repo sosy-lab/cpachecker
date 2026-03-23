@@ -254,12 +254,16 @@ public class PORTransferRelation implements TransferRelation {
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
 
+    // Compute the PID for the new thread so we can get its cloned entry node
+    int newPid = old.threads().size();
+    CFANode clonedEntryNode = PorEdgeCloner.getClonedNode(functionCallNode, newPid, cfa);
+
     CallstackState initialStack =
         (CallstackState)
             callstackCPA.getInitialState(
-                functionCallNode, StateSpacePartition.getDefaultPartition());
+                clonedEntryNode, StateSpacePartition.getDefaultPartition());
     LocationState initialLoc =
-        locationCPA.getInitialState(functionCallNode, StateSpacePartition.getDefaultPartition());
+        locationCPA.getInitialState(clonedEntryNode, StateSpacePartition.getDefaultPartition());
 
     return old.addNewThread(handle, initialLoc, initialStack);
   }

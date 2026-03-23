@@ -173,15 +173,20 @@ public class PORState
     PORThreadState threadState = threads.get(pPid);
     assert threadState != null : "threads must contain pid to exit " + pPid;
     CFANode currentNode = threadState.pLocationState().getLocationNode();
-    String function = currentNode.getFunctionName();
+    // Resolve to original CFA node to find exit node in the original CFA
+    CFANode originalCurrentNode = PorEdgeCloner.getOriginalNode(currentNode);
+    String function = originalCurrentNode.getFunctionName();
 
-    CFANode exitNode = cfa.nodes().stream().filter(
+    CFANode originalExitNode = cfa.nodes().stream().filter(
         n -> n instanceof FunctionExitNode && function.equals(n.getFunctionName())
             && n.getNumLeavingEdges() == 0).findAny().orElseThrow();
-    LocationState exitLocationState = pLocationStateFactory.getState(exitNode);
+    // Get the cloned exit node for this thread
+    CFANode clonedExitNode = PorEdgeCloner.getClonedNode(originalExitNode, pPid, cfa);
+    LocationState exitLocationState = pLocationStateFactory.getState(clonedExitNode);
 
+    CFANode clonedFunctionHead = PorEdgeCloner.getClonedNode(cfa.getFunctionHead(function), pPid, cfa);
     CallstackState exitCallstackState =
-        new CallstackState(null, function, cfa.getFunctionHead(function));
+        new CallstackState(null, function, clonedFunctionHead);
 
     return stepThread(pPid, exitLocationState, exitCallstackState);
   }
@@ -204,10 +209,11 @@ public class PORState
       throw new IllegalArgumentException("No thread with pid " + pid);
     }
 
-    var leavingEdges = threadState.pLocationState().getLocationNode().getLeavingEdges();
+    CFANode locationNode = threadState.pLocationState().getLocationNode();
+    CFANode clonedNode = PorEdgeCloner.getClonedNode(locationNode, pid, cfa);
+    var leavingEdges = clonedNode.getLeavingEdges();
     assert leavingEdges.size() == 1 : "Expected exactly one leaving edge for basic block stepping";
-    CFAEdge successor = leavingEdges.get(0);
-    CFAEdge cloned = PorEdgeCloner.clone(successor, pid, this);
+    CFAEdge cloned = leavingEdges.get(0);
     edgePidMap.put(cloned, pid);
 
     MutexState mutexState =
@@ -335,8 +341,9 @@ public class PORState
         continue;
       }
 
-      for (CFAEdge outgoingEdge : threadState.pLocationState().getOutgoingEdges()) {
-        CFAEdge cloned = PorEdgeCloner.clone(outgoingEdge, pid, this);
+      CFANode locationNode = threadState.pLocationState().getLocationNode();
+      CFANode clonedNode = PorEdgeCloner.getClonedNode(locationNode, pid, cfa);
+      for (CFAEdge cloned : clonedNode.getLeavingEdges()) {
 
         if (mutexState != null) {
           // Mutex lock filtering: if this edge is a lock call and the mutex is held by another
@@ -539,7 +546,10 @@ public class PORState
   }
 
   private Iterable<CFAEdge> getSuccessorEdges(CFAEdge edge) {
-    final var allLeavingEdges = edge.getSuccessor().getAllLeavingEdges();
+    // Use the ORIGINAL CFA node for traversal so that the dependency analysis
+    // compares original (non-thread-prefixed) variable names across threads.
+    CFANode originalSuccessor = PorEdgeCloner.getOriginalNode(edge.getSuccessor());
+    final var allLeavingEdges = originalSuccessor.getAllLeavingEdges();
     final var startedThreadEdges = new ArrayList<CFAEdge>();
     for (final var leavingEdge : allLeavingEdges) {
       if (leavingEdge instanceof AStatementEdge statementEdge) {
