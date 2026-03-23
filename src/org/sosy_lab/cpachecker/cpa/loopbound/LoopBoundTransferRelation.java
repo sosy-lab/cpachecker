@@ -76,8 +76,11 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
     for (Loop l :
         FluentIterable.concat(
-            pCFA.getLoopStructure().orElseThrow().getAllLoops(),
-            LoopStructure.getRecursions(pCFA))) {
+                pCFA.getLoopStructure().orElseThrow().getAllLoops(),
+                LoopStructure.getRecursions(pCFA))
+            // We need to remove duplicates to avoid problems with mutually recursive functions
+            // TODO: This should be fixed in LoopStructure instead
+            .toSet()) {
       // function edges do not count as incoming/outgoing edges
       Stream<CFAEdge> incomingEdges =
           l.getIncomingEdges().stream()
