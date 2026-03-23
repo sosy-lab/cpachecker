@@ -125,8 +125,6 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     global _webclient
 
     logging.info("Submitting runs...")
-    logging.warning("DEBUG benchmark.rlimits: %s", benchmark.rlimits)
-    logging.warning("DEBUG benchmark.rlimits cpu_cores: %s", benchmark.rlimits.cpu_cores)
 
     meta_information = json.dumps(
         {
