@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -65,7 +64,8 @@ public class PORTransferRelation implements TransferRelation {
     cfa = pCfa;
 
     aggregateBasicBlocks = pAggregateBasicBlocks;
-    basicBlockAggregator = new SingleGlobalStatementBlockAggregator(pCfa);
+    basicBlockAggregator =
+        aggregateBasicBlocks ? new SingleGlobalStatementBlockAggregator(pCfa) : null;
   }
 
   @Override
@@ -79,7 +79,7 @@ public class PORTransferRelation implements TransferRelation {
       throw new CPATransferException("Precision is not PORPrecision");
     }
 
-    Collection<CFAEdge> sourceSet = porState.getSourceSet(porPrecision);
+    Collection<CFAEdge> sourceSet = porState.getSourceSet(porPrecision, basicBlockAggregator);
     ArrayList<AbstractState> allSuccessors = new ArrayList<>();
     for (CFAEdge edge : sourceSet) {
       allSuccessors.addAll(getAbstractSuccessorsForEdge(state, precision, edge));

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
@@ -184,7 +185,8 @@ public class PORState
     CFANode clonedExitNode = PorEdgeCloner.getClonedNode(originalExitNode, pPid, cfa);
     LocationState exitLocationState = pLocationStateFactory.getState(clonedExitNode);
 
-    CFANode clonedFunctionHead = PorEdgeCloner.getClonedNode(cfa.getFunctionHead(function), pPid, cfa);
+    CFANode clonedFunctionHead =
+        PorEdgeCloner.getClonedNode(cfa.getFunctionHead(function), pPid, cfa);
     CallstackState exitCallstackState =
         new CallstackState(null, function, clonedFunctionHead);
 
@@ -280,7 +282,7 @@ public class PORState
               PORThreadState cState = child.threads().get(tid);
               if (cState != null
                   && !pState.pLocationState().getLocationNode()
-                      .equals(cState.pLocationState().getLocationNode())) {
+                  .equals(cState.pLocationState().getLocationNode())) {
                 var edges = pState.pLocationState().getEdgesToChild(cState.pLocationState());
                 if (edges != null) {
                   allEdges.addAll(edges);
@@ -415,13 +417,14 @@ public class PORState
 
   // POR algorithm
 
-  Collection<CFAEdge> getSourceSet(PORPrecision precision) {
+  Collection<CFAEdge> getSourceSet(PORPrecision precision, BasicBlockAggregator basicBlock) {
     if (sourceSet == null) {
       ImmutableCollection<CFAEdge> minimalSourceSet = ImmutableList.of();
       final var allOutgoingEdges = getAllThreadOutgoingEdges();
       final var sourceSetFirstActions = getSourceSetFirstActions(allOutgoingEdges);
       for (final var firstActions : sourceSetFirstActions) {
-        final var currentSourceSet = calculateSourceSet(allOutgoingEdges, firstActions, precision);
+        final var currentSourceSet =
+            calculateSourceSet(allOutgoingEdges, firstActions, precision, basicBlock);
         if (minimalSourceSet.isEmpty() || currentSourceSet.size() < minimalSourceSet.size()) {
           minimalSourceSet = currentSourceSet;
         }
@@ -473,7 +476,8 @@ public class PORState
   private ImmutableCollection<CFAEdge> calculateSourceSet(
       ImmutableCollection<CFAEdge> allOutgoingEdges,
       ImmutableCollection<CFAEdge> firstActions,
-      PORPrecision precision) {
+      PORPrecision precision,
+      BasicBlockAggregator basicBlock) {
     final var currentSourceSet = new ArrayList<CFAEdge>();
     final var otherEdges = new ArrayList<CFAEdge>();
     for (final var edge : allOutgoingEdges) {
@@ -492,7 +496,7 @@ public class PORState
       addedNewEdge = false;
       final ImmutableSet.Builder<CFAEdge> edgesToRemove = ImmutableSet.builder();
       for (final var edge : otherEdges) {
-        if (currentSourceSet.stream().anyMatch(s -> dependent(s, edge, precision))) {
+        if (currentSourceSet.stream().anyMatch(s -> dependent(s, edge, precision, basicBlock))) {
           if (edge.getPredecessor().isLoopStart()) {
             return allOutgoingEdges;
           }
@@ -507,12 +511,16 @@ public class PORState
     return ImmutableList.copyOf(currentSourceSet);
   }
 
-  private boolean dependent(CFAEdge sourceSetEdge, CFAEdge edge, PORPrecision precision) {
+  private boolean dependent(
+      CFAEdge sourceSetEdge,
+      CFAEdge edge,
+      PORPrecision precision,
+      BasicBlockAggregator basicBlock) {
     if (edgePidMap.get(sourceSetEdge).equals(edgePidMap.get(edge))) {
       return true;
     }
 
-    final var sourceSetMemLocs = getUsedGlobalVars(sourceSetEdge);
+    final var sourceSetMemLocs = getUsedGlobalVars(sourceSetEdge, basicBlock);
     final var influencedMemLocs = getInfluencedGlobalVars(edge);
     return intersect(sourceSetMemLocs, influencedMemLocs, precision);
   }
@@ -521,9 +529,16 @@ public class PORState
     return memoryAccessExtractor.extract(edge);
   }
 
-  private EdgeDefUseData getUsedGlobalVars(CFAEdge edge) {
+  private EdgeDefUseData getUsedGlobalVars(CFAEdge edge, BasicBlockAggregator basicBlock) {
     // collect directly used vars by the cfa edge
     // plus continue to successor edges until the current thread obtains any mutexes
+    Predicate<CFAEdge> goFurther;
+    if (basicBlock != null && basicBlock.isValidMultiEdgeStart(edge.getPredecessor())) {
+      goFurther = pCFAEdge -> basicBlock.isValidMultiEdgeComponent(edge.getPredecessor(), pCFAEdge);
+    } else {
+      goFurther = pCFAEdge -> false;
+    }
+
     if (MutexFunctions.isLockCall(edge)) {
       MutexState currentMutexState =
           AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
@@ -535,26 +550,31 @@ public class PORState
       }
       final MutexState finalCurrentInitialMutexState = currentInitialMutexState;
       final Integer pid = getEdgePid(edge);
-      return getVarsWithTraversal(edge, new Predicate<>() {
+      final Predicate<CFAEdge> originalGoFurther = goFurther;
+      goFurther = new Predicate<>() {
 
         private MutexState mutexState = finalCurrentInitialMutexState;
 
         @Override
         public boolean test(CFAEdge pCFAEdge) {
           mutexState = mutexState.update(pCFAEdge, pid);
-          return mutexState != null && !mutexState.getLockedMutexes().isEmpty();
+          return (mutexState != null && !mutexState.getLockedMutexes().isEmpty())
+              || originalGoFurther.test(pCFAEdge);
         }
-      });
+      };
     }
 
-    return getDirectlyUsedGlobalVars(edge);
+    return getVarsWithTraversal(edge, goFurther, false);
   }
 
   private EdgeDefUseData getInfluencedGlobalVars(CFAEdge edge) {
-    return getVarsWithTraversal(edge, e -> true);
+    return getVarsWithTraversal(edge, e -> true, true);
   }
 
-  private EdgeDefUseData getVarsWithTraversal(CFAEdge startEdge, Predicate<CFAEdge> goFurther) {
+  private EdgeDefUseData getVarsWithTraversal(
+      CFAEdge startEdge,
+      Predicate<CFAEdge> goFurther,
+      boolean visitStartedThreadFunction) {
     var uses = EdgeDefUseData.empty();
     final var exploredEdges = new ArrayList<CFAEdge>();
     final var edgesToExplore = new ArrayList<>(List.of(startEdge));
@@ -563,7 +583,7 @@ public class PORState
       exploredEdges.add(edge);
       uses = uses.merge(getDirectlyUsedGlobalVars(edge));
       if (goFurther.test(edge)) {
-        for (final var successorEdge : getSuccessorEdges(edge)) {
+        for (final var successorEdge : getSuccessorEdges(edge, visitStartedThreadFunction)) {
           if (!exploredEdges.contains(successorEdge)) {
             edgesToExplore.add(successorEdge);
           }
@@ -573,11 +593,12 @@ public class PORState
     return uses;
   }
 
-  private Iterable<CFAEdge> getSuccessorEdges(CFAEdge edge) {
-    // Use the ORIGINAL CFA node for traversal so that the dependency analysis
-    // compares original (non-thread-prefixed) variable names across threads.
-    CFANode originalSuccessor = PorEdgeCloner.getOriginalNode(edge.getSuccessor());
-    final var allLeavingEdges = originalSuccessor.getAllLeavingEdges();
+  private Iterable<CFAEdge> getSuccessorEdges(CFAEdge edge, boolean visitStartedThreadFunction) {
+    final var allLeavingEdges = edge.getSuccessor().getAllLeavingEdges();
+    if (!visitStartedThreadFunction) {
+      return allLeavingEdges;
+    }
+
     final var startedThreadEdges = new ArrayList<CFAEdge>();
     for (final var leavingEdge : allLeavingEdges) {
       if (leavingEdge instanceof AStatementEdge statementEdge) {

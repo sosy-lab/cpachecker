@@ -56,9 +56,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
       if (!accesses.getUses().isEmpty() ||
           !accesses.getDefs().isEmpty() ||
           !accesses.getPointeeDefs().isEmpty() ||
-          !accesses.getPointeeUses().isEmpty() ||
-          isThreadStart(currentEdge) ||
-          MutexFunctions.isLockCall(currentEdge)) {
+          !accesses.getPointeeUses().isEmpty()) {
         if (anyGlobalStatements) {
           return false;
         }
