@@ -237,6 +237,17 @@ public final class PointerTargetSet implements Serializable {
     throw new InvalidObjectException("Proxy required");
   }
 
+  public PointerTargetSet copyWithCallstackInformationFrom(PointerTargetSet pRootPts) {
+    return new PointerTargetSet(
+        bases,
+        fields,
+        deferredAllocations,
+        targets,
+        pRootPts.callStackDepth,
+        highestAllocatedAddresses,
+        allocationCount);
+  }
+
   private static class SerializationProxy implements Serializable {
 
     @Serial private static final long serialVersionUID = 8022025017590667769L;

@@ -273,6 +273,16 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
     PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
     PointerTargetSet reducedPts = reducedState.getPathFormula().getPointerTargetSet();
+    // From reverse engineering the BAM related code, it seems that when it cannot correctly
+    // merge the information between the root and the reduced state, it takes the information
+    // from the reduced state.
+    //
+    // This can be clearly seen in the reduction of the call stack state, and location state, where
+    // it simply takes the reduced value
+    //
+    // Therefore, we explicitly take the callstack information of the reduced state for the pointer
+    // target sets, since especially for BAM this does not need to always agree.
+    reducedPts = reducedPts.copyWithCallstackInformationFrom(rootPts);
 
     SSAMapBuilder ssaBuilder = ssa.builder();
     PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, ssaBuilder);
