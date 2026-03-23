@@ -113,6 +113,7 @@ public class PORTransferRelation implements TransferRelation {
 
         Collection<PORState> currentStates = new ArrayList<>(1);
         currentStates.add(porState);
+        boolean hasAnyResults = false;
 
         while (basicBlockAggregator.isValidMultiEdgeComponent(startNode, cfaEdge)) {
           Collection<PORState> successorStates = new ArrayList<>(currentStates.size());
@@ -123,6 +124,9 @@ public class PORTransferRelation implements TransferRelation {
 
           // if there are no successors for the current edge, we do not need to continue
           if (successorStates.isEmpty()) {
+            if (hasAnyResults) {
+              return ImmutableList.copyOf(currentStates);
+            }
             return ImmutableList.of();
           }
 
@@ -133,6 +137,7 @@ public class PORTransferRelation implements TransferRelation {
 
           // make successor states the new to-be-handled states for the next edge
           currentStates = Collections.unmodifiableCollection(successorStates);
+          hasAnyResults = true;
 
           // if there is more than one leaving edge we do not create a further multi edge part
           if (cfaEdge.getSuccessor().getNumLeavingEdges() == 1) {

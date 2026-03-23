@@ -77,14 +77,14 @@ public final class MutexFunctions {
    * Returns {@code true} if the given CFA edge is a mutex lock function call.
    */
   public static boolean isLockCall(CFAEdge edge) {
-    return getLockMutex(edge) != null;
+    return getLockMutex(edge) != null || isAtomicBeginCall(edge);
   }
 
   /**
    * Returns {@code true} if the given CFA edge is a mutex unlock function call.
    */
   public static boolean isUnlockCall(CFAEdge edge) {
-    return getUnlockMutex(edge) != null;
+    return getUnlockMutex(edge) != null || isAtomicEndCall(edge);
   }
 
   /**

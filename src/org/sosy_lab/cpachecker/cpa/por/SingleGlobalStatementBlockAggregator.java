@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
-import java.util.Collection;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -26,7 +27,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
   private final EdgeDefUseData.Extractor memoryAccessExtractor =
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
-  private final Collection<CFANode> initializationPhaseNodes;
+  private final ImmutableCollection<CFANode> initializationPhaseNodes;
 
   SingleGlobalStatementBlockAggregator(CFA pCfa) {
     super(pCfa);
@@ -41,7 +42,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
     if (startNode.equals(edge.getPredecessor())) {
       return true;
     }
-    if (MutexFunctions.isAtomicBeginCall(edge) || isThreadJoin(edge)) {
+    if (MutexFunctions.isLockCall(edge) || isThreadStart(edge) || isThreadJoin(edge)) {
       return false;
     }
     if (initializationPhaseNodes.contains(edge.getPredecessor())) {
@@ -55,7 +56,9 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
       if (!accesses.getUses().isEmpty() ||
           !accesses.getDefs().isEmpty() ||
           !accesses.getPointeeDefs().isEmpty() ||
-          !accesses.getPointeeUses().isEmpty()) {
+          !accesses.getPointeeUses().isEmpty() ||
+          isThreadStart(currentEdge) ||
+          MutexFunctions.isLockCall(currentEdge)) {
         if (anyGlobalStatements) {
           return false;
         }
@@ -75,7 +78,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
     }
   }
 
-  private Collection<CFANode> getInitializationPhaseNodes(CFA pCFA) {
+  private ImmutableCollection<CFANode> getInitializationPhaseNodes(CFA pCFA) {
     final Set<CFANode> nodesBeforeAnyThreadStart = new LinkedHashSet<>();
     final Set<CFANode> visitedNodes = new LinkedHashSet<>();
     final Set<CFANode> nodesToVisit = new LinkedHashSet<>();
@@ -115,7 +118,9 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
       }
     }
 
-    return nodesBeforeAnyThreadStart;
+    return nodesBeforeAnyThreadStart.stream()
+        .map(node -> PorEdgeCloner.getClonedNode(node, 0, pCFA))
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   private boolean isThreadStart(CFAEdge edge) {
@@ -132,5 +137,10 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
         && functionCall.getFunctionCallExpression()
         .getFunctionNameExpression() instanceof AIdExpression functionName
         && name.equals(functionName.getName());
+  }
+
+  private boolean isFunctionCall(CFAEdge edge) {
+    return edge instanceof AStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof AFunctionCall;
   }
 }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.por;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 
 /**
  * AST cloner for POR that renames variables using only the thread ID prefix (never fresh CSSA
@@ -134,7 +136,8 @@ class PorAstCloner {
           l.add(cloneAstRightSide(param));
         }
         return new CFunctionDeclaration(
-            loc, decl.getType(), decl.getName(), decl.getOrigName(), l, decl.getAttributes());
+            loc, cloneFunctionType(decl.getType()), decl.getName(), decl.getOrigName(), l,
+            decl.getAttributes());
 
       } else if (ast instanceof CComplexTypeDeclaration decl) {
         return new CComplexTypeDeclaration(loc, decl.isGlobal(), decl.getType());
@@ -203,6 +206,19 @@ class PorAstCloner {
     }
 
     throw new AssertionError("unhandled ASTNode " + ast + " of " + ast.getClass());
+  }
+
+  private CFunctionType cloneFunctionType(CFunctionType type) {
+    if (!(type instanceof CFunctionTypeWithNames functionTypeWithNames)) {
+      return type;
+    }
+
+    Collection<CParameterDeclaration> parameters = functionTypeWithNames.getParameterDeclarations();
+    List<CParameterDeclaration> l = new ArrayList<>(parameters.size());
+    for (CParameterDeclaration param : parameters) {
+      l.add(cloneAstRightSide(param));
+    }
+    return new CFunctionTypeWithNames(type.getReturnType(), l, type.takesVarArgs());
   }
 
   private CSimpleDeclaration createNewDeclaration(CSimpleDeclaration cDecl) {
