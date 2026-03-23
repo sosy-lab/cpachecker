@@ -25,6 +25,7 @@ public record AcslComment(FileLocation fileLocation, String commentString) {
     ASSERTION,
     LOOP_ANNOTATION,
     FUNCTION_CONTRACT,
-    LOGIC_DEF
+    LOGIC_DEF,
+    UNKNOWN
   }
 }

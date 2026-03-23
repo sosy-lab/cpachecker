@@ -220,7 +220,7 @@ variableIdent
 
 // fn_behavior.tex
 functionContract
-    : requiresClause* terminatesClause? decreasesClause? simpleClause* namedBehavior* completenessClause*
+    : (requiresClause|simpleClause)+ terminatesClause? decreasesClause? namedBehavior* completenessClause*
     ;
 
 requiresClause
@@ -377,7 +377,7 @@ labelId
 
 // loops.tex
 loopAnnot
-    : loopClause* loopBehavior* loopVariant?
+    : loopClause+ loopBehavior* loopVariant?
     ;
 
 loopClause

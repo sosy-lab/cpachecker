@@ -857,6 +857,9 @@ public class CFACreator {
       } catch (AcslParseException e) {
         throw new AcslMetadataCreationException(e.getMessage());
       }
+      if (commentType == AcslCommentType.UNKNOWN) {
+        throw new AcslMetadataCreationException("Acsl comment " + comment + " is of unknown type.");
+      }
 
       if (commentType != AcslCommentType.LOGIC_DEF) {
         // For other annotation types than logic definitions, we need to do the node mapping before

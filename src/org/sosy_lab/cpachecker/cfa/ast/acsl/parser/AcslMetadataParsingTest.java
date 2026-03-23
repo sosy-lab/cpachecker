@@ -258,6 +258,7 @@ public class AcslMetadataParsingTest {
             1,
             0,
             ImmutableList.of(new FunctionContractAttribute("pointer_increment", 1, 1, 1))));
+    b.add(task("empty_comment.c", 0, 0, ImmutableList.of()));
     return b.build();
   }
 
@@ -299,6 +300,10 @@ public class AcslMetadataParsingTest {
               AcslNodeMappingException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expected.getMessage())
           .isEqualTo("Acsl assertion: 'assert \\false;' at line 13 has no CFA node");
+    } else if (programName.equals("empty_comment.c")) {
+      AcslMetadataException exception =
+          assertThrows(AcslMetadataException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(exception.getMessage()).contains("is of unknown type.");
     } else {
 
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
@@ -336,6 +341,10 @@ public class AcslMetadataParsingTest {
               AcslNodeMappingException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expected.getMessage())
           .isEqualTo("Acsl assertion: 'assert \\false;' at line 13 has no CFA node");
+    } else if (programName.equals("empty_comment.c")) {
+      AcslMetadataException exception =
+          assertThrows(AcslMetadataException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(exception.getMessage()).contains("is of unknown type.");
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata acslMetadata = cfa.getAcslMetadata();
@@ -374,6 +383,10 @@ public class AcslMetadataParsingTest {
               AcslNodeMappingException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expected.getMessage())
           .isEqualTo("Acsl assertion: 'assert \\false;' at line 13 has no CFA node");
+    } else if (programName.equals("empty_comment.c")) {
+      AcslMetadataException exception =
+          assertThrows(AcslMetadataException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
+      assertThat(exception.getMessage()).contains("is of unknown type.");
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata metadata = cfa.getAcslMetadata();

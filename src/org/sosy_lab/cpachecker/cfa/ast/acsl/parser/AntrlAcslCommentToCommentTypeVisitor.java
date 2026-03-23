@@ -20,7 +20,11 @@ public class AntrlAcslCommentToCommentTypeVisitor extends AcslGrammarBaseVisitor
 
   @Override
   public AcslCommentType visitAcslComment(AcslCommentContext ctx) {
-    return super.visitAcslComment(ctx);
+    AcslCommentType type = super.visitAcslComment(ctx);
+    if (type == null) {
+      return AcslCommentType.UNKNOWN;
+    }
+    return type;
   }
 
   @Override
