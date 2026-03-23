@@ -144,6 +144,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     submission_futures = {}
     submissonCounter = 1
     limits = benchmark.rlimits
+    limits = benchexec.tooladapter.convert_resource_limits_to_dict(limits)
     requirements = {
         "cpu_model": benchmark.requirements.cpu_model or "",
         "core_requirement": benchmark.requirements.cpu_cores,
