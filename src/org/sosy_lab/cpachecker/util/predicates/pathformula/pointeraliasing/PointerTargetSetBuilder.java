@@ -812,8 +812,8 @@ public interface PointerTargetSetBuilder {
               // FaultLocation, specifically check the test
               // `testCorrectCalculationOfPreAndPostCondition`
               //
-              // We return -2, since 0 and -1 are already reserved as default values for
-              // non-existing and global variables respectively, but the exact value doesn't matter
+              // We return -2, since 0 is already reserved as default values for
+              // non-existing variables respectively, but the exact value doesn't matter
               // as long as it's negative.
               -2);
       checkState(
@@ -829,6 +829,13 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public Integer getCallstackDepth(String pFunctionName) {
+      // Special case where the main function was called through a blank edge and not through
+      // a function call edge, happens for example for
+      // the test `fib_correct` in `BMCAlgorithmTest`.
+      if (!callstackDepth.containsKey(pFunctionName)) {
+        return 0;
+      }
+
       return Objects.requireNonNull(callstackDepth.get(pFunctionName));
     }
 
@@ -849,20 +856,14 @@ public interface PointerTargetSetBuilder {
     @Override
     public OptionalInt getCallstackDepth(
         CSimpleDeclaration pSimpleDeclaration, String pFunctionName) {
-      // In this
+      // In this case we are assigning to a global variable, so the call stack depth for the
+      // encoding is empty.
       if (pSimpleDeclaration instanceof CEnumerator
           || (pSimpleDeclaration instanceof CDeclaration pDeclaration && pDeclaration.isGlobal())) {
         return OptionalInt.empty();
       }
 
-      // Special case where the main function was called through a blank edge and not through a
-      // a function call edge, happens for example for
-      // the test `fib_correct` in `BMCAlgorithmTest`.
-      if (!callstackDepth.containsKey(pFunctionName)) {
-        return OptionalInt.of(0);
-      }
-
-      return OptionalInt.of(Objects.requireNonNull(callstackDepth.get(pFunctionName)));
+      return OptionalInt.of(getCallstackDepth(pFunctionName));
     }
   }
 
