@@ -67,7 +67,6 @@ interface PrecisionVariableManager {
 
     private boolean checkSupportedPrecision(PredicatePrecision precision) {
       return precision.getLocalPredicates().isEmpty()
-          && precision.getFunctionPredicates().isEmpty()
           && precision.getLocationInstancePredicates().isEmpty();
     }
   }
