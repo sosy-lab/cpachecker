@@ -278,6 +278,13 @@ public class AcslMetadataParsingTest {
             1,
             0,
             ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 2, "int i = 0;"))));
+    b.add(
+        task(
+            "shadowed_variable.c",
+            1,
+            0,
+            ImmutableList.of(
+                new AssertionAttribute("main", "int y = p + x;", "p = y;", "assert y == i * x;"))));
     return b.build();
   }
 
@@ -298,8 +305,13 @@ public class AcslMetadataParsingTest {
     if (programName.equals("badVariable.c")
         || programName.contains("bad_variable")
         || programName.equals("power.c")
-        || programName.equals("square.c")) {
+        || programName.equals("square.c")
+        || programName.equals("shadowed_variable.c")) {
       // A variable that is not declared in the scope should always throw an exception
+
+      // ToDo: A shadowed variable should be recognized correctly by the parser. For this, the scope
+      // that is given to the parser needs to be built up correctly.
+
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expectedException)
@@ -342,8 +354,13 @@ public class AcslMetadataParsingTest {
     if (programName.equals("badVariable.c")
         || programName.contains("bad_variable")
         || programName.equals("power.c")
-        || programName.equals("square.c")) {
+        || programName.equals("square.c")
+        || programName.equals("shadowed_variable.c")) {
       // A variable that is not declared in the scope should always throw an exception
+
+      // ToDo: A shadowed variable should be recognized correctly by the parser. For this, the scope
+      // that is given to the parser needs to be built up correctly.
+
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expectedException)
@@ -386,8 +403,13 @@ public class AcslMetadataParsingTest {
     if (programName.equals("badVariable.c")
         || programName.contains("bad_variable")
         || programName.equals("power.c")
-        || programName.equals("square.c")) {
+        || programName.equals("square.c")
+        || programName.equals("shadowed_variable.c")) {
       // A variable that is not declared in the scope should always throw an exception
+
+      // ToDo: A shadowed variable should be recognized correctly by the parser. For this, the scope
+      // that is given to the parser needs to be built up correctly.
+
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(expectedException)
