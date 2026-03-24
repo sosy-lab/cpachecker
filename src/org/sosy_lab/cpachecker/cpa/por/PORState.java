@@ -234,13 +234,18 @@ public class PORState
 
   @Override
   public Iterable<CFANode> getLocationNodes() {
-    ImmutableList.Builder<CFANode> nodes = ImmutableList.builder();
+    ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
     for (PORThreadState threadState : threads.values()) {
       for (CFANode node : threadState.pLocationState().getLocationNodes()) {
         nodes.add(node);
       }
     }
     return nodes.build();
+  }
+
+  @Override
+  public Object getPartitionKey() {
+    return getLocationNodes();
   }
 
   @Override
