@@ -322,7 +322,13 @@ public class ValueAnalysisTransferRelation
       @Nullable ValueAnalysisCPAStatistics pStats) {
     options = pOptions;
     machineModel = pCfa.getMachineModel();
-    logger = new LogManagerWithoutDuplicates(pLogger);
+
+    if (pLogger instanceof LogManagerWithoutDuplicates pLogManagerWithoutDuplicates) {
+      logger = pLogManagerWithoutDuplicates;
+    } else {
+      logger = new LogManagerWithoutDuplicates(pLogger);
+    }
+
     stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
