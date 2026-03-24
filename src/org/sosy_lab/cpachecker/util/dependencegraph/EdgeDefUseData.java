@@ -454,8 +454,8 @@ public final class EdgeDefUseData {
 
       CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
 
-      if ((declaration instanceof CVariableDeclaration && (!onlyGlobals
-          || ((CVariableDeclaration) declaration).isGlobal()))
+      if ((declaration instanceof CVariableDeclaration cVariableDeclaration && (!onlyGlobals
+          || cVariableDeclaration.isGlobal()))
           || (!onlyGlobals && declaration instanceof CParameterDeclaration)) {
 
         MemoryLocation memLoc = MemoryLocation.forDeclaration(declaration);
