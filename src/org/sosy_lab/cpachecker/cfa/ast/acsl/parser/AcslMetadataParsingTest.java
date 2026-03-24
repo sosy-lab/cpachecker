@@ -285,6 +285,14 @@ public class AcslMetadataParsingTest {
             0,
             ImmutableList.of(
                 new AssertionAttribute("main", "int y = p + x;", "p = y;", "assert y == i * x;"))));
+    b.add(
+        task(
+            "nested_loops.c",
+            2,
+            0,
+            ImmutableList.of(
+                new LoopAnnotationAttribute("main", 2, 2, 2, "int i = 0;"),
+                new LoopAnnotationAttribute("main", 2, 2, 3, "int j = 0;"))));
     return b.build();
   }
 
@@ -524,7 +532,8 @@ public class AcslMetadataParsingTest {
       if (pActualAnnotations.containsKey(node)) {
         ImmutableSet<AcslLoopAnnotation> actualAnnotations = pActualAnnotations.get(node);
         for (AcslLoopAnnotation loopAnnotation : actualAnnotations) {
-          if (loopAnnotation.getLoopInvariants().size() == pAttribute.numAnnotations) {
+          if (loopAnnotation.getLoopInvariants().size() + loopAnnotation.getLoopAssigns().size()
+              == pAttribute.numAnnotations) {
             return true;
           }
         }

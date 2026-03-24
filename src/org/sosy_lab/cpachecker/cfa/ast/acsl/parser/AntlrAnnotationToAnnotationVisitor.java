@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.F
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LocationContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicDefContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAnnotContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopAssignsContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopClauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LoopInvariantContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.RequiresClauseContext;
@@ -103,7 +104,8 @@ public class AntlrAnnotationToAnnotationVisitor
         annotations
             .filter(a -> a instanceof AcslLoopInvariant)
             .transform(a -> (AcslLoopInvariant) a)
-            .toSet());
+            .toSet(),
+        annotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a).toSet());
   }
 
   @Override
@@ -149,6 +151,17 @@ public class AntlrAnnotationToAnnotationVisitor
   public AAcslAnnotation visitLogicDef(LogicDefContext ctx) {
     AcslLogicDefinition definition = logicalDefinitionConverter.visit(ctx);
     return new AcslLogicDefinitionAnnotation(fileLocation, definition);
+  }
+
+  @Override
+  public AAcslAnnotation visitLoopAssigns(LoopAssignsContext ctx) {
+    ImmutableSet.Builder<AcslMemoryLocationSet> locationSetBuilder = ImmutableSet.builder();
+    for (LocationContext loc : ctx.locations().location()) {
+      AcslMemoryLocationSet memLocation = antlrTsetToMemorySetConverter.visit(loc.tset());
+      locationSetBuilder.add(memLocation);
+    }
+    ImmutableSet<AcslMemoryLocationSet> locationsSet = locationSetBuilder.build();
+    return new AcslAssigns(fileLocation, locationsSet);
   }
 
   @Override

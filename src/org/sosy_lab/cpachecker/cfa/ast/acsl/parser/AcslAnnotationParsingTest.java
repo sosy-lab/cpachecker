@@ -418,7 +418,8 @@ ensures x <= 10;
   }
 
   private AcslLoopAnnotation getLoopAnnotation() {
-    return new AcslLoopAnnotation(FileLocation.DUMMY, ImmutableSet.of(getLoopInvariant()));
+    return new AcslLoopAnnotation(
+        FileLocation.DUMMY, ImmutableSet.of(getLoopInvariant()), ImmutableSet.of());
   }
 
   @Test

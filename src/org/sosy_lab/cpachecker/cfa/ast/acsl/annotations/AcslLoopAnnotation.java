@@ -22,12 +22,17 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class AcslLoopAnnotation extends AAcslAnnotation {
 
   private final ImmutableSet<AcslLoopInvariant> loopInvariants;
+  private final ImmutableSet<AcslAssigns> loopAssigns;
 
   public AcslLoopAnnotation(
-      FileLocation pFileLocation, ImmutableSet<AcslLoopInvariant> pLoopInvariants) {
+      FileLocation pFileLocation,
+      ImmutableSet<AcslLoopInvariant> pLoopInvariants,
+      ImmutableSet<AcslAssigns> pLoopAssigns) {
     super(pFileLocation);
     Preconditions.checkNotNull(pLoopInvariants);
+    Preconditions.checkNotNull(pLoopAssigns);
     loopInvariants = pLoopInvariants;
+    loopAssigns = pLoopAssigns;
   }
 
   @Override
@@ -36,7 +41,8 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
       return true;
     }
     return pO instanceof AcslLoopAnnotation other
-        && Objects.equals(loopInvariants, other.loopInvariants);
+        && Objects.equals(loopInvariants, other.loopInvariants)
+        && Objects.equals(loopAssigns,other.loopAssigns);
   }
 
   @Override
@@ -44,21 +50,24 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
     int hash = 7;
     int prime = 31;
     hash = prime * hash * Objects.hashCode(loopInvariants);
+    hash = prime * hash * Objects.hashCode(loopAssigns);
     return hash;
   }
 
   public ImmutableSet<AcslLoopInvariant> getLoopInvariants() {
     return loopInvariants;
   }
+  public ImmutableSet<AcslAssigns> getLoopAssigns(){return loopAssigns;}
 
   @Override
   public String toAstString() {
     StringBuilder astString = new StringBuilder();
-    if (loopInvariants != null) {
       for (AcslLoopInvariant l : loopInvariants) {
         astString.append(l.toAstString()).append(System.lineSeparator());
       }
-    }
+      for (AcslAssigns a : loopAssigns){
+        astString.append("loop ").append(a.toAstString()).append(System.lineSeparator());
+      }
     return astString.toString();
   }
 }
