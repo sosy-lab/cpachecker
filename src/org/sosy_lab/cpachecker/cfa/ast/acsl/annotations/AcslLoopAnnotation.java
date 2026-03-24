@@ -42,7 +42,7 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
     }
     return pO instanceof AcslLoopAnnotation other
         && Objects.equals(loopInvariants, other.loopInvariants)
-        && Objects.equals(loopAssigns,other.loopAssigns);
+        && Objects.equals(loopAssigns, other.loopAssigns);
   }
 
   @Override
@@ -57,17 +57,20 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
   public ImmutableSet<AcslLoopInvariant> getLoopInvariants() {
     return loopInvariants;
   }
-  public ImmutableSet<AcslAssigns> getLoopAssigns(){return loopAssigns;}
+
+  public ImmutableSet<AcslAssigns> getLoopAssigns() {
+    return loopAssigns;
+  }
 
   @Override
   public String toAstString() {
     StringBuilder astString = new StringBuilder();
-      for (AcslLoopInvariant l : loopInvariants) {
-        astString.append(l.toAstString()).append(System.lineSeparator());
-      }
-      for (AcslAssigns a : loopAssigns){
-        astString.append("loop ").append(a.toAstString()).append(System.lineSeparator());
-      }
+    for (AcslLoopInvariant l : loopInvariants) {
+      astString.append(l.toAstString()).append(System.lineSeparator());
+    }
+    for (AcslAssigns a : loopAssigns) {
+      astString.append("loop ").append(a.toAstString()).append(System.lineSeparator());
+    }
     return astString.toString();
   }
 }
