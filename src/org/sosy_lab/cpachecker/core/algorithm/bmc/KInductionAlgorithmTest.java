@@ -80,7 +80,7 @@ public class KInductionAlgorithmTest {
     results.assertIs(Result.UNKNOWN);
   }
 
-  @Test(timeout = 3000000)
+  @Test(timeout = 3000)
   public void count_even_inductive() throws Exception {
     TestResults results =
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_even_inductive.c"));
