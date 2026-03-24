@@ -1104,9 +1104,7 @@ public class CFACreator {
   private void addRecursiveInformationToLoopStructure(MutableCFA cfa) {
     try {
       cfa.setLoopStructure(
-          LoopStructure.addRecursiveProcedureLoops(
-              cfa, Objects.requireNonNull(cfa.getLoopStructure().orElseThrow())));
-
+          LoopStructure.addRecursiveProcedureLoops(cfa, cfa.getLoopStructure().orElseThrow()));
     } catch (OutOfMemoryError e) {
       logger.logUserException(
           Level.WARNING,
