@@ -694,11 +694,16 @@ public class CFACreator {
     // Annotate CFA nodes with reverse postorder information for later use.
     cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
-    // get loop information
+    // get loop information for iteration loops inside of a function
     // (needs post-order information)
+    // for this computation we should not have the interprocedural edges in the CFA, since they
+    // would allow the algorithm to jump between functions. Thus we first compute this, then add the
+    // call edges and then add the information for the recursive function calls in the loop
+    // structure
+    LoopStructure loopStructure = null;
     if (useLoopStructure) {
       stats.loopStructureTime.start();
-      addLoopStructure(cfa);
+      loopStructure = LoopStructure.getLoopStructureWithoutRecursiveInformation(cfa);
       stats.loopStructureTime.stop();
     }
 
@@ -708,6 +713,17 @@ public class CFACreator {
       CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
       spbuilder.insertCallEdgesRecursively();
       cfa.setMetadata(cfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
+    }
+
+    // Now compute the recursive function calls in the loop structure and add it to the CFA
+    // This needs to be done after adding the call edges, since otherwise the recursive function
+    // calls would not be present in the CFA and thus not be detected as loops.
+    if (useLoopStructure) {
+      stats.loopStructureTime.start();
+      loopStructure =
+          LoopStructure.addRecursiveProcedureLoops(cfa, Objects.requireNonNull(loopStructure));
+      cfa.setLoopStructure(loopStructure);
+      stats.loopStructureTime.stop();
     }
 
     // FIFTH, do post-processings on the supergraph
@@ -1075,7 +1091,7 @@ public class CFACreator {
 
   private void addLoopStructure(MutableCFA cfa) {
     try {
-      cfa.setLoopStructure(LoopStructure.getLoopStructure(cfa));
+      cfa.setLoopStructure(LoopStructure.getLoopStructureWithoutRecursiveInformation(cfa));
 
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can

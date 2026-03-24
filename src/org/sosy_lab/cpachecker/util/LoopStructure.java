@@ -79,9 +79,10 @@ public final class LoopStructure {
    * <p>Loops represented by this class do not span across several functions, i.e., if there is a
    * function call inside a loop, the called function is not considered part of the loop.
    *
-   * <p>For finding all loops in a CFA, use {@link LoopStructure#getLoopStructure(MutableCFA)}.
-   * However, when you already have a {@link org.sosy_lab.cpachecker.cfa.CFA} object (as you have
-   * inside any analysis), use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()}.
+   * <p>For finding all loops in a CFA, use {@link
+   * LoopStructure#getLoopStructureWithoutRecursiveInformation(MutableCFA)}. However, when you
+   * already have a {@link org.sosy_lab.cpachecker.cfa.CFA} object (as you have inside any
+   * analysis), use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()}.
    *
    * <p>Usual loop-detection algorithms for graphs do not distinguish between nested loops, but as
    * this is a somewhat important concept at source code level, the algorithm we use to find loops
@@ -476,7 +477,8 @@ public final class LoopStructure {
    *
    * @throws ParserException If the structure of the CFA is too complex for determining loops.
    */
-  public static LoopStructure getLoopStructure(MutableCFA cfa) throws ParserException {
+  public static LoopStructure getLoopStructureWithoutRecursiveInformation(MutableCFA cfa)
+      throws ParserException {
     ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
@@ -484,9 +486,14 @@ public final class LoopStructure {
       loops.putAll(functionName, functionLoops);
     }
 
-    ImmutableList<Loop> recursiveProcedureLoops = ImmutableList.copyOf(getRecursions(cfa));
+    return new LoopStructure(loops.build(), ImmutableList.of());
+  }
 
-    return new LoopStructure(loops.build(), recursiveProcedureLoops);
+  public static LoopStructure addRecursiveProcedureLoops(CFA pCfa, LoopStructure loopStructure) {
+
+    ImmutableList<Loop> recursiveProcedureLoops = ImmutableList.copyOf(getRecursions(pCfa));
+
+    return new LoopStructure(loopStructure.iterationLoops, recursiveProcedureLoops);
   }
 
   public static LoopStructure of(ImmutableListMultimap<String, Loop> pLoops) {

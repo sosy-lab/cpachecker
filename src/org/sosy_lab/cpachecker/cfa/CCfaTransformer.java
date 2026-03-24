@@ -568,7 +568,8 @@ public final class CCfaTransformer {
 
       if (pOriginalCfa.getLoopStructure().isPresent()) {
         try {
-          newMutableCfa.setLoopStructure(LoopStructure.getLoopStructure(newMutableCfa));
+          newMutableCfa.setLoopStructure(
+              LoopStructure.getLoopStructureWithoutRecursiveInformation(newMutableCfa));
         } catch (ParserException ex) {
           pLogger.log(Level.WARNING, ex);
         }

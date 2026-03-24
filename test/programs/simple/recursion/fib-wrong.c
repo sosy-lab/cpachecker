@@ -17,8 +17,8 @@ int fib(int n) {
 }
 
 int main() {
-  int result = fib(6);
-  if (result == 8) {
+  int result = fib(3);
+  if (result == 2) {
     ERROR: reach_error();
   }
 }
