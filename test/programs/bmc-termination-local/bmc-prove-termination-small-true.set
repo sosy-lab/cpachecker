@@ -1,0 +1,6 @@
+# Small, mostly linear or mildly nested SV-Benchmarks tasks
+# for quickly exercising termination proving with incremental BMC.
+../benchmarks/termination-restricted-15/MinusBuiltIn.yml
+../benchmarks/termination-restricted-15/DivMinus.yml
+../benchmarks/termination-restricted-15/Log.yml
+../benchmarks/termination-restricted-15/Nested-2.yml
