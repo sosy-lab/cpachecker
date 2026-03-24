@@ -816,10 +816,6 @@ public interface PointerTargetSetBuilder {
               // non-existing variables respectively, but the exact value doesn't matter
               // as long as it's negative.
               -2);
-      checkState(
-          depth > 0 || !callstackDepth.containsKey(functionName),
-          "Call stack depth for function %s is already zero",
-          functionName);
       if (depth == 1) {
         callstackDepth = callstackDepth.removeAndCopy(functionName);
       } else {

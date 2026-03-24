@@ -19,6 +19,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 /** Helper class for running CPA tests. */
 public class CPATestRunner {
@@ -49,6 +50,13 @@ public class CPATestRunner {
 
     ShutdownManager shutdownManager = ShutdownManager.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
+
+    // Setup the resource limits to limit the runtime of the tests manually if we are
+    // expecting a timeout by some algorithm
+    ResourceLimitChecker limits =
+        ResourceLimitChecker.fromConfiguration(config, logger, shutdownManager);
+    limits.start();
+
     CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
     logger.flush();
     return new TestResults(stringLogHandler.getLog(), results);
