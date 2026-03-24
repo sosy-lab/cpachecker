@@ -700,10 +700,9 @@ public class CFACreator {
     // would allow the algorithm to jump between functions. Thus we first compute this, then add the
     // call edges and then add the information for the recursive function calls in the loop
     // structure
-    LoopStructure loopStructure = null;
     if (useLoopStructure) {
       stats.loopStructureTime.start();
-      loopStructure = LoopStructure.getLoopStructureWithoutRecursiveInformation(cfa);
+      addLoopStructure(cfa);
       stats.loopStructureTime.stop();
     }
 
@@ -720,9 +719,7 @@ public class CFACreator {
     // calls would not be present in the CFA and thus not be detected as loops.
     if (useLoopStructure) {
       stats.loopStructureTime.start();
-      loopStructure =
-          LoopStructure.addRecursiveProcedureLoops(cfa, Objects.requireNonNull(loopStructure));
-      cfa.setLoopStructure(loopStructure);
+      addRecursiveInformationToLoopStructure(cfa);
       stats.loopStructureTime.stop();
     }
 
@@ -1101,6 +1098,21 @@ public class CFACreator {
     } catch (OutOfMemoryError e) {
       logger.logUserException(
           Level.WARNING, e, "Could not analyze loop structure of program due to memory problems");
+    }
+  }
+
+  private void addRecursiveInformationToLoopStructure(MutableCFA cfa) {
+    try {
+      cfa.setLoopStructure(
+          LoopStructure.addRecursiveProcedureLoops(
+              cfa, Objects.requireNonNull(cfa.getLoopStructure().orElseThrow())));
+
+    } catch (OutOfMemoryError e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Could not add recursive information to the loop structure "
+              + "of program due to memory problems");
     }
   }
 
