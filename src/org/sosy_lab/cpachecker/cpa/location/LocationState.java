@@ -192,6 +192,17 @@ public class LocationState
   }
 
   // no equals and hashCode because there is always only one element per CFANode
+  // -> not true anymore as CFA cloning occurs on-the-fly for dynamic thread creation
+
+  @Override
+  public int hashCode() {
+    return locationNode.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof LocationState other && locationNode.equals(other.getLocationNode());
+  }
 
   @Serial
   private Object writeReplace() {
