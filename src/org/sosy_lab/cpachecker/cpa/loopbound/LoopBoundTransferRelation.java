@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 @Options(prefix = "cpa.loopbound")
@@ -74,13 +73,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges = ImmutableMap.builder();
     ImmutableListMultimap.Builder<CFANode, Loop> heads = ImmutableListMultimap.builder();
 
-    for (Loop l :
-        FluentIterable.concat(
-                pCFA.getLoopStructure().orElseThrow().getAllLoops(),
-                LoopStructure.getRecursions(pCFA))
-            // We need to remove duplicates to avoid problems with mutually recursive functions
-            // TODO: This should be fixed in LoopStructure instead
-            .toSet()) {
+    for (Loop l : pCFA.getLoopStructure().orElseThrow().getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
       Stream<CFAEdge> incomingEdges =
           l.getIncomingEdges().stream()
@@ -98,7 +91,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
                 if (h instanceof FunctionEntryNode pFunctionEntryNode
                     && pFunctionEntryNode.getExitNode().isPresent()) {
                   CFANode hExit = pFunctionEntryNode.getExitNode().orElseThrow();
-                  heads.put(hExit, LoopStructure.dummyLoopForNode(hExit));
+                  heads.put(hExit, l);
                 }
               });
     }

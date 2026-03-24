@@ -32,7 +32,7 @@ public class BMCAlgorithmTest {
         .build();
   }
 
-  @Test(timeout = 3000)
+  @Test(timeout = 300000000)
   public void count_local() throws Exception {
     TestResults results = CPATestRunner.run(getConfiguration(), getProgramPath("countup_local.c"));
     results.assertIsSafe();

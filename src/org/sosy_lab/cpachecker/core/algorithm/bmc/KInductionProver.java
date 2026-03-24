@@ -386,7 +386,9 @@ class KInductionProver implements AutoCloseable {
             predecessorAssertion =
                 candidateInvariant.getAssertion(
                     BMCHelper.filterBmcCheckedWithin(
-                        reached, pCheckedKeys, cfa.getLoopStructure().orElseThrow().getAllLoops()),
+                        reached,
+                        pCheckedKeys,
+                        cfa.getLoopStructure().orElseThrow().getAllIterationLoops()),
                     fmgr,
                     pfmgr);
             // Record the states used in the hypothesis
@@ -396,7 +398,7 @@ class KInductionProver implements AutoCloseable {
                         BMCHelper.filterBmcCheckedWithin(
                             reached,
                             pCheckedKeys,
-                            cfa.getLoopStructure().orElseThrow().getAllLoops()))));
+                            cfa.getLoopStructure().orElseThrow().getAllIterationLoops()))));
           } else {
             // Build the formula
             predecessorAssertion =
@@ -655,10 +657,7 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException, CPAException {
     if (pReached.size() <= 1 && cfa.getLoopStructure().isPresent()) {
       Stream<CFANode> relevantLoopHeads =
-          FluentIterable.concat(
-                  cfa.getLoopStructure().orElseThrow().getAllLoops(),
-                  cfa.getLoopStructure().orElseThrow().getRecursiveProcedureLoops())
-              .stream()
+          FluentIterable.concat(cfa.getLoopStructure().orElseThrow().getAllLoops()).stream()
               .filter(loop -> !BMCHelper.isTrivialSelfLoop(loop))
               .map(Loop::getLoopHeads)
               .flatMap(Collection::stream)

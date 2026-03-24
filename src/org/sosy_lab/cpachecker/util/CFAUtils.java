@@ -363,7 +363,7 @@ public class CFAUtils {
   }
 
   public static Collection<CFANode> getEndlessLoopHeads(final LoopStructure pLoopStructure) {
-    ImmutableCollection<Loop> loops = pLoopStructure.getAllLoops();
+    ImmutableCollection<Loop> loops = pLoopStructure.getAllIterationLoops();
     Set<CFANode> loopHeads = new HashSet<>();
 
     for (Loop l : loops) {

@@ -516,7 +516,8 @@ public final class MainCPAStatistics implements Statistics {
                   StatInt.forStream(
                       StatKind.COUNT,
                       "Number of loops (and loop nodes)",
-                      loops.getAllLoops().stream().mapToInt(loop -> loop.getLoopNodes().size())));
+                      loops.getAllIterationLoops().stream()
+                          .mapToInt(loop -> loop.getLoopNodes().size())));
     }
   }
 

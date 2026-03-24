@@ -993,7 +993,7 @@ public class PdrAlgorithm implements Algorithm {
     if (!cfa.getLoopStructure().isPresent()) {
       return loopHeads.stream();
     }
-    return cfa.getLoopStructure().orElseThrow().getAllLoops().stream()
+    return cfa.getLoopStructure().orElseThrow().getAllIterationLoops().stream()
         .filter(loop -> !isTrivialSelfLoop(loop))
         .map(Loop::getLoopHeads)
         .flatMap(Collection::stream)

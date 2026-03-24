@@ -376,7 +376,7 @@ final class TransformableLoop {
     ImmutableSet.Builder<TransformableLoop> transformableLoops = ImmutableSet.builder();
     LoopStructure loopStructure = pCfa.getLoopStructure().orElseThrow();
 
-    for (LoopStructure.Loop loop : loopStructure.getAllLoops()) {
+    for (LoopStructure.Loop loop : loopStructure.getAllIterationLoops()) {
       Optional<TransformableLoop> optTransformableLoop =
           TransformableLoop.forLoop(pCfa, pLogger, loop);
       if (optTransformableLoop.isPresent()) {

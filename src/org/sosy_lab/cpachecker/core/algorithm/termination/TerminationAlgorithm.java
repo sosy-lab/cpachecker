@@ -210,7 +210,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), cfa);
+        new TerminationStatistics(
+            pConfig, logger, loopStructure.getAllIterationLoops().size(), cfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, cfa, statistics);
   }
 
@@ -246,11 +247,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_IMPRECISE;
 
-    List<Loop> allLoops = new ArrayList<>(cfa.getLoopStructure().orElseThrow().getAllLoops());
+    List<Loop> allLoops =
+        new ArrayList<>(cfa.getLoopStructure().orElseThrow().getAllIterationLoops());
     Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));
 
     if (considerRecursion) {
-      List<Loop> allRecursions = new ArrayList<>(LoopStructure.getRecursions(cfa));
+      List<Loop> allRecursions =
+          new ArrayList<>(cfa.getLoopStructure().orElseThrow().getRecursiveProcedureLoops());
       Collections.sort(allRecursions, comparingInt(l -> l.getInnerLoopEdges().size()));
       allLoops.addAll(allRecursions);
     }

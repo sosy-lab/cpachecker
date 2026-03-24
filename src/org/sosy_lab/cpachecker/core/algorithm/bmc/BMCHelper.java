@@ -230,8 +230,7 @@ public final class BMCHelper {
       CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
 
     if (pCFA.getLoopStructure().isPresent()
-        && pCFA.getLoopStructure().orElseThrow().getAllLoops().isEmpty()
-        && pCFA.getLoopStructure().orElseThrow().getRecursiveProcedureLoops().isEmpty()) {
+        && pCFA.getLoopStructure().orElseThrow().getAllLoops().isEmpty()) {
       return ImmutableSet.of();
     }
 
@@ -247,7 +246,7 @@ public final class BMCHelper {
 
     return FluentIterable.concat(
             // Normal loop heads
-            FluentIterable.from(loopStructure.getAllLoops())
+            FluentIterable.from(loopStructure.getAllIterationLoops())
                 .transformAndConcat(
                     pLoop -> {
                       if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
@@ -281,7 +280,7 @@ public final class BMCHelper {
               }
               int minIt = convertIteration(pMinIt, state, pLoopHeads);
               int maxIt = convertIteration(pMaxIt, state, pLoopHeads);
-              int actualIt = ls.getDeepestIterationIgnoringDummyLoops();
+              int actualIt = ls.getDeepestIteration();
               return minIt <= actualIt && actualIt <= maxIt;
             });
   }

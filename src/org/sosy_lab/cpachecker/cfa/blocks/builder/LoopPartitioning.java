@@ -39,7 +39,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   private void initLoopMap() {
     loopHeaderToLoopBody = new HashMap<>();
     if (cfa.getLoopStructure().isPresent()) {
-      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllIterationLoops()) {
         if (loop.getLoopHeads().size() == 1) {
           // currently only loops with single loop heads supported
           loopHeaderToLoopBody.put(

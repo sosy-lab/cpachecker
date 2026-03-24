@@ -391,7 +391,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
             || !variableClassification.getAddressedFields().isEmpty();
 
     stats.requiresLoopHandling =
-        !loopStructure.isPresent() || !loopStructure.orElseThrow().getAllLoops().isEmpty();
+        !loopStructure.isPresent() || !loopStructure.orElseThrow().getAllIterationLoops().isEmpty();
 
     stats.requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
 
@@ -406,7 +406,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
                 variableClassification.getAddressedFields().values(), visitor.floatVariables);
 
     stats.hasSingleLoop =
-        loopStructure.isPresent() && loopStructure.orElseThrow().getAllLoops().size() == 1;
+        loopStructure.isPresent() && loopStructure.orElseThrow().getAllIterationLoops().size() == 1;
   }
 
   /** use statistical data and choose a configuration for further analysis. */

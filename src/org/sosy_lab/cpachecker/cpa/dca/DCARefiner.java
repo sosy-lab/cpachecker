@@ -439,7 +439,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
           ImmutableList<CFANode> cfaNodesOfCurrentCycle =
               AbstractStates.extractLocations(cycle).toList();
           ImmutableList<Loop> loops =
-              FluentIterable.from(loopStructure.getAllLoops())
+              FluentIterable.from(loopStructure.getAllIterationLoops())
                   .filter(x -> x.getLoopNodes().containsAll(cfaNodesOfCurrentCycle))
                   .toList();
           Loop loop = loops.getFirst();

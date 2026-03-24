@@ -515,7 +515,7 @@ public class LiveVariables {
 
     if (loopStructure.isPresent()) {
       LoopStructure structure = loopStructure.orElseThrow();
-      ImmutableCollection<Loop> loops = structure.getAllLoops();
+      ImmutableCollection<Loop> loops = structure.getAllIterationLoops();
 
       for (Loop l : loops) {
 

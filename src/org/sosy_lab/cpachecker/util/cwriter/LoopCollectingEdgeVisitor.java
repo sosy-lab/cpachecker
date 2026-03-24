@@ -199,7 +199,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
 
   /** Checks if a given CFANode is part of any loop. */
   static boolean isInAnyLoop(LoopStructure loopStructure, final CFANode node) {
-    return from(loopStructure.getAllLoops())
+    return from(loopStructure.getAllIterationLoops())
         .anyMatch(pInput -> pInput.getLoopNodes().contains(node));
   }
 
@@ -207,7 +207,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
    * Returns the Loops in which the given node is located from the outermost to the innermost loop.
    */
   static List<Loop> getLoopsOfNode(LoopStructure loopStructure, final CFANode node) {
-    return from(loopStructure.getAllLoops())
+    return from(loopStructure.getAllIterationLoops())
         .filter(pInput -> pInput.getLoopNodes().contains(node))
         .toSortedList((loop1, loop2) -> (isOuterLoopOf(loop1, loop2) ? -1 : 1));
   }

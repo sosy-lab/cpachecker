@@ -1242,7 +1242,7 @@ abstract class AbstractBMCAlgorithm
       if (locations.isEmpty()) {
         return false;
       }
-      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllIterationLoops()) {
         for (CFANode location : locations) {
           if (loop.getLoopNodes().contains(location) && reachedK.get(loop) < finalMaxK) {
             return false;

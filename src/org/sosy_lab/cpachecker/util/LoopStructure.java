@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -26,7 +27,6 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -113,16 +113,6 @@ public final class LoopStructure {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
 
-    // For representing recursive functions as loops, which is not really a loop but we want to have
-    // it in the same format for the LoopBoundCPA
-    private boolean isDummy = false;
-
-    private Loop(CFANode pLoopHeads, Set<CFANode> pNodes, boolean pIsDummy) {
-      loopHeads = ImmutableSet.of(pLoopHeads);
-      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(pLoopHeads).build();
-      isDummy = pIsDummy;
-    }
-
     private Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.copyOf(pLoopHeads);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).addAll(pLoopHeads).build();
@@ -134,10 +124,6 @@ public final class LoopStructure {
 
     public static Loop fromLoopHeadsAndNodes(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
       return new Loop(pLoopHeads, pNodes);
-    }
-
-    public boolean isDummy() {
-      return isDummy;
     }
 
     private void computeSets() {
@@ -303,7 +289,7 @@ public final class LoopStructure {
     }
   }
 
-  private final ImmutableListMultimap<String, Loop> loops;
+  private final ImmutableListMultimap<String, Loop> iterationLoops;
   private final ImmutableList<Loop> recursiveProcedureLoops;
 
   private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
@@ -313,26 +299,48 @@ public final class LoopStructure {
   private @Nullable ImmutableSet<String> loopIncDecVariables;
 
   private LoopStructure(
-      ImmutableListMultimap<String, Loop> pLoops, ImmutableList<Loop> pRecursiveProcedureLoops) {
-    loops = pLoops;
+      ImmutableListMultimap<String, Loop> pIterationLoops,
+      ImmutableList<Loop> pRecursiveProcedureLoops) {
+    iterationLoops = pIterationLoops;
     recursiveProcedureLoops = pRecursiveProcedureLoops;
   }
 
   /** Get the total number of loops in the program. */
   public int getCount() {
-    return loops.size();
+    return iterationLoops.size();
   }
 
   /** Get all {@link Loop}s in one function. */
   public ImmutableCollection<Loop> getLoopsForFunction(String function) {
-    return loops.get(checkNotNull(function));
+    return iterationLoops.get(checkNotNull(function));
   }
 
-  /** Get all {@link Loop}s in the program. */
-  public ImmutableCollection<Loop> getAllLoops() {
-    return loops.values();
+  /**
+   * Get all {@link Loop}s in the program, this is the union of all loops returned by {@link
+   * #getAllIterationLoops()} and {@link #getRecursiveProcedureLoops()}.
+   */
+  public ImmutableSet<Loop> getAllLoops() {
+    // There may be duplicate loops, since sometimes the recursive procedure loops are also included
+    // in the iteration loops, so we need to use a set here.
+    // This happens for example for the program:
+    //    test/programs/simple/recursion/mutually-recursive-correct.c
+    return FluentIterable.concat(recursiveProcedureLoops, iterationLoops.values()).toSet();
   }
 
+  /**
+   * Get all {@link Loop}s in the program produced from iteration statements, i.e., while, do ..
+   * while, goto, etc... . All nodes in these loops are inside the same function.
+   */
+  public ImmutableCollection<Loop> getAllIterationLoops() {
+    return iterationLoops.values();
+  }
+
+  /**
+   * Get all {@link Loop}s in the program produced from recursive procedure calls. These loops are
+   * not real loops, but they are represented in the same format for the LoopBoundCPA.
+   *
+   * @return a list of loops, each representing one loop accross recursive procedures.
+   */
   public ImmutableList<Loop> getRecursiveProcedureLoops() {
     return recursiveProcedureLoops;
   }
@@ -343,13 +351,15 @@ public final class LoopStructure {
    */
   public ImmutableSet<CFANode> getAllLoopHeads() {
     if (loopHeads == null) {
-      loopHeads = from(loops.values()).transformAndConcat(Loop::getLoopHeads).toSet();
+      loopHeads = from(iterationLoops.values()).transformAndConcat(Loop::getLoopHeads).toSet();
     }
     return loopHeads;
   }
 
   public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
-    return from(loops.values()).filter(loop -> loop.getLoopHeads().contains(loopHead)).toSet();
+    return from(iterationLoops.values())
+        .filter(loop -> loop.getLoopHeads().contains(loopHead))
+        .toSet();
   }
 
   /**
@@ -365,7 +375,7 @@ public final class LoopStructure {
 
   private ImmutableSet<String> collectLoopCondVars() {
     // Get all variables that are used in exit-conditions
-    return from(loops.values())
+    return from(iterationLoops.values())
         .transform(Loop::getOutgoingEdges)
         .filter(CAssumeEdge.class)
         .transform(CAssumeEdge::getExpression)
@@ -386,7 +396,7 @@ public final class LoopStructure {
 
   private ImmutableSet<String> collectLoopIncDecVariables() {
     ImmutableSet.Builder<String> result = ImmutableSet.builder();
-    for (Loop l : loops.values()) {
+    for (Loop l : iterationLoops.values()) {
       // Get all variables that are incremented or decrement by literal values
       for (CFAEdge e : l.getInnerLoopEdges()) {
         String var = obtainIncDecVariable(e);
@@ -961,7 +971,7 @@ public final class LoopStructure {
     return successor;
   }
 
-  public static Collection<Loop> getRecursions(final CFA cfa) {
+  private static Collection<Loop> getRecursions(final CFA cfa) {
     FunctionEntryNode initialLocation = cfa.getMainFunction();
 
     Map<String, FunctionEntryNode> funNameToEntry =
@@ -1472,9 +1482,5 @@ public final class LoopStructure {
 
       return sectionExit;
     }
-  }
-
-  public static Loop dummyLoopForNode(CFANode pNode) {
-    return new Loop(pNode, Collections.singleton(pNode), true);
   }
 }

@@ -120,7 +120,7 @@ public class OctagonTransferRelation
     logger = log;
 
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
-    for (Loop l : loops.getAllLoops()) {
+    for (Loop l : loops.getAllIterationLoops()) {
       // function edges do not count as incoming/outgoing edges
       builder.addAll(l.getLoopHeads());
     }

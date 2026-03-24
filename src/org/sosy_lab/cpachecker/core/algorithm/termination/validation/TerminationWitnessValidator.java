@@ -147,7 +147,7 @@ public class TerminationWitnessValidator implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     Set<ExpressionTreeLocationInvariant> invariants;
     ImmutableCollection<LoopStructure.Loop> loops =
-        cfa.getLoopStructure().orElseThrow().getAllLoops();
+        cfa.getLoopStructure().orElseThrow().getAllIterationLoops();
     try {
       WitnessInvariantsExtractor invariantsExtractor =
           new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, witnessPath);
