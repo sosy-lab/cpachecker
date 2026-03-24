@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -256,7 +257,13 @@ public final class BMCHelper {
                     }),
             // Recursion loop heads
             FluentIterable.from(loopStructure.getRecursiveProcedureLoops())
-                .transformAndConcat(Loop::getLoopHeads))
+                .transformAndConcat(Loop::getLoopHeads),
+            FluentIterable.from(loopStructure.getRecursiveProcedureLoops())
+                .transformAndConcat(Loop::getLoopHeads)
+                .filter(FunctionEntryNode.class)
+                .transform(node -> node.getExitNode())
+                .filter(Optional::isPresent)
+                .transform(Optional::orElseThrow))
         .toSet();
   }
 

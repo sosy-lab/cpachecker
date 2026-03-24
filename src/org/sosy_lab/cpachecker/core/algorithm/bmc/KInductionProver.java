@@ -26,12 +26,10 @@ import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,13 +39,13 @@ import java.util.SequencedMap;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -656,19 +654,24 @@ class KInductionProver implements AutoCloseable {
       Algorithm pAlg, ConfigurableProgramAnalysis pCPA, ReachedSet pReached)
       throws InterruptedException, CPAException {
     if (pReached.size() <= 1 && cfa.getLoopStructure().isPresent()) {
-      Stream<CFANode> relevantLoopHeads =
-          FluentIterable.concat(cfa.getLoopStructure().orElseThrow().getAllLoops()).stream()
-              .filter(loop -> !BMCHelper.isTrivialSelfLoop(loop))
-              .map(Loop::getLoopHeads)
-              .flatMap(Collection::stream)
-              .filter(loopHeads::contains)
-              .distinct();
-      Iterator<CFANode> relevantLoopHeadIterator = relevantLoopHeads.iterator();
-      while (relevantLoopHeadIterator.hasNext()) {
-        CFANode relevantLoopHead = relevantLoopHeadIterator.next();
+      Set<CFANode> trivialLoopHeads =
+          FluentIterable.from(cfa.getLoopStructure().orElseThrow().getAllLoops())
+              .filter(BMCHelper::isTrivialSelfLoop)
+              .transformAndConcat(Loop::getLoopHeads)
+              .toSet();
+      Set<CFANode> relevantLoopHeads =
+          FluentIterable.from(loopHeads).filter(node -> !trivialLoopHeads.contains(node)).toSet();
+      for (CFANode relevantLoopHead : relevantLoopHeads) {
         // Check all successors to make wildcard callstack states when
         // abstracting at function calls
-        for (CFANode pSuccessor : CFAUtils.successorsOf(relevantLoopHead)) {
+        final ImmutableSet<CFANode> relevantSuccessors;
+        if (relevantLoopHead instanceof FunctionEntryNode) {
+          relevantSuccessors = ImmutableSet.copyOf(CFAUtils.successorsOf(relevantLoopHead));
+        } else {
+          relevantSuccessors = ImmutableSet.of(relevantLoopHead);
+        }
+
+        for (CFANode pSuccessor : relevantSuccessors) {
           Precision precision =
               pCPA.getInitialPrecision(pSuccessor, StateSpacePartition.getDefaultPartition());
           AbstractState initialState =

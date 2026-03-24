@@ -86,4 +86,17 @@ public class KInductionAlgorithmTest {
         CPATestRunner.run(getConfiguration(), getProgramPath("countup_even_inductive.c"));
     results.assertIsSafe();
   }
+
+  @Test(timeout = 3000)
+  public void id_simple() throws Exception {
+    TestResults results = CPATestRunner.run(getConfiguration(), getProgramPath("id_simple.c"));
+    results.assertIsSafe();
+  }
+
+  @Test(timeout = 3000)
+  public void id_simple_wrong() throws Exception {
+    TestResults results =
+        CPATestRunner.run(getConfiguration(), getProgramPath("id_simple_wrong.c"));
+    results.assertIsUnsafe();
+  }
 }
