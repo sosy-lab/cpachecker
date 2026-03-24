@@ -37,7 +37,12 @@ public class CtoFormulaTypeHandler {
   private final Map<CCompositeType, ImmutableMap<String, Long>> offsets = new HashMap<>();
 
   public CtoFormulaTypeHandler(LogManager pLogger, MachineModel pMachineModel) {
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    if (pLogger instanceof LogManagerWithoutDuplicates pLogManagerWithoutDuplicates) {
+      logger = pLogManagerWithoutDuplicates;
+    } else {
+      logger = new LogManagerWithoutDuplicates(pLogger);
+    }
+
     machineModel = pMachineModel;
     pointerType = FormulaType.getBitvectorTypeWithSize(machineModel.getSizeofPtrInBits());
   }
