@@ -79,4 +79,11 @@ public class KInductionAlgorithmTest {
         CPATestRunner.run(getBmcConfiguration(), getProgramPath("countup_inductive.c"));
     results.assertIs(Result.UNKNOWN);
   }
+
+  @Test(timeout = 3000000)
+  public void count_even_inductive() throws Exception {
+    TestResults results =
+        CPATestRunner.run(getConfiguration(), getProgramPath("countup_even_inductive.c"));
+    results.assertIsSafe();
+  }
 }
