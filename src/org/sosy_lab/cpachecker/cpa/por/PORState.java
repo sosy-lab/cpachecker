@@ -57,7 +57,7 @@ public class PORState
     implements AbstractState, AbstractStateWithLocations,
                AbstractStateWithThreads, Graphable {
 
-  private final Random random = new Random();
+  private final Random random = new Random(0); // TODO remove seed
 
   private final CFA cfa;
 
