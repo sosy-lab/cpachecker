@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.graph.Traverser;
@@ -62,7 +64,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     CFANode newExitNode = null;
     ImmutableList.Builder<CFANode> nodes = ImmutableList.builder();
     ImmutableList.Builder<CFAEdge> edges = ImmutableList.builder();
-    HashMap<CFANode,CFANode> nodeMap = new HashMap<>();
+    ImmutableMap.Builder<CFANode, CFANode> nodeMapBuilder = new Builder<>();
     Traverser<CFANode> cfaNetworkTraverser = Traverser.forGraph(pCFA.asGraph());
     Iterable<CFANode> cfaNodeIterable = cfaNetworkTraverser.breadthFirst(pNode);
     ImmutableList<? extends AParameterDeclaration> parameters = pNode.getFunction().getParameters();
@@ -81,7 +83,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
             && currentNode.getNodeNumber()
                 != transformationData.tmpVarAssignmentEdge.getSuccessor().getNodeNumber()) {
           CFANode newNode = CFANode.newDummyCFANode(transformationData.functionName);
-          nodeMap.put(currentNode, newNode);
+          nodeMapBuilder.put(currentNode, newNode);
           if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
             newEntryNode = newNode;
           }
@@ -90,7 +92,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
         } else {
         FunctionExitNode newNode = new FunctionExitNode(pNode.getFunction());
         newExitNode = newNode;
-        nodeMap.put(currentNode, newNode);
+        nodeMapBuilder.put(currentNode, newNode);
         nodes.add(newNode);
       }
     }
@@ -99,6 +101,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       nodes.add(newNode);
     }
     ImmutableList<CFANode> nodesList = nodes.build();
+    ImmutableMap<CFANode, CFANode> nodeMap = nodeMapBuilder.build();
 
     // second pass: add new edges
     cfaNodeIterable = cfaNetworkTraverser.breadthFirst(pNode);
