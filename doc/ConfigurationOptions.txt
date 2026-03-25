@@ -263,6 +263,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -2086,21 +2087,6 @@ cpa.callstack.unsupportedFunctions = {
 # a list.
 cpa.composite.aggregateBasicBlocks = false
 
-# If enabled, the location CPA (a current AbstractStateWithLocations) is
-# called to providethe next CFA edge while computing the abstract successors
-# in a chain during basicblock aggregation. Otherwise, simply the single
-# outgoing edge of the current CFAnode is taken. This option is necessary to
-# ensure soundness of the analysis ofmulti-threaded programs where variable
-# accesses must be replaced by thread-scopedvariable accesses on-the-fly by
-# the threading CPA. Note that it is assumed thatthe location CPA
-# deterministically provides the same next edge even if successorstates
-# accumulate during the basic block aggregation due to other CPAs
-# returningmultiple successor states: the location CPA is only called once
-# after calculatingsuccessors for an edge even if the previous successor
-# calculation resulted inmultiple successor states, and the same next edge is
-# used for all of them.
-cpa.composite.callLocationCPAForAllEdgesInBasicBlocks = false
-
 # inform Composite CPA if it is run in a CPA enabled analysis because then it
 # must behave differently during merge.
 cpa.composite.inCPAEnabledAnalysis = false
@@ -2110,12 +2096,6 @@ cpa.composite.inCPAEnabledAnalysis = false
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
-
-# If enabled, the basic block aggregation will only include a single global
-# statement (i.e., a statement that accesses global variables or shared
-# memory locations) per basic block. This is necessary to ensure soundness of
-# the analysis of multi-threaded programs.
-cpa.composite.singleGlobalStatementPerBasicBlock = false
 
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
@@ -2561,6 +2541,18 @@ cpa.pointerA.merge = "JOIN"
 # which stop operator to use for PointerACPA
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Use an abstraction-aware POR algorithm. Abstraction-aware POR can
+# ignorecertain variables during dependency calculation if there is no
+# information about themin the precision (e.g., no predicates referring to
+# them).
+cpa.por.abstractionAware = false
+
+# Aggregate basic blocks to MultiEdges. Similar to basic block aggregation
+# inthe CompositeCPA transfer relation, but only one global statement (i.e.,
+# astatement that accesses a global variable or uses heap memory) is included
+# in aMultiEdge, so that all concurrent thread interleavings are explored.
+cpa.por.aggregateBasicBlocks = false
 
 # Whether to give up immediately if a very large array is encountered
 # (heuristic, often we would just waste time otherwise)

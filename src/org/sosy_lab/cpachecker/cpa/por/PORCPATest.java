@@ -48,7 +48,11 @@ public class PORCPATest {
   private static List<String> getConfigs() {
     return List.of(
         "config/por-pred.properties",
-        "config/por-pred-aa.properties"
+        "config/por-pred-aa.properties",
+//        "config/por-pred-z3.properties",
+//        "config/por-pred-aa-z3.properties",
+        "config/por-value.properties"
+//        "config/por-value-z3.properties"
     );
   }
 

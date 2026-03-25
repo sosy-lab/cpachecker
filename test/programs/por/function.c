@@ -10,7 +10,7 @@ extern void abort(void);
 void reach_error() { ERROR: assert(0); }
 
 void f(int i) {
-  if(i == 0) {ERROR:
+  if(i == 0) {
   reach_error();
   }
 }

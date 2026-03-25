@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -163,7 +165,11 @@ public class PORCPA extends AbstractSingleWrapperCPA {
           Precision wrappedPrecision = porPrecision.getWrappedPrecision();
           AbstractState mergedWrapped =
               wrappedMergeOperator.merge(wrapped1, wrapped2, wrappedPrecision);
-          return porState1.withWrappedState(mergedWrapped);
+          if(wrapped2.equals(mergedWrapped)) {
+            return porState2;
+          } else {
+            return porState1.withWrappedState(mergedWrapped);
+          }
         }
       }
       return state2;
@@ -173,14 +179,14 @@ public class PORCPA extends AbstractSingleWrapperCPA {
   @Override
   public StopOperator getStopOperator() {
     return (state, reached, precision) -> {
-      if (state instanceof PORState porState) {
+      if (state instanceof PORState porState && precision instanceof PORPrecision porPrecision) {
+        ImmutableList.Builder<AbstractState> builder = ImmutableList.builder();
         for (AbstractState reachedState : reached) {
-          if (reachedState instanceof PORState reachedPorState) {
-            if (porState.equals(reachedPorState)) {
-              return true;
-            }
+          if (reachedState instanceof PORState reachedPorState && Objects.equals(porState.threads(), reachedPorState.threads()) && Objects.equals(porState.threadHandles(), reachedPorState.threadHandles())) {
+            builder.add(reachedPorState.getWrappedState());
           }
         }
+        return getWrappedCpa().getStopOperator().stop(porState.getWrappedState(), builder.build(), porPrecision.getWrappedPrecision());
       }
       return false;
     };

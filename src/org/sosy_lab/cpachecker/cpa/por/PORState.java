@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
@@ -95,6 +96,9 @@ public class PORState
     return threads;
   }
 
+  public ImmutableMap<String, Integer> threadHandles() {
+    return threadHandles;
+  }
   boolean canMerge(PORState other) {
     return threads.equals(other.threads) && threadHandles.equals(other.threadHandles);
   }
@@ -336,6 +340,7 @@ public class PORState
         .sorted()
         .map(e -> e + ": " + threads.get(e).pLocationState().getLocationNode())
         .collect(Collectors.joining(", "))
+        + ((CompositeState)getWrappedState()).toDOTLabel()
         + "]";
   }
 
