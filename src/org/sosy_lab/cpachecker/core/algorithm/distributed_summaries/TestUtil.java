@@ -59,5 +59,4 @@ public class TestUtil {
 
     return result.getCheckerResult().getCfa();
   }
-
 }

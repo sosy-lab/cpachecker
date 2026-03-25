@@ -37,16 +37,16 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-public class DistributedConfigurableProgramAnalysisTestUtil {
+public class DistributedConfigurableProgramAnalysisTestBase {
 
   record State(CFANode node, AbstractState absState) {}
 
   /** Maximum number of edges that the test follows */
-  private static int MAX_DEPTH = 40;
+  private static final int MAX_DEPTH = 40;
 
   public static void testSerialization(
-      String program_path, ConfigurableProgramAnalysis cpa, Precision prec) throws Exception {
-    CFA cfa = TestUtil.buildTestCFA(program_path);
+      String programPath, ConfigurableProgramAnalysis cpa, Precision prec) throws Exception {
+    CFA cfa = TestUtil.buildTestCFA(programPath);
     testSerialization(cfa, cpa, prec);
   }
 
@@ -93,11 +93,11 @@ public class DistributedConfigurableProgramAnalysisTestUtil {
       for (State curr_state : states) {
 
         for (CFAEdge edge : curr_state.node.getAllLeavingEdges()) {
-          for (AbstractState new_state : tr.getAbstractSuccessorsForEdge(curr_state.absState, prec, edge)) {
+          for (AbstractState new_state :
+              tr.getAbstractSuccessorsForEdge(curr_state.absState, prec, edge)) {
 
-
-              DssMessage message = stateToDssMessage(new_state, serial, messageFactory);
-              AbstractState afterSerialization = deserial.deserialize(message);
+            DssMessage message = stateToDssMessage(new_state, serial, messageFactory);
+            AbstractState afterSerialization = deserial.deserialize(message);
 
             assertWithMessage(
                     "For state %s, the operators for dcpa %s are wrong: \n serialized to %s,"
@@ -114,7 +114,8 @@ public class DistributedConfigurableProgramAnalysisTestUtil {
     }
   }
 
-  private static DssMessage stateToDssMessage(AbstractState state, SerializeOperator serial, DssMessageFactory factory) {
+  private static DssMessage stateToDssMessage(
+      AbstractState state, SerializeOperator serial, DssMessageFactory factory) {
 
     ImmutableMap<String, String> content = serial.serialize(state);
 

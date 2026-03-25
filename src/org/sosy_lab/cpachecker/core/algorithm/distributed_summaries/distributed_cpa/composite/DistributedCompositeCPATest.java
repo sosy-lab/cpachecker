@@ -15,7 +15,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -62,6 +62,6 @@ public class DistributedCompositeCPATest {
     Precision prec =
         new CompositePrecision(
             ImmutableList.of(SingletonPrecision.getInstance(), SingletonPrecision.getInstance()));
-    DistributedConfigurableProgramAnalysisTestUtil.testSerialization(cfa, cpa, prec);
+    DistributedConfigurableProgramAnalysisTestBase.testSerialization(cfa, cpa, prec);
   }
 }

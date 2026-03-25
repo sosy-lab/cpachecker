@@ -13,7 +13,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -36,7 +36,7 @@ public class DistributedFunctionPointerCPATest {
 
     Precision prec = SingletonPrecision.getInstance(); // No relevant precision
     // TODO will this never contain anything other than named targets?
-    DistributedConfigurableProgramAnalysisTestUtil.testSerialization(
+    DistributedConfigurableProgramAnalysisTestBase.testSerialization(
         "test/programs/dss/simple-function-pointer.c", cpa, prec);
   }
 }
