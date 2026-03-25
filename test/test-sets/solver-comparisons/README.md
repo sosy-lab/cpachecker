@@ -16,3 +16,4 @@ is best suited for a chosen analysis.
 Please note that some run-definitions in this folder use options that change the soundness,
 analysis encoding etc. This is acceptable for solver/analysis integration-tests, but benchmarking
 solvers for analyses or solver performance should be based on equal and/or sensible settings!
+Integration-Test-Sets include the `integration` suffix.
