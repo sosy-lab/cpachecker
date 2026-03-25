@@ -62,4 +62,44 @@ public class ImportDecompositionTest {
 
     assertThat(blockGraphWithShiftedCFA).isEqualTo(blockGraphWithOriginalCFA);
   }
+
+  @Test
+  public void testValidDecompositionSimple() throws Exception {
+    Path tempFolderPath = tempFolder.getRoot().toPath();
+    Configuration configToGenerateBlockGraph =
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
+    TestResults runWithBlockGraph =
+        CPATestRunner.run(
+            configToGenerateBlockGraph, DssBlockDecompositionTestUtil.PROGRAMM_PATH_SIMPLE);
+    CFA originalCFA = runWithBlockGraph.getCheckerResult().getCfa();
+
+    // runWithBlockGraph should have generated the blocks json
+    Path expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH);
+    assumeTrue(expectedBlocksJson.toFile().exists());
+
+    ImportDecomposition decomposition = new ImportDecomposition(expectedBlocksJson);
+    BlockGraph graph = decomposition.decompose(originalCFA);
+
+    DssBlockDecompositionTestUtil.checkBlockGraph(graph, originalCFA);
+  }
+
+  @Test
+  public void testValidDecompositionLarge() throws Exception {
+    Path tempFolderPath = tempFolder.getRoot().toPath();
+    Configuration configToGenerateBlockGraph =
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
+    TestResults runWithBlockGraph =
+        CPATestRunner.run(
+            configToGenerateBlockGraph, DssBlockDecompositionTestUtil.PROGRAMM_PATH_LARGE);
+    CFA originalCFA = runWithBlockGraph.getCheckerResult().getCfa();
+
+    // runWithBlockGraph should have generated the blocks json
+    Path expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH);
+    assumeTrue(expectedBlocksJson.toFile().exists());
+
+    ImportDecomposition decomposition = new ImportDecomposition(expectedBlocksJson);
+    BlockGraph graph = decomposition.decompose(originalCFA);
+
+    DssBlockDecompositionTestUtil.checkBlockGraph(graph, originalCFA);
+  }
 }

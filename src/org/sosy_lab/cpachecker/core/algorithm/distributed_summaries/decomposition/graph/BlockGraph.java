@@ -103,7 +103,7 @@ public class BlockGraph {
       boolean hasSuccessor = false;
       for (CFAEdge leavingEdge : curr.getAllLeavingEdges()) {
         if (pEdgesInBlock.contains(leavingEdge)) {
-          if (covered.contains(leavingEdge.getSuccessor())) {
+          if (!covered.contains(leavingEdge.getSuccessor())) {
             waiting.push(leavingEdge.getSuccessor());
           }
           hasSuccessor = true;
