@@ -38,7 +38,7 @@ public class ImportDecompositionTest {
 
   @Parameters(name = "{0}")
   public static List<Object[]> getParameters() {
-    return DssBlockDecompositionTestUtil.getFiles();
+    return DecompositionTestBase.getFiles();
   }
 
   // TODO either make first test run only once or with also with these files
@@ -92,6 +92,6 @@ public class ImportDecompositionTest {
     ImportDecomposition decomposition = new ImportDecomposition(expectedBlocksJson);
     BlockGraph graph = decomposition.decompose(originalCFA);
 
-    DssBlockDecompositionTestUtil.checkBlockGraph(graph, originalCFA);
+    DecompositionTestBase.checkBlockGraph(graph, originalCFA);
   }
 }

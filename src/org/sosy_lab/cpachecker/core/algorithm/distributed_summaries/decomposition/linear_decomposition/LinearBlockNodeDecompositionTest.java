@@ -21,8 +21,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DecompositionTestBase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecompositionTestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -33,7 +33,7 @@ public class LinearBlockNodeDecompositionTest {
 
   @Parameters(name = "{0}")
   public static List<Object[]> getParameters() {
-    return DssBlockDecompositionTestUtil.getFiles();
+    return DecompositionTestBase.getFiles();
   }
 
   @Parameter public String path;
@@ -47,7 +47,7 @@ public class LinearBlockNodeDecompositionTest {
 
     BlockGraph graph = decomposition.decompose(cfa);
 
-    DssBlockDecompositionTestUtil.checkBlockGraph(graph, cfa);
+    DecompositionTestBase.checkBlockGraph(graph, cfa);
   }
 
   private static DssBlockDecomposition createDecomposition(CFA cfa)

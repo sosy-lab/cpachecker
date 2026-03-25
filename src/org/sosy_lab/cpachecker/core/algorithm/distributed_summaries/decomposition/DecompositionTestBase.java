@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
-import static com.google.common.truth.Truth.assertWithMessage;
-
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.truth.Truth;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
 // TODO TestBlockModification? Problem: does not follow all invariants anymore!
-public class DssBlockDecompositionTestUtil {
+public class DecompositionTestBase {
 
   private static String[] testFiles = {
     // Simple file
@@ -46,7 +44,7 @@ public class DssBlockDecompositionTestUtil {
     // blocks with no successor
     "test/programs/dss/multipleExits.c",
     // bug in BridgeDecomposition: endless loop
-    "test/programs/dss/loop-multiple-condition.c"
+    "test/programs/dss/loop-multiple-condition.c",
   };
 
   public static List<Object[]> getFiles() {
@@ -83,10 +81,10 @@ public class DssBlockDecompositionTestUtil {
 
         Optional<@NonNull BlockNode> succOpt =
             graph.getNodes().stream().filter(b -> b.getId().equals(id)).findAny();
-        assertWithMessage("Couldn't find successor for block").that(succOpt).isPresent();
+        Truth.assertWithMessage("Couldn't find successor for block").that(succOpt).isPresent();
         BlockNode succ = succOpt.orElseThrow();
 
-        assertWithMessage("Exit node of block does not match entry node of successor")
+        Truth.assertWithMessage("Exit node of block does not match entry node of successor")
             .that(succ.getInitialLocation())
             .isEqualTo(n.getFinalLocation());
       }
@@ -103,7 +101,7 @@ public class DssBlockDecompositionTestUtil {
           if (blockNode.getInitialLocation().equals(blockNode.getFinalLocation())) {
             continue; // nothing to check for loop head
           }
-          assertWithMessage(
+          Truth.assertWithMessage(
                   "Block entry node %s should not have a predecessor in the block. \n"
                       + " Full block: %s \n"
                       + " Internal edges: %s",
@@ -114,7 +112,7 @@ public class DssBlockDecompositionTestUtil {
                       .map(e -> e.getPredecessor()))
               .containsNoneIn(blockNode.getNodes());
         } else if (cfaNode.equals(blockNode.getFinalLocation())) {
-          assertWithMessage(
+          Truth.assertWithMessage(
                   "Block exit node %s should not have a successor in the block. \n"
                       + " Full block: %s \n"
                       + " Internal edges: %s",
@@ -130,7 +128,7 @@ public class DssBlockDecompositionTestUtil {
               .map(e -> e.getSuccessor())
               .forEach(
                   n ->
-                      assertWithMessage(
+                      Truth.assertWithMessage(
                               "Internal node has a successor in the cfa that is not in the block")
                           .that(n)
                           .isIn(blockNode.getNodes()));
@@ -139,7 +137,7 @@ public class DssBlockDecompositionTestUtil {
               .map(e -> e.getPredecessor())
               .forEach(
                   n ->
-                      assertWithMessage(
+                      Truth.assertWithMessage(
                               "Internal node has predecessor in the cfa that is not in the block")
                           .that(n)
                           .isIn(blockNode.getNodes()));
@@ -160,7 +158,7 @@ public class DssBlockDecompositionTestUtil {
             .flatMap(node -> node.getNodes().stream())
             .collect(Collectors.toCollection(LinkedHashMultiset::create));
 
-    assertWithMessage("BlockGraph does not contain exactly the nodes of the CFA")
+    Truth.assertWithMessage("BlockGraph does not contain exactly the nodes of the CFA")
         .that(nodesGraph.elementSet())
         .containsExactlyElementsIn(nodesCFA);
 
@@ -169,7 +167,7 @@ public class DssBlockDecompositionTestUtil {
             .flatMap(node -> node.getEdges().stream())
             .collect(Collectors.toCollection(LinkedHashSet::new));
 
-    assertWithMessage("BlockGraph does not contain exactly the edges of the CFA")
+    Truth.assertWithMessage("BlockGraph does not contain exactly the edges of the CFA")
         .that(edgesGraph)
         .containsExactlyElementsIn(pEdgesCFA);
 
@@ -182,14 +180,15 @@ public class DssBlockDecompositionTestUtil {
 
     // TODO what if a node appears once as an entry node and once as an internal one -> this will
     // not fail!
-    assertWithMessage(
+    Truth.assertWithMessage(
             "A node which is neither an entry nor an exit node appears multiple times in"
                 + " decomposition")
         .that(nodesGraph.entrySet().stream().allMatch(e -> e.getCount() == 1))
         .isTrue();
   }
 
-  private static void collectReachableNodes(CFA cfa, Set<CFANode> pNodes, Builder<CFAEdge> pEdges) {
+  private static void collectReachableNodes(
+      CFA cfa, Set<CFANode> pNodes, ImmutableSet.Builder<CFAEdge> pEdges) {
     List<CFANode> waitlist = new ArrayList<>();
     waitlist.add(cfa.getMainFunction());
     while (!waitlist.isEmpty()) {

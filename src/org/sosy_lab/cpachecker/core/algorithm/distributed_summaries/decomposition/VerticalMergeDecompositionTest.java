@@ -34,7 +34,7 @@ public class VerticalMergeDecompositionTest {
 
   @Parameters(name = "{0}")
   public static List<Object[]> getParameters() {
-    return DssBlockDecompositionTestUtil.getFiles();
+    return DecompositionTestBase.getFiles();
   }
 
   @Parameter public String path;
@@ -70,6 +70,6 @@ public class VerticalMergeDecompositionTest {
 
     BlockGraph graph = decomposition.decompose(cfa);
 
-    DssBlockDecompositionTestUtil.checkBlockGraph(graph, cfa);
+    DecompositionTestBase.checkBlockGraph(graph, cfa);
   }
 }
