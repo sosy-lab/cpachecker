@@ -77,14 +77,14 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
 
   <rundefinition name="Symbolic_Execution_NoCEGAR-smtinterpol">
     <option name="--symbolicExecution-NoCegar" />
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=smtinterpol</option>
   </rundefinition>
 
   <rundefinition name="Symbolic_Execution_CEGAR-smtinterpol">
     <option name="--symbolicExecution-Cegar" />
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=smtinterpol</option>
   </rundefinition>
@@ -92,29 +92,27 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
 
   <rundefinition name="Symbolic_Execution_NoCEGAR-princess">
     <option name="--symbolicExecution-NoCegar" />
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
-    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
   <rundefinition name="Symbolic_Execution_CEGAR-princess">
     <option name="--symbolicExecution-Cegar" />
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
-    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
 
   <rundefinition name="Symbolic_Execution_NoCEGAR-opensmt2">
     <option name="--symbolicExecution-NoCegar" />
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>
   </rundefinition>
 
   <rundefinition name="Symbolic_Execution_CEGAR-opensmt2">
     <option name="--symbolicExecution-Cegar" />
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>
   </rundefinition>

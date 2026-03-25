@@ -49,19 +49,18 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   </rundefinition>
 
   <rundefinition name="kInduction-smtinterpol">
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=smtinterpol</option>
   </rundefinition>
 
   <rundefinition name="kInduction-princess">
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
-    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
   <rundefinition name="kInduction-opensmt2">
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>
   </rundefinition>

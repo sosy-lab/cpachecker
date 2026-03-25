@@ -57,21 +57,20 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   </rundefinition>
 
   <rundefinition name="imc-smtinterpol-cvc5">
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=smtinterpol</option>
     <option name="--option">solver.interpolationSolver=cvc5</option>
   </rundefinition>
 
   <rundefinition name="imc-princess-cvc5">
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
-    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=princess</option>
     <option name="--option">solver.interpolationSolver=cvc5</option>
   </rundefinition>
 
     <rundefinition name="imc-opensmt2-cvc5">
-    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>
     <option name="--option">solver.interpolationSolver=cvc5</option>
