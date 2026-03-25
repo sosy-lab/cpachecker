@@ -39,6 +39,4 @@ public class SingleBlockDecompositionTest {
 
     DssBlockDecompositionTestUtil.checkBlockGraph(graph, cfa);
   }
-
-
 }

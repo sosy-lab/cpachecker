@@ -94,5 +94,4 @@ public class ImportDecompositionTest {
 
     DssBlockDecompositionTestUtil.checkBlockGraph(graph, originalCFA);
   }
-
 }

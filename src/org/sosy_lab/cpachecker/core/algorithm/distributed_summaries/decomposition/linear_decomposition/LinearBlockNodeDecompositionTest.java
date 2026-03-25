@@ -54,9 +54,7 @@ public class LinearBlockNodeDecompositionTest {
       throws InvalidConfigurationException, IOException {
     BlockOperator blockOperator = new BlockOperator();
     Configuration config =
-        TestDataTools.configurationForTest()
-            .loadFromFile(TestUtil.DSS_CONFIGURATION_FILE)
-            .build();
+        TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
     config.inject(blockOperator);
     try {
       blockOperator.setCFA(cfa);
@@ -70,5 +68,4 @@ public class LinearBlockNodeDecompositionTest {
 
     return new LinearBlockNodeDecomposition(isBlockEnd);
   }
-
 }

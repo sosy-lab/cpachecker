@@ -51,7 +51,7 @@ public class DssBlockDecompositionTestUtil {
 
   public static List<Object[]> getFiles() {
 
-    ArrayList<Object[]> list = new ArrayList<>(testFiles.length);
+    List<Object[]> list = new ArrayList<>(testFiles.length);
 
     for (String p : testFiles) {
       list.add(new Object[] {p});
@@ -104,7 +104,9 @@ public class DssBlockDecompositionTestUtil {
             continue; // nothing to check for loop head
           }
           assertWithMessage(
-                  "Block entry node %s should not have a predecessor in the block. \n Full block: %s \n Internal edges: %s",
+                  "Block entry node %s should not have a predecessor in the block. \n"
+                      + " Full block: %s \n"
+                      + " Internal edges: %s",
                   cfaNode, blockNode, blockNode.getEdges())
               .that(
                   blockNode.getEdges().stream()
@@ -113,7 +115,9 @@ public class DssBlockDecompositionTestUtil {
               .containsNoneIn(blockNode.getNodes());
         } else if (cfaNode.equals(blockNode.getFinalLocation())) {
           assertWithMessage(
-                  "Block exit node %s should not have a successor in the block. \n Full block: %s \n Internal edges: %s",
+                  "Block exit node %s should not have a successor in the block. \n"
+                      + " Full block: %s \n"
+                      + " Internal edges: %s",
                   cfaNode, blockNode, blockNode.getEdges())
               .that(
                   blockNode.getEdges().stream()
@@ -179,7 +183,8 @@ public class DssBlockDecompositionTestUtil {
     // TODO what if a node appears once as an entry node and once as an internal one -> this will
     // not fail!
     assertWithMessage(
-            "A node which is neither an entry nor an exit node appears multiple times in decomposition")
+            "A node which is neither an entry nor an exit node appears multiple times in"
+                + " decomposition")
         .that(nodesGraph.entrySet().stream().allMatch(e -> e.getCount() == 1))
         .isTrue();
   }
