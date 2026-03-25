@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -40,7 +38,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -59,8 +56,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final CFA cfa;
   private final LogManager logger;
 
-  private final int PREV_VARIABLES_INDEX = 1;
-  private final int CURR_VARIABLES_INDEX = 2;
+  private final String PREV_KEYWORD = "__TransInv@1";
+  private final String CURR_KEYWORD = "__TransInv@2";
+  private final String CURR2_KEYWORD = "__TransInv@3";
   private static final long MAX_INT = 4294967295L;
   private static final long MIN_INT = -4294967295L;
 
@@ -135,45 +133,81 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         boolean isTargetStateReachable;
         boolean isOverapproximating = false;
         PathFormula prefixPathFormula = terminationState.getPathFormulasForPrefix().orElseThrow();
-        SSAMap smallestIndices = prefixPathFormula.getSsa();
         SSAMap largestIndices =
             terminationState.getPathFormulasForIteration().get(keyPair).getSsa();
 
-        SSAMap prevIndices = initializeSSAMapWithIndex(largestIndices, PREV_VARIABLES_INDEX);
-        SSAMap currIndices = initializeSSAMapWithIndex(smallestIndices, CURR_VARIABLES_INDEX);
-
-        BooleanFormula prefixFormula = prefixPathFormula.getFormula();
-        BooleanFormula iterationFormula =
-            terminationState.getPathFormulasForIteration().get(keyPair).getFormula();
+        PartitionedRelationFormula prefixFormula =
+            new PartitionedRelationFormula(prefixPathFormula.getFormula(), fmgr);
+        PartitionedRelationFormula iterationFormula =
+            new PartitionedRelationFormula(
+                terminationState.getPathFormulasForIteration().get(keyPair).getFormula(), fmgr);
         ImmutableList<BooleanFormula> sameStateFormulas =
             buildCycleFormula(
                 terminationState.getStoredValues().get(keyPair),
                 largestIndices,
                 terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
+
+        // If the BMC queries are UNSAT, we try to compute transition invariant
+        // We strengthen the transition invariant with the prefix formula
+        PartitionedRelationFormula candidateTransInv =
+            new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
+        BooleanFormula unchagnedVariables = bfmgr.makeTrue();
         while (true) {
           // First, check that the BMC check is UNSATs
           BooleanFormula latestSameStateFormula = bfmgr.makeTrue();
-          BooleanFormula firstStepFormula = prefixFormula;
           for (BooleanFormula sameStateFormula : sameStateFormulas) {
             try {
+              // Construct formula:
+              // Init(x__PREV) and T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV =
+              // x_CURR2
               if (isOverapproximating) {
-                sameStateFormula =
-                    instantiateTransitionInvariant(sameStateFormula, prevIndices, largestIndices);
-                firstStepFormula =
-                    instantiateTransitionInvariant(prefixFormula, prevIndices, smallestIndices);
+                // Construct formula instantiated to x__PREV = x__CURR2
+                PartitionedRelationFormula sameStateFormulaRelation =
+                    new PartitionedRelationFormula(sameStateFormula, fmgr);
+                sameStateFormulaRelation.extendPrevVarsWithSuffix(PREV_KEYWORD);
+                sameStateFormulaRelation.extendCurrVarsWithSuffix(CURR2_KEYWORD);
+                latestSameStateFormula = sameStateFormulaRelation.getFormula();
+
+                // Set the latest vars in Init to match the x__PREV
+                prefixFormula.treatPrevVarsAsCurrVars();
+                prefixFormula.extendCurrVarsWithSuffix(PREV_KEYWORD);
+
+                // Set the prev vars in T to match x__PREV and the curr cars to match x__CURR
+                candidateTransInv.extendPrevVarsWithSuffix(PREV_KEYWORD);
+                candidateTransInv.extendCurrVarsWithSuffix(CURR_KEYWORD);
+
+                // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
+                iterationFormula.extendPrevVarsWithSuffix(CURR_KEYWORD);
+                iterationFormula.extendCurrVarsWithSuffix(CURR2_KEYWORD);
+
+                // Construct equivalence formula that preserves unchagned variables between x__PREV
+                // and x__CURR
+                unchagnedVariables =
+                    prefixFormula.constructFormulaForUnchangedVars(
+                        candidateTransInv.getFormula(), CURR_KEYWORD);
+
                 isTargetStateReachable =
                     !solver.isUnsat(
-                        bfmgr.and(firstStepFormula, iterationFormula, sameStateFormula));
+                        bfmgr.and(
+                            prefixFormula.getFormula(),
+                            candidateTransInv.getFormula(),
+                            unchagnedVariables,
+                            iterationFormula.getFormula(),
+                            latestSameStateFormula));
               } else {
                 isTargetStateReachable =
-                    !solver.isUnsat(bfmgr.and(prefixFormula, iterationFormula, sameStateFormula));
+                    !solver.isUnsat(
+                        bfmgr.and(
+                            prefixFormula.getFormula(),
+                            iterationFormula.getFormula(),
+                            sameStateFormula));
               }
             } catch (SolverException e) {
               logger.logDebugException(e);
               return Optional.of(result);
             }
             if (isTargetStateReachable) {
-              if (!isOverapproximating && isSound(iterationFormula)) {
+              if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
                 terminationState.makeTarget();
                 result = result.withAbstractState(terminationState);
                 statistics.setNonterminatingLoop(
@@ -197,48 +231,52 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
           if (isOverapproximating
               && isTransitionInvariant(
-                  prefixFormula,
-                  iterationFormula,
-                  prevIndices,
-                  smallestIndices,
-                  largestIndices,
-                  location)) {
+                  candidateTransInv, iterationFormula, prefixFormula, location)) {
             terminationState.setTerminatingIfAllNodesVisited(locationState.getLocationNode());
             return Optional.of(result.withAbstractState(terminationState));
           }
 
           BooleanFormula interpolant;
+          candidateTransInv.extendPrevVarsWithSuffix(PREV_KEYWORD);
+          candidateTransInv.extendCurrVarsWithSuffix(CURR_KEYWORD);
           try {
             // If BMC check is UNSAT, try to overapproximate the transition invariant
+            BooleanFormula firstStep =
+                isOverapproximating
+                    ? bfmgr.and(prefixFormula.getFormula(), candidateTransInv.getFormula())
+                    : prefixFormula.getFormula();
             interpolant =
                 itpMgr
                     .interpolate(
                         ImmutableList.of(
-                            bfmgr.and(firstStepFormula, iterationFormula), latestSameStateFormula))
+                            bfmgr.and(firstStep, unchagnedVariables, iterationFormula.getFormula()),
+                            latestSameStateFormula))
                     .orElseThrow()
                     .getFirst();
           } catch (CPAException e) {
             break;
           }
-          if (!isOverapproximating) {
-            prefixFormula = bfmgr.makeFalse();
-          }
-          isOverapproximating = true;
-          BooleanFormula newInterpolant =
-              instantiateTransitionInvariant(interpolant, prevIndices, currIndices);
 
+          // Instantiate the new interpolant to T(x__PREV, x__CURR)
+          PartitionedRelationFormula newInterpolant =
+              new PartitionedRelationFormula(interpolant, fmgr);
+          newInterpolant.extendPrevVarsWithSuffix(PREV_KEYWORD);
+          newInterpolant.extendCurrVarsWithSuffix(CURR_KEYWORD);
           try {
             if (containsOnlyIrrelevantVariables(interpolant, callstackState)
-                || solver.implies(newInterpolant, prefixFormula)) {
+                || solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
               break;
             }
           } catch (SolverException | InterruptedException e) {
             break;
           }
-          prefixFormula =
-              bfmgr.or(
-                  prefixFormula,
-                  instantiateTransitionInvariant(interpolant, prevIndices, currIndices));
+
+          // Trying to reach the fix-point
+          // We can also strengthen the candidate transition invariant with the prefix formula
+          candidateTransInv =
+              new PartitionedRelationFormula(
+                  bfmgr.or(candidateTransInv.getFormula(), newInterpolant.getFormula()), fmgr);
+          isOverapproximating = true;
         }
       }
     }
@@ -301,80 +339,69 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return true;
   }
 
-  /**
-   * We have to represent the transition invariant in the unified way. Therefore, we instantiate
-   * variables representing the previous state with index 1 and the variables for the current state
-   * with index 2.
-   */
-  private BooleanFormula instantiateTransitionInvariant(
-      BooleanFormula candidateTransitionInvariant, SSAMap prevSSAMap, SSAMap currSSAMap) {
-    Map<String, Formula> varNamesToFormulas = fmgr.extractVariables(candidateTransitionInvariant);
-    Map<Formula, Integer> prevIndex = new HashMap<>();
-    for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
-      int index = getSSAIndex(entry.getKey());
-      Formula pureVar = fmgr.uninstantiate(entry.getValue());
-      if (!prevIndex.containsKey(pureVar) || prevIndex.get(pureVar) > index) {
-        prevIndex.put(pureVar, index);
-      }
-    }
-
-    ImmutableMap.Builder<Formula, Formula> prevSubMap = ImmutableMap.builder();
-    ImmutableMap.Builder<Formula, Formula> currSubMap = ImmutableMap.builder();
-    for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
-      if (prevIndex.get(fmgr.uninstantiate(entry.getValue())) == getSSAIndex(entry.getKey())) {
-        prevSubMap.put(
-            entry.getValue(), fmgr.instantiate(fmgr.uninstantiate(entry.getValue()), prevSSAMap));
-      } else {
-        currSubMap.put(
-            entry.getValue(), fmgr.instantiate(fmgr.uninstantiate(entry.getValue()), currSSAMap));
-      }
-    }
-    candidateTransitionInvariant =
-        fmgr.substitute(candidateTransitionInvariant, prevSubMap.buildOrThrow());
-    candidateTransitionInvariant =
-        fmgr.substitute(candidateTransitionInvariant, currSubMap.buildOrThrow());
-    return candidateTransitionInvariant;
-  }
-
-  private SSAMap initializeSSAMapWithIndex(SSAMap pMap, int pI) {
-    SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
-    for (String variable : pMap.allVariables()) {
-      builder.setIndex(variable, pMap.getType(variable), pI);
-    }
-    return builder.build();
-  }
-
-  private int getSSAIndex(String pFormula) {
-    return FormulaManagerView.parseName(pFormula).getSecond().orElse(-2);
-  }
-
   private boolean isTransitionInvariant(
-      BooleanFormula candidateTransitionInvariant,
-      BooleanFormula iterationFormula,
-      SSAMap mapForIndexTwo,
-      SSAMap smallestIndicesInIteration,
-      SSAMap largestIndicesInIteration,
+      PartitionedRelationFormula candidateTransitionInvariant,
+      PartitionedRelationFormula iterationFormula,
+      PartitionedRelationFormula prefixFormula,
       CFANode pLocation) {
     boolean isTransitionInvariant;
-    BooleanFormula firstStepInTransInv =
-        instantiateTransitionInvariant(
-            candidateTransitionInvariant, mapForIndexTwo, smallestIndicesInIteration);
-    BooleanFormula secondStepInTransInv =
-        instantiateTransitionInvariant(
-            candidateTransitionInvariant, mapForIndexTwo, largestIndicesInIteration);
+
+    // The goal is to construct formula of the following form:
+    // Init(x__PREV) and T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR)
+
+    // Construct Init(x__PREV)
+    prefixFormula.treatPrevVarsAsCurrVars();
+    prefixFormula.extendCurrVarsWithSuffix(PREV_KEYWORD);
+
+    // Construct T(x__PREV, x__CURR)
+    candidateTransitionInvariant.extendPrevVarsWithSuffix(PREV_KEYWORD);
+    candidateTransitionInvariant.extendCurrVarsWithSuffix(CURR_KEYWORD);
+    BooleanFormula firstStepInTransInv = candidateTransitionInvariant.getFormula();
+
+    // Construct T(x__PREV, x__CURR2)
+    candidateTransitionInvariant.extendCurrVarsWithSuffix(CURR2_KEYWORD);
+    BooleanFormula secondStepInTransInv = candidateTransitionInvariant.getFormula();
+
     if (addConstraintsToPreventOverflows) {
       firstStepInTransInv = restrictFormulaVariablesWithIntRange(firstStepInTransInv, pLocation);
       secondStepInTransInv = restrictFormulaVariablesWithIntRange(secondStepInTransInv, pLocation);
     }
 
-    BooleanFormula transInvForIterationFormula =
-        instantiateTransitionInvariant(
-            candidateTransitionInvariant, smallestIndicesInIteration, largestIndicesInIteration);
+    // Construct Tr(x__CURR, x__CURR2)
+    iterationFormula.extendPrevVarsWithSuffix(CURR_KEYWORD);
+    iterationFormula.extendCurrVarsWithSuffix(CURR2_KEYWORD);
+
+    // Construct equivalence formula that preserves unchagned variables between x__PREV and x__CURR
+    BooleanFormula unchagnedVariables =
+        prefixFormula.constructFormulaForUnchangedVars(
+            candidateTransitionInvariant.getFormula(), CURR_KEYWORD);
+    // Variables that are not changed by both T and Tr should be equal with the versions from Init
+    unchagnedVariables =
+        bfmgr.and(
+            unchagnedVariables,
+            prefixFormula.constructFormulaForUnchangedVars(
+                bfmgr.and(candidateTransitionInvariant.getFormula(), iterationFormula.getFormula()),
+                CURR2_KEYWORD));
     try {
       isTransitionInvariant =
-          solver.implies(bfmgr.and(firstStepInTransInv, iterationFormula), secondStepInTransInv);
+          solver.implies(
+              bfmgr.and(
+                  prefixFormula.getFormula(),
+                  firstStepInTransInv,
+                  unchagnedVariables,
+                  iterationFormula.getFormula()),
+              secondStepInTransInv);
+
+      // Check Init(x__CURR) and Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)
+      candidateTransitionInvariant.extendPrevVarsWithSuffix(CURR_KEYWORD);
+      prefixFormula.treatPrevVarsAsCurrVars();
+      prefixFormula.extendCurrVarsWithSuffix(CURR_KEYWORD);
+
       isTransitionInvariant =
-          isTransitionInvariant && solver.implies(iterationFormula, transInvForIterationFormula);
+          isTransitionInvariant
+              && solver.implies(
+                  bfmgr.and(prefixFormula.getFormula(), iterationFormula.getFormula()),
+                  candidateTransitionInvariant.getFormula());
     } catch (SolverException | InterruptedException e) {
       logger.logDebugException(e);
       return false;
