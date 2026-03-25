@@ -35,7 +35,7 @@ public class DistributedFunctionPointerCPATest {
             .createInstance();
 
     Precision prec = SingletonPrecision.getInstance(); // No relevant precision
-    // TODO find program which tests something interesting!!
+    // TODO will this never contain anything other than named targets?
     DistributedConfigurableProgramAnalysisTestUtil.testSerialization(
         "test/programs/dss/simple-function-pointer.c", cpa, prec);
   }

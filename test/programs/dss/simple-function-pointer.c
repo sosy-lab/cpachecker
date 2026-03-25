@@ -8,16 +8,21 @@
 
 extern int __VERIFIER_nondet_int(void);
 
+int a() {
+    ERROR: return 1;
+}
+
 int b() {
     return 0;
 }
 
+int (*p)();
+
 int main () {
 
-    int (*p)();
 
     if (__VERIFIER_nondet_int()){
-        p = main;
+        p = &a;
     } else {
         p = &b;
     }
