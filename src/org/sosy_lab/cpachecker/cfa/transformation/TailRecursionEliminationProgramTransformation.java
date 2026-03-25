@@ -15,7 +15,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.graph.Traverser;
 import java.util.HashMap;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -63,7 +62,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     CFANode newExitNode = null;
     ImmutableList.Builder<CFANode> nodes = ImmutableList.builder();
     ImmutableList.Builder<CFAEdge> edges = ImmutableList.builder();
-    HashMap<Integer, Integer> nodeMap = new HashMap<>();
+    HashMap<CFANode,CFANode> nodeMap = new HashMap<>();
     Traverser<CFANode> cfaNetworkTraverser = Traverser.forGraph(pCFA.asGraph());
     Iterable<CFANode> cfaNodeIterable = cfaNetworkTraverser.breadthFirst(pNode);
     ImmutableList<? extends AParameterDeclaration> parameters = pNode.getFunction().getParameters();
@@ -82,7 +81,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
             && currentNode.getNodeNumber()
                 != transformationData.tmpVarAssignmentEdge.getSuccessor().getNodeNumber()) {
           CFANode newNode = CFANode.newDummyCFANode(transformationData.functionName);
-          nodeMap.put(currentNode.getNodeNumber(), newNode.getNodeNumber());
+          nodeMap.put(currentNode, newNode);
           if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
             newEntryNode = newNode;
           }
@@ -91,7 +90,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
         } else {
         FunctionExitNode newNode = new FunctionExitNode(pNode.getFunction());
         newExitNode = newNode;
-        nodeMap.put(currentNode.getNodeNumber(), newNode.getNodeNumber());
+        nodeMap.put(currentNode, newNode);
         nodes.add(newNode);
       }
     }
@@ -109,30 +108,25 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     });
     for(CFANode currentNode : cfaNodeIterable) {
       for(CFAEdge currentEdge : currentNode.getAllLeavingEdges()){
-        if (currentEdge.getSuccessor().getFunctionName().equals(transformationData.functionName) && nodeMap.containsKey(currentNode.getNodeNumber()) && nodeMap.containsKey(currentEdge.getSuccessor().getNodeNumber())) {
-          Optional<Integer> newPredecessorNodeIndex = getNodeIndex(nodeMap.get(currentNode.getNodeNumber()), nodesList);
-          Optional<Integer> newSuccessorNodeIndex = getNodeIndex(nodeMap.get(currentEdge.getSuccessor().getNodeNumber()), nodesList);
-          if (newPredecessorNodeIndex.isPresent() && newSuccessorNodeIndex.isPresent()) {
-            CFAEdge newEdge = ProgramTransformationCFAEdgeCreator.copyCFAEdge(
-                currentEdge, nodesList.get(newPredecessorNodeIndex.get()), nodesList.get(newSuccessorNodeIndex.get()));
-            edges.add(newEdge);
-            newEdge.getPredecessor().addLeavingEdge(newEdge);
-            newEdge.getSuccessor().addEnteringEdge(newEdge);
-          }
+        if (currentEdge.getSuccessor().getFunctionName().equals(transformationData.functionName) && nodeMap.containsKey(currentNode) && nodeMap.containsKey(currentEdge.getSuccessor())) {
+          CFANode newPredecessorNode = nodeMap.get(currentNode);
+          CFANode newSuccessorNode = nodeMap.get(currentEdge.getSuccessor());
+          CFAEdge newEdge = ProgramTransformationCFAEdgeCreator.copyCFAEdge(
+                currentEdge, newPredecessorNode, newSuccessorNode);
+          edges.add(newEdge);
+          newEdge.getPredecessor().addLeavingEdge(newEdge);
+          newEdge.getSuccessor().addEnteringEdge(newEdge);
         }
       }
     }
     // add parameter edges
-    Optional<Integer> nodeBeforeParams = getNodeIndex(nodeMap.get(transformationData.tmpVarDeclarationEdge.getPredecessor().getNodeNumber()), nodesList);
-    if (nodeBeforeParams.isEmpty()) {
-      return Optional.empty();
-    }
+    CFANode nodeBeforeParams = nodeMap.get(transformationData.tmpVarDeclarationEdge.getPredecessor());
     ImmutableList<CExpression> parameterExpressions = ((CFunctionCallAssignmentStatement)(((CStatementEdge)transformationData.tmpVarAssignmentEdge).getStatement())).getFunctionCallExpression().getParameterExpressions();
-    CFANode preNode = nodesList.get(nodeBeforeParams.get());
-    CFANode succNode = nodesList.get(nodeBeforeParams.get());
+    CFANode preNode = nodeBeforeParams;
+    CFANode succNode;
     for (int i = 0; i < parameters.size(); i++) {
       if (i == parameters.size()-1) {
-        succNode = nodesList.get(getNodeIndex(nodeMap.get(transformationData.nodeBeforeExitCondition.getNodeNumber()), nodesList).get());
+        succNode = nodeMap.get(transformationData.nodeBeforeExitCondition);
         succNode.setLoopStart();
       } else {
         succNode = nodesList.get(nodeMap.size() + i);
@@ -168,15 +162,6 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
         ImmutableSet.copyOf(nodesList),
         ImmutableSet.copyOf(edgesList)
     ));
-  }
-
-  private static Optional<Integer> getNodeIndex(int nodeNumber, @NonNull ImmutableList<CFANode> nodeList) {
-    for (int i = 0; i < nodeList.size(); i++) {
-      if (nodeList.get(i).getNodeNumber() == nodeNumber) {
-        return Optional.of(i);
-      }
-    }
-    return Optional.empty();
   }
 
   private static Optional<TransformationData> canBeApplied(CFANode pNode){
