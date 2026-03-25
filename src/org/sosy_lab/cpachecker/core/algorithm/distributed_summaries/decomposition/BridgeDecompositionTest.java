@@ -28,7 +28,7 @@ public class BridgeDecompositionTest {
 
   @Parameter public String path;
 
-  @Test(timeout = 5000)
+  @Test(timeout = 1000)
   public void testBridgeDecomposition() throws Exception {
 
     CFA cfa = TestUtil.buildTestCFA(path);

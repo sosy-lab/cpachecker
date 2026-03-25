@@ -35,7 +35,6 @@ public class SingleBlockDecomposition implements DssBlockDecomposition {
         continue;
       }
       if (current.getNumLeavingEdges() == 0) {
-        assert lastNode == null;
         lastNode = current;
       }
       seen.add(current);

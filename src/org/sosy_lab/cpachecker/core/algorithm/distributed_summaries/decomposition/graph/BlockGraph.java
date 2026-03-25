@@ -82,10 +82,12 @@ public class BlockGraph {
           !blockNode.getEdges().isEmpty() || blockNode.getPredecessorIds().isEmpty(),
           "Every block needs at least one edge (%s).",
           blockNode);
-      Preconditions.checkState(
-          isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),
-          "BlockNodes require to have exactly one exit node (%s).",
-          blockNode);
+      if (blockNode.getSuccessorIds().size() != 0) {
+        Preconditions.checkState(
+            isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),
+            "BlockNodes require to have exactly one exit node (%s).",
+            blockNode);
+      }
       Preconditions.checkState(
           blockNode.getPredecessorIds().containsAll(blockNode.getLoopPredecessorIds()),
           "Found loop predecessors that are not in the set of predecessors (%s).",
@@ -103,7 +105,7 @@ public class BlockGraph {
       boolean hasSuccessor = false;
       for (CFAEdge leavingEdge : curr.getAllLeavingEdges()) {
         if (pEdgesInBlock.contains(leavingEdge)) {
-          if (!covered.contains(leavingEdge.getSuccessor())) {
+          if (covered.contains(leavingEdge.getSuccessor())) {
             waiting.push(leavingEdge.getSuccessor());
           }
           hasSuccessor = true;

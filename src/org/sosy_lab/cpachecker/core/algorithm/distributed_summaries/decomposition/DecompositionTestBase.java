@@ -105,7 +105,8 @@ public class DecompositionTestBase {
                   """
                   Block entry node %s should not have a predecessor in the block.
                   Full block: %s
-                  Internal edges: %s""",
+                  Internal edges: %s\
+                  """,
                   cfaNode, blockNode, blockNode.getEdges())
               .that(
                   blockNode.getEdges().stream()
@@ -116,8 +117,9 @@ public class DecompositionTestBase {
           Truth.assertWithMessage(
                   """
                   Block exit node %s should not have a successor in the block.
-                  Full block: %s \n"
-                  Internal edges: %s""",
+                  Full block: %s
+                  Internal edges: %s\
+                  """,
                   cfaNode, blockNode, blockNode.getEdges())
               .that(
                   blockNode.getEdges().stream()
