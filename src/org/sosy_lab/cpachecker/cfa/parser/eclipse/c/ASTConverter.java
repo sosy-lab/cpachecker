@@ -300,6 +300,25 @@ class ASTConverter {
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
 
+  // Declarations for __VERIFIER_atomic_begin/end, used to wrap operations on C11 _Atomic
+  // variables in atomic sections so that concurrent analyses treat them as indivisible.
+  private static final CFunctionType VOID_FUNCTION_TYPE =
+      new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
+  private static final CFunctionDeclaration ATOMIC_BEGIN_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          VOID_FUNCTION_TYPE,
+          "__VERIFIER_atomic_begin",
+          ImmutableList.of(),
+          ImmutableSet.of());
+  private static final CFunctionDeclaration ATOMIC_END_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          VOID_FUNCTION_TYPE,
+          "__VERIFIER_atomic_end",
+          ImmutableList.of(),
+          ImmutableSet.of());
+
   private final ExpressionSimplificationVisitor expressionSimplificator;
   private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
   private final CBinaryExpressionBuilder binExprBuilder;
@@ -425,6 +444,19 @@ class ASTConverter {
     sideAssignmentStack.addPreSideAssignment(
         new CExpressionAssignmentStatement(fileLoc, exp, postExp));
     return tmp;
+  }
+
+  /** Creates a {@link CFunctionCallStatement} invoking the given void function declaration. */
+  private static CFunctionCallStatement createAtomicCallStatement(
+      FileLocation loc, CFunctionDeclaration declaration) {
+    return new CFunctionCallStatement(
+        loc,
+        new CFunctionCallExpression(
+            loc,
+            CVoidType.VOID,
+            new CIdExpression(loc, declaration),
+            List.of(),
+            declaration));
   }
 
   private void addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
@@ -916,10 +948,24 @@ class ASTConverter {
         // a += b etc.
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
-        // first create expression "a + b"
-        CBinaryExpression exp = buildBinaryExpression(leftHandSide, rightHandSide, op);
+        // C11 _Atomic compound assignments (+=, -=, etc.) must appear inside an atomic
+        // section so that concurrent analyses treat the read-modify-write as indivisible.
+        if (lhs.getExpressionType().isAtomic()) {
+          CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
+          CExpressionAssignmentStatement result =
+              new CExpressionAssignmentStatement(fileLoc, lhs, exp);
 
-        // and now the assignment
+          sideAssignmentStack.addPreSideAssignment(
+              createAtomicCallStatement(lhs.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          sideAssignmentStack.addPreSideAssignment(
+              createAtomicCallStatement(lhs.getFileLocation(), ATOMIC_END_DECLARATION));
+
+          return lhs;
+        }
+
+        CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhs);
+        CBinaryExpression exp = buildBinaryExpression(tmp, rightHandSide, op);
         return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
       }
 
@@ -1575,8 +1621,22 @@ class ASTConverter {
         CBinaryExpression preExp =
             buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, preOp);
         CLeftHandSide lhsPre = (CLeftHandSide) operand;
+        CExpressionAssignmentStatement result =
+            new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
 
-        return new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        if (operandType.isAtomic()) {
+          sideAssignmentStack.addPreSideAssignment(
+              createAtomicCallStatement(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPre);
+          sideAssignmentStack.addPreSideAssignment(
+              createAtomicCallStatement(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+          return tmp;
+        }
+
+        return result;
       }
       case IASTUnaryExpression.op_postFixIncr, IASTUnaryExpression.op_postFixDecr -> {
         // instead of x++ create "x = x + 1"
@@ -1598,10 +1658,23 @@ class ASTConverter {
           return result;
         }
 
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        if (operandType.isAtomic()) {
+          sideAssignmentStack.addPreSideAssignment(
+              createAtomicCallStatement(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+        }
+
         CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPost);
         sideAssignmentStack.addPreSideAssignment(result);
 
+        if (operandType.isAtomic()) {
+          sideAssignmentStack.addPreSideAssignment(
+              createAtomicCallStatement(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+        }
+
         return tmp;
+
       }
       case IASTUnaryExpression.op_not -> {
         try {
