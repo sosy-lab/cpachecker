@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -28,8 +29,6 @@ public class PartitionedRelationFormula {
   private ImmutableSet<Formula> prevVariables;
   private ImmutableSet<Formula> currVariables;
   private BooleanFormula formula;
-
-  private final String TRANS_INV_KEYWORD = "__TransInv";
 
   public PartitionedRelationFormula(BooleanFormula pFormula, FormulaManagerView pFmgr) {
     formula = pFormula;
@@ -48,7 +47,7 @@ public class PartitionedRelationFormula {
       int index = getSSAIndex(entry.getKey());
       Formula pureVar = fmgr.uninstantiate(entry.getValue());
 
-      if (containsTransInv == entry.getKey().contains(TRANS_INV_KEYWORD)
+      if (containsTransInv == entry.getKey().contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)
           && index > 0
           && (!currIndex.containsKey(pureVar) || getSSAIndex(currIndex.get(pureVar)) < index)) {
         currIndex.put(pureVar, entry.getKey());
@@ -58,7 +57,7 @@ public class PartitionedRelationFormula {
     ImmutableSet.Builder<Formula> currSet = ImmutableSet.builder();
     for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
       int index = getSSAIndex(entry.getKey());
-      if (containsTransInv == entry.getKey().contains(TRANS_INV_KEYWORD)
+      if (containsTransInv == entry.getKey().contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)
           && index > 0
           && getSSAIndex(currIndex.get(fmgr.uninstantiate(entry.getValue()))) == index
           // The variables that occur only once in the formula should be in the prevVariables only
@@ -80,7 +79,7 @@ public class PartitionedRelationFormula {
       int index = getSSAIndex(entry.getKey());
       Formula pureVar = fmgr.uninstantiate(entry.getValue());
 
-      if (containsTransInv == entry.getKey().contains(TRANS_INV_KEYWORD)
+      if (containsTransInv == entry.getKey().contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)
           && index > 0
           && (!prevIndex.containsKey(pureVar) || getSSAIndex(prevIndex.get(pureVar)) > index)) {
         prevIndex.put(pureVar, entry.getKey());
@@ -90,7 +89,7 @@ public class PartitionedRelationFormula {
     ImmutableSet.Builder<Formula> prevSet = ImmutableSet.builder();
     for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
       int index = getSSAIndex(entry.getKey());
-      if (containsTransInv == entry.getKey().contains(TRANS_INV_KEYWORD)
+      if (containsTransInv == entry.getKey().contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)
           && index > 0
           && getSSAIndex(prevIndex.get(fmgr.uninstantiate(entry.getValue()))) == index) {
         prevSet.add(entry.getValue());
@@ -110,7 +109,7 @@ public class PartitionedRelationFormula {
 
   private boolean usesTransInvKeyWord() {
     return fmgr.extractVariables(formula).keySet().stream()
-        .anyMatch(varName -> varName.contains(TRANS_INV_KEYWORD));
+        .anyMatch(varName -> varName.contains(TransitionInvariantUtils.TRANS_INV_KEYWORD));
   }
 
   private int getSSAIndex(String pFormula) {
@@ -125,11 +124,9 @@ public class PartitionedRelationFormula {
                 var ->
                     fmgr.makeVariable(
                         fmgr.getFormulaType(var),
-                        removeTransInvKeyWord(fmgr.uninstantiate(var).toString()) + suffix)));
-  }
-
-  private String removeTransInvKeyWord(String pFormula) {
-    return pFormula.replace(TRANS_INV_KEYWORD, "");
+                        TransitionInvariantUtils.removeTransInvKeyWord(
+                                fmgr.uninstantiate(var).toString())
+                            + suffix)));
   }
 
   /**
@@ -151,12 +148,14 @@ public class PartitionedRelationFormula {
     Map<String, Formula> varsInUpdateFormula = fmgr.extractVariables(updateFormula);
 
     for (Formula variable : currVariables) {
-      String pureName = removeTransInvKeyWord(fmgr.uninstantiate(variable).toString());
+      String pureName =
+          TransitionInvariantUtils.removeTransInvKeyWord(fmgr.uninstantiate(variable).toString());
 
       if (varsInUpdateFormula.values().stream()
           .noneMatch(
               updateVar ->
-                  removeTransInvKeyWord(fmgr.uninstantiate(updateVar).toString())
+                  TransitionInvariantUtils.removeTransInvKeyWord(
+                          fmgr.uninstantiate(updateVar).toString())
                       .equals(pureName))) {
         equivalenceFormula =
             bfmgr.and(
@@ -177,11 +176,14 @@ public class PartitionedRelationFormula {
     ImmutableSet.Builder<Formula> builder = ImmutableSet.builder();
     builder.addAll(currVariables);
     for (Formula var : prevVariables) {
-      String pureName = removeTransInvKeyWord(fmgr.uninstantiate(var).toString());
+      String pureName =
+          TransitionInvariantUtils.removeTransInvKeyWord(fmgr.uninstantiate(var).toString());
       if (currVariables.stream()
           .noneMatch(
               currVar ->
-                  removeTransInvKeyWord(fmgr.uninstantiate(currVar).toString()).equals(pureName))) {
+                  TransitionInvariantUtils.removeTransInvKeyWord(
+                          fmgr.uninstantiate(currVar).toString())
+                      .equals(pureName))) {
         builder.add(var);
       }
     }

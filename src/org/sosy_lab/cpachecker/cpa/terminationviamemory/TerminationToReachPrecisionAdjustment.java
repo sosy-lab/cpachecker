@@ -300,10 +300,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       BooleanFormula pFormula, CFANode pLocation) {
     for (Formula variable : fmgr.extractVariables(pFormula).values()) {
       String pureVarName =
-          TransitionInvariantUtils.removeFunctionFromVarsName(
-              fmgr.extractVariableNames(fmgr.uninstantiate(variable)).stream()
-                  .findAny()
-                  .orElseThrow());
+          TransitionInvariantUtils.removeTransInvKeyWord(
+              TransitionInvariantUtils.removeFunctionFromVarsName(
+                  fmgr.extractVariableNames(fmgr.uninstantiate(variable)).stream()
+                      .findAny()
+                      .orElseThrow()));
       for (AbstractSimpleDeclaration varDecl :
           cfa.getAstCfaRelation().getVariablesAndParametersInScope(pLocation).orElseThrow()) {
         if (varDecl.getName().equals(pureVarName)

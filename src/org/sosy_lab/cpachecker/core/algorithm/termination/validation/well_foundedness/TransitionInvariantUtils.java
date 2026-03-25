@@ -53,6 +53,12 @@ public class TransitionInvariantUtils {
     }
   }
 
+  public static final String TRANS_INV_KEYWORD = "__TransInv";
+
+  public static String removeTransInvKeyWord(String pFormula) {
+    return pFormula.replace(TRANS_INV_KEYWORD, "");
+  }
+
   /**
    * Enum representing the SSA indices of the previous states that we use for different states when
    * constructing formulas. The names of the enum values correspond to the names of the states
