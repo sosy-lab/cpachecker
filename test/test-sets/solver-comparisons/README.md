@@ -17,3 +17,5 @@ Please note that some run-definitions in this folder use options that change the
 analysis encoding etc. This is acceptable for solver/analysis integration-tests, but benchmarking
 solvers for analyses or solver performance should be based on equal and/or sensible settings!
 Integration-Test-Sets include the `integration` suffix.
+Further, the default hardware resources for integration-tests are often not suitable for 
+performance comparisons!
