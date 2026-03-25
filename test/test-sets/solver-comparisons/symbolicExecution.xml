@@ -21,7 +21,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <!-- Use Apollon by default, override if desired -->
   <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
 
-  <option name="--heap">13000M</option>
+  <option name="--heap">10000M</option>
   <option name="--benchmark"/>
 
   <!-- SV-Comp files assume that malloc always succeeds (for CEX) -->
