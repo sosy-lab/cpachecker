@@ -102,9 +102,10 @@ public class DecompositionTestBase {
             continue; // nothing to check for loop head
           }
           Truth.assertWithMessage(
-                  "Block entry node %s should not have a predecessor in the block. \n"
-                      + " Full block: %s \n"
-                      + " Internal edges: %s",
+                  """
+                  Block entry node %s should not have a predecessor in the block.
+                  Full block: %s
+                  Internal edges: %s""",
                   cfaNode, blockNode, blockNode.getEdges())
               .that(
                   blockNode.getEdges().stream()
@@ -113,9 +114,10 @@ public class DecompositionTestBase {
               .containsNoneIn(blockNode.getNodes());
         } else if (cfaNode.equals(blockNode.getFinalLocation())) {
           Truth.assertWithMessage(
-                  "Block exit node %s should not have a successor in the block. \n"
-                      + " Full block: %s \n"
-                      + " Internal edges: %s",
+                  """
+                  Block exit node %s should not have a successor in the block.
+                  Full block: %s \n"
+                  Internal edges: %s""",
                   cfaNode, blockNode, blockNode.getEdges())
               .that(
                   blockNode.getEdges().stream()
