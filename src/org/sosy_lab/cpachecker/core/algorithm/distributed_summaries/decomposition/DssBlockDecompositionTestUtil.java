@@ -30,18 +30,35 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
+// TODO TestBlockModification? Problem: does not follow all invariants anymore!
 public class DssBlockDecompositionTestUtil {
 
-  // TODO good choice of programs?
-  // TODO make it parameterized tests with a list of files?
-  // TODO TestBlockModification? Problem: does not follow all invariants anymore!
-  public static final String PROGRAMM_PATH_SIMPLE = "doc/examples/example.c";
-  //  public static final String PROGRAMM_PATH_SIMPLE =
-  // "test/programs/benchmarks/array-fpi/pcompf.c";
-  //  public static final String PROGRAMM_PATH_SIMPLE = "test.c";
+  private static String[] testFiles = {
+    // Simple file
+    // bug in BridgeDecomposition; missing a viable path
+    "doc/examples/example.c",
+    // many constructs
+    "test/programs/cfa-ast-relation/full-expression.c",
+    // bug in SingleBlock: if a function is unreachable from main, the block should not contain
+    // all CFANodes
+    "test/programs/dss/unreachableFunction.c",
+    // bug in SingleBlock: The whole program can contain CFATerminationNode, leaving multiple
+    // blocks with no successor
+    "test/programs/dss/multipleExits.c",
+    // bug in BridgeDecomposition: endless loop
+    "test/programs/dss/loop-multiple-condition.c"
+  };
 
-  public static final String PROGRAMM_PATH_LARGE =
-      "test/programs/cfa-ast-relation/full-expression.c";
+  public static List<Object[]> getFiles() {
+
+    ArrayList<Object[]> list = new ArrayList<>(testFiles.length);
+
+    for (String p : testFiles) {
+      list.add(new Object[] {p});
+    }
+
+    return list;
+  }
 
   public static void checkBlockGraph(BlockGraph graph, CFA cfa) throws InterruptedException {
 

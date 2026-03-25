@@ -8,35 +8,30 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
-import org.junit.Ignore;
+import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 
+@RunWith(Parameterized.class)
 public class BridgeDecompositionTest {
 
-  @Test
-  public void testSimple() throws Exception {
-
-    CFA cfa =
-        TestUtil.buildTestCFA(
-            DssBlockDecompositionTestUtil.PROGRAMM_PATH_SIMPLE);
-
-    DssBlockDecomposition decomposition = new BridgeDecomposition();
-
-    BlockGraph graph = decomposition.decompose(cfa);
-
-    DssBlockDecompositionTestUtil.checkBlockGraph(graph, cfa);
+  @Parameters(name = "{0}")
+  public static List<Object[]> getParameters() {
+    return DssBlockDecompositionTestUtil.getFiles();
   }
 
-  @Ignore // This currently creates an endless loop
-  @Test
-  public void testLarge() throws Exception {
+  @Parameter public String path;
 
-    CFA cfa =
-        TestUtil.buildTestCFA(
-            DssBlockDecompositionTestUtil.PROGRAMM_PATH_LARGE);
+  @Test(timeout = 5000)
+  public void testBridgeDecomposition() throws Exception {
+
+    CFA cfa = TestUtil.buildTestCFA(path);
 
     DssBlockDecomposition decomposition = new BridgeDecomposition();
 

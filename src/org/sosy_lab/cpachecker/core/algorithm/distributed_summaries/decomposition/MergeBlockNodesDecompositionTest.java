@@ -10,8 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.List;
 import java.util.function.Predicate;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -24,7 +29,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
+@RunWith(Parameterized.class)
 public class MergeBlockNodesDecompositionTest {
+
+  @Parameters(name = "{0}")
+  public static List<Object[]> getParameters() {
+    return DssBlockDecompositionTestUtil.getFiles();
+  }
+
+  @Parameter public String path;
 
   private static DssBlockDecomposition createDecomposition(CFA cfa)
       throws InvalidConfigurationException, IOException {
@@ -52,11 +65,9 @@ public class MergeBlockNodesDecompositionTest {
   }
 
   @Test
-  public void testSimple() throws Exception {
+  public void testMergeNodeDecomposition() throws Exception {
 
-    CFA cfa =
-        TestUtil.buildTestCFA(
-            DssBlockDecompositionTestUtil.PROGRAMM_PATH_SIMPLE);
+    CFA cfa = TestUtil.buildTestCFA(path);
 
     DssBlockDecomposition decomposition = createDecomposition(cfa);
 
@@ -65,17 +76,4 @@ public class MergeBlockNodesDecompositionTest {
     DssBlockDecompositionTestUtil.checkBlockGraph(graph, cfa);
   }
 
-  @Test
-  public void testLarge() throws Exception {
-
-    CFA cfa =
-        TestUtil.buildTestCFA(
-            DssBlockDecompositionTestUtil.PROGRAMM_PATH_LARGE);
-
-    DssBlockDecomposition decomposition = createDecomposition(cfa);
-
-    BlockGraph graph = decomposition.decompose(cfa);
-
-    DssBlockDecompositionTestUtil.checkBlockGraph(graph, cfa);
-  }
 }

@@ -8,19 +8,30 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 
+@RunWith(Parameterized.class)
 public class SingleBlockDecompositionTest {
 
-  @Test
-  public void testSimple() throws Exception {
+  @Parameters(name = "{0}")
+  public static List<Object[]> getParameters() {
+    return DssBlockDecompositionTestUtil.getFiles();
+  }
 
-    CFA cfa =
-        TestUtil.buildTestCFA(
-            DssBlockDecompositionTestUtil.PROGRAMM_PATH_SIMPLE);
+  @Parameter public String path;
+
+  @Test
+  public void testSingleBlockDecomposition() throws Exception {
+
+    CFA cfa = TestUtil.buildTestCFA(path);
 
     DssBlockDecomposition decomposition = new SingleBlockDecomposition();
 
@@ -29,17 +40,5 @@ public class SingleBlockDecompositionTest {
     DssBlockDecompositionTestUtil.checkBlockGraph(graph, cfa);
   }
 
-  @Test
-  public void testLarge() throws Exception {
 
-    CFA cfa =
-        TestUtil.buildTestCFA(
-            DssBlockDecompositionTestUtil.PROGRAMM_PATH_LARGE);
-
-    DssBlockDecomposition decomposition = new SingleBlockDecomposition();
-
-    BlockGraph graph = decomposition.decompose(cfa);
-
-    DssBlockDecompositionTestUtil.checkBlockGraph(graph, cfa);
-  }
 }
