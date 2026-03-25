@@ -32,15 +32,15 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <option name="--option">imc.fallBack=false</option>
 
 
-  <rundefinition name="imc-mathsat5">
+  <rundefinition name="mathsat5">
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="imc-cvc5">
+  <rundefinition name="cvc5">
     <option name="--option">solver.solver=cvc5</option>
   </rundefinition>
 
-  <rundefinition name="imc-princess">
+  <rundefinition name="princess">
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">solver.solver=princess</option>
   </rundefinition>

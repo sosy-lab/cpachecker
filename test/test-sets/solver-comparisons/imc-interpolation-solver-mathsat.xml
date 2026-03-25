@@ -35,34 +35,34 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <option name="--option">imc.fallBack=false</option>
 
 
-  <rundefinition name="imc-mathsat5-mathsat5">
+  <rundefinition name="mathsat5">
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="imc-z3-mathsat5">
+  <rundefinition name="z3">
     <option name="--option">solver.solver=z3</option>
     <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="imc-cvc4-mathsat5">
+  <rundefinition name="cvc4">
     <option name="--option">solver.solver=cvc4</option>
     <option name="--option">solver.interpolationSolver=mathsat5</option>
     <!-- CVC4 needs a larger stack -->
     <option name="--stack">50M</option>
   </rundefinition>
 
-  <rundefinition name="imc-cvc5-mathsat5">
+  <rundefinition name="cvc5">
     <option name="--option">solver.solver=cvc5</option>
     <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="imc-princess-mathsat5">
+  <rundefinition name="princess">
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">solver.solver=princess</option>
     <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="imc-bitwuzla-mathsat5">
+  <rundefinition name="bitwuzla">
     <!-- Integer as BV is not impacting soundness -->
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
@@ -70,11 +70,12 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   </rundefinition>
 
   <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licensed parts of JavaSMT. -->
-  <rundefinition name="imc-yices2-mathsat5">
+  <rundefinition name="yices2">
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">solver.solver=yices2</option>
     <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
+
 
   <!-- SV-COMP26 unreach-call benchmark-set -->
   <tasks name="C.unreach-call.Arrays">
