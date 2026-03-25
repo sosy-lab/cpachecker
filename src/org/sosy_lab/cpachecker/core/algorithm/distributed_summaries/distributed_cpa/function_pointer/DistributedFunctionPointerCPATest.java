@@ -36,6 +36,7 @@ public class DistributedFunctionPointerCPATest {
 
     Precision prec = SingletonPrecision.getInstance(); // No relevant precision
     // TODO find program which tests something interesting!!
-    DistributedConfigurableProgramAnalysisTestUtil.testSerialization("test.c", cpa, prec);
+    DistributedConfigurableProgramAnalysisTestUtil.testSerialization(
+        "test/programs/dss/simple-function-pointer.c", cpa, prec);
   }
 }

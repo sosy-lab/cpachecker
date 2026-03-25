@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFun
 
 public class SerializeFunctionPointerStateOperator implements SerializeOperator {
 
+  static final String DELIMITER = "@";
+
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pState) {
     FunctionPointerState state = (FunctionPointerState) pState;
@@ -24,18 +26,18 @@ public class SerializeFunctionPointerStateOperator implements SerializeOperator 
     StringBuilder serialized = new StringBuilder();
     for (String value : builder.getValues()) {
       if (FunctionPointerState.InvalidTarget.getInstance().equals(builder.getTarget(value))) {
-        serialized.append("I:").append(value).append(", ");
+        serialized.append("I" + DELIMITER).append(value).append(", ");
       } else if (FunctionPointerState.NullTarget.getInstance().equals(builder.getTarget(value))) {
-        serialized.append("0:").append(value).append(", ");
+        serialized.append("0" + DELIMITER).append(value).append(", ");
       } else if (FunctionPointerState.UnknownTarget.getInstance()
           .equals(builder.getTarget(value))) {
-        serialized.append("U:").append(value).append(", ");
+        serialized.append("U" + DELIMITER).append(value).append(", ");
       } else {
         NamedFunctionTarget namedTarget = (NamedFunctionTarget) builder.getTarget(value);
         serialized
-            .append("N:")
+            .append("N" + DELIMITER)
             .append(value)
-            .append(":")
+            .append(DELIMITER)
             .append(namedTarget.getFunctionName())
             .append(", ");
       }
