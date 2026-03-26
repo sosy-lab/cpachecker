@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.graph.Traverser;
-import java.util.HashMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -55,11 +54,6 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     }
 
     // perform transformation
-    //ImmutableSet<CFANode> newNodes;
-    //CFANode newEntryNode;
-    //CFANode newExitNode;
-    //HashMap<CFANode,CFANode> nodeMap;
-
     CFANode newEntryNode = null;
     CFANode newExitNode = null;
     ImmutableList.Builder<CFANode> nodes = ImmutableList.builder();
@@ -89,8 +83,9 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
           }
           nodes.add(newNode);
         }
-        } else {
+      } else {
         FunctionExitNode newNode = new FunctionExitNode(pNode.getFunction());
+        newNode.setEntryNode((FunctionEntryNode) pNode);
         newExitNode = newNode;
         nodeMapBuilder.put(currentNode, newNode);
         nodes.add(newNode);
