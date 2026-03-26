@@ -310,8 +310,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   }
 
   /**
-   * It can happen that the transition invariant contains only variables outside the loop or function.
-   * In that case, we have to not use the invariant as it might be potentially unsound.
+   * It can happen that the transition invariant contains only variables outside the loop or
+   * function. In that case, we have to not use the invariant as it might be potentially unsound.
    */
   private boolean containsOnlyIrrelevantVariables(
       BooleanFormula pInvariant, CallstackState pCallstackState) {
@@ -362,7 +362,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       isTransitionInvariant =
           isTransitionInvariant
               && solver.implies(
-              iterationFormula.getFormula(), candidateTransitionInvariant.getFormula());
+                  iterationFormula.getFormula(), candidateTransitionInvariant.getFormula());
     } catch (SolverException | InterruptedException e) {
       logger.logDebugException(e);
       return false;
