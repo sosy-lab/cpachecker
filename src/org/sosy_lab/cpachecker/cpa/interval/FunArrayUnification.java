@@ -183,13 +183,13 @@ public class FunArrayUnification {
 
     if (!anticipatedFromA.isEmpty()) {
       boundsA.add(currentIndex + 1, new Bound(anticipatedFromA));
-      valuesA.add(neutralElementA);
+      valuesA.add(currentIndex, neutralElementA);
       emptinessA.add(currentIndex, true);
     }
 
     if (!anticipatedFromB.isEmpty()) {
       boundsB.add(currentIndex + 1, new Bound(anticipatedFromB));
-      valuesB.add(neutralElementB);
+      valuesB.add(currentIndex, neutralElementB);
       emptinessB.add(currentIndex, true);
     }
   }
