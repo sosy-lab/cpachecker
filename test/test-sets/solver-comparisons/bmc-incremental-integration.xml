@@ -23,10 +23,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
    <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
-  <option name="--bmc"/>
-  <option name="--option">cpa.loopbound.maxLoopIterationsUpperBound=0</option>
-  <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
-  <option name="--option">cpa.loopbound.maxLoopIterationAdjusterFactory=INCREMENT</option>
+  <option name="--bmc-incremental"/>
   
 
   <rundefinition name="mathsat5">
