@@ -37,7 +37,7 @@ public class FunArrayUnification {
   public record UnifyResult(FunArray resultA, FunArray resultB) {}
 
   public UnifyResult unify(Interval neutralElementA, Interval neutralElementB) {
-    while (currentIndex <= boundsA.size() && currentIndex <= boundsB.size()) {
+    while (currentIndex < boundsA.size() - 1 || currentIndex < boundsB.size() - 1) {
 
       // Case 6
       if (currentIndex == boundsA.size() - 1) {
@@ -242,13 +242,14 @@ public class FunArrayUnification {
       List<Interval> ongoingValues,
       List<Boolean> ongoingEmptiness,
       int currentIndex) {
-    assert ongoingBounds.size() > currentIndex;
+    assert ongoingBounds.size() > currentIndex + 1;
+    assert ongoingBounds.size() != exhaustedBounds.size();
 
-    var currentBoundA = exhaustedBounds.get(currentIndex);
-    var currentBoundB = ongoingBounds.get(currentIndex);
-    var nextBoundB = ongoingBounds.get(currentIndex + 1);
+    var currentBoundExhausted = exhaustedBounds.get(currentIndex);
+    var currentBoundOngoing = ongoingBounds.get(currentIndex);
+    var nextBoundOngoing = ongoingBounds.get(currentIndex + 1);
 
-    var joinedBound = currentBoundA.union(currentBoundB).union(nextBoundB);
+    var joinedBound = currentBoundExhausted.union(currentBoundOngoing).union(nextBoundOngoing);
 
     exhaustedBounds.set(currentIndex, joinedBound);
     ongoingBounds.set(currentIndex, joinedBound);

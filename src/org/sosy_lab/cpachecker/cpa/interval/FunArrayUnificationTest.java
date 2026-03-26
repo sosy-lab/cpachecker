@@ -35,9 +35,12 @@ public class FunArrayUnificationTest {
             ImmutableList.of(valueB, valueB),
             ImmutableList.of(false, false));
 
-    FunArray.UnifyResult result = arrayA.unify(arrayB, Interval.EMPTY, Interval.EMPTY);
-    FunArray resultA = result.resultThis();
-    FunArray resultB = result.resultOther();
+
+    var unification = new FunArrayUnification(arrayA, arrayB);
+    var result = unification.unify(Interval.EMPTY, Interval.EMPTY);
+
+    FunArray resultA = result.resultA();
+    FunArray resultB = result.resultB();
 
     assertThat(resultA.bounds()).containsExactly(boundA, boundB, boundC);
     assertThat(resultB.bounds()).containsExactly(boundA, boundB, boundC);
