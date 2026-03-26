@@ -9,32 +9,29 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.cpachecker.cpa.interval.FunArrayBuilder.exp;
 
-import com.google.common.collect.ImmutableList;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cpa.interval.FunArrayBuilder.FunArrayBuilderException;
 
 public class FunArrayUnificationTest {
   @Test
-  public void testMisaligned() {
-    Bound boundA = new Bound(new NormalFormExpression(0));
-    Bound boundB = new Bound(new NormalFormExpression(5));
-    Bound boundC = new Bound(new NormalFormExpression(10));
+  public void testExample8FromPaper() throws FunArrayBuilderException {
 
-    Interval valueA = new Interval(1L, 1L);
-    Interval valueB = new Interval(2L, 2L);
+    FunArray arrayA = FunArrayBuilder
+        .firstBound(exp(0), exp("i"))
+        .value(Interval.UNBOUND)
+        .bound(exp("n"))
+        .build();
 
-    // {0} [1,1] {10}
-    FunArray arrayA =
-        new FunArray(
-            ImmutableList.of(boundA, boundC), ImmutableList.of(valueA), ImmutableList.of(false));
-
-    // {0} [2,2] {5} [2,2] {10}
-    FunArray arrayB =
-        new FunArray(
-            ImmutableList.of(boundA, boundB, boundC),
-            ImmutableList.of(valueB, valueB),
-            ImmutableList.of(false, false));
-
+    FunArray arrayB = FunArrayBuilder
+        .firstBound(exp(0), exp("i", -1))
+        .value(0)
+        .bound(exp(1), exp("i"))
+        .value(Interval.UNBOUND)
+        .bound(exp("n"))
+        .mayBeEmpty()
+        .build();
 
     var unification = new FunArrayUnification(arrayA, arrayB);
     var result = unification.unify(Interval.EMPTY, Interval.EMPTY);
@@ -42,7 +39,25 @@ public class FunArrayUnificationTest {
     FunArray resultA = result.resultA();
     FunArray resultB = result.resultB();
 
-    assertThat(resultA.bounds()).containsExactly(boundA, boundB, boundC);
-    assertThat(resultB.bounds()).containsExactly(boundA, boundB, boundC);
+    FunArray expectedResultA = FunArrayBuilder
+        .firstBound(exp(0))
+        .value(Interval.EMPTY)
+        .bound(exp("i"))
+        .mayBeEmpty()
+        .value(Interval.UNBOUND)
+        .bound(exp("n"))
+        .build();
+
+    FunArray expectedResultB = FunArrayBuilder
+        .firstBound(exp(0))
+        .value(0)
+        .bound(exp("i"))
+        .value(Interval.UNBOUND)
+        .bound(exp("n"))
+        .mayBeEmpty()
+        .build();
+
+    assertThat(resultA).isEqualTo(expectedResultA);
+    assertThat(resultB).isEqualTo(expectedResultB);
   }
 }
