@@ -418,8 +418,9 @@ public class ValueAnalysisTransferRelation
       String paramName = param.getName();
       Type paramType = param.getType();
 
-      MemoryLocation formalParamName =
-          MemoryLocation.forLocalVariable(calledFunctionName, paramName);
+      MemoryLocation formalParamName = MemoryLocation.fromQualifiedName(param.getQualifiedName());
+          // MemoryLocation.forLocalVariable(calledFunctionName, paramName);
+      // TODO: do this nicely
 
       if (value.isUnknown()) {
         if (isMissingCExpressionInformation(visitor, exp)) {
