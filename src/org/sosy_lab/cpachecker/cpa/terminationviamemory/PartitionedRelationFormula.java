@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -127,67 +126,6 @@ public class PartitionedRelationFormula {
                         TransitionInvariantUtils.removeTransInvKeyWord(
                                 fmgr.uninstantiate(var).toString())
                             + suffix)));
-  }
-
-  /**
-   * Constructs a formula that expresses equality between unchanged variables by the provided
-   * formula in comparison to the formula in this class. This method is meant to be used when
-   * initializing prev and curr variables. While renaming, we loose the information about the
-   * variables that are not changed by the given formula. Example: Let us assume two path formulas
-   * y@0 >= 1 and x@1 = x@0 + y@0. After renaming, both of them we would obtain the following
-   * y__TransInv@1 >= 1 and x__TransInv@3 = x__TransInv@2 + y__TransInv@2. Since y did not change,
-   * we have to construct a formula saying y__TransInv@1 = y__TransInv@2.
-   *
-   * @param updateFormula that changes the variables in the formula of this class
-   * @return An equality formula that expresses that the unchanged variables have the same value
-   */
-  public BooleanFormula constructFormulaForUnchangedVars(
-      BooleanFormula updateFormula, String suffix) {
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    BooleanFormula equivalenceFormula = bfmgr.makeTrue();
-    Map<String, Formula> varsInUpdateFormula = fmgr.extractVariables(updateFormula);
-
-    for (Formula variable : currVariables) {
-      String pureName =
-          TransitionInvariantUtils.removeTransInvKeyWord(fmgr.uninstantiate(variable).toString());
-
-      if (varsInUpdateFormula.values().stream()
-          .noneMatch(
-              updateVar ->
-                  TransitionInvariantUtils.removeTransInvKeyWord(
-                          fmgr.uninstantiate(updateVar).toString())
-                      .equals(pureName))) {
-        equivalenceFormula =
-            bfmgr.and(
-                equivalenceFormula,
-                fmgr.assignment(
-                    variable, fmgr.makeVariable(fmgr.getFormulaType(variable), pureName + suffix)));
-      }
-    }
-    return equivalenceFormula;
-  }
-
-  /**
-   * It can happen that there is only one version of a variable. By default, we put such variables
-   * into the prevVariables set. It might be that we want to switch this view and treat them as
-   * current variables.
-   */
-  public void treatPrevVarsAsCurrVars() {
-    ImmutableSet.Builder<Formula> builder = ImmutableSet.builder();
-    builder.addAll(currVariables);
-    for (Formula var : prevVariables) {
-      String pureName =
-          TransitionInvariantUtils.removeTransInvKeyWord(fmgr.uninstantiate(var).toString());
-      if (currVariables.stream()
-          .noneMatch(
-              currVar ->
-                  TransitionInvariantUtils.removeTransInvKeyWord(
-                          fmgr.uninstantiate(currVar).toString())
-                      .equals(pureName))) {
-        builder.add(var);
-      }
-    }
-    currVariables = builder.build();
   }
 
   public void extendPrevVarsWithSuffix(String suffix) {

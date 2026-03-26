@@ -136,8 +136,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         SSAMap largestIndices =
             terminationState.getPathFormulasForIteration().get(keyPair).getSsa();
 
-        PartitionedRelationFormula prefixFormula =
-            new PartitionedRelationFormula(prefixPathFormula.getFormula(), fmgr);
         PartitionedRelationFormula iterationFormula =
             new PartitionedRelationFormula(
                 terminationState.getPathFormulasForIteration().get(keyPair).getFormula(), fmgr);
@@ -151,15 +149,13 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         // We strengthen the transition invariant with the prefix formula
         PartitionedRelationFormula candidateTransInv =
             new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
-        BooleanFormula unchagnedVariables = bfmgr.makeTrue();
         while (true) {
           // First, check that the BMC check is UNSATs
           BooleanFormula latestSameStateFormula = bfmgr.makeTrue();
           for (BooleanFormula sameStateFormula : sameStateFormulas) {
             try {
               // Construct formula:
-              // Init(x__PREV) and T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV =
-              // x_CURR2
+              // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV = x_CURR2
               if (isOverapproximating) {
                 // Construct formula instantiated to x__PREV = x__CURR2
                 PartitionedRelationFormula sameStateFormulaRelation =
@@ -167,10 +163,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 sameStateFormulaRelation.extendPrevVarsWithSuffix(PREV_KEYWORD);
                 sameStateFormulaRelation.extendCurrVarsWithSuffix(CURR2_KEYWORD);
                 latestSameStateFormula = sameStateFormulaRelation.getFormula();
-
-                // Set the latest vars in Init to match the x__PREV
-                prefixFormula.treatPrevVarsAsCurrVars();
-                prefixFormula.extendCurrVarsWithSuffix(PREV_KEYWORD);
 
                 // Set the prev vars in T to match x__PREV and the curr cars to match x__CURR
                 candidateTransInv.extendPrevVarsWithSuffix(PREV_KEYWORD);
@@ -180,25 +172,17 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 iterationFormula.extendPrevVarsWithSuffix(CURR_KEYWORD);
                 iterationFormula.extendCurrVarsWithSuffix(CURR2_KEYWORD);
 
-                // Construct equivalence formula that preserves unchagned variables between x__PREV
-                // and x__CURR
-                unchagnedVariables =
-                    prefixFormula.constructFormulaForUnchangedVars(
-                        candidateTransInv.getFormula(), CURR_KEYWORD);
-
                 isTargetStateReachable =
                     !solver.isUnsat(
                         bfmgr.and(
-                            prefixFormula.getFormula(),
                             candidateTransInv.getFormula(),
-                            unchagnedVariables,
                             iterationFormula.getFormula(),
                             latestSameStateFormula));
               } else {
                 isTargetStateReachable =
                     !solver.isUnsat(
                         bfmgr.and(
-                            prefixFormula.getFormula(),
+                            prefixPathFormula.getFormula(),
                             iterationFormula.getFormula(),
                             sameStateFormula));
               }
@@ -230,8 +214,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
           // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
           if (isOverapproximating
-              && isTransitionInvariant(
-                  candidateTransInv, iterationFormula, prefixFormula, location)) {
+              && isTransitionInvariant(candidateTransInv, iterationFormula, location)) {
             terminationState.setTerminatingIfAllNodesVisited(locationState.getLocationNode());
             return Optional.of(result.withAbstractState(terminationState));
           }
@@ -243,13 +226,13 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             // If BMC check is UNSAT, try to overapproximate the transition invariant
             BooleanFormula firstStep =
                 isOverapproximating
-                    ? bfmgr.and(prefixFormula.getFormula(), candidateTransInv.getFormula())
-                    : prefixFormula.getFormula();
+                    ? candidateTransInv.getFormula()
+                    : prefixPathFormula.getFormula();
             interpolant =
                 itpMgr
                     .interpolate(
                         ImmutableList.of(
-                            bfmgr.and(firstStep, unchagnedVariables, iterationFormula.getFormula()),
+                            bfmgr.and(firstStep, iterationFormula.getFormula()),
                             latestSameStateFormula))
                     .orElseThrow()
                     .getFirst();
@@ -343,16 +326,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private boolean isTransitionInvariant(
       PartitionedRelationFormula candidateTransitionInvariant,
       PartitionedRelationFormula iterationFormula,
-      PartitionedRelationFormula prefixFormula,
       CFANode pLocation) {
     boolean isTransitionInvariant;
 
     // The goal is to construct formula of the following form:
-    // Init(x__PREV) and T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR)
-
-    // Construct Init(x__PREV)
-    prefixFormula.treatPrevVarsAsCurrVars();
-    prefixFormula.extendCurrVarsWithSuffix(PREV_KEYWORD);
+    // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR)
 
     // Construct T(x__PREV, x__CURR)
     candidateTransitionInvariant.extendPrevVarsWithSuffix(PREV_KEYWORD);
@@ -372,37 +350,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     iterationFormula.extendPrevVarsWithSuffix(CURR_KEYWORD);
     iterationFormula.extendCurrVarsWithSuffix(CURR2_KEYWORD);
 
-    // Construct equivalence formula that preserves unchagned variables between x__PREV and x__CURR
-    BooleanFormula unchagnedVariables =
-        prefixFormula.constructFormulaForUnchangedVars(
-            candidateTransitionInvariant.getFormula(), CURR_KEYWORD);
-    // Variables that are not changed by both T and Tr should be equal with the versions from Init
-    unchagnedVariables =
-        bfmgr.and(
-            unchagnedVariables,
-            prefixFormula.constructFormulaForUnchangedVars(
-                bfmgr.and(candidateTransitionInvariant.getFormula(), iterationFormula.getFormula()),
-                CURR2_KEYWORD));
     try {
       isTransitionInvariant =
           solver.implies(
-              bfmgr.and(
-                  prefixFormula.getFormula(),
-                  firstStepInTransInv,
-                  unchagnedVariables,
-                  iterationFormula.getFormula()),
-              secondStepInTransInv);
+              bfmgr.and(firstStepInTransInv, iterationFormula.getFormula()), secondStepInTransInv);
 
       // Check Init(x__CURR) and Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)
       candidateTransitionInvariant.extendPrevVarsWithSuffix(CURR_KEYWORD);
-      prefixFormula.treatPrevVarsAsCurrVars();
-      prefixFormula.extendCurrVarsWithSuffix(CURR_KEYWORD);
 
       isTransitionInvariant =
           isTransitionInvariant
               && solver.implies(
-                  bfmgr.and(prefixFormula.getFormula(), iterationFormula.getFormula()),
-                  candidateTransitionInvariant.getFormula());
+                  iterationFormula.getFormula(), candidateTransitionInvariant.getFormula());
     } catch (SolverException | InterruptedException e) {
       logger.logDebugException(e);
       return false;
