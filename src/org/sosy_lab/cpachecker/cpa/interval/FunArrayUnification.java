@@ -110,8 +110,10 @@ public class FunArrayUnification {
       }
     }
 
-    // TODO Hofstetter: What happens here?
-    return null;
+    return new UnifyResult(
+        new FunArray(boundsA, valuesA, emptinessA),
+        new FunArray(boundsB, valuesB, emptinessB)
+    );
   }
 
   // Corresponds to case 1: The bounds are equal.
