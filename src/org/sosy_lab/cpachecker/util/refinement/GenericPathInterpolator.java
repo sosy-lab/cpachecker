@@ -275,6 +275,15 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
         if (originalEdge == null) {
           startNode = AbstractStates.extractLocation(iterator.getAbstractState());
           endNode = AbstractStates.extractLocation(iterator.getNextAbstractState());
+          if (startNode == null || endNode == null) {
+            List<CFAEdge> originalEdges =
+                AbstractStates.getEdgesToChild(iterator.getAbstractState(),
+                    iterator.getNextAbstractState());
+            if (originalEdges != null && !originalEdges.isEmpty()) {
+              startNode = originalEdges.getFirst().getPredecessor();
+              endNode = originalEdges.getLast().getSuccessor();
+            }
+          }
         } else {
           startNode = originalEdge.getPredecessor();
           endNode = originalEdge.getSuccessor();

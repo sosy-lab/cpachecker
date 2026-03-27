@@ -15,6 +15,7 @@ import com.google.errorprone.annotations.ForOverride;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -112,7 +113,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @param location the location of the variable
    * @return whether the variable has to be tracked
    */
-  public abstract boolean isTracking(MemoryLocation variable, Type pType, CFANode location);
+  public abstract boolean isTracking(MemoryLocation variable, Type pType, @Nullable CFANode location);
 
   /**
    * This method refines the precision with the given increment.
