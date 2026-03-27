@@ -99,6 +99,7 @@ public class PORState
   public ImmutableMap<String, Integer> threadHandles() {
     return threadHandles;
   }
+
   boolean canMerge(PORState other) {
     return threads.equals(other.threads) && threadHandles.equals(other.threadHandles);
   }
@@ -340,7 +341,7 @@ public class PORState
         .sorted()
         .map(e -> e + ": " + threads.get(e).pLocationState().getLocationNode())
         .collect(Collectors.joining(", "))
-        + ((CompositeState)getWrappedState()).toDOTLabel()
+        + ((CompositeState) getWrappedState()).toDOTLabel()
         + "]";
   }
 
