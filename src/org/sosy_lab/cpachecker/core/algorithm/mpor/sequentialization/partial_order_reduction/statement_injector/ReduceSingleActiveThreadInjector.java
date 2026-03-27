@@ -39,7 +39,7 @@ record ReduceSingleActiveThreadInjector(
 
   ReduceSingleActiveThreadInjector {
     checkArgument(
-        options.reduceSingleActiveThread(),
+        options.executeSingleActiveThreadFirst(),
         "reduceSingleActiveThread must be enabled when a ReduceSingleActiveThreadInjector is"
             + " created.");
   }

@@ -77,7 +77,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
                 options, SeqIdExpressions.ROUND_MAX)));
 
     // add the ignore sleep instrumentation, if enabled
-    if (options.reduceIgnoreSleep()) {
+    if (options.executeCommutingThreadsFirst()) {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));

@@ -83,7 +83,10 @@ public record BitVectorAssignmentInjector(
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
         if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
+            options.executeCommutingThreadsFirst(),
+            options.reductionMode(),
+            accessType,
+            reachType)) {
           rAssignments.addAll(
               buildBitVectorAssignmentByEncoding(ImmutableSet.of(), accessType, reachType));
         }
@@ -105,7 +108,10 @@ public record BitVectorAssignmentInjector(
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
         if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
+            options.executeCommutingThreadsFirst(),
+            options.reductionMode(),
+            accessType,
+            reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap,
@@ -145,7 +151,7 @@ public record BitVectorAssignmentInjector(
       throws UnsupportedCodeException {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
+        options.executeCommutingThreadsFirst(), options.reductionMode(), pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     CIdExpression bitVectorVariable =
@@ -164,7 +170,7 @@ public record BitVectorAssignmentInjector(
       ReachType pReachType) {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
+        options.executeCommutingThreadsFirst(), options.reductionMode(), pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     // use list so that the assignment order is deterministic

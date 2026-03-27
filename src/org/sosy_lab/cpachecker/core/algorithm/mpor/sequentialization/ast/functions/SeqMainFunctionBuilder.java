@@ -106,7 +106,7 @@ public final class SeqMainFunctionBuilder {
       }
 
       // assumptions that at least one thread is still active: assume(thread_count > 0)
-      if (pOptions.reduceSingleActiveThread()) {
+      if (pOptions.executeSingleActiveThreadFirst()) {
         if (pOptions.comments()) {
           loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
         }
@@ -128,7 +128,7 @@ public final class SeqMainFunctionBuilder {
         if (pOptions.comments()) {
           loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
         }
-        if (pOptions.reduceIgnoreSleep()) {
+        if (pOptions.executeCommutingThreadsFirst()) {
           // with reduceIgnoreSleep enabled, the nondeterministic next_thread assignment is
           // embedded into the reduction instrumentation, not added on top
           loopBlock.add(

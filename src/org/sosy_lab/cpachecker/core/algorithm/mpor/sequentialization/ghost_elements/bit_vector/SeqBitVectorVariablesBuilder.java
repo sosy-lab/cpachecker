@@ -141,7 +141,7 @@ public record SeqBitVectorVariablesBuilder(
       MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
+        options.executeCommutingThreadsFirst(), options.reductionMode(), pAccessType, pReachType)) {
       return Optional.empty();
     }
     return switch (pReachType) {
@@ -187,7 +187,7 @@ public record SeqBitVectorVariablesBuilder(
       SeqMemoryLocation pMemoryLocation, MemoryAccessType pAccessType, ReachType pReachType) {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
+        options.executeCommutingThreadsFirst(), options.reductionMode(), pAccessType, pReachType)) {
       return ImmutableMap.of();
     }
     ImmutableMap.Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();

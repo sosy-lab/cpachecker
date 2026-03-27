@@ -62,7 +62,7 @@ public record ReduceIgnoreSleepInjector(
 
   public ReduceIgnoreSleepInjector {
     checkArgument(
-        options.reduceIgnoreSleep(),
+        options.executeCommutingThreadsFirst(),
         "reduceIgnoreSleep must be enabled when a ReduceIgnoreSleepInjector is created.");
   }
 

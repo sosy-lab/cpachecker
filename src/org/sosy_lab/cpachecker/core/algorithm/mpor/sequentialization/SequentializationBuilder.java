@@ -373,7 +373,7 @@ public class SequentializationBuilder {
       SeqBitVectorDeclarationBuilder bitVectorDeclarationBuilder =
           new SeqBitVectorDeclarationBuilder(
               pOptions.bitVectorEncoding(),
-              pOptions.reduceIgnoreSleep(),
+              pOptions.executeCommutingThreadsFirst(),
               pOptions.reductionMode(),
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
@@ -387,7 +387,7 @@ public class SequentializationBuilder {
     }
 
     // track active thread number via thread_count
-    if (pOptions.reduceSingleActiveThread()) {
+    if (pOptions.executeSingleActiveThreadFirst()) {
       rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
     }
 

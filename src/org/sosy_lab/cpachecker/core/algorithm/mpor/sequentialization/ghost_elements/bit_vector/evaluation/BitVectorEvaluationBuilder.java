@@ -226,7 +226,7 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pOptions.reduceUntilConflict(),
+        pOptions.executeThreadsUntilConflict(),
         "reduceUntilConflict must be enabled to build evaluation expression");
 
     return switch (pOptions.reductionMode()) {

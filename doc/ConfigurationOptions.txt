@@ -286,6 +286,22 @@ analysis.algorithm.MPOR.comments = false
 # statement being unreachable, but can be useful for debugging.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
+# Prefer the execution of threads that commute, i.e., they are not in
+# conflict with any other thread.
+analysis.algorithm.MPOR.executeCommutingThreadsFirst = false
+
+# Continue execution in the current thread if it is the only active thread.
+# This option utilizes a thread_count ghost variable which is initialized to
+# 1 and incremented for each created thread and decremented for each
+# terminated thread. These increments and decrement are placed inside a
+# possibly infinite loop, so when analyzing for overflows, it may be more
+# efficient to disable this option.
+analysis.algorithm.MPOR.executeSingleActiveThreadFirst = true
+
+# Continue execution in all threads until they are in conflict with at least
+# one other thread.
+analysis.algorithm.MPOR.executeThreadsUntilConflict = false
+
 # Include original function declarations from the input program? Including
 # them may result in unsound analysis (e.g. false alarms for CBMC, or ignored
 # function calls through function pointers for CPAchecker).
@@ -346,24 +362,8 @@ analysis.algorithm.MPOR.pruneSparseBitVectorWrites = false
 # evaluations, and writes in the output program.
 analysis.algorithm.MPOR.pruneSparseBitVectors = false
 
-# Ignore that the current thread should not execute if it is not in conflict
-# with any other thread?
-analysis.algorithm.MPOR.reduceIgnoreSleep = false
-
 # Enforce an execution order if the current and previous thread commute?
 analysis.algorithm.MPOR.reduceLastThreadOrder = false
-
-# Continue executing the current thread if it is the only active thread. This
-# option utilizes a thread_count ghost variable which is initialized to 1 and
-# incremented for each created thread and decremented for each terminated
-# thread. These increments and decrement are placed inside a possibly
-# infinite loop, so when analyzing for overflows, it may be more efficient to
-# disable this option.
-analysis.algorithm.MPOR.reduceSingleActiveThread = true
-
-# Continue executing the current thread until it is in conflict with at least
-# another thread?
-analysis.algorithm.MPOR.reduceUntilConflict = false
 
 # How to determine if two threads commute from a location. READ_AND_WRITE
 # reduces the state space more than ACCESS_ONLY, but introduces additional

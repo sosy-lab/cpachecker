@@ -57,7 +57,7 @@ public record StatementInjector(
       throws UnrecognizedCodeException {
 
     // always place reduceSingleActiveThread first, because it is very cheap
-    if (options.reduceSingleActiveThread()) {
+    if (options.executeSingleActiveThreadFirst()) {
       ReduceSingleActiveThreadInjector reduceSingleActiveThreadInjector =
           new ReduceSingleActiveThreadInjector(
               options, labelClauseMap, utils.binaryExpressionBuilder());
@@ -65,7 +65,7 @@ public record StatementInjector(
     }
     // then place reduceUntilConflict, because if the reduction succeeds then the
     // subsequent ghost element updates are unnecessary
-    if (options.reduceUntilConflict()) {
+    if (options.executeThreadsUntilConflict()) {
       ReduceUntilConflictInjector reduceUntilConflictInjector =
           new ReduceUntilConflictInjector(
               options,
@@ -79,7 +79,7 @@ public record StatementInjector(
       pStatement =
           reduceUntilConflictInjector.injectUntilConflictReductionIntoStatement(pStatement);
     }
-    if (options.reduceIgnoreSleep()) {
+    if (options.executeCommutingThreadsFirst()) {
       ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
           new ReduceIgnoreSleepInjector(
               options, activeThread, otherThreads, labelClauseMap, ghostElements, utils);

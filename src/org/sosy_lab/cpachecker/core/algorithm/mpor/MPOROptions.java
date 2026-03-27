@@ -60,6 +60,30 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
+          "Prefer the execution of threads that commute, i.e., they are not in conflict with any"
+              + " other thread.")
+  private boolean executeCommutingThreadsFirst = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Continue execution in the current thread if it is the only active thread. This option"
+              + " utilizes a thread_count ghost variable which is initialized to 1 and incremented"
+              + " for each created thread and decremented for each terminated thread. These"
+              + " increments and decrement are placed inside a possibly infinite loop, so when"
+              + " analyzing for overflows, it may be more efficient to disable this option.")
+  private boolean executeSingleActiveThreadFirst = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Continue execution in all threads until they are in conflict with at least one other"
+              + " thread.")
+  private boolean executeThreadsUntilConflict = false;
+
+  @Option(
+      secure = true,
+      description =
           "Include original function declarations from the input program? Including them may result"
               + " in unsound analysis (e.g. false alarms for CBMC, or ignored function calls"
               + " through function pointers for CPAchecker).")
@@ -148,32 +172,8 @@ public class MPOROptions {
 
   @Option(
       secure = true,
-      description =
-          "Ignore that the current thread should not execute if it is not in conflict with any"
-              + " other thread?")
-  private boolean reduceIgnoreSleep = false;
-
-  @Option(
-      secure = true,
       description = "Enforce an execution order if the current and previous thread commute?")
   private boolean reduceLastThreadOrder = false;
-
-  @Option(
-      secure = true,
-      description =
-          "Continue executing the current thread if it is the only active thread. This option"
-              + " utilizes a thread_count ghost variable which is initialized to 1 and incremented"
-              + " for each created thread and decremented for each terminated thread. These"
-              + " increments and decrement are placed inside a possibly infinite loop, so when"
-              + " analyzing for overflows, it may be more efficient to disable this option.")
-  private boolean reduceSingleActiveThread = true;
-
-  @Option(
-      secure = true,
-      description =
-          "Continue executing the current thread until it is in conflict with at least another"
-              + " thread?")
-  private boolean reduceUntilConflict = false;
 
   @Option(
       secure = true,
@@ -305,9 +305,10 @@ public class MPOROptions {
         throw new InvalidConfigurationException(
             "reduceLastThreadOrder cannot be enabled when mergeCommutingStatements is disabled");
       }
-      if (reduceUntilConflict) {
+      if (executeThreadsUntilConflict) {
         throw new InvalidConfigurationException(
-            "reduceUntilConflict cannot be enabled when mergeCommutingStatements is disabled.");
+            "executeThreadsUntilConflict cannot be enabled when mergeCommutingStatements is"
+                + " disabled.");
       }
     }
     if (threadSimulationIterations < 0) {
@@ -338,7 +339,8 @@ public class MPOROptions {
     if (pruneBitVectorEvaluations) {
       if (!isAnyBitVectorReductionEnabled()) {
         throw new InvalidConfigurationException(
-            "pruneBitVectorEvaluations is enabled, but no reduce* option is enabled.");
+            "pruneBitVectorEvaluations is enabled, but no partial order reduction with bit vectors"
+                + " option is enabled.");
       }
       if (!bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
@@ -350,9 +352,10 @@ public class MPOROptions {
         throw new InvalidConfigurationException(
             "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
       }
-      if (reduceIgnoreSleep) {
+      if (executeCommutingThreadsFirst) {
         throw new InvalidConfigurationException(
-            "pruneSparseBitVectors cannot be enabled when reduceIgnoreSleep is enabled.");
+            "pruneSparseBitVectors cannot be enabled when executeCommutingThreadsFirst is"
+                + " enabled.");
       }
       if (reduceLastThreadOrder) {
         throw new InvalidConfigurationException(
@@ -368,20 +371,22 @@ public class MPOROptions {
     if (isAnyBitVectorReductionEnabled()) {
       if (!reductionMode.isEnabled()) {
         throw new InvalidConfigurationException(
-            "a reduce* option is enabled, but reductionMode is not set.");
+            "a partial order reduction with bit vectors option is enabled, but reductionMode is not"
+                + " set.");
       }
       if (!bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
-            "a reduce* option is enabled, but bitVectorEncoding is not set.");
+            "a partial order reduction with bit vectors option is enabled, but bitVectorEncoding is"
+                + " not set.");
       }
     } else {
       if (reductionMode.isEnabled()) {
         throw new InvalidConfigurationException(
-            "reductionMode is set, but no reduce* option is enabled");
+            "reductionMode is set, but no partial order reduction option is enabled");
       }
       if (bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
-            "bitVectorEncoding is set, but no reduce* option is enabled");
+            "bitVectorEncoding is set, but no partial order reduction option is enabled");
       }
     }
   }
@@ -389,7 +394,7 @@ public class MPOROptions {
   // boolean helpers ===============================================================================
 
   public boolean isAnyBitVectorReductionEnabled() {
-    return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
+    return executeCommutingThreadsFirst || reduceLastThreadOrder || executeThreadsUntilConflict;
   }
 
   public boolean isThreadLabelRequired() {
@@ -476,20 +481,20 @@ public class MPOROptions {
     return pruneSparseBitVectorWrites;
   }
 
-  public boolean reduceIgnoreSleep() {
-    return reduceIgnoreSleep;
+  public boolean executeCommutingThreadsFirst() {
+    return executeCommutingThreadsFirst;
   }
 
   public boolean reduceLastThreadOrder() {
     return reduceLastThreadOrder;
   }
 
-  public boolean reduceSingleActiveThread() {
-    return reduceSingleActiveThread;
+  public boolean executeSingleActiveThreadFirst() {
+    return executeSingleActiveThreadFirst;
   }
 
-  public boolean reduceUntilConflict() {
-    return reduceUntilConflict;
+  public boolean executeThreadsUntilConflict() {
+    return executeThreadsUntilConflict;
   }
 
   public ReductionMode reductionMode() {
