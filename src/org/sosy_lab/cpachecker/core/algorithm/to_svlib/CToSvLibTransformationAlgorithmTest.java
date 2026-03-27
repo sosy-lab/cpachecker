@@ -43,8 +43,13 @@ public class CToSvLibTransformationAlgorithmTest {
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
-    CToSvLibAlgorithm algorithm = new CToSvLibAlgorithm(config, logger, shutdownNotifier, inputCfa);
-    SvLibScript script = algorithm.transformCfaToSvLib();
+    SvLibScript script;
+    try (CToSvLibAlgorithm algorithm =
+        new CToSvLibAlgorithm(config, logger, shutdownNotifier, inputCfa)) {
+      script = algorithm.transformCfaToSvLib();
+    } catch (Exception pE) {
+      throw new RuntimeException(pE);
+    }
 
     String scriptAsString = script.toASTString();
     SvLibToAstParser.parseScript(scriptAsString);
