@@ -55,6 +55,20 @@ public class CToSvLibTransformationAlgorithmTest {
     SvLibToAstParser.parseScript(scriptAsString);
   }
 
+  // *********************************** ToSvLibTransformation ***********************************
+
+  /*
+  private String examplesPathToSvLibTransformation() {
+    return Path.of("test", "programs", "to_svlib_transformation").toAbsolutePath().toString();
+  }
+
+  @Test
+  public void testSimpleDivision() throws Exception {
+    Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "simple-division.c");
+    testTransformationToSvLib(inputFilePath);
+  }
+  */
+
   // *********************************** CfaToCExport ***********************************
 
   // This test acutally only takes about 600 ms, but when running it in isolation within an IDE,
