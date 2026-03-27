@@ -153,6 +153,12 @@ public class FormulaToSvLibTransformationVisitor implements FormulaVisitor<SvLib
       return new SvLibIdTerm(
           SmtLibTheoryDeclarations.arrayStore(pArrayType.getKeysType(), pArrayType.getValuesType()),
           FileLocation.DUMMY);
+    } else if (pArgTypes.size() == 3
+        && pArgTypes.getFirst().equals(SvLibSmtLibPredefinedType.BOOL)
+        && pArgTypes.get(1).equals(pArgTypes.get(2))
+        && pArgTypes.get(1).equals(SvLibSmtLibPredefinedType.INT)
+        && actualName.equals("if")) {
+      return new SvLibIdTerm(SmtLibTheoryDeclarations.INT_ITE, FileLocation.DUMMY);
     }
 
     throw new UnsupportedOperationException("Unknown formula type: " + pName);

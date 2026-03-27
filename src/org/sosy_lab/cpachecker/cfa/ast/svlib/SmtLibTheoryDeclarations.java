@@ -129,6 +129,19 @@ public class SmtLibTheoryDeclarations {
           "mod",
           ImmutableList.of());
 
+  public static SvLibFunctionDeclaration INT_ITE =
+      new SvLibFunctionDeclaration(
+          FileLocation.DUMMY,
+          new SvLibFunctionType(
+              ImmutableList.of(
+                  SvLibSmtLibPredefinedType.BOOL,
+                  SvLibSmtLibPredefinedType.INT,
+                  SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.INT),
+          "if",
+          "if",
+          ImmutableList.of());
+
   /* Boolean stuff */
 
   public static SvLibFunctionDeclaration BOOL_NEGATION =
