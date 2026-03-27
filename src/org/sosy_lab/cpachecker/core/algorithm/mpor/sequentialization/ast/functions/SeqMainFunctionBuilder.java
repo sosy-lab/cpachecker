@@ -262,7 +262,7 @@ public final class SeqMainFunctionBuilder {
     rStatements.add(nextThreadAssumption);
 
     // for scalar pc, this is done separately at the start of the respective thread
-    if (!pOptions.scalarPc()) {
+    if (!pOptions.scalarProgramCounters()) {
       // assumptions over next_thread being active: pc[next_thread] != 0
       if (pOptions.comments()) {
         rStatements.add(SeqComment.NEXT_THREAD_ACTIVE);

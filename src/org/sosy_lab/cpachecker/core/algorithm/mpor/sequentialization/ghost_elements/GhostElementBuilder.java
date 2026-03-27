@@ -53,7 +53,7 @@ public record GhostElementBuilder(
 
     ProgramCounterVariableBuilder pcVariableBuilder =
         new ProgramCounterVariableBuilder(
-            options.scalarPc(),
+            options.scalarProgramCounters(),
             options.nondeterminismSource(),
             threads.size(),
             binaryExpressionBuilder);

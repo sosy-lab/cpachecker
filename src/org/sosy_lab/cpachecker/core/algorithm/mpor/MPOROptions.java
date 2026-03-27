@@ -219,7 +219,7 @@ public class MPOROptions {
       description =
           "Use separate int values (scalars) for tracking thread program counters instead of a"
               + " single int array?")
-  private boolean scalarPc = true;
+  private boolean scalarProgramCounters = true;
 
   @Option(secure = true, description = "Use shortened variable names, e.g., THREAD0 -> T0.")
   private boolean shortVariableNames = true;
@@ -244,7 +244,7 @@ public class MPOROptions {
           "Check (1) if all label program counter (except initial program counters) are also"
               + " targeted and (2) that all target program counter (except terminating program"
               + " counters) are also labels within a thread simulation?")
-  private boolean validatePc = true;
+  private boolean validateProgramCounters = true;
 
   /**
    * Returns an instance of {@link MPOROptions} with the {@link Option}s set based on {@code
@@ -508,8 +508,8 @@ public class MPOROptions {
     return reductionMode;
   }
 
-  public boolean scalarPc() {
-    return scalarPc;
+  public boolean scalarProgramCounters() {
+    return scalarProgramCounters;
   }
 
   public boolean shortVariableNames() {
@@ -524,7 +524,7 @@ public class MPOROptions {
     return validateParse;
   }
 
-  public boolean validatePc() {
-    return validatePc;
+  public boolean validateProgramCounters() {
+    return validateProgramCounters;
   }
 }

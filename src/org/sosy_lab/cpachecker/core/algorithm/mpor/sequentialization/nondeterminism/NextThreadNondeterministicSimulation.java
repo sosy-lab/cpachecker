@@ -115,12 +115,13 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   }
 
   /**
-   * Returns the preceding statement for {@code pc} but only if {@link MPOROptions#scalarPc()} is
-   * enabled. In that case, the statement needs to be placed inside the simulation. For array {@code
-   * pc}, it is placed at the loop head already (see {@link SeqMainFunctionBuilder}).
+   * Returns the preceding statement for {@code pc} but only if {@link
+   * MPOROptions#scalarProgramCounters()} is enabled. In that case, the statement needs to be placed
+   * inside the simulation. For array {@code pc}, it is placed at the loop head already (see {@link
+   * SeqMainFunctionBuilder}).
    */
   Optional<CExportStatement> tryBuildPcPrecedingStatement(MPORThread pThread) {
-    if (!options.loopUnrolling() && !options.scalarPc()) {
+    if (!options.loopUnrolling() && !options.scalarProgramCounters()) {
       return Optional.empty();
     }
     return Optional.of(

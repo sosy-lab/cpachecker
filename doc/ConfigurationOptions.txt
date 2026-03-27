@@ -394,7 +394,7 @@ analysis.algorithm.MPOR.reductionMode = NONE
 
 # Use separate int values (scalars) for tracking thread program counters
 # instead of a single int array?
-analysis.algorithm.MPOR.scalarPc = true
+analysis.algorithm.MPOR.scalarProgramCounters = true
 
 # Use shortened variable names, e.g., THREAD0 -> T0.
 analysis.algorithm.MPOR.shortVariableNames = true
@@ -410,7 +410,7 @@ analysis.algorithm.MPOR.validateParse = true
 # Check (1) if all label program counter (except initial program counters)
 # are also targeted and (2) that all target program counter (except
 # terminating program counters) are also labels within a thread simulation?
-analysis.algorithm.MPOR.validatePc = true
+analysis.algorithm.MPOR.validateProgramCounters = true
 
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
