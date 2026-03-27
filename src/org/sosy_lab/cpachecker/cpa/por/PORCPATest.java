@@ -52,7 +52,9 @@ public class PORCPATest {
 //        "config/por-pred-z3.properties",
 //        "config/por-pred-aa-z3.properties",
         "config/por-value.properties",
-        "config/por-value-aa.properties"
+        "config/por-value-aa.properties",
+        "config/por-value-cegar.properties",
+        "config/por-value-cegar-aa.properties"
 //        "config/por-value-z3.properties"
     );
   }

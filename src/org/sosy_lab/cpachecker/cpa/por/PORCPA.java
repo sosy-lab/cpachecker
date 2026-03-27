@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.ScopedRefinablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.CompositePrecisionVariableManager;
 import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.ConfigurablePrecisionVariableManager;
 import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.PredicatePrecisionVariableManager;
+import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.ScopedRefinablePrecisionVariableManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -134,6 +136,12 @@ public class PORCPA extends AbstractSingleWrapperCPA {
           Precisions.extractPrecisionByType(initialWrappedPrecision, ConfigurablePrecision.class);
       if (configurablePrecision != null) {
         variableManagers.add(new ConfigurablePrecisionVariableManager());
+      }
+
+      ScopedRefinablePrecision scopedRefinablePrecision =
+          Precisions.extractPrecisionByType(initialWrappedPrecision, ScopedRefinablePrecision.class);
+      if (scopedRefinablePrecision != null) {
+        variableManagers.add(new ScopedRefinablePrecisionVariableManager());
       }
 
       PredicatePrecision predicatePrecision =

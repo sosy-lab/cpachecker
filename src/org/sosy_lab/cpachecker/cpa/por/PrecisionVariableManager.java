@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.por;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.ScopedRefinablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -73,6 +74,33 @@ interface PrecisionVariableManager {
       }
 
       return precision.isTracking(pMemoryLocation);
+    }
+  }
+
+  class ScopedRefinablePrecisionVariableManager implements PrecisionVariableManager {
+
+    private ScopedRefinablePrecision precision = null;
+
+    @Override
+    public void setNewPrecision(Precision pPrecision) {
+      ScopedRefinablePrecision newPrecision =
+          Precisions.extractPrecisionByType(pPrecision, ScopedRefinablePrecision.class);
+      if (newPrecision == null) {
+        throw new IllegalArgumentException(
+            "Expected a ScopedRefinablePrecision, but got: " + pPrecision);
+      }
+
+      precision = newPrecision;
+    }
+
+    @Override
+    public boolean contains(MemoryLocation pMemoryLocation) {
+      if (precision == null) {
+        throw new IllegalStateException(
+            "PrecisionVariableManager not initialized with a precision");
+      }
+
+      return precision.getRawPrecision().contains(pMemoryLocation);
     }
   }
 
