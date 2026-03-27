@@ -26,6 +26,8 @@ public class AtomicOperationTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> getTestCases() {
     return List.of(
+        new Object[]{"atomic_operations_complex.c", false},
+        new Object[]{"atomic_operations_sequential.c", true},
         new Object[]{"compoundassignment_atomic.c", true},
         new Object[]{"compoundassignment_nonatomic.c", false},
         new Object[]{"postincrement_atomic.c", true},
@@ -41,7 +43,7 @@ public class AtomicOperationTest {
   @Parameter(1)
   public boolean expectedSafe;
 
-  @Test
+  @Test(timeout = 10000)
   public void testAtomic() throws Exception {
     var config = TestDataTools.configurationForTest()
         .loadFromFile("config/predicateAnalysis-concurrency.properties")
