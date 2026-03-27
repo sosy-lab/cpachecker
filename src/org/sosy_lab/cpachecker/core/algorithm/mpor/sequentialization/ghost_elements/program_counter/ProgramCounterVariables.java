@@ -64,7 +64,7 @@ public record ProgramCounterVariables(
 
   /**
    * Returns the {@link CExpressionAssignmentStatement} of {@code pc[pThreadId] = pTargetPc;} or
-   * {@code pc{pThreadId} = pTargetPc;} for scalarPc.
+   * {@code pc{pThreadId} = pTargetPc;} for scalarProgramCounters.
    */
   public static CExpressionAssignmentStatement buildPcAssignmentStatement(
       CLeftHandSide pPcLeftHandSide, int pTargetPc) {
@@ -88,7 +88,8 @@ public record ProgramCounterVariables(
    * Returns the {@link CFunctionCallStatement} of {@code assume(pc{pThread.id} != 0);} i.e. for
    * scalar {@code pc}.
    */
-  public CFunctionCallStatement buildScalarPcUnequalExitPcAssumption(MPORThread pThread) {
+  public CFunctionCallStatement buildScalarProgramCounterUnequalExitPcAssumption(
+      MPORThread pThread) {
     CBinaryExpression threadActiveExpression = threadActiveExpressions.get(pThread.id());
     return SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(threadActiveExpression);
   }

@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 
-record ReduceUntilConflictInjector(
+record ExecuteUntilConflictInjector(
     MPOROptions options,
     ImmutableSet<MPORThread> otherThreads,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,

@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceLastThreadOrderInjector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.AbortCommutingContextSwitchesInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement;
 
 /**
  * Base class for simulating nondeterministic thread execution in the sequentialized program,
- * including methods to construct the multi-control statements, preceding statements, and full
+ * including methods to construct the multi selection statements, preceding statements, and full
  * simulation code strings.
  *
  * <p>Although similarly named, there is an important distinction between the abstract methods
@@ -133,7 +133,7 @@ public abstract class NondeterministicSimulation {
     return switch (pEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build statements for control encoding " + pEncoding);
+              "cannot build statements for MultiSelectionStatementEncoding " + pEncoding);
       case BINARY_SEARCH_TREE ->
           CMultiSelectionStatementBuilder.buildBinarySearchTree(
               ProgramCounterVariables.INIT_PC, pExpression, pStatements, pBinaryExpressionBuilder);
@@ -194,8 +194,8 @@ public abstract class NondeterministicSimulation {
             SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));
         ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
             SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses.get(pThread));
-        CIfStatement lastThreadOrderStatement =
-            new ReduceLastThreadOrderInjector(
+        CIfStatement abortCommutingContextSwitchesStatement =
+            new AbortCommutingContextSwitchesInjector(
                     options,
                     clauses.size(),
                     pThread,
@@ -205,8 +205,8 @@ public abstract class NondeterministicSimulation {
                     machineModel,
                     memoryModel.orElseThrow(),
                     utils)
-                .buildLastThreadOrderStatement(pThread);
-        rStatements.add(lastThreadOrderStatement);
+                .buildAbortCommutingContextSwitchesStatement(pThread);
+        rStatements.add(abortCommutingContextSwitchesStatement);
       }
     }
 

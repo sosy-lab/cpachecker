@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceIgnoreSleepInjector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.CommutingThreadsFirstInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -76,15 +76,15 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
             VerifierNondetFunctionType.buildNondetIntegerAssignment(
                 options, SeqIdExpressions.ROUND_MAX)));
 
-    // add the ignore sleep instrumentation, if enabled
+    // add instrumentation, if enabled
     if (options.executeCommutingThreadsFirst()) {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));
-      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
-          new ReduceIgnoreSleepInjector(
+      CommutingThreadsFirstInjector commutingThreadsFirstInjector =
+          new CommutingThreadsFirstInjector(
               options, pThread, otherThreads, labelClauseMap, ghostElements, utils);
-      ifBlock.add(reduceIgnoreSleepInjector.buildIgnoreSleepInstrumentation());
+      ifBlock.add(commutingThreadsFirstInjector.buildCommutingThreadsInjectorInstrumentation());
     }
 
     // if (round_max > 0) ...

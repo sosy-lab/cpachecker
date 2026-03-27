@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
-public record ReduceLastThreadOrderInjector(
+public record AbortCommutingContextSwitchesInjector(
     MPOROptions options,
     int numThreads,
     MPORThread activeThread,
@@ -74,7 +74,7 @@ public record ReduceLastThreadOrderInjector(
    * <p>This ensures that if {@code LAST_THREAD < CURRENT_THREAD}, the simulation performs a context
    * switch only when a conflict exists between the two threads.
    */
-  public CIfStatement buildLastThreadOrderStatement(MPORThread pThread)
+  public CIfStatement buildAbortCommutingContextSwitchesStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     checkArgument(
@@ -142,7 +142,7 @@ public record ReduceLastThreadOrderInjector(
       // for sync locations, set LAST_THREAD to NUM_THREADS - 1. this is necessary, otherwise
       // the analysis is unsound.
       // simple example: LAST_THREAD is at a sync location that uses assume. the current thread
-      // has a reduceLastThreadOrder instrumentation and because it is not in conflict with
+      // has a abortCommutingContextSwitches instrumentation and because it is not in conflict with
       // LAST_THREAD, current thread aborts. but LAST_THREAD may e.g. call pthread_join on the
       // current thread -> both abort, and no thread makes any progress
       if (SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {

@@ -72,7 +72,7 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pOptions.abortCommutingContextSwitches(), "reduceLastThreadOrder must be enabled");
+        pOptions.abortCommutingContextSwitches(), "abortCommutingContextSwitches must be enabled");
 
     return switch (pOptions.partialOrderReductionMode()) {
       case NONE ->
@@ -230,7 +230,7 @@ public class BitVectorEvaluationBuilder {
 
     checkArgument(
         pOptions.executeThreadsUntilConflict(),
-        "reduceUntilConflict must be enabled to build evaluation expression");
+        "executeThreadsUntilConflict must be enabled to build evaluation expression");
 
     return switch (pOptions.partialOrderReductionMode()) {
       case NONE ->

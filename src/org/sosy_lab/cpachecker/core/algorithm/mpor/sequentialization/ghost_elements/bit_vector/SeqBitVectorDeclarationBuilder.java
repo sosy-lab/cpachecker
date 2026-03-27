@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record SeqBitVectorDeclarationBuilder(
     SeqBitVectorEncoding bitVectorEncoding,
-    boolean reduceIgnoreSleep,
+    boolean executeCommutingThreadsFirst,
     PartialOrderReductionMode partialOrderReductionMode,
     SeqBitVectorVariables bitVectorVariables,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
@@ -113,7 +113,7 @@ public record SeqBitVectorDeclarationBuilder(
 
       for (ReachType reachType : ReachType.values()) {
         if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            reduceIgnoreSleep, partialOrderReductionMode, pAccessType, reachType)) {
+            executeCommutingThreadsFirst, partialOrderReductionMode, pAccessType, reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);

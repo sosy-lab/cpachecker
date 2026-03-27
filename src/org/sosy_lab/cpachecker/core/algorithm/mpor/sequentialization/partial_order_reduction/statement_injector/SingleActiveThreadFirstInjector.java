@@ -32,15 +32,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-record ReduceSingleActiveThreadInjector(
+record SingleActiveThreadFirstInjector(
     MPOROptions options,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
-  ReduceSingleActiveThreadInjector {
+  SingleActiveThreadFirstInjector {
     checkArgument(
         options.executeSingleActiveThreadFirst(),
-        "reduceSingleActiveThread must be enabled when a ReduceSingleActiveThreadInjector is"
+        "executeSingleActiveThreadFirst must be enabled when a SingleActiveThreadFirstInjector is"
             + " created.");
   }
 
@@ -54,7 +54,7 @@ record ReduceSingleActiveThreadInjector(
    * }
    * }</pre>
    */
-  SeqThreadStatement injectSingleActiveThreadReduction(SeqThreadStatement pStatement)
+  SeqThreadStatement injectSingleActiveThreadFirstReduction(SeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
     SeqThreadStatement withThreadCountUpdates = injectThreadCountUpdates(pStatement);

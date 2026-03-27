@@ -56,18 +56,19 @@ public record StatementInjector(
   private SeqThreadStatement injectStatementsIntoStatement(SeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
-    // always place reduceSingleActiveThread first, because it is very cheap
+    // always place executeSingleActiveThreadFirst instrumentation first, because it is very cheap
     if (options.executeSingleActiveThreadFirst()) {
-      ReduceSingleActiveThreadInjector reduceSingleActiveThreadInjector =
-          new ReduceSingleActiveThreadInjector(
+      SingleActiveThreadFirstInjector singleActiveThreadFirstInjector =
+          new SingleActiveThreadFirstInjector(
               options, labelClauseMap, utils.binaryExpressionBuilder());
-      pStatement = reduceSingleActiveThreadInjector.injectSingleActiveThreadReduction(pStatement);
+      pStatement =
+          singleActiveThreadFirstInjector.injectSingleActiveThreadFirstReduction(pStatement);
     }
-    // then place reduceUntilConflict, because if the reduction succeeds then the
+    // then place executeThreadsUntilConflict, because if the reduction succeeds then the
     // subsequent ghost element updates are unnecessary
     if (options.executeThreadsUntilConflict()) {
-      ReduceUntilConflictInjector reduceUntilConflictInjector =
-          new ReduceUntilConflictInjector(
+      ExecuteUntilConflictInjector executeUntilConflictInjector =
+          new ExecuteUntilConflictInjector(
               options,
               otherThreads,
               labelClauseMap,
@@ -77,17 +78,17 @@ public record StatementInjector(
               memoryModel.orElseThrow(),
               utils);
       pStatement =
-          reduceUntilConflictInjector.injectUntilConflictReductionIntoStatement(pStatement);
+          executeUntilConflictInjector.injectUntilConflictReductionIntoStatement(pStatement);
     }
     if (options.executeCommutingThreadsFirst()) {
-      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
-          new ReduceIgnoreSleepInjector(
+      CommutingThreadsFirstInjector commutingThreadsFirstInjector =
+          new CommutingThreadsFirstInjector(
               options, activeThread, otherThreads, labelClauseMap, ghostElements, utils);
-      pStatement = reduceIgnoreSleepInjector.tryInjectSyncUpdateIntoStatement(pStatement);
+      pStatement = commutingThreadsFirstInjector.tryInjectSyncUpdateIntoStatement(pStatement);
     }
     if (options.abortCommutingContextSwitches()) {
-      ReduceLastThreadOrderInjector reduceLastThreadOrderInjector =
-          new ReduceLastThreadOrderInjector(
+      AbortCommutingContextSwitchesInjector abortCommutingContextSwitches =
+          new AbortCommutingContextSwitchesInjector(
               options,
               otherThreads.size() + 1,
               activeThread,
@@ -98,7 +99,7 @@ public record StatementInjector(
               memoryModel.orElseThrow(),
               utils);
       pStatement =
-          reduceLastThreadOrderInjector.injectLastUpdatesIntoStatement(pStatement, labelClauseMap);
+          abortCommutingContextSwitches.injectLastUpdatesIntoStatement(pStatement, labelClauseMap);
     }
     if (ghostElements.bitVectorVariables().isPresent()) {
       // always inject bit vector assignments after evaluations i.e. reductions

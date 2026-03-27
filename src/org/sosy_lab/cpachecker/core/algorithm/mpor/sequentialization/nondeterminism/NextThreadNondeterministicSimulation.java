@@ -66,20 +66,20 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
 
   @Override
   public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
-    // the inner multi control statements choose the next statement, e.g. "pc0 == 1"
-    ImmutableMap<CExportExpression, CCompoundStatement> innerMultiControlStatements =
-        buildInnerMultiControlStatements();
-    // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
-    CExportStatement outerMultiControlStatement =
+    // the inner multi selection statements choose the next statement, e.g. "pc0 == 1"
+    ImmutableMap<CExportExpression, CCompoundStatement> innerMultiSelectionStatements =
+        buildInnerMultiSelectionStatements();
+    // the outer multi selection statement chooses the thread, e.g. "next_thread == 0"
+    CExportStatement outerMultiSelectionStatement =
         buildMultiSelectionStatementByEncoding(
             options.selectionEncodingForThreads(),
             SeqIdExpressions.NEXT_THREAD,
-            innerMultiControlStatements,
+            innerMultiSelectionStatements,
             utils.binaryExpressionBuilder());
-    return new CCompoundStatement(ImmutableList.of(outerMultiControlStatement));
+    return new CCompoundStatement(ImmutableList.of(outerMultiSelectionStatement));
   }
 
-  private ImmutableMap<CExportExpression, CCompoundStatement> buildInnerMultiControlStatements()
+  private ImmutableMap<CExportExpression, CCompoundStatement> buildInnerMultiSelectionStatements()
       throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<CExportExpression, CCompoundStatement> rStatements =
@@ -126,7 +126,9 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     }
     return Optional.of(
         new CStatementWrapper(
-            ghostElements.getPcVariables().buildScalarPcUnequalExitPcAssumption(pThread)));
+            ghostElements
+                .getPcVariables()
+                .buildScalarProgramCounterUnequalExitPcAssumption(pThread)));
   }
 
   /**

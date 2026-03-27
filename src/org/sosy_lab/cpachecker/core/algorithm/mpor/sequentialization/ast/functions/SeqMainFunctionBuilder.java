@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.ReduceIgnoreSleepInjector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.CommutingThreadsFirstInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
@@ -129,13 +129,16 @@ public final class SeqMainFunctionBuilder {
           loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
         }
         if (pOptions.executeCommutingThreadsFirst()) {
-          // with reduceIgnoreSleep enabled, the nondeterministic next_thread assignment is
+          // with executeCommutingThreadsFirst enabled, the nondeterministic next_thread assignment
+          // is
           // embedded into the reduction instrumentation, not added on top
           loopBlock.add(
-              ReduceIgnoreSleepInjector.buildNextThreadIgnoreSleepInstrumentation(
-                  pOptions, pFields, pUtils));
+              CommutingThreadsFirstInjector
+                  .buildCommutingThreadsFirstInstrumentationForNextThreadNondeterminism(
+                      pOptions, pFields, pUtils));
         } else {
-          // with reduceIgnoreSleep disabled, the nondeterministic next_thread choice is placed
+          // with executeCommutingThreadsFirst disabled, the nondeterministic next_thread choice is
+          // placed
           // in isolation: next_thread = __VERIFIER_nondet_uint();
           loopBlock.add(
               buildNextThreadNondeterministicStatements(
@@ -216,7 +219,8 @@ public final class SeqMainFunctionBuilder {
       throws UnrecognizedCodeException {
 
     checkArgument(
-        !pOptions.threadSimulationUnrolling(), "cannot build loop head, loopUnrolling is enabled");
+        !pOptions.threadSimulationUnrolling(),
+        "cannot build loop head, threadSimulationUnrolling is enabled");
 
     if (pOptions.threadSimulationIterations() == 0) {
       // infinite while (1) loop

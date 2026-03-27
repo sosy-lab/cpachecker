@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementBuilder;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
-public record ReduceIgnoreSleepInjector(
+public record CommutingThreadsFirstInjector(
     MPOROptions options,
     MPORThread activeThread,
     ImmutableSet<MPORThread> otherThreads,
@@ -60,16 +60,17 @@ public record ReduceIgnoreSleepInjector(
     GhostElements ghostElements,
     SequentializationUtils utils) {
 
-  public ReduceIgnoreSleepInjector {
+  public CommutingThreadsFirstInjector {
     checkArgument(
         options.executeCommutingThreadsFirst(),
-        "reduceIgnoreSleep must be enabled when a ReduceIgnoreSleepInjector is created.");
+        "executeCommutingThreadsFirst must be enabled when a CommutingThreadsFirstInjector is"
+            + " created.");
   }
 
   /**
-   * Returns a {@link CIfStatement} that encodes the Ignore Sleep (IS) reduction for {@link
-   * NondeterminismSource#NUM_STATEMENTS}. The statement precedes a thread simulation and takes the
-   * following form:
+   * Returns a {@link CIfStatement} that encodes the Commuting Threads First (CTF) reduction for
+   * {@link NondeterminismSource#NUM_STATEMENTS}. The statement precedes a thread simulation and
+   * takes the following form:
    *
    * <pre>{@code
    * if (round_max == 0 && Ti_SYNC == 0) {
@@ -79,9 +80,10 @@ public record ReduceIgnoreSleepInjector(
    *
    * <p>This ensures that if thread {@code i} was not chosen for execution, i.e., {@code round_max
    * == 0}, then it must be in conflict with at least one other thread. Otherwise, the simulation
-   * aborts and the thread always executes and ignores that it should actually sleep.
+   * aborts and the thread executes before any other thread because it commutes.
    */
-  public CIfStatement buildIgnoreSleepInstrumentation() throws UnrecognizedCodeException {
+  public CIfStatement buildCommutingThreadsInjectorInstrumentation()
+      throws UnrecognizedCodeException {
     checkState(options.nondeterminismSource().equals(NondeterminismSource.NUM_STATEMENTS));
 
     // (round_max == 0 && Ti_SYNC == 0)
@@ -104,10 +106,10 @@ public record ReduceIgnoreSleepInjector(
   }
 
   /**
-   * Returns a {@link CIfStatement} that encodes the Ignore Sleep (IS) reduction when the {@link
-   * NondeterminismSource} is {@link NondeterminismSource#NEXT_THREAD} or {@link
+   * Returns a {@link CIfStatement} that encodes the Commuting Threads First (CTF) reduction when
+   * the {@link NondeterminismSource} is {@link NondeterminismSource#NEXT_THREAD} or {@link
    * NondeterminismSource#NEXT_THREAD_AND_NUM_STATEMENTS}. The statement is used to check whether a
-   * thread can soundly be chosen deterministically. Example with two threads:
+   * thread can soundly be chosen deterministically because it commutes. Example with two threads:
    *
    * <pre>{@code
    * if (pc1 != 0 && T1_SYNC == 0 && *T1 not in any conflict*) {
@@ -122,7 +124,7 @@ public record ReduceIgnoreSleepInjector(
    * }
    * }</pre>
    */
-  public static CIfStatement buildNextThreadIgnoreSleepInstrumentation(
+  public static CIfStatement buildCommutingThreadsFirstInstrumentationForNextThreadNondeterminism(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -134,13 +136,14 @@ public record ReduceIgnoreSleepInjector(
           MPORUtil.withoutElement(pFields.clauses.keySet(), thread);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(pFields.clauses.get(thread));
-      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
-          new ReduceIgnoreSleepInjector(
+      CommutingThreadsFirstInjector commutingThreadsFirstInjector =
+          new CommutingThreadsFirstInjector(
               pOptions, thread, otherThreads, labelClauseMap, pFields.ghostElements, pUtils);
 
       // create the expression used for the 'if (...)' conditions
       CExportExpression ifCondition =
-          reduceIgnoreSleepInjector.buildNextThreadIgnoreSleepExpression();
+          commutingThreadsFirstInjector
+              .buildCommutingThreadsFirstExpressionForNextThreadNondeterminism();
 
       // create the 'next_thread = {thread_id};' assignment
       CExpressionAssignmentStatement nextThreadAssignment =
@@ -163,7 +166,7 @@ public record ReduceIgnoreSleepInjector(
   }
 
   /** Returns the expression {@code (pci != 0 && Ti_SYNC == 0 && *Ti not in conflict*)}. */
-  private CExportExpression buildNextThreadIgnoreSleepExpression()
+  private CExportExpression buildCommutingThreadsFirstExpressionForNextThreadNondeterminism()
       throws UnrecognizedCodeException {
 
     CExpression threadActiveExpression =

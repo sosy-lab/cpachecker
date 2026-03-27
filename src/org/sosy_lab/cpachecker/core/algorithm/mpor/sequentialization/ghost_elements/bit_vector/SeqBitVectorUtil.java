@@ -128,12 +128,12 @@ public class SeqBitVectorUtil {
    * {@link ReachType} is required based on the specified options.
    */
   public static boolean isAccessReachPairNeeded(
-      boolean pReduceIgnoreSleep,
+      boolean pExecuteCommutingThreadsFirst,
       PartialOrderReductionMode pReductionMode,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    if (pReachType.equals(ReachType.DIRECT) && !pReduceIgnoreSleep) {
+    if (pReachType.equals(ReachType.DIRECT) && !pExecuteCommutingThreadsFirst) {
       return false;
     }
     return switch (pReductionMode) {

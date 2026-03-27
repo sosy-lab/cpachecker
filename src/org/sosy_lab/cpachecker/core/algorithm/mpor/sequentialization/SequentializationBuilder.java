@@ -324,7 +324,8 @@ public class SequentializationBuilder {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
 
-    // if the loop is finite, i.e., loopIterations is not 0, and loopUnrolling is disabled,
+    // if the loop is finite, i.e., threadSimulationIterations is not 0, and
+    // threadSimulationUnrolling is disabled,
     // then add the variable that is incremented with each iteration
     if (pOptions.threadSimulationIterations() != 0 && !pOptions.threadSimulationUnrolling()) {
       rDeclarations.add(SeqVariableDeclarations.ITERATION.toASTString());

@@ -64,7 +64,7 @@ public class SeqThreadStatementClauseUtil {
     return switch (pEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build label expression for control encoding " + pEncoding);
+              "cannot build label expression for MultiSelectionStatementEncoding " + pEncoding);
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN ->
           pBinaryExpressionBuilder.buildBinaryExpression(
               pExpression,

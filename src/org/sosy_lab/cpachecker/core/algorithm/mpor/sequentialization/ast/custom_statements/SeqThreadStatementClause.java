@@ -171,11 +171,11 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
       return Optional.empty();
     }
 
-    // use control encoding of the statement since we append the suffix to the statement
+    // use selectionEncodingForStatements since we append the suffix to the statement
     return switch (options.selectionEncodingForStatements()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build suffix for control encoding "
+              "cannot build suffix for MultiSelectionStatementEncoding "
                   + options.selectionEncodingForStatements());
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
         if (options.threadSimulationUnrolling()) {
