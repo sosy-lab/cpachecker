@@ -85,7 +85,7 @@ public record StatementInjector(
               options, activeThread, otherThreads, labelClauseMap, ghostElements, utils);
       pStatement = reduceIgnoreSleepInjector.tryInjectSyncUpdateIntoStatement(pStatement);
     }
-    if (options.reduceLastThreadOrder()) {
+    if (options.abortCommutingContextSwitches()) {
       ReduceLastThreadOrderInjector reduceLastThreadOrderInjector =
           new ReduceLastThreadOrderInjector(
               options,

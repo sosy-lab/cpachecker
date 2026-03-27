@@ -218,7 +218,7 @@ public record SeqBitVectorVariablesBuilder(
   private Optional<LastDenseBitVector> tryBuildLastDenseBitVectorByAccessType(
       MemoryAccessType pAccessType) {
 
-    if (!options.reduceLastThreadOrder() || options.bitVectorEncoding().isSparse) {
+    if (!options.abortCommutingContextSwitches() || options.bitVectorEncoding().isSparse) {
       return Optional.empty();
     }
     CIdExpression lastIdExpression =
@@ -234,7 +234,7 @@ public record SeqBitVectorVariablesBuilder(
   private Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>>
       tryBuildLastSparseBitVectorsByAccessType(MemoryAccessType pAccessType) {
 
-    if (!options.reduceLastThreadOrder() || options.bitVectorEncoding().isDense) {
+    if (!options.abortCommutingContextSwitches() || options.bitVectorEncoding().isDense) {
       return Optional.empty();
     }
     ImmutableMap.Builder<SeqMemoryLocation, LastSparseBitVector> rMap = ImmutableMap.builder();

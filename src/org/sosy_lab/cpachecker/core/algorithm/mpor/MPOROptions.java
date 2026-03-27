@@ -25,6 +25,13 @@ public class MPOROptions {
 
   // using Optional for @Option is not allowed, so we use 'NONE' for enums that can be disabled.
 
+  @Option(
+      secure = true,
+      description =
+          "Abort context switches between the previous and current thread if they commute, i.e.,"
+              + " they are not in conflict.")
+  private boolean abortCommutingContextSwitches = false;
+
   @Option(secure = true, description = "Allow input programs that write pointer variables?")
   private boolean allowPointerWrites = true;
 
@@ -172,11 +179,6 @@ public class MPOROptions {
 
   @Option(
       secure = true,
-      description = "Enforce an execution order if the current and previous thread commute?")
-  private boolean reduceLastThreadOrder = false;
-
-  @Option(
-      secure = true,
       description =
           "How to determine if two threads commute from a location. READ_AND_WRITE reduces the"
               + " state space more than ACCESS_ONLY, but introduces additional overhead (i.e.,"
@@ -301,9 +303,10 @@ public class MPOROptions {
         throw new InvalidConfigurationException(
             "bitVectorEncoding cannot be set when mergeCommutingStatements is disabled.");
       }
-      if (reduceLastThreadOrder) {
+      if (abortCommutingContextSwitches) {
         throw new InvalidConfigurationException(
-            "reduceLastThreadOrder cannot be enabled when mergeCommutingStatements is disabled");
+            "abortCommutingContextSwitches cannot be enabled when mergeCommutingStatements is"
+                + " disabled");
       }
       if (executeThreadsUntilConflict) {
         throw new InvalidConfigurationException(
@@ -357,9 +360,10 @@ public class MPOROptions {
             "pruneSparseBitVectors cannot be enabled when executeCommutingThreadsFirst is"
                 + " enabled.");
       }
-      if (reduceLastThreadOrder) {
+      if (abortCommutingContextSwitches) {
         throw new InvalidConfigurationException(
-            "pruneSparseBitVectors cannot be enabled when reduceLastThreadOrder is enabled.");
+            "pruneSparseBitVectors cannot be enabled when abortCommutingContextSwitches is"
+                + " enabled.");
       }
     }
     if (pruneSparseBitVectorWrites) {
@@ -394,7 +398,9 @@ public class MPOROptions {
   // boolean helpers ===============================================================================
 
   public boolean isAnyBitVectorReductionEnabled() {
-    return executeCommutingThreadsFirst || reduceLastThreadOrder || executeThreadsUntilConflict;
+    return executeCommutingThreadsFirst
+        || abortCommutingContextSwitches
+        || executeThreadsUntilConflict;
   }
 
   public boolean isThreadLabelRequired() {
@@ -412,6 +418,10 @@ public class MPOROptions {
   }
 
   // public getters ================================================================================
+
+  public boolean abortCommutingContextSwitches() {
+    return abortCommutingContextSwitches;
+  }
 
   public boolean allowPointerWrites() {
     return allowPointerWrites;
@@ -431,6 +441,18 @@ public class MPOROptions {
 
   public boolean consecutiveLabels() {
     return consecutiveLabels;
+  }
+
+  public boolean executeCommutingThreadsFirst() {
+    return executeCommutingThreadsFirst;
+  }
+
+  public boolean executeSingleActiveThreadFirst() {
+    return executeSingleActiveThreadFirst;
+  }
+
+  public boolean executeThreadsUntilConflict() {
+    return executeThreadsUntilConflict;
   }
 
   public boolean inputFunctionDeclarations() {
@@ -479,22 +501,6 @@ public class MPOROptions {
 
   public boolean pruneSparseBitVectorWrites() {
     return pruneSparseBitVectorWrites;
-  }
-
-  public boolean executeCommutingThreadsFirst() {
-    return executeCommutingThreadsFirst;
-  }
-
-  public boolean reduceLastThreadOrder() {
-    return reduceLastThreadOrder;
-  }
-
-  public boolean executeSingleActiveThreadFirst() {
-    return executeSingleActiveThreadFirst;
-  }
-
-  public boolean executeThreadsUntilConflict() {
-    return executeThreadsUntilConflict;
   }
 
   public ReductionMode reductionMode() {

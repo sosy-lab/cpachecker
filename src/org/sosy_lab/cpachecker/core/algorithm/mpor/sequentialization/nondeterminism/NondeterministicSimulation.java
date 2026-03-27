@@ -179,15 +179,15 @@ public abstract class NondeterministicSimulation {
   }
 
   /**
-   * Builds the core reduction instrumentation of {@link MPOROptions#reduceLastThreadOrder()} that
-   * precedes all thread simulations, if enabled.
+   * Builds the core reduction instrumentation of {@link
+   * MPOROptions#abortCommutingContextSwitches()} that precedes all thread simulations, if enabled.
    */
   private ImmutableList<CExportStatement> buildPrecedingReductionStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<CExportStatement> rStatements = ImmutableList.builder();
 
-    if (options.reduceLastThreadOrder()) {
+    if (options.abortCommutingContextSwitches()) {
       // do not create the statement for the main thread, since LAST_THREAD < 0 never holds
       if (!pThread.isMain()) {
         ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =

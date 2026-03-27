@@ -330,7 +330,7 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqVariableDeclarations.ITERATION.toASTString());
     }
 
-    if (pOptions.reduceLastThreadOrder()) {
+    if (pOptions.abortCommutingContextSwitches()) {
       // LAST_THREAD ghost variable
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);

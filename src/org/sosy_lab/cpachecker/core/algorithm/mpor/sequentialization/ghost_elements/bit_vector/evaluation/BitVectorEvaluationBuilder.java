@@ -70,7 +70,8 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    checkArgument(pOptions.reduceLastThreadOrder(), "reduceLastThreadOrder must be enabled");
+    checkArgument(
+        pOptions.abortCommutingContextSwitches(), "reduceLastThreadOrder must be enabled");
 
     return switch (pOptions.reductionMode()) {
       case NONE ->

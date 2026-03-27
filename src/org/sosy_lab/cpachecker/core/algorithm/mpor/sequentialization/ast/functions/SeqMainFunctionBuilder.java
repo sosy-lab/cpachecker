@@ -95,7 +95,7 @@ public final class SeqMainFunctionBuilder {
       // otherwise include the thread simulations in the main function directly
       ImmutableList.Builder<CCompoundStatementElement> loopBlock = ImmutableList.builder();
 
-      if (pOptions.reduceLastThreadOrder()) {
+      if (pOptions.abortCommutingContextSwitches()) {
         // add LAST_THREAD = next_thread assignment (before setting next_thread)
         if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
           CExpressionAssignmentStatement assignment =

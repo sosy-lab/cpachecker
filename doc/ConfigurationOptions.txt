@@ -264,6 +264,10 @@ analysis.algorithm.IMC = false
 # will get aborted.
 analysis.algorithm.MPI = false
 
+# Abort context switches between the previous and current thread if they
+# commute, i.e., they are not in conflict.
+analysis.algorithm.MPOR.abortCommutingContextSwitches = false
+
 # Allow input programs that write pointer variables?
 analysis.algorithm.MPOR.allowPointerWrites = true
 
@@ -361,9 +365,6 @@ analysis.algorithm.MPOR.pruneSparseBitVectorWrites = false
 # for their corresponding thread. Reduces the amount of variables,
 # evaluations, and writes in the output program.
 analysis.algorithm.MPOR.pruneSparseBitVectors = false
-
-# Enforce an execution order if the current and previous thread commute?
-analysis.algorithm.MPOR.reduceLastThreadOrder = false
 
 # How to determine if two threads commute from a location. READ_AND_WRITE
 # reduces the state space more than ACCESS_ONLY, but introduces additional
