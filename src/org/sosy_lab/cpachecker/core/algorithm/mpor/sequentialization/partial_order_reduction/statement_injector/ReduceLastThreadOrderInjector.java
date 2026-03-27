@@ -192,10 +192,12 @@ public record ReduceLastThreadOrderInjector(
   }
 
   private ImmutableList<CExpressionAssignmentStatement> buildDenseLastBitVectorUpdates() {
-    return switch (options.reductionMode()) {
+    return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build updates for reductionMode %s", options.reductionMode()));
+              String.format(
+                  "cannot build updates for partialOrderReductionMode %s",
+                  options.partialOrderReductionMode()));
       case ACCESS_ONLY -> buildDenseLastBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
@@ -206,10 +208,12 @@ public record ReduceLastThreadOrderInjector(
   }
 
   private ImmutableList<CExpressionAssignmentStatement> buildSparseLastBitVectorUpdates() {
-    return switch (options.reductionMode()) {
+    return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build updates for reductionMode %s", options.reductionMode()));
+              String.format(
+                  "cannot build updates for partialOrderReductionMode %s",
+                  options.partialOrderReductionMode()));
       case ACCESS_ONLY -> buildSparseLastBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()

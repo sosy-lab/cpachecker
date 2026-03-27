@@ -15,7 +15,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.MultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -146,6 +146,15 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
+          "How the partial order reduction defines whether threads commute based on their current"
+              + " locations and their reachable memory location accesses. READ_AND_WRITE reduces"
+              + " the state space more than ACCESS_ONLY, but introduces additional overhead (i.e.,"
+              + " number of variables, assignments, and expression evaluations).")
+  private PartialOrderReductionMode partialOrderReductionMode = PartialOrderReductionMode.NONE;
+
+  @Option(
+      secure = true,
+      description =
           "Prune and simplify bit vector evaluation expressions based on perfect knowledge? E.g.,"
               + " if it is known that the left hand side in an & expression is 0, then the entire"
               + " evaluation can be pruned.")
@@ -176,14 +185,6 @@ public class MPOROptions {
               + " given location, so any additional write to 1 is unnecessary and can be pruned"
               + " with this option.")
   private boolean pruneSparseBitVectorWrites = false;
-
-  @Option(
-      secure = true,
-      description =
-          "How to determine if two threads commute from a location. READ_AND_WRITE reduces the"
-              + " state space more than ACCESS_ONLY, but introduces additional overhead (i.e.,"
-              + " number of variables, assignments, and expression evaluations)")
-  private ReductionMode reductionMode = ReductionMode.NONE;
 
   @Option(
       secure = true,
@@ -373,10 +374,10 @@ public class MPOROptions {
       }
     }
     if (isAnyBitVectorReductionEnabled()) {
-      if (!reductionMode.isEnabled()) {
+      if (!partialOrderReductionMode.isEnabled()) {
         throw new InvalidConfigurationException(
-            "a partial order reduction with bit vectors option is enabled, but reductionMode is not"
-                + " set.");
+            "a partial order reduction with bit vectors option is enabled, but"
+                + " partialOrderReductionMode is not set.");
       }
       if (!bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
@@ -384,9 +385,9 @@ public class MPOROptions {
                 + " not set.");
       }
     } else {
-      if (reductionMode.isEnabled()) {
+      if (partialOrderReductionMode.isEnabled()) {
         throw new InvalidConfigurationException(
-            "reductionMode is set, but no partial order reduction option is enabled");
+            "partialOrderReductionMode is set, but no partial order reduction option is enabled");
       }
       if (bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
@@ -487,6 +488,10 @@ public class MPOROptions {
     return nondeterminismSource;
   }
 
+  public PartialOrderReductionMode partialOrderReductionMode() {
+    return partialOrderReductionMode;
+  }
+
   public boolean pruneBitVectorEvaluations() {
     return pruneBitVectorEvaluations;
   }
@@ -501,10 +506,6 @@ public class MPOROptions {
 
   public boolean pruneSparseBitVectorWrites() {
     return pruneSparseBitVectorWrites;
-  }
-
-  public ReductionMode reductionMode() {
-    return reductionMode;
   }
 
   public boolean scalarProgramCounters() {

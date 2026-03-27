@@ -344,6 +344,14 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
+# How the partial order reduction defines whether threads commute based on
+# their current locations and their reachable memory location accesses.
+# READ_AND_WRITE reduces the state space more than ACCESS_ONLY, but
+# introduces additional overhead (i.e., number of variables, assignments, and
+# expression evaluations).
+analysis.algorithm.MPOR.partialOrderReductionMode = NONE
+  enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
+
 # Prune and simplify bit vector evaluation expressions based on perfect
 # knowledge? E.g., if it is known that the left hand side in an & expression
 # is 0, then the entire evaluation can be pruned.
@@ -365,13 +373,6 @@ analysis.algorithm.MPOR.pruneSparseBitVectorWrites = false
 # for their corresponding thread. Reduces the amount of variables,
 # evaluations, and writes in the output program.
 analysis.algorithm.MPOR.pruneSparseBitVectors = false
-
-# How to determine if two threads commute from a location. READ_AND_WRITE
-# reduces the state space more than ACCESS_ONLY, but introduces additional
-# overhead (i.e., number of variables, assignments, and expression
-# evaluations)
-analysis.algorithm.MPOR.reductionMode = NONE
-  enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
 # Use separate int values (scalars) for tracking thread program counters
 # instead of a single int array?

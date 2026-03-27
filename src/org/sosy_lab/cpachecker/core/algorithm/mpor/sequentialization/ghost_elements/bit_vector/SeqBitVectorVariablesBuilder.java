@@ -41,10 +41,10 @@ public record SeqBitVectorVariablesBuilder(
     MemoryModel memoryModel) {
 
   public Optional<SeqBitVectorVariables> buildBitVectorVariables() {
-    return switch (options.reductionMode()) {
+    return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "reductionMode is not set, cannot build bit vector variables");
+              "partialOrderReductionMode is not set, cannot build bit vector variables");
       case ACCESS_ONLY -> buildAccessOnlyBitVectorVariables();
       case READ_AND_WRITE -> buildReadWriteBitVectorVariables();
     };
@@ -141,7 +141,10 @@ public record SeqBitVectorVariablesBuilder(
       MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.executeCommutingThreadsFirst(), options.reductionMode(), pAccessType, pReachType)) {
+        options.executeCommutingThreadsFirst(),
+        options.partialOrderReductionMode(),
+        pAccessType,
+        pReachType)) {
       return Optional.empty();
     }
     return switch (pReachType) {
@@ -187,7 +190,10 @@ public record SeqBitVectorVariablesBuilder(
       SeqMemoryLocation pMemoryLocation, MemoryAccessType pAccessType, ReachType pReachType) {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.executeCommutingThreadsFirst(), options.reductionMode(), pAccessType, pReachType)) {
+        options.executeCommutingThreadsFirst(),
+        options.partialOrderReductionMode(),
+        pAccessType,
+        pReachType)) {
       return ImmutableMap.of();
     }
     ImmutableMap.Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();

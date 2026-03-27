@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 public record SeqBitVectorDeclarationBuilder(
     SeqBitVectorEncoding bitVectorEncoding,
     boolean reduceIgnoreSleep,
-    ReductionMode reductionMode,
+    PartialOrderReductionMode partialOrderReductionMode,
     SeqBitVectorVariables bitVectorVariables,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
     MachineModel machineModel,
@@ -70,10 +70,11 @@ public record SeqBitVectorDeclarationBuilder(
   private ImmutableList<CVariableDeclaration> buildDenseBitVectorDeclarationsByReductionMode()
       throws UnsupportedCodeException {
 
-    return switch (reductionMode) {
+    return switch (partialOrderReductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build bit vector declarations for reductionMode " + reductionMode);
+              "cannot build bit vector declarations for partialOrderReductionMode "
+                  + partialOrderReductionMode);
       case ACCESS_ONLY -> buildDenseBitVectorDeclarationsByAccessType(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CVariableDeclaration>builder()
@@ -112,7 +113,7 @@ public record SeqBitVectorDeclarationBuilder(
 
       for (ReachType reachType : ReachType.values()) {
         if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            reduceIgnoreSleep, reductionMode, pAccessType, reachType)) {
+            reduceIgnoreSleep, partialOrderReductionMode, pAccessType, reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
@@ -155,10 +156,11 @@ public record SeqBitVectorDeclarationBuilder(
   // SPARSE ========================================================================================
 
   private ImmutableList<CVariableDeclaration> buildSparseBitVectorDeclarationsByReductionMode() {
-    return switch (reductionMode) {
+    return switch (partialOrderReductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build bit vector declarations for reductionMode " + reductionMode);
+              "cannot build bit vector declarations for partialOrderReductionMode "
+                  + partialOrderReductionMode);
       case ACCESS_ONLY -> buildSparseBitVectorDeclarations(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CVariableDeclaration>builder()

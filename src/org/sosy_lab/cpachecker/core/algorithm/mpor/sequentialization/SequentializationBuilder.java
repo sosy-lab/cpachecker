@@ -374,7 +374,7 @@ public class SequentializationBuilder {
           new SeqBitVectorDeclarationBuilder(
               pOptions.bitVectorEncoding(),
               pOptions.executeCommutingThreadsFirst(),
-              pOptions.reductionMode(),
+              pOptions.partialOrderReductionMode(),
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
               pFields.machineModel,

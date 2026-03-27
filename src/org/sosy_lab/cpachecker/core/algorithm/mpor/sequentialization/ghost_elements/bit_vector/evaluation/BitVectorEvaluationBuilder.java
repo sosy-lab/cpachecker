@@ -43,11 +43,12 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.reductionMode()) {
+    return switch (pOptions.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode()));
+                  "cannot build evaluation for partialOrderReductionMode %s",
+                  pOptions.partialOrderReductionMode()));
       case ACCESS_ONLY ->
           BitVectorAccessEvaluationBuilder.buildVariableOnlyEvaluationByEncoding(
               pOptions, pActiveThread, pOtherThreads, pBitVectorVariables, pUtils);
@@ -73,11 +74,12 @@ public class BitVectorEvaluationBuilder {
     checkArgument(
         pOptions.abortCommutingContextSwitches(), "reduceLastThreadOrder must be enabled");
 
-    return switch (pOptions.reductionMode()) {
+    return switch (pOptions.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode()));
+                  "cannot build evaluation for partialOrderReductionMode %s",
+                  pOptions.partialOrderReductionMode()));
       case ACCESS_ONLY -> {
         ImmutableSet<SeqMemoryLocation> reachableAccessMemoryLocations =
             SeqMemoryLocationFinder.findReachableMemoryLocationsByAccessType(
@@ -230,11 +232,12 @@ public class BitVectorEvaluationBuilder {
         pOptions.executeThreadsUntilConflict(),
         "reduceUntilConflict must be enabled to build evaluation expression");
 
-    return switch (pOptions.reductionMode()) {
+    return switch (pOptions.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode()));
+                  "cannot build evaluation for partialOrderReductionMode %s",
+                  pOptions.partialOrderReductionMode()));
       case ACCESS_ONLY -> {
         ImmutableSet<SeqMemoryLocation> directAccessMemoryLocations =
             SeqMemoryLocationFinder.findDirectMemoryLocationsByAccessType(
@@ -283,11 +286,12 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.reductionMode()) {
+    return switch (pOptions.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode()));
+                  "cannot build evaluation for partialOrderReductionMode %s",
+                  pOptions.partialOrderReductionMode()));
       case ACCESS_ONLY ->
           buildAccessEvaluationByEncoding(
               pOptions,
