@@ -29,6 +29,9 @@ public class TestUtil {
   // public so that this can be accessed for the LinearDecomposition test
   public static final String DSS_CONFIGURATION_FILE = "config/dss.properties";
 
+  public static final String DSS_FORWARD_CONFIGURATION_FILE =
+      "config/distributed-summary-synthesis/dss-block-analysis.properties";
+
   // Do not use TestDataTools.configurationForTest() because we want output files
   public static Configuration generateConfig(String configFile, Path testFolder)
       throws InvalidConfigurationException, IOException {

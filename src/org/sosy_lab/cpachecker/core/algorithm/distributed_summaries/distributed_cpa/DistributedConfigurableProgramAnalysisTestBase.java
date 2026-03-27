@@ -54,7 +54,9 @@ public class DistributedConfigurableProgramAnalysisTestBase {
       throws Exception {
 
     Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
+        TestDataTools.configurationForTest()
+            .loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE)
+            .build();
     DssAnalysisOptions options = new DssAnalysisOptions(config);
     DssMessageFactory messageFactory = new DssMessageFactory(options);
 
