@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaratio
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
 
-class SvLibCurrentScope extends SvLibScope {
+public class SvLibCurrentScope extends SvLibScope {
 
   private PersistentMap<String, SvLibSimpleParsingDeclaration> globalVariables;
 
