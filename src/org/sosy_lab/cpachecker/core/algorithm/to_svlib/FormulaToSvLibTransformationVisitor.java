@@ -112,6 +112,8 @@ public class FormulaToSvLibTransformationVisitor implements FormulaVisitor<SvLib
                 SmtLibTheoryDeclarations.intSubtraction(pArgTypes.size()), FileLocation.DUMMY);
         case "*", "Integer_*_" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MULTIPLICATION, FileLocation.DUMMY);
+        case "/", "Integer_/_" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.INT_DIV, FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.REAL
