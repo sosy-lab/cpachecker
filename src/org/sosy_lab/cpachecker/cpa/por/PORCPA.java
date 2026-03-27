@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -33,6 +36,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.CompositePrecisionVariableManager;
+import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.ConfigurablePrecisionVariableManager;
 import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.PredicatePrecisionVariableManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -120,32 +125,40 @@ public class PORCPA extends AbstractSingleWrapperCPA {
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
+    ConfigurableProgramAnalysis wrappedCpa = getWrappedCpa();
     if (abstractionAware) {
-      Precision initialWrappedPrecision = getWrappedCpa().getInitialPrecision(pNode, pPartition);
-      PrecisionVariableManager variableExtractor = null;
+      Precision initialWrappedPrecision = wrappedCpa.getInitialPrecision(pNode, pPartition);
+      List<PrecisionVariableManager> variableManagers = new ArrayList<>(1);
+
+      ConfigurablePrecision configurablePrecision =
+          Precisions.extractPrecisionByType(initialWrappedPrecision, ConfigurablePrecision.class);
+      if (configurablePrecision != null) {
+        variableManagers.add(new ConfigurablePrecisionVariableManager());
+      }
 
       PredicatePrecision predicatePrecision =
           Precisions.extractPrecisionByType(initialWrappedPrecision, PredicatePrecision.class);
       if (predicatePrecision != null) {
-        var predicateCPA = CPAs.retrieveCPA(getWrappedCpa(), PredicateCPA.class);
+        var predicateCPA = CPAs.retrieveCPA(wrappedCpa, PredicateCPA.class);
         if (predicateCPA == null) {
           throw new IllegalStateException(
               "Abstraction-aware POR requires PredicateCPA when using PredicatePrecision, but it is not present.");
         }
         var fmgr = predicateCPA.getSolver().getFormulaManager();
-        variableExtractor = new PredicatePrecisionVariableManager(fmgr);
+        variableManagers.add(new PredicatePrecisionVariableManager(fmgr));
       }
 
-      if (variableExtractor == null) {
-        throw new IllegalStateException(
+      PrecisionVariableManager variableManager = switch (variableManagers.size()) {
+        case 0 -> throw new IllegalStateException(
             "Abstraction-aware POR does not support this precision: " + initialWrappedPrecision);
-      }
+        case 1 -> variableManagers.getFirst();
+        default -> new CompositePrecisionVariableManager(ImmutableList.copyOf(variableManagers));
+      };
 
-      return new AbstractionAwarePORPrecision(variableExtractor, initialWrappedPrecision);
+      return new AbstractionAwarePORPrecision(variableManager, initialWrappedPrecision);
     }
 
-    return new AbstractionUnawarePORPrecision(
-        getWrappedCpa().getInitialPrecision(pNode, pPartition));
+    return new AbstractionUnawarePORPrecision(wrappedCpa.getInitialPrecision(pNode, pPartition));
   }
 
   @Override
@@ -165,7 +178,7 @@ public class PORCPA extends AbstractSingleWrapperCPA {
           Precision wrappedPrecision = porPrecision.getWrappedPrecision();
           AbstractState mergedWrapped =
               wrappedMergeOperator.merge(wrapped1, wrapped2, wrappedPrecision);
-          if(wrapped2.equals(mergedWrapped)) {
+          if (wrapped2.equals(mergedWrapped)) {
             return porState2;
           } else {
             return porState1.withWrappedState(mergedWrapped);
@@ -182,11 +195,14 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       if (state instanceof PORState porState && precision instanceof PORPrecision porPrecision) {
         ImmutableList.Builder<AbstractState> builder = ImmutableList.builder();
         for (AbstractState reachedState : reached) {
-          if (reachedState instanceof PORState reachedPorState && Objects.equals(porState.threads(), reachedPorState.threads()) && Objects.equals(porState.threadHandles(), reachedPorState.threadHandles())) {
+          if (reachedState instanceof PORState reachedPorState && Objects.equals(porState.threads(),
+              reachedPorState.threads()) && Objects.equals(porState.threadHandles(),
+              reachedPorState.threadHandles())) {
             builder.add(reachedPorState.getWrappedState());
           }
         }
-        return getWrappedCpa().getStopOperator().stop(porState.getWrappedState(), builder.build(), porPrecision.getWrappedPrecision());
+        return getWrappedCpa().getStopOperator()
+            .stop(porState.getWrappedState(), builder.build(), porPrecision.getWrappedPrecision());
       }
       return false;
     };

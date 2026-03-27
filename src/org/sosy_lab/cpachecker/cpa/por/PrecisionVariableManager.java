@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.por;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -18,9 +19,62 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 interface PrecisionVariableManager {
 
-  void setNewPrecision(Precision precision);
+  void setNewPrecision(Precision pPrecision);
 
   boolean contains(MemoryLocation pMemoryLocation);
+
+  class CompositePrecisionVariableManager implements PrecisionVariableManager {
+
+    private final ImmutableCollection<PrecisionVariableManager> variableManagers;
+
+    CompositePrecisionVariableManager(ImmutableCollection<PrecisionVariableManager> pVariableManagers) {
+      variableManagers = pVariableManagers;
+    }
+
+    @Override
+    public void setNewPrecision(Precision pPrecision) {
+      for (var manager : variableManagers) {
+        manager.setNewPrecision(pPrecision);
+      }
+    }
+
+    @Override
+    public boolean contains(MemoryLocation pMemoryLocation) {
+      for (var manager : variableManagers) {
+        if (manager.contains(pMemoryLocation)) {
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+
+  class ConfigurablePrecisionVariableManager implements PrecisionVariableManager {
+
+    private ConfigurablePrecision precision = null;
+
+    @Override
+    public void setNewPrecision(Precision pPrecision) {
+      ConfigurablePrecision newPrecision =
+          Precisions.extractPrecisionByType(pPrecision, ConfigurablePrecision.class);
+      if (newPrecision == null) {
+        throw new IllegalArgumentException(
+            "Expected a ConfigurablePrecision, but got: " + pPrecision);
+      }
+
+      precision = newPrecision;
+    }
+
+    @Override
+    public boolean contains(MemoryLocation pMemoryLocation) {
+      if (precision == null) {
+        throw new IllegalStateException(
+            "PrecisionVariableManager not initialized with a precision");
+      }
+
+      return precision.isTracking(pMemoryLocation);
+    }
+  }
 
   class PredicatePrecisionVariableManager implements PrecisionVariableManager {
 
@@ -34,11 +88,11 @@ interface PrecisionVariableManager {
     }
 
     @Override
-    public void setNewPrecision(Precision precision) {
+    public void setNewPrecision(Precision pPrecision) {
       PredicatePrecision predicatePrecision =
-          Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+          Precisions.extractPrecisionByType(pPrecision, PredicatePrecision.class);
       if (predicatePrecision == null) {
-        throw new IllegalArgumentException("Expected a PredicatePrecision, but got: " + precision);
+        throw new IllegalArgumentException("Expected a PredicatePrecision, but got: " + pPrecision);
       }
 
       if (predicatePrecision.equals(lastPrecision)) {

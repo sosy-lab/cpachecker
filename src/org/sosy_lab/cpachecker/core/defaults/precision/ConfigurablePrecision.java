@@ -125,7 +125,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     }
   }
 
-  private boolean isTracking(MemoryLocation pVariable) {
+  public boolean isTracking(MemoryLocation pVariable) {
     if (isOnWhitelist(pVariable.getIdentifier())) {
       return true;
     }
