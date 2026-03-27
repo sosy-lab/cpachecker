@@ -31,7 +31,6 @@ public class DssDecompositionOptions {
   public enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
-    BRIDGE_DECOMPOSITION,
     NO_DECOMPOSITION
   }
 
@@ -99,9 +98,6 @@ public class DssDecompositionOptions {
               2,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
               allowSingleBlockDecompositionWhenMerging);
-      case BRIDGE_DECOMPOSITION ->
-          new VerticalMergeDecomposition(
-              new BridgeDecomposition(), 1, Comparator.comparingInt(b -> b.getEdges().size()));
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }
