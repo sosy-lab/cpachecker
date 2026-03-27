@@ -264,139 +264,148 @@ analysis.algorithm.IMC = false
 # will get aborted.
 analysis.algorithm.MPI = false
 
-# allow input programs that write pointer variables?
+# Allow input programs that write pointer variables?
 analysis.algorithm.MPOR.allowPointerWrites = true
 
-# merge statements between __VERIFIER_atomic_begin() and
-# __VERIFIER_atomic_end() via goto? setting this to false does not model the
-# input programs behavior correctly.
+# Merge statements between __VERIFIER_atomic_begin() and
+# __VERIFIER_atomic_end() with goto statements? Setting this to false does
+# not model the input programs behavior correctly.
 analysis.algorithm.MPOR.atomicBlockMerge = true
 
-# the encoding of the partial order reduction bit vectors.
+# The encoding of bit vectors that are used to instrument the output program
+# with partial order reduction.
 analysis.algorithm.MPOR.bitVectorEncoding = NONE
   enum:     [NONE, BINARY, OCTAL, DECIMAL, HEXADECIMAL, SPARSE]
 
-# the style preset used by clang-format to format the output program. use
+# The style preset used by clang-format to format the output program. Use
 # NONE to disable formatting.
 analysis.algorithm.MPOR.clangFormatStyle = WEBKIT
   enum:     [NONE, CHROMIUM, GNU, GOOGLE, LLVM, MICROSOFT, MOZILLA, WEBKIT]
 
-# include comments with trivia explaining the sequentialization?
+# Include comments in the output program that explain the sequentialization
+# and its components?
 analysis.algorithm.MPOR.comments = false
 
-# make labels for thread statements consecutive? i.e. 0 to n - 1 where n is
-# the number of statements. disabling may result in the first statement being
-# unreachable, but can be useful for debugging.
+# Make labels for thread statements consecutive, i.e., in [1; N] where N is
+# the number of statements? Disabling this option may result in the first
+# statement being unreachable, but can be useful for debugging.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
-# defines the syntax in which the next statement of a thread simulation is
-# chosen.
+# Defines the program syntax in which the next statement(s) of a thread
+# simulation is selected.
 analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
   enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
-# defines the syntax in which the next thread executing a statement is
-# chosen.
+# Defines the program syntax in which the next thread executing a statement
+# (or multiple statements) is selected.
 analysis.algorithm.MPOR.controlEncodingThread = NONE
   enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
-# include original function declarations from input file? including them may
-# result in unsound analysis (e.g. false alarms for CBMC + ignored function
-# calls through function pointers for CPAchecker)
+# Include original function declarations from the input program? Including
+# them may result in unsound analysis (e.g. false alarms for CBMC, or ignored
+# function calls through function pointers for CPAchecker).
 analysis.algorithm.MPOR.inputFunctionDeclarations = false
 
-# include original type declarations from input file? disabling may result in
-# parse errors for the output program.
+# Include original type declarations from the input file? Disabling may
+# result in parse errors for the output program.
 analysis.algorithm.MPOR.inputTypeDeclarations = true
 
-# link commuting statements via goto to reduce the state space?
+# Link commuting statements with goto statements to reduce the state space?
 analysis.algorithm.MPOR.linkReduction = true
 
-# the number of loop iterations to perform thread simulations. use 0 for an
-# infinite loop (while (1)). any number other than 0 is unsound, because the
+# The number of loop iterations to perform thread simulations. Use 0 for an
+# infinite loop (while (1)). Any number other than 0 is unsound, because the
 # entire state space is not searched.
 analysis.algorithm.MPOR.loopIterations = 0
 
-# unroll the loop used for thread simulation? not unrolling loops can be
-# unsound, e.g. for CBMC. only use with loopIterations > 0.
+# Unroll the loop used for the thread simulation? Disabling this option can
+# be unsound for CBMC. Enabling this option is only possible with
+# loopIterations > 0.
 analysis.algorithm.MPOR.loopUnrolling = false
 
-# removes backward goto, i.e. jumping to a line higher up in the program, by
-# reordering statements. only works for if-else constructs, not loops. use
-# noBackwardLoopGoto to ensure that backward loop goto are removed.
+# Removes backward goto, i.e., jumping to a line higher up in the program, by
+# reordering statements. Only works for if-else constructs, not loops. Use
+# noBackwardLoopGoto to ensure that backward goto from loops are removed too.
 analysis.algorithm.MPOR.noBackwardGoto = true
 
-# removes backward goto from loops. this option is independent from
+# Removes backward goto from loops. This option is independent from
 # noBackwardGoto.
 analysis.algorithm.MPOR.noBackwardLoopGoto = true
 
-# use signed __VERIFIER_nondet_int() instead of unsigned
+# Use signed __VERIFIER_nondet_int() instead of unsigned
 # __VERIFIER_nondet_uint()?
 analysis.algorithm.MPOR.nondeterminismSigned = false
 
-# the source(s) of nondeterminism in the sequentialization.
+# The source(s) of nondeterminism in the sequentialization.
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
-# prune and simplify bit vector evaluation expressions based on perfect
-# knowledge? e.g. if it is known that the left hand side in an & expression
+# Prune and simplify bit vector evaluation expressions based on perfect
+# knowledge? E.g., if it is known that the left hand side in an & expression
 # is 0, then the entire evaluation can be pruned.
 analysis.algorithm.MPOR.pruneBitVectorEvaluations = false
 
-# prune empty statements (with only pc writes) from the sequentialization?
+# Prune empty statements with no semantics from the input program from the
+# sequentialization?
 analysis.algorithm.MPOR.pruneEmptyStatements = true
 
-# bit vectors are only written to 0 if the corresponding memory location is
-# not reachable anymore, removing all unnecessary writes to 1 in the output
-# program.
+# Prune unnecessary sparse bit vector writes to 1 in the output program?
+# Sparse bit vectors for the reachability of a memory location are
+# initialized to 1, and only written to 0 if the corresponding memory
+# location is not reachable anymore from a given location, so any additional
+# write to 1 is unnecessary and can be pruned with this option.
 analysis.algorithm.MPOR.pruneSparseBitVectorWrites = false
 
-# only bit vectors for memory locations that are reachable for a thread are
-# included, reducing the amount of variables, evaluations, and writes in the
-# output program.
+# Prune the sparse bit vectors so that the scalar bool variables for the bit
+# vector are only included if their respective memory location is reachable
+# for their corresponding thread. Reduces the amount of variables,
+# evaluations, and writes in the output program.
 analysis.algorithm.MPOR.pruneSparseBitVectors = false
 
-# ignore that the current thread should not execute if it is not in conflict
+# Ignore that the current thread should not execute if it is not in conflict
 # with any other thread?
 analysis.algorithm.MPOR.reduceIgnoreSleep = false
 
-# enforce an execution order when the current and previous thread commute?
+# Enforce an execution order if the current and previous thread commute?
 analysis.algorithm.MPOR.reduceLastThreadOrder = false
 
 # Continue executing the current thread if it is the only active thread. This
-# option utilizes a thread_count ghost variable which is incremented for each
-# created thread and decremented for each terminated thread. These increments
-# and decrement are placed inside a possibly infinite loop, so when analyzing
-# for overflows, it may be more efficient to disable this option.
+# option utilizes a thread_count ghost variable which is initialized to 1 and
+# incremented for each created thread and decremented for each terminated
+# thread. These increments and decrement are placed inside a possibly
+# infinite loop, so when analyzing for overflows, it may be more efficient to
+# disable this option.
 analysis.algorithm.MPOR.reduceSingleActiveThread = true
 
-# continue executing the current thread until it is in conflict with at least
+# Continue executing the current thread until it is in conflict with at least
 # another thread?
 analysis.algorithm.MPOR.reduceUntilConflict = false
 
-# how to determine if two threads commute from a location. READ_AND_WRITE
+# How to determine if two threads commute from a location. READ_AND_WRITE
 # reduces the state space more than ACCESS_ONLY, but introduces additional
-# overhead (i.e. number of variables, assignments, and expression
+# overhead (i.e., number of variables, assignments, and expression
 # evaluations)
 analysis.algorithm.MPOR.reductionMode = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
-# use separate int values (scalars) for tracking thread pcs instead of int
-# arrays?
+# Use separate int values (scalars) for tracking thread program counters
+# instead of a single int array?
 analysis.algorithm.MPOR.scalarPc = true
 
-# use shortened variable names, e.g. THREAD0 -> T0
+# Use shortened variable names, e.g., THREAD0 -> T0.
 analysis.algorithm.MPOR.shortVariableNames = true
 
-# check if all goto statements jump forward, i.e. to a higher line of code in
-# the program?
+# Check if all goto statements jump forward, i.e., to a higher line of code
+# in the program?
 analysis.algorithm.MPOR.validateNoBackwardGoto = true
 
-# check if CPAchecker can parse sequentialization? note that it may take
-# several seconds to parse a program
+# Check if CPAchecker can parse output program? Note that it may take several
+# seconds to parse a program.
 analysis.algorithm.MPOR.validateParse = true
 
-# check if all label pc (except initial) are target pc and all target pc
-# (except  termination) are label pc within a thread simulation?
+# Check (1) if all label program counter (except initial program counters)
+# are also targeted and (2) that all target program counter (except
+# terminating program counters) are also labels within a thread simulation?
 analysis.algorithm.MPOR.validatePc = true
 
 # use MPV algorithm for checking multiple properties
