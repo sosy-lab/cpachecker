@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 public sealed class CFunctionCallStatement extends AFunctionCallStatement
     implements CStatement, CFunctionCall
@@ -51,5 +53,18 @@ public sealed class CFunctionCallStatement extends AFunctionCallStatement
     }
 
     return obj instanceof CFunctionCallStatement && super.equals(obj);
+  }
+
+  /** Creates a {@link CFunctionCallStatement} invoking the given void function declaration. */
+  public static CFunctionCallStatement createNoArgsVoidFunctionCall(
+      FileLocation loc, CFunctionDeclaration declaration) {
+    return new CFunctionCallStatement(
+        loc,
+        new CFunctionCallExpression(
+            loc,
+            CVoidType.VOID,
+            new CIdExpression(loc, declaration),
+            ImmutableList.of(),
+            declaration));
   }
 }

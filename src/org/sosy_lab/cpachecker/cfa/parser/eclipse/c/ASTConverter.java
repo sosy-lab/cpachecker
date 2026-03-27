@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement.createNoArgsVoidFunctionCall;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_BEGIN_DECLARATION;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_END_DECLARATION;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -300,25 +303,6 @@ class ASTConverter {
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
 
-  // Declarations for __VERIFIER_atomic_begin/end, used to wrap operations on C11 _Atomic
-  // variables in atomic sections so that concurrent analyses treat them as indivisible.
-  private static final CFunctionType VOID_FUNCTION_TYPE =
-      new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
-  private static final CFunctionDeclaration ATOMIC_BEGIN_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          VOID_FUNCTION_TYPE,
-          "__VERIFIER_atomic_begin",
-          ImmutableList.of(),
-          ImmutableSet.of());
-  private static final CFunctionDeclaration ATOMIC_END_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          VOID_FUNCTION_TYPE,
-          "__VERIFIER_atomic_end",
-          ImmutableList.of(),
-          ImmutableSet.of());
-
   private final ExpressionSimplificationVisitor expressionSimplificator;
   private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
   private final CBinaryExpressionBuilder binExprBuilder;
@@ -444,19 +428,6 @@ class ASTConverter {
     sideAssignmentStack.addPreSideAssignment(
         new CExpressionAssignmentStatement(fileLoc, exp, postExp));
     return tmp;
-  }
-
-  /** Creates a {@link CFunctionCallStatement} invoking the given void function declaration. */
-  private static CFunctionCallStatement createAtomicCallStatement(
-      FileLocation loc, CFunctionDeclaration declaration) {
-    return new CFunctionCallStatement(
-        loc,
-        new CFunctionCallExpression(
-            loc,
-            CVoidType.VOID,
-            new CIdExpression(loc, declaration),
-            List.of(),
-            declaration));
   }
 
   private void addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
@@ -950,16 +921,17 @@ class ASTConverter {
 
         // C11 _Atomic compound assignments (+=, -=, etc.) must appear inside an atomic
         // section so that concurrent analyses treat the read-modify-write as indivisible.
+        // see https://en.cppreference.com/w/c/language/atomic.html
         if (lhs.getExpressionType().isAtomic()) {
           CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
           CExpressionAssignmentStatement result =
               new CExpressionAssignmentStatement(fileLoc, lhs, exp);
 
           sideAssignmentStack.addPreSideAssignment(
-              createAtomicCallStatement(lhs.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+              createNoArgsVoidFunctionCall(lhs.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
           sideAssignmentStack.addPreSideAssignment(result);
           sideAssignmentStack.addPreSideAssignment(
-              createAtomicCallStatement(lhs.getFileLocation(), ATOMIC_END_DECLARATION));
+              createNoArgsVoidFunctionCall(lhs.getFileLocation(), ATOMIC_END_DECLARATION));
 
           return lhs;
         }
@@ -1628,11 +1600,11 @@ class ASTConverter {
         // analyses treat the read-modify-write as a single indivisible step.
         if (operandType.isAtomic()) {
           sideAssignmentStack.addPreSideAssignment(
-              createAtomicCallStatement(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+              createNoArgsVoidFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
           sideAssignmentStack.addPreSideAssignment(result);
           CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPre);
           sideAssignmentStack.addPreSideAssignment(
-              createAtomicCallStatement(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+              createNoArgsVoidFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
           return tmp;
         }
 
@@ -1660,9 +1632,10 @@ class ASTConverter {
 
         // C11 _Atomic operations must appear inside an atomic section so that concurrent
         // analyses treat the read-modify-write as a single indivisible step.
+        // see https://en.cppreference.com/w/c/language/atomic.html
         if (operandType.isAtomic()) {
           sideAssignmentStack.addPreSideAssignment(
-              createAtomicCallStatement(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+              createNoArgsVoidFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
         }
 
         CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPost);
@@ -1670,7 +1643,7 @@ class ASTConverter {
 
         if (operandType.isAtomic()) {
           sideAssignmentStack.addPreSideAssignment(
-              createAtomicCallStatement(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+              createNoArgsVoidFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
         }
 
         return tmp;

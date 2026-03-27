@@ -17,6 +17,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
  * This class represents forward declarations of functions. Example code:
@@ -30,6 +31,22 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
           FileLocation.DUMMY,
           CFunctionType.NO_ARGS_VOID_FUNCTION,
           "dummy",
+          ImmutableList.of(),
+          ImmutableSet.of());
+
+  // Declarations for __VERIFIER_atomic_begin/end
+  public static final CFunctionDeclaration ATOMIC_BEGIN_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          CFunctionType.NO_ARGS_VOID_FUNCTION,
+          "__VERIFIER_atomic_begin",
+          ImmutableList.of(),
+          ImmutableSet.of());
+  public static final CFunctionDeclaration ATOMIC_END_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          CFunctionType.NO_ARGS_VOID_FUNCTION,
+          "__VERIFIER_atomic_end",
           ImmutableList.of(),
           ImmutableSet.of());
 
