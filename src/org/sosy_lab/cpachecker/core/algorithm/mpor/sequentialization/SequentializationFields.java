@@ -116,7 +116,7 @@ public class SequentializationFields {
     clauses = clauseBuilder.buildClauses();
 
     threadSimulationFunctions =
-        pOptions.loopUnrolling()
+        pOptions.threadSimulationUnrolling()
             ? Optional.of(
                 NondeterministicSimulationBuilder.buildThreadSimulationFunctions(
                     pOptions, machineModel, memoryModel, ghostElements, clauses, pUtils))

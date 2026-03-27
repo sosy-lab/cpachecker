@@ -121,7 +121,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
    * SeqMainFunctionBuilder}).
    */
   Optional<CExportStatement> tryBuildPcPrecedingStatement(MPORThread pThread) {
-    if (!options.loopUnrolling() && !options.scalarProgramCounters()) {
+    if (!options.threadSimulationUnrolling() && !options.scalarProgramCounters()) {
       return Optional.empty();
     }
     return Optional.of(
@@ -131,14 +131,14 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
 
   /**
    * Returns the preceding statements for {@code next_thread}, but only if {@link
-   * MPOROptions#loopUnrolling()} is enabled since otherwise {@code next_thread} is chosen at the
-   * loop head already {@link SeqThreadSimulationFunctionBuilder} and is not required in the
-   * simulation itself.
+   * MPOROptions#threadSimulationUnrolling()} is enabled since otherwise {@code next_thread} is
+   * chosen at the loop head already {@link SeqThreadSimulationFunctionBuilder} and is not required
+   * in the simulation itself.
    */
   Optional<ImmutableList<CExportStatement>> tryBuildNextThreadPrecedingStatements(
       MPORThread pThread) throws UnrecognizedCodeException {
 
-    if (!options.loopUnrolling()) {
+    if (!options.threadSimulationUnrolling()) {
       return Optional.empty();
     }
 

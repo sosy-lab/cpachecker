@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement;
  *
  * <p>Although similarly named, there is an important distinction between the abstract methods
  * {@code buildSingleThreadSimulation} and {@code buildAllThreadSimulations} based on whether the
- * option {@link MPOROptions#loopUnrolling()} is enabled (see examples below):
+ * option {@link MPOROptions#threadSimulationUnrolling()} is enabled (see examples below):
  *
  * <ul>
  *   <li>{@link #buildSingleThreadSimulation(MPORThread)} generates the code for a single thread
@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement;
  *       single block placed in {@code main()}.
  * </ul>
  *
- * <p>Example with {@link MPOROptions#loopUnrolling()} set to {@code false}:
+ * <p>Example with {@link MPOROptions#threadSimulationUnrolling()} set to {@code false}:
  *
  * <pre>{@code
  * main() {
@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement;
  * }
  * }</pre>
  *
- * <p>Example with {@link MPOROptions#loopUnrolling()} set to {@code true}:
+ * <p>Example with {@link MPOROptions#threadSimulationUnrolling()} set to {@code true}:
  *
  * <pre>{@code
  * T1() {
@@ -219,7 +219,7 @@ public abstract class NondeterministicSimulation {
    *
    * <p>The resulting {@link String} must make it possible for the simulation to be placed in a
    * separate function that can be called without any additional wrappers or preceding statements.
-   * This is needed when {@link MPOROptions#loopUnrolling()} is enabled.
+   * This is needed when {@link MPOROptions#threadSimulationUnrolling()} is enabled.
    *
    * <p>E.g., the code must check that {@code pThread} is currently active (e.g. {@code pc0 != 0}
    * for thread 0) and that it is non-deterministically chosen for simulation (e.g. that {@code
@@ -234,8 +234,9 @@ public abstract class NondeterministicSimulation {
 
   /**
    * Builds the {@link String} code of all thread simulations, including wrapper statements such as
-   * {@code if} guards. This is used only when {@link MPOROptions#loopUnrolling()} is disabled,
-   * since then all thread simulations are placed as one code block in the {@code main()} function.
+   * {@code if} guards. This is used only when {@link MPOROptions#threadSimulationUnrolling()} is
+   * disabled, since then all thread simulations are placed as one code block in the {@code main()}
+   * function.
    */
   public abstract CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException;
 

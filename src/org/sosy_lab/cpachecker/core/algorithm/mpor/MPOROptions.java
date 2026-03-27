@@ -91,21 +91,6 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
-          "The number of loop iterations to perform thread simulations. Use 0 for an infinite loop"
-              + " (while (1)). Any number other than 0 is unsound, because the entire state space"
-              + " is not searched.")
-  private int loopIterations = 0;
-
-  @Option(
-      secure = true,
-      description =
-          "Unroll the loop used for the thread simulation? Disabling this option can be unsound for"
-              + " CBMC. Enabling this option is only possible with loopIterations > 0.")
-  private boolean loopUnrolling = false;
-
-  @Option(
-      secure = true,
-      description =
           "Merge statements between __VERIFIER_atomic_begin() and __VERIFIER_atomic_end() with goto"
               + " statements? Setting this to false does not model the input programs behavior"
               + " correctly.")
@@ -227,6 +212,21 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
+          "The number of loop iterations to perform thread simulations. Use 0 for an infinite loop"
+              + " (while (1)). Any number other than 0 is unsound, because the entire state space"
+              + " is not searched.")
+  private int threadSimulationIterations = 0;
+
+  @Option(
+      secure = true,
+      description =
+          "Unroll the loop used for the thread simulation? Disabling this option can be unsound for"
+              + " CBMC. Enabling this option is only possible with threadSimulationIterations > 0.")
+  private boolean threadSimulationUnrolling = false;
+
+  @Option(
+      secure = true,
+      description =
           "Check if all goto statements jump forward, i.e., to a higher line of code in the"
               + " program?")
   private boolean validateNoBackwardGoto = true;
@@ -274,11 +274,10 @@ public class MPOROptions {
     }
     if (nondeterminismSource.isNextThreadNondeterministic()) {
       if (!selectionEncodingForThreads.isEnabled()) {
-        // if loopUnrolling is enabled, then choosing selectionEncodingForThreads=NONE is allowed
-        // even
-        // when nondeterminismSource contains NEXT_THREAD, because then there is no multi selection
-        // statement for next_thread in the main() function anyway
-        if (!loopUnrolling) {
+        // if threadSimulationUnrolling is enabled, then choosing selectionEncodingForThreads=NONE
+        // is allowed even when nondeterminismSource contains NEXT_THREAD, because then there is no
+        // multi selection statement for next_thread in the main() function anyway
+        if (!threadSimulationUnrolling) {
           throw new InvalidConfigurationException(
               String.format(
                   "selectionEncodingForThreads cannot be %s when nondeterminismSource contains"
@@ -288,12 +287,12 @@ public class MPOROptions {
       }
     }
     if (selectionEncodingForThreads.isEnabled()) {
-      if (loopUnrolling) {
+      if (threadSimulationUnrolling) {
         throw new InvalidConfigurationException(
             String.format(
-                "selectionEncodingForThreads cannot be %s when loopUnrolling is enabled, because"
-                    + " the selectionEncodingForThreads is only used when all thread simulations"
-                    + " are placed inside the main() function.",
+                "selectionEncodingForThreads cannot be %s when threadSimulationUnrolling is"
+                    + " enabled, because the selectionEncodingForThreads is only used when all"
+                    + " thread simulations are placed inside the main() function.",
                 selectionEncodingForThreads));
       }
     }
@@ -311,14 +310,16 @@ public class MPOROptions {
             "reduceUntilConflict cannot be enabled when mergeCommutingStatements is disabled.");
       }
     }
-    if (loopIterations < 0) {
+    if (threadSimulationIterations < 0) {
       throw new InvalidConfigurationException(
-          String.format("loopIterations must be 0 or greater, cannot be %s", loopIterations));
+          String.format(
+              "threadSimulationIterations must be 0 or greater, cannot be %s",
+              threadSimulationIterations));
     }
-    if (loopIterations == 0) {
-      if (loopUnrolling) {
+    if (threadSimulationIterations == 0) {
+      if (threadSimulationUnrolling) {
         throw new InvalidConfigurationException(
-            "loopUnrolling can only be enabled when loopIterations > 0");
+            "threadSimulationUnrolling can only be enabled when threadSimulationIterations > 0");
       }
     }
     if (!noBackwardGoto) {
@@ -393,7 +394,7 @@ public class MPOROptions {
 
   public boolean isThreadLabelRequired() {
     // only needed if the loop is finite i.e. not 0, otherwise just use continue;
-    if (loopIterations > 0 && !loopUnrolling) {
+    if (threadSimulationIterations > 0 && !threadSimulationUnrolling) {
       // only use with NUM_STATEMENTS nondeterminism, for NEXT_THREAD, just continue;
       if (!nondeterminismSource.isNextThreadNondeterministic()) {
         // in switch case, just use break; instead of continue;
@@ -441,14 +442,6 @@ public class MPOROptions {
 
   public boolean inputTypeDeclarations() {
     return inputTypeDeclarations;
-  }
-
-  public int loopIterations() {
-    return loopIterations;
-  }
-
-  public boolean loopUnrolling() {
-    return loopUnrolling;
   }
 
   public boolean mergeAtomicBlocks() {
@@ -517,6 +510,14 @@ public class MPOROptions {
 
   public boolean shortVariableNames() {
     return shortVariableNames;
+  }
+
+  public int threadSimulationIterations() {
+    return threadSimulationIterations;
+  }
+
+  public boolean threadSimulationUnrolling() {
+    return threadSimulationUnrolling;
   }
 
   public boolean validateNoBackwardGoto() {

@@ -84,7 +84,7 @@ public final class SeqMainFunctionBuilder {
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(pFields, pUtils.logger()));
 
-    if (pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
       ImmutableList<CFunctionCallStatement> functionCallStatements =
           NondeterministicSimulationBuilder.buildThreadSimulationFunctionCallStatements(
@@ -215,9 +215,10 @@ public final class SeqMainFunctionBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    checkArgument(!pOptions.loopUnrolling(), "cannot build loop head, loopUnrolling is enabled");
+    checkArgument(
+        !pOptions.threadSimulationUnrolling(), "cannot build loop head, loopUnrolling is enabled");
 
-    if (pOptions.loopIterations() == 0) {
+    if (pOptions.threadSimulationIterations() == 0) {
       // infinite while (1) loop
       return new CWhileLoopStatement(
           new CExpressionWrapper(SeqIntegerLiteralExpressions.INT_1), pLoopBody);
@@ -227,7 +228,8 @@ public final class SeqMainFunctionBuilder {
       CBinaryExpression loopExpression =
           pBinaryExpressionBuilder.buildBinaryExpression(
               SeqIdExpressions.ITERATION,
-              SeqExpressionBuilder.buildIntegerLiteralExpression(pOptions.loopIterations()),
+              SeqExpressionBuilder.buildIntegerLiteralExpression(
+                  pOptions.threadSimulationIterations()),
               BinaryOperator.LESS_THAN);
       CExpressionAssignmentStatement iterationIncrement =
           SeqStatementBuilder.buildIncrementStatement(

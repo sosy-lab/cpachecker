@@ -275,7 +275,7 @@ public class SequentializationBuilder {
     rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
 
     // thread simulation functions, only enabled when loop is unrolled
-    if (pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationUnrolling()) {
       pFields
           .threadSimulationFunctions
           .orElseThrow()
@@ -300,7 +300,7 @@ public class SequentializationBuilder {
         SeqAssumeFunctionBuilder.buildFunctionDefinition(pUtils.binaryExpressionBuilder())
             .toASTString());
     // create separate thread simulation function definitions, if enabled
-    if (pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationUnrolling()) {
       for (CExportFunctionDefinition functionDefinition :
           pFields.threadSimulationFunctions.orElseThrow().values()) {
         rDefinitions.add(functionDefinition.toASTString());
@@ -326,7 +326,7 @@ public class SequentializationBuilder {
 
     // if the loop is finite, i.e., loopIterations is not 0, and loopUnrolling is disabled,
     // then add the variable that is incremented with each iteration
-    if (pOptions.loopIterations() != 0 && !pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationIterations() != 0 && !pOptions.threadSimulationUnrolling()) {
       rDeclarations.add(SeqVariableDeclarations.ITERATION.toASTString());
     }
 

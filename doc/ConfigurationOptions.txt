@@ -295,16 +295,6 @@ analysis.algorithm.MPOR.inputFunctionDeclarations = false
 # result in parse errors for the output program.
 analysis.algorithm.MPOR.inputTypeDeclarations = true
 
-# The number of loop iterations to perform thread simulations. Use 0 for an
-# infinite loop (while (1)). Any number other than 0 is unsound, because the
-# entire state space is not searched.
-analysis.algorithm.MPOR.loopIterations = 0
-
-# Unroll the loop used for the thread simulation? Disabling this option can
-# be unsound for CBMC. Enabling this option is only possible with
-# loopIterations > 0.
-analysis.algorithm.MPOR.loopUnrolling = false
-
 # Merge statements between __VERIFIER_atomic_begin() and
 # __VERIFIER_atomic_end() with goto statements? Setting this to false does
 # not model the input programs behavior correctly.
@@ -398,6 +388,16 @@ analysis.algorithm.MPOR.selectionEncodingForThreads = NONE
 
 # Use shortened variable names, e.g., THREAD0 -> T0.
 analysis.algorithm.MPOR.shortVariableNames = true
+
+# The number of loop iterations to perform thread simulations. Use 0 for an
+# infinite loop (while (1)). Any number other than 0 is unsound, because the
+# entire state space is not searched.
+analysis.algorithm.MPOR.threadSimulationIterations = 0
+
+# Unroll the loop used for the thread simulation? Disabling this option can
+# be unsound for CBMC. Enabling this option is only possible with
+# threadSimulationIterations > 0.
+analysis.algorithm.MPOR.threadSimulationUnrolling = false
 
 # Check if all goto statements jump forward, i.e., to a higher line of code
 # in the program?

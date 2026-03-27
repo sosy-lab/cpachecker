@@ -112,7 +112,7 @@ public class NondeterministicSimulationBuilder {
             .getValue();
     rFunctionCalls.add(
         mainThreadFunction.buildFunctionCallStatementWithCExpressions(ImmutableList.of()));
-    for (int i = 0; i < pOptions.loopIterations(); i++) {
+    for (int i = 0; i < pOptions.threadSimulationIterations(); i++) {
       for (var entry : pThreadSimulationFunctions.entrySet()) {
         if (!entry.getKey().isMain()) {
           // continue with all other threads
