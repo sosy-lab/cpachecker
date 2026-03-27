@@ -86,7 +86,7 @@ public class SeqThreadStatementClauseUtil {
     for (SeqThreadStatementClause clause : pClauses) {
       CExpression labelExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
-              pOptions.controlEncodingStatement(),
+              pOptions.selectionEncodingForStatements(),
               pPcLeftHandSide,
               clause.labelNumber,
               pBinaryExpressionBuilder);

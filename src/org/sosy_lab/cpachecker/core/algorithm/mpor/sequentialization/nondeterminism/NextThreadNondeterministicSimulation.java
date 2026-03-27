@@ -72,7 +72,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
     CExportStatement outerMultiControlStatement =
         buildMultiSelectionStatementByEncoding(
-            options.controlEncodingThread(),
+            options.selectionEncodingForThreads(),
             SeqIdExpressions.NEXT_THREAD,
             innerMultiControlStatements,
             utils.binaryExpressionBuilder());
@@ -87,7 +87,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     for (MPORThread thread : clauses.keySet()) {
       CExpression clauseExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
-              options.controlEncodingThread(),
+              options.selectionEncodingForThreads(),
               SeqIdExpressions.NEXT_THREAD,
               thread.id(),
               utils.binaryExpressionBuilder());

@@ -62,7 +62,7 @@ public class MPOROptions {
       description =
           "Defines the program syntax in which the next statement(s) of a thread simulation is"
               + " selected.")
-  private MultiSelectionStatementEncoding controlEncodingStatement =
+  private MultiSelectionStatementEncoding selectionEncodingForStatements =
       MultiSelectionStatementEncoding.SWITCH_CASE;
 
   @Option(
@@ -70,7 +70,7 @@ public class MPOROptions {
       description =
           "Defines the program syntax in which the next thread executing a statement (or multiple"
               + " statements) is selected.")
-  private MultiSelectionStatementEncoding controlEncodingThread =
+  private MultiSelectionStatementEncoding selectionEncodingForThreads =
       MultiSelectionStatementEncoding.NONE;
 
   @Option(
@@ -267,32 +267,34 @@ public class MPOROptions {
    * {@link AssertionError} if a rejection occurs.
    */
   private void handleOptionRejections() throws InvalidConfigurationException {
-    if (controlEncodingStatement.equals(MultiSelectionStatementEncoding.NONE)) {
+    if (selectionEncodingForStatements.equals(MultiSelectionStatementEncoding.NONE)) {
       throw new InvalidConfigurationException(
-          String.format("controlEncodingStatement cannot be %s", controlEncodingStatement));
+          String.format(
+              "selectionEncodingForStatements cannot be %s", selectionEncodingForStatements));
     }
     if (nondeterminismSource.isNextThreadNondeterministic()) {
-      if (!controlEncodingThread.isEnabled()) {
-        // if loopUnrolling is enabled, then choosing controlEncodingThread=NONE is allowed even
-        // when nondeterminismSource contains NEXT_THREAD, because then there is no multi control
+      if (!selectionEncodingForThreads.isEnabled()) {
+        // if loopUnrolling is enabled, then choosing selectionEncodingForThreads=NONE is allowed
+        // even
+        // when nondeterminismSource contains NEXT_THREAD, because then there is no multi selection
         // statement for next_thread in the main() function anyway
         if (!loopUnrolling) {
           throw new InvalidConfigurationException(
               String.format(
-                  "controlEncodingThread cannot be %s when nondeterminismSource contains"
+                  "selectionEncodingForThreads cannot be %s when nondeterminismSource contains"
                       + " NEXT_THREAD",
-                  controlEncodingThread));
+                  selectionEncodingForThreads));
         }
       }
     }
-    if (controlEncodingThread.isEnabled()) {
+    if (selectionEncodingForThreads.isEnabled()) {
       if (loopUnrolling) {
         throw new InvalidConfigurationException(
             String.format(
-                "controlEncodingThread cannot be %s when loopUnrolling is enabled, because the"
-                    + " controlEncodingThread is only used when all thread simulations are placed"
-                    + " inside the main() function.",
-                controlEncodingThread));
+                "selectionEncodingForThreads cannot be %s when loopUnrolling is enabled, because"
+                    + " the selectionEncodingForThreads is only used when all thread simulations"
+                    + " are placed inside the main() function.",
+                selectionEncodingForThreads));
       }
     }
     if (!mergeCommutingStatements) {
@@ -326,9 +328,10 @@ public class MPOROptions {
       }
     }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
-      if (controlEncodingThread.isEnabled()) {
+      if (selectionEncodingForThreads.isEnabled()) {
         throw new InvalidConfigurationException(
-            "controlEncodingThread is set, but nondeterminismSource does not contain NEXT_THREAD.");
+            "selectionEncodingForThreads is set, but nondeterminismSource does not contain"
+                + " NEXT_THREAD.");
       }
     }
     if (pruneBitVectorEvaluations) {
@@ -394,7 +397,7 @@ public class MPOROptions {
       // only use with NUM_STATEMENTS nondeterminism, for NEXT_THREAD, just continue;
       if (!nondeterminismSource.isNextThreadNondeterministic()) {
         // in switch case, just use break; instead of continue;
-        if (!controlEncodingStatement.equals(MultiSelectionStatementEncoding.SWITCH_CASE)) {
+        if (!selectionEncodingForStatements.equals(MultiSelectionStatementEncoding.SWITCH_CASE)) {
           return true;
         }
       }
@@ -424,12 +427,12 @@ public class MPOROptions {
     return consecutiveLabels;
   }
 
-  public MultiSelectionStatementEncoding controlEncodingStatement() {
-    return controlEncodingStatement;
+  public MultiSelectionStatementEncoding selectionEncodingForStatements() {
+    return selectionEncodingForStatements;
   }
 
-  public MultiSelectionStatementEncoding controlEncodingThread() {
-    return controlEncodingThread;
+  public MultiSelectionStatementEncoding selectionEncodingForThreads() {
+    return selectionEncodingForThreads;
   }
 
   public boolean inputFunctionDeclarations() {

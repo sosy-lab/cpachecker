@@ -172,10 +172,11 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
     }
 
     // use control encoding of the statement since we append the suffix to the statement
-    return switch (options.controlEncodingStatement()) {
+    return switch (options.selectionEncodingForStatements()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build suffix for control encoding " + options.controlEncodingStatement());
+              "cannot build suffix for control encoding "
+                  + options.selectionEncodingForStatements());
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
         if (options.loopUnrolling()) {
           // with loop unrolling (and separate thread functions) enabled, always return to main()

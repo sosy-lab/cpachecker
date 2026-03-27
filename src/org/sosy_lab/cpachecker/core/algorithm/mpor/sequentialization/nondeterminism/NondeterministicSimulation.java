@@ -165,7 +165,7 @@ public abstract class NondeterministicSimulation {
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());
 
     return buildMultiSelectionStatementByEncoding(
-        options.controlEncodingStatement(),
+        options.selectionEncodingForStatements(),
         pcLeftHandSide,
         expressionClauseMap,
         utils.binaryExpressionBuilder());

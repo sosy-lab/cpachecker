@@ -286,16 +286,6 @@ analysis.algorithm.MPOR.comments = false
 # statement being unreachable, but can be useful for debugging.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
-# Defines the program syntax in which the next statement(s) of a thread
-# simulation is selected.
-analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
-  enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
-
-# Defines the program syntax in which the next thread executing a statement
-# (or multiple statements) is selected.
-analysis.algorithm.MPOR.controlEncodingThread = NONE
-  enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
-
 # Include original function declarations from the input program? Including
 # them may result in unsound analysis (e.g. false alarms for CBMC, or ignored
 # function calls through function pointers for CPAchecker).
@@ -395,6 +385,16 @@ analysis.algorithm.MPOR.reductionMode = NONE
 # Use separate int values (scalars) for tracking thread program counters
 # instead of a single int array?
 analysis.algorithm.MPOR.scalarProgramCounters = true
+
+# Defines the program syntax in which the next statement(s) of a thread
+# simulation is selected.
+analysis.algorithm.MPOR.selectionEncodingForStatements = SWITCH_CASE
+  enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
+
+# Defines the program syntax in which the next thread executing a statement
+# (or multiple statements) is selected.
+analysis.algorithm.MPOR.selectionEncodingForThreads = NONE
+  enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
 # Use shortened variable names, e.g., THREAD0 -> T0.
 analysis.algorithm.MPOR.shortVariableNames = true
