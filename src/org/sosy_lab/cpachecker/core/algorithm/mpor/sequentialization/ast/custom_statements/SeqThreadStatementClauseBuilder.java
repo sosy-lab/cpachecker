@@ -71,12 +71,14 @@ public record SeqThreadStatementClauseBuilder(
 
     // ensure that atomic blocks are not interleaved by adding direct gotos
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> atomicBlocks =
-        options.atomicBlockMerge() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
+        options.mergeAtomicBlocks() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
 
     // if enabled, link statements that are guaranteed to commute via gotos
     StatementLinker statementLinker = new StatementLinker(options, memoryModel);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-        options.linkReduction() ? statementLinker.linkClauses(atomicBlocks) : atomicBlocks;
+        options.mergeCommutingStatements()
+            ? statementLinker.linkClauses(atomicBlocks)
+            : atomicBlocks;
 
     // if enabled, ensure that no backward goto exist. this should be done after all pc writes were
     // replaced with goto statements. in addition, the statements are possibly reordered, and it

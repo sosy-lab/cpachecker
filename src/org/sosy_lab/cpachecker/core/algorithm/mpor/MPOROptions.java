@@ -31,14 +31,6 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
-          "Merge statements between __VERIFIER_atomic_begin() and __VERIFIER_atomic_end() with goto"
-              + " statements? Setting this to false does not model the input programs behavior"
-              + " correctly.")
-  private boolean atomicBlockMerge = true;
-
-  @Option(
-      secure = true,
-      description =
           "The encoding of bit vectors that are used to instrument the output program with partial"
               + " order reduction.")
   private SeqBitVectorEncoding bitVectorEncoding = SeqBitVectorEncoding.NONE;
@@ -98,11 +90,6 @@ public class MPOROptions {
 
   @Option(
       secure = true,
-      description = "Link commuting statements with goto statements to reduce the state space?")
-  private boolean linkReduction = true;
-
-  @Option(
-      secure = true,
       description =
           "The number of loop iterations to perform thread simulations. Use 0 for an infinite loop"
               + " (while (1)). Any number other than 0 is unsound, because the entire state space"
@@ -115,6 +102,23 @@ public class MPOROptions {
           "Unroll the loop used for the thread simulation? Disabling this option can be unsound for"
               + " CBMC. Enabling this option is only possible with loopIterations > 0.")
   private boolean loopUnrolling = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Merge statements between __VERIFIER_atomic_begin() and __VERIFIER_atomic_end() with goto"
+              + " statements? Setting this to false does not model the input programs behavior"
+              + " correctly.")
+  private boolean mergeAtomicBlocks = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Merge commuting statements with goto statements to reduce the state space? A statement"
+              + " is guaranteed to commute if it accesses no variables or only local variables that"
+              + " are not implicitly global, i.e., through a global pointer or any chain of pointer"
+              + " assignments where at least one is a global pointer.")
+  private boolean mergeCommutingStatements = true;
 
   @Option(
       secure = true,
@@ -291,18 +295,18 @@ public class MPOROptions {
                 controlEncodingThread));
       }
     }
-    if (!linkReduction) {
+    if (!mergeCommutingStatements) {
       if (bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
-            "bitVectorEncoding cannot be set when linkReduction is disabled.");
+            "bitVectorEncoding cannot be set when mergeCommutingStatements is disabled.");
       }
       if (reduceLastThreadOrder) {
         throw new InvalidConfigurationException(
-            "reduceLastThreadOrder cannot be enabled when linkReduction is disabled");
+            "reduceLastThreadOrder cannot be enabled when mergeCommutingStatements is disabled");
       }
       if (reduceUntilConflict) {
         throw new InvalidConfigurationException(
-            "reduceUntilConflict cannot be enabled when linkReduction is disabled.");
+            "reduceUntilConflict cannot be enabled when mergeCommutingStatements is disabled.");
       }
     }
     if (loopIterations < 0) {
@@ -404,10 +408,6 @@ public class MPOROptions {
     return allowPointerWrites;
   }
 
-  public boolean atomicBlockMerge() {
-    return atomicBlockMerge;
-  }
-
   public SeqBitVectorEncoding bitVectorEncoding() {
     return bitVectorEncoding;
   }
@@ -440,16 +440,20 @@ public class MPOROptions {
     return inputTypeDeclarations;
   }
 
-  public boolean linkReduction() {
-    return linkReduction;
-  }
-
   public int loopIterations() {
     return loopIterations;
   }
 
   public boolean loopUnrolling() {
     return loopUnrolling;
+  }
+
+  public boolean mergeAtomicBlocks() {
+    return mergeAtomicBlocks;
+  }
+
+  public boolean mergeCommutingStatements() {
+    return mergeCommutingStatements;
   }
 
   public boolean noBackwardGoto() {

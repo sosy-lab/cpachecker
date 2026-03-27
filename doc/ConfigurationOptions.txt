@@ -267,11 +267,6 @@ analysis.algorithm.MPI = false
 # Allow input programs that write pointer variables?
 analysis.algorithm.MPOR.allowPointerWrites = true
 
-# Merge statements between __VERIFIER_atomic_begin() and
-# __VERIFIER_atomic_end() with goto statements? Setting this to false does
-# not model the input programs behavior correctly.
-analysis.algorithm.MPOR.atomicBlockMerge = true
-
 # The encoding of bit vectors that are used to instrument the output program
 # with partial order reduction.
 analysis.algorithm.MPOR.bitVectorEncoding = NONE
@@ -310,9 +305,6 @@ analysis.algorithm.MPOR.inputFunctionDeclarations = false
 # result in parse errors for the output program.
 analysis.algorithm.MPOR.inputTypeDeclarations = true
 
-# Link commuting statements with goto statements to reduce the state space?
-analysis.algorithm.MPOR.linkReduction = true
-
 # The number of loop iterations to perform thread simulations. Use 0 for an
 # infinite loop (while (1)). Any number other than 0 is unsound, because the
 # entire state space is not searched.
@@ -322,6 +314,18 @@ analysis.algorithm.MPOR.loopIterations = 0
 # be unsound for CBMC. Enabling this option is only possible with
 # loopIterations > 0.
 analysis.algorithm.MPOR.loopUnrolling = false
+
+# Merge statements between __VERIFIER_atomic_begin() and
+# __VERIFIER_atomic_end() with goto statements? Setting this to false does
+# not model the input programs behavior correctly.
+analysis.algorithm.MPOR.mergeAtomicBlocks = true
+
+# Merge commuting statements with goto statements to reduce the state space?
+# A statement is guaranteed to commute if it accesses no variables or only
+# local variables that are not implicitly global, i.e., through a global
+# pointer or any chain of pointer assignments where at least one is a global
+# pointer.
+analysis.algorithm.MPOR.mergeCommutingStatements = true
 
 # Removes backward goto, i.e., jumping to a line higher up in the program, by
 # reordering statements. Only works for if-else constructs, not loops. Use
