@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Decl
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DeclareSortCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DeclareVarContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DefineProcContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DefineProcRecContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.GetWitnessContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.OptionContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ProcDeclarationArgumentsContext;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareFunComm
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibGetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProceduresRecDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionCommand;
@@ -188,6 +190,58 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
 
     return new SvLibProcedureDefinitionCommand(
         fileLocationFromContext(ctx), procedureDeclaration, body);
+  }
+
+  @Override
+  public SvLibCommand visitDefineProcRec(DefineProcRecContext ctx) {
+    ImmutableList.Builder<SvLibProcedureDeclaration> procedureDeclarationsCollector =
+        ImmutableList.builder();
+    ImmutableList.Builder<SvLibStatement> bodiesCollector = ImmutableList.builder();
+
+    for (int i = 0; i < ctx.symbol().size(); i++) {
+      String procedureName = ctx.symbol(i).getText();
+      int j = i * 3;
+      List<SvLibParsingParameterDeclaration> inputParameter =
+          createParameterDeclarations(ctx.procDeclarationArguments(j), procedureName);
+      List<SvLibParsingParameterDeclaration> outputParameter =
+          createParameterDeclarations(ctx.procDeclarationArguments(j + 1), procedureName);
+      List<SvLibParsingParameterDeclaration> localVariables =
+          createParameterDeclarations(ctx.procDeclarationArguments(j + 2), procedureName);
+
+      SvLibProcedureDeclaration procedureDeclaration =
+          new SvLibProcedureDeclaration(
+              fileLocationFromContext(ctx),
+              procedureName,
+              inputParameter,
+              outputParameter,
+              localVariables);
+
+      procedureDeclarationsCollector.add(procedureDeclaration);
+      scope.addProcedureDeclaration(procedureDeclaration);
+    }
+
+    ImmutableList<SvLibProcedureDeclaration> collectedProcedureDeclarations =
+        procedureDeclarationsCollector.build();
+
+    for (int i = 0; i < ctx.statement().size(); i++) {
+      SvLibProcedureDeclaration currentProcedure = collectedProcedureDeclarations.get(i);
+      scope.enterProcedure(
+          FluentIterable.from(currentProcedure.getParameters())
+              .append(currentProcedure.getReturnValues())
+              .append(currentProcedure.getLocalVariables())
+              .stream()
+              .toList());
+
+      SvLibStatement body = statementConverter.visit(ctx.statement(i));
+      bodiesCollector.add(body);
+
+      scope.leaveProcedure();
+    }
+
+    return new SvLibProceduresRecDefinitionCommand(
+        fileLocationFromContext(ctx),
+        collectedProcedureDeclarations,
+        bodiesCollector.build());
   }
 
   @Override

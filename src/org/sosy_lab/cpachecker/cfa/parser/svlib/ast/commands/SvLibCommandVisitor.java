@@ -23,6 +23,8 @@ public interface SvLibCommandVisitor<R, X extends Exception> {
 
   R visit(SvLibProcedureDefinitionCommand pSvLibProcedureDefinitionCommand) throws X;
 
+  R visit(SvLibProceduresRecDefinitionCommand pSvLibProceduresRecDefinitionCommand) throws X;
+
   R visit(SvLibSetLogicCommand pSvLibSetLogicCommand) throws X;
 
   R visit(SvLibSetOptionCommand pSvLibSetOptionCommand) throws X;

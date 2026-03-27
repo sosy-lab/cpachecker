@@ -22,6 +22,7 @@ public sealed interface SvLibCommand extends Serializable, SvLibParsingAstNode
         SvLibDeclareSortCommand,
         SvLibGetWitnessCommand,
         SvLibProcedureDefinitionCommand,
+        SvLibProceduresRecDefinitionCommand,
         SvLibSelectTraceCommand,
         SvLibSetInfoCommand,
         SvLibSetLogicCommand,

@@ -24,6 +24,15 @@ commandSvLib
             ParOpen procDeclarationArguments ParClose
                 statement
       ParClose                                                        # DefineProc
+   | ParOpen
+          'define-procs-rec'
+            (ParOpen symbol
+              ParOpen procDeclarationArguments ParClose
+              ParOpen procDeclarationArguments ParClose
+              ParOpen procDeclarationArguments ParClose
+            ParClose)+
+                (ParOpen statement ParClose)+
+      ParClose                                                        # DefineProcRec
     | ParOpen 'annotate-tag' symbol attributeSvLib+ ParClose               # AnnotateTag
     | ParOpen 'select-trace' trace ParClose                           # SelectTrace
     | ParOpen 'verify-call' symbol
