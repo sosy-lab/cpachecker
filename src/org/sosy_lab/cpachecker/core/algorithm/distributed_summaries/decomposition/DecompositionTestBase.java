@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
-// TODO TestBlockModification? Problem: does not follow all invariants anymore!
 public class DecompositionTestBase {
 
   private static String[] testFiles = {
@@ -166,10 +165,10 @@ public class DecompositionTestBase {
         .that(nodesGraph.elementSet())
         .containsExactlyElementsIn(nodesCFA);
 
-    Set<CFAEdge> edgesGraph =
+    Multiset<CFAEdge> edgesGraph =
         graph.getNodes().stream()
             .flatMap(node -> node.getEdges().stream())
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+            .collect(Collectors.toCollection(LinkedHashMultiset::create));
 
     Truth.assertWithMessage("BlockGraph does not contain exactly the edges of the CFA")
         .that(edgesGraph)

@@ -82,7 +82,7 @@ public class BlockGraph {
           !blockNode.getEdges().isEmpty() || blockNode.getPredecessorIds().isEmpty(),
           "Every block needs at least one edge (%s).",
           blockNode);
-      if (blockNode.getSuccessorIds().size() != 0) {
+      if (!blockNode.getSuccessorIds().isEmpty()) {
         Preconditions.checkState(
             isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),
             "BlockNodes require to have exactly one exit node (%s).",
