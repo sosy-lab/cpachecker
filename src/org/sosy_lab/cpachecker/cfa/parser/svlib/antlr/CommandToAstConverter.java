@@ -239,9 +239,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
     }
 
     return new SvLibProceduresRecDefinitionCommand(
-        fileLocationFromContext(ctx),
-        collectedProcedureDeclarations,
-        bodiesCollector.build());
+        fileLocationFromContext(ctx), collectedProcedureDeclarations, bodiesCollector.build());
   }
 
   @Override
