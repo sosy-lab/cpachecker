@@ -60,22 +60,6 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
-          "Defines the program syntax in which the next statement(s) of a thread simulation is"
-              + " selected.")
-  private MultiSelectionStatementEncoding selectionEncodingForStatements =
-      MultiSelectionStatementEncoding.SWITCH_CASE;
-
-  @Option(
-      secure = true,
-      description =
-          "Defines the program syntax in which the next thread executing a statement (or multiple"
-              + " statements) is selected.")
-  private MultiSelectionStatementEncoding selectionEncodingForThreads =
-      MultiSelectionStatementEncoding.NONE;
-
-  @Option(
-      secure = true,
-      description =
           "Include original function declarations from the input program? Including them may result"
               + " in unsound analysis (e.g. false alarms for CBMC, or ignored function calls"
               + " through function pointers for CPAchecker).")
@@ -205,6 +189,22 @@ public class MPOROptions {
           "Use separate int values (scalars) for tracking thread program counters instead of a"
               + " single int array?")
   private boolean scalarProgramCounters = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Defines the program syntax in which the next statement(s) of a thread simulation is"
+              + " selected.")
+  private MultiSelectionStatementEncoding selectionEncodingForStatements =
+      MultiSelectionStatementEncoding.SWITCH_CASE;
+
+  @Option(
+      secure = true,
+      description =
+          "Defines the program syntax in which the next thread executing a statement (or multiple"
+              + " statements) is selected.")
+  private MultiSelectionStatementEncoding selectionEncodingForThreads =
+      MultiSelectionStatementEncoding.NONE;
 
   @Option(secure = true, description = "Use shortened variable names, e.g., THREAD0 -> T0.")
   private boolean shortVariableNames = true;
@@ -428,14 +428,6 @@ public class MPOROptions {
     return consecutiveLabels;
   }
 
-  public MultiSelectionStatementEncoding selectionEncodingForStatements() {
-    return selectionEncodingForStatements;
-  }
-
-  public MultiSelectionStatementEncoding selectionEncodingForThreads() {
-    return selectionEncodingForThreads;
-  }
-
   public boolean inputFunctionDeclarations() {
     return inputFunctionDeclarations;
   }
@@ -506,6 +498,14 @@ public class MPOROptions {
 
   public boolean scalarProgramCounters() {
     return scalarProgramCounters;
+  }
+
+  public MultiSelectionStatementEncoding selectionEncodingForStatements() {
+    return selectionEncodingForStatements;
+  }
+
+  public MultiSelectionStatementEncoding selectionEncodingForThreads() {
+    return selectionEncodingForThreads;
   }
 
   public boolean shortVariableNames() {
