@@ -226,6 +226,21 @@ public class ValueAnalysisTransferRelation
                 + " are called. This can be unsound!")
     private Set<String> additionalAllowedUnsupportedFunctions = ImmutableSet.of();
 
+    @Option(
+        secure = true,
+        name = "alwaysUseQualifiedNames",
+        description =
+            "If this option is set to true, the value analysis will always use qualified names for"
+                + " variables instead of assembling a qualified name on-the-fly with the current"
+                + " function name and the variable name. This can lead to slightly diminished"
+                + " performance (c.f., qualified name parsing), however, it is necessary for some"
+                + " use cases, e.g., when using value analysis for concurrent programs where"
+                + " multiple threads can execute the same function. Then, the thread ID must also"
+                + " be included in the qualified name, which is only possible if the qualified name"
+                + " is used."
+    )
+    private boolean alwaysUseQualifiedNames = false;
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -415,12 +430,15 @@ public class ValueAnalysisTransferRelation
       }
 
       AParameterDeclaration param = parameters.get(i);
-      String paramName = param.getName();
       Type paramType = param.getType();
 
-      MemoryLocation formalParamName = MemoryLocation.fromQualifiedName(param.getQualifiedName());
-          // MemoryLocation.forLocalVariable(calledFunctionName, paramName);
-      // TODO: do this nicely
+      MemoryLocation formalParamName;
+      if (options.alwaysUseQualifiedNames) {
+        formalParamName = MemoryLocation.forDeclaration(param);
+      } else {
+        String paramName = param.getName();
+        formalParamName = MemoryLocation.forLocalVariable(calledFunctionName, paramName);
+      }
 
       if (value.isUnknown()) {
         if (isMissingCExpressionInformation(visitor, exp)) {
@@ -792,7 +810,9 @@ public class ValueAnalysisTransferRelation
     MemoryLocation memoryLocation;
 
     // assign initial value if necessary
-    if (decl.isGlobal()) {
+    if (options.alwaysUseQualifiedNames) {
+      memoryLocation = MemoryLocation.forDeclaration(decl);
+    } else if (decl.isGlobal()) {
       memoryLocation = MemoryLocation.forIdentifier(varName);
     } else {
       memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
@@ -1069,7 +1089,9 @@ public class ValueAnalysisTransferRelation
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
     String varName = pIdExpression.getName();
 
-    if (isGlobal(pIdExpression)) {
+    if (options.alwaysUseQualifiedNames) {
+      return MemoryLocation.forDeclaration(pIdExpression.getDeclaration());
+    } else if (isGlobal(pIdExpression)) {
       return MemoryLocation.parseExtendedQualifiedName(varName);
     } else {
       return MemoryLocation.forLocalVariable(functionName, varName);
