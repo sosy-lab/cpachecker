@@ -12,25 +12,21 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.cpa.interval.FunArrayUnification.UnifyResult;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -148,19 +144,6 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     var newEmptiness = new ArrayList<>(emptiness);
 
     return new FunArray(newBounds, newValues, newEmptiness);
-  }
-
-  public FunArray removeVariableOccurrences(CIdExpression removeVariable) {
-    return new FunArray(
-            bounds.stream().map(b -> b.removeVariableOccurrences(removeVariable)).toList(),
-            values,
-            emptiness)
-        .removeEmptyBounds();
-  }
-
-  public FunArray restrictExpressionOccurrences(Set<NormalFormExpression> allowedExpressions) {
-    var newBounds = bounds.stream().map(b -> b.intersection(allowedExpressions)).toList();
-    return new FunArray(newBounds, values, emptiness).removeEmptyBounds();
   }
 
   public FunArray removeEmptyBounds() {
@@ -386,54 +369,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     return jointValue;
   }
 
-  public record UnifyResult(FunArray resultThis, FunArray resultOther) {}
 
-  private static final int UNIFY_LOOP_HARD_LIMIT = 10000;
-
-  private Set<NormalFormExpression> getExpressionsInIncorrectOrder(FunArray other) {
-
-    Set<NormalFormExpression> expressions =
-        this.bounds.stream()
-            .flatMap(b -> b.expressions().stream())
-            .filter(e -> other.bounds.stream().anyMatch(b -> b.contains(e)))
-            .collect(ImmutableSet.toImmutableSet());
-
-    Map<NormalFormExpression, Integer> expressionIndicesThis =
-        IntStream.range(0, this.bounds.size())
-            .boxed()
-            .flatMap(i -> this.bounds.get(i).expressions().stream().map(e -> Map.entry(e, i)))
-            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
-
-    Map<NormalFormExpression, Integer> expressionIndicesOther =
-        IntStream.range(0, other.bounds.size())
-            .boxed()
-            .flatMap(i -> other.bounds.get(i).expressions().stream().map(e -> Map.entry(e, i)))
-            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
-
-    List<NormalFormExpression> sortedExpressions =
-        expressions.stream()
-            .sorted(
-                Comparator.comparingInt(expressionIndicesThis::get)
-                    .thenComparingInt(expressionIndicesOther::get))
-            .toList();
-
-    Set<NormalFormExpression> notInOrder =
-        IntStream.range(0, sortedExpressions.size() - 1)
-            .boxed()
-            .flatMap(
-                i -> {
-                  NormalFormExpression expression = sortedExpressions.get(i);
-                  NormalFormExpression nextExpression = sortedExpressions.get(i + 1);
-                  if (expressionIndicesOther.get(expression)
-                      > expressionIndicesOther.get(nextExpression)) {
-                    return Stream.of(expression, nextExpression);
-                  }
-                  return Stream.of();
-                })
-            .collect(ImmutableSet.toImmutableSet());
-
-    return notInOrder;
-  }
 
   /**
    * Unifies this FunArray with another one, so their segment bounds coincide.
@@ -444,70 +380,10 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    * @return two unified FunArrays.
    */
   public UnifyResult unify(
-      FunArray other, Interval thisNeutralElement, Interval otherNeutralElement) {
-
-    var thisExpressions = this.getExpressions();
-    var otherExpressions = other.getExpressions();
-
-    var commonExpressions = new HashSet<>(thisExpressions);
-    commonExpressions.retainAll(otherExpressions);
-
-    var expressionsInIncorrectOrder = getExpressionsInIncorrectOrder(other);
-    commonExpressions.removeAll(expressionsInIncorrectOrder);
-
-    var thisReduced = this.restrictExpressionOccurrences(commonExpressions);
-    var otherReduced = other.restrictExpressionOccurrences(commonExpressions);
-
-    List<Bound> boundsThis = new ArrayList<>(thisReduced.bounds);
-    List<Interval> valuesThis = new ArrayList<>(thisReduced.values);
-    List<Boolean> emptinessThis = new ArrayList<>(thisReduced.emptiness);
-
-    List<Bound> boundsOther = new ArrayList<>(otherReduced.bounds);
-    List<Interval> valuesOther = new ArrayList<>(otherReduced.values);
-    List<Boolean> emptinessOther = new ArrayList<>(otherReduced.emptiness);
-
-    int i = 0;
-    int loopLimitCount = 0;
-
-    while (i < boundsThis.size() && i < boundsOther.size()) {
-      if (loopLimitCount >= UNIFY_LOOP_HARD_LIMIT) {
-        throw new RuntimeException("Something went wrong in the unifying algorithm.");
-      }
-      loopLimitCount++;
-
-      var currentBoundThis = boundsThis.get(i);
-      var currentBoundOther = boundsOther.get(i);
-
-      var intersection = currentBoundThis.intersection(currentBoundOther);
-      var difference = currentBoundThis.difference(currentBoundOther);
-      var relativeComplement = currentBoundThis.relativeComplement(currentBoundOther);
-
-      if (intersection.isEmpty()) {
-        boundsThis.set(i, intersection);
-        boundsOther.set(i, intersection);
-        i++;
-        continue;
-      }
-
-      if (!difference.isEmpty()) {
-        boundsThis.set(i, difference);
-        boundsThis.add(i, intersection);
-        valuesThis.add(i, thisNeutralElement);
-        emptinessThis.add(i, true);
-      }
-
-      if (!relativeComplement.isEmpty()) {
-        boundsOther.set(i, relativeComplement);
-        boundsOther.add(i, intersection);
-        valuesOther.add(i, otherNeutralElement);
-        emptinessOther.add(i, true);
-      }
-      i++;
-    }
-
-    return new UnifyResult(
-        new FunArray(boundsThis, valuesThis, emptinessThis).removeEmptyBounds(),
-        new FunArray(boundsOther, valuesOther, emptinessOther).removeEmptyBounds());
+      FunArray other, Interval thisNeutralElement, Interval otherNeutralElement
+  ) {
+    FunArrayUnification unification = new FunArrayUnification(this, other);
+    return unification.unify(thisNeutralElement, otherNeutralElement);
   }
 
   /**
@@ -541,8 +417,8 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       Interval otherNeutralElement) {
 
     var unifiedArrays = this.unify(other, thisNeutralElement, otherNeutralElement);
-    var thisUnified = unifiedArrays.resultThis();
-    var otherUnified = unifiedArrays.resultOther();
+    var thisUnified = unifiedArrays.resultA();
+    var otherUnified = unifiedArrays.resultB();
 
     var modifiedValues =
         IntStream.range(0, thisUnified.values.size())
@@ -579,10 +455,6 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     Interval unreachable = Interval.EMPTY;
     return unifyOperation(Interval::widen, other, unreachable, unreachable);
   }
-
-  //  public FunArray narrow(FunArray other, Interval unknown) {
-  //    return unifyOperation(Interval::narrow, other, unknown, unknown);
-  // TODO
 
   public Set<NormalFormExpression> getExpressions() {
     return bounds.stream()
@@ -672,21 +544,21 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     UnifyResult unifyResult = unify(other, Interval.EMPTY, Interval.UNBOUND);
 
     boolean valuesLessThan =
-        IntStream.range(0, unifyResult.resultThis.values.size())
+        IntStream.range(0, unifyResult.resultA().values.size())
             .allMatch(
                 i ->
                     unifyResult
-                        .resultThis
+                        .resultA()
                         .values
                         .get(i)
-                        .abstractLatticeIsLessEqualThan(unifyResult.resultOther.values.get(i)));
+                        .abstractLatticeIsLessEqualThan(unifyResult.resultB().values.get(i)));
 
     boolean emptinessLessThan =
-        IntStream.range(0, unifyResult.resultThis.values.size())
+        IntStream.range(0, unifyResult.resultA().values.size())
             .allMatch(
                 i ->
-                    unifyResult.resultThis.emptiness.get(i)
-                        || !unifyResult.resultOther.emptiness.get(i));
+                    unifyResult.resultA().emptiness.get(i)
+                        || !unifyResult.resultB().emptiness.get(i));
 
     return valuesLessThan && emptinessLessThan;
   }
