@@ -239,4 +239,55 @@ public class FunArrayUnificationTest {
             .build()
     );
   }
+
+  /*
+   * Superset bounds with anticipation. Array A contains the superset bound {i k}, while Array B
+   * only has {k} at this index. However, 'i' is anticipated in Array B's future bounds. Therefore,
+   * 'i' cannot be dropped. Array A must split its segment to preserve 'i' for future alignment,
+   * injecting an empty, optional segment.
+   */
+  @Test
+  public void testSupersetWithAnticipation() throws FunArrayBuilderException {
+    testUnification(
+        // Initial A: {0} 0 {i k} ⊤ {n}
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("i"), exp("k"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build(),
+        // Initial B: {0} 0 {k} ⊤ {i} ⊤ {n}
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("k"))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build(),
+        // Expected A: {0} 0 {k} ⊥ {i}? ⊤ {n}
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("k"))
+            .value(Interval.EMPTY)
+            .bound(exp("i"))
+            .mayBeEmpty()
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build(),
+        // Expected B: {0} 0 {k} ⊤ {i} ⊤ {n}
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("k"))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build()
+    );
+  }
 }
