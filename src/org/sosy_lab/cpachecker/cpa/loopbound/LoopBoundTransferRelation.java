@@ -15,9 +15,11 @@ import static com.google.common.base.Predicates.not;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -86,11 +88,25 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       l.getLoopHeads()
           .forEach(
               h -> {
-                heads.put(h, l);
                 if (h instanceof FunctionEntryNode pFunctionEntryNode
                     && pFunctionEntryNode.getExitNode().isPresent()) {
                   CFANode hExit = pFunctionEntryNode.getExitNode().orElseThrow();
-                  heads.put(hExit, l);
+                  // Whenever we are considering recursive functions as loops, we need to treat
+                  // the entry and the exit nodes as sepparate loops. One such example is for
+                  // K-Induction, where the k should be tracked for each sepparately
+                  //
+                  // Due to this, we invent a new loop for the exit of the function and use the
+                  // function entry, minus the exit node as another sepparate loop
+                  heads.put(
+                      hExit,
+                      Loop.fromLoopHeadsAndNodes(ImmutableSet.of(hExit), ImmutableSet.of(hExit)));
+                  HashSet<CFANode> loopNodes = new HashSet<>(l.getLoopNodes());
+                  loopNodes.remove(hExit);
+                  heads.put(
+                      h,
+                      Loop.fromLoopHeadsAndNodes(l.getLoopHeads(), ImmutableSet.copyOf(loopNodes)));
+                } else {
+                  heads.put(h, l);
                 }
               });
     }
