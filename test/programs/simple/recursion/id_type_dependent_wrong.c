@@ -6,20 +6,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-extern void reach_error();
-
-void f(int x) {
-  if (x > 1000000) {
-    return;
-  }
-  if (x % 2) {
-    ERROR: reach_error();
-  }
-  x += 2;
-  f(x);
+unsigned int id(unsigned int x) {
+  if (x==0) return 0;
+  unsigned int ret = id(x - 1) + 1;
+  if (ret > 100) return 100;
+  return ret;
 }
 
-int main() {
-  f(0);
-  return 0;
+int main(void) {
+  int result = id(0);
+  if (result == 0) {
+    ERROR: {reach_error();abort();}
+  }
 }

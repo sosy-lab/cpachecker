@@ -99,4 +99,18 @@ public class KInductionAlgorithmTest {
         CPATestRunner.run(getConfiguration(), getProgramPath("id_simple_wrong.c"));
     results.assertIsUnsafe();
   }
+
+  @Test(timeout = 3000)
+  public void id_type_dependent_wrong() throws Exception {
+    TestResults results =
+        CPATestRunner.run(getConfiguration(), getProgramPath("id_type_dependent_wrong.c"));
+    results.assertIsUnsafe();
+  }
+
+  @Test(timeout = 3000)
+  public void id_type_dependent() throws Exception {
+    TestResults results =
+        CPATestRunner.run(getConfiguration(), getProgramPath("id_type_dependent.c"));
+    results.assertIsSafe();
+  }
 }
