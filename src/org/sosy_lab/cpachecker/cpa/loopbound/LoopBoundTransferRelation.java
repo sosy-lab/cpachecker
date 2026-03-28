@@ -100,7 +100,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
                   heads.put(
                       hExit,
                       Loop.fromLoopHeadsAndNodes(ImmutableSet.of(hExit), ImmutableSet.of(hExit)));
-                  HashSet<CFANode> loopNodes = new HashSet<>(l.getLoopNodes());
+                  Set<CFANode> loopNodes = new HashSet<>(l.getLoopNodes());
                   loopNodes.remove(hExit);
                   heads.put(
                       h,
