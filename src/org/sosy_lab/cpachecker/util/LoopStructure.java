@@ -1051,12 +1051,7 @@ public final class LoopStructure {
               .collectNodesReachableFrom(recHead);
       Set<CFANode> backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
 
-      Set<CFANode> nodes;
-      if (forward.size() <= backward.size()) {
-        nodes = Sets.intersection(forward, backward);
-      } else {
-        nodes = Sets.intersection(backward, forward);
-      }
+      Set<CFANode> nodes = Sets.intersection(forward, backward);
 
       Loop l = new Loop(recHead, nodes);
 
