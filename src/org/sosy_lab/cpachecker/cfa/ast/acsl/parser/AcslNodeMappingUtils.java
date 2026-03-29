@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
@@ -15,10 +15,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment.AcslCommentType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadataException;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -127,7 +124,7 @@ public class AcslNodeMappingUtils {
   }
 
   /**
-   * Finds the next function entry node for a funciton contract.
+   * Finds the next function entry node for a function contract.
    *
    * @param pComment An AcslComment that is possibly a function contract
    * @param pAstCfaRelation The current Ast Cfa Relation
