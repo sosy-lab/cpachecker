@@ -400,8 +400,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     PathFormula edgeFormula = pathFormulaManager.makeEmptyPathFormula();
     try {
       edgeFormula = pathFormulaManager.makeAnd(edgeFormula, pEdge);
-    } catch (CPATransferException | InterruptedException pE) {
-      throw new RuntimeException(pE);
+    } catch (CPATransferException | InterruptedException e) {
+      throw new RuntimeException(e);
     }
     return formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor);
   }
