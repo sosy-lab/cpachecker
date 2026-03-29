@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 public class FunArrayUnification {
@@ -168,6 +169,11 @@ public class FunArrayUnification {
     var anticipatedFromA = filterAnticipatedInOppositeBounds(uniqueToA, boundsB);
     var anticipatedFromB = filterAnticipatedInOppositeBounds(uniqueToB, boundsA);
 
+    if (anticipatedFromA.containsAll(uniqueToA.expressions()) && anticipatedFromB.containsAll(uniqueToB.expressions())) {
+      handleDisjoint();
+      return;
+    }
+
     boundsA.set(currentIndex, intersection);
     boundsB.set(currentIndex, intersection);
 
@@ -184,6 +190,39 @@ public class FunArrayUnification {
     }
   }
 
+  // Corresponds to case 5: The bounds are entirely disjoint.
+  private void handleDisjoint() {
+    // A prerequisite for array unification is that the two arrays must have the same extremal
+    // bounds. Therefore, if the current bounds are entirely disjoint, this cannot be the first
+    // bound.
+    assert currentIndex > 0;
+
+    dropBound(boundsA, valuesA, emptinessA, currentIndex);
+    dropBound(boundsB, valuesB, emptinessB, currentIndex);
+  }
+
+  private void dropBound(
+      List<Bound> bounds, List<Interval> values, List<Boolean> emptiness, int index) {
+    bounds.remove(index);
+    joinElementWithPredecessor(values, index, (a, b) -> a.union(b));
+    joinElementWithPredecessor(emptiness, index, FunArrayUnification::joinEmptiness);
+  }
+
+  private static <T> void joinElementWithPredecessor(
+      List<T> list, int index, BinaryOperator<T> join) {
+    assert index < list.size();
+    assert index > 0;
+
+    var union = join.apply(list.get(index - 1), list.get(index));
+    list.set(index, union);
+    list.remove(index - 1);
+  }
+
+  // Emptiness forms a lattice. Union of two emptinesses corresponds to the logical OR operation, as
+  // specified in Cousot, Cousot and Logozzo (2011) in chapter 11.2.
+  private static boolean joinEmptiness(boolean a, boolean b) {
+    return a || b;
+  }
 
   private void handleLastInA() {
     handleLast(boundsA, boundsB, valuesB, emptinessB, currentIndex);
