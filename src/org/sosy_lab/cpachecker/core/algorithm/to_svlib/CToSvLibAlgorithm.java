@@ -13,13 +13,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
-import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -81,12 +79,10 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -99,10 +95,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
 
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
   private final Solver solver;
   private final FormulaManagerView formulaManager;
@@ -195,10 +191,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             ImmutableList.of(),
             FileLocation.DUMMY));
 
-    SvLibScript script = new SvLibScript(commandsCollector.build(), FileLocation.DUMMY);
-    String scriptAsASTString = script.toASTString();
-
-    return script;
+    return new SvLibScript(commandsCollector.build(), FileLocation.DUMMY);
   }
 
   private SvLibStatement transformFunction(CFunctionEntryNode pEntryNode) {
@@ -661,16 +654,5 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   public void close() throws Exception {
     // TODO is this acutally what we want here, or do we just delegate the problem?
     solver.close();
-  }
-
-  private static class transformationStatistics implements Statistics {
-
-    @Override
-    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {}
-
-    @Override
-    public @Nullable String getName() {
-      return "C To SV-LIB Transformation algorithm";
-    }
   }
 }
