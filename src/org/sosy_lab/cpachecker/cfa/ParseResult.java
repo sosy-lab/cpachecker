@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -49,6 +51,20 @@ public record ParseResult(
     Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
     // Only relevant for SV-LIB scripts
     Optional<SvLibCfaMetadata> svLibCfaMetadata) {
+
+  public Optional<Set<AbstractSimpleDeclaration>> localVariablesAndParametersInScope(
+      CFANode pNode) {
+    if (cfaNodeToAstLocalVariablesInScope.isEmpty() || cfaNodeToAstParametersInScope.isEmpty()) {
+      return Optional.empty();
+    }
+
+    ImmutableSet.Builder<AbstractSimpleDeclaration> result = ImmutableSet.builder();
+    cfaNodeToAstLocalVariablesInScope.ifPresent(
+        m -> result.addAll(m.getOrDefault(pNode, ImmutableSet.of())));
+    cfaNodeToAstParametersInScope.ifPresent(
+        m -> result.addAll(m.getOrDefault(pNode, ImmutableSet.of())));
+    return Optional.of(result.build());
+  }
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,

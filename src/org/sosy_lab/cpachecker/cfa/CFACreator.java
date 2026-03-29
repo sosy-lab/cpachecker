@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
@@ -872,6 +871,7 @@ public class CFACreator {
       } catch (AcslParseException e) {
         throw new AcslMetadataCreationException(e.getMessage());
       }
+
       if (commentType == AcslCommentType.UNKNOWN) {
         throw new AcslMetadataCreationException("Acsl comment " + comment + " is of unknown type.");
       }
@@ -898,49 +898,21 @@ public class CFACreator {
         }
 
         // Add variables and parameters that are in scope to the scope for the current node
-        ImmutableSet<AVariableDeclaration> variablesInScope;
-        if (pResult.cfaNodeToAstLocalVariablesInScope().isPresent()
-            && pResult
-                    .cfaNodeToAstLocalVariablesInScope()
-                    .orElseThrow(
-                        () ->
-                            new AcslMetadataCreationException(
-                                "No variables are in scope for comment " + comment))
-                    .get(currentNode)
-                != null) {
-
-          variablesInScope =
-              ImmutableSet.copyOf(
-                  pResult
-                      .cfaNodeToAstLocalVariablesInScope()
-                      .orElseThrow(
-                          () ->
-                              new AcslMetadataCreationException(
-                                  "No variables are in scope for comment " + comment))
-                      .get(currentNode));
-          for (AVariableDeclaration variableDeclaration : variablesInScope) {
-            scopeForNode.registerDeclaration(variableDeclaration);
+        Optional<Set<AbstractSimpleDeclaration>> variablesInScope =
+            pResult.localVariablesAndParametersInScope(currentNode);
+        if (variablesInScope.isPresent()) {
+          for (AbstractSimpleDeclaration declaration : variablesInScope.orElseThrow()) {
+            scopeForNode.registerDeclaration(declaration);
           }
-
-          ImmutableSet<AParameterDeclaration> parametersInScope;
-          if (pResult.cfaNodeToAstParametersInScope().isPresent()
-              && pResult.cfaNodeToAstParametersInScope().orElseThrow().get(currentNode) != null) {
-            parametersInScope =
-                ImmutableSet.copyOf(
-                    pResult
-                        .cfaNodeToAstParametersInScope()
-                        .orElseThrow(
-                            () ->
-                                new AcslMetadataCreationException(
-                                    "No parameters are in scope for comment " + comment))
-                        .get(n.orElseThrow()));
-
-            for (AParameterDeclaration parameterDeclaration : parametersInScope) {
-              scopeForNode.registerDeclaration(parameterDeclaration);
-            }
-          }
+        } else {
+          logger.log(
+              Level.WARNING,
+              "Could not find out which variables are in scope for the CFA Node "
+                  + currentNode
+                  + " while parsing the ACSL annotations corresponding to it");
         }
       }
+
       AAcslAnnotation annotation;
       try {
         annotation =
