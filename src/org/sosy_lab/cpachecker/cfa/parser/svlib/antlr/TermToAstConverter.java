@@ -142,6 +142,10 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       case "=>" -> {
         return SmtLibTheoryDeclarations.boolImplication(pArguments.size());
       }
+      case "ite" -> {
+        Verify.verify(pArguments.size() == 3);
+        return SmtLibTheoryDeclarations.ite(pArguments.get(1).getExpressionType());
+      }
     }
 
     // Match all array stuff
