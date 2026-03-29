@@ -103,8 +103,7 @@ public class FunArrayUnification {
 
     return new UnifyResult(
         new FunArray(boundsA, valuesA, emptinessA).removeEmptyBounds(),
-        new FunArray(boundsB, valuesB, emptinessB).removeEmptyBounds()
-    );
+        new FunArray(boundsB, valuesB, emptinessB).removeEmptyBounds());
   }
 
   // Corresponds to case 1: The bounds are equal.
@@ -169,7 +168,8 @@ public class FunArrayUnification {
     var anticipatedFromA = filterAnticipatedInOppositeBounds(uniqueToA, boundsB);
     var anticipatedFromB = filterAnticipatedInOppositeBounds(uniqueToB, boundsA);
 
-    if (anticipatedFromA.containsAll(uniqueToA.expressions()) && anticipatedFromB.containsAll(uniqueToB.expressions())) {
+    if (anticipatedFromA.containsAll(uniqueToA.expressions())
+        && anticipatedFromB.containsAll(uniqueToB.expressions())) {
       handleDisjoint();
       return;
     }

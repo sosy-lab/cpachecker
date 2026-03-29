@@ -20,26 +20,26 @@ public class FunArrayWideningTest {
   public void testWideningForInitialization() throws FunArrayBuilderException {
 
     // {0} 0 {i} ⊤ {n}?
-    FunArray leftSide = FunArrayBuilder
-        .firstBound(exp(0))
-        .value(0)
-        .bound(exp("i"))
-        .value(Interval.UNBOUND)
-        .bound(exp("n"))
-        .mayBeEmpty()
-        .build();
+    FunArray leftSide =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(0)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .mayBeEmpty()
+            .build();
 
     // {0} 0 {i-1} 0 {i} ⊤ {n}?
-    FunArray rightSide = FunArrayBuilder
-        .firstBound(exp(0))
-        .value(0)
-        .bound(exp("j",-1))
-        .value(0)
-        .bound(exp("i"))
-        .value(Interval.UNBOUND)
-        .bound(exp("n"))
-        .mayBeEmpty()
-        .build();
+    FunArray rightSide =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(0)
+            .bound(exp("j", -1))
+            .value(0)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .mayBeEmpty()
+            .build();
 
     FunArray result = leftSide.widen(rightSide);
 

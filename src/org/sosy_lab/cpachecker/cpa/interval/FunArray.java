@@ -369,8 +369,6 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     return jointValue;
   }
 
-
-
   /**
    * Unifies this FunArray with another one, so their segment bounds coincide.
    *
@@ -380,8 +378,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    * @return two unified FunArrays.
    */
   public UnifyResult unify(
-      FunArray other, Interval thisNeutralElement, Interval otherNeutralElement
-  ) {
+      FunArray other, Interval thisNeutralElement, Interval otherNeutralElement) {
     FunArrayUnification unification = new FunArrayUnification(this, other);
     return unification.unify(thisNeutralElement, otherNeutralElement);
   }

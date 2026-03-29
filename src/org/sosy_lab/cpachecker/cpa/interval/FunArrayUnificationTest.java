@@ -17,11 +17,7 @@ import org.sosy_lab.cpachecker.cpa.interval.FunArrayBuilder.FunArrayBuilderExcep
 public class FunArrayUnificationTest {
 
   private void testUnification(
-      FunArray initialA,
-      FunArray initialB,
-      FunArray expectedResultA,
-      FunArray expectedResultB
-  ) {
+      FunArray initialA, FunArray initialB, FunArray expectedResultA, FunArray expectedResultB) {
     var unification = new FunArrayUnification(initialA, initialB);
     var result = unification.unify(Interval.EMPTY, Interval.EMPTY);
 
@@ -39,14 +35,12 @@ public class FunArrayUnificationTest {
   public void testExample8FromPaper() throws FunArrayBuilderException {
     testUnification(
         // {0 i} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0), exp("i"))
+        FunArrayBuilder.firstBound(exp(0), exp("i"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .build(),
         // {0 i-1} 0 {1 i} ⊤ {n}?
-        FunArrayBuilder
-            .firstBound(exp(0), exp("i", -1))
+        FunArrayBuilder.firstBound(exp(0), exp("i", -1))
             .value(0)
             .bound(exp(1), exp("i"))
             .value(Interval.UNBOUND)
@@ -54,8 +48,7 @@ public class FunArrayUnificationTest {
             .mayBeEmpty()
             .build(),
         // {0} ⊥ {i}? ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(Interval.EMPTY)
             .bound(exp("i"))
             .mayBeEmpty()
@@ -63,15 +56,13 @@ public class FunArrayUnificationTest {
             .bound(exp("n"))
             .build(),
         // {0} 0 {i} ⊤ {n}?
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .mayBeEmpty()
-            .build()
-    );
+            .build());
   }
 
   /*
@@ -82,34 +73,23 @@ public class FunArrayUnificationTest {
   public void testDisjointMiddleBounds() throws FunArrayBuilderException {
     testUnification(
         // Initial A: {0} 0 {x} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("x"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .build(),
         // Initial B: {0} 0 {y} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("y"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .build(),
         // Expected A: {0} ⊤ {n} (Values are joined: 0 ∪ ⊤ = ⊤)
-        FunArrayBuilder
-            .firstBound(exp(0))
-            .value(Interval.UNBOUND)
-            .bound(exp("n"))
-            .build(),
+        FunArrayBuilder.firstBound(exp(0)).value(Interval.UNBOUND).bound(exp("n")).build(),
         // Expected B: {0} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
-            .value(Interval.UNBOUND)
-            .bound(exp("n"))
-            .build()
-    );
+        FunArrayBuilder.firstBound(exp(0)).value(Interval.UNBOUND).bound(exp("n")).build());
   }
 
   /*
@@ -120,38 +100,33 @@ public class FunArrayUnificationTest {
   public void testSupersetAndSubsetBounds() throws FunArrayBuilderException {
     testUnification(
         // Initial A: {0} 0 {i j} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"), exp("j"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .build(),
         // Initial B: {0} 0 {i} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .build(),
         // Expected A: {0} 0 {i} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .build(),
         // Expected B: {0} 0 {i} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
-            .build()
-    );
+            .build());
   }
 
   /*
@@ -162,16 +137,14 @@ public class FunArrayUnificationTest {
   public void testPartiallyOverlappingWithAnticipation() throws FunArrayBuilderException {
     testUnification(
         // Initial A: {0} 0 {i k} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"), exp("k"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .build(),
         // Initial B: {0} 0 {j k} ⊤ {i} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("j"), exp("k"))
             .value(Interval.UNBOUND)
@@ -180,8 +153,7 @@ public class FunArrayUnificationTest {
             .bound(exp("n"))
             .build(),
         // Expected A: {0} 0 {k} ⊥ {i}? ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("k"))
             .value(Interval.EMPTY)
@@ -191,16 +163,14 @@ public class FunArrayUnificationTest {
             .bound(exp("n"))
             .build(),
         // Expected B: {0} 0 {k} ⊤ {i} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("k"))
             .value(Interval.UNBOUND)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
-            .build()
-    );
+            .build());
   }
 
   /*
@@ -212,32 +182,18 @@ public class FunArrayUnificationTest {
   public void testHandleLastEarlyTermination() throws FunArrayBuilderException {
     testUnification(
         // Initial A: {0} 0 {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
-            .value(0)
-            .bound(exp("n"))
-            .build(),
+        FunArrayBuilder.firstBound(exp(0)).value(0).bound(exp("n")).build(),
         // Initial B: {0} 0 {i} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .build(),
         // Expected A: {0} 0 {n i}
-        FunArrayBuilder
-            .firstBound(exp(0))
-            .value(0)
-            .bound(exp("n"), exp("i"))
-            .build(),
+        FunArrayBuilder.firstBound(exp(0)).value(0).bound(exp("n"), exp("i")).build(),
         // Expected B: {0} 0 {n i}
-        FunArrayBuilder
-            .firstBound(exp(0))
-            .value(0)
-            .bound(exp("n"), exp("i"))
-            .build()
-    );
+        FunArrayBuilder.firstBound(exp(0)).value(0).bound(exp("n"), exp("i")).build());
   }
 
   /*
@@ -250,16 +206,14 @@ public class FunArrayUnificationTest {
   public void testSupersetWithAnticipation() throws FunArrayBuilderException {
     testUnification(
         // Initial A: {0} 0 {i k} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"), exp("k"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .build(),
         // Initial B: {0} 0 {k} ⊤ {i} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("k"))
             .value(Interval.UNBOUND)
@@ -268,8 +222,7 @@ public class FunArrayUnificationTest {
             .bound(exp("n"))
             .build(),
         // Expected A: {0} 0 {k} ⊥ {i}? ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("k"))
             .value(Interval.EMPTY)
@@ -279,24 +232,21 @@ public class FunArrayUnificationTest {
             .bound(exp("n"))
             .build(),
         // Expected B: {0} 0 {k} ⊤ {i} ⊤ {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("k"))
             .value(Interval.UNBOUND)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
-            .build()
-    );
+            .build());
   }
 
   @Test
   public void testUnificationForWidening() throws FunArrayBuilderException {
     testUnification(
         // {0} 0 {i} ⊤ {n}?
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
@@ -304,19 +254,9 @@ public class FunArrayUnificationTest {
             .mayBeEmpty()
             .build(),
         // {0} 0 {i-1} 0 {i} ⊤ {n}?
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
-            .bound(exp("i-1",-1))
-            .value(0)
-            .bound(exp("i"))
-            .value(Interval.UNBOUND)
-            .bound(exp("n"))
-            .mayBeEmpty()
-            .build(),
-        // {0} 0 {i} ⊤ {n}?
-        FunArrayBuilder
-            .firstBound(exp(0))
+            .bound(exp("i-1", -1))
             .value(0)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
@@ -324,23 +264,28 @@ public class FunArrayUnificationTest {
             .mayBeEmpty()
             .build(),
         // {0} 0 {i} ⊤ {n}?
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("i"))
             .value(Interval.UNBOUND)
             .bound(exp("n"))
             .mayBeEmpty()
-            .build()
-    );
+            .build(),
+        // {0} 0 {i} ⊤ {n}?
+        FunArrayBuilder.firstBound(exp(0))
+            .value(0)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .mayBeEmpty()
+            .build());
   }
 
   @Test
   public void testOpposingOrder() throws FunArrayBuilderException {
     testUnification(
         // {0} 0 {a} 0 {b} 0 {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("a"))
             .value(0)
@@ -349,8 +294,7 @@ public class FunArrayUnificationTest {
             .bound(exp("n"))
             .build(),
         // {0} 0 {b} 0 {a} 0 {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
+        FunArrayBuilder.firstBound(exp(0))
             .value(0)
             .bound(exp("b"))
             .value(0)
@@ -359,17 +303,8 @@ public class FunArrayUnificationTest {
             .bound(exp("n"))
             .build(),
         // {0} 0 {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
-            .value(0)
-            .bound(exp("n"))
-            .build(),
+        FunArrayBuilder.firstBound(exp(0)).value(0).bound(exp("n")).build(),
         // {0} 0 {n}
-        FunArrayBuilder
-            .firstBound(exp(0))
-            .value(0)
-            .bound(exp("n"))
-            .build()
-    );
+        FunArrayBuilder.firstBound(exp(0)).value(0).bound(exp("n")).build());
   }
 }

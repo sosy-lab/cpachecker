@@ -26,8 +26,6 @@ public class FunArrayBuilder {
   private List<Interval> values;
   private List<Boolean> emptiness;
 
-
-
   private FunArrayBuilder(Bound firstBound) {
     this.bounds = new ArrayList<>();
     this.values = new ArrayList<>();
@@ -35,12 +33,12 @@ public class FunArrayBuilder {
     this.bounds.add(firstBound);
   }
 
-  public FunArrayBuilder bound(NormalFormExpression... expressions) throws FunArrayBuilderException{
+  public FunArrayBuilder bound(NormalFormExpression... expressions)
+      throws FunArrayBuilderException {
     Bound bound = new Bound(Set.of(expressions));
     if (bounds.size() != values.size()) {
       throw new FunArrayBuilderException(
-          "Cannot append another bound %s. A value is needed first.".formatted(bound)
-      );
+          "Cannot append another bound %s. A value is needed first.".formatted(bound));
     }
     this.bounds.add(bound);
     return this;
@@ -78,7 +76,7 @@ public class FunArrayBuilder {
     return value(null, null);
   }
 
-  public FunArrayBuilder mayBeEmpty() throws FunArrayBuilderException{
+  public FunArrayBuilder mayBeEmpty() throws FunArrayBuilderException {
     if (this.emptiness.size() != this.values.size() - 1) {
       throw new FunArrayBuilderException("Emptiness value has already been set.");
     }
@@ -93,11 +91,7 @@ public class FunArrayBuilder {
 
   public FunArray build() {
     ensureEmptiness();
-    return new FunArray(
-        this.bounds,
-        this.values,
-        this.emptiness
-    );
+    return new FunArray(this.bounds, this.values, this.emptiness);
   }
 
   public static NormalFormExpression exp(int constant) {
@@ -142,18 +136,14 @@ public class FunArrayBuilder {
             name,
             name,
             name,
-            null
-        )
-    );
+            null));
   }
 
   public static class FunArrayBuilderException extends Exception {
-    @Serial
-    private static final long serialVersionUID = -927793611891304217L;
+    @Serial private static final long serialVersionUID = -927793611891304217L;
 
     public FunArrayBuilderException(String description) {
       super(description);
     }
   }
-
 }
