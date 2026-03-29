@@ -85,7 +85,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionComma
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibLabelCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
@@ -218,13 +217,6 @@ class SvLibCfaBuilder {
     }
 
     nodesToActualProcedureDefinitionEnd.put(currentStartingNode, procedureDeclaration);
-
-    ImmutableMap.Builder<String, CFANode> allLabelsToNodes = ImmutableMap.builder();
-    SvLibLabelCollectingVisitor labelCollectingVisitor =
-        new SvLibLabelCollectingVisitor(procedureDeclaration, allLabelsToNodes);
-    pCommand.getBody().accept(labelCollectingVisitor);
-
-    ImmutableMap<String, CFANode> allLabelsToNodesBuilt = allLabelsToNodes.build();
 
     SvLibStatementToCfaVisitor statementVisitor =
         new SvLibStatementToCfaVisitor(
