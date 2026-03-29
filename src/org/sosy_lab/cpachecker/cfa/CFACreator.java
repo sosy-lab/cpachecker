@@ -48,7 +48,6 @@ import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -249,7 +248,7 @@ public class CFACreator {
   private boolean exportCfaToC = false;
 
   @Option(secure = true, name = "cfa.exportToC.file", description = "export CFA as C file")
-  @FileOption(Type.OUTPUT_FILE)
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaToCFile = Path.of("cfa.c");
 
   @Option(secure = true, name = "cfa.callgraph.export", description = "dump a simple call graph")
@@ -259,18 +258,18 @@ public class CFACreator {
       secure = true,
       name = "cfa.callgraph.file",
       description = "file name for call graph as .dot file")
-  @FileOption(Type.OUTPUT_FILE)
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportFunctionCallsFile = Path.of("functionCalls.dot");
 
   @Option(
       secure = true,
       name = "cfa.callgraph.fileUsed",
       description = "file name for call graph as .dot file")
-  @FileOption(Type.OUTPUT_FILE)
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportFunctionCallsUsedFile = Path.of("functionCallsUsed.dot");
 
   @Option(secure = true, name = "cfa.file", description = "export CFA as .dot file")
-  @FileOption(Type.OUTPUT_FILE)
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Path.of("cfa.dot");
 
   @Option(
@@ -282,7 +281,7 @@ public class CFACreator {
               + " in scope and their type. Please be aware that this "
               + "is **not** a stable interface and the output format of "
               + "the file may change in future versions.")
-  @FileOption(Type.OUTPUT_FILE)
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path pathForExportingVariablesInScopeWithTheirType = null;
 
   @Option(
@@ -293,7 +292,7 @@ public class CFACreator {
               + " corresponding"
               + " to the value of option pixelgraphic.export.format"
               + "If set to 'null', no pixel graphic is exported.")
-  @FileOption(Type.OUTPUT_FILE)
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaPixelFile = null;
 
   @Option(
