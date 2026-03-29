@@ -563,12 +563,12 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     if (pReturnVariable.isEmpty()) {
       return ImmutableList.of();
     }
-    if (pReturnVariable.get().getType() instanceof CSimpleType asSimpleType) {
+    if (pReturnVariable.orElseThrow().getType() instanceof CSimpleType asSimpleType) {
       return ImmutableList.of(
           new SvLibParsingParameterDeclaration(
               FileLocation.DUMMY,
               transformToSvLibType(asSimpleType),
-              pReturnVariable.get().getName(),
+              pReturnVariable.orElseThrow().getName(),
               pProcedureName));
     }
     return ImmutableList.of();
