@@ -43,13 +43,16 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
   private final AntrlTypeExpressionToTypeConverter antrlTypeExpressionToTypeConverter;
   private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
 
-  protected AntlrLogicalDefinitionToLogicalDefinitionConverter(AcslScope pAcslScope) {
-    super(CProgramScope.empty(), pAcslScope);
-    antlrTermToTermConverter = new AntlrTermToTermConverter(getCProgramScope(), getAcslScope());
+  protected AntlrLogicalDefinitionToLogicalDefinitionConverter(
+      AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(CProgramScope.empty(), pAcslScope, pInitialFileLocation);
+    antlrTermToTermConverter =
+        new AntlrTermToTermConverter(getCProgramScope(), getAcslScope(), pInitialFileLocation);
     antrlTypeExpressionToTypeConverter =
         new AntrlTypeExpressionToTypeConverter(getCProgramScope(), getAcslScope());
     antlrPredicateToPredicateConverter =
-        new AntlrPredicateToPredicateConverter(getCProgramScope(), getAcslScope());
+        new AntlrPredicateToPredicateConverter(
+            getCProgramScope(), getAcslScope(), pInitialFileLocation);
   }
 
   private String parsePolyIdName(PolyIdContext ctx) {
@@ -68,7 +71,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
                   child -> {
                     String typeName = Objects.requireNonNull(child).getText();
                     return new AcslTypeVariableDeclaration(
-                        FileLocation.DUMMY,
+                        fileLocationFromContext(ctx),
                         false,
                         new AcslPolymorphicType(typeName),
                         typeName,
@@ -91,7 +94,8 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
                 parameter -> {
                   String variableName = parameter.getChild(1).getText();
                   AcslType type = antrlTypeExpressionToTypeConverter.visit(parameter.getChild(0));
-                  return new AcslParameterDeclaration(FileLocation.DUMMY, type, variableName);
+                  return new AcslParameterDeclaration(
+                      fileLocationFromContext(ctx), type, variableName);
                 })
             .toList();
 
@@ -120,7 +124,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
 
     AcslPredicateDeclaration predicateDeclaration =
         new AcslPredicateDeclaration(
-            FileLocation.DUMMY,
+            fileLocationFromContext(ctx),
             new AcslPredicateType(
                 transformedImmutableListCopy(parameters, AcslParameterDeclaration::getType), false),
             functionName,
@@ -135,7 +139,8 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
     getAcslScope().registerDeclaration(predicateDeclaration);
 
     AcslPredicate body = antlrPredicateToPredicateConverter.visit(ctx.pred());
-    return new AcslLogicPredicateDefinition(FileLocation.DUMMY, predicateDeclaration, body);
+    return new AcslLogicPredicateDefinition(
+        fileLocationFromContext(ctx), predicateDeclaration, body);
   }
 
   @Override
@@ -162,7 +167,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
 
     AcslFunctionDeclaration functionDeclaration =
         new AcslFunctionDeclaration(
-            FileLocation.DUMMY,
+            fileLocationFromContext(ctx),
             new AcslFunctionType(
                 returnType,
                 transformedImmutableListCopy(parameters, AcslParameterDeclaration::getType),
@@ -179,6 +184,6 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
     getAcslScope().registerDeclaration(functionDeclaration);
 
     AcslTerm body = antlrTermToTermConverter.visit(ctx.term());
-    return new AcslLogicFunctionDefinition(FileLocation.DUMMY, functionDeclaration, body);
+    return new AcslLogicFunctionDefinition(fileLocationFromContext(ctx), functionDeclaration, body);
   }
 }

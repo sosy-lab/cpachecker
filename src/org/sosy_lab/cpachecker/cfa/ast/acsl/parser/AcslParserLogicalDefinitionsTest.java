@@ -60,7 +60,7 @@ public class AcslParserLogicalDefinitionsTest {
 
     AcslScope acslScope = getAcslScope();
 
-    AcslAstNode parsed = AcslParser.parseLogicalDefinition(input, acslScope);
+    AcslAstNode parsed = AcslParser.parseLogicalDefinition(input, acslScope, FileLocation.DUMMY);
     assert parsed.equals(output) : "Parsed object does not match expected object";
   }
 
@@ -569,10 +569,10 @@ public class AcslParserLogicalDefinitionsTest {
     String definition2 = "predicate is_false(boolean p) = !p;";
     assertThrows(
         NullPointerException.class,
-        () -> AcslParser.parseLogicalDefinition(definition1, getAcslScope()));
+        () -> AcslParser.parseLogicalDefinition(definition1, getAcslScope(), FileLocation.DUMMY));
     assertThrows(
         NullPointerException.class,
-        () -> AcslParser.parseLogicalDefinition(definition2, getAcslScope()));
+        () -> AcslParser.parseLogicalDefinition(definition2, getAcslScope(), FileLocation.DUMMY));
   }
 
   @Test

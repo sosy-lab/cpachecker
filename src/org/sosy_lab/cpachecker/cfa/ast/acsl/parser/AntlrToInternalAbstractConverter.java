@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 import com.google.common.base.Verify;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -40,10 +41,13 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
 
   private final CProgramScope cProgramScope;
   private final AcslScope acslScope;
+  private final FileLocation initialFileLocation;
 
-  protected AntlrToInternalAbstractConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
+  protected AntlrToInternalAbstractConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     cProgramScope = pCProgramScope;
     acslScope = pAcslScope;
+    initialFileLocation = pInitialFileLocation;
   }
 
   public AcslScope getAcslScope() {
@@ -52,6 +56,24 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
 
   public CProgramScope getCProgramScope() {
     return cProgramScope;
+  }
+
+  protected FileLocation fileLocationFromContext(ParserRuleContext pContext) {
+    if (initialFileLocation.equals(FileLocation.DUMMY)) {
+      return FileLocation.DUMMY;
+    }
+
+    return new FileLocation(
+        initialFileLocation.getFileName(),
+        initialFileLocation.getNodeOffset() + pContext.getStart().getStartIndex(),
+        pContext.getStop().getStartIndex() - pContext.getStart().getStartIndex(),
+        initialFileLocation.getStartingLineNumber() + pContext.getStart().getLine(),
+        initialFileLocation.getStartingLineNumber() + pContext.getStop().getLine(),
+        initialFileLocation.getStartColumnInLine() + pContext.getStart().getCharPositionInLine(),
+        pContext.getStart().getLine() == pContext.getStop().getLine()
+            ? initialFileLocation.getStartColumnInLine()
+                + pContext.getStop().getCharPositionInLine()
+            : pContext.getStop().getCharPositionInLine());
   }
 
   AcslSimpleDeclaration getVariableDeclarationForName(String pName) {

@@ -52,13 +52,15 @@ public class AntlrAnnotationToAnnotationVisitor
   private final FileLocation fileLocation;
 
   protected AntlrAnnotationToAnnotationVisitor(
-      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pFileLocation) {
-    super(pCProgramScope, pAcslScope);
-    fileLocation = pFileLocation;
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
+    fileLocation = pInitialFileLocation;
     antlrPredicateToPredicateConverter =
-        new AntlrPredicateToPredicateConverter(pCProgramScope, pAcslScope);
-    antlrTsetToMemorySetConverter = new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope);
-    logicalDefinitionConverter = new AntlrLogicalDefinitionToLogicalDefinitionConverter(pAcslScope);
+        new AntlrPredicateToPredicateConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    antlrTsetToMemorySetConverter =
+        new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    logicalDefinitionConverter =
+        new AntlrLogicalDefinitionToLogicalDefinitionConverter(pAcslScope, pInitialFileLocation);
   }
 
   @Override

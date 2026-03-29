@@ -220,7 +220,8 @@ ensures x <= 10;
   public void parseAssertionWithPredicate() throws AcslParseException {
     AcslScope aScope = AcslScope.mutableCopy(getAcslScope());
     String predicate = "predicate is_positive(integer i) = i >= 0";
-    AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
+    AcslLogicDefinition predDef =
+        AcslParser.parseLogicalDefinition(predicate, aScope, FileLocation.DUMMY);
     aScope.registerDeclaration(predDef.getDeclaration());
 
     AcslParameterDeclaration i =
@@ -255,7 +256,8 @@ ensures x <= 10;
   public void parseAssertionPredWrongNumParameters() throws AcslParseException {
     AcslScope aScope = AcslScope.mutableCopy(getAcslScope());
     String predicate = "predicate is_positive(integer i) = i >= 0";
-    AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
+    AcslLogicDefinition predDef =
+        AcslParser.parseLogicalDefinition(predicate, aScope, FileLocation.DUMMY);
     aScope.registerDeclaration(predDef.getDeclaration());
 
     String assertion = "assert is_positive(x, y);";
@@ -272,7 +274,8 @@ ensures x <= 10;
   public void assertionWithPredicateAstStringTest() throws AcslParseException {
     AcslScope aScope = AcslScope.mutableCopy(getAcslScope());
     String predicate = "predicate is_positive(integer i) = i >= 0";
-    AcslLogicDefinition predDef = AcslParser.parseLogicalDefinition(predicate, aScope);
+    AcslLogicDefinition predDef =
+        AcslParser.parseLogicalDefinition(predicate, aScope, FileLocation.DUMMY);
     aScope.registerDeclaration(predDef.getDeclaration());
 
     String assertion = "assert is_positive(x);";
@@ -290,7 +293,8 @@ ensures x <= 10;
   public void parseAssertionWithLogicFunction() throws AcslParseException {
     AcslScope acslScope = AcslScope.mutableCopy(getAcslScope());
     String logicFunction = "logic integer is_positive (integer i) = i >= 0 ? 1 : 0;";
-    AcslLogicDefinition funcDef = AcslParser.parseLogicalDefinition(logicFunction, acslScope);
+    AcslLogicDefinition funcDef =
+        AcslParser.parseLogicalDefinition(logicFunction, acslScope, FileLocation.DUMMY);
     acslScope.registerDeclaration(funcDef.getDeclaration());
 
     CVariableDeclaration a =

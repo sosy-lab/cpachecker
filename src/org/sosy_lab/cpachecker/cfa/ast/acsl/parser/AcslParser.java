@@ -55,22 +55,29 @@ public class AcslParser {
   }
 
   public static AcslPredicate parsePredicate(
-      String pInput, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
+      String pInput,
+      CProgramScope pCProgramScope,
+      AcslScope pAcslScope,
+      FileLocation pInitialFileLocation)
+      throws AcslParseException {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.pred());
     AntlrPredicateToPredicateConverter converter =
-        new AntlrPredicateToPredicateConverter(pCProgramScope, AcslScope.mutableCopy(pAcslScope));
+        new AntlrPredicateToPredicateConverter(
+            pCProgramScope, AcslScope.mutableCopy(pAcslScope), pInitialFileLocation);
 
     return converter.visit(tree);
   }
 
-  public static AcslLogicDefinition parseLogicalDefinition(String pInput, AcslScope pAcslScope)
+  public static AcslLogicDefinition parseLogicalDefinition(
+      String pInput, AcslScope pAcslScope, FileLocation pInitialFileLocation)
       throws AcslParseException {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.logicDef());
 
     AntlrLogicalDefinitionToLogicalDefinitionConverter converter =
-        new AntlrLogicalDefinitionToLogicalDefinitionConverter(AcslScope.mutableCopy(pAcslScope));
+        new AntlrLogicalDefinitionToLogicalDefinitionConverter(
+            AcslScope.mutableCopy(pAcslScope), pInitialFileLocation);
 
     AcslLogicDefinition definition = converter.visit(tree);
 

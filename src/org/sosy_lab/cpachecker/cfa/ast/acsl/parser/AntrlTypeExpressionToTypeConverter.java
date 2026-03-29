@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
@@ -27,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.T
 
 public class AntrlTypeExpressionToTypeConverter extends AntlrToInternalAbstractConverter<AcslType> {
   protected AntrlTypeExpressionToTypeConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
-    super(pCProgramScope, pAcslScope);
+    super(pCProgramScope, pAcslScope, FileLocation.DUMMY);
   }
 
   @Override

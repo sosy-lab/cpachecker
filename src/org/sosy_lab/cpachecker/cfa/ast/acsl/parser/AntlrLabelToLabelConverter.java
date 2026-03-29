@@ -19,8 +19,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.L
 
 class AntlrLabelToLabelConverter extends AntlrToInternalAbstractConverter<AcslLabel> {
 
-  protected AntlrLabelToLabelConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
-    super(pCProgramScope, pAcslScope);
+  protected AntlrLabelToLabelConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
   }
 
   @Override
@@ -32,6 +33,6 @@ class AntlrLabelToLabelConverter extends AntlrToInternalAbstractConverter<AcslLa
       return AcslBuiltinLabel.of(identifierName);
     }
 
-    return new AcslProgramLabel(identifierName, FileLocation.DUMMY);
+    return new AcslProgramLabel(identifierName, fileLocationFromContext(ctx));
   }
 }
