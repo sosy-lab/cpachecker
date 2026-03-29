@@ -290,4 +290,48 @@ public class FunArrayUnificationTest {
             .build()
     );
   }
+
+  @Test
+  public void testUnificationForWidening() throws FunArrayBuilderException {
+    testUnification(
+        // {0} 0 {i} ⊤ {n}?
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .mayBeEmpty()
+            .build(),
+        // {0} 0 {i-1} 0 {i} ⊤ {n}?
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("i-1",-1))
+            .value(0)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .mayBeEmpty()
+            .build(),
+        // {0} 0 {i} ⊤ {n}?
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .mayBeEmpty()
+            .build(),
+        // {0} 0 {i} ⊤ {n}?
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .mayBeEmpty()
+            .build()
+    );
+  }
 }
