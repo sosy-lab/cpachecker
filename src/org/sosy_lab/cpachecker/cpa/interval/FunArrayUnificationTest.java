@@ -334,4 +334,42 @@ public class FunArrayUnificationTest {
             .build()
     );
   }
+
+  @Test
+  public void testOpposingOrder() throws FunArrayBuilderException {
+    testUnification(
+        // {0} 0 {a} 0 {b} 0 {n}
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("a"))
+            .value(0)
+            .bound(exp("b"))
+            .value(0)
+            .bound(exp("n"))
+            .build(),
+        // {0} 0 {b} 0 {a} 0 {n}
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("b"))
+            .value(0)
+            .bound(exp("a"))
+            .value(0)
+            .bound(exp("n"))
+            .build(),
+        // {0} 0 {n}
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("n"))
+            .build(),
+        // {0} 0 {n}
+        FunArrayBuilder
+            .firstBound(exp(0))
+            .value(0)
+            .bound(exp("n"))
+            .build()
+    );
+  }
 }
