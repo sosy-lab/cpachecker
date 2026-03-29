@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-public class CToSvLibTransformationAlgorithmTest {
+public class CToSvLibAlgorithmTest {
 
   private void testTransformationToSvLib(Path pInputFilePath)
       throws InvalidConfigurationException,
