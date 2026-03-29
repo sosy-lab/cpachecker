@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public class SmtLibTheoryDeclarations {
 
@@ -129,19 +130,6 @@ public class SmtLibTheoryDeclarations {
           "mod",
           ImmutableList.of());
 
-  public static SvLibFunctionDeclaration INT_ITE =
-      new SvLibFunctionDeclaration(
-          FileLocation.DUMMY,
-          new SvLibFunctionType(
-              ImmutableList.of(
-                  SvLibSmtLibPredefinedType.BOOL,
-                  SvLibSmtLibPredefinedType.INT,
-                  SvLibSmtLibPredefinedType.INT),
-              SvLibSmtLibPredefinedType.INT),
-          "if",
-          "if",
-          ImmutableList.of());
-
   /* Boolean stuff */
 
   public static SvLibFunctionDeclaration BOOL_NEGATION =
@@ -186,6 +174,17 @@ public class SmtLibTheoryDeclarations {
             SvLibSmtLibPredefinedType.BOOL),
         "=>",
         "=>",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration ite(SvLibType pReturnType) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(SvLibSmtLibPredefinedType.BOOL, pReturnType, pReturnType),
+            pReturnType),
+        "ite",
+        "ite",
         ImmutableList.of());
   }
 
