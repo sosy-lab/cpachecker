@@ -187,6 +187,9 @@ public final class AstCfaRelation {
    *     be uniquely determined
    */
   public Optional<CFANode> getNodeForStatementLocation(int line, int column) {
+    if (startingLocationToTightestStatement == null) {
+      initializeMapFromStartingLocationToTightestStatement();
+    }
     ASTElement statement =
         Objects.requireNonNull(
                 startingLocationToTightestStatement.floorEntry(new StartingLocation(column, line)))
@@ -313,7 +316,8 @@ public final class AstCfaRelation {
     startingLocationToTightestStatement = builder.buildOrThrow();
   }
 
-  public Optional<ASTElement> getTightestStatementForStarting(int pLine, OptionalInt pColumn) {
+  private Optional<Entry<StartingLocation, ASTElement>> getStartingFor(
+      int pLine, OptionalInt pColumn) {
     if (startingLocationToTightestStatement == null) {
       initializeMapFromStartingLocationToTightestStatement();
     }
@@ -322,9 +326,8 @@ public final class AstCfaRelation {
       StartingLocation key = new StartingLocation(pColumn.orElseThrow(), pLine);
       Entry<StartingLocation, ASTElement> startingLocationASTElementEntry =
           startingLocationToTightestStatement.floorEntry(key);
-      if (startingLocationASTElementEntry != null
-          && startingLocationASTElementEntry.getKey().line == key.line) {
-        return Optional.ofNullable(startingLocationASTElementEntry.getValue());
+      if (startingLocationASTElementEntry != null) {
+        return Optional.of(startingLocationASTElementEntry);
       }
       return Optional.empty();
     } else {
@@ -332,12 +335,45 @@ public final class AstCfaRelation {
       // We want the first statement at the given line
       Entry<StartingLocation, ASTElement> startingLocationASTElementEntry =
           startingLocationToTightestStatement.ceilingEntry(key);
-      if (startingLocationASTElementEntry != null
-          && startingLocationASTElementEntry.getKey().line == key.line) {
-        return Optional.ofNullable(startingLocationASTElementEntry.getValue());
+      if (startingLocationASTElementEntry != null) {
+        return Optional.of(startingLocationASTElementEntry);
       }
       return Optional.empty();
     }
+  }
+
+  /**
+   * Returns the tightest Ast element on the same line as a starting loaction.
+   *
+   * @param pLine The line of the starting location
+   * @param pColumn The optional column of the starting location
+   * @return Optional of the tightest Ast elment for a starting location that is on the same line as
+   *     the starting location. If there is no Ast element on the same line, the result is an empty
+   *     Optional.
+   */
+  public Optional<ASTElement> getTightestStatementForStarting(int pLine, OptionalInt pColumn) {
+    Optional<Entry<StartingLocation, ASTElement>> startingFor = getStartingFor(pLine, pColumn);
+    if (startingFor.isEmpty() || startingFor.orElseThrow().getKey().line != pLine) {
+      return Optional.empty();
+    }
+    return Optional.of(startingFor.orElseThrow().getValue());
+  }
+
+  /**
+   * Returns the tightest Ast element for a starting location. The result Ast element is not
+   * necessarily on the same line as the starting location.
+   *
+   * @param pLine The line of the starting location
+   * @param pColumn The optional column of the starting location
+   * @return An Optional of the tightest Ast element for a startiong location. If no Ast element for
+   *     the startiong location can be found, the result is an empty Optional.
+   */
+  public Optional<ASTElement> getElemForStarting(int pLine, OptionalInt pColumn) {
+    Optional<Entry<StartingLocation, ASTElement>> startingFor = getStartingFor(pLine, pColumn);
+    if (startingFor.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(startingFor.orElseThrow().getValue());
   }
 
   /**

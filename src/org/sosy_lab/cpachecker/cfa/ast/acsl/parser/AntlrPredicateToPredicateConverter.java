@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
@@ -47,24 +49,30 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.L
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicalTruePredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.OldPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ParenthesesPredContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.PredicateApplicationPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.PredicateTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TernaryConditionPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.UnaryPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.UniversalQuantificationPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ValidPredContext;
 
-class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverter<AcslPredicate> {
+class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverter<AcslPredicate> {
 
   private final AntlrTermToTermConverter antrlToTermConverter;
   private final AntlrTsetToMemorySetConverter antrlTsetToMemorySetConverter;
   private final AntlrLabelToLabelConverter labelConverter;
   private final AntrlTypeExpressionToTypeConverter antrlTypeExpressionToTypeConverter;
 
-  protected AntrlPredicateToPredicateConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
-    super(pCProgramScope, pAcslScope);
-    antrlToTermConverter = new AntlrTermToTermConverter(pCProgramScope, pAcslScope);
-    antrlTsetToMemorySetConverter = new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope);
-    labelConverter = new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope);
+  protected AntlrPredicateToPredicateConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
+    antrlToTermConverter =
+        new AntlrTermToTermConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    antrlTsetToMemorySetConverter =
+        new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    labelConverter =
+        new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
     antrlTypeExpressionToTypeConverter =
         new AntrlTypeExpressionToTypeConverter(getCProgramScope(), getAcslScope());
   }
@@ -75,17 +83,17 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     // '\old' '(' term ')'
     AcslPredicate expression = visit(ctx.getChild(2));
 
-    return new AcslOldPredicate(FileLocation.DUMMY, expression);
+    return new AcslOldPredicate(fileLocationFromContext(ctx), expression);
   }
 
   @Override
   public AcslPredicate visitLogicalTruePred(LogicalTruePredContext ctx) {
-    return new AcslBooleanLiteralPredicate(FileLocation.DUMMY, true);
+    return new AcslBooleanLiteralPredicate(fileLocationFromContext(ctx), true);
   }
 
   @Override
   public AcslPredicate visitLogicalFalsePred(LogicalFalsePredContext ctx) {
-    return new AcslBooleanLiteralPredicate(FileLocation.DUMMY, false);
+    return new AcslBooleanLiteralPredicate(fileLocationFromContext(ctx), false);
   }
 
   @Override
@@ -96,7 +104,7 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     AcslPredicate ifTrue = visit(ctx.getChild(2));
     AcslPredicate ifFalse = visit(ctx.getChild(4));
 
-    return new AcslTernaryPredicate(FileLocation.DUMMY, condition, ifTrue, ifFalse);
+    return new AcslTernaryPredicate(fileLocationFromContext(ctx), condition, ifTrue, ifFalse);
   }
 
   @Override
@@ -110,17 +118,17 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
         AcslUnaryExpressionOperator.of(ctx.getChild(0).getText());
     AcslPredicate expression = visit(ctx.getChild(1));
 
-    return new AcslUnaryPredicate(FileLocation.DUMMY, expression, operator);
+    return new AcslUnaryPredicate(fileLocationFromContext(ctx), expression, operator);
   }
 
   @Override
   public AcslPredicate visitPredicateTerm(PredicateTermContext ctx) {
     AcslTerm term = antrlToTermConverter.visit(ctx.getChild(0));
     return new AcslBinaryTermPredicate(
-        FileLocation.DUMMY,
+        fileLocationFromContext(ctx),
         term,
         new AcslIntegerLiteralTerm(
-            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+            fileLocationFromContext(ctx), AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
         AcslBinaryTermExpressionOperator.EQUALS);
   }
 
@@ -132,13 +140,13 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
       // We are in the case: [\valid, '(', term, ')']
       AcslMemoryLocationSet memoryLocationSet =
           antrlTsetToMemorySetConverter.visit(ctx.getChild(2));
-      return new AcslValidPredicate(FileLocation.DUMMY, memoryLocationSet);
+      return new AcslValidPredicate(fileLocationFromContext(ctx), memoryLocationSet);
     } else if (ctx.getChildCount() == 5) {
       // We are in the case: [\valid, ['{', label, '}'],  '(', term, ')']
       AcslLabel label = labelConverter.visit(ctx.getChild(1).getChild(1));
       AcslMemoryLocationSet memoryLocationSet =
           antrlTsetToMemorySetConverter.visit(ctx.getChild(3));
-      return new AcslValidPredicate(FileLocation.DUMMY, memoryLocationSet, label);
+      return new AcslValidPredicate(fileLocationFromContext(ctx), memoryLocationSet, label);
     } else {
       throw new RuntimeException("Unexpected number of children when creating a valid predicate");
     }
@@ -151,7 +159,8 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
         AcslBinaryPredicateOperator.of(ctx.getChild(1).getText());
     AcslPredicate rightExpression = visit(ctx.getChild(2));
 
-    return new AcslBinaryPredicate(FileLocation.DUMMY, leftExpression, rightExpression, operator);
+    return new AcslBinaryPredicate(
+        fileLocationFromContext(ctx), leftExpression, rightExpression, operator);
   }
 
   @Override
@@ -173,14 +182,14 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
       AcslTerm righTerm = antrlToTermConverter.visit(ctx.getChild(i + 2));
 
       AcslPredicate newComparison =
-          new AcslBinaryTermPredicate(FileLocation.DUMMY, leftTerm, righTerm, operator);
+          new AcslBinaryTermPredicate(fileLocationFromContext(ctx), leftTerm, righTerm, operator);
 
       if (currentExpression == null) {
         currentExpression = newComparison;
       } else {
         currentExpression =
             new AcslBinaryPredicate(
-                FileLocation.DUMMY,
+                fileLocationFromContext(ctx),
                 newComparison,
                 currentExpression,
                 AcslBinaryPredicateOperator.AND);
@@ -197,6 +206,20 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     }
 
     return currentExpression;
+  }
+
+  @Override
+  public AcslPredicate visitPredicateApplicationPred(PredicateApplicationPredContext ctx) {
+    String name = ctx.ident().getText();
+    AcslPredicateDeclaration declaration = getAcslScope().lookupPredicate(name);
+    ImmutableList.Builder<AcslTerm> termBuilder = ImmutableList.builder();
+    for (TermContext t : ctx.term()) {
+      AcslTerm term = antrlToTermConverter.visit(t);
+      termBuilder.add(term);
+    }
+    ImmutableList<AcslTerm> parameters = termBuilder.build();
+    return new AcslPredicateApplicationPredicate(
+        fileLocationFromContext(ctx), Objects.requireNonNull(declaration), parameters);
   }
 
   private AcslPredicate handleQuantifiedPredicate(
@@ -225,7 +248,8 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
                 "Pointer or array types are not supported in the binders list yes");
           }
 
-          parameters.add(new AcslParameterDeclaration(FileLocation.DUMMY, type, variableName));
+          parameters.add(
+              new AcslParameterDeclaration(fileLocationFromContext(binder), type, variableName));
         }
       } else {
         throw new RuntimeException("Expected a binder in the binders list");
@@ -240,9 +264,9 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     AcslPredicate predicate = visit(pPredicate);
 
     if (pQuantifier.equals("\\exists")) {
-      return new AcslExistsPredicate(FileLocation.DUMMY, binders, predicate);
+      return new AcslExistsPredicate(fileLocationFromContext(pBindersContext), binders, predicate);
     } else if (pQuantifier.equals("\\forall")) {
-      return new AcslForallPredicate(FileLocation.DUMMY, binders, predicate);
+      return new AcslForallPredicate(fileLocationFromContext(pBindersContext), binders, predicate);
     } else {
       throw new RuntimeException("Unknown quantifier: " + pQuantifier);
     }

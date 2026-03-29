@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
@@ -19,7 +20,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -43,12 +45,26 @@ public record ParseResult(
     List<Pair<ADeclaration, String>> globalDeclarations,
     List<Path> fileNames,
     Optional<AstCfaRelation> astStructure,
-    Optional<List<FileLocation>> commentLocations,
+    Optional<List<AcslComment>> acslComments,
     Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
     Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
     // Only relevant for SV-LIB scripts
     Optional<SvLibCfaMetadata> svLibCfaMetadata) {
+
+  public Optional<Set<AbstractSimpleDeclaration>> localVariablesAndParametersInScope(
+      CFANode pNode) {
+    if (cfaNodeToAstLocalVariablesInScope.isEmpty() || cfaNodeToAstParametersInScope.isEmpty()) {
+      return Optional.empty();
+    }
+
+    ImmutableSet.Builder<AbstractSimpleDeclaration> result = ImmutableSet.builder();
+    cfaNodeToAstLocalVariablesInScope.ifPresent(
+        m -> result.addAll(m.getOrDefault(pNode, ImmutableSet.of())));
+    cfaNodeToAstParametersInScope.ifPresent(
+        m -> result.addAll(m.getOrDefault(pNode, ImmutableSet.of())));
+    return Optional.of(result.build());
+  }
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -73,7 +89,7 @@ public record ParseResult(
       TreeMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames,
-      List<FileLocation> pCommentLocations,
+      List<AcslComment> pAcslComments,
       List<SyntacticBlock> pBlocks) {
     this(
         pFunctions,
@@ -81,7 +97,7 @@ public record ParseResult(
         pGlobalDeclarations,
         pFileNames,
         Optional.empty(),
-        Optional.of(pCommentLocations),
+        Optional.of(pAcslComments),
         Optional.of(pBlocks),
         Optional.empty(),
         Optional.empty(),
@@ -119,7 +135,7 @@ public record ParseResult(
         globalDeclarations,
         fileNames,
         Optional.of(pAstCfaRelation),
-        commentLocations,
+        acslComments,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
@@ -137,7 +153,7 @@ public record ParseResult(
         globalDeclarations,
         fileNames,
         astStructure,
-        commentLocations,
+        acslComments,
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
         Optional.of(pCfaNodeToAstParametersInScope),
@@ -151,10 +167,25 @@ public record ParseResult(
         globalDeclarations,
         pFileNames,
         astStructure,
-        commentLocations,
+        acslComments,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
         svLibCfaMetadata);
+  }
+
+  public ParseResult withAcslComments(
+      List<AcslComment> pAcslComments, List<SyntacticBlock> pBlocks) {
+    return new ParseResult(
+        functions,
+        cfaNodes,
+        globalDeclarations,
+        fileNames,
+        astStructure,
+        Optional.of(pAcslComments),
+        Optional.of(pBlocks),
+        cfaNodeToAstLocalVariablesInScope,
+        cfaNodeToAstParametersInScope,
+        Optional.empty());
   }
 }
