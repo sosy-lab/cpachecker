@@ -651,13 +651,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
-    SvLibScript transformationResult;
-    try {
-      transformationResult = transformCfaToSvLib();
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("The configuration used to transform the CFA to SV-LIB is wrong.", e);
-    }
-
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
