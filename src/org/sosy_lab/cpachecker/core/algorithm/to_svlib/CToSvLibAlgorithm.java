@@ -651,8 +651,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   public void collectStatistics(Collection<Statistics> statsCollection) {}
 
   @Override
-  public void close() throws Exception {
-    // TODO is this acutally what we want here, or do we just delegate the problem?
+  public void close() {
     solver.close();
   }
 }
