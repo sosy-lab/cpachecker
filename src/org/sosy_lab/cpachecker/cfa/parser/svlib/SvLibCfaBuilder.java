@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -247,6 +248,26 @@ class SvLibCfaBuilder {
     // to dead code stemming from goto's or similar
     NodeCollectingCFAVisitor nodeCollectingCFAVisitor = new NodeCollectingCFAVisitor();
     CFATraversal.dfs().traverseOnce(functionEntryNode, nodeCollectingCFAVisitor);
+
+    // Remove all edges from unreachable nodes to actual nodes, which can happen if we have for
+    // example whenever two labels follow each other, i.e., `(label a) (label b)`, and there is a
+    // goto to label b, but not to label a. In this case label a and all edges leaving it are
+    // technically still part of the CFA, but they are not reachable from the function entry node,
+    // and therefore we want to remove them.
+    for (CFANode unreachableNode :
+        Sets.difference(allNodesCollector.build(), nodeCollectingCFAVisitor.getVisitedNodes())) {
+      for (CFAEdge leavingEdge : unreachableNode.getLeavingEdges().toSet()) {
+        if (nodeCollectingCFAVisitor.getVisitedNodes().contains(leavingEdge.getSuccessor())) {
+          logger.log(
+              Level.WARNING,
+              "Removing edge from unreachable node %s to reachable node %s",
+              leavingEdge.getPredecessor(),
+              leavingEdge.getSuccessor());
+          leavingEdge.getPredecessor().removeLeavingEdge(leavingEdge);
+          leavingEdge.getSuccessor().removeEnteringEdge(leavingEdge);
+        }
+      }
+    }
 
     return Pair.of(functionEntryNode, nodeCollectingCFAVisitor.getVisitedNodes());
   }
