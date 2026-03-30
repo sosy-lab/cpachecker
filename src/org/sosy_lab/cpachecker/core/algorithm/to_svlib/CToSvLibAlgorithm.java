@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
@@ -498,18 +497,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       ImmutableList<CExpression> pCParameters, CFunctionSummaryEdge pCallEdge) {
     ImmutableList.Builder<SvLibTerm> callInputParameterCollector = ImmutableList.builder();
     for (CExpression inputParameter : pCParameters) {
-      // TODO too restrictive! adapt type of term
-      if (inputParameter instanceof CIntegerLiteralExpression integerLiteral) {
-        SvLibIntegerConstantTerm integerConstantTerm =
-            new SvLibIntegerConstantTerm(integerLiteral.getValue(), FileLocation.DUMMY);
-        callInputParameterCollector.add(integerConstantTerm);
-      } else if (inputParameter instanceof CIdExpression idExpression) {
-        SvLibSimpleParsingDeclaration inputVariable =
-            scope.getVariableForQualifiedName(idExpression.getDeclaration().getQualifiedName());
-        callInputParameterCollector.add(
-            new SvLibIdTerm(inputVariable.toSimpleDeclaration(), FileLocation.DUMMY));
-      } else {
-        // else if (inputParameter instanceof CBinaryExpression binaryExpression)
         CAssumeEdge ghostEdge =
             new CAssumeEdge(
                 inputParameter.toASTString(),
@@ -523,7 +510,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         SvLibTerm innerTerm = outerTerm.getTerms().getFirst();
 
         callInputParameterCollector.add(innerTerm);
-      }
     }
     return callInputParameterCollector.build();
   }
