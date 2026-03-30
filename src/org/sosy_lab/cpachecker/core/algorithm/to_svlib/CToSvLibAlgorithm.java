@@ -360,7 +360,10 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
           handleExternalFunctionCall(statementEdge, pCreatedStatements);
         } else {
           SvLibTerm transformedTerm = transformToSvLibTerm(pEdge);
-          handleAssignment(pEdge, transformedTerm, pCreatedStatements);
+          Optional<SvLibStatement> assignmentStatement = handleAssignment(pEdge, transformedTerm);
+          if (assignmentStatement.isPresent()) {
+            pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement.orElseThrow());
+          }
         }
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
@@ -368,12 +371,18 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         SvLibTerm transformedTerm = transformToSvLibTerm(pEdge);
 
         // currently ignores function declarations, e.g. {int main();} and type declarations
-        handleAssignment(pEdge, transformedTerm, pCreatedStatements);
+        Optional<SvLibStatement> assignmentStatement = handleAssignment(pEdge, transformedTerm);
+        if (assignmentStatement.isPresent()) {
+          pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement.orElseThrow());
+        }
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
       case ReturnStatementEdge -> {
         SvLibTerm transformedTerm = transformToSvLibTerm(pEdge);
-        handleAssignment(pEdge, transformedTerm, pCreatedStatements);
+        Optional<SvLibStatement> assignmentStatement = handleAssignment(pEdge, transformedTerm);
+        if (assignmentStatement.isPresent()) {
+          pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement.orElseThrow());
+        }
         SvLibReturnStatement returnStatement =
             new SvLibReturnStatement(FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
         pCreatedStatements.put(pEdge.getPredecessor(), returnStatement);
@@ -519,10 +528,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     return callInputParameterCollector.build();
   }
 
-  private void handleAssignment(
-      CFAEdge pEdge,
-      SvLibTerm pTransformedTerm,
-      ListMultimap<CFANode, SvLibStatement> pCreatedStatements) {
+  private Optional<SvLibStatement> handleAssignment(CFAEdge pEdge, SvLibTerm pTransformedTerm) {
 
     if (pTransformedTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
         && symbolApplicationTerm.getSymbol().getName().equals("=")
@@ -547,9 +553,10 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
                 FileLocation.DUMMY,
                 ImmutableList.of(),
                 ImmutableList.of());
-        pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement);
+        return Optional.of(assignmentStatement);
       }
     }
+    return Optional.empty();
   }
 
   private ImmutableList<SvLibParsingParameterDeclaration> collectReturnParameter(
