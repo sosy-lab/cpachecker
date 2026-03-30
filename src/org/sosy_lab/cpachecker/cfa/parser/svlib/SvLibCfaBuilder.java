@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Streams;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -381,15 +382,19 @@ class SvLibCfaBuilder {
               procedureDeclaration.toSimpleDeclaration(), procedureDeclaration);
         }
         case SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand -> {
-          ImmutableList<SvLibProcedureDeclaration> procedureDeclarations =
-              ImmutableList.copyOf(proceduresRecDefinitionCommand.getProcedureDeclarations());
-          ImmutableList<SvLibStatement> bodies =
-              ImmutableList.copyOf(proceduresRecDefinitionCommand.getBodies());
+          List<Pair<SvLibProcedureDeclaration, SvLibStatement>> procedures =
+              Streams.zip(
+                      proceduresRecDefinitionCommand.getProcedureDeclarations().stream(),
+                      proceduresRecDefinitionCommand.getBodies().stream(),
+                      Pair::of)
+                  .toList();
 
-          for (int j = 0; j < procedureDeclarations.size(); j++) {
-            SvLibProcedureDeclaration procedureDeclaration = procedureDeclarations.get(j);
-            SvLibStatement body = bodies.get(j);
+          for (Pair<SvLibProcedureDeclaration, SvLibStatement> procedure : procedures) {
+            SvLibProcedureDeclaration procedureDeclaration = procedure.getFirst();
+            SvLibStatement body = procedure.getSecond();
 
+            Verify.verify(procedureDeclaration != null);
+            Verify.verify(body != null);
             SvLibProcedureDefinitionCommand dummyProcedureDefinitionCommand =
                 new SvLibProcedureDefinitionCommand(FileLocation.DUMMY, procedureDeclaration, body);
 
