@@ -38,18 +38,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
 
 public class BitVectorEvaluationUtil {
 
-  static ImmutableList<CIdExpression> getOtherVariables(
-      ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableMap<MPORThread, CIdExpression> pAllVariables) {
-
-    return pAllVariables.entrySet().stream()
-        .filter(entry -> pOtherThreads.contains(entry.getKey()))
-        .map(entry -> entry.getValue())
-        .collect(ImmutableList.toImmutableList());
-  }
-
-  // Conjunction and Disjunction ===================================================================
-
   /**
    * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
    * Optional#empty()} if {@code pTerms} is empty.
@@ -85,22 +73,14 @@ public class BitVectorEvaluationUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    return nestBinaryExpressions(
-        pDisjunctionTerms, BinaryOperator.BITWISE_OR, pBinaryExpressionBuilder);
-  }
+    checkArgument(!pDisjunctionTerms.isEmpty(), "pAllExpressions must not be empty");
 
-  private static CExpression nestBinaryExpressions(
-      ImmutableCollection<CExpression> pAllExpressions,
-      BinaryOperator pBinaryOperator,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
-
-    CExpression rNested = pAllExpressions.iterator().next();
-    for (CExpression next : pAllExpressions) {
+    CExpression rNested = pDisjunctionTerms.iterator().next();
+    for (CExpression next : pDisjunctionTerms) {
       if (!next.equals(rNested)) {
-        rNested = pBinaryExpressionBuilder.buildBinaryExpression(rNested, next, pBinaryOperator);
+        rNested =
+            pBinaryExpressionBuilder.buildBinaryExpression(
+                rNested, next, BinaryOperator.BITWISE_OR);
       }
     }
     return rNested;
@@ -121,7 +101,10 @@ public class BitVectorEvaluationUtil {
       ImmutableMap<MPORThread, CIdExpression> variables =
           entry.getValue().getVariablesByReachType(ReachType.REACHABLE);
       ImmutableList<CIdExpression> otherVariables =
-          BitVectorEvaluationUtil.getOtherVariables(pOtherThreads, variables);
+          variables.entrySet().stream()
+              .filter(e -> pOtherThreads.contains(e.getKey()))
+              .map(e -> e.getValue())
+              .collect(ImmutableList.toImmutableList());
       rMap.putAll(memoryLocation, otherVariables);
     }
     return rMap.build();
