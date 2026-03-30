@@ -228,7 +228,7 @@ class SvLibCfaBuilder {
             functionExitNode,
             nodeToTagAnnotations,
             nodesToTagReferences,
-            labelToNodesBuilder.build(),
+            labelToNodesBuilder.buildOrThrow(),
             allNodesCollector,
             tagReferencesToAnnotations.build(),
             nodesToActualHavocStatementEnd);
