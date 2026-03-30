@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -148,7 +147,7 @@ public class BitVectorEvaluationUtil {
       // no sparse variables (i.e. no global variables) -> no evaluation
       return Optional.empty();
     }
-    Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
+    ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (SeqMemoryLocation memoryLocation :
         pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
       // if the memory location is not accessed, then the entire && expression can be pruned
@@ -196,7 +195,7 @@ public class BitVectorEvaluationUtil {
       // no sparse variables (i.e. no global variables) -> no evaluation
       return Optional.empty();
     }
-    Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
+    ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (SeqMemoryLocation memoryLocation :
         pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
       CExpression leftHandSide = Objects.requireNonNull(pLeftHandSides.get(memoryLocation));
