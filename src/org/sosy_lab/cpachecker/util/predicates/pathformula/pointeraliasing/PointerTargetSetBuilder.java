@@ -812,14 +812,9 @@ public interface PointerTargetSetBuilder {
               // FaultLocation, specifically check the test
               // `testCorrectCalculationOfPreAndPostCondition`
               //
-              // We return -2, since 0 is already reserved as default values for
-              // non-existing variables respectively, but the exact value doesn't matter
-              // as long as it's negative.
-              -2);
-      checkState(
-          depth > 0 || !callstackDepth.containsKey(functionName),
-          "Call stack depth for function %s is already zero",
-          functionName);
+              // We return 0, which will then be added as -1 to the callstack, to indicate
+              // that we have returned from the function more times than we have called it.
+              0);
       if (depth == 1) {
         callstackDepth = callstackDepth.removeAndCopy(functionName);
       } else {
