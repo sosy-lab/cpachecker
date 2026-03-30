@@ -22,8 +22,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.DenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -57,11 +57,11 @@ public record SeqBitVectorVariablesBuilder(
     // create access variables for all global variables for all threads (for sparse bit vectors)
     Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseAccessBitVectors =
         buildSparseBitVectors(MemoryAccessType.ACCESS);
-    // last bit vector used to store the bit vector of a thread before context switch
-    Optional<LastDenseBitVector> lastDenseAccessBitVector =
-        tryBuildLastDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
-    Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseAccessBitVectors =
-        tryBuildLastSparseBitVectorsByAccessType(MemoryAccessType.ACCESS);
+    // prev bit vector used to store the bit vector of a thread before context switch
+    Optional<PrevDenseBitVector> prevDenseAccessBitVector =
+        tryBuildPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
+    Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseAccessBitVectors =
+        tryBuildPrevSparseBitVectorsByAccessType(MemoryAccessType.ACCESS);
     return Optional.of(
         new SeqBitVectorVariables(
             denseAccessBitVectors,
@@ -70,9 +70,9 @@ public record SeqBitVectorVariablesBuilder(
             sparseAccessBitVectors,
             Optional.empty(),
             Optional.empty(),
-            lastDenseAccessBitVector,
+            prevDenseAccessBitVector,
             Optional.empty(),
-            lastSparseAccessBitVectors,
+            prevSparseAccessBitVectors,
             Optional.empty()));
   }
 
@@ -94,15 +94,15 @@ public record SeqBitVectorVariablesBuilder(
     Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseWriteBitVectors =
         buildSparseBitVectors(MemoryAccessType.WRITE);
 
-    // last bit vector used to store the bit vector of a thread before context switch
-    Optional<LastDenseBitVector> lastDenseAccessBitVector =
-        tryBuildLastDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
-    Optional<LastDenseBitVector> lastDenseWriteBitVector =
-        tryBuildLastDenseBitVectorByAccessType(MemoryAccessType.WRITE);
-    Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseAccessBitVectors =
-        tryBuildLastSparseBitVectorsByAccessType(MemoryAccessType.ACCESS);
-    Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseWriteBitVectors =
-        tryBuildLastSparseBitVectorsByAccessType(MemoryAccessType.WRITE);
+    // prev bit vector used to store the bit vector of a thread before context switch
+    Optional<PrevDenseBitVector> prevDenseAccessBitVector =
+        tryBuildPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
+    Optional<PrevDenseBitVector> prevDenseWriteBitVector =
+        tryBuildPrevDenseBitVectorByAccessType(MemoryAccessType.WRITE);
+    Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseAccessBitVectors =
+        tryBuildPrevSparseBitVectorsByAccessType(MemoryAccessType.ACCESS);
+    Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseWriteBitVectors =
+        tryBuildPrevSparseBitVectorsByAccessType(MemoryAccessType.WRITE);
 
     return Optional.of(
         new SeqBitVectorVariables(
@@ -112,10 +112,10 @@ public record SeqBitVectorVariablesBuilder(
             sparseAccessBitVectors,
             sparseReadBitVectors,
             sparseWriteBitVectors,
-            lastDenseAccessBitVector,
-            lastDenseWriteBitVector,
-            lastSparseAccessBitVectors,
-            lastSparseWriteBitVectors));
+            prevDenseAccessBitVector,
+            prevDenseWriteBitVector,
+            prevSparseAccessBitVectors,
+            prevSparseWriteBitVectors));
   }
 
   // Dense / Sparse Bit Vectors ====================================================================
@@ -219,40 +219,40 @@ public record SeqBitVectorVariablesBuilder(
     return rAccessVariables.buildOrThrow();
   }
 
-  // Last Bit Vectors ==============================================================================
+  // Prev Bit Vectors ==============================================================================
 
-  private Optional<LastDenseBitVector> tryBuildLastDenseBitVectorByAccessType(
+  private Optional<PrevDenseBitVector> tryBuildPrevDenseBitVectorByAccessType(
       MemoryAccessType pAccessType) {
 
     if (!options.abortCommutingContextSwitches() || options.bitVectorEncoding().isSparse) {
       return Optional.empty();
     }
-    CIdExpression lastIdExpression =
+    CIdExpression prevIdExpression =
         buildBitVectorIdExpression(
             Optional.empty(),
             Optional.empty(),
             pAccessType,
             ReachType.REACHABLE,
-            SeqBitVectorDirection.LAST);
-    return Optional.of(new LastDenseBitVector(lastIdExpression));
+            SeqBitVectorDirection.PREVIOUS);
+    return Optional.of(new PrevDenseBitVector(prevIdExpression));
   }
 
-  private Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>>
-      tryBuildLastSparseBitVectorsByAccessType(MemoryAccessType pAccessType) {
+  private Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>>
+      tryBuildPrevSparseBitVectorsByAccessType(MemoryAccessType pAccessType) {
 
     if (!options.abortCommutingContextSwitches() || options.bitVectorEncoding().isDense) {
       return Optional.empty();
     }
-    ImmutableMap.Builder<SeqMemoryLocation, LastSparseBitVector> rMap = ImmutableMap.builder();
+    ImmutableMap.Builder<SeqMemoryLocation, PrevSparseBitVector> rMap = ImmutableMap.builder();
     for (SeqMemoryLocation memoryLocation : memoryModel.getRelevantMemoryLocations().keySet()) {
-      CIdExpression lastIdExpression =
+      CIdExpression prevIdExpression =
           buildBitVectorIdExpression(
               Optional.empty(),
               Optional.of(memoryLocation),
               pAccessType,
               ReachType.REACHABLE,
-              SeqBitVectorDirection.LAST);
-      rMap.put(memoryLocation, new LastSparseBitVector(lastIdExpression));
+              SeqBitVectorDirection.PREVIOUS);
+      rMap.put(memoryLocation, new PrevSparseBitVector(prevIdExpression));
     }
     return Optional.of(rMap.buildOrThrow());
   }

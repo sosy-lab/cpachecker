@@ -127,7 +127,7 @@ public class SeqNameUtil {
       case CURRENT ->
           buildBitVectorName(
               pOptions, pThread.orElseThrow().id(), pMemoryLocation, pAccessType, pReachType);
-      case LAST -> buildLastBitVectorName(pOptions, pMemoryLocation, pAccessType);
+      case PREVIOUS -> buildPrevBitVectorName(pOptions, pMemoryLocation, pAccessType);
     };
   }
 
@@ -150,7 +150,7 @@ public class SeqNameUtil {
     };
   }
 
-  private static String buildLastBitVectorName(
+  private static String buildPrevBitVectorName(
       MPOROptions pOptions,
       Optional<SeqMemoryLocation> pMemoryLocation,
       MemoryAccessType pAccessType) {
@@ -160,9 +160,9 @@ public class SeqNameUtil {
           throw new IllegalArgumentException(
               "Cannot build name, bitVectorEncoding is " + pOptions.bitVectorEncoding());
       case BINARY, OCTAL, DECIMAL, HEXADECIMAL ->
-          buildLastDenseBitVectorName(pOptions, pAccessType);
+          buildPrevDenseBitVectorName(pOptions, pAccessType);
       case SPARSE ->
-          buildLastSparseBitVectorName(pOptions, pMemoryLocation.orElseThrow(), pAccessType);
+          buildPrevSparseBitVectorName(pOptions, pMemoryLocation.orElseThrow(), pAccessType);
     };
   }
 
@@ -181,14 +181,14 @@ public class SeqNameUtil {
                 pAccessType.longName);
   }
 
-  private static String buildLastDenseBitVectorName(
+  private static String buildPrevDenseBitVectorName(
       MPOROptions pOptions, MemoryAccessType pAccessType) {
 
-    // last bit vectors are always reachable
+    // prev bit vectors are always reachable
     return pOptions.shortVariableNames()
-        ? "last_b" + ReachType.REACHABLE.shortName + pAccessType.shortName
+        ? "prev_b" + ReachType.REACHABLE.shortName + pAccessType.shortName
         : Joiner.on("_")
-            .join("LAST_BIT_VECTOR", ReachType.REACHABLE.longName, pAccessType.longName);
+            .join("PREV_BIT_VECTOR", ReachType.REACHABLE.longName, pAccessType.longName);
   }
 
   // Sparse Bit Vector =============================================================================
@@ -216,18 +216,18 @@ public class SeqNameUtil {
                 pMemoryLocation.getName());
   }
 
-  private static String buildLastSparseBitVectorName(
+  private static String buildPrevSparseBitVectorName(
       MPOROptions pOptions, SeqMemoryLocation pMemoryLocation, MemoryAccessType pAccessType) {
 
     return pOptions.shortVariableNames()
-        ? "last_b"
+        ? "prev_b"
             + ReachType.REACHABLE.shortName
             + pAccessType.shortName
             + "_"
             + pMemoryLocation.getName()
         : Joiner.on("_")
             .join(
-                "LAST_BIT_VECTOR",
+                "PREV_BIT_VECTOR",
                 ReachType.REACHABLE.longName,
                 pAccessType.longName,
                 pMemoryLocation.getName());

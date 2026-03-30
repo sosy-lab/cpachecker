@@ -15,34 +15,22 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 public class SeqVariableDeclarations {
 
-  // LAST_THREAD
-
-  public static final CVariableDeclaration LAST_THREAD_DUMMY =
+  public static final CVariableDeclaration PREV_THREAD_DUMMY =
       buildVariableDeclaration(
-          true, CNumericTypes.UNSIGNED_INT, "LAST_THREAD", SeqInitializers.INT_0);
-
-  // next_thread
+          true, CNumericTypes.UNSIGNED_INT, "prev_thread", SeqInitializers.INT_0);
 
   public static final CVariableDeclaration NEXT_THREAD_DUMMY =
       buildVariableDeclaration(true, CNumericTypes.INT, "next_thread", SeqInitializers.INT_0);
-
-  // cnt (thread count)
 
   public static final CVariableDeclaration THREAD_COUNT =
       buildVariableDeclaration(
           false, CNumericTypes.UNSIGNED_INT, "thread_count", SeqInitializers.INT_1);
 
-  // round_max
-
   public static final CVariableDeclaration ROUND_MAX_DUMMY =
       buildVariableDeclaration(false, CNumericTypes.INT, "round_max", SeqInitializers.INT_0);
 
-  // round
-
   public static final CVariableDeclaration ROUND =
       buildVariableDeclaration(false, CNumericTypes.UNSIGNED_INT, "round", SeqInitializers.INT_0);
-
-  // iteration
 
   public static final CVariableDeclaration ITERATION =
       buildVariableDeclaration(false, CNumericTypes.INT, "iteration", SeqInitializers.INT_0);

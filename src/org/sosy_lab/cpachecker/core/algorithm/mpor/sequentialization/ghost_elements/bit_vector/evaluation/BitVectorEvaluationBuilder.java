@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
@@ -58,9 +58,9 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  // last bit vector evaluations (conflict reduction) ==============================================
+  // prev bit vector evaluations ===================================================================
 
-  public static Optional<CExportExpression> buildLastBitVectorEvaluation(
+  public static Optional<CExportExpression> buildPrevBitVectorEvaluation(
       MPOROptions pOptions,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -88,7 +88,7 @@ public class BitVectorEvaluationBuilder {
                 pFirstBlock,
                 pMemoryModel,
                 MemoryAccessType.ACCESS);
-        yield buildLastAccessBitVectorEvaluationByEncoding(
+        yield buildPrevAccessBitVectorEvaluationByEncoding(
             pOptions,
             reachableAccessMemoryLocations,
             pBitVectorVariables,
@@ -103,7 +103,7 @@ public class BitVectorEvaluationBuilder {
         ImmutableSet<SeqMemoryLocation> reachableWriteMemoryLocations =
             SeqMemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelClauseMap, pLabelBlockMap, pFirstBlock, pMemoryModel, MemoryAccessType.WRITE);
-        yield buildLastReadWriteBitVectorEvaluationByEncoding(
+        yield buildPrevReadWriteBitVectorEvaluationByEncoding(
             pOptions,
             reachableReadMemoryLocations,
             reachableWriteMemoryLocations,
@@ -115,7 +115,7 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static Optional<CExportExpression> buildLastAccessBitVectorEvaluationByEncoding(
+  private static Optional<CExportExpression> buildPrevAccessBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       SeqBitVectorVariables pBitVectorVariables,
@@ -130,10 +130,10 @@ public class BitVectorEvaluationBuilder {
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
       case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
-        LastDenseBitVector lastAccessBitVector =
-            pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
+        PrevDenseBitVector prevAccessBitVector =
+            pBitVectorVariables.getPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
         ImmutableSet<CExpression> otherAccessBitVectors =
-            ImmutableSet.of(lastAccessBitVector.reachableVariable());
+            ImmutableSet.of(prevAccessBitVector.reachableVariable());
         yield BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
             pOptions,
             otherAccessBitVectors,
@@ -144,7 +144,7 @@ public class BitVectorEvaluationBuilder {
       }
       case SPARSE -> {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
-            mapMemoryLocationsToLastSparseBitVectorsByAccessType(
+            mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
                 pBitVectorVariables, MemoryAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
             pOptions, sparseAccessMap, pDirectAccessMemoryLocations, pBitVectorVariables);
@@ -152,7 +152,7 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static Optional<CExportExpression> buildLastReadWriteBitVectorEvaluationByEncoding(
+  private static Optional<CExportExpression> buildPrevReadWriteBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
@@ -168,14 +168,14 @@ public class BitVectorEvaluationBuilder {
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
       case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
-        LastDenseBitVector lastWriteBitVector =
-            pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.WRITE);
-        LastDenseBitVector lastAccessBitVector =
-            pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
+        PrevDenseBitVector prevWriteBitVector =
+            pBitVectorVariables.getPrevDenseBitVectorByAccessType(MemoryAccessType.WRITE);
+        PrevDenseBitVector prevAccessBitVector =
+            pBitVectorVariables.getPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
         yield BitVectorReadWriteEvaluationBuilder.buildDenseEvaluation(
             pOptions,
-            ImmutableSet.of(lastWriteBitVector.reachableVariable()),
-            ImmutableSet.of(lastAccessBitVector.reachableVariable()),
+            ImmutableSet.of(prevWriteBitVector.reachableVariable()),
+            ImmutableSet.of(prevAccessBitVector.reachableVariable()),
             pDirectReadMemoryLocations,
             pDirectWriteMemoryLocations,
             pMachineModel,
@@ -184,10 +184,10 @@ public class BitVectorEvaluationBuilder {
       }
       case SPARSE -> {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseWriteMap =
-            mapMemoryLocationsToLastSparseBitVectorsByAccessType(
+            mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
                 pBitVectorVariables, MemoryAccessType.WRITE);
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
-            mapMemoryLocationsToLastSparseBitVectorsByAccessType(
+            mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
                 pBitVectorVariables, MemoryAccessType.ACCESS);
         yield BitVectorReadWriteEvaluationBuilder.buildSparseEvaluation(
             pOptions,
@@ -201,14 +201,14 @@ public class BitVectorEvaluationBuilder {
   }
 
   private static ImmutableListMultimap<SeqMemoryLocation, CExpression>
-      mapMemoryLocationsToLastSparseBitVectorsByAccessType(
+      mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
           SeqBitVectorVariables pBitVectorVariables, MemoryAccessType pAccessType) {
 
     ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =
         ImmutableListMultimap.builder();
-    ImmutableMap<SeqMemoryLocation, LastSparseBitVector> lastSparseBitVectors =
-        pBitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
-    for (var entry : lastSparseBitVectors.entrySet()) {
+    ImmutableMap<SeqMemoryLocation, PrevSparseBitVector> prevSparseBitVectors =
+        pBitVectorVariables.getPrevSparseBitVectorByAccessType(pAccessType);
+    for (var entry : prevSparseBitVectors.entrySet()) {
       SeqMemoryLocation memoryLocation = entry.getKey();
       rMap.put(memoryLocation, entry.getValue().reachableVariable());
     }

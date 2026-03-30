@@ -12,5 +12,5 @@ public enum SeqBitVectorDirection {
   /** For storing the current threads bit vectors. */
   CURRENT,
   /** For storing the previous threads bit vectors. */
-  LAST
+  PREVIOUS
 }

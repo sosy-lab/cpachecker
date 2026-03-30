@@ -96,11 +96,11 @@ public final class SeqMainFunctionBuilder {
       ImmutableList.Builder<CCompoundStatementElement> loopBlock = ImmutableList.builder();
 
       if (pOptions.abortCommutingContextSwitches()) {
-        // add LAST_THREAD = next_thread assignment (before setting next_thread)
+        // add prev_thread = next_thread assignment (before setting next_thread)
         if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
           CExpressionAssignmentStatement assignment =
               new CExpressionAssignmentStatement(
-                  FileLocation.DUMMY, SeqIdExpressions.LAST_THREAD, SeqIdExpressions.NEXT_THREAD);
+                  FileLocation.DUMMY, SeqIdExpressions.PREV_THREAD, SeqIdExpressions.NEXT_THREAD);
           loopBlock.add(new CStatementWrapper(assignment));
         }
       }
