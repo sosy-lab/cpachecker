@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
-public record ReduceLastThreadOrderInjector(
+public record AbortCommutingContextSwitchesInjector(
     MPOROptions options,
     int numThreads,
     MPORThread activeThread,
@@ -60,8 +60,6 @@ public record ReduceLastThreadOrderInjector(
     MachineModel machineModel,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
-
-  // Private =======================================================================================
 
   /**
    * Returns a {@link CIfStatement} that encodes the Last Thread Order (LTO) reduction. The
@@ -76,7 +74,7 @@ public record ReduceLastThreadOrderInjector(
    * <p>This ensures that if {@code LAST_THREAD < CURRENT_THREAD}, the simulation performs a context
    * switch only when a conflict exists between the two threads.
    */
-  public CIfStatement buildLastThreadOrderStatement(MPORThread pThread)
+  public CIfStatement buildAbortCommutingContextSwitchesStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     checkArgument(
@@ -144,7 +142,7 @@ public record ReduceLastThreadOrderInjector(
       // for sync locations, set LAST_THREAD to NUM_THREADS - 1. this is necessary, otherwise
       // the analysis is unsound.
       // simple example: LAST_THREAD is at a sync location that uses assume. the current thread
-      // has a reduceLastThreadOrder instrumentation and because it is not in conflict with
+      // has a abortCommutingContextSwitches instrumentation and because it is not in conflict with
       // LAST_THREAD, current thread aborts. but LAST_THREAD may e.g. call pthread_join on the
       // current thread -> both abort, and no thread makes any progress
       if (SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
@@ -194,10 +192,12 @@ public record ReduceLastThreadOrderInjector(
   }
 
   private ImmutableList<CExpressionAssignmentStatement> buildDenseLastBitVectorUpdates() {
-    return switch (options.reductionMode()) {
+    return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build updates for reductionMode %s", options.reductionMode()));
+              String.format(
+                  "cannot build updates for partialOrderReductionMode %s",
+                  options.partialOrderReductionMode()));
       case ACCESS_ONLY -> buildDenseLastBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
@@ -208,10 +208,12 @@ public record ReduceLastThreadOrderInjector(
   }
 
   private ImmutableList<CExpressionAssignmentStatement> buildSparseLastBitVectorUpdates() {
-    return switch (options.reductionMode()) {
+    return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build updates for reductionMode %s", options.reductionMode()));
+              String.format(
+                  "cannot build updates for partialOrderReductionMode %s",
+                  options.partialOrderReductionMode()));
       case ACCESS_ONLY -> buildSparseLastBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()

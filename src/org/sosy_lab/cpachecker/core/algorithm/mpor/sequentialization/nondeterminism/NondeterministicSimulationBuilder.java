@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -21,8 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -35,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
@@ -115,7 +112,7 @@ public class NondeterministicSimulationBuilder {
             .getValue();
     rFunctionCalls.add(
         mainThreadFunction.buildFunctionCallStatementWithCExpressions(ImmutableList.of()));
-    for (int i = 0; i < pOptions.loopIterations(); i++) {
+    for (int i = 0; i < pOptions.threadSimulationIterations(); i++) {
       for (var entry : pThreadSimulationFunctions.entrySet()) {
         if (!entry.getKey().isMain()) {
           // continue with all other threads
@@ -132,12 +129,16 @@ public class NondeterministicSimulationBuilder {
 
   // injections ====================================================================================
 
-  static ImmutableList<SeqThreadStatementClause> injectStatementsIntoSingleThreadClauses(
+  static ImmutableList<SeqThreadStatementClause> injectRoundGotoIntoClauses(
       MPOROptions pOptions,
-      CIdExpression pSyncFlag,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
+
+    checkArgument(
+        pOptions.nondeterminismSource().isNumStatementsNondeterministic(),
+        "round goto statements should only be injected when nondeterminismSource contains"
+            + " NUM_STATEMENTS.");
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
@@ -147,35 +148,11 @@ public class NondeterministicSimulationBuilder {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         newBlocks.add(
-            injectCountAndRoundGotoIntoBlock(
-                pOptions, block, pSyncFlag, labelClauseMap, pBinaryExpressionBuilder));
+            injectRoundGotoIntoBlock(pOptions, block, labelClauseMap, pBinaryExpressionBuilder));
       }
       updatedClauses.add(clause.withBlocks(newBlocks.build()));
     }
     return updatedClauses.build();
-  }
-
-  private static SeqThreadStatementBlock injectCountAndRoundGotoIntoBlock(
-      MPOROptions pOptions,
-      SeqThreadStatementBlock pBlock,
-      CIdExpression pSyncFlag,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    SeqThreadStatementBlock updatedBlock =
-        injectCountUpdatesIntoBlock(pBlock, pBinaryExpressionBuilder);
-    if (pOptions.reduceSingleActiveThread()) {
-      updatedBlock =
-          injectSingleActiveThreadIntoBlock(
-              pOptions, updatedBlock, pLabelClauseMap, pBinaryExpressionBuilder);
-    }
-    if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {
-      updatedBlock =
-          injectRoundGotoIntoBlock(
-              pOptions, updatedBlock, pLabelClauseMap, pBinaryExpressionBuilder);
-    }
-    return injectSyncUpdatesIntoBlock(pOptions, updatedBlock, pSyncFlag, pLabelClauseMap);
   }
 
   // round and round_max injections ================================================================
@@ -274,137 +251,5 @@ public class NondeterministicSimulationBuilder {
         SeqInstrumentationBuilder.buildGuardedGotoStatement(
             roundSmallerMax, ImmutableList.of(roundIncrement), pLabelStatement);
     return SeqThreadStatementUtil.appendedInstrumentationStatement(pStatement, roundGoto);
-  }
-
-  // thread_count injections =======================================================================
-
-  private static SeqThreadStatementBlock injectCountUpdatesIntoBlock(
-      SeqThreadStatementBlock pBlock, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      // use a list for thread_count updates, since we can increment and decrement in one statement
-      // if the statement creates another thread but also terminates the current thread.
-      List<CExpressionAssignmentStatement> countUpdates = new ArrayList<>();
-      // if a thread is created -> thread_count = thread_count + 1
-      if (statement.data().getType().equals(SeqThreadStatementType.THREAD_CREATION)) {
-        countUpdates.add(
-            SeqStatementBuilder.buildIncrementStatement(
-                SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder));
-      }
-      // if a thread exits -> thread_count = thread_count - 1
-      if (statement.isTargetPcExit()) {
-        countUpdates.add(
-            SeqStatementBuilder.buildDecrementStatement(
-                SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder));
-      }
-      ImmutableList<SeqInstrumentation> guardedGotos =
-          countUpdates.stream()
-              .map(SeqInstrumentationBuilder::buildThreadCountUpdateStatement)
-              .collect(ImmutableList.toImmutableList());
-      newStatements.add(
-          SeqThreadStatementUtil.appendedInstrumentationStatement(statement, guardedGotos));
-    }
-    return pBlock.withStatements(newStatements.build());
-  }
-
-  // single active thread injections ===============================================================
-
-  private static SeqThreadStatementBlock injectSingleActiveThreadIntoBlock(
-      MPOROptions pOptions,
-      SeqThreadStatementBlock pBlock,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      if (statement.isTargetPcValid()) {
-        int targetPc = statement.targetPc().orElseThrow();
-        SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-        // check if the target is a separate loop
-        if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {
-          // thread_count == 1
-          CBinaryExpression threadCountEqualsOne =
-              pBinaryExpressionBuilder.buildBinaryExpression(
-                  SeqIdExpressions.THREAD_COUNT,
-                  SeqIntegerLiteralExpressions.INT_1,
-                  BinaryOperator.EQUALS);
-          SeqInstrumentation singleActiveThreadGoto =
-              SeqInstrumentationBuilder.buildGuardedGotoStatement(
-                  threadCountEqualsOne,
-                  ImmutableList.of(),
-                  Objects.requireNonNull(target).getFirstBlock().buildLabelStatement());
-          newStatements.add(
-              SeqThreadStatementUtil.appendedInstrumentationStatement(
-                  statement, singleActiveThreadGoto));
-        } else {
-          // if the target is a loop head + noBackwardLoopGoto is enabled -> no replacement
-          newStatements.add(statement);
-        }
-      } else {
-        // no valid target pc -> no replacement
-        newStatements.add(statement);
-      }
-    }
-    return pBlock.withStatements(newStatements.build());
-  }
-
-  // sync injections ===============================================================================
-
-  private static SeqThreadStatementBlock injectSyncUpdatesIntoBlock(
-      MPOROptions pOptions,
-      SeqThreadStatementBlock pBlock,
-      CIdExpression pSyncFlag,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
-
-    if (!pOptions.reduceIgnoreSleep()) {
-      return pBlock;
-    }
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      SeqThreadStatement withGoto =
-          tryInjectSyncUpdateIntoStatement(statement, pSyncFlag, pLabelClauseMap);
-      newStatements.add(withGoto);
-    }
-    return pBlock.withStatements(newStatements.build());
-  }
-
-  private static SeqThreadStatement tryInjectSyncUpdateIntoStatement(
-      SeqThreadStatement pStatement,
-      CIdExpression pSyncVariable,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
-
-    if (pStatement.targetPc().isPresent()) {
-      // int target is present -> retrieve label by pc from map
-      int targetPc = pStatement.targetPc().orElseThrow();
-      if (targetPc != ProgramCounterVariables.EXIT_PC) {
-        SeqThreadStatementClause targetClause =
-            Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-        return injectSyncUpdateIntoStatementByTargetPc(
-            pStatement, Optional.of(targetClause), pSyncVariable);
-      } else {
-        return injectSyncUpdateIntoStatementByTargetPc(pStatement, Optional.empty(), pSyncVariable);
-      }
-    }
-    // no int target pc -> no replacement
-    return pStatement;
-  }
-
-  private static SeqThreadStatement injectSyncUpdateIntoStatementByTargetPc(
-      SeqThreadStatement pStatement,
-      Optional<SeqThreadStatementClause> pTargetClause,
-      CIdExpression pSyncVariable) {
-
-    boolean isSync =
-        pTargetClause.isPresent()
-            && SeqThreadStatementUtil.anySynchronizesThreads(
-                pTargetClause.orElseThrow().getAllStatements());
-    CIntegerLiteralExpression value =
-        isSync ? SeqIntegerLiteralExpressions.INT_1 : SeqIntegerLiteralExpressions.INT_0;
-    SeqInstrumentation syncUpdate =
-        SeqInstrumentationBuilder.buildThreadSyncUpdateStatement(pSyncVariable, value);
-    return SeqThreadStatementUtil.appendedInstrumentationStatement(pStatement, syncUpdate);
   }
 }

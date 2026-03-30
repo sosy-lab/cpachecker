@@ -71,12 +71,14 @@ public record SeqThreadStatementClauseBuilder(
 
     // ensure that atomic blocks are not interleaved by adding direct gotos
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> atomicBlocks =
-        options.atomicBlockMerge() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
+        options.mergeAtomicBlocks() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
 
     // if enabled, link statements that are guaranteed to commute via gotos
     StatementLinker statementLinker = new StatementLinker(options, memoryModel);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-        options.linkReduction() ? statementLinker.linkClauses(atomicBlocks) : atomicBlocks;
+        options.mergeCommutingStatements()
+            ? statementLinker.linkClauses(atomicBlocks)
+            : atomicBlocks;
 
     // if enabled, ensure that no backward goto exist. this should be done after all pc writes were
     // replaced with goto statements. in addition, the statements are possibly reordered, and it
@@ -87,8 +89,8 @@ public record SeqThreadStatementClauseBuilder(
             : linked;
 
     // ensure label numbers are consecutive (start at 0, end at clauseNum - 1). this must be done
-    // before adding any injected statements, otherwise the injected statements may have to be
-    // adjusted too, e.g., to adjust a 'goto' label in a partial order reduction instrumentation.
+    // before adding any instrumentation statements, otherwise the instrumentation statements may
+    // have to be adjusted too, e.g., to adjust a 'goto' label.
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
         options.consecutiveLabels()
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
@@ -97,12 +99,7 @@ public record SeqThreadStatementClauseBuilder(
     // if enabled, apply partial order reduction and reduce number of clauses
     PartialOrderReducer partialOrderReducer =
         new PartialOrderReducer(
-            options,
-            consecutiveLabels,
-            ghostElements.bitVectorVariables(),
-            machineModel,
-            memoryModel,
-            utils);
+            options, consecutiveLabels, ghostElements, machineModel, memoryModel, utils);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
         partialOrderReducer.reduceClauses();
 

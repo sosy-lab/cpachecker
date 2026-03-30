@@ -400,15 +400,15 @@ class CExpressionVisitorWithPointerAliasing
     final CType resultType = typeHandler.getSimplifiedType(e);
 
     final String variableName = e.getDeclaration().getQualifiedName();
-    if (!pts.isActualBase(variableName)
-        && !CTypeUtils.containsArray(resultType, e.getDeclaration())) {
+    final PointerBase base = new PointerBase(e.getDeclaration());
+    if (!pts.isActualBase(base) && !CTypeUtils.containsArray(resultType, e.getDeclaration())) {
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
         return UnaliasedLocation.ofVariableName(variableName);
       } else {
         return Value.ofValue(conv.makeConstant(variableName, resultType));
       }
     } else {
-      final Formula address = conv.makeBaseAddress(variableName, resultType);
+      final Formula address = conv.makeBaseAddress(base, resultType);
       return AliasedLocation.ofAddress(address);
     }
   }
@@ -506,18 +506,24 @@ class CExpressionVisitorWithPointerAliasing
         return Value.ofValue(dereference(operand, operand.accept(this)).getAddress());
       } else {
         final Variable base = baseVisitor.getLastBase();
-        final Formula baseAddress = conv.makeBaseAddress(base.getName(), base.getType());
+        final Formula baseAddress = conv.makeBaseAddress(base.asPointerBase(), base.getType());
         conv.addValueImportConstraints(
-            baseAddress, base.getName(), base.getType(), initializedFields, ssa, constraints, null);
-        if (pts.isPreparedBase(base.getName())) {
-          pts.shareBase(base.getName(), base.getType());
+            baseAddress,
+            base.asPointerBase(),
+            base.getType(),
+            initializedFields,
+            ssa,
+            constraints,
+            null);
+        if (pts.isPreparedBase(base.asPointerBase())) {
+          pts.shareBase(base.asPointerBase(), base.getType());
         } else {
           Formula size =
               conv.fmgr.makeNumber(
                   conv.voidPointerFormulaType, typeHandler.getExactSizeof(base.getType()));
           pts.addNextBaseAddressConstraints(
-              base.getName(), base.getType(), size, false, constraints);
-          pts.addBase(base.getName(), base.getType());
+              base.asPointerBase(), base.getType(), size, false, constraints);
+          pts.addBase(base.asPointerBase(), base.getType());
         }
         return visit(e);
       }
@@ -945,7 +951,7 @@ class CExpressionVisitorWithPointerAliasing
    *
    * @return A map of the used deferred allocation pointers.
    */
-  Map<String, CType> getLearnedPointerTypes() {
+  Map<PointerBase, CType> getLearnedPointerTypes() {
     return Collections.unmodifiableMap(learnedPointerTypes);
   }
 
@@ -967,5 +973,5 @@ class CExpressionVisitorWithPointerAliasing
   private final List<CompositeField> usedFields = new ArrayList<>(1);
   private final List<CompositeField> initializedFields = new ArrayList<>();
   private final List<CompositeField> addressedFields = new ArrayList<>();
-  private final Map<String, CType> learnedPointerTypes = Maps.newHashMapWithExpectedSize(1);
+  private final Map<PointerBase, CType> learnedPointerTypes = Maps.newHashMapWithExpectedSize(1);
 }
