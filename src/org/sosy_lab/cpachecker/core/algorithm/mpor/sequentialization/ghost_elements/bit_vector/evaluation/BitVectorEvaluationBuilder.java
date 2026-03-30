@@ -198,8 +198,9 @@ public class BitVectorEvaluationBuilder {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
             mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
                 pBitVectorVariables, MemoryAccessType.ACCESS);
-        yield BitVectorReadWriteEvaluationBuilder.buildSparseEvaluation(
+        yield BitVectorReadWriteEvaluationBuilder.buildPrevSparseEvaluation(
             pOptions,
+            pCurrentThread,
             sparseWriteMap,
             sparseAccessMap,
             pDirectReadMemoryLocations,

@@ -148,12 +148,14 @@ public record SeqBitVectorVariables(
 
   // Boolean Helpers ===============================================================================
 
-  public boolean areSparseBitVectorsEmpty() {
-    return sparseAccessBitVectors.isEmpty() && sparseWriteBitVectors.isEmpty();
-  }
-
-  public boolean areSparseAccessBitVectorsEmpty() {
-    return sparseAccessBitVectors.isEmpty();
+  public boolean areSparseBitVectorsPresentByAccessType(MemoryAccessType pAccessType) {
+    return switch (pAccessType) {
+      case NONE, READ ->
+          throw new IllegalArgumentException(
+              String.format("no %s access type prev dense bit vector", pAccessType));
+      case ACCESS -> sparseAccessBitVectors.isPresent();
+      case WRITE -> sparseWriteBitVectors.isPresent();
+    };
   }
 
   public boolean isPrevDenseBitVectorPresentByAccessType(MemoryAccessType pAccessType) {
