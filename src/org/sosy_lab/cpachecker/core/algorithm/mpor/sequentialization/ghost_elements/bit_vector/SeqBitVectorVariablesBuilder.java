@@ -197,14 +197,9 @@ public record SeqBitVectorVariablesBuilder(
               pAccessType,
               pReachType,
               SeqBitVectorDirection.CURRENT);
-      if (options.pruneSparseBitVectors()) {
-        boolean isReachable =
-            memoryModel.isMemoryLocationReachableByThread(
-                pMemoryLocation, thread, substituteEdges, pAccessType);
-        if (isReachable) {
-          rAccessVariables.put(thread, idExpression);
-        }
-      } else {
+      if (!options.pruneSparseBitVectors()
+          || memoryModel.isMemoryLocationReachableByThread(
+              pMemoryLocation, thread, substituteEdges, pAccessType)) {
         rAccessVariables.put(thread, idExpression);
       }
     }
