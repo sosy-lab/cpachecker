@@ -190,16 +190,7 @@ class BitVectorReadWriteEvaluationBuilder {
                 MemoryAccessType.ACCESS,
                 pBitVectorVariables);
 
-    if (accessEvaluation.isPresent() && writeEvaluation.isPresent()) {
-      // both LHS and RHS
-      return Optional.of(
-          CLogicalOrExpression.of(accessEvaluation.orElseThrow(), writeEvaluation.orElseThrow()));
-    }
-    if (accessEvaluation.isPresent()) {
-      return accessEvaluation; // only LHS
-    }
-    // only RHS, if present, otherwise this is empty anyway
-    return writeEvaluation;
+    return tryBuildLogicalOr(accessEvaluation, writeEvaluation);
   }
 
   // Pruned Dense Evaluation =======================================================================
@@ -215,7 +206,7 @@ class BitVectorReadWriteEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    Optional<CExpression> leftHandSide =
+    Optional<CExportExpression> leftHandSide =
         buildPrunedDenseLeftHandSide(
             pEncoding,
             pOtherWriteBitVectors,
@@ -223,7 +214,7 @@ class BitVectorReadWriteEvaluationBuilder {
             pMachineModel,
             pMemoryModel,
             pUtils.binaryExpressionBuilder());
-    Optional<CExpression> rightHandSide =
+    Optional<CExportExpression> rightHandSide =
         buildPrunedDenseRightHandSide(
             pEncoding,
             pOtherAccessBitVectors,
@@ -232,21 +223,10 @@ class BitVectorReadWriteEvaluationBuilder {
             pMemoryModel,
             pUtils.binaryExpressionBuilder());
 
-    if (leftHandSide.isPresent() && rightHandSide.isPresent()) {
-      // both LHS and RHS present: create or expression: ||
-      return Optional.of(
-          CLogicalOrExpression.of(leftHandSide.orElseThrow(), rightHandSide.orElseThrow()));
-
-    } else if (leftHandSide.isPresent()) {
-      return Optional.of(new CExpressionWrapper(leftHandSide.orElseThrow()));
-
-    } else if (rightHandSide.isPresent()) {
-      return Optional.of(new CExpressionWrapper(rightHandSide.orElseThrow()));
-    }
-    return Optional.empty();
+    return tryBuildLogicalOr(leftHandSide, rightHandSide);
   }
 
-  private static Optional<CExpression> buildPrunedDenseLeftHandSide(
+  private static Optional<CExportExpression> buildPrunedDenseLeftHandSide(
       SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
@@ -257,18 +237,17 @@ class BitVectorReadWriteEvaluationBuilder {
 
     if (pDirectReadMemoryLocations.isEmpty()) {
       return Optional.empty();
-    } else {
-      CIntegerLiteralExpression directReadBitVector =
-          SeqBitVectorUtil.buildBitVectorExpression(
-              pEncoding, pMachineModel, pMemoryModel, pDirectReadMemoryLocations);
-      CBinaryExpression leftHandSide =
-          buildGeneralDenseLeftHandSide(
-              directReadBitVector, pOtherWriteBitVectors, pBinaryExpressionBuilder);
-      return Optional.of(leftHandSide);
     }
+    CIntegerLiteralExpression directReadBitVector =
+        SeqBitVectorUtil.buildBitVectorExpression(
+            pEncoding, pMachineModel, pMemoryModel, pDirectReadMemoryLocations);
+    CBinaryExpression leftHandSide =
+        buildGeneralDenseLeftHandSide(
+            directReadBitVector, pOtherWriteBitVectors, pBinaryExpressionBuilder);
+    return Optional.of(new CExpressionWrapper(leftHandSide));
   }
 
-  private static Optional<CExpression> buildPrunedDenseRightHandSide(
+  private static Optional<CExportExpression> buildPrunedDenseRightHandSide(
       SeqBitVectorEncoding pEncoding,
       ImmutableSet<CExpression> pOtherAccessBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
@@ -279,15 +258,14 @@ class BitVectorReadWriteEvaluationBuilder {
 
     if (pDirectWriteMemoryLocations.isEmpty()) {
       return Optional.empty();
-    } else {
-      CIntegerLiteralExpression directWriteBitVector =
-          SeqBitVectorUtil.buildBitVectorExpression(
-              pEncoding, pMachineModel, pMemoryModel, pDirectWriteMemoryLocations);
-      CBinaryExpression rRightHandSide =
-          buildGeneralDenseRightHandSide(
-              directWriteBitVector, pOtherAccessBitVectors, pBinaryExpressionBuilder);
-      return Optional.of(rRightHandSide);
     }
+    CIntegerLiteralExpression directWriteBitVector =
+        SeqBitVectorUtil.buildBitVectorExpression(
+            pEncoding, pMachineModel, pMemoryModel, pDirectWriteMemoryLocations);
+    CBinaryExpression rRightHandSide =
+        buildGeneralDenseRightHandSide(
+            directWriteBitVector, pOtherAccessBitVectors, pBinaryExpressionBuilder);
+    return Optional.of(new CExpressionWrapper(rRightHandSide));
   }
 
   // Full Dense Evaluation =========================================================================
@@ -455,5 +433,22 @@ class BitVectorReadWriteEvaluationBuilder {
     return rightHandSide.isEmpty()
         ? leftHandSide
         : CLogicalAndExpression.of(leftHandSide, rightHandSide.orElseThrow());
+  }
+
+  // Helper
+
+  private static Optional<CExportExpression> tryBuildLogicalOr(
+      Optional<CExportExpression> pLeftHandSide, Optional<CExportExpression> pRightHandSide) {
+
+    if (pLeftHandSide.isPresent() && pRightHandSide.isPresent()) {
+      // return (LHS || RHS)
+      return Optional.of(
+          CLogicalOrExpression.of(pLeftHandSide.orElseThrow(), pRightHandSide.orElseThrow()));
+    } else if (pLeftHandSide.isPresent()) {
+      // return (LHS)
+      return pLeftHandSide;
+    }
+    // return (RHS) if present, or empty if not
+    return pRightHandSide;
   }
 }
