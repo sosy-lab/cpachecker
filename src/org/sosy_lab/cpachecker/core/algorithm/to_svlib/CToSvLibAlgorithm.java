@@ -179,7 +179,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             procedureBodiesCollector.build());
     commandsCollector.add(proceduresRecDefinitionCommand);
 
-    // TODO should work for most cases
     commandsCollector.add(
         new SvLibVerifyCallCommand(
             scope.getProcedureDeclaration(cfa.getMainFunction().getFunctionName()),
