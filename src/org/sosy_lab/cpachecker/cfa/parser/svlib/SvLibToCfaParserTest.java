@@ -16,12 +16,12 @@ import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class SvLibToCfaParserTest {
   private Path examplesPath() {
@@ -30,22 +30,21 @@ public class SvLibToCfaParserTest {
 
   private void testCfaBuilding(List<String> inputPaths)
       throws ParserException, IOException, InterruptedException, InvalidConfigurationException {
-
-    SvLibToCfaParser parser =
-        new SvLibToCfaParser(
+    CFACreator parser =
+        new CFACreator(
+            TestDataTools.configurationForTest().setOption("language", "svlib").build(),
             LogManager.createTestLogManager(),
-            Configuration.defaultConfiguration(),
-            MachineModel.LINUX32,
             ShutdownNotifier.createDummy());
-    parser.parseFiles(inputPaths);
+
+    parser.parseFileAndCreateCFA(inputPaths);
   }
 
   @Test
-  public void serializeTest()
+  public void toCfaTest()
       throws SvLibParserException, InterruptedException, InvalidConfigurationException {
     try (DirectoryStream<Path> stream = Files.newDirectoryStream(examplesPath(), "*.svlib")) {
       for (Path path : stream) {
-        testCfaBuilding(ImmutableList.of(path.toAbsolutePath().toString()));
+        testCfaBuilding(ImmutableList.of(path.toString()));
       }
     } catch (IOException | ParserException e) {
       throw new SvLibParserException("Could not read input files", e);
