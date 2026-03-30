@@ -144,8 +144,12 @@ public class BitVectorEvaluationBuilder {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
             mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
                 pBitVectorVariables, MemoryAccessType.ACCESS);
-        yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
-            pOptions, sparseAccessMap, pReachableAccessMemoryLocations, pBitVectorVariables);
+        yield BitVectorAccessEvaluationBuilder.buildPrevSparseEvaluation(
+            pOptions,
+            pCurrentThread,
+            sparseAccessMap,
+            pReachableAccessMemoryLocations,
+            pBitVectorVariables);
       }
     };
   }
@@ -347,11 +351,11 @@ public class BitVectorEvaluationBuilder {
             pUtils);
       }
       case SPARSE -> {
-        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> rightHandSides =
             BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
-            pOptions, sparseAccessMap, pDirectAccessMemoryLocations, pBitVectorVariables);
+            pOptions, rightHandSides, pDirectAccessMemoryLocations, pBitVectorVariables);
       }
     };
   }

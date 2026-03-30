@@ -8,9 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -89,16 +94,53 @@ class BitVectorAccessEvaluationBuilder {
 
   static Optional<CExportExpression> buildSparseEvaluation(
       MPOROptions pOptions,
-      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
+      SeqBitVectorVariables pBitVectorVariables) {
+
+    ImmutableMap<SeqMemoryLocation, CExpression> leftHandSides =
+        pBitVectorVariables.getSparseAccessBitVectors().keySet().stream()
+            .collect(
+                ImmutableMap.toImmutableMap(
+                    memoryLocation -> memoryLocation,
+                    memoryLocation ->
+                        BitVectorEvaluationUtil.buildSparseDirectBitVector(
+                            memoryLocation, pAccessedMemoryLocations)));
+    return buildSparseEvaluation(
+        pOptions, leftHandSides, pRightHandSides, pAccessedMemoryLocations, pBitVectorVariables);
+  }
+
+  static Optional<CExportExpression> buildPrevSparseEvaluation(
+      MPOROptions pOptions,
+      MPORThread pCurrentThread,
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
+      SeqBitVectorVariables pBitVectorVariables) {
+
+    ImmutableMap<SeqMemoryLocation, CExpression> leftHandSides =
+        pBitVectorVariables.getSparseAccessBitVectors().entrySet().stream()
+            .collect(
+                ImmutableMap.toImmutableMap(
+                    Entry::getKey,
+                    entry ->
+                        Objects.requireNonNull(
+                            entry.getValue().directVariables().get(pCurrentThread))));
+    return buildSparseEvaluation(
+        pOptions, leftHandSides, pRightHandSides, pAccessedMemoryLocations, pBitVectorVariables);
+  }
+
+  private static Optional<CExportExpression> buildSparseEvaluation(
+      MPOROptions pOptions,
+      ImmutableMap<SeqMemoryLocation, CExpression> pLeftHandSides,
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
       ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
       SeqBitVectorVariables pBitVectorVariables) {
 
     if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedSparseEvaluation(
-          pSparseBitVectorMap, pAccessedMemoryLocations, pBitVectorVariables);
+          pLeftHandSides, pRightHandSides, pAccessedMemoryLocations, pBitVectorVariables);
     } else {
-      return buildFullSparseEvaluation(
-          pSparseBitVectorMap, pAccessedMemoryLocations, pBitVectorVariables);
+      return buildFullSparseEvaluation(pLeftHandSides, pRightHandSides, pBitVectorVariables);
     }
   }
 
@@ -176,7 +218,8 @@ class BitVectorAccessEvaluationBuilder {
   // Sparse Access Bit Vectors =====================================================================
 
   private static Optional<CExportExpression> buildPrunedSparseEvaluation(
-      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
+      ImmutableMap<SeqMemoryLocation, CExpression> pLeftHandSides,
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
       ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
       SeqBitVectorVariables pBitVectorVariables) {
 
@@ -184,19 +227,37 @@ class BitVectorAccessEvaluationBuilder {
       // no sparse variables (i.e. no global variables) -> no evaluation
       return Optional.empty();
     }
-    ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-      SeqMemoryLocation memoryLocation = entry.getKey();
-      // if the LHS is 0, then the entire && expression is 0 -> prune
+    Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
+    for (SeqMemoryLocation memoryLocation :
+        pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
+      // if the memory location is not accessed, then the entire && expression can be pruned
       if (pAccessedMemoryLocations.contains(memoryLocation)) {
-        ImmutableList<CExpression> sparseBitVectors = pSparseBitVectorMap.get(memoryLocation);
-        // if the LHS is 1, check if any expression exists for the RHS
+        ImmutableList<CExpression> sparseBitVectors = pRightHandSides.get(memoryLocation);
+        // if the memory location is accessed, check if any expression exists for the RHS
         if (!sparseBitVectors.isEmpty()) {
-          Optional<CExportExpression> disjunction =
-              BitVectorEvaluationUtil.tryBuildLogicalOrExpressionFromCExpressions(sparseBitVectors);
-          if (disjunction.isPresent()) {
-            // simplify A && (B || C || ...) to just (B || C || ...)
-            sparseExpressions.add(disjunction.orElseThrow());
+          CExpression leftHandSide = Objects.requireNonNull(pLeftHandSides.get(memoryLocation));
+          switch (leftHandSide) {
+            case CIntegerLiteralExpression integerLiteralExpression -> {
+              // if the LHS is an integer, it must be 1 and can be pruned
+              checkState(integerLiteralExpression.equals(CIntegerLiteralExpression.ONE));
+              Optional<CExportExpression> disjunction =
+                  BitVectorEvaluationUtil.tryBuildLogicalOrExpressionFromCExpressions(
+                      sparseBitVectors);
+              if (disjunction.isPresent()) {
+                // simplify A && (B || C || ...) to just (B || C || ...)
+                sparseExpressions.add(disjunction.orElseThrow());
+              }
+            }
+            case CIdExpression idExpression -> {
+              // if the LHS is a CIdExpression, it cannot be pruned
+              CExportExpression logicalAnd =
+                  buildSingleSparseLogicalAndExpression(
+                      pRightHandSides, idExpression, memoryLocation);
+              sparseExpressions.add(logicalAnd);
+            }
+            default ->
+                throw new IllegalStateException(
+                    "Unexpected type for leftHandSide: " + leftHandSide);
           }
         }
       }
@@ -204,24 +265,21 @@ class BitVectorAccessEvaluationBuilder {
     return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
-  static Optional<CExportExpression> buildFullSparseEvaluation(
-      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
-      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
+  private static Optional<CExportExpression> buildFullSparseEvaluation(
+      ImmutableMap<SeqMemoryLocation, CExpression> pLeftHandSides,
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
       SeqBitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
       // no sparse variables (i.e. no global variables) -> no evaluation
       return Optional.empty();
     }
-    ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
+    Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (SeqMemoryLocation memoryLocation :
         pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
-      CIntegerLiteralExpression directBitVector =
-          BitVectorEvaluationUtil.buildSparseDirectBitVector(
-              memoryLocation, pAccessedMemoryLocations);
+      CExpression leftHandSide = Objects.requireNonNull(pLeftHandSides.get(memoryLocation));
       CExportExpression logicalAnd =
-          buildSingleSparseLogicalAndExpression(
-              pSparseBitVectorMap, directBitVector, memoryLocation);
+          buildSingleSparseLogicalAndExpression(pRightHandSides, leftHandSide, memoryLocation);
       sparseExpressions.add(logicalAnd);
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
@@ -240,7 +298,7 @@ class BitVectorAccessEvaluationBuilder {
     ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseBitVectorMap =
         BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
             pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
-    ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
+    Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       CIdExpression directBitVector =
           entry.getValue().getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
