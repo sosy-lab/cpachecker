@@ -104,6 +104,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final WitnessExporter argWitnessExporter;
 
+  private boolean terminationCandidatesIncomplete = false;
+  private int loopsWithoutTerminationCandidates = 0;
+
   public BMCAlgorithm(
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
@@ -139,7 +142,16 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
     try {
-      return super.run(reachedSet);
+      AlgorithmStatus status = super.run(reachedSet);
+      if (terminationMode && terminationCandidatesIncomplete && status.isSound()) {
+        logger.logf(
+            Level.WARNING,
+            "Termination mode could not derive loop-continuation candidates for %d loop(s); "
+                + "downgrading the result to UNKNOWN.",
+            loopsWithoutTerminationCandidates);
+        return status.withSound(false);
+      }
+      return status;
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
@@ -155,20 +167,26 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   protected CandidateGenerator getCandidateInvariants() {
     if (terminationMode) {
+      terminationCandidatesIncomplete = false;
+      loopsWithoutTerminationCandidates = 0;
       if (!cfa.getLoopStructure().isPresent()) {
+        terminationCandidatesIncomplete = true;
         logger.log(
             Level.WARNING, "Termination mode is enabled, but loop structure is unavailable.");
         return CandidateGenerator.EMPTY_GENERATOR;
       }
       ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
       for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-        for (CFANode loopHead : loop.getLoopHeads()) {
-          for (CFAEdge leavingEdge : loopHead.getLeavingEdges()) {
-            if (leavingEdge instanceof AssumeEdge assumeEdge
-                && loop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
-              candidates.add(new FrontierEdgeFormulaNegation(loopHead, assumeEdge));
-            }
-          }
+        ImmutableSet<CandidateInvariant> loopCandidates = getTerminationCandidates(loop);
+        if (loopCandidates.isEmpty()) {
+          terminationCandidatesIncomplete = true;
+          loopsWithoutTerminationCandidates++;
+          logger.logf(
+              Level.FINE,
+              "Termination mode could not derive a loop-continuation candidate for loop heads %s.",
+              loop.getLoopHeads());
+        } else {
+          candidates.addAll(loopCandidates);
         }
       }
       ImmutableSet<CandidateInvariant> terminationCandidates = candidates.build();
@@ -184,6 +202,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           terminationCandidates.size());
       return new StaticCandidateProvider(terminationCandidates);
     }
+    terminationCandidatesIncomplete = false;
+    loopsWithoutTerminationCandidates = 0;
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
@@ -203,6 +223,55 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     return super.boundedModelCheck(pReachedSet, pProver, pInductionProblem);
+  }
+
+  private ImmutableSet<CandidateInvariant> getTerminationCandidates(Loop pLoop) {
+    ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
+    addLoopHeadCandidates(pLoop, candidates);
+    ImmutableSet<CandidateInvariant> loopHeadCandidates = candidates.build();
+    if (!loopHeadCandidates.isEmpty()) {
+      return loopHeadCandidates;
+    }
+
+    candidates = ImmutableSet.builder();
+    addInternalExitGuardCandidates(pLoop, candidates);
+    return candidates.build();
+  }
+
+  private void addLoopHeadCandidates(
+      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+    for (CFANode loopHead : pLoop.getLoopHeads()) {
+      addContinuationCandidatesAtNode(pLoop, loopHead, pCandidates);
+    }
+  }
+
+  private void addInternalExitGuardCandidates(
+      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+    for (CFANode loopNode : pLoop.getLoopNodes()) {
+      if (pLoop.getLoopHeads().contains(loopNode) || !hasExitEdge(pLoop, loopNode)) {
+        continue;
+      }
+      addContinuationCandidatesAtNode(pLoop, loopNode, pCandidates);
+    }
+  }
+
+  private void addContinuationCandidatesAtNode(
+      Loop pLoop, CFANode pNode, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+    for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
+      if (leavingEdge instanceof AssumeEdge assumeEdge
+          && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
+        pCandidates.add(new FrontierEdgeFormulaNegation(pNode, assumeEdge));
+      }
+    }
+  }
+
+  private boolean hasExitEdge(Loop pLoop, CFANode pNode) {
+    for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
+      if (!pLoop.getLoopNodes().contains(leavingEdge.getSuccessor())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
