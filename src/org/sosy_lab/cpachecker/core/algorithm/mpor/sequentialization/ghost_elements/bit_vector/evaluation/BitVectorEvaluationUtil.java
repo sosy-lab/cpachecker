@@ -157,35 +157,36 @@ public class BitVectorEvaluationUtil {
     ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (SeqMemoryLocation memoryLocation :
         pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).keySet()) {
-      // if the memory location is not accessed, then the entire && expression can be pruned
-      if (pAccessedMemoryLocations.contains(memoryLocation)) {
-        ImmutableList<CExpression> sparseBitVectors = pRightHandSides.get(memoryLocation);
-        // if the memory location is accessed, check if any expression exists for the RHS
-        if (!sparseBitVectors.isEmpty()) {
-          CExpression leftHandSide = Objects.requireNonNull(pLeftHandSides.get(memoryLocation));
-          switch (leftHandSide) {
-            case CIntegerLiteralExpression integerLiteralExpression -> {
-              // if the LHS is an integer, it must be 1 and can be pruned
+      ImmutableList<CExpression> rightHandSide = pRightHandSides.get(memoryLocation);
+      // if the LHS is not present, then the current thread never accesses the memory location.
+      // if the RHS is empty, then no other thread accesses the memory location.
+      if (pLeftHandSides.containsKey(memoryLocation) && !rightHandSide.isEmpty()) {
+        CExpression leftHandSide = Objects.requireNonNull(pLeftHandSides.get(memoryLocation));
+        switch (leftHandSide) {
+          case CIntegerLiteralExpression integerLiteralExpression -> {
+            // if the memory location is not accessed, then the entire && expression can be pruned
+            if (pAccessedMemoryLocations.contains(memoryLocation)) {
               checkState(integerLiteralExpression.equals(CIntegerLiteralExpression.ONE));
+              // simplify A && (B || C || ...) to just (B || C || ...) and use OR directly
               Optional<CExportExpression> disjunction =
                   BitVectorEvaluationUtil.tryBuildLogicalOrExpressionFromCExpressions(
-                      sparseBitVectors);
+                      rightHandSide);
               if (disjunction.isPresent()) {
-                // simplify A && (B || C || ...) to just (B || C || ...)
                 sparseExpressions.add(disjunction.orElseThrow());
               }
+            } else {
+              checkState(integerLiteralExpression.equals(CIntegerLiteralExpression.ZERO));
             }
-            case CIdExpression idExpression -> {
-              // if the LHS is a CIdExpression, it cannot be pruned
-              CExportExpression logicalAnd =
-                  buildSingleSparseLogicalAndExpression(
-                      pRightHandSides, idExpression, memoryLocation);
-              sparseExpressions.add(logicalAnd);
-            }
-            default ->
-                throw new IllegalStateException(
-                    "Unexpected type for leftHandSide: " + leftHandSide);
           }
+          case CIdExpression idExpression -> {
+            // if the LHS is a CIdExpression, it cannot be pruned
+            CExportExpression logicalAnd =
+                buildSingleSparseLogicalAndExpression(
+                    pRightHandSides, idExpression, memoryLocation);
+            sparseExpressions.add(logicalAnd);
+          }
+          default ->
+              throw new IllegalStateException("Unexpected type for leftHandSide: " + leftHandSide);
         }
       }
     }
