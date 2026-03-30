@@ -373,9 +373,7 @@ public class SequentializationBuilder {
     if (pOptions.isAnyBitVectorReductionEnabled()) {
       SeqBitVectorDeclarationBuilder bitVectorDeclarationBuilder =
           new SeqBitVectorDeclarationBuilder(
-              pOptions.bitVectorEncoding(),
-              pOptions.executeCommutingThreadsFirst(),
-              pOptions.partialOrderReductionMode(),
+              pOptions,
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
               pFields.machineModel,

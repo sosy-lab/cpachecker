@@ -82,11 +82,7 @@ public record BitVectorAssignmentInjector(
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            options.executeCommutingThreadsFirst(),
-            options.partialOrderReductionMode(),
-            accessType,
-            reachType)) {
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
           rAssignments.addAll(
               buildBitVectorAssignmentByEncoding(ImmutableSet.of(), accessType, reachType));
         }
@@ -107,11 +103,7 @@ public record BitVectorAssignmentInjector(
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            options.executeCommutingThreadsFirst(),
-            options.partialOrderReductionMode(),
-            accessType,
-            reachType)) {
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap,
@@ -150,11 +142,7 @@ public record BitVectorAssignmentInjector(
       ReachType pReachType)
       throws UnsupportedCodeException {
 
-    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.executeCommutingThreadsFirst(),
-        options.partialOrderReductionMode(),
-        pAccessType,
-        pReachType)) {
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     CIdExpression bitVectorVariable =
@@ -172,11 +160,7 @@ public record BitVectorAssignmentInjector(
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.executeCommutingThreadsFirst(),
-        options.partialOrderReductionMode(),
-        pAccessType,
-        pReachType)) {
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     // use list so that the assignment order is deterministic

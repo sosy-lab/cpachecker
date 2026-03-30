@@ -85,19 +85,6 @@ public record AbortCommutingContextSwitchesInjector(
             + " is in the interval [0;NUM_THREADS]. This means that the guard always evaluates to"
             + " false for the main thread, and the ACS statement should be pruned entirely.");
 
-    SeqThreadStatementBlock firstBlock =
-        Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
-    Optional<CExportExpression> prevBitVectorEvaluation =
-        BitVectorEvaluationBuilder.buildPrevBitVectorEvaluation(
-            options,
-            labelClauseMap,
-            labelBlockMap,
-            firstBlock,
-            bitVectorVariables,
-            machineModel,
-            memoryModel,
-            utils);
-
     // prev_thread < n
     CBinaryExpression prevThreadLessThanThreadId =
         utils
@@ -106,6 +93,21 @@ public record AbortCommutingContextSwitchesInjector(
                 SeqIdExpressions.PREV_THREAD,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
                 BinaryOperator.LESS_THAN);
+
+    // *conflict between prev_thread and current_thread*
+    SeqThreadStatementBlock firstBlock =
+        Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
+    Optional<CExportExpression> prevBitVectorEvaluation =
+        BitVectorEvaluationBuilder.buildPrevBitVectorEvaluation(
+            options,
+            pThread,
+            labelClauseMap,
+            labelBlockMap,
+            firstBlock,
+            bitVectorVariables,
+            machineModel,
+            memoryModel,
+            utils);
 
     // if (prev_thread < n) ...
     CExpressionWrapper ifCondition = new CExpressionWrapper(prevThreadLessThanThreadId);

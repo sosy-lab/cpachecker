@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
@@ -30,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -40,9 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record SeqBitVectorDeclarationBuilder(
-    SeqBitVectorEncoding bitVectorEncoding,
-    boolean executeCommutingThreadsFirst,
-    PartialOrderReductionMode partialOrderReductionMode,
+    MPOROptions options,
     SeqBitVectorVariables bitVectorVariables,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
     MachineModel machineModel,
@@ -56,10 +54,10 @@ public record SeqBitVectorDeclarationBuilder(
   public ImmutableList<CVariableDeclaration> buildBitVectorDeclarationsByEncoding()
       throws UnsupportedCodeException {
 
-    return switch (bitVectorEncoding) {
+    return switch (options.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build bit vector declarations for encoding " + bitVectorEncoding);
+              "cannot build bit vector declarations for encoding " + options.bitVectorEncoding());
       case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> buildDenseBitVectorDeclarationsByReductionMode();
       case SPARSE -> buildSparseBitVectorDeclarationsByReductionMode();
     };
@@ -70,11 +68,11 @@ public record SeqBitVectorDeclarationBuilder(
   private ImmutableList<CVariableDeclaration> buildDenseBitVectorDeclarationsByReductionMode()
       throws UnsupportedCodeException {
 
-    return switch (partialOrderReductionMode) {
+    return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build bit vector declarations for partialOrderReductionMode "
-                  + partialOrderReductionMode);
+                  + options.partialOrderReductionMode());
       case ACCESS_ONLY -> buildDenseBitVectorDeclarationsByAccessType(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CVariableDeclaration>builder()
@@ -112,14 +110,13 @@ public record SeqBitVectorDeclarationBuilder(
       SeqThreadStatementBlock firstBlock = clauses.get(thread).getFirst().getFirstBlock();
 
       for (ReachType reachType : ReachType.values()) {
-        if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            executeCommutingThreadsFirst, partialOrderReductionMode, pAccessType, reachType)) {
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
           CIntegerLiteralExpression initializer =
               SeqBitVectorUtil.buildBitVectorExpression(
-                  bitVectorEncoding, machineModel, memoryModel, memoryLocations);
+                  options.bitVectorEncoding(), machineModel, memoryModel, memoryLocations);
           rDeclarations.add(
               SeqDeclarationBuilder.buildVariableDeclaration(
                   true,
@@ -141,7 +138,7 @@ public record SeqBitVectorDeclarationBuilder(
       // the prev bv is initialized to 0, and assigned to something else in the prev update later
       CIntegerLiteralExpression initializer =
           SeqBitVectorUtil.buildBitVectorExpression(
-              bitVectorEncoding, machineModel, memoryModel, ImmutableSet.of());
+              options.bitVectorEncoding(), machineModel, memoryModel, ImmutableSet.of());
       // reachable prev bit vector
       return Optional.of(
           SeqDeclarationBuilder.buildVariableDeclaration(
@@ -156,11 +153,11 @@ public record SeqBitVectorDeclarationBuilder(
   // SPARSE ========================================================================================
 
   private ImmutableList<CVariableDeclaration> buildSparseBitVectorDeclarationsByReductionMode() {
-    return switch (partialOrderReductionMode) {
+    return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build bit vector declarations for partialOrderReductionMode "
-                  + partialOrderReductionMode);
+                  + options.partialOrderReductionMode());
       case ACCESS_ONLY -> buildSparseBitVectorDeclarations(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CVariableDeclaration>builder()

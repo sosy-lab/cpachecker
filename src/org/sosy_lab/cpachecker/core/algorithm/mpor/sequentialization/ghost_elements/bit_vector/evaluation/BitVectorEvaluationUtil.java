@@ -45,10 +45,9 @@ public class BitVectorEvaluationUtil {
   }
 
   static CIntegerLiteralExpression buildSparseDirectBitVector(
-      SeqMemoryLocation pMemoryLocation,
-      ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations) {
+      SeqMemoryLocation pMemoryLocation, ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations) {
 
-    return pDirectAccessMemoryLocations.contains(pMemoryLocation)
+    return pAccessedMemoryLocations.contains(pMemoryLocation)
         ? SeqIntegerLiteralExpressions.INT_1
         : SeqIntegerLiteralExpressions.INT_0;
   }

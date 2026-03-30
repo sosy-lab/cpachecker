@@ -90,15 +90,15 @@ class BitVectorAccessEvaluationBuilder {
   static Optional<CExportExpression> buildSparseEvaluation(
       MPOROptions pOptions,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
-      ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
       SeqBitVectorVariables pBitVectorVariables) {
 
     if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedSparseEvaluation(
-          pSparseBitVectorMap, pDirectAccessMemoryLocations, pBitVectorVariables);
+          pSparseBitVectorMap, pAccessedMemoryLocations, pBitVectorVariables);
     } else {
       return buildFullSparseEvaluation(
-          pSparseBitVectorMap, pDirectAccessMemoryLocations, pBitVectorVariables);
+          pSparseBitVectorMap, pAccessedMemoryLocations, pBitVectorVariables);
     }
   }
 
@@ -158,7 +158,7 @@ class BitVectorAccessEvaluationBuilder {
     return buildFullDenseBinaryAnd(directBitVector, otherReachableBitVectors, pUtils);
   }
 
-  private static CExpressionWrapper buildFullDenseBinaryAnd(
+  static CExpressionWrapper buildFullDenseBinaryAnd(
       CExpression pDirectBitVector,
       ImmutableSet<CExpression> pOtherBitVectors,
       SequentializationUtils pUtils)
@@ -177,7 +177,7 @@ class BitVectorAccessEvaluationBuilder {
 
   private static Optional<CExportExpression> buildPrunedSparseEvaluation(
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
-      ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
       SeqBitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
@@ -188,7 +188,7 @@ class BitVectorAccessEvaluationBuilder {
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       SeqMemoryLocation memoryLocation = entry.getKey();
       // if the LHS is 0, then the entire && expression is 0 -> prune
-      if (pDirectMemoryLocations.contains(memoryLocation)) {
+      if (pAccessedMemoryLocations.contains(memoryLocation)) {
         ImmutableList<CExpression> sparseBitVectors = pSparseBitVectorMap.get(memoryLocation);
         // if the LHS is 1, check if any expression exists for the RHS
         if (!sparseBitVectors.isEmpty()) {
@@ -204,9 +204,9 @@ class BitVectorAccessEvaluationBuilder {
     return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
-  private static Optional<CExportExpression> buildFullSparseEvaluation(
+  static Optional<CExportExpression> buildFullSparseEvaluation(
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
-      ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
       SeqBitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
@@ -218,7 +218,7 @@ class BitVectorAccessEvaluationBuilder {
         pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
       CIntegerLiteralExpression directBitVector =
           BitVectorEvaluationUtil.buildSparseDirectBitVector(
-              memoryLocation, pDirectMemoryLocations);
+              memoryLocation, pAccessedMemoryLocations);
       CExportExpression logicalAnd =
           buildSingleSparseLogicalAndExpression(
               pSparseBitVectorMap, directBitVector, memoryLocation);

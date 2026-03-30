@@ -140,11 +140,7 @@ public record SeqBitVectorVariablesBuilder(
   private Optional<CIdExpression> buildDenseBitVector(
       MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
 
-    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.executeCommutingThreadsFirst(),
-        options.partialOrderReductionMode(),
-        pAccessType,
-        pReachType)) {
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
       return Optional.empty();
     }
     return switch (pReachType) {
@@ -189,11 +185,7 @@ public record SeqBitVectorVariablesBuilder(
   private ImmutableMap<MPORThread, CIdExpression> buildSparseBitVectors(
       SeqMemoryLocation pMemoryLocation, MemoryAccessType pAccessType, ReachType pReachType) {
 
-    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.executeCommutingThreadsFirst(),
-        options.partialOrderReductionMode(),
-        pAccessType,
-        pReachType)) {
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
       return ImmutableMap.of();
     }
     ImmutableMap.Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();
