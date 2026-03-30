@@ -113,6 +113,7 @@ class BitVectorReadWriteEvaluationBuilder {
 
     ImmutableMap<SeqMemoryLocation, CExpression> readLeftHandSides =
         pBitVectorVariables.getSparseReadBitVectors().keySet().stream()
+            .filter(memoryLocation -> pReadMemoryLocations.contains(memoryLocation))
             .collect(
                 ImmutableMap.toImmutableMap(
                     memoryLocation -> memoryLocation,
@@ -121,6 +122,7 @@ class BitVectorReadWriteEvaluationBuilder {
                             memoryLocation, pReadMemoryLocations)));
     ImmutableMap<SeqMemoryLocation, CExpression> writeLeftHandSides =
         pBitVectorVariables.getSparseWriteBitVectors().keySet().stream()
+            .filter(memoryLocation -> pWriteMemoryLocations.contains(memoryLocation))
             .collect(
                 ImmutableMap.toImmutableMap(
                     memoryLocation -> memoryLocation,
@@ -149,6 +151,7 @@ class BitVectorReadWriteEvaluationBuilder {
 
     ImmutableMap<SeqMemoryLocation, CExpression> readLeftHandSides =
         pBitVectorVariables.getSparseReadBitVectors().entrySet().stream()
+            .filter(entry -> entry.getValue().directVariables().containsKey(pCurrentThread))
             .collect(
                 ImmutableMap.toImmutableMap(
                     Entry::getKey,
@@ -157,6 +160,7 @@ class BitVectorReadWriteEvaluationBuilder {
                             entry.getValue().directVariables().get(pCurrentThread))));
     ImmutableMap<SeqMemoryLocation, CExpression> writeLeftHandSides =
         pBitVectorVariables.getSparseWriteBitVectors().entrySet().stream()
+            .filter(entry -> entry.getValue().directVariables().containsKey(pCurrentThread))
             .collect(
                 ImmutableMap.toImmutableMap(
                     Entry::getKey,

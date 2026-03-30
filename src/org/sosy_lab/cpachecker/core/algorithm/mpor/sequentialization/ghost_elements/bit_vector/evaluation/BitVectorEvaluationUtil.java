@@ -196,12 +196,10 @@ public class BitVectorEvaluationUtil {
       return Optional.empty();
     }
     ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
-    for (SeqMemoryLocation memoryLocation :
-        pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
-      CExpression leftHandSide = Objects.requireNonNull(pLeftHandSides.get(memoryLocation));
+    for (var entry : pLeftHandSides.entrySet()) {
       CExportExpression logicalAnd =
           BitVectorEvaluationUtil.buildSingleSparseLogicalAndExpression(
-              pRightHandSides, leftHandSide, memoryLocation);
+              pRightHandSides, entry.getValue(), entry.getKey());
       sparseExpressions.add(logicalAnd);
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))

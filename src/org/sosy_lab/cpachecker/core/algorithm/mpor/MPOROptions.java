@@ -361,11 +361,6 @@ public class MPOROptions {
             "pruneSparseBitVectors cannot be enabled when executeCommutingThreadsFirst is"
                 + " enabled.");
       }
-      if (abortCommutingContextSwitches) {
-        throw new InvalidConfigurationException(
-            "pruneSparseBitVectors cannot be enabled when abortCommutingContextSwitches is"
-                + " enabled.");
-      }
     }
     if (pruneSparseBitVectorWrites) {
       if (!bitVectorEncoding.isSparse) {
