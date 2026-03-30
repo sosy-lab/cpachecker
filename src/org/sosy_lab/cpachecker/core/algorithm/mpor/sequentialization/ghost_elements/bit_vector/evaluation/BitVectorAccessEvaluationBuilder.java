@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -95,13 +94,8 @@ class BitVectorAccessEvaluationBuilder {
       SeqBitVectorVariables pBitVectorVariables) {
 
     ImmutableMap<SeqMemoryLocation, CExpression> leftHandSides =
-        pBitVectorVariables.getSparseAccessBitVectors().keySet().stream()
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    memoryLocation -> memoryLocation,
-                    memoryLocation ->
-                        BitVectorEvaluationUtil.buildSparseDirectBitVector(
-                            memoryLocation, pAccessedMemoryLocations)));
+        BitVectorEvaluationUtil.buildSparseLeftHandSidesByAccessType(
+            pAccessedMemoryLocations, MemoryAccessType.ACCESS, pBitVectorVariables);
     return buildSparseEvaluation(
         pOptions, leftHandSides, pRightHandSides, pAccessedMemoryLocations, pBitVectorVariables);
   }
@@ -114,13 +108,8 @@ class BitVectorAccessEvaluationBuilder {
       SeqBitVectorVariables pBitVectorVariables) {
 
     ImmutableMap<SeqMemoryLocation, CExpression> leftHandSides =
-        pBitVectorVariables.getSparseAccessBitVectors().entrySet().stream()
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    Entry::getKey,
-                    entry ->
-                        Objects.requireNonNull(
-                            entry.getValue().directVariables().get(pCurrentThread))));
+        BitVectorEvaluationUtil.buildPrevSparseLeftHandSidesByAccessType(
+            pCurrentThread, MemoryAccessType.ACCESS, pBitVectorVariables);
     return buildSparseEvaluation(
         pOptions, leftHandSides, pRightHandSides, pAccessedMemoryLocations, pBitVectorVariables);
   }

@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -134,7 +135,37 @@ public class BitVectorEvaluationUtil {
     return rMap.build();
   }
 
-  // Sparse Access Bit Vectors =====================================================================
+  // Sparse Bit Vectors ============================================================================
+
+  static ImmutableMap<SeqMemoryLocation, CExpression> buildSparseLeftHandSidesByAccessType(
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
+      MemoryAccessType pAccessType,
+      SeqBitVectorVariables pBitVectorVariables) {
+
+    return pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).keySet().stream()
+        .collect(
+            ImmutableMap.toImmutableMap(
+                memoryLocation -> memoryLocation,
+                memoryLocation ->
+                    BitVectorEvaluationUtil.buildSparseDirectBitVector(
+                        memoryLocation, pAccessedMemoryLocations)));
+  }
+
+  static ImmutableMap<SeqMemoryLocation, CExpression> buildPrevSparseLeftHandSidesByAccessType(
+      MPORThread pCurrentThread,
+      MemoryAccessType pAccessType,
+      SeqBitVectorVariables pBitVectorVariables) {
+
+    return pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet().stream()
+        // filter the LHS that are accessed by the thread so that pruneSparseBitVectors is handled
+        .filter(entry -> entry.getValue().directVariables().containsKey(pCurrentThread))
+        .collect(
+            ImmutableMap.toImmutableMap(
+                Entry::getKey,
+                entry ->
+                    Objects.requireNonNull(
+                        entry.getValue().directVariables().get(pCurrentThread))));
+  }
 
   static Optional<CExportExpression> buildPrunedSparseEvaluation(
       ImmutableMap<SeqMemoryLocation, CExpression> pLeftHandSides,

@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -112,23 +111,11 @@ class BitVectorReadWriteEvaluationBuilder {
       SeqBitVectorVariables pBitVectorVariables) {
 
     ImmutableMap<SeqMemoryLocation, CExpression> readLeftHandSides =
-        pBitVectorVariables.getSparseReadBitVectors().keySet().stream()
-            .filter(memoryLocation -> pReadMemoryLocations.contains(memoryLocation))
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    memoryLocation -> memoryLocation,
-                    memoryLocation ->
-                        BitVectorEvaluationUtil.buildSparseDirectBitVector(
-                            memoryLocation, pReadMemoryLocations)));
+        BitVectorEvaluationUtil.buildSparseLeftHandSidesByAccessType(
+            pReadMemoryLocations, MemoryAccessType.READ, pBitVectorVariables);
     ImmutableMap<SeqMemoryLocation, CExpression> writeLeftHandSides =
-        pBitVectorVariables.getSparseWriteBitVectors().keySet().stream()
-            .filter(memoryLocation -> pWriteMemoryLocations.contains(memoryLocation))
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    memoryLocation -> memoryLocation,
-                    memoryLocation ->
-                        BitVectorEvaluationUtil.buildSparseDirectBitVector(
-                            memoryLocation, pWriteMemoryLocations)));
+        BitVectorEvaluationUtil.buildSparseLeftHandSidesByAccessType(
+            pWriteMemoryLocations, MemoryAccessType.WRITE, pBitVectorVariables);
     return buildSparseEvaluation(
         pOptions,
         readLeftHandSides,
@@ -150,23 +137,11 @@ class BitVectorReadWriteEvaluationBuilder {
       SeqBitVectorVariables pBitVectorVariables) {
 
     ImmutableMap<SeqMemoryLocation, CExpression> readLeftHandSides =
-        pBitVectorVariables.getSparseReadBitVectors().entrySet().stream()
-            .filter(entry -> entry.getValue().directVariables().containsKey(pCurrentThread))
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    Entry::getKey,
-                    entry ->
-                        Objects.requireNonNull(
-                            entry.getValue().directVariables().get(pCurrentThread))));
+        BitVectorEvaluationUtil.buildPrevSparseLeftHandSidesByAccessType(
+            pCurrentThread, MemoryAccessType.READ, pBitVectorVariables);
     ImmutableMap<SeqMemoryLocation, CExpression> writeLeftHandSides =
-        pBitVectorVariables.getSparseWriteBitVectors().entrySet().stream()
-            .filter(entry -> entry.getValue().directVariables().containsKey(pCurrentThread))
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    Entry::getKey,
-                    entry ->
-                        Objects.requireNonNull(
-                            entry.getValue().directVariables().get(pCurrentThread))));
+        BitVectorEvaluationUtil.buildPrevSparseLeftHandSidesByAccessType(
+            pCurrentThread, MemoryAccessType.WRITE, pBitVectorVariables);
     return buildSparseEvaluation(
         pOptions,
         readLeftHandSides,
