@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermin
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record ProgramCounterVariableBuilder(
-    boolean scalarPc,
+    boolean scalarProgramCounters,
     NondeterminismSource nondeterminismSource,
     int numThreads,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
@@ -92,12 +92,14 @@ public record ProgramCounterVariableBuilder(
     ImmutableList.Builder<CLeftHandSide> rPcExpressions = ImmutableList.builder();
     for (int threadId = 0; threadId < numThreads; threadId++) {
       rPcExpressions.add(
-          scalarPc ? buildScalarPcExpressions(threadId) : buildArrayPcExpressions(threadId));
+          scalarProgramCounters
+              ? buildScalarProgramCounterExpressions(threadId)
+              : buildArrayProgramCounterExpressions(threadId));
     }
     return rPcExpressions.build();
   }
 
-  private CIdExpression buildScalarPcExpressions(int pThreadId) {
+  private CIdExpression buildScalarProgramCounterExpressions(int pThreadId) {
     CInitializer initializer = getPcInitializer(pThreadId == 0);
     CVariableDeclaration declaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
@@ -108,7 +110,7 @@ public record ProgramCounterVariableBuilder(
     return new CIdExpression(FileLocation.DUMMY, declaration);
   }
 
-  private CArraySubscriptExpression buildArrayPcExpressions(int pThreadId) {
+  private CArraySubscriptExpression buildArrayProgramCounterExpressions(int pThreadId) {
     return buildPcSubscriptExpression(
         SeqExpressionBuilder.buildIntegerLiteralExpression(pThreadId));
   }
@@ -119,7 +121,7 @@ public record ProgramCounterVariableBuilder(
       int pNumThreads, ImmutableList<CLeftHandSide> pPcLeftHandSides) {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
-    if (scalarPc) {
+    if (scalarProgramCounters) {
       // declare scalar int for each thread: pc0 = 1; pc1 = 0; ...
       for (int i = 0; i < pNumThreads; i++) {
         rDeclarations.add(
@@ -150,7 +152,7 @@ public record ProgramCounterVariableBuilder(
       throws UnrecognizedCodeException {
 
     if (nondeterminismSource.isNextThreadNondeterministic()) {
-      if (!scalarPc) {
+      if (!scalarProgramCounters) {
         // pc array: single assume(pc[next_thread] != 0);
         return Optional.of(
             binaryExpressionBuilder.buildBinaryExpression(

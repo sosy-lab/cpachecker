@@ -104,8 +104,8 @@ public record SeqThreadStatement(
    * additional {@link SeqInstrumentation}s.
    */
   public boolean isOnlyPcWrite() {
-    // the only case where a statement writes only 'pc' is when it is a blank statement without
-    // any injected statement
+    // the only case where a statement writes only 'pc' is when it is a blank statement without any
+    // instrumentation
     return data.getType().equals(SeqThreadStatementType.GHOST_ONLY) && instrumentation.isEmpty();
   }
 
@@ -163,20 +163,20 @@ public record SeqThreadStatement(
         targetPc.isPresent() || targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present.");
 
-    // first build the CExportStatements of the SeqInjectedStatement
+    // first build the exported statements of the instrumentation
     ImmutableList<SeqInstrumentation> preparedInstrumentation =
         targetPc.isPresent()
             ? SeqThreadStatementUtil.prepareInstrumentationByTargetPc(
                 data.getPcLeftHandSide(), targetPc.orElseThrow(), instrumentation)
             : SeqThreadStatementUtil.prepareInstrumentationByTargetGoto(
                 data.getThreadId(), targetGoto.orElseThrow(), instrumentation);
-
-    ImmutableList<CExportStatement> injectedExportStatements =
+    ImmutableList<CExportStatement> instrumentationExportStatements =
         transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());
 
+    // add the instrumentation after the actual export statements that carry input program semantics
     return ImmutableList.<CCompoundStatementElement>builder()
         .addAll(exportStatements)
-        .addAll(injectedExportStatements)
+        .addAll(instrumentationExportStatements)
         .build();
   }
 }
