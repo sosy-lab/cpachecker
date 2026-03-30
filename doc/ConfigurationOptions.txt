@@ -4543,6 +4543,11 @@ distributedSummaries.decomposition.generateBlockGraphOnly = false
 # Import an existing decomposition from a file
 distributedSummaries.decomposition.importDecomposition = no default value
 
+# Limits the horizontal merge so that blocks with more Nodes than this are
+# not merged,allowing for more parallelism in the analysis. Negative value
+# allows all merges
+distributedSummaries.decomposition.largestHorizontalMerge = 8
+
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
   enum:     [DSS, SINGLE_WORKER]

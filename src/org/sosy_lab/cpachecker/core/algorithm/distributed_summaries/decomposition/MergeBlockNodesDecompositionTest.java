@@ -58,6 +58,7 @@ public class MergeBlockNodesDecompositionTest {
     return new MergeBlockNodesDecomposition(
         new LinearBlockNodeDecomposition(isBlockEnd),
         2,
+        -1,
         Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
         false);
   }

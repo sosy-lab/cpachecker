@@ -39,7 +39,7 @@ public class HorizontalMergeDecompositionTest {
 
   @Parameter public String path;
 
-  private static DssBlockDecomposition createDecomposition(CFA cfa)
+  private static DssBlockDecomposition createDecomposition(CFA cfa, int mergeLimit)
       throws InvalidConfigurationException, IOException {
     BlockOperator blockOperator = new BlockOperator();
     Configuration config =
@@ -58,15 +58,28 @@ public class HorizontalMergeDecompositionTest {
     return new HorizontalMergeDecomposition(
         new LinearBlockNodeDecomposition(isBlockEnd),
         2,
+        mergeLimit,
         Comparator.comparing(BlockNodeWithoutGraphInformation::getId));
   }
 
   @Test
-  public void testHorizontalMergeDecomposition() throws Exception {
+  public void testHorizontalMergeDecompositionUnlimited() throws Exception {
 
     CFA cfa = TestUtil.buildTestCFA(path);
 
-    DssBlockDecomposition decomposition = createDecomposition(cfa);
+    DssBlockDecomposition decomposition = createDecomposition(cfa, -1);
+
+    BlockGraph graph = decomposition.decompose(cfa);
+
+    DecompositionTestBase.checkBlockGraph(graph, cfa);
+  }
+
+  @Test
+  public void testHorizontalMergeDecompositionLimited() throws Exception {
+
+    CFA cfa = TestUtil.buildTestCFA(path);
+
+    DssBlockDecomposition decomposition = createDecomposition(cfa, 5);
 
     BlockGraph graph = decomposition.decompose(cfa);
 

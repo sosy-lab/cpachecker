@@ -53,6 +53,13 @@ public class DssDecompositionOptions {
 
   @Option(
       description =
+          "Limits the horizontal merge so that blocks with more Nodes than this are not merged,"
+              + "allowing for more parallelism in the analysis. Negative value allows all merges",
+      secure = true)
+  private int largestHorizontalMerge = 8;
+
+  @Option(
+      description =
           "Abstraction nodes are added to each block after they are created. "
               + "They are needed to strengthen the preconditions of blocks. "
               + "Missing blocks make the analysis slower but not impossible.",
@@ -96,6 +103,7 @@ public class DssDecompositionOptions {
           new MergeBlockNodesDecomposition(
               new LinearBlockNodeDecomposition(isBlockEnd),
               2,
+              largestHorizontalMerge,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
               allowSingleBlockDecompositionWhenMerging);
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
