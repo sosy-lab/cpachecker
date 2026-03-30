@@ -48,14 +48,6 @@ public class BitVectorEvaluationUtil {
         .collect(ImmutableList.toImmutableList());
   }
 
-  static CIntegerLiteralExpression buildSparseDirectBitVector(
-      SeqMemoryLocation pMemoryLocation, ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations) {
-
-    return pAccessedMemoryLocations.contains(pMemoryLocation)
-        ? SeqIntegerLiteralExpressions.INT_1
-        : SeqIntegerLiteralExpressions.INT_0;
-  }
-
   // Conjunction and Disjunction ===================================================================
 
   /**
@@ -147,8 +139,9 @@ public class BitVectorEvaluationUtil {
             ImmutableMap.toImmutableMap(
                 memoryLocation -> memoryLocation,
                 memoryLocation ->
-                    BitVectorEvaluationUtil.buildSparseDirectBitVector(
-                        memoryLocation, pAccessedMemoryLocations)));
+                    pAccessedMemoryLocations.contains(memoryLocation)
+                        ? SeqIntegerLiteralExpressions.INT_1
+                        : SeqIntegerLiteralExpressions.INT_0));
   }
 
   static ImmutableMap<SeqMemoryLocation, CExpression> buildPrevSparseLeftHandSidesByAccessType(
