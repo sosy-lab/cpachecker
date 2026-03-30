@@ -86,7 +86,11 @@ public record PointerBase(String name, OptionalInt callStackDepth)
    * anything except creating formula terms!
    */
   String formulaEncoding() {
-    return BASE_PREFIX + name + CALL_STACK_DEPTH_SEPARATOR + callStackDepth.orElse(-1);
+    if (callStackDepth.isEmpty()) {
+      return BASE_PREFIX + name;
+    }
+
+    return BASE_PREFIX + name + CALL_STACK_DEPTH_SEPARATOR + callStackDepth.orElseThrow();
   }
 
   @Override
