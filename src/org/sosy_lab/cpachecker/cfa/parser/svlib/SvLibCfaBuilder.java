@@ -20,7 +20,6 @@ import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -172,8 +171,6 @@ class SvLibCfaBuilder {
       SvLibProcedureDefinitionCommand pCommand) throws SvLibParserException {
     SvLibProcedureDeclaration procedureDeclaration = pCommand.getProcedureDeclaration();
 
-    ImmutableMap.Builder<CFANode, String> gotoNodesToLabels = ImmutableMap.builder();
-    ImmutableMap.Builder<String, CFANode> labelsToNodes = ImmutableMap.builder();
     ImmutableSet.Builder<CFANode> allNodesCollector = ImmutableSet.builder();
 
     // Create the entry and exit nodes for the function
@@ -216,6 +213,11 @@ class SvLibCfaBuilder {
 
     nodesToActualProcedureDefinitionEnd.put(currentStartingNode, procedureDeclaration);
 
+    ImmutableMap.Builder<String, CFANode> labelToNodesBuilder = ImmutableMap.builder();
+    pCommand
+        .getBody()
+        .accept(new SvLibLabelCollectingVisitor(procedureDeclaration, labelToNodesBuilder));
+
     SvLibStatementToCfaVisitor statementVisitor =
         new SvLibStatementToCfaVisitor(
             currentStartingNode,
@@ -224,8 +226,7 @@ class SvLibCfaBuilder {
             functionExitNode,
             nodeToTagAnnotations,
             nodesToTagReferences,
-            gotoNodesToLabels,
-            labelsToNodes,
+            labelToNodesBuilder.build(),
             allNodesCollector,
             tagReferencesToAnnotations.build(),
             nodesToActualHavocStatementEnd);
@@ -237,29 +238,6 @@ class SvLibCfaBuilder {
       CFACreationUtils.addEdgeToCFA(
           new BlankEdge(
               "", FileLocation.DUMMY, optionalEndNode.orElseThrow(), functionExitNode, ""),
-          logger);
-    }
-
-    // Now generate the connections for the goto labels
-    Map<String, CFANode> labelsToNodesBuilt = labelsToNodes.buildOrThrow();
-    Map<CFANode, String> gotoNodesToLabelBuilt = gotoNodesToLabels.buildOrThrow();
-    for (Map.Entry<CFANode, String> gotoNodeToLabel : gotoNodesToLabelBuilt.entrySet()) {
-      String label = gotoNodeToLabel.getValue();
-      CFANode gotoNode = gotoNodeToLabel.getKey();
-
-      CFANode labelNode = labelsToNodesBuilt.get(label);
-      if (labelNode == null) {
-        throw new SvLibParserException("Could not find '" + label + "' to jump with a goto");
-      }
-
-      // Add a blank edge from the goto node to the label node
-      CFACreationUtils.addEdgeToCFA(
-          new BlankEdge(
-              "Goto to label " + label,
-              FileLocation.DUMMY,
-              gotoNode,
-              labelNode,
-              "Goto to label " + label),
           logger);
     }
 

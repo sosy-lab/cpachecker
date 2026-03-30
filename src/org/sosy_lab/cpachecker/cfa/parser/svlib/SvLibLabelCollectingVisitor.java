@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib;
 
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
@@ -108,7 +109,8 @@ public class SvLibLabelCollectingVisitor implements SvLibStatementVisitor<Void, 
 
   @Override
   public Void visit(SvLibLabelStatement pSvLibLabelStatement) throws NoException {
-    CFANode dummyNode = new CFANode(procedure.toSimpleDeclaration());
+    CFANode dummyNode =
+        new CFALabelNode(procedure.toSimpleDeclaration(), pSvLibLabelStatement.getLabel());
     labelsToNodes.put(pSvLibLabelStatement.getLabel(), dummyNode);
     return null;
   }

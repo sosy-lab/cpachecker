@@ -22,7 +22,7 @@
         (sequence
           (assign (x (+ x 1)))
           (goto N1)))
-      (! (sequence) :tag loop-end :check-true (= x 3))
+      (! (sequence) :tag loop-end :check-true (not (= x 3)))
  ):tag main))
 
 (verify-call main ())
