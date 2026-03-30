@@ -170,7 +170,7 @@ class SvLibCfaBuilder {
   }
 
   private Pair<FunctionEntryNode, Set<CFANode>> parseProcedureDefinition(
-      SvLibProcedureDefinitionCommand pCommand) throws SvLibParserException {
+      SvLibProcedureDefinitionCommand pCommand) {
     SvLibProcedureDeclaration procedureDeclaration = pCommand.getProcedureDeclaration();
 
     ImmutableSet.Builder<CFANode> allNodesCollector = ImmutableSet.builder();
