@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
@@ -29,8 +28,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatementVis
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class SvLibLabelCollectingVisitor
-    implements SvLibStatementVisitor<Optional<CFANode>, NoException> {
+public class SvLibLabelCollectingVisitor implements SvLibStatementVisitor<Void, NoException> {
 
   private final SvLibProcedureDeclaration procedure;
   private final ImmutableMap.Builder<String, CFANode> labelsToNodes;
@@ -42,89 +40,85 @@ public class SvLibLabelCollectingVisitor
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibAssignmentStatement pSvLibAssignmentStatement)
-      throws NoException {
-    return Optional.empty();
+  public Void visit(SvLibAssignmentStatement pSvLibAssignmentStatement) throws NoException {
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibHavocStatement pSvLibHavocStatement) throws NoException {
-    return Optional.empty();
+  public Void visit(SvLibHavocStatement pSvLibHavocStatement) throws NoException {
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibProcedureCallStatement pSvLibProcedureCallStatement)
-      throws NoException {
-    return Optional.empty();
+  public Void visit(SvLibProcedureCallStatement pSvLibProcedureCallStatement) throws NoException {
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibSequenceStatement pSvLibSequenceStatement)
-      throws NoException {
+  public Void visit(SvLibSequenceStatement pSvLibSequenceStatement) throws NoException {
     for (SvLibStatement subStatement : pSvLibSequenceStatement.getStatements()) {
       subStatement.accept(this);
     }
 
-    return Optional.empty();
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibAssumeStatement pSvLibAssumeStatement) throws NoException {
-    return Optional.empty();
+  public Void visit(SvLibAssumeStatement pSvLibAssumeStatement) throws NoException {
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibWhileStatement pSvLibWhileStatement) throws NoException {
+  public Void visit(SvLibWhileStatement pSvLibWhileStatement) throws NoException {
     pSvLibWhileStatement.getBody().accept(this);
 
-    return Optional.empty();
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibIfStatement pSvLibIfStatement) throws NoException {
+  public Void visit(SvLibIfStatement pSvLibIfStatement) throws NoException {
     pSvLibIfStatement.getThenBranch().accept(this);
     if (pSvLibIfStatement.getElseBranch().isPresent()) {
       SvLibStatement elseBranch = pSvLibIfStatement.getElseBranch().orElseThrow();
       elseBranch.accept(this);
     }
 
-    return Optional.empty();
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibBreakStatement pSvLibBreakStatement) throws NoException {
-    return Optional.empty();
+  public Void visit(SvLibBreakStatement pSvLibBreakStatement) throws NoException {
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibContinueStatement pSvLibContinueStatement)
-      throws NoException {
-    return Optional.empty();
+  public Void visit(SvLibContinueStatement pSvLibContinueStatement) throws NoException {
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibReturnStatement pSvLibReturnStatement) throws NoException {
-    return Optional.empty();
+  public Void visit(SvLibReturnStatement pSvLibReturnStatement) throws NoException {
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibGotoStatement pSvLibGotoStatement) throws NoException {
-    return Optional.empty();
+  public Void visit(SvLibGotoStatement pSvLibGotoStatement) throws NoException {
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibLabelStatement pSvLibLabelStatement) throws NoException {
+  public Void visit(SvLibLabelStatement pSvLibLabelStatement) throws NoException {
     CFANode dummyNode = new CFANode(procedure.toSimpleDeclaration());
     labelsToNodes.put(pSvLibLabelStatement.getLabel(), dummyNode);
-    return Optional.empty();
+    return null;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibChoiceStatement pSvLibChoiceStatement) throws NoException {
+  public Void visit(SvLibChoiceStatement pSvLibChoiceStatement) throws NoException {
     for (SvLibStatement possibleChoice : pSvLibChoiceStatement.getChoices()) {
       possibleChoice.accept(this);
     }
 
-    return Optional.empty();
+    return null;
   }
 }
