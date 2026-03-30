@@ -118,9 +118,13 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       throws InvalidConfigurationException {
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
-    cfa = pCfa;
-
     config = pConfiguration;
+
+    cfa = pCfa;
+    if (cfa.getLanguage() != Language.C) {
+      throw new InvalidConfigurationException(
+          "Currently only C programs can be transformed to SV-LIB");
+    }
 
     // TODO Ideally use try-with-ressources to close solver when no longer needed!
     solver = Solver.create(config, logger, shutdownNotifier);
@@ -145,12 +149,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
    * @return The SvLibScript generated from the CFA
    * @throws InvalidConfigurationException If the program to be transformed is not a C program
    */
-  public SvLibScript transformCfaToSvLib() throws InvalidConfigurationException {
-    // TODO check here or already in constructor?
-    if (cfa.getLanguage() != Language.C) {
-      throw new InvalidConfigurationException(
-          "Currently only C programs can be transformed to SV-LIB");
-    }
+  public SvLibScript transformCfaToSvLib() {
 
     // TODO check config whether cpa.predicate.ignoreIrrelevantVariables is set to false, otherwise
     //  the transformation won't be valid
