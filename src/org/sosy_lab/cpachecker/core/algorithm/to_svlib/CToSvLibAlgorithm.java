@@ -128,7 +128,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
           "Currently only C programs can be transformed to SV-LIB");
     }
 
-    // TODO Ideally use try-with-ressources to close solver when no longer needed!
     solver = Solver.create(config, logger, shutdownNotifier);
     formulaManager = solver.getFormulaManager();
     pathFormulaManager =
@@ -151,10 +150,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
    * @return The SvLibScript generated from the CFA
    */
   public SvLibScript transformCfaToSvLib() {
-
-    // TODO check config whether cpa.predicate.ignoreIrrelevantVariables is set to false, otherwise
-    //  the transformation won't be valid
-
     ImmutableList.Builder<SvLibCommand> commandsCollector = ImmutableList.builder();
     commandsCollector.add(
         new SvLibSetLogicCommand(SmtLibLogic.QF_NIA, FileLocation.DUMMY),
