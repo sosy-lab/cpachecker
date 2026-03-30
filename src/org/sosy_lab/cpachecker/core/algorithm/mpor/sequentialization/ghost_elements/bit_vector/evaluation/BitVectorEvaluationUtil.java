@@ -143,10 +143,10 @@ public class BitVectorEvaluationUtil {
                         entry.getValue().directVariables().get(pCurrentThread))));
   }
 
-  static Optional<CExportExpression> buildPrunedSparseEvaluation(
+  static Optional<CExportExpression> buildPrunedSparseEvaluationByAccessType(
       ImmutableMap<SeqMemoryLocation, CExpression> pLeftHandSides,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
-      ImmutableSet<SeqMemoryLocation> pMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
       MemoryAccessType pAccessType,
       SeqBitVectorVariables pBitVectorVariables) {
 
@@ -156,9 +156,9 @@ public class BitVectorEvaluationUtil {
     }
     ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (SeqMemoryLocation memoryLocation :
-        pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
+        pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).keySet()) {
       // if the memory location is not accessed, then the entire && expression can be pruned
-      if (pMemoryLocations.contains(memoryLocation)) {
+      if (pAccessedMemoryLocations.contains(memoryLocation)) {
         ImmutableList<CExpression> sparseBitVectors = pRightHandSides.get(memoryLocation);
         // if the memory location is accessed, check if any expression exists for the RHS
         if (!sparseBitVectors.isEmpty()) {
@@ -192,7 +192,7 @@ public class BitVectorEvaluationUtil {
     return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
-  static Optional<CExportExpression> buildFullSparseEvaluation(
+  static Optional<CExportExpression> buildFullSparseEvaluationByAccessType(
       ImmutableMap<SeqMemoryLocation, CExpression> pLeftHandSides,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
       MemoryAccessType pAccessType,

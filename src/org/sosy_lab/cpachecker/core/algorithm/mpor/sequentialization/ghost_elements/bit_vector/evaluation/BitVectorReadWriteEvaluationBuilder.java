@@ -166,25 +166,25 @@ class BitVectorReadWriteEvaluationBuilder {
     // R && (W' || W'' || ...)
     Optional<CExportExpression> writeEvaluation =
         pOptions.pruneBitVectorEvaluations()
-            ? BitVectorEvaluationUtil.buildPrunedSparseEvaluation(
+            ? BitVectorEvaluationUtil.buildPrunedSparseEvaluationByAccessType(
                 pReadLeftHandSides,
                 pSparseWriteMap,
                 pDirectReadMemoryLocations,
                 MemoryAccessType.WRITE,
                 pBitVectorVariables)
-            : BitVectorEvaluationUtil.buildFullSparseEvaluation(
+            : BitVectorEvaluationUtil.buildFullSparseEvaluationByAccessType(
                 pReadLeftHandSides, pSparseWriteMap, MemoryAccessType.WRITE, pBitVectorVariables);
 
     // W && (A' || A'' || ...)
     Optional<CExportExpression> accessEvaluation =
         pOptions.pruneBitVectorEvaluations()
-            ? BitVectorEvaluationUtil.buildPrunedSparseEvaluation(
+            ? BitVectorEvaluationUtil.buildPrunedSparseEvaluationByAccessType(
                 pWriteLeftHandSides,
                 pSparseAccessMap,
                 pDirectWriteMemoryLocations,
                 MemoryAccessType.ACCESS,
                 pBitVectorVariables)
-            : BitVectorEvaluationUtil.buildFullSparseEvaluation(
+            : BitVectorEvaluationUtil.buildFullSparseEvaluationByAccessType(
                 pWriteLeftHandSides,
                 pSparseAccessMap,
                 MemoryAccessType.ACCESS,

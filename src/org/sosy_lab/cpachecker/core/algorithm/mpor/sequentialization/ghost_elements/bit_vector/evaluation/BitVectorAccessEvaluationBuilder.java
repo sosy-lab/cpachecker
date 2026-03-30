@@ -122,14 +122,14 @@ class BitVectorAccessEvaluationBuilder {
       SeqBitVectorVariables pBitVectorVariables) {
 
     if (pOptions.pruneBitVectorEvaluations()) {
-      return BitVectorEvaluationUtil.buildPrunedSparseEvaluation(
+      return BitVectorEvaluationUtil.buildPrunedSparseEvaluationByAccessType(
           pLeftHandSides,
           pRightHandSides,
           pAccessedMemoryLocations,
           MemoryAccessType.ACCESS,
           pBitVectorVariables);
     } else {
-      return BitVectorEvaluationUtil.buildFullSparseEvaluation(
+      return BitVectorEvaluationUtil.buildFullSparseEvaluationByAccessType(
           pLeftHandSides, pRightHandSides, MemoryAccessType.ACCESS, pBitVectorVariables);
     }
   }
