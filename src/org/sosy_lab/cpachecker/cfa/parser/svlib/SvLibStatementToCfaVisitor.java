@@ -499,7 +499,9 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
             functionExitNode,
             "return"),
         logger);
-    return new VisitResult(Optional.empty(), false);
+    // We do not know if something new will come due to goto's. The only way this can happen is if
+    // we get a label after the return statement.
+    return new VisitResult(Optional.empty(), true);
   }
 
   @Override
