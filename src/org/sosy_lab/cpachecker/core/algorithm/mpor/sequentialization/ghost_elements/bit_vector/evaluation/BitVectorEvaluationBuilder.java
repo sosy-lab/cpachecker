@@ -69,7 +69,6 @@ public class BitVectorEvaluationBuilder {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pFirstBlock,
       SeqBitVectorVariables pBitVectorVariables,
-      MachineModel pMachineModel,
       MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -103,11 +102,10 @@ public class BitVectorEvaluationBuilder {
                 pLabelClauseMap, pLabelBlockMap, pFirstBlock, pMemoryModel, MemoryAccessType.WRITE);
         yield buildPrevReadWriteBitVectorEvaluationByEncoding(
             pOptions,
+            pThread,
             reachableReadMemoryLocations,
             reachableWriteMemoryLocations,
             pBitVectorVariables,
-            pMachineModel,
-            pMemoryModel,
             pUtils);
       }
     };
@@ -132,7 +130,7 @@ public class BitVectorEvaluationBuilder {
             pBitVectorVariables.getDenseBitVector(
                 pCurrentThread, MemoryAccessType.ACCESS, ReachType.DIRECT);
 
-        // prev_bra bit vector, which stores the reachable accesses of the previous thread
+        // get the bit vector that stores the reachable accesses of the previous thread
         PrevDenseBitVector prevReachableAccessBitVector =
             pBitVectorVariables.getPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
         ImmutableSet<CExpression> otherAccessBitVectors =
@@ -154,11 +152,10 @@ public class BitVectorEvaluationBuilder {
 
   private static Optional<CExportExpression> buildPrevReadWriteBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
+      MPORThread pCurrentThread,
       ImmutableSet<SeqMemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
       SeqBitVectorVariables pBitVectorVariables,
-      MachineModel pMachineModel,
-      MemoryModel pMemoryModel,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -168,19 +165,27 @@ public class BitVectorEvaluationBuilder {
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
       case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
-        PrevDenseBitVector prevWriteBitVector =
+        // get the direct memory location accesses of the current thread
+        CIdExpression currentDirectReadBitVector =
+            pBitVectorVariables.getDenseBitVector(
+                pCurrentThread, MemoryAccessType.READ, ReachType.DIRECT);
+        CIdExpression currentDirectWriteBitVector =
+            pBitVectorVariables.getDenseBitVector(
+                pCurrentThread, MemoryAccessType.WRITE, ReachType.DIRECT);
+
+        // get the bit vectors that store the reachable writes / accesses of the previous thread
+        PrevDenseBitVector prevReachableWriteBitVector =
             pBitVectorVariables.getPrevDenseBitVectorByAccessType(MemoryAccessType.WRITE);
-        PrevDenseBitVector prevAccessBitVector =
+        PrevDenseBitVector prevReachableAccessBitVector =
             pBitVectorVariables.getPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
-        yield BitVectorReadWriteEvaluationBuilder.buildDenseEvaluation(
-            pOptions,
-            ImmutableSet.of(prevWriteBitVector.reachableVariable()),
-            ImmutableSet.of(prevAccessBitVector.reachableVariable()),
-            pDirectReadMemoryLocations,
-            pDirectWriteMemoryLocations,
-            pMachineModel,
-            pMemoryModel,
-            pUtils);
+
+        yield Optional.of(
+            BitVectorReadWriteEvaluationBuilder.buildFullDenseLogicalOr(
+                currentDirectReadBitVector,
+                currentDirectWriteBitVector,
+                ImmutableSet.of(prevReachableWriteBitVector.reachableVariable()),
+                ImmutableSet.of(prevReachableAccessBitVector.reachableVariable()),
+                pUtils));
       }
       case SPARSE -> {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseWriteMap =

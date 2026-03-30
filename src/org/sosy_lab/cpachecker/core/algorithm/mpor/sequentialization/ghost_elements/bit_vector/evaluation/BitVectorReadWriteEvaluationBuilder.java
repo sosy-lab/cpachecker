@@ -269,7 +269,7 @@ class BitVectorReadWriteEvaluationBuilder {
         pUtils);
   }
 
-  private static CLogicalOrExpression buildFullDenseLogicalOr(
+  static CLogicalOrExpression buildFullDenseLogicalOr(
       CExpression pDirectReadBitVector,
       CExpression pDirectWriteBitVector,
       ImmutableSet<CExpression> pOtherWriteBitVectors,

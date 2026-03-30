@@ -105,7 +105,6 @@ public record AbortCommutingContextSwitchesInjector(
             labelBlockMap,
             firstBlock,
             bitVectorVariables,
-            machineModel,
             memoryModel,
             utils);
 
