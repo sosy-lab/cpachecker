@@ -86,6 +86,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStateme
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.Pair;
 
 class SvLibCfaBuilder {
@@ -231,7 +233,7 @@ class SvLibCfaBuilder {
             tagReferencesToAnnotations.build(),
             nodesToActualHavocStatementEnd);
 
-    Optional<CFANode> optionalEndNode = pCommand.getBody().accept(statementVisitor);
+    Optional<CFANode> optionalEndNode = pCommand.getBody().accept(statementVisitor).currentNode();
     if (optionalEndNode.isPresent()) {
       // In this case we need to add a blank edge to the function exit node
       // The contrary can happen if there is a return statement at the end of the function body.
@@ -241,7 +243,12 @@ class SvLibCfaBuilder {
           logger);
     }
 
-    return Pair.of(functionEntryNode, allNodesCollector.build());
+    // Now filter out all those nodes, which are not reachable from the input node, for example, due
+    // to dead code stemming from goto's or similar
+    NodeCollectingCFAVisitor nodeCollectingCFAVisitor = new NodeCollectingCFAVisitor();
+    CFATraversal.dfs().traverseOnce(functionEntryNode, nodeCollectingCFAVisitor);
+
+    return Pair.of(functionEntryNode, nodeCollectingCFAVisitor.getVisitedNodes());
   }
 
   private static SvLibTagProperty instantiateTagProperty(

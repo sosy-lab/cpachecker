@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibBlankChoiceEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.SvLibStatementToCfaVisitor.VisitResult;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
@@ -56,8 +57,9 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatementVis
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class SvLibStatementToCfaVisitor
-    implements SvLibStatementVisitor<Optional<CFANode>, NoException> {
+public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitResult, NoException> {
+
+  public record VisitResult(Optional<CFANode> currentNode, boolean waitingForLabel) {}
 
   // The current starting node for the next statement to be processed.
   // Is only updated when there is a need to chain statements.
@@ -122,16 +124,8 @@ public class SvLibStatementToCfaVisitor
     }
   }
 
-  private boolean isWaitingForLabel() {
-    return waitingForLabel;
-  }
-
   @Override
-  public Optional<CFANode> visit(SvLibAssignmentStatement pSvLibAssignmentStatement)
-      throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
+  public VisitResult visit(SvLibAssignmentStatement pSvLibAssignmentStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibAssignmentStatement, currentStartingNode);
     // Handle assignment statements, by splitting them into multiple edges if necessary.
 
@@ -157,15 +151,12 @@ public class SvLibStatementToCfaVisitor
       currentNode = newNode;
     }
 
-    return Optional.of(currentNode);
+    return new VisitResult(Optional.of(currentNode), false);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibProcedureCallStatement pSvLibProcedureCallStatement)
+  public VisitResult visit(SvLibProcedureCallStatement pSvLibProcedureCallStatement)
       throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
     trackTagPropertiesForStatementStartingWithNode(
         pSvLibProcedureCallStatement, currentStartingNode);
     // Rewrite this to calling the function and assigning return values.
@@ -198,14 +189,11 @@ public class SvLibStatementToCfaVisitor
             currentStartingNode,
             newNode);
     CFACreationUtils.addEdgeToCFA(edge, logger);
-    return Optional.of(newNode);
+    return new VisitResult(Optional.of(newNode), false);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibHavocStatement pSvLibHavocStatement) throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
+  public VisitResult visit(SvLibHavocStatement pSvLibHavocStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibHavocStatement, currentStartingNode);
 
     CFANode newNode = getNewNode();
@@ -242,42 +230,41 @@ public class SvLibStatementToCfaVisitor
 
     nodesToActualHavocStatementEnd.put(currentNode, pSvLibHavocStatement);
 
-    return Optional.of(currentNode);
+    return new VisitResult(Optional.of(currentNode), false);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibSequenceStatement pSvLibSequenceStatement)
-      throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
+  public VisitResult visit(SvLibSequenceStatement pSvLibSequenceStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibSequenceStatement, currentStartingNode);
 
+    VisitResult lastResult = new VisitResult(Optional.of(currentStartingNode), false);
     // Handle sequence statements.
     for (SvLibStatement subStatement : pSvLibSequenceStatement.getStatements()) {
-      Optional<CFANode> lastNodeWithAllNodes = subStatement.accept(this);
-
       // If we are waiting for a label, just continue with the iterations
-      if (waitingForLabel) {
+      if (lastResult.waitingForLabel() && !(subStatement instanceof SvLibLabelStatement)) {
         continue;
+      } else if (subStatement instanceof SvLibLabelStatement && lastResult.waitingForLabel()) {
+        waitingForLabel = true;
       }
 
-      if (lastNodeWithAllNodes.isEmpty()) {
+      VisitResult subStatementResult = subStatement.accept(this);
+
+      if (subStatementResult.currentNode().isEmpty() && !subStatementResult.waitingForLabel()) {
         // We already connected back to the CFA in the sub-statement.
         // So there is nothing more to do here.
-        return Optional.empty();
+        return new VisitResult(Optional.empty(), false);
+      } else if (subStatementResult.currentNode().isPresent()) {
+        currentStartingNode = subStatementResult.currentNode().orElseThrow();
       }
 
-      currentStartingNode = lastNodeWithAllNodes.orElseThrow();
+      lastResult = subStatementResult;
     }
-    return Optional.of(currentStartingNode);
+
+    return lastResult;
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibAssumeStatement pSvLibAssumeStatement) throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
+  public VisitResult visit(SvLibAssumeStatement pSvLibAssumeStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibAssumeStatement, currentStartingNode);
 
     // We do not need to split the assumption into multiple edges, since there is no
@@ -294,14 +281,11 @@ public class SvLibStatementToCfaVisitor
             false,
             false);
     CFACreationUtils.addEdgeToCFA(edge, logger);
-    return Optional.of(newNode);
+    return new VisitResult(Optional.of(newNode), false);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibWhileStatement pSvLibWhileStatement) throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
+  public VisitResult visit(SvLibWhileStatement pSvLibWhileStatement) throws NoException {
     // Create the loop head and exit nodes
     CFANode loopHeadNode = getNewNode();
     loopHeadNode.setLoopStart();
@@ -355,14 +339,18 @@ public class SvLibStatementToCfaVisitor
 
     // Handle the body of the while loop
     currentStartingNode = trueConditionNode;
-    Optional<CFANode> bodyNode = pSvLibWhileStatement.getBody().accept(this);
+    VisitResult bodyResult = pSvLibWhileStatement.getBody().accept(this);
 
-    if (bodyNode.isPresent()) {
+    if (bodyResult.currentNode().isPresent() && !bodyResult.waitingForLabel()) {
 
       // Connect the end of the body back to the loop head
       CFACreationUtils.addEdgeToCFA(
           new BlankEdge(
-              "", FileLocation.DUMMY, bodyNode.orElseThrow(), loopHeadNode, "Return to loop head"),
+              "",
+              FileLocation.DUMMY,
+              bodyResult.currentNode().orElseThrow(),
+              loopHeadNode,
+              "Return to loop head"),
           logger);
     }
 
@@ -373,14 +361,11 @@ public class SvLibStatementToCfaVisitor
     // Set the current starting node to the exit node
     // Should not be necessary, but better safe than sorry.
     currentStartingNode = exitNode;
-    return Optional.of(exitNode);
+    return new VisitResult(Optional.of(exitNode), false);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibIfStatement pSvLibIfStatement) throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
+  public VisitResult visit(SvLibIfStatement pSvLibIfStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibIfStatement, currentStartingNode);
 
     CFANode exitNode = getNewNode();
@@ -414,16 +399,17 @@ public class SvLibStatementToCfaVisitor
 
     // Handle the then branch
     currentStartingNode = trueConditionNode;
-    Optional<CFANode> thenBranchNode = pSvLibIfStatement.getThenBranch().accept(this);
+    VisitResult thenBranchResult = pSvLibIfStatement.getThenBranch().accept(this);
+    boolean bothBranchesWaitingForLabel = thenBranchResult.waitingForLabel();
 
-    if (thenBranchNode.isPresent()) {
+    if (thenBranchResult.currentNode().isPresent() && !thenBranchResult.waitingForLabel()) {
       // The node is not connected back to the CFA yet, so we need to add it.
       currentStartingNode = falseConditionNode;
       CFACreationUtils.addEdgeToCFA(
           new BlankEdge(
               "",
               FileLocation.DUMMY,
-              thenBranchNode.orElseThrow(),
+              thenBranchResult.currentNode().orElseThrow(),
               exitNode,
               "End of if-then(-else)"),
           logger);
@@ -432,21 +418,22 @@ public class SvLibStatementToCfaVisitor
     // Handle the else branch if it exists
     if (pSvLibIfStatement.getElseBranch().isPresent()) {
       currentStartingNode = falseConditionNode;
-      Optional<CFANode> elseBranchNode =
-          pSvLibIfStatement.getElseBranch().orElseThrow().accept(this);
-      if (elseBranchNode.isPresent()) {
+      VisitResult elseBranchResult = pSvLibIfStatement.getElseBranch().orElseThrow().accept(this);
+      bothBranchesWaitingForLabel &= elseBranchResult.waitingForLabel();
+      if (elseBranchResult.currentNode().isPresent() && !elseBranchResult.waitingForLabel()) {
         // The node is not connected back to the CFA yet, so we need to add it.
         CFACreationUtils.addEdgeToCFA(
             new BlankEdge(
                 "",
                 FileLocation.DUMMY,
-                elseBranchNode.orElseThrow(),
+                elseBranchResult.currentNode().orElseThrow(),
                 exitNode,
                 "End of if-then(-else)"),
             logger);
       }
     } else {
       // No else branch, so we need to connect the false condition node to the exit node.
+      bothBranchesWaitingForLabel = false;
       CFACreationUtils.addEdgeToCFA(
           new BlankEdge(
               "",
@@ -457,17 +444,14 @@ public class SvLibStatementToCfaVisitor
           logger);
     }
 
-    // To be save, we set the current starting node to the exit node.
+    // To save, we set the current starting node to the exit node.
     // Should not be necessary, but better safe than sorry.
     currentStartingNode = exitNode;
-    return Optional.of(exitNode);
+    return new VisitResult(Optional.of(exitNode), bothBranchesWaitingForLabel);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibBreakStatement pSvLibBreakStatement) throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
+  public VisitResult visit(SvLibBreakStatement pSvLibBreakStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibBreakStatement, currentStartingNode);
 
     Verify.verify(outermostLoopExitNode.isPresent());
@@ -480,13 +464,12 @@ public class SvLibStatementToCfaVisitor
             "break");
     CFACreationUtils.addEdgeToCFA(edge, logger);
 
-    // In case someone
-    return Optional.empty();
+    // We do not continue here
+    return new VisitResult(Optional.empty(), false);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibContinueStatement pSvLibContinueStatement)
-      throws NoException {
+  public VisitResult visit(SvLibContinueStatement pSvLibContinueStatement) throws NoException {
     Verify.verify(outermostLoopHead.isPresent());
 
     trackTagPropertiesForStatementStartingWithNode(pSvLibContinueStatement, currentStartingNode);
@@ -501,14 +484,11 @@ public class SvLibStatementToCfaVisitor
     CFACreationUtils.addEdgeToCFA(edge, logger);
 
     // We do not continue here
-    return Optional.empty();
+    return new VisitResult(Optional.empty(), false);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibReturnStatement pSvLibReturnStatement) throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
+  public VisitResult visit(SvLibReturnStatement pSvLibReturnStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibReturnStatement, currentStartingNode);
 
     CFACreationUtils.addEdgeToCFA(
@@ -519,14 +499,11 @@ public class SvLibStatementToCfaVisitor
             functionExitNode,
             "return"),
         logger);
-    return Optional.empty();
+    return new VisitResult(Optional.empty(), false);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibGotoStatement pSvLibGotoStatement) throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
+  public VisitResult visit(SvLibGotoStatement pSvLibGotoStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibGotoStatement, currentStartingNode);
     String label = pSvLibGotoStatement.getLabel();
 
@@ -542,23 +519,18 @@ public class SvLibStatementToCfaVisitor
             "Goto to label " + label),
         logger);
 
-    // State that we are skipping until we reach a label
-    if (!allNodesCollector.build().contains(labelNode)) {
-      waitingForLabel = true;
-    }
-
-    return Optional.empty();
+    return new VisitResult(Optional.empty(), true);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibLabelStatement pSvLibLabelStatement) throws NoException {
+  public VisitResult visit(SvLibLabelStatement pSvLibLabelStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibLabelStatement, currentStartingNode);
 
     String label = pSvLibLabelStatement.getLabel();
     CFANode labelNode = labelsToNodes.get(pSvLibLabelStatement.getLabel());
     allNodesCollector.add(Objects.requireNonNull(labelNode));
 
-    if (!isWaitingForLabel()) {
+    if (!waitingForLabel) {
       // If we are not waiting for a label, the label came before the goto, so we need to add it
       // normally to the CFA. In this case we are not sure if the code is reachable or not so just
       // add it.
@@ -573,18 +545,15 @@ public class SvLibStatementToCfaVisitor
     }
 
     waitingForLabel = false;
-    return Optional.of(labelNode);
+    return new VisitResult(Optional.of(labelNode), false);
   }
 
   @Override
-  public Optional<CFANode> visit(SvLibChoiceStatement pSvLibChoiceStatement) throws NoException {
-    if (isWaitingForLabel()) {
-      return Optional.of(currentStartingNode);
-    }
-
+  public VisitResult visit(SvLibChoiceStatement pSvLibChoiceStatement) throws NoException {
     CFANode startingNode = currentStartingNode;
     CFANode endNode = getNewNode();
     boolean atLeastOneChoiceHasEndNode = false;
+    boolean allNodesWaitForLabel = true;
 
     for (int i = 0; i < pSvLibChoiceStatement.getChoices().size(); i++) {
       SvLibStatement choice = pSvLibChoiceStatement.getChoices().get(i);
@@ -603,15 +572,19 @@ public class SvLibStatementToCfaVisitor
 
       // Process the choice
       currentStartingNode = choiceStartingNode;
-      Optional<CFANode> choiceEndNode = choice.accept(this);
+      VisitResult choiceEndResult = choice.accept(this);
 
-      if (choiceEndNode.isPresent()) {
+      if (!choiceEndResult.waitingForLabel()) {
+        allNodesWaitForLabel = false;
+      }
+
+      if (choiceEndResult.currentNode().isPresent()) {
         // Connect the end of the choice back to the CFA
         CFACreationUtils.addEdgeToCFA(
             new BlankEdge(
                 "",
                 FileLocation.DUMMY,
-                choiceEndNode.orElseThrow(),
+                choiceEndResult.currentNode().orElseThrow(),
                 endNode,
                 "end of choice branch"),
             logger);
@@ -620,9 +593,9 @@ public class SvLibStatementToCfaVisitor
     }
 
     if (atLeastOneChoiceHasEndNode) {
-      return Optional.of(endNode);
+      return new VisitResult(Optional.of(endNode), allNodesWaitForLabel);
     } else {
-      return Optional.empty();
+      return new VisitResult(Optional.empty(), allNodesWaitForLabel);
     }
   }
 }
