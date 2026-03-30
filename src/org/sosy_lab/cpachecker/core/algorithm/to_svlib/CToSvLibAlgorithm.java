@@ -497,19 +497,19 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       ImmutableList<CExpression> pCParameters, CFunctionSummaryEdge pCallEdge) {
     ImmutableList.Builder<SvLibTerm> callInputParameterCollector = ImmutableList.builder();
     for (CExpression inputParameter : pCParameters) {
-        CAssumeEdge ghostEdge =
-            new CAssumeEdge(
-                inputParameter.toASTString(),
-                FileLocation.DUMMY,
-                pCallEdge.getPredecessor(),
-                pCallEdge.getSuccessor(),
-                inputParameter,
-                false);
-        SvLibTerm transformedDummy = transformToSvLibTerm(ghostEdge);
-        SvLibSymbolApplicationTerm outerTerm = (SvLibSymbolApplicationTerm) transformedDummy;
-        SvLibTerm innerTerm = outerTerm.getTerms().getFirst();
+      CAssumeEdge ghostEdge =
+          new CAssumeEdge(
+              inputParameter.toASTString(),
+              FileLocation.DUMMY,
+              pCallEdge.getPredecessor(),
+              pCallEdge.getSuccessor(),
+              inputParameter,
+              false);
+      SvLibTerm transformedDummy = transformToSvLibTerm(ghostEdge);
+      SvLibSymbolApplicationTerm outerTerm = (SvLibSymbolApplicationTerm) transformedDummy;
+      SvLibTerm innerTerm = outerTerm.getTerms().getFirst();
 
-        callInputParameterCollector.add(innerTerm);
+      callInputParameterCollector.add(innerTerm);
     }
     return callInputParameterCollector.build();
   }
