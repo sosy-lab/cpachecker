@@ -109,6 +109,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   /**
    * Transforms the CFA of a C program to a SvLibScript. At the moment in development and works
    * currently only for a limited subset of the C language.
+   *
+   * @throws InvalidConfigurationException If the program to be transformed is not a C program
    */
   public CToSvLibAlgorithm(
       Configuration pConfiguration,
@@ -147,7 +149,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
    * Transforms the input {@link CFA} of a C program to a {@link SvLibScript}.
    *
    * @return The SvLibScript generated from the CFA
-   * @throws InvalidConfigurationException If the program to be transformed is not a C program
    */
   public SvLibScript transformCfaToSvLib() {
 
