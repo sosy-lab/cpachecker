@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -35,8 +34,7 @@ public class CToSvLibAlgorithmTest {
           ParserException,
           IOException,
           InterruptedException,
-          SvLibAstParseException,
-          CPAException {
+          SvLibAstParseException {
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     Configuration config =
