@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
-public enum ReductionMode {
+public enum PartialOrderReductionMode {
   NONE,
   ACCESS_ONLY,
   READ_AND_WRITE;

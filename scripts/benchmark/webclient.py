@@ -432,6 +432,7 @@ class WebInterface:
         self._read_hash_code_cache()
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
+        self._print_banner()
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -517,6 +518,21 @@ class WebInterface:
 
     def tool_name(self):
         return self._tool_name
+
+    def _print_banner(self):
+        try:
+            (banner, _) = self._request(
+                "GET", "master/banner", headers={"Accept": "text/plain"}
+            )
+            banner_text = banner.decode("UTF-8").strip()
+            if banner_text:
+                print("\n=== BenchCloud Maintenance Info ===")
+                print(banner_text)
+                print("===================================\n")
+                sleep(10)
+
+        except Exception as e:
+            logging.debug("Could not fetch banner: %s", e)
 
     def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
