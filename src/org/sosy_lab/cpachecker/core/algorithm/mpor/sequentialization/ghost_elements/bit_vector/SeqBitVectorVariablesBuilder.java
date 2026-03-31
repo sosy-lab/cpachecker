@@ -219,7 +219,7 @@ public record SeqBitVectorVariablesBuilder(
             Optional.empty(),
             Optional.empty(),
             pAccessType,
-            ReachType.REACHABLE,
+            ReachType.DIRECT,
             SeqBitVectorDirection.PREVIOUS);
     return Optional.of(new PrevDenseBitVector(prevIdExpression));
   }
@@ -237,7 +237,7 @@ public record SeqBitVectorVariablesBuilder(
               Optional.empty(),
               Optional.of(memoryLocation),
               pAccessType,
-              ReachType.REACHABLE,
+              ReachType.DIRECT,
               SeqBitVectorDirection.PREVIOUS);
       rMap.put(memoryLocation, new PrevSparseBitVector(prevIdExpression));
     }
@@ -255,7 +255,10 @@ public record SeqBitVectorVariablesBuilder(
 
     checkArgument(
         !options.bitVectorEncoding().isSparse || pMemoryLocation.isPresent(),
-        "if the bitVectorEncoding is sparse, then pMemoryLocation must be present");
+        "If the bitVectorEncoding is SPARSE, then pMemoryLocation must be present.");
+    checkArgument(
+        !pDirection.equals(SeqBitVectorDirection.PREVIOUS) || pReachType.equals(ReachType.DIRECT),
+        "If the SeqBitVectorDirection is PREVIOUS, then the ReachType must be DIRECT.");
 
     String name =
         SeqNameUtil.buildBitVectorName(

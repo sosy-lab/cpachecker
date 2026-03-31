@@ -39,7 +39,8 @@ public class SeqNameUtil {
       MPOROptions pOptions, CVariableDeclaration pVariableDeclaration) {
 
     checkArgument(pVariableDeclaration.isGlobal(), "variable declaration must be global");
-    return buildGlobalVariablePrefix(pOptions) + "_" + pVariableDeclaration.getName();
+    String prefix = pOptions.shortVariableNames() ? "G" : "GLOBAL";
+    return prefix + "_" + pVariableDeclaration.getName();
   }
 
   public static String buildLocalVariableName(
@@ -50,23 +51,14 @@ public class SeqNameUtil {
       Optional<String> pFunctionName) {
 
     String functionName = pFunctionName.isPresent() ? pFunctionName.orElseThrow() + "_" : "";
-    String prefix = buildLocalVariablePrefix(pOptions, functionName, pThreadId, pCallContext);
+    String prefix =
+        Joiner.on("_")
+            .join(
+                (pOptions.shortVariableNames() ? "L" : "LOCAL"),
+                functionName,
+                buildThreadPrefix(pOptions, pThreadId),
+                buildCallSuffix(pOptions, pCallContext));
     return prefix + "_" + pVariableDeclaration.getName();
-  }
-
-  private static String buildGlobalVariablePrefix(MPOROptions pOptions) {
-    return pOptions.shortVariableNames() ? "G" : "GLOBAL";
-  }
-
-  private static String buildLocalVariablePrefix(
-      MPOROptions pOptions, String pFunctionName, int pThreadId, int pCallNumber) {
-
-    return Joiner.on("_")
-        .join(
-            (pOptions.shortVariableNames() ? "L" : "LOCAL"),
-            pFunctionName,
-            buildThreadPrefix(pOptions, pThreadId),
-            buildCallSuffix(pOptions, pCallNumber));
   }
 
   public static String buildSubstituteParameterDeclarationName(
@@ -127,7 +119,7 @@ public class SeqNameUtil {
       case CURRENT ->
           buildBitVectorName(
               pOptions, pThread.orElseThrow().id(), pMemoryLocation, pAccessType, pReachType);
-      case PREVIOUS -> buildPrevBitVectorName(pOptions, pMemoryLocation, pAccessType);
+      case PREVIOUS -> buildPrevBitVectorName(pOptions, pMemoryLocation, pAccessType, pReachType);
     };
   }
 
@@ -143,94 +135,64 @@ public class SeqNameUtil {
           throw new IllegalArgumentException(
               "Cannot build name, bitVectorEncoding is " + pOptions.bitVectorEncoding());
       case BINARY, OCTAL, DECIMAL, HEXADECIMAL ->
-          buildDenseBitVectorName(pOptions, pThreadId, pAccessType, pReachType);
+          pOptions.shortVariableNames()
+              ? "b" + pReachType.shortName + pAccessType.shortName + pThreadId
+              : Joiner.on("_")
+                  .join(
+                      buildThreadPrefix(pOptions, pThreadId),
+                      "BIT_VECTOR",
+                      pReachType.longName,
+                      pAccessType.longName);
       case SPARSE ->
-          buildSparseBitVectorName(
-              pOptions, pThreadId, pMemoryLocation.orElseThrow(), pAccessType, pReachType);
+          pOptions.shortVariableNames()
+              ? "b"
+                  + pReachType.shortName
+                  + pAccessType.shortName
+                  + pThreadId
+                  + "_"
+                  + pMemoryLocation.orElseThrow().getName()
+              : Joiner.on("_")
+                  .join(
+                      buildThreadPrefix(pOptions, pThreadId),
+                      "BIT_VECTOR",
+                      pReachType.longName,
+                      pAccessType.longName,
+                      pMemoryLocation.orElseThrow().getName());
     };
   }
 
   private static String buildPrevBitVectorName(
       MPOROptions pOptions,
       Optional<SeqMemoryLocation> pMemoryLocation,
-      MemoryAccessType pAccessType) {
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
+
+    checkArgument(
+        pReachType.equals(ReachType.DIRECT),
+        "For PREVIOUS bit vectors, the ReachType must be DIRECT.");
 
     return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
               "Cannot build name, bitVectorEncoding is " + pOptions.bitVectorEncoding());
       case BINARY, OCTAL, DECIMAL, HEXADECIMAL ->
-          buildPrevDenseBitVectorName(pOptions, pAccessType);
+          pOptions.shortVariableNames()
+              ? "prev_b" + pReachType.shortName + pAccessType.shortName
+              : Joiner.on("_").join("PREV_BIT_VECTOR", pReachType.longName, pAccessType.longName);
       case SPARSE ->
-          buildPrevSparseBitVectorName(pOptions, pMemoryLocation.orElseThrow(), pAccessType);
+          pOptions.shortVariableNames()
+              ? "prev_b"
+                  + pReachType.shortName
+                  + pAccessType.shortName
+                  + "_"
+                  + pMemoryLocation.orElseThrow().getName()
+              : Joiner.on("_")
+                  .join(
+                      "PREV_BIT_VECTOR",
+                      pReachType.longName,
+                      pAccessType.longName,
+                      pMemoryLocation.orElseThrow().getName());
     };
-  }
-
-  // Dense Bit Vectors =============================================================================
-
-  private static String buildDenseBitVectorName(
-      MPOROptions pOptions, int pThreadId, MemoryAccessType pAccessType, ReachType pReachType) {
-
-    return pOptions.shortVariableNames()
-        ? "b" + pReachType.shortName + pAccessType.shortName + pThreadId
-        : Joiner.on("_")
-            .join(
-                buildThreadPrefix(pOptions, pThreadId),
-                "BIT_VECTOR",
-                pReachType.longName,
-                pAccessType.longName);
-  }
-
-  private static String buildPrevDenseBitVectorName(
-      MPOROptions pOptions, MemoryAccessType pAccessType) {
-
-    // prev bit vectors are always reachable
-    return pOptions.shortVariableNames()
-        ? "prev_b" + ReachType.REACHABLE.shortName + pAccessType.shortName
-        : Joiner.on("_")
-            .join("PREV_BIT_VECTOR", ReachType.REACHABLE.longName, pAccessType.longName);
-  }
-
-  // Sparse Bit Vector =============================================================================
-
-  private static String buildSparseBitVectorName(
-      MPOROptions pOptions,
-      int pThreadId,
-      SeqMemoryLocation pMemoryLocation,
-      MemoryAccessType pAccessType,
-      ReachType pReachType) {
-
-    return pOptions.shortVariableNames()
-        ? "b"
-            + pReachType.shortName
-            + pAccessType.shortName
-            + pThreadId
-            + "_"
-            + pMemoryLocation.getName()
-        : Joiner.on("_")
-            .join(
-                buildThreadPrefix(pOptions, pThreadId),
-                "BIT_VECTOR",
-                pReachType.longName,
-                pAccessType.longName,
-                pMemoryLocation.getName());
-  }
-
-  private static String buildPrevSparseBitVectorName(
-      MPOROptions pOptions, SeqMemoryLocation pMemoryLocation, MemoryAccessType pAccessType) {
-
-    return pOptions.shortVariableNames()
-        ? "prev_b"
-            + ReachType.REACHABLE.shortName
-            + pAccessType.shortName
-            + "_"
-            + pMemoryLocation.getName()
-        : Joiner.on("_")
-            .join(
-                "PREV_BIT_VECTOR",
-                ReachType.REACHABLE.longName,
-                pAccessType.longName,
-                pMemoryLocation.getName());
   }
 
   // Other =========================================================================================
