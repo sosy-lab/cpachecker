@@ -221,12 +221,14 @@ class BitVectorAccessEvaluationBuilder {
             pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
     ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-      CIdExpression directBitVector =
-          entry.getValue().getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
-      CExportExpression sparseExpression =
-          BitVectorEvaluationUtil.buildSingleSparseLogicalAndExpression(
-              sparseBitVectorMap, Objects.requireNonNull(directBitVector), entry.getKey());
-      sparseExpressions.add(sparseExpression);
+      if (entry.getValue().directVariables().containsKey(pActiveThread)) {
+        CIdExpression directBitVector =
+            Objects.requireNonNull(entry.getValue().directVariables().get(pActiveThread));
+        CExportExpression sparseExpression =
+            BitVectorEvaluationUtil.buildSingleSparseLogicalAndExpression(
+                sparseBitVectorMap, directBitVector, entry.getKey());
+        sparseExpressions.add(sparseExpression);
+      }
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
     return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());

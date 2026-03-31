@@ -356,11 +356,6 @@ public class MPOROptions {
         throw new InvalidConfigurationException(
             "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
       }
-      if (executeCommutingThreadsFirst) {
-        throw new InvalidConfigurationException(
-            "pruneSparseBitVectors cannot be enabled when executeCommutingThreadsFirst is"
-                + " enabled.");
-      }
     }
     if (pruneSparseBitVectorWrites) {
       if (!bitVectorEncoding.isSparse) {
