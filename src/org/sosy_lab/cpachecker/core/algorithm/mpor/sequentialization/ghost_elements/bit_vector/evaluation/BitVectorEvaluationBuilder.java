@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -125,14 +124,14 @@ public class BitVectorEvaluationBuilder {
               String.format(
                   "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
       case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> {
+        // get the bit vector that stores the direct accesses of the previous thread
+        PrevDenseBitVector prevDirectAccessBitVector =
+            pBitVectorVariables.getPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
+
         // get the reachable memory location accesses of the current thread
         CIdExpression currentReachableAccessBitVector =
             pBitVectorVariables.getDenseBitVector(
                 pCurrentThread, MemoryAccessType.ACCESS, ReachType.REACHABLE);
-
-        // get the bit vector that stores the direct accesses of the previous thread
-        PrevDenseBitVector prevDirectAccessBitVector =
-            pBitVectorVariables.getPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
 
         yield Optional.of(
             BitVectorAccessEvaluationBuilder.buildFullDenseBinaryAnd(
@@ -141,13 +140,20 @@ public class BitVectorEvaluationBuilder {
                 pUtils));
       }
       case SPARSE -> {
-        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
-            mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
-                pBitVectorVariables, MemoryAccessType.ACCESS);
-        yield BitVectorAccessEvaluationBuilder.buildPrevSparseEvaluation(
+        // get the bit vector that stores the direct accesses of the previous thread
+        ImmutableMap<SeqMemoryLocation, CExpression> prevDirectAccessBitVector =
+            BitVectorEvaluationUtil.buildPrevSparseLeftHandSidesByAccessType(
+                MemoryAccessType.ACCESS, pBitVectorVariables);
+
+        // get the reachable memory location accesses of the current thread
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> currentReachableAccessBitVector =
+            BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
+                ImmutableSet.of(pCurrentThread), pBitVectorVariables, MemoryAccessType.ACCESS);
+
+        yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
             pOptions,
-            pCurrentThread,
-            sparseAccessMap,
+            prevDirectAccessBitVector,
+            currentReachableAccessBitVector,
             pReachableAccessMemoryLocations,
             pBitVectorVariables);
       }
@@ -193,14 +199,14 @@ public class BitVectorEvaluationBuilder {
       }
       case SPARSE -> {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseWriteMap =
-            mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
-                pBitVectorVariables, MemoryAccessType.WRITE);
+            BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
+                ImmutableSet.of(pCurrentThread), pBitVectorVariables, MemoryAccessType.WRITE);
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
-            mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
-                pBitVectorVariables, MemoryAccessType.ACCESS);
+            BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
+                ImmutableSet.of(pCurrentThread), pBitVectorVariables, MemoryAccessType.ACCESS);
+
         yield BitVectorReadWriteEvaluationBuilder.buildPrevSparseEvaluation(
             pOptions,
-            pCurrentThread,
             sparseWriteMap,
             sparseAccessMap,
             pDirectReadMemoryLocations,
@@ -208,21 +214,6 @@ public class BitVectorEvaluationBuilder {
             pBitVectorVariables);
       }
     };
-  }
-
-  private static ImmutableListMultimap<SeqMemoryLocation, CExpression>
-      mapMemoryLocationsToPrevSparseBitVectorsByAccessType(
-          SeqBitVectorVariables pBitVectorVariables, MemoryAccessType pAccessType) {
-
-    ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =
-        ImmutableListMultimap.builder();
-    ImmutableMap<SeqMemoryLocation, PrevSparseBitVector> prevSparseBitVectors =
-        pBitVectorVariables.getPrevSparseBitVectorByAccessType(pAccessType);
-    for (var entry : prevSparseBitVectors.entrySet()) {
-      SeqMemoryLocation memoryLocation = entry.getKey();
-      rMap.put(memoryLocation, entry.getValue().reachableVariable());
-    }
-    return rMap.build();
   }
 
   // bit vector evaluations by accessed global variables (bit vector reduction) ====================
@@ -355,8 +346,15 @@ public class BitVectorEvaluationBuilder {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> rightHandSides =
             BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
+        ImmutableMap<SeqMemoryLocation, CExpression> leftHandSides =
+            BitVectorEvaluationUtil.buildSparseLeftHandSidesByAccessType(
+                pDirectAccessMemoryLocations, MemoryAccessType.ACCESS, pBitVectorVariables);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
-            pOptions, rightHandSides, pDirectAccessMemoryLocations, pBitVectorVariables);
+            pOptions,
+            leftHandSides,
+            rightHandSides,
+            pDirectAccessMemoryLocations,
+            pBitVectorVariables);
       }
     };
   }

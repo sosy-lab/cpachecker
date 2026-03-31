@@ -74,6 +74,7 @@ public record SeqBitVectorVariablesBuilder(
             Optional.empty(),
             Optional.empty(),
             prevSparseAccessBitVectors,
+            Optional.empty(),
             Optional.empty()));
   }
 
@@ -100,8 +101,8 @@ public record SeqBitVectorVariablesBuilder(
         tryBuildPrevDenseBitVectorByAccessType(MemoryAccessType.READ);
     Optional<PrevDenseBitVector> prevDenseWriteBitVector =
         tryBuildPrevDenseBitVectorByAccessType(MemoryAccessType.WRITE);
-    Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseAccessBitVectors =
-        tryBuildPrevSparseBitVectorsByAccessType(MemoryAccessType.ACCESS);
+    Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseReadBitVectors =
+        tryBuildPrevSparseBitVectorsByAccessType(MemoryAccessType.READ);
     Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseWriteBitVectors =
         tryBuildPrevSparseBitVectorsByAccessType(MemoryAccessType.WRITE);
 
@@ -116,7 +117,8 @@ public record SeqBitVectorVariablesBuilder(
             Optional.empty(),
             prevDenseReadBitVector,
             prevDenseWriteBitVector,
-            prevSparseAccessBitVectors,
+            Optional.empty(),
+            prevSparseReadBitVectors,
             prevSparseWriteBitVectors));
   }
 

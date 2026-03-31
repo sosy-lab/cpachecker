@@ -134,7 +134,6 @@ class BitVectorReadWriteEvaluationBuilder {
 
   static Optional<CExportExpression> buildPrevSparseEvaluation(
       MPOROptions pOptions,
-      MPORThread pCurrentThread,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseWriteMap,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseAccessMap,
       ImmutableSet<SeqMemoryLocation> pReadMemoryLocations,
@@ -143,10 +142,10 @@ class BitVectorReadWriteEvaluationBuilder {
 
     ImmutableMap<SeqMemoryLocation, CExpression> readLeftHandSides =
         BitVectorEvaluationUtil.buildPrevSparseLeftHandSidesByAccessType(
-            pCurrentThread, MemoryAccessType.READ, pBitVectorVariables);
+            MemoryAccessType.READ, pBitVectorVariables);
     ImmutableMap<SeqMemoryLocation, CExpression> writeLeftHandSides =
         BitVectorEvaluationUtil.buildPrevSparseLeftHandSidesByAccessType(
-            pCurrentThread, MemoryAccessType.WRITE, pBitVectorVariables);
+            MemoryAccessType.WRITE, pBitVectorVariables);
     return buildSparseEvaluation(
         pOptions,
         readLeftHandSides,

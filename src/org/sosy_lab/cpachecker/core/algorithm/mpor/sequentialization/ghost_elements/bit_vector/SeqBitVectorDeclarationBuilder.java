@@ -233,7 +233,7 @@ public record SeqBitVectorDeclarationBuilder(
             SeqDeclarationBuilder.buildVariableDeclaration(
                 true,
                 CNumericTypes.UNSIGNED_CHAR,
-                sparseBitVector.reachableVariable().getName(),
+                sparseBitVector.directVariable().getName(),
                 new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO)));
       }
     }

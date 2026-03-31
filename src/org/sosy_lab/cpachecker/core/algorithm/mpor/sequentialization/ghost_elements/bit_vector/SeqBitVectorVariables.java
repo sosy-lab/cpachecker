@@ -29,6 +29,7 @@ public record SeqBitVectorVariables(
     Optional<PrevDenseBitVector> prevDenseReadBitVector,
     Optional<PrevDenseBitVector> prevDenseWriteBitVector,
     Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseAccessBitVector,
+    Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseReadBitVector,
     Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseWriteBitVector) {
 
   /**
@@ -71,7 +72,7 @@ public record SeqBitVectorVariables(
   public record PrevDenseBitVector(CIdExpression directVariable) {}
 
   /** The reachable sparse bit vector for the thread that previously executed a statement. */
-  public record PrevSparseBitVector(CIdExpression reachableVariable) {}
+  public record PrevSparseBitVector(CIdExpression directVariable) {}
 
   public CIdExpression getDenseBitVector(
       MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
@@ -131,7 +132,7 @@ public record SeqBitVectorVariables(
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type prev dense bit vector");
       case ACCESS -> prevSparseAccessBitVector;
-      case READ -> Optional.empty();
+      case READ -> prevSparseReadBitVector;
       case WRITE -> prevSparseWriteBitVector;
     };
   }
@@ -142,7 +143,7 @@ public record SeqBitVectorVariables(
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type prev dense bit vector");
       case ACCESS -> prevSparseAccessBitVector.orElseThrow();
-      case READ -> throw new IllegalArgumentException("no READ access type prev dense bit vector");
+      case READ -> prevSparseReadBitVector.orElseThrow();
       case WRITE -> prevSparseWriteBitVector.orElseThrow();
     };
   }

@@ -91,33 +91,6 @@ class BitVectorAccessEvaluationBuilder {
 
   static Optional<CExportExpression> buildSparseEvaluation(
       MPOROptions pOptions,
-      ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
-      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
-      SeqBitVectorVariables pBitVectorVariables) {
-
-    ImmutableMap<SeqMemoryLocation, CExpression> leftHandSides =
-        BitVectorEvaluationUtil.buildSparseLeftHandSidesByAccessType(
-            pAccessedMemoryLocations, MemoryAccessType.ACCESS, pBitVectorVariables);
-    return buildSparseEvaluation(
-        pOptions, leftHandSides, pRightHandSides, pAccessedMemoryLocations, pBitVectorVariables);
-  }
-
-  static Optional<CExportExpression> buildPrevSparseEvaluation(
-      MPOROptions pOptions,
-      MPORThread pCurrentThread,
-      ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
-      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
-      SeqBitVectorVariables pBitVectorVariables) {
-
-    ImmutableMap<SeqMemoryLocation, CExpression> leftHandSides =
-        BitVectorEvaluationUtil.buildPrevSparseLeftHandSidesByAccessType(
-            pCurrentThread, MemoryAccessType.ACCESS, pBitVectorVariables);
-    return buildSparseEvaluation(
-        pOptions, leftHandSides, pRightHandSides, pAccessedMemoryLocations, pBitVectorVariables);
-  }
-
-  private static Optional<CExportExpression> buildSparseEvaluation(
-      MPOROptions pOptions,
       ImmutableMap<SeqMemoryLocation, CExpression> pLeftHandSides,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
       ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,

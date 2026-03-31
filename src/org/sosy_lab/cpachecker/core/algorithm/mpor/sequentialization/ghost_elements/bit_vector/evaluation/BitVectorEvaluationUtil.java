@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -60,7 +59,7 @@ public class BitVectorEvaluationUtil {
 
   static ImmutableListMultimap<SeqMemoryLocation, CExpression>
       mapMemoryLocationsToSparseBitVectorsByAccessType(
-          ImmutableSet<MPORThread> pOtherThreads,
+          ImmutableSet<MPORThread> pThreads,
           SeqBitVectorVariables pBitVectorVariables,
           MemoryAccessType pAccessType) {
 
@@ -72,7 +71,7 @@ public class BitVectorEvaluationUtil {
           entry.getValue().getVariablesByReachType(ReachType.REACHABLE);
       ImmutableList<CIdExpression> otherVariables =
           variables.entrySet().stream()
-              .filter(e -> pOtherThreads.contains(e.getKey()))
+              .filter(e -> pThreads.contains(e.getKey()))
               .map(e -> e.getValue())
               .collect(ImmutableList.toImmutableList());
       rMap.putAll(memoryLocation, otherVariables);
@@ -98,19 +97,13 @@ public class BitVectorEvaluationUtil {
   }
 
   static ImmutableMap<SeqMemoryLocation, CExpression> buildPrevSparseLeftHandSidesByAccessType(
-      MPORThread pCurrentThread,
-      MemoryAccessType pAccessType,
-      SeqBitVectorVariables pBitVectorVariables) {
+      MemoryAccessType pAccessType, SeqBitVectorVariables pBitVectorVariables) {
 
-    return pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet().stream()
-        // filter the LHS that are accessed by the thread so that pruneSparseBitVectors is handled
-        .filter(entry -> entry.getValue().directVariables().containsKey(pCurrentThread))
+    return pBitVectorVariables.getPrevSparseBitVectorByAccessType(pAccessType).entrySet().stream()
         .collect(
             ImmutableMap.toImmutableMap(
-                Entry::getKey,
-                entry ->
-                    Objects.requireNonNull(
-                        entry.getValue().directVariables().get(pCurrentThread))));
+                entry -> entry.getKey(),
+                entry -> Objects.requireNonNull(entry).getValue().directVariable()));
   }
 
   static Optional<CExportExpression> buildPrunedSparseEvaluationByAccessType(

@@ -218,7 +218,7 @@ public record AbortCommutingContextSwitchesInjector(
       case ACCESS_ONLY -> buildSparsePrevBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
-              .addAll(buildSparsePrevBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS))
+              .addAll(buildSparsePrevBitVectorUpdatesByAccessType(MemoryAccessType.READ))
               .addAll(buildSparsePrevBitVectorUpdatesByAccessType(MemoryAccessType.WRITE))
               .build();
     };
@@ -255,7 +255,7 @@ public record AbortCommutingContextSwitchesInjector(
           CIdExpression rightHandSide = reachableVariable.getValue();
           CExpressionAssignmentStatement update =
               SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  checkNotNull(prevSparseBitVector).reachableVariable(), rightHandSide);
+                  checkNotNull(prevSparseBitVector).directVariable(), rightHandSide);
           rUpdates.add(update);
         }
       }
