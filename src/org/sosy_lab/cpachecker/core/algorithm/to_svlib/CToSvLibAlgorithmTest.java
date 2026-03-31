@@ -63,17 +63,15 @@ public class CToSvLibAlgorithmTest {
 
   // *********************************** ToSvLibTransformation ***********************************
 
-  /*
   private String examplesPathToSvLibTransformation() {
     return Path.of("test", "programs", "to_svlib_transformation").toAbsolutePath().toString();
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleDivision() throws Exception {
     Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "simple-division.c");
     testTransformationToSvLib(inputFilePath);
   }
-  */
 
   // *********************************** CfaToCExport ***********************************
 
