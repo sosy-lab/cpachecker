@@ -80,7 +80,7 @@ public class SeqValidator {
   public static void tryValidateProgramCounters(
       MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    if (pOptions.validatePc()) {
+    if (pOptions.validateProgramCounters()) {
       for (MPORThread thread : pClauses.keySet()) {
         // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
         ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(pClauses.get(thread));
