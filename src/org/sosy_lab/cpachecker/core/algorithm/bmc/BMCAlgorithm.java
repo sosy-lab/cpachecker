@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormulaNegation;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopScopedFrontierEdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -241,7 +242,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void addLoopHeadCandidates(
       Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
     for (CFANode loopHead : pLoop.getLoopHeads()) {
-      addContinuationCandidatesAtNode(pLoop, loopHead, pCandidates);
+      addSingleLocationContinuationCandidatesAtNode(pLoop, loopHead, pCandidates);
     }
   }
 
@@ -251,16 +252,27 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (pLoop.getLoopHeads().contains(loopNode) || !hasExitEdge(pLoop, loopNode)) {
         continue;
       }
-      addContinuationCandidatesAtNode(pLoop, loopNode, pCandidates);
+      addLoopScopedContinuationCandidatesAtNode(pLoop, loopNode, pCandidates);
     }
   }
 
-  private void addContinuationCandidatesAtNode(
+  private void addSingleLocationContinuationCandidatesAtNode(
       Loop pLoop, CFANode pNode, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
     for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
       if (leavingEdge instanceof AssumeEdge assumeEdge
           && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
         pCandidates.add(new FrontierEdgeFormulaNegation(pNode, assumeEdge));
+      }
+    }
+  }
+
+  private void addLoopScopedContinuationCandidatesAtNode(
+      Loop pLoop, CFANode pNode, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+    ImmutableSet<CFANode> loopNodes = ImmutableSet.copyOf(pLoop.getLoopNodes());
+    for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
+      if (leavingEdge instanceof AssumeEdge assumeEdge
+          && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
+        pCandidates.add(new LoopScopedFrontierEdgeFormulaNegation(pNode, loopNodes, assumeEdge));
       }
     }
   }
