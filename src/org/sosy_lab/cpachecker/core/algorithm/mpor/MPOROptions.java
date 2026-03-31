@@ -270,33 +270,14 @@ public class MPOROptions {
    * {@link AssertionError} if a rejection occurs.
    */
   private void handleOptionRejections() throws InvalidConfigurationException {
-    if (selectionEncodingForStatements.equals(MultiSelectionStatementEncoding.NONE)) {
-      throw new InvalidConfigurationException(
-          String.format(
-              "selectionEncodingForStatements cannot be %s", selectionEncodingForStatements));
-    }
-    if (nondeterminismSource.isNextThreadNondeterministic()) {
-      if (!selectionEncodingForThreads.isEnabled()) {
-        // if threadSimulationUnrolling is enabled, then choosing selectionEncodingForThreads=NONE
-        // is allowed even when nondeterminismSource contains NEXT_THREAD, because then there is no
-        // multi selection statement for next_thread in the main() function anyway
-        if (!threadSimulationUnrolling) {
-          throw new InvalidConfigurationException(
-              String.format(
-                  "selectionEncodingForThreads cannot be %s when nondeterminismSource contains"
-                      + " NEXT_THREAD",
-                  selectionEncodingForThreads));
-        }
-      }
-    }
-    if (selectionEncodingForThreads.isEnabled()) {
-      if (threadSimulationUnrolling) {
+    if (!bitVectorEncoding.isSparse) {
+      if (pruneSparseBitVectors) {
         throw new InvalidConfigurationException(
-            String.format(
-                "selectionEncodingForThreads cannot be %s when threadSimulationUnrolling is"
-                    + " enabled, because the selectionEncodingForThreads is only used when all"
-                    + " thread simulations are placed inside the main() function.",
-                selectionEncodingForThreads));
+            "pruneSparseBitVectors is enabled, but bitVectorEncoding is not SPARSE.");
+      }
+      if (pruneSparseBitVectorWrites) {
+        throw new InvalidConfigurationException(
+            "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
       }
     }
     if (!mergeCommutingStatements) {
@@ -315,18 +296,6 @@ public class MPOROptions {
                 + " disabled.");
       }
     }
-    if (threadSimulationIterations < 0) {
-      throw new InvalidConfigurationException(
-          String.format(
-              "threadSimulationIterations must be 0 or greater, cannot be %s",
-              threadSimulationIterations));
-    }
-    if (threadSimulationIterations == 0) {
-      if (threadSimulationUnrolling) {
-        throw new InvalidConfigurationException(
-            "threadSimulationUnrolling can only be enabled when threadSimulationIterations > 0");
-      }
-    }
     if (!noBackwardGoto) {
       if (validateNoBackwardGoto) {
         throw new InvalidConfigurationException(
@@ -340,6 +309,20 @@ public class MPOROptions {
                 + " NEXT_THREAD.");
       }
     }
+    if (nondeterminismSource.isNextThreadNondeterministic()) {
+      if (!selectionEncodingForThreads.isEnabled()) {
+        // if threadSimulationUnrolling is enabled, then choosing selectionEncodingForThreads=NONE
+        // is allowed even when nondeterminismSource contains NEXT_THREAD, because then there is no
+        // multi selection statement for next_thread in the main() function anyway
+        if (!threadSimulationUnrolling) {
+          throw new InvalidConfigurationException(
+              String.format(
+                  "selectionEncodingForThreads cannot be %s when nondeterminismSource contains"
+                      + " NEXT_THREAD",
+                  selectionEncodingForThreads));
+        }
+      }
+    }
     if (pruneBitVectorEvaluations) {
       if (!isAnyBitVectorReductionEnabled()) {
         throw new InvalidConfigurationException(
@@ -351,16 +334,31 @@ public class MPOROptions {
             "pruneBitVectorEvaluations is enabled, but no bitVectorEncoding is set.");
       }
     }
-    if (pruneSparseBitVectors) {
-      if (!bitVectorEncoding.isSparse) {
+    if (selectionEncodingForStatements.equals(MultiSelectionStatementEncoding.NONE)) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "selectionEncodingForStatements cannot be %s", selectionEncodingForStatements));
+    }
+    if (selectionEncodingForThreads.isEnabled()) {
+      if (threadSimulationUnrolling) {
         throw new InvalidConfigurationException(
-            "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
+            String.format(
+                "selectionEncodingForThreads cannot be %s when threadSimulationUnrolling is"
+                    + " enabled, because the selectionEncodingForThreads is only used when all"
+                    + " thread simulations are placed inside the main() function.",
+                selectionEncodingForThreads));
       }
     }
-    if (pruneSparseBitVectorWrites) {
-      if (!bitVectorEncoding.isSparse) {
+    if (threadSimulationIterations < 0) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "threadSimulationIterations must be 0 or greater, cannot be %s",
+              threadSimulationIterations));
+    }
+    if (threadSimulationIterations == 0) {
+      if (threadSimulationUnrolling) {
         throw new InvalidConfigurationException(
-            "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
+            "threadSimulationUnrolling can only be enabled when threadSimulationIterations > 0");
       }
     }
     if (isAnyBitVectorReductionEnabled()) {
@@ -374,7 +372,8 @@ public class MPOROptions {
             "a partial order reduction with bit vectors option is enabled, but bitVectorEncoding is"
                 + " not set.");
       }
-    } else {
+    }
+    if (!isAnyBitVectorReductionEnabled()) {
       if (partialOrderReductionMode.isEnabled()) {
         throw new InvalidConfigurationException(
             "partialOrderReductionMode is set, but no partial order reduction option is enabled");
