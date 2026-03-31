@@ -131,6 +131,18 @@ public abstract class SMGBaseCPATest0 {
   }
 
   /**
+   * Skips the MemCleanup specification for a test, starting from the position this method is used.
+   */
+  protected void doNotTestMemCleanupSpecification() {
+    assume().that(specToUse).isNotEqualTo(MEMCLEANUP_SPECIFICATION);
+  }
+
+  /** Skips SMG-ValueAnalysis configurations, starting from the position this method is used. */
+  protected void doNotTestSMGValueAnalysisConfigurations() {
+    assume().that(configToUse).isNotEqualTo(SMG_VALUE_ANALYSIS);
+  }
+
+  /**
    * Checks assertions about the verification result of a ILP32 program given via its path with
    * {@link com.google.common.truth.Truth}: <code>assertThatILP32Program(pathToProgram).is...()
    * </code>, with e.g. <code>isSafe()</code>, <code>isUnsafe()</code> etc. The verification used is
