@@ -148,7 +148,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
    *
    * @return The SvLibScript generated from the CFA
    */
-  public SvLibScript transformCfaToSvLib() {
+  public SvLibScript transformCfaToSvLib() throws CPAException {
     ImmutableList.Builder<SvLibCommand> commandsCollector = ImmutableList.builder();
     commandsCollector.add(
         new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
@@ -260,7 +260,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     return procedureBodySequence;
   }
 
-  private void initializeScope(ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+  private void initializeScope(ImmutableList.Builder<SvLibCommand> pCommandsCollector)
+      throws CPAException {
     for (FunctionEntryNode entryNode : cfa.entryNodes()) {
       CFunctionEntryNode cEntryNode = (CFunctionEntryNode) entryNode;
       String procedureName = entryNode.getFunctionName();
@@ -302,7 +303,10 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
                     SvLibSmtLibPredefinedType.INT;
                 case CSimpleType simpleType when simpleType.getType().isFloatingPointType() ->
                     SvLibSmtLibPredefinedType.REAL;
-                case null, default -> new SvLibAnyType();
+                case null, default ->
+                    throw new CPAException(
+                        "Failed to transform CType to SvLibSmtLibPredefinedType for variable "
+                            + variableDeclaration.getQualifiedName());
               };
 
           if (variableDeclaration.isGlobal()) {
