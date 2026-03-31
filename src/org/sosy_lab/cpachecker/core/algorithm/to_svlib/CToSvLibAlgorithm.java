@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatem
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -550,7 +549,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   private ImmutableList<SvLibParsingParameterDeclaration> collectReturnParameter(
-      Optional<CVariableDeclaration> pReturnVariable, String pProcedureName) {
+      Optional<CVariableDeclaration> pReturnVariable, String pProcedureName) throws CPAException {
     if (pReturnVariable.isEmpty()) {
       return ImmutableList.of();
     }
@@ -566,7 +565,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   private ImmutableList<SvLibParsingParameterDeclaration> collectInputParameters(
-      ImmutableList<CParameterDeclaration> pParameterDeclarations, String pProcedureName) {
+      ImmutableList<CParameterDeclaration> pParameterDeclarations, String pProcedureName)
+      throws CPAException {
     ImmutableList.Builder<SvLibParsingParameterDeclaration> parameterCollector =
         ImmutableList.builder();
 
@@ -583,14 +583,15 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     return parameterCollector.build();
   }
 
-  private SvLibType transformToSvLibType(CSimpleType pCSimpleType) {
+  private SvLibType transformToSvLibType(CSimpleType pCSimpleType) throws CPAException {
     if (pCSimpleType.getType().isIntegerType()) {
       return SvLibSmtLibPredefinedType.INT;
     } else if (pCSimpleType.getType().isFloatingPointType()) {
       return SvLibSmtLibPredefinedType.REAL;
     } else {
-      // TODO improve default case or throw?
-      return new SvLibAnyType();
+      throw new CPAException(
+          "Transformation of CSimpleType to SvLibSmtLibPredefinedType failed for type "
+              + pCSimpleType);
     }
   }
 
