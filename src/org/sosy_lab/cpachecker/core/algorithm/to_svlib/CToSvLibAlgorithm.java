@@ -147,7 +147,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
    *
    * @return The SvLibScript generated from the CFA
    */
-  public SvLibScript transformCfaToSvLib() throws CPAException {
+  public SvLibScript transformCfaToSvLib() throws UnsupportedOperationException {
     ImmutableList.Builder<SvLibCommand> commandsCollector = ImmutableList.builder();
     commandsCollector.add(
         new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
@@ -260,7 +260,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   private void initializeScope(ImmutableList.Builder<SvLibCommand> pCommandsCollector)
-      throws CPAException {
+      throws UnsupportedOperationException {
     for (FunctionEntryNode entryNode : cfa.entryNodes()) {
       CFunctionEntryNode cEntryNode = (CFunctionEntryNode) entryNode;
       String procedureName = entryNode.getFunctionName();
@@ -303,7 +303,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
                 case CSimpleType simpleType when simpleType.getType().isFloatingPointType() ->
                     SvLibSmtLibPredefinedType.REAL;
                 case null, default ->
-                    throw new CPAException(
+                    throw new UnsupportedOperationException(
                         "Failed to transform CType to SvLibSmtLibPredefinedType for variable "
                             + variableDeclaration.getQualifiedName());
               };
@@ -549,7 +549,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   private ImmutableList<SvLibParsingParameterDeclaration> collectReturnParameter(
-      Optional<CVariableDeclaration> pReturnVariable, String pProcedureName) throws CPAException {
+      Optional<CVariableDeclaration> pReturnVariable, String pProcedureName) throws UnsupportedOperationException {
     if (pReturnVariable.isEmpty()) {
       return ImmutableList.of();
     }
@@ -566,7 +566,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   private ImmutableList<SvLibParsingParameterDeclaration> collectInputParameters(
       ImmutableList<CParameterDeclaration> pParameterDeclarations, String pProcedureName)
-      throws CPAException {
+      throws UnsupportedOperationException {
     ImmutableList.Builder<SvLibParsingParameterDeclaration> parameterCollector =
         ImmutableList.builder();
 
@@ -583,13 +583,13 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     return parameterCollector.build();
   }
 
-  private SvLibType transformToSvLibType(CSimpleType pCSimpleType) throws CPAException {
+  private SvLibType transformToSvLibType(CSimpleType pCSimpleType) throws UnsupportedOperationException {
     if (pCSimpleType.getType().isIntegerType()) {
       return SvLibSmtLibPredefinedType.INT;
     } else if (pCSimpleType.getType().isFloatingPointType()) {
       return SvLibSmtLibPredefinedType.REAL;
     } else {
-      throw new CPAException(
+      throw new UnsupportedOperationException(
           "Transformation of CSimpleType to SvLibSmtLibPredefinedType failed for type "
               + pCSimpleType);
     }
