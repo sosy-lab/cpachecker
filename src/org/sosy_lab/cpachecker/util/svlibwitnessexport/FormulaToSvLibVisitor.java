@@ -95,6 +95,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "<" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_LESS_THAN, FileLocation.DUMMY);
         case "<=" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN, FileLocation.DUMMY);
+        case ">" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_GREATER_THAN, FileLocation.DUMMY);
+        case ">=" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.INT_GREATER_EQUAL_THAN, FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.INT
@@ -107,8 +110,10 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "-" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.intSubtraction(pArgTypes.size()), FileLocation.DUMMY);
-        case "*" ->
+        case "*", "Integer_*_" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MULTIPLICATION, FileLocation.DUMMY);
+        case "/", "Integer_/_" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.INT_DIV, FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.REAL
@@ -148,6 +153,11 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
       return new SvLibIdTerm(
           SmtLibTheoryDeclarations.arrayStore(pArrayType.getKeysType(), pArrayType.getValuesType()),
           FileLocation.DUMMY);
+    } else if (pArgTypes.size() == 3
+        && pArgTypes.getFirst().equals(SvLibSmtLibPredefinedType.BOOL)
+        && pArgTypes.get(1).equals(pArgTypes.get(2))
+        && actualName.equals("if")) {
+      return new SvLibIdTerm(SmtLibTheoryDeclarations.ite(pArgTypes.get(1)), FileLocation.DUMMY);
     }
 
     throw new UnsupportedOperationException("Unknown formula type: " + pName);
@@ -155,8 +165,10 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
 
   @Override
   public SvLibTerm visitFreeVariable(Formula pFormula, String pS) {
+    String nameWithoutSSA = pS.replaceAll("@" + "[0-9]+", "");
+
     SvLibSimpleDeclaration variableDeclaration =
-        scope.getVariableForQualifiedName(pS).toSimpleDeclaration();
+        scope.getVariableForQualifiedName(nameWithoutSSA).toSimpleDeclaration();
     return new SvLibIdTerm(variableDeclaration, FileLocation.DUMMY);
   }
 
