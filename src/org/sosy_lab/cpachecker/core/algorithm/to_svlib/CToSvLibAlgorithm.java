@@ -549,7 +549,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   private ImmutableList<SvLibParsingParameterDeclaration> collectReturnParameter(
-      Optional<CVariableDeclaration> pReturnVariable, String pProcedureName) throws UnsupportedOperationException {
+      Optional<CVariableDeclaration> pReturnVariable, String pProcedureName)
+      throws UnsupportedOperationException {
     if (pReturnVariable.isEmpty()) {
       return ImmutableList.of();
     }
@@ -583,7 +584,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     return parameterCollector.build();
   }
 
-  private SvLibType transformToSvLibType(CSimpleType pCSimpleType) throws UnsupportedOperationException {
+  private SvLibType transformToSvLibType(CSimpleType pCSimpleType)
+      throws UnsupportedOperationException {
     if (pCSimpleType.getType().isIntegerType()) {
       return SvLibSmtLibPredefinedType.INT;
     } else if (pCSimpleType.getType().isFloatingPointType()) {
