@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -37,35 +38,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
 
 public class BitVectorEvaluationUtil {
-
-  /**
-   * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
-   * Optional#empty()} if {@code pTerms} is empty.
-   */
-  static Optional<CExportExpression> tryBuildLogicalOrExpressionFromCExpressions(
-      ImmutableList<CExpression> pTerms) {
-
-    return tryBuildLogicalOrExpression(
-        pTerms.stream().map(CExpressionWrapper::new).collect(ImmutableList.toImmutableList()));
-  }
-
-  /**
-   * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
-   * Optional#empty()} if {@code pTerms} is empty.
-   */
-  static Optional<CExportExpression> tryBuildLogicalOrExpression(
-      ImmutableList<CExportExpression> pTerms) {
-
-    if (pTerms.isEmpty()) {
-      return Optional.empty();
-    }
-    // when there is only 1 term, use a normal CExportExpression
-    if (pTerms.size() == 1) {
-      return Optional.of(pTerms.getFirst());
-    }
-    // when there are at least 2 terms, use a CLogicalOrExpression (it needs at least 2)
-    return Optional.of(new CLogicalOrExpression(pTerms));
-  }
 
   /** Creates a disjunction of the given terms i.e. {@code (A | B | C | ...)}. */
   static CExpression binaryDisjunction(
@@ -85,8 +57,6 @@ public class BitVectorEvaluationUtil {
     }
     return rNested;
   }
-
-  // Nest Expressions ==============================================================================
 
   static ImmutableListMultimap<SeqMemoryLocation, CExpression>
       mapMemoryLocationsToSparseBitVectorsByAccessType(
@@ -214,7 +184,40 @@ public class BitVectorEvaluationUtil {
     return tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
-  static CExportExpression buildSingleSparseLogicalAndExpression(
+  /**
+   * Note that the 'full' evaluation can still be pruned entirely if {@link
+   * MPOROptions#pruneSparseBitVectors()} is enabled, which is why this returns an {@link Optional}.
+   */
+  static Optional<CExportExpression> buildFullSparseVariableOnlyEvaluationByAccessType(
+      MPORThread pActiveThread,
+      MemoryAccessType pAccessType,
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectors,
+      SeqBitVectorVariables pBitVectorVariables) {
+
+    ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
+    for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
+      // if there is no direct variable for pActiveThread, then the thread does not access the
+      // memory location at all, and it can be pruned from the evaluation
+      if (entry.getValue().directVariables().containsKey(pActiveThread)) {
+        // if the list of CExpression is empty, then there is no RHS, and pActiveThread is the only
+        // thread that accesses the memory location, and it can be pruned from the evaluation.
+        if (!pSparseBitVectors.get(entry.getKey()).isEmpty()) {
+          CIdExpression directBitVector =
+              Objects.requireNonNull(entry.getValue().directVariables().get(pActiveThread));
+          CExportExpression sparseExpression =
+              BitVectorEvaluationUtil.buildSingleSparseLogicalAndExpression(
+                  pSparseBitVectors, directBitVector, entry.getKey());
+          sparseExpressions.add(sparseExpression);
+        }
+      }
+    }
+    // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
+    return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
+  }
+
+  // Private Helpers
+
+  private static CExportExpression buildSingleSparseLogicalAndExpression(
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
       CExpression pDirectBitVector,
       SeqMemoryLocation pMemoryLocation) {
@@ -229,5 +232,34 @@ public class BitVectorEvaluationUtil {
     return disjunction.isEmpty()
         ? directBitVector
         : CLogicalAndExpression.of(directBitVector, disjunction.orElseThrow());
+  }
+
+  /**
+   * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
+   * Optional#empty()} if {@code pTerms} is empty.
+   */
+  private static Optional<CExportExpression> tryBuildLogicalOrExpressionFromCExpressions(
+      ImmutableList<CExpression> pTerms) {
+
+    return tryBuildLogicalOrExpression(
+        pTerms.stream().map(CExpressionWrapper::new).collect(ImmutableList.toImmutableList()));
+  }
+
+  /**
+   * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
+   * Optional#empty()} if {@code pTerms} is empty.
+   */
+  private static Optional<CExportExpression> tryBuildLogicalOrExpression(
+      ImmutableList<CExportExpression> pTerms) {
+
+    if (pTerms.isEmpty()) {
+      return Optional.empty();
+    }
+    // when there is only 1 term, use a normal CExportExpression
+    if (pTerms.size() == 1) {
+      return Optional.of(pTerms.getFirst());
+    }
+    // when there are at least 2 terms, use a CLogicalOrExpression (it needs at least 2)
+    return Optional.of(new CLogicalOrExpression(pTerms));
   }
 }

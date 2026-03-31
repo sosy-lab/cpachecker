@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -25,7 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -34,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalAndExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLogicalOrExpression;
 
 class BitVectorReadWriteEvaluationBuilder {
@@ -56,14 +52,23 @@ class BitVectorReadWriteEvaluationBuilder {
               buildFullDenseVariableOnlyEvaluation(
                   pActiveThread, pOtherThreads, pBitVectorVariables, pUtils));
       case SPARSE -> {
-        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseWriteMap =
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseWriteBitVectors =
             BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, MemoryAccessType.WRITE);
-        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessBitVectors =
             BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
-        yield buildFullSparseVariableOnlyEvaluation(
-            pActiveThread, sparseWriteMap, sparseAccessMap, pBitVectorVariables);
+
+        // direct reads and reachable writes: dR && (rW' || rW'' || ...)
+        Optional<CExportExpression> readWriteEvaluation =
+            BitVectorEvaluationUtil.buildFullSparseVariableOnlyEvaluationByAccessType(
+                pActiveThread, MemoryAccessType.READ, sparseWriteBitVectors, pBitVectorVariables);
+        // direct writes and reachable accesses: dW && (rA' || rA'' || ...)
+        Optional<CExportExpression> writeAccessEvaluation =
+            BitVectorEvaluationUtil.buildFullSparseVariableOnlyEvaluationByAccessType(
+                pActiveThread, MemoryAccessType.WRITE, sparseAccessBitVectors, pBitVectorVariables);
+
+        yield tryBuildLogicalOr(readWriteEvaluation, writeAccessEvaluation);
       }
     };
   }
@@ -369,70 +374,6 @@ class BitVectorReadWriteEvaluationBuilder {
         BitVectorEvaluationUtil.binaryDisjunction(pOtherAccesses, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pDirectWriteBitVector, otherReadsAndWrites, BinaryOperator.BITWISE_AND);
-  }
-
-  // Full Sparse Evaluation ========================================================================
-
-  private static Optional<CExportExpression> buildFullSparseVariableOnlyEvaluation(
-      MPORThread pActiveThread,
-      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseWriteMap,
-      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseAccessMap,
-      SeqBitVectorVariables pBitVectorVariables) {
-
-    ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
-    ImmutableSet<SeqMemoryLocation> memoryLocations =
-        pBitVectorVariables.getSparseAccessBitVectors().keySet();
-    for (SeqMemoryLocation memoryLocation : memoryLocations) {
-      ImmutableList<CExpression> otherWriteVariables = pSparseWriteMap.get(memoryLocation);
-      ImmutableList<CExpression> otherAccessVariables = pSparseAccessMap.get(memoryLocation);
-      sparseExpressions.add(
-          buildSingleVariableFullSparseVariableOnlyEvaluation(
-              pActiveThread,
-              memoryLocation,
-              otherWriteVariables,
-              otherAccessVariables,
-              pBitVectorVariables));
-    }
-    return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
-  }
-
-  // Full Sparse Single Variable Evaluation ========================================================
-
-  private static CLogicalOrExpression buildSingleVariableFullSparseVariableOnlyEvaluation(
-      MPORThread pActiveThread,
-      SeqMemoryLocation pMemoryLocation,
-      ImmutableList<CExpression> pOtherWriteVariables,
-      ImmutableList<CExpression> pOtherAccessVariables,
-      SeqBitVectorVariables pBitVectorVariables) {
-
-    SparseBitVector sparseReadBitVector =
-        Objects.requireNonNull(pBitVectorVariables.getSparseReadBitVectors().get(pMemoryLocation));
-    CExpression activeReadVariable =
-        sparseReadBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
-    CExportExpression leftHandSide =
-        buildFullSparseSingleVariableExpression(
-            Objects.requireNonNull(activeReadVariable), pOtherWriteVariables);
-
-    SparseBitVector sparseWriteBitVector =
-        Objects.requireNonNull(pBitVectorVariables.getSparseWriteBitVectors().get(pMemoryLocation));
-    CExpression activeWriteVariable =
-        sparseWriteBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
-    CExportExpression rightHandSide =
-        buildFullSparseSingleVariableExpression(
-            Objects.requireNonNull(activeWriteVariable), pOtherAccessVariables);
-
-    return CLogicalOrExpression.of(leftHandSide, rightHandSide);
-  }
-
-  private static CExportExpression buildFullSparseSingleVariableExpression(
-      CExpression pActiveReadValue, ImmutableList<CExpression> pOtherWriteVariables) {
-
-    CExpressionWrapper leftHandSide = new CExpressionWrapper(pActiveReadValue);
-    Optional<CExportExpression> rightHandSide =
-        BitVectorEvaluationUtil.tryBuildLogicalOrExpressionFromCExpressions(pOtherWriteVariables);
-    return rightHandSide.isEmpty()
-        ? leftHandSide
-        : CLogicalAndExpression.of(leftHandSide, rightHandSide.orElseThrow());
   }
 
   // Helper
