@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
 
@@ -102,7 +103,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final SvLibCurrentScope scope;
-  private final FormulaToSvLibTransformationVisitor formulaToSvLibVisitor;
+  private final FormulaToSvLibVisitor formulaToSvLibVisitor;
 
   /**
    * Transforms the CFA of a C program to a SvLibScript. At the moment in development and works
@@ -138,8 +139,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             AnalysisDirection.FORWARD);
 
     scope = new SvLibCurrentScope();
-    formulaToSvLibVisitor =
-        new FormulaToSvLibTransformationVisitor(solver.getFormulaManager(), scope);
+    formulaToSvLibVisitor = new FormulaToSvLibVisitor(solver.getFormulaManager(), scope);
   }
 
   /**
