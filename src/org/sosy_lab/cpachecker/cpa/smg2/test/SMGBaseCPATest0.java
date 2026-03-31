@@ -204,12 +204,12 @@ public abstract class SMGBaseCPATest0 {
       analysis = checkNotNull(pAnalysis);
     }
 
-    /** heck that the analysis result of the program is SAFE in the current analysis. */
+    /** Check that the analysis result of the program is SAFE in the current analysis. */
     public void isSafe() throws Exception {
       isExpectedResult(Result.TRUE, "TRUE (safe program for chosen specification)");
     }
 
-    /** heck that the analysis result of the program is UNSAFE in the current analysis. */
+    /** Check that the analysis result of the program is UNSAFE in the current analysis. */
     public void isUnsafe() throws Exception {
       isExpectedResult(Result.FALSE, "FALSE (violation found in program for chosen specification)");
     }
