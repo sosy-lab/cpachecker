@@ -144,7 +144,7 @@ public record SeqBitVectorDeclarationBuilder(
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
               pType,
-              prevDenseBitVector.reachableVariable().getName(),
+              prevDenseBitVector.directVariable().getName(),
               new CInitializerExpression(FileLocation.DUMMY, initializer)));
     }
     return Optional.empty();

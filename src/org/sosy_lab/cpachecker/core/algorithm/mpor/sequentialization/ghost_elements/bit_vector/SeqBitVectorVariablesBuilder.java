@@ -58,7 +58,7 @@ public record SeqBitVectorVariablesBuilder(
     Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseAccessBitVectors =
         buildSparseBitVectors(MemoryAccessType.ACCESS);
     // prev bit vector used to store the bit vector of a thread before context switch
-    Optional<PrevDenseBitVector> prevDenseAccessBitVector =
+    Optional<PrevDenseBitVector> prevDenseAccessBitVectors =
         tryBuildPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
     Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseAccessBitVectors =
         tryBuildPrevSparseBitVectorsByAccessType(MemoryAccessType.ACCESS);
@@ -70,7 +70,8 @@ public record SeqBitVectorVariablesBuilder(
             sparseAccessBitVectors,
             Optional.empty(),
             Optional.empty(),
-            prevDenseAccessBitVector,
+            prevDenseAccessBitVectors,
+            Optional.empty(),
             Optional.empty(),
             prevSparseAccessBitVectors,
             Optional.empty()));
@@ -95,8 +96,8 @@ public record SeqBitVectorVariablesBuilder(
         buildSparseBitVectors(MemoryAccessType.WRITE);
 
     // prev bit vector used to store the bit vector of a thread before context switch
-    Optional<PrevDenseBitVector> prevDenseAccessBitVector =
-        tryBuildPrevDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
+    Optional<PrevDenseBitVector> prevDenseReadBitVector =
+        tryBuildPrevDenseBitVectorByAccessType(MemoryAccessType.READ);
     Optional<PrevDenseBitVector> prevDenseWriteBitVector =
         tryBuildPrevDenseBitVectorByAccessType(MemoryAccessType.WRITE);
     Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseAccessBitVectors =
@@ -112,7 +113,8 @@ public record SeqBitVectorVariablesBuilder(
             sparseAccessBitVectors,
             sparseReadBitVectors,
             sparseWriteBitVectors,
-            prevDenseAccessBitVector,
+            Optional.empty(),
+            prevDenseReadBitVector,
             prevDenseWriteBitVector,
             prevSparseAccessBitVectors,
             prevSparseWriteBitVectors));

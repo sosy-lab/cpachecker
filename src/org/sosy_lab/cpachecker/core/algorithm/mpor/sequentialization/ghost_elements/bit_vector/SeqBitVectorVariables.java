@@ -26,6 +26,7 @@ public record SeqBitVectorVariables(
     Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseReadBitVectors,
     Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseWriteBitVectors,
     Optional<PrevDenseBitVector> prevDenseAccessBitVector,
+    Optional<PrevDenseBitVector> prevDenseReadBitVector,
     Optional<PrevDenseBitVector> prevDenseWriteBitVector,
     Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseAccessBitVector,
     Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseWriteBitVector) {
@@ -66,8 +67,8 @@ public record SeqBitVectorVariables(
     }
   }
 
-  /** The reachable dense bit vector for the thread that previously executed a statement. */
-  public record PrevDenseBitVector(CIdExpression reachableVariable) {}
+  /** The dense bit vector for the thread that previously executed a statement. */
+  public record PrevDenseBitVector(CIdExpression directVariable) {}
 
   /** The reachable sparse bit vector for the thread that previously executed a statement. */
   public record PrevSparseBitVector(CIdExpression reachableVariable) {}
@@ -119,7 +120,7 @@ public record SeqBitVectorVariables(
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type prev dense bit vector");
       case ACCESS -> prevDenseAccessBitVector.orElseThrow();
-      case READ -> throw new IllegalArgumentException("no READ access type prev dense bit vector");
+      case READ -> prevDenseReadBitVector.orElseThrow();
       case WRITE -> prevDenseWriteBitVector.orElseThrow();
     };
   }
@@ -162,22 +163,8 @@ public record SeqBitVectorVariables(
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type prev dense bit vector");
       case ACCESS -> prevDenseAccessBitVector.isPresent();
-      case READ -> false;
+      case READ -> prevDenseReadBitVector.isPresent();
       case WRITE -> prevDenseWriteBitVector.isPresent();
     };
-  }
-
-  // Getters =======================================================================================
-
-  public ImmutableMap<SeqMemoryLocation, SparseBitVector> getSparseAccessBitVectors() {
-    return sparseAccessBitVectors.orElseThrow();
-  }
-
-  public ImmutableMap<SeqMemoryLocation, SparseBitVector> getSparseReadBitVectors() {
-    return sparseReadBitVectors.orElseThrow();
-  }
-
-  public ImmutableMap<SeqMemoryLocation, SparseBitVector> getSparseWriteBitVectors() {
-    return sparseWriteBitVectors.orElseThrow();
   }
 }

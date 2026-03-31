@@ -202,7 +202,7 @@ public record AbortCommutingContextSwitchesInjector(
       case ACCESS_ONLY -> buildDensePrevBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
-              .addAll(buildDensePrevBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS))
+              .addAll(buildDensePrevBitVectorUpdatesByAccessType(MemoryAccessType.READ))
               .addAll(buildDensePrevBitVectorUpdatesByAccessType(MemoryAccessType.WRITE))
               .build();
     };
@@ -230,10 +230,10 @@ public record AbortCommutingContextSwitchesInjector(
     PrevDenseBitVector prevDenseBitVector =
         bitVectorVariables.getPrevDenseBitVectorByAccessType(pAccessType);
     CExpression rightHandSide =
-        bitVectorVariables.getDenseBitVector(activeThread, pAccessType, ReachType.REACHABLE);
+        bitVectorVariables.getDenseBitVector(activeThread, pAccessType, ReachType.DIRECT);
     CExpressionAssignmentStatement update =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            prevDenseBitVector.reachableVariable(), rightHandSide);
+            prevDenseBitVector.directVariable(), rightHandSide);
     return ImmutableList.of(update);
   }
 
