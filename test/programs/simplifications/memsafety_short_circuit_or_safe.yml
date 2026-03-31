@@ -16,4 +16,3 @@ properties:
 
 options:
   language: C
-  data_model: LP64
