@@ -95,16 +95,6 @@ public final class SeqMainFunctionBuilder {
       // otherwise include the thread simulations in the main function directly
       ImmutableList.Builder<CCompoundStatementElement> loopBlock = ImmutableList.builder();
 
-      if (pOptions.abortCommutingContextSwitches()) {
-        // add prev_thread = next_thread assignment (before setting next_thread)
-        if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
-          CExpressionAssignmentStatement assignment =
-              new CExpressionAssignmentStatement(
-                  FileLocation.DUMMY, SeqIdExpressions.PREV_THREAD, SeqIdExpressions.NEXT_THREAD);
-          loopBlock.add(new CStatementWrapper(assignment));
-        }
-      }
-
       // assumptions that at least one thread is still active: assume(thread_count > 0)
       if (pOptions.executeSingleActiveThreadFirst()) {
         if (pOptions.comments()) {
@@ -130,16 +120,14 @@ public final class SeqMainFunctionBuilder {
         }
         if (pOptions.executeCommutingThreadsFirst()) {
           // with executeCommutingThreadsFirst enabled, the nondeterministic next_thread assignment
-          // is
-          // embedded into the reduction instrumentation, not added on top
+          // is embedded into the reduction instrumentation, not added on top
           loopBlock.add(
               CommutingThreadsFirstInjector
                   .buildCommutingThreadsFirstInstrumentationForNextThreadNondeterminism(
                       pOptions, pFields, pUtils));
         } else {
           // with executeCommutingThreadsFirst disabled, the nondeterministic next_thread choice is
-          // placed
-          // in isolation: next_thread = __VERIFIER_nondet_uint();
+          // placed in isolation: next_thread = __VERIFIER_nondet_uint();
           loopBlock.add(
               buildNextThreadNondeterministicStatements(
                   pOptions,
