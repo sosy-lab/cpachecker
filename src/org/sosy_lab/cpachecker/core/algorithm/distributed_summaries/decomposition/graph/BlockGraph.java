@@ -63,6 +63,12 @@ public class BlockGraph {
     return nodes;
   }
 
+  public ImmutableSet<@NonNull BlockNode> getSuccessorsOf(BlockNode node) {
+    return FluentIterable.from(nodes)
+        .filter(n -> node.getSuccessorIds().contains(n.getId()))
+        .toSet();
+  }
+
   public void checkConsistency(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
     for (BlockNode blockNode : nodes) {
       Preconditions.checkState(
