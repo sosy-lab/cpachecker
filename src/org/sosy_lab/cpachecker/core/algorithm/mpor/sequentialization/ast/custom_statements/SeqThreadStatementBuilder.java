@@ -520,7 +520,7 @@ public record SeqThreadStatementBuilder(
 
     ImmutableList.Builder<CCompoundStatementElement> functionStatementBuilder =
         ImmutableList.builder();
-    // if the function name is "reach_error", inject a "reach_error()" call for reachability
+    // if the function name is "reach_error", add a "reach_error()" call for reachability
     if (pFunctionName.equals(REACH_ERROR_FUNCTION_NAME)) {
       functionStatementBuilder.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
     }

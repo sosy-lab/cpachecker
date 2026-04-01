@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -76,14 +76,17 @@ public record BitVectorAssignmentInjector(
 
   private ImmutableList<SeqInstrumentation> buildBitVectorResets() throws UnsupportedCodeException {
     checkArgument(
-        !options.reductionMode().equals(ReductionMode.NONE),
+        !options.partialOrderReductionMode().equals(PartialOrderReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
         if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
+            options.executeCommutingThreadsFirst(),
+            options.partialOrderReductionMode(),
+            accessType,
+            reachType)) {
           rAssignments.addAll(
               buildBitVectorAssignmentByEncoding(ImmutableSet.of(), accessType, reachType));
         }
@@ -98,14 +101,17 @@ public record BitVectorAssignmentInjector(
       SeqThreadStatementClause pTargetClause) throws UnsupportedCodeException {
 
     checkArgument(
-        !options.reductionMode().equals(ReductionMode.NONE),
+        !options.partialOrderReductionMode().equals(PartialOrderReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
         if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
+            options.executeCommutingThreadsFirst(),
+            options.partialOrderReductionMode(),
+            accessType,
+            reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap,
@@ -145,7 +151,10 @@ public record BitVectorAssignmentInjector(
       throws UnsupportedCodeException {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
+        options.executeCommutingThreadsFirst(),
+        options.partialOrderReductionMode(),
+        pAccessType,
+        pReachType)) {
       return ImmutableList.of();
     }
     CIdExpression bitVectorVariable =
@@ -164,7 +173,10 @@ public record BitVectorAssignmentInjector(
       ReachType pReachType) {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
+        options.executeCommutingThreadsFirst(),
+        options.partialOrderReductionMode(),
+        pAccessType,
+        pReachType)) {
       return ImmutableList.of();
     }
     // use list so that the assignment order is deterministic
