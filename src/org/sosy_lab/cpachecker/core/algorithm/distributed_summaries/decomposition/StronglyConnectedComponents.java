@@ -23,35 +23,31 @@ import java.util.SequencedMap;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 
-public class StronglyConnectedComponents {
+public class StronglyConnectedComponents<T> {
 
   private static final int UNDEFINED_INDEX = Integer.MAX_VALUE;
   private int index = 0;
 
-  private final Multimap<Vertex, Vertex> successors;
-  private final Deque<Vertex> stack;
-  private final Set<Vertex> vertices;
+  private final Multimap<Vertex<T>, Vertex<T>> successors;
+  private final Deque<Vertex<T>> stack;
+  private final Set<Vertex<T>> vertices;
 
-  private StronglyConnectedComponents(
-      BlockNodeWithoutGraphInformation pStartNode,
-      Function<BlockNodeWithoutGraphInformation, Iterable<BlockNodeWithoutGraphInformation>>
-          pSuccessors) {
+  private StronglyConnectedComponents(T pStartNode, Function<T, Iterable<T>> pSuccessors) {
     stack = new ArrayDeque<>();
     successors = ArrayListMultimap.create();
-    SequencedSet<Edge> edges = new LinkedHashSet<>();
-    List<BlockNodeWithoutGraphInformation> waitlist = new ArrayList<>();
+    SequencedSet<Edge<T>> edges = new LinkedHashSet<>();
+    List<T> waitlist = new ArrayList<>();
     waitlist.add(pStartNode);
-    SequencedMap<BlockNodeWithoutGraphInformation, Vertex> cache = new LinkedHashMap<>();
+    SequencedMap<T, Vertex<T>> cache = new LinkedHashMap<>();
     while (!waitlist.isEmpty()) {
-      BlockNodeWithoutGraphInformation current = waitlist.removeFirst();
-      for (BlockNodeWithoutGraphInformation t : pSuccessors.apply(current)) {
-        Vertex v1 = cache.getOrDefault(current, new Vertex(current));
-        Vertex v2 = cache.getOrDefault(t, new Vertex(t));
+      T current = waitlist.removeFirst();
+      for (T t : pSuccessors.apply(current)) {
+        Vertex<T> v1 = cache.getOrDefault(current, new Vertex<>(current));
+        Vertex<T> v2 = cache.getOrDefault(t, new Vertex<>(t));
         cache.put(current, v1);
         cache.put(t, v2);
-        Edge edge = new Edge(v1, v2);
+        Edge<T> edge = new Edge<>(v1, v2);
         if (!edges.contains(edge)) {
           waitlist.add(t);
           edges.add(edge);
@@ -62,25 +58,24 @@ public class StronglyConnectedComponents {
     vertices = ImmutableSet.copyOf(cache.values());
   }
 
-  public static ImmutableList<List<BlockNodeWithoutGraphInformation>> performTarjanAlgorithm(
-      BlockNodeWithoutGraphInformation pStartNode,
-      Function<BlockNodeWithoutGraphInformation, Iterable<BlockNodeWithoutGraphInformation>>
-          pSuccessors) {
+  public static <T> ImmutableList<List<T>> performTarjanAlgorithm(
+      T pStartNode, Function<T, Iterable<T>> pSuccessors) {
     return ImmutableList.copyOf(
-        new StronglyConnectedComponents(pStartNode, pSuccessors).findStronglyConnectedComponents());
+        new StronglyConnectedComponents<>(pStartNode, pSuccessors)
+            .findStronglyConnectedComponents());
   }
 
-  private record Edge(Vertex predecessor, Vertex successor) {}
+  private record Edge<T>(Vertex<T> predecessor, Vertex<T> successor) {}
 
-  private static class Vertex {
+  private static class Vertex<T> {
 
     private int index;
     private int lowLink;
     private boolean onStack;
 
-    private final BlockNodeWithoutGraphInformation wrapped;
+    private final T wrapped;
 
-    private Vertex(BlockNodeWithoutGraphInformation pWrapped) {
+    private Vertex(T pWrapped) {
       index = UNDEFINED_INDEX;
       lowLink = UNDEFINED_INDEX;
       onStack = false;
@@ -111,7 +106,7 @@ public class StronglyConnectedComponents {
       return onStack;
     }
 
-    private BlockNodeWithoutGraphInformation getWrapped() {
+    private T getWrapped() {
       return wrapped;
     }
 
@@ -129,12 +124,12 @@ public class StronglyConnectedComponents {
     }
   }
 
-  private List<List<BlockNodeWithoutGraphInformation>> findStronglyConnectedComponents() {
+  private List<List<T>> findStronglyConnectedComponents() {
     if (vertices.size() >= Integer.MAX_VALUE - 1) {
       throw new AssertionError("Cannot handle >=" + (Integer.MAX_VALUE - 1) + " vertices");
     }
-    List<List<BlockNodeWithoutGraphInformation>> components = new ArrayList<>();
-    for (Vertex vertex : vertices) {
+    List<List<T>> components = new ArrayList<>();
+    for (Vertex<T> vertex : vertices) {
       if (vertex.getIndex() == UNDEFINED_INDEX) {
         findStronglyConnectedComponents(vertex, components);
       }
@@ -142,14 +137,13 @@ public class StronglyConnectedComponents {
     return components;
   }
 
-  private void findStronglyConnectedComponents(
-      Vertex v, List<List<BlockNodeWithoutGraphInformation>> pComponents) {
+  private void findStronglyConnectedComponents(Vertex<T> v, List<List<T>> pComponents) {
     v.setIndex(index);
     v.setLowLink(index);
     index++;
     stack.push(v);
     v.setOnStack(true);
-    for (Vertex w : successors.get(v)) {
+    for (Vertex<T> w : successors.get(v)) {
       if (w.getIndex() == UNDEFINED_INDEX) {
         findStronglyConnectedComponents(w, pComponents);
         v.setLowLink(Integer.min(v.getLowLink(), w.getLowLink()));
@@ -158,9 +152,9 @@ public class StronglyConnectedComponents {
       }
     }
     if (v.getLowLink() == v.getIndex()) {
-      List<BlockNodeWithoutGraphInformation> stronglyConnected = new ArrayList<>();
+      List<T> stronglyConnected = new ArrayList<>();
       while (!stack.isEmpty()) {
-        Vertex w = stack.pop();
+        Vertex<T> w = stack.pop();
         w.setOnStack(false);
         stronglyConnected.add(w.getWrapped());
         if (v.equals(w)) {
