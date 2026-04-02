@@ -133,11 +133,13 @@ public record AbortCommutingContextSwitchesInjector(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     if (pStatement.targetPc().isPresent()) {
+      ImmutableList<CExpressionAssignmentStatement> prevBitVectorUpdates =
+          buildPrevAccessBitVectorUpdatesByEncoding();
       int targetPc = pStatement.targetPc().orElseThrow();
 
       // if a thread exits, set prev_thread to NUM_THREADS - 1.
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
-        return injectPrevThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
+        return injectPrevThreadUpdateIntoStatement(pStatement, numThreads, prevBitVectorUpdates);
       }
       // if targetPc != EXIT_PC, then pLabelClause contains targetPc, otherwise NPE
       SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
@@ -149,13 +151,9 @@ public record AbortCommutingContextSwitchesInjector(
       // prev_thread, current thread aborts. but prev_thread may e.g. call pthread_join on the
       // current thread -> both abort, and no thread makes any progress
       if (SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
-        return injectPrevThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
+        return injectPrevThreadUpdateIntoStatement(pStatement, numThreads, prevBitVectorUpdates);
       }
 
-      // bit vector updates are only added when the prev_thread != NUM_THREADS -1.
-      // this is because the bit vectors are only accessed anyway if prev_thread < some_int holds.
-      ImmutableList<CExpressionAssignmentStatement> prevBitVectorUpdates =
-          buildPrevAccessBitVectorUpdatesByEncoding();
       // for all other target pc, set prev_thread to current thread id and update prev bitvectors
       return injectPrevThreadUpdateIntoStatement(
           pStatement, activeThread.id(), prevBitVectorUpdates);
