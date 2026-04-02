@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -250,12 +251,20 @@ public record AbortCommutingContextSwitchesInjector(
           entry.getValue().getVariablesByReachType(ReachType.DIRECT);
       PrevSparseBitVector prevSparseBitVector =
           Objects.requireNonNull(prevSparseBitVectors.get(entry.getKey()));
+
+      // If activeThread is in directVariableMap, then set the prev bit vector to the threads bit
+      // vector. Otherwise, and this can only occur if 'pruneSparseBitVectors' is enabled, then
+      // there is no bit vector for the thread and the prev bit vector is set to 0 instead.
+      CExpression rightHandSide;
+      if (directVariableMap.containsKey(activeThread)) {
+        rightHandSide = Objects.requireNonNull(directVariableMap.get(activeThread));
+      } else {
+        checkState(options.pruneSparseBitVectors());
+        rightHandSide = CIntegerLiteralExpression.ZERO;
+      }
       CExpressionAssignmentStatement update =
           SeqStatementBuilder.buildExpressionAssignmentStatement(
-              prevSparseBitVector.directVariable(),
-              directVariableMap.containsKey(activeThread)
-                  ? Objects.requireNonNull(directVariableMap.get(activeThread))
-                  : CIntegerLiteralExpression.ZERO);
+              prevSparseBitVector.directVariable(), rightHandSide);
       rUpdates.add(update);
     }
     return rUpdates.build();
