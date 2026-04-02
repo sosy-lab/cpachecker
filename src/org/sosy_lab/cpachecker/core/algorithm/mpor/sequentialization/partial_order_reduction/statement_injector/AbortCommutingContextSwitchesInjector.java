@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -249,17 +250,15 @@ public record AbortCommutingContextSwitchesInjector(
     for (var entry : sparseBitVectors.entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> directVariableMap =
           entry.getValue().getVariablesByReachType(ReachType.DIRECT);
-      for (var directVariable : directVariableMap.entrySet()) {
-        if (directVariable.getKey().equals(activeThread)) {
-          SeqMemoryLocation memoryLocation = entry.getKey();
-          PrevSparseBitVector prevSparseBitVector =
-              Objects.requireNonNull(prevSparseBitVectors.get(memoryLocation));
-          CExpressionAssignmentStatement update =
-              SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  prevSparseBitVector.directVariable(), directVariable.getValue());
-          rUpdates.add(update);
-        }
-      }
+      PrevSparseBitVector prevSparseBitVector =
+          Objects.requireNonNull(prevSparseBitVectors.get(entry.getKey()));
+      CExpressionAssignmentStatement update =
+          SeqStatementBuilder.buildExpressionAssignmentStatement(
+              prevSparseBitVector.directVariable(),
+              directVariableMap.containsKey(activeThread)
+                  ? Objects.requireNonNull(directVariableMap.get(activeThread))
+                  : CIntegerLiteralExpression.ZERO);
+      rUpdates.add(update);
     }
     return rUpdates.build();
   }
