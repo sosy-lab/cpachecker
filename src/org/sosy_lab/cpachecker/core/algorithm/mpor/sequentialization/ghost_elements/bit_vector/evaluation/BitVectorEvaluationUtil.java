@@ -66,15 +66,13 @@ public class BitVectorEvaluationUtil {
     ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =
         ImmutableListMultimap.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
-      SeqMemoryLocation memoryLocation = entry.getKey();
-      ImmutableMap<MPORThread, CIdExpression> variables =
-          entry.getValue().getVariablesByReachType(ReachType.REACHABLE);
-      ImmutableList<CIdExpression> otherVariables =
-          variables.entrySet().stream()
-              .filter(e -> pThreads.contains(e.getKey()))
-              .map(e -> e.getValue())
-              .collect(ImmutableList.toImmutableList());
-      rMap.putAll(memoryLocation, otherVariables);
+      for (MPORThread thread : pThreads) {
+        Optional<CIdExpression> reachableVariable =
+            entry.getValue().tryGetVariableByReachTypeAndThread(ReachType.REACHABLE, thread);
+        if (reachableVariable.isPresent()) {
+          rMap.put(entry.getKey(), reachableVariable.orElseThrow());
+        }
+      }
     }
     return rMap.build();
   }
@@ -189,17 +187,17 @@ public class BitVectorEvaluationUtil {
 
     ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
+      Optional<CIdExpression> directVariable =
+          entry.getValue().tryGetVariableByReachTypeAndThread(ReachType.DIRECT, pActiveThread);
       // if there is no direct variable for pActiveThread, then the thread does not access the
       // memory location at all, and it can be pruned from the evaluation
-      if (entry.getValue().directVariables().containsKey(pActiveThread)) {
+      if (directVariable.isPresent()) {
         // if the list of CExpression is empty, then there is no RHS, and pActiveThread is the only
         // thread that accesses the memory location, and it can be pruned from the evaluation.
         if (!pSparseBitVectors.get(entry.getKey()).isEmpty()) {
-          CIdExpression directBitVector =
-              Objects.requireNonNull(entry.getValue().directVariables().get(pActiveThread));
           CExportExpression sparseExpression =
               BitVectorEvaluationUtil.buildSingleSparseLogicalAndExpression(
-                  pSparseBitVectors, directBitVector, entry.getKey());
+                  pSparseBitVectors, directVariable.orElseThrow(), entry.getKey());
           sparseExpressions.add(sparseExpression);
         }
       }

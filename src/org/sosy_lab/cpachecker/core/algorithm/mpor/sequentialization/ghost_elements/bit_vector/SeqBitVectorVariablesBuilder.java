@@ -181,7 +181,9 @@ public record SeqBitVectorVariablesBuilder(
       ImmutableMap<MPORThread, CIdExpression> reachableVariables =
           buildSparseBitVectors(memoryLocation, pAccessType, ReachType.REACHABLE);
       rAccessVariables.put(
-          memoryLocation, new SparseBitVector(directVariables, reachableVariables));
+          memoryLocation,
+          new SparseBitVector(
+              options.pruneSparseBitVectors(), directVariables, reachableVariables));
     }
     return Optional.of(rAccessVariables.buildOrThrow());
   }

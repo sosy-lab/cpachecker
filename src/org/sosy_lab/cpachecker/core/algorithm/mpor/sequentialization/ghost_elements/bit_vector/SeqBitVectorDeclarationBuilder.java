@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -199,20 +198,17 @@ public record SeqBitVectorDeclarationBuilder(
         SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses);
     SeqThreadStatementBlock firstBlock = pClauses.getFirst().getFirstBlock();
 
-    for (ReachType reachType : ReachType.values()) {
+    for (ReachType reachType : ReachType.getPossibleReachTypes(options)) {
       ImmutableSet<SeqMemoryLocation> memoryLocations =
           SeqMemoryLocationFinder.findMemoryLocationsByReachType(
               labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
       for (var entry : pSparseBitVectors.entrySet()) {
-        SeqMemoryLocation memoryLocation = entry.getKey();
-        SparseBitVector sparseBitVector = entry.getValue();
-        if (sparseBitVector.getVariablesByReachType(reachType).containsKey(pThread)) {
-          CIdExpression idExpression =
-              Objects.requireNonNull(
-                  sparseBitVector.getVariablesByReachType(reachType).get(pThread));
+        Optional<CIdExpression> idExpression =
+            entry.getValue().tryGetVariableByReachTypeAndThread(reachType, pThread);
+        if (idExpression.isPresent()) {
           rDeclarations.add(
               buildSparseBitVectorDeclaration(
-                  idExpression, memoryLocations.contains(memoryLocation)));
+                  idExpression.orElseThrow(), memoryLocations.contains(entry.getKey())));
         }
       }
     }

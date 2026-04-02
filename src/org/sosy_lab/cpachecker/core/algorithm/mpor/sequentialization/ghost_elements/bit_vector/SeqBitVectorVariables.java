@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -56,14 +59,44 @@ public record SeqBitVectorVariables(
    * Represents a sparse bit vector, where each memory location, for each thread, has its own
    * variable in the sequentialization which can be either {@code 0} or {@code 1}.
    */
-  public record SparseBitVector(
-      ImmutableMap<MPORThread, CIdExpression> directVariables,
-      ImmutableMap<MPORThread, CIdExpression> reachableVariables) {
+  public static final class SparseBitVector {
 
-    public ImmutableMap<MPORThread, CIdExpression> getVariablesByReachType(ReachType pReachType) {
+    private final boolean isPruned;
+
+    private final ImmutableMap<MPORThread, CIdExpression> directVariables;
+
+    private final ImmutableMap<MPORThread, CIdExpression> reachableVariables;
+
+    public SparseBitVector(
+        boolean pIsPruned,
+        ImmutableMap<MPORThread, CIdExpression> pDirectVariables,
+        ImmutableMap<MPORThread, CIdExpression> pReachableVariables) {
+
+      isPruned = pIsPruned;
+      directVariables = pDirectVariables;
+      reachableVariables = pReachableVariables;
+    }
+
+    public Optional<CIdExpression> tryGetVariableByReachTypeAndThread(
+        ReachType pReachType, MPORThread pThread) {
+
       return switch (pReachType) {
-        case DIRECT -> directVariables;
-        case REACHABLE -> reachableVariables;
+        case DIRECT -> {
+          if (directVariables.containsKey(pThread)) {
+            yield Optional.of(Objects.requireNonNull(directVariables.get(pThread)));
+          } else {
+            checkState(isPruned);
+            yield Optional.empty();
+          }
+        }
+        case REACHABLE -> {
+          if (reachableVariables.containsKey(pThread)) {
+            yield Optional.of(Objects.requireNonNull(reachableVariables.get(pThread)));
+          } else {
+            checkState(isPruned);
+            yield Optional.empty();
+          }
+        }
       };
     }
   }
