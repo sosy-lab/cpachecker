@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -134,12 +133,14 @@ public record AbortCommutingContextSwitchesInjector(
 
     if (pStatement.targetPc().isPresent()) {
       int targetPc = pStatement.targetPc().orElseThrow();
+
       // if a thread exits, set prev_thread to NUM_THREADS - 1.
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
         return injectPrevThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
       }
       // if targetPc != EXIT_PC, then pLabelClause contains targetPc, otherwise NPE
       SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+
       // for sync locations, set prev_thread to NUM_THREADS - 1. this is necessary, otherwise
       // the analysis is unsound.
       // simple example: prev_thread is at a sync location that uses assume. the current thread
@@ -148,15 +149,15 @@ public record AbortCommutingContextSwitchesInjector(
       // current thread -> both abort, and no thread makes any progress
       if (SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
         return injectPrevThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
-      } else {
-        // bit vector updates are only added when the prev_thread != NUM_THREADS -1.
-        // this is because the bit vectors are only accessed anyway if prev_thread < some_int holds.
-        ImmutableList<CExpressionAssignmentStatement> prevBitVectorUpdates =
-            buildPrevAccessBitVectorUpdatesByEncoding();
-        // for all other target pc, set prev_thread to current thread id and update prev bitvectors
-        return injectPrevThreadUpdateIntoStatement(
-            pStatement, activeThread.id(), prevBitVectorUpdates);
       }
+
+      // bit vector updates are only added when the prev_thread != NUM_THREADS -1.
+      // this is because the bit vectors are only accessed anyway if prev_thread < some_int holds.
+      ImmutableList<CExpressionAssignmentStatement> prevBitVectorUpdates =
+          buildPrevAccessBitVectorUpdatesByEncoding();
+      // for all other target pc, set prev_thread to current thread id and update prev bitvectors
+      return injectPrevThreadUpdateIntoStatement(
+          pStatement, activeThread.id(), prevBitVectorUpdates);
     }
     // no valid target pc -> no conflict order required
     return pStatement;
@@ -246,16 +247,16 @@ public record AbortCommutingContextSwitchesInjector(
     ImmutableMap<SeqMemoryLocation, SparseBitVector> sparseBitVectors =
         bitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (var entry : sparseBitVectors.entrySet()) {
-      ImmutableMap<MPORThread, CIdExpression> reachableVariableMap =
-          entry.getValue().getVariablesByReachType(ReachType.REACHABLE);
-      for (var reachableVariable : reachableVariableMap.entrySet()) {
-        if (reachableVariable.getKey().equals(activeThread)) {
+      ImmutableMap<MPORThread, CIdExpression> directVariableMap =
+          entry.getValue().getVariablesByReachType(ReachType.DIRECT);
+      for (var directVariable : directVariableMap.entrySet()) {
+        if (directVariable.getKey().equals(activeThread)) {
           SeqMemoryLocation memoryLocation = entry.getKey();
-          PrevSparseBitVector prevSparseBitVector = prevSparseBitVectors.get(memoryLocation);
-          CIdExpression rightHandSide = reachableVariable.getValue();
+          PrevSparseBitVector prevSparseBitVector =
+              Objects.requireNonNull(prevSparseBitVectors.get(memoryLocation));
           CExpressionAssignmentStatement update =
               SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  checkNotNull(prevSparseBitVector).directVariable(), rightHandSide);
+                  prevSparseBitVector.directVariable(), directVariable.getValue());
           rUpdates.add(update);
         }
       }
