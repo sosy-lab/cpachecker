@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.normalizeExpression;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
@@ -379,14 +380,18 @@ public final class IntervalAnalysisState
     if (this == other) {
       return true;
     }
-
-    return other instanceof IntervalAnalysisState otherElement
-        && intervals.equals(otherElement.intervals);
+    if (other instanceof IntervalAnalysisState otherState) {
+      boolean intervalsEqual = this.intervals.equals(otherState.intervals);
+      boolean arraysEqual = this.arrays.equals(otherState.arrays);
+      return intervalsEqual && arraysEqual;
+    } else {
+      return false;
+    }
   }
 
   @Override
   public int hashCode() {
-    return intervals.hashCode();
+    return Objects.hashCode(this.intervals, this.arrays);
   }
 
   @Override
