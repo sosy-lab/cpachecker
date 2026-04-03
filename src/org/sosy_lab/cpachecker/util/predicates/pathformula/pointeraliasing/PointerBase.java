@@ -10,11 +10,12 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serializable;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 /** Representation of a base, i.e., a memory region. */
-public record PointerBase(String name) implements Comparable<PointerBase> {
+public record PointerBase(String name) implements Comparable<PointerBase>, Serializable {
 
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
 
