@@ -29,7 +29,10 @@ public class MPOROptions {
       secure = true,
       description =
           "Abort context switches between the previous and current thread if they commute, i.e.,"
-              + " they are not in conflict.")
+              + " they are not in conflict. Enabling this option together with"
+              + " executeCommutingThreadsFirst is unsound, because the next thread is chosen"
+              + " deterministically for execution only to then abort, which can result in an"
+              + " underapproximation of the state space.")
   private boolean abortCommutingContextSwitches = false;
 
   @Option(secure = true, description = "Allow input programs that write pointer variables?")
@@ -68,7 +71,9 @@ public class MPOROptions {
       secure = true,
       description =
           "Prefer the execution of threads that commute, i.e., they are not in conflict with any"
-              + " other thread.")
+              + " other thread. Enabling this option together with abortCommutingContextSwitches is"
+              + " unsound, because the next thread is chosen deterministically for execution only"
+              + " to then abort, which can result in an underapproximation of the state space.")
   private boolean executeCommutingThreadsFirst = false;
 
   @Option(

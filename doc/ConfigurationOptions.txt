@@ -265,7 +265,10 @@ analysis.algorithm.IMC = false
 analysis.algorithm.MPI = false
 
 # Abort context switches between the previous and current thread if they
-# commute, i.e., they are not in conflict.
+# commute, i.e., they are not in conflict. Enabling this option together with
+# executeCommutingThreadsFirst is unsound, because the next thread is chosen
+# deterministically for execution only to then abort, which can result in an
+# underapproximation of the state space.
 analysis.algorithm.MPOR.abortCommutingContextSwitches = false
 
 # Allow input programs that write pointer variables?
@@ -291,7 +294,10 @@ analysis.algorithm.MPOR.comments = false
 analysis.algorithm.MPOR.consecutiveLabels = true
 
 # Prefer the execution of threads that commute, i.e., they are not in
-# conflict with any other thread.
+# conflict with any other thread. Enabling this option together with
+# abortCommutingContextSwitches is unsound, because the next thread is chosen
+# deterministically for execution only to then abort, which can result in an
+# underapproximation of the state space.
 analysis.algorithm.MPOR.executeCommutingThreadsFirst = false
 
 # Continue execution in the current thread if it is the only active thread.
