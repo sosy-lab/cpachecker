@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.normalizeExpression;
 import static org.sosy_lab.cpachecker.cpa.interval.Interval.ONE;
 import static org.sosy_lab.cpachecker.cpa.interval.Interval.ZERO;
+import static org.sosy_lab.cpachecker.cpa.interval.funarray.ExpressionUtility.normalizeExpression;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArray;
+import org.sosy_lab.cpachecker.cpa.interval.funarray.NormalFormExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class IntervalAnalysisTransferRelation

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.interval;
+package org.sosy_lab.cpachecker.cpa.interval.funarray;
 
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 
@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cpa.interval.Interval;
 
 public class FunArrayBuilder {
   private List<Bound> bounds;

@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.normalizeExpression;
+import static org.sosy_lab.cpachecker.cpa.interval.funarray.ExpressionUtility.normalizeExpression;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Predicates;
@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
+import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArray;
+import org.sosy_lab.cpachecker.cpa.interval.funarray.NormalFormExpression;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;

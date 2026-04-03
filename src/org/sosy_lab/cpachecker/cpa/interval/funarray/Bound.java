@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.interval;
+package org.sosy_lab.cpachecker.cpa.interval.funarray;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
@@ -17,6 +17,8 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cpa.interval.ExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**

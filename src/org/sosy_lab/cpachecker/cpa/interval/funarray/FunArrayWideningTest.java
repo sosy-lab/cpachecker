@@ -6,13 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.interval;
+package org.sosy_lab.cpachecker.cpa.interval.funarray;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.sosy_lab.cpachecker.cpa.interval.FunArrayBuilder.exp;
+import static org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.exp;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cpa.interval.FunArrayBuilder.FunArrayBuilderException;
+import org.sosy_lab.cpachecker.cpa.interval.Interval;
+import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.FunArrayBuilderException;
 
 public class FunArrayWideningTest {
 

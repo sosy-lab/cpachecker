@@ -6,13 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.interval;
+package org.sosy_lab.cpachecker.cpa.interval.funarray;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cpa.interval.Interval;
 
 public class FunArrayUnification {
 
