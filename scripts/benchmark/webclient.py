@@ -702,10 +702,6 @@ class WebInterface:
             params.append(("coreRequirement", str(requirements[COREREQUIREMENT])))
         if MEMORYREQUIREMENT in requirements:
             params.append(("memoryRequirement", str(requirements[MEMORYREQUIREMENT])))
-
-        logging.warning("DEBUG requirements dict: %s", requirements)
-        logging.warning("DEBUG limitations dict: %s", limits)
-
         if result_files_patterns:
             for pattern in result_files_patterns:
                 params.append(("resultFilesPattern", pattern))
