@@ -275,7 +275,7 @@ public class SequentializationBuilder {
     rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
 
     // thread simulation functions, only enabled when loop is unrolled
-    if (pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationUnrolling()) {
       pFields
           .threadSimulationFunctions
           .orElseThrow()
@@ -300,7 +300,7 @@ public class SequentializationBuilder {
         SeqAssumeFunctionBuilder.buildFunctionDefinition(pUtils.binaryExpressionBuilder())
             .toASTString());
     // create separate thread simulation function definitions, if enabled
-    if (pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationUnrolling()) {
       for (CExportFunctionDefinition functionDefinition :
           pFields.threadSimulationFunctions.orElseThrow().values()) {
         rDefinitions.add(functionDefinition.toASTString());
@@ -324,13 +324,14 @@ public class SequentializationBuilder {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
 
-    // if the loop is finite, i.e., loopIterations is not 0, and loopUnrolling is disabled,
+    // if the loop is finite, i.e., threadSimulationIterations is not 0, and
+    // threadSimulationUnrolling is disabled,
     // then add the variable that is incremented with each iteration
-    if (pOptions.loopIterations() != 0 && !pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationIterations() != 0 && !pOptions.threadSimulationUnrolling()) {
       rDeclarations.add(SeqVariableDeclarations.ITERATION.toASTString());
     }
 
-    if (pOptions.reduceLastThreadOrder()) {
+    if (pOptions.abortCommutingContextSwitches()) {
       // LAST_THREAD ghost variable
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
@@ -373,8 +374,8 @@ public class SequentializationBuilder {
       SeqBitVectorDeclarationBuilder bitVectorDeclarationBuilder =
           new SeqBitVectorDeclarationBuilder(
               pOptions.bitVectorEncoding(),
-              pOptions.reduceIgnoreSleep(),
-              pOptions.reductionMode(),
+              pOptions.executeCommutingThreadsFirst(),
+              pOptions.partialOrderReductionMode(),
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
               pFields.machineModel,
@@ -387,7 +388,9 @@ public class SequentializationBuilder {
     }
 
     // track active thread number via thread_count
-    rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
+    if (pOptions.executeSingleActiveThreadFirst()) {
+      rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
+    }
 
     // if enabled: round_max and round
     if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {
