@@ -55,7 +55,7 @@ public record MemoryModelBuilder(
   private static final int INITIAL_MEMORY_LOCATION_ID = 0;
 
   public Optional<MemoryModel> tryBuildMemoryModel() throws UnsupportedCodeException {
-    if (options.linkReduction()) {
+    if (options.mergeCommutingStatements()) {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
           mapStartRoutineArgAssignments();
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =

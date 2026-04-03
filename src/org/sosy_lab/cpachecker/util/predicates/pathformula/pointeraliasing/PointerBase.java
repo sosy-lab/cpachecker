@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Splitter;
+import java.io.Serializable;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -24,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
  * order to differentiate between the same variable at different call-sites in a recursive procedure
  */
 public record PointerBase(String name, OptionalInt callStackDepth)
-    implements Comparable<PointerBase> {
+    implements Comparable<PointerBase>, Serializable {
 
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
   private static final String CALL_STACK_DEPTH_SEPARATOR = "__CALL_STACK_DEPTH_";
