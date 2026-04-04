@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -43,7 +43,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   private final StatCounter popCount;
   private final StatCounter delegationCount;
-  private final Map<String, StatInt> delegationCounts = new HashMap<>();
+  private final Map<String, StatInt> delegationCounts = new LinkedHashMap<>();
 
   /**
    * Constructor that needs a factory for the waitlist implementation that should be used to store
@@ -150,11 +150,21 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
    */
   public Map<String, StatInt> getDelegationCounts() {
     String waitlistName = getClass().getSimpleName();
-    StatInt directDelegations = new StatInt(StatKind.AVG, waitlistName);
+
+    StatInt pops = new StatInt(StatKind.SUM, "Pop requests handled (" + waitlistName + ")");
+    assert popCount.getValue() <= Integer.MAX_VALUE;
+    pops.setNextValue((int) popCount.getValue());
+
+    StatInt delegations =
+        new StatInt(
+            StatKind.SUM, "Pops with remaining states in nested waitlist (" + waitlistName + ")");
     assert delegationCount.getValue() <= Integer.MAX_VALUE;
-    directDelegations.setNextValue((int) delegationCount.getValue());
-    delegationCounts.put(waitlistName, directDelegations);
-    return delegationCounts;
+    delegations.setNextValue((int) delegationCount.getValue());
+
+    Map<String, StatInt> result = new LinkedHashMap<>(delegationCounts);
+    result.put(pops.getTitle(), pops);
+    result.put(delegations.getTitle(), delegations);
+    return result;
   }
 
   @Override

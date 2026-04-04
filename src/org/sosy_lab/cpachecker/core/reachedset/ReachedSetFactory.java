@@ -176,7 +176,7 @@ public class ReachedSetFactory {
       secure = true,
       name = "reachedSet.withStatistics",
       description = "track more statistics about the reachedset")
-  private boolean withStatistics = false;
+  private boolean withStatistics = true;
 
   private @Nullable BlockConfiguration blockConfig;
   private @Nullable UsageConfiguration usageConfig;

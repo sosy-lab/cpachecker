@@ -12,8 +12,8 @@ import com.google.common.base.Functions;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -77,7 +77,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private int countStop = 0;
     private int countBreak = 0;
 
-    private Map<String, AbstractStatValue> reachedSetStatistics = new HashMap<>();
+    private Map<String, AbstractStatValue> reachedSetStatistics = new LinkedHashMap<>();
 
     private void stopAllTimers() {
       totalTimer.stopIfRunning();
