@@ -637,7 +637,7 @@ analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
 
 # track more statistics about the reachedset
-analysis.reachedSet.withStatistics = true
+analysis.reachedSet.withStatistics = false
 
 # Use if you are going to change function with function pionter parameter
 analysis.replaceFunctionWithParameterPointer = false
