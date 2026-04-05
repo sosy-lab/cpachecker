@@ -41,9 +41,9 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   private int size = 0;
 
-  private final StatCounter popCount;
-  private final StatCounter delegationCount;
-  private final Map<String, StatInt> delegationCounts = new LinkedHashMap<>();
+  private StatCounter popCount = null;
+  private StatCounter delegationCount = null;
+  private Map<String, StatInt> delegationCounts = null;
 
   /**
    * Constructor that needs a factory for the waitlist implementation that should be used to store
@@ -51,12 +51,6 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
    */
   protected AbstractSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
-    popCount = new StatCounter("Pop requests to waitlist (" + getClass().getSimpleName() + ")");
-    delegationCount =
-        new StatCounter(
-            "Pops delegated to wrapped waitlists ("
-                + wrappedWaitlist.getClass().getSimpleName()
-                + ")");
   }
 
   /**
@@ -111,7 +105,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   @Override
   public final AbstractState pop() {
-    popCount.inc();
+    getPopCount().inc();
 
     Entry<K, Waitlist> highestEntry = waitlist.lastEntry();
     Waitlist localWaitlist = highestEntry.getValue();
@@ -121,7 +115,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
       waitlist.remove(highestEntry.getKey());
       addStatistics(localWaitlist);
     } else {
-      delegationCount.inc();
+      getDelegationCount().inc();
     }
     size--;
     return result;
@@ -134,14 +128,37 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
       for (Entry<String, StatInt> e : delegCount.entrySet()) {
         String key = e.getKey();
-        if (!delegationCounts.containsKey(key)) {
-          delegationCounts.put(key, e.getValue());
+        if (!getOrCreateDelegationCounts().containsKey(key)) {
+          getOrCreateDelegationCounts().put(key, e.getValue());
 
         } else {
-          delegationCounts.get(key).add(e.getValue());
+          getOrCreateDelegationCounts().get(key).add(e.getValue());
         }
       }
     }
+  }
+
+  private StatCounter getPopCount() {
+    if (popCount == null) {
+      popCount = new StatCounter("Pop requests handled (" + getClass().getSimpleName() + ")");
+    }
+    return popCount;
+  }
+
+  private StatCounter getDelegationCount() {
+    if (delegationCount == null) {
+      delegationCount =
+          new StatCounter(
+              "Pops with remaining states in nested waitlist (" + getClass().getSimpleName() + ")");
+    }
+    return delegationCount;
+  }
+
+  private Map<String, StatInt> getOrCreateDelegationCounts() {
+    if (delegationCounts == null) {
+      delegationCounts = new LinkedHashMap<>();
+    }
+    return delegationCounts;
   }
 
   /**
@@ -152,16 +169,16 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
     String waitlistName = getClass().getSimpleName();
 
     StatInt pops = new StatInt(StatKind.SUM, "Pop requests handled (" + waitlistName + ")");
-    assert popCount.getValue() <= Integer.MAX_VALUE;
-    pops.setNextValue((int) popCount.getValue());
+    assert popCount == null || popCount.getValue() <= Integer.MAX_VALUE;
+    pops.setNextValue(popCount != null ? (int) popCount.getValue() : 0);
 
     StatInt delegations =
         new StatInt(
             StatKind.SUM, "Pops with remaining states in nested waitlist (" + waitlistName + ")");
-    assert delegationCount.getValue() <= Integer.MAX_VALUE;
-    delegations.setNextValue((int) delegationCount.getValue());
+    assert delegationCount == null || delegationCount.getValue() <= Integer.MAX_VALUE;
+    delegations.setNextValue(delegationCount != null ? (int) delegationCount.getValue() : 0);
 
-    Map<String, StatInt> result = new LinkedHashMap<>(delegationCounts);
+    Map<String, StatInt> result = new LinkedHashMap<>(getOrCreateDelegationCounts());
     result.put(pops.getTitle(), pops);
     result.put(delegations.getTitle(), delegations);
     return result;
