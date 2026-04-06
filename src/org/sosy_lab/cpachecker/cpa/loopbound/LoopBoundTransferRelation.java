@@ -181,8 +181,10 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
       if (pairedLoopHead.isPresent()) {
         LoopBoundState finalState = state;
+        boolean visitedLoopsMoreThanOnce =
+            visitedLoops.stream().anyMatch(l -> finalState.getIteration(l) > 1);
         if (loopHeads.get(pairedLoopHead.orElseThrow()).stream()
-            .anyMatch(l -> finalState.getIteration(l) > 0)) {
+            .anyMatch(l -> finalState.getIteration(l) > 0 && visitedLoopsMoreThanOnce)) {
           return ImmutableList.of();
         }
       }
