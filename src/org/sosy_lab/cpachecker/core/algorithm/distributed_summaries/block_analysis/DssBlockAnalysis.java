@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -431,6 +432,17 @@ public class DssBlockAnalysis {
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
     if (result.getFinalLocationStates().isEmpty()) {
       messages.addAll(reportUnreachableBlockEnd());
+    } else {
+      AbstractState startState = makeTopState(block.getFinalLocation());
+      Precision startPrecision = makeStartPrecision();
+      messages.add(
+          messageFactory.createDssPostConditionMessage(
+              block.getId(),
+              true,
+              true,
+              status,
+              ImmutableList.copyOf(block.getSuccessorIds()),
+              serialize(ImmutableList.of(new StateAndPrecision(startState, startPrecision)))));
     }
     return messages.addAll(reportFirstViolationConditions(result.getAllViolations())).build();
   }
@@ -488,7 +500,7 @@ public class DssBlockAnalysis {
             preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
             break;
           }
-          // preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
+          preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
         }
       }
       preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
@@ -533,7 +545,7 @@ public class DssBlockAnalysis {
    *
    * @return All violations and/or abstractions that occurred while running the forward analysis.
    */
-  public Collection<DssMessage> analyzePrecondition(String id)
+  public Collection<DssMessage> analyzePrecondition()
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableList.Builder<StateAndPrecision> soundSummaries = ImmutableList.builder();
@@ -541,10 +553,8 @@ public class DssBlockAnalysis {
     if (isOriginal || !violationConditions.isEmpty()) {
       AnalysisResult result =
           analyzeViolationCondition(
-              transformedImmutableListCopy(
-                  isOriginal ? ImmutableSet.of() : violationConditions.values(),
-                  v -> (ARGState) v.state()),
-              Optional.of(id));
+              transformedImmutableListCopy(violationConditions.values(), v -> (ARGState) v.state()),
+              Optional.empty());
       if (!result.violationConditions().isEmpty()) {
         messages.addAll(reportViolationConditions(result.violationConditions(), false));
       } else {
@@ -619,7 +629,6 @@ public class DssBlockAnalysis {
     }
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     ImmutableList.Builder<AbstractState> vcs = ImmutableList.builder();
-    boolean calculatedTop = false;
     ImmutableSet.Builder<StateAndPrecision> startStates = ImmutableSet.builder();
     if (id.isEmpty()) {
       // unreachable block ends might be caused by underapproximating summaries
@@ -637,12 +646,6 @@ public class DssBlockAnalysis {
     }
     Optional<Precision> maybePrecision = combinePrecisionIfPossible();
     for (StateAndPrecision stateAndPrecision : startStates.build()) {
-      if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-        if (calculatedTop) {
-          continue;
-        }
-        calculatedTop = true;
-      }
       resetStates();
       reachedSet.clear();
       reachedSet.add(
@@ -681,9 +684,12 @@ public class DssBlockAnalysis {
     return new AnalysisResult(true, summaries.build(), vcs.build());
   }
 
+  private AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
+    return dcpa.getInitialState(pLocation, StateSpacePartition.getDefaultPartition());
+  }
+
   private AbstractState makeStartState() throws InterruptedException {
-    return dcpa.getInitialState(
-        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
+    return makeTopState(block.getInitialLocation());
   }
 
   private Precision makeStartPrecision() throws InterruptedException {
