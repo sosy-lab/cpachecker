@@ -2351,6 +2351,13 @@ cpa.loopbound.maxLoopIterations = 0
 # loop-head visits.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
+# For recursion we split the loops into two, one for the function head and
+# one for the function exit. This reduces the performance of the BMC
+# algorithm, since it needs to continue on both paths. However it is
+# sufficient to continue on the path of the one which is encountered first
+# for the induction step.
+cpa.loopbound.onlyFollowAlreadyVisitedRecursiveLoops = false
+
 # Only checks for error after loops were unrolled at least this amount of
 # times.
 cpa.loopbound.startAtBound = 0
