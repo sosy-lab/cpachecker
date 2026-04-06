@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatem
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -339,19 +340,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       // collect declarations of local parameters and global variables
       for (CDeclaration declaration : declarations) {
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
-          // TODO handle other types and improve default case?
-          SvLibType type =
-              switch (variableDeclaration.getType()) {
-                // TODO also true for bool and char, since these are integer types
-                case CSimpleType simpleType when simpleType.getType().isIntegerType() ->
-                    SvLibSmtLibPredefinedType.INT;
-                case CSimpleType simpleType when simpleType.getType().isFloatingPointType() ->
-                    SvLibSmtLibPredefinedType.REAL;
-                case null, default ->
-                    throw new UnsupportedOperationException(
-                        "Failed to transform CType to SvLibSmtLibPredefinedType for variable "
-                            + variableDeclaration.getQualifiedName());
-              };
+          SvLibType type = convertToSvLibType(variableDeclaration.getType());
 
           if (variableDeclaration.isGlobal()) {
             SvLibParsingVariableDeclaration globalVariable =
@@ -603,7 +592,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       return ImmutableList.of(
           new SvLibParsingParameterDeclaration(
               FileLocation.DUMMY,
-              transformToSvLibType(asSimpleType),
+              convertToSvLibType(asSimpleType),
               pReturnVariable.orElseThrow().getName(),
               pProcedureName));
     }
@@ -621,7 +610,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         parameterCollector.add(
             new SvLibParsingParameterDeclaration(
                 FileLocation.DUMMY,
-                transformToSvLibType(asSimpleType),
+                convertToSvLibType(asSimpleType),
                 getNameForInputParameterDummy(parameter.getName()),
                 pProcedureName));
       }
@@ -629,16 +618,20 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     return parameterCollector.build();
   }
 
-  private SvLibType transformToSvLibType(CSimpleType pCSimpleType)
-      throws UnsupportedOperationException {
-    if (pCSimpleType.getType().isIntegerType()) {
-      return SvLibSmtLibPredefinedType.INT;
-    } else if (pCSimpleType.getType().isFloatingPointType()) {
-      return SvLibSmtLibPredefinedType.REAL;
+  private SvLibType convertToSvLibType(CType pCType) {
+    if (pCType instanceof CSimpleType cSimpleType) {
+      if (cSimpleType.getType().isIntegerType()) {
+        return SvLibSmtLibPredefinedType.INT;
+      } else if (cSimpleType.getType().isFloatingPointType()) {
+        return SvLibSmtLibPredefinedType.REAL;
+      } else {
+        throw new UnsupportedOperationException(
+            "Transformation of CSimpleType to SvLibSmtLibPredefinedType failed for type "
+                + cSimpleType);
+      }
     } else {
       throw new UnsupportedOperationException(
-          "Transformation of CSimpleType to SvLibSmtLibPredefinedType failed for type "
-              + pCSimpleType);
+          "Transformation to a SvLibType failed for CType " + pCType.toString());
     }
   }
 
