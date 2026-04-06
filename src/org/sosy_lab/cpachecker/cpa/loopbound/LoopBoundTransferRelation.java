@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -56,16 +54,6 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       description =
           "Only checks for error after loops were unrolled at least this amount of times.")
   private int startAtBound = 0;
-
-  @Option(
-      secure = true,
-      description =
-          "For recursion we split the loops into two, one for the function head "
-              + "and one for the function exit. This reduces the performance of "
-              + "the BMC algorithm, since it needs to continue on both paths. "
-              + "However it is sufficient to continue on the path of the one "
-              + "which is encountered first for the induction step.")
-  private boolean onlyFollowAlreadyVisitedRecursiveLoops = false;
 
   @Option(
       secure = true,
@@ -167,27 +155,6 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     // Check if we need to increment the loop counter
     Collection<Loop> visitedLoops = loopHeads.get(loc);
     assert newLoop == null || visitedLoops.contains(newLoop);
-
-    // Only continue exploring nodes which we want to continue exploring , without expanding the
-    // state-space too much
-    if (onlyFollowAlreadyVisitedRecursiveLoops) {
-      Optional<CFANode> pairedLoopHead = Optional.empty();
-      if (loc instanceof FunctionEntryNode pFunctionEntryNode
-          && pFunctionEntryNode.getExitNode().isPresent()) {
-        pairedLoopHead = Optional.of(pFunctionEntryNode.getExitNode().orElseThrow());
-      } else if (loc instanceof FunctionExitNode pFunctionExitNode) {
-        pairedLoopHead = Optional.ofNullable(pFunctionExitNode.getEntryNode());
-      }
-
-      if (pairedLoopHead.isPresent()) {
-        LoopBoundState finalState = state;
-        if (loopHeads.get(pairedLoopHead.orElseThrow()).stream()
-            .anyMatch(l -> finalState.getIteration(l) > 0)) {
-          return ImmutableList.of();
-        }
-      }
-    }
-
     for (Loop loop : visitedLoops) {
       state = state.visitLoopHead(loop);
       // Check if the bound for unrolling has been reached;
