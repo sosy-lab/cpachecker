@@ -13,10 +13,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -77,10 +79,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -90,6 +94,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
@@ -104,6 +109,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   private final PathFormulaManager pathFormulaManager;
   private final SvLibCurrentScope scope;
   private final FormulaToSvLibVisitor formulaToSvLibVisitor;
+
+  private final TransformationStatistics transformationStatistics;
 
   /**
    * Transforms the CFA of a C program to a SvLibScript. At the moment in development and works
@@ -140,6 +147,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
     scope = new SvLibCurrentScope();
     formulaToSvLibVisitor = new FormulaToSvLibVisitor(solver.getFormulaManager(), scope);
+    transformationStatistics = new TransformationStatistics();
   }
 
   /**
@@ -148,42 +156,67 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
    * @return The SvLibScript generated from the CFA
    */
   public SvLibScript transformCfaToSvLib() throws UnsupportedOperationException {
-    ImmutableList.Builder<SvLibCommand> commandsCollector = ImmutableList.builder();
-    commandsCollector.add(
-        new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
-        new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY));
+    SvLibScript outputScript;
 
-    // 1. Step: Initialize CurrentScope with declarations of procedures and global variables,
-    // global variables are added to scope +  declaration commands are added to commandsCollector
-    initializeScope(commandsCollector);
+    logger.log(Level.INFO, "Starting transformation of the input C program to SV-LIB.");
+    transformationStatistics.totalTransformationTime.start();
+    try {
+      ImmutableList.Builder<SvLibCommand> commandsCollector = ImmutableList.builder();
+      commandsCollector.add(
+          new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
+          new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY));
 
-    ImmutableList.Builder<SvLibProcedureDeclaration> procedureDeclarationCollector =
-        ImmutableList.builder();
-    ImmutableList.Builder<SvLibStatement> procedureBodiesCollector = ImmutableList.builder();
+      // 1. Step: Initialize CurrentScope with declarations of procedures and global variables,
+      // global variables are added to scope +  declaration commands are added to commandsCollector
 
-    // 2. Step: transform each function to a procedure body
-    for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {
-      SvLibStatement procedureBody = transformFunction((CFunctionEntryNode) functionEntryNode);
+      transformationStatistics.initializationTime.start();
+      try {
+        initializeScope(commandsCollector);
+      } finally {
+        transformationStatistics.initializationTime.stop();
+      }
 
-      procedureDeclarationCollector.add(
-          scope.getProcedureDeclaration(functionEntryNode.getFunctionName()));
-      procedureBodiesCollector.add(procedureBody);
+      // 2. Step: transform each function to a procedure body
+      transformationStatistics.transformationTime.start();
+      ImmutableList.Builder<SvLibProcedureDeclaration> procedureDeclarationCollector =
+          ImmutableList.builder();
+      ImmutableList.Builder<SvLibStatement> procedureBodiesCollector = ImmutableList.builder();
+
+      try {
+        for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {
+          SvLibStatement procedureBody = transformFunction((CFunctionEntryNode) functionEntryNode);
+
+          procedureDeclarationCollector.add(
+              scope.getProcedureDeclaration(functionEntryNode.getFunctionName()));
+          procedureBodiesCollector.add(procedureBody);
+        }
+      } finally {
+        transformationStatistics.transformationTime.stop();
+      }
+
+      SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand =
+          new SvLibProceduresRecDefinitionCommand(
+              FileLocation.DUMMY,
+              procedureDeclarationCollector.build(),
+              procedureBodiesCollector.build());
+      commandsCollector.add(proceduresRecDefinitionCommand);
+
+      commandsCollector.add(
+          new SvLibVerifyCallCommand(
+              scope.getProcedureDeclaration(cfa.getMainFunction().getFunctionName()),
+              ImmutableList.of(),
+              FileLocation.DUMMY));
+
+      ImmutableList<SvLibCommand> commandsCollectorBuilt = commandsCollector.build();
+
+      transformationStatistics.numberOfCommands = commandsCollectorBuilt.size();
+      outputScript = new SvLibScript(commandsCollectorBuilt, FileLocation.DUMMY);
+    } finally {
+      transformationStatistics.totalTransformationTime.stop();
     }
+    logger.log(Level.INFO, "Finished transformation of the input C program to SV-LIB.");
 
-    SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand =
-        new SvLibProceduresRecDefinitionCommand(
-            FileLocation.DUMMY,
-            procedureDeclarationCollector.build(),
-            procedureBodiesCollector.build());
-    commandsCollector.add(proceduresRecDefinitionCommand);
-
-    commandsCollector.add(
-        new SvLibVerifyCallCommand(
-            scope.getProcedureDeclaration(cfa.getMainFunction().getFunctionName()),
-            ImmutableList.of(),
-            FileLocation.DUMMY));
-
-    return new SvLibScript(commandsCollector.build(), FileLocation.DUMMY);
+    return outputScript;
   }
 
   private SvLibStatement transformFunction(CFunctionEntryNode pEntryNode) {
@@ -198,6 +231,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             .append(procedureDeclaration.getReturnValues())
             .toList());
 
+    // TODO pEntryNode.getFunctionName().contains(cfa.getMainFunction().getFunctionName())
     if (pEntryNode.getFunctionName().contains("main")
         && !procedureDeclaration.getReturnValues().isEmpty()) {
       // in the procedure created for the main-function: initialize _retval_ with 0
@@ -612,6 +646,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       CFANode pNode, ListMultimap<CFANode, SvLibStatement> pCreatedStatements) {
     if (!pCreatedStatements.containsKey(pNode)) {
       String label = pNode.toString();
+      transformationStatistics.numberOfLabelsCreated++;
       pCreatedStatements.put(pNode, createLabelStatement(label));
     }
   }
@@ -647,5 +682,33 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   @Override
   public void close() {
     solver.close();
+  }
+
+  private static class TransformationStatistics implements Statistics {
+
+    private final StatTimer totalTransformationTime = new StatTimer("Total Transformation Time");
+    private final StatTimer initializationTime = new StatTimer("Time to initialize scope");
+    private final StatTimer transformationTime = new StatTimer("Transformation Time");
+    private int numberOfCommands;
+    private int numberOfLabelsCreated;
+
+    private TransformationStatistics() {
+      numberOfCommands = 0;
+      numberOfLabelsCreated = 0;
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+      out.println("Total time for transformation:     " + totalTransformationTime);
+      out.println("Time to initialize scope:          " + initializationTime);
+      out.println("Time for transformation:           " + transformationTime);
+      out.println("Number of commands:                " + numberOfCommands);
+      out.println("Number of labels created:          " + numberOfLabelsCreated);
+    }
+
+    @Override
+    public String getName() {
+      return "C to SV-LIB Transformation Statistics";
+    }
   }
 }
