@@ -300,13 +300,22 @@ abstract class AbstractBMCAlgorithm
     }
 
     if (induction) {
+      Configuration stepCaseConfiguration =
+          Configuration.builder()
+              .copyFrom(pConfig)
+              .setOption("cpa.loopbound.onlyFollowAlreadyVisitedRecursiveLoops", "true")
+              .build();
       LogManager stepCaseLogger = logger.withComponentName("InductionStepCase");
       CPABuilder builder =
           new CPABuilder(
-              pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
+              stepCaseConfiguration,
+              stepCaseLogger,
+              pShutdownManager.getNotifier(),
+              pReachedSetFactory);
       stepCaseCPA = builder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
       stepCaseAlgorithm =
-          CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
+          CPAAlgorithm.create(
+              stepCaseCPA, stepCaseLogger, stepCaseConfiguration, pShutdownManager.getNotifier());
     } else {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
