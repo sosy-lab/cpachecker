@@ -429,7 +429,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       case CallToReturnEdge -> {
         // CFunctionSummaryEdge for function calls
         CFunctionSummaryEdge callEdge = (CFunctionSummaryEdge) pEdge;
-        handleFunctionCall(callEdge, pCreatedStatements);
+        SvLibProcedureCallStatement callStatement = handleFunctionCall(callEdge);
+        pCreatedStatements.put(pEdge.getPredecessor(), callStatement);
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
     }
@@ -496,37 +497,36 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     }
   }
 
-  private void handleFunctionCall(
-      CFunctionSummaryEdge pCallEdge, ListMultimap<CFANode, SvLibStatement> pCreatedStatements) {
+  private SvLibProcedureCallStatement handleFunctionCall(CFunctionSummaryEdge pCallEdge) {
     CFunctionCall functionCall = pCallEdge.getExpression();
 
     if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
       CIdExpression lhs = (CIdExpression) assignment.getLeftHandSide();
-      SvLibProcedureCallStatement procedureCall =
-          new SvLibProcedureCallStatement(
-              FileLocation.DUMMY,
-              ImmutableList.of(),
-              ImmutableList.of(),
-              scope.getProcedureDeclaration(
-                  assignment.getRightHandSide().getFunctionNameExpression().toASTString()),
-              transformInputParameters(
-                  assignment.getRightHandSide().getParameterExpressions(), pCallEdge),
-              ImmutableList.of(
-                  scope.getVariableForQualifiedName(lhs.getDeclaration().getQualifiedName())));
-      pCreatedStatements.put(pCallEdge.getPredecessor(), procedureCall);
+      return new SvLibProcedureCallStatement(
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of(),
+          scope.getProcedureDeclaration(
+              assignment.getRightHandSide().getFunctionNameExpression().toASTString()),
+          transformInputParameters(
+              assignment.getRightHandSide().getParameterExpressions(), pCallEdge),
+          ImmutableList.of(
+              scope.getVariableForQualifiedName(lhs.getDeclaration().getQualifiedName())));
 
     } else if (functionCall instanceof CFunctionCallStatement callStatement) {
-      SvLibProcedureCallStatement procedureCall =
-          new SvLibProcedureCallStatement(
-              FileLocation.DUMMY,
-              ImmutableList.of(),
-              ImmutableList.of(),
-              scope.getProcedureDeclaration(pCallEdge.getFunctionEntry().getFunctionName()),
-              transformInputParameters(
-                  callStatement.getFunctionCallExpression().getParameterExpressions(), pCallEdge),
-              ImmutableList.of());
+      return new SvLibProcedureCallStatement(
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of(),
+          scope.getProcedureDeclaration(pCallEdge.getFunctionEntry().getFunctionName()),
+          transformInputParameters(
+              callStatement.getFunctionCallExpression().getParameterExpressions(), pCallEdge),
+          ImmutableList.of());
 
-      pCreatedStatements.put(pCallEdge.getPredecessor(), procedureCall);
+    } else {
+      throw new UnsupportedOperationException(
+          "Failed to convert CFunctionCall to SvLibProcedureCallStatement based on CFunctionSummaryEdge "
+              + pCallEdge);
     }
   }
 
