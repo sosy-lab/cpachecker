@@ -231,8 +231,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             .append(procedureDeclaration.getReturnValues())
             .toList());
 
-    // TODO pEntryNode.getFunctionName().contains(cfa.getMainFunction().getFunctionName())
-    if (pEntryNode.getFunctionName().contains("main")
+    if (pEntryNode.getFunctionName().contains(cfa.getMainFunction().getFunctionName())
         && !procedureDeclaration.getReturnValues().isEmpty()) {
       // in the procedure created for the main-function: initialize _retval_ with 0
       createdStatements.put(
