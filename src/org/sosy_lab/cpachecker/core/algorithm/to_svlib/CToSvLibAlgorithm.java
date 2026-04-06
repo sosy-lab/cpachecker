@@ -114,6 +114,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   private final TransformationStatistics transformationStatistics;
 
+  private final String INPUT_DUMMY_VAR_PREFIX = "__originalInput_";
+
   /**
    * Transforms the CFA of a C program to a SvLibScript. At the moment in development and works
    * currently only for a limited subset of the C language.
@@ -262,22 +264,28 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       createdStatements.put(pEntryNode, errorStatement);
     }
 
+    // assign the dummy variables created for the input parameters to assignable variables that
+    // have the original variable names
     if (!procedureDeclaration.getParameters().isEmpty()) {
-      // assign the input parameters to assignable dummy variables
+      ImmutableMap.Builder<SvLibSimpleParsingDeclaration, SvLibTerm> inputAssignmentsCollector =
+          ImmutableMap.builder();
+
       for (SvLibParsingParameterDeclaration inputParameter : procedureDeclaration.getParameters()) {
         SvLibSimpleParsingDeclaration assignableInputDummyVariable =
-            scope.getVariable(inputParameter.getName().replaceAll("(_0)$", ""));
+            scope.getVariable(getOriginalNameOfInputParameterDummy(inputParameter.getName()));
 
-        SvLibAssignmentStatement assignInput =
-            new SvLibAssignmentStatement(
-                ImmutableMap.of(
-                    assignableInputDummyVariable,
-                    new SvLibIdTerm(inputParameter.toSimpleDeclaration(), FileLocation.DUMMY)),
-                FileLocation.DUMMY,
-                ImmutableList.of(),
-                ImmutableList.of());
-        createdStatements.put(pEntryNode, assignInput);
+        inputAssignmentsCollector.put(
+            assignableInputDummyVariable,
+            new SvLibIdTerm(inputParameter.toSimpleDeclaration(), FileLocation.DUMMY));
       }
+
+      SvLibAssignmentStatement assginDummyInput =
+          new SvLibAssignmentStatement(
+              inputAssignmentsCollector.build(),
+              FileLocation.DUMMY,
+              ImmutableList.of(),
+              ImmutableList.of());
+      createdStatements.put(pEntryNode, assginDummyInput);
     }
 
     ImmutableList<CFAEdge> relevantEdges = getAllRelevantEdges(pEntryNode);
@@ -315,7 +323,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             new SvLibParsingParameterDeclaration(
                 FileLocation.DUMMY,
                 inputParameter.getType(),
-                inputParameter.getName().replaceAll("(_0)$", ""),
+                getOriginalNameOfInputParameterDummy(inputParameter.getName()),
                 inputParameter.getProcedureName());
         localParametersCollector.add(dummyForInput);
       }
@@ -614,7 +622,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             new SvLibParsingParameterDeclaration(
                 FileLocation.DUMMY,
                 transformToSvLibType(asSimpleType),
-                parameter.getName() + "_0",
+                getNameForInputParameterDummy(parameter.getName()),
                 pProcedureName));
       }
     }
@@ -671,6 +679,19 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         FileLocation.DUMMY,
         ImmutableList.of(),
         ImmutableList.of(new SvLibTagReference(pProcedureName, FileLocation.DUMMY)));
+  }
+
+  private String getNameForInputParameterDummy(String pOriginalName) {
+    return INPUT_DUMMY_VAR_PREFIX + pOriginalName;
+  }
+
+  private String getOriginalNameOfInputParameterDummy(String pDummyName) {
+    if (pDummyName.startsWith(INPUT_DUMMY_VAR_PREFIX)) {
+      // return the name without the prefix
+      return pDummyName.substring(INPUT_DUMMY_VAR_PREFIX.length());
+    }
+    // FIXME This case should never occur, so throw instead?
+    return pDummyName;
   }
 
   @Override
