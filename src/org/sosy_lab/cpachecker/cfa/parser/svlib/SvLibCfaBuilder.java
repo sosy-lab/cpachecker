@@ -388,19 +388,18 @@ class SvLibCfaBuilder {
               procedureDeclaration.toSimpleDeclaration(), procedureDeclaration);
         }
         case SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand -> {
-          List<Pair<SvLibProcedureDeclaration, SvLibStatement>> procedures =
+          List<ProcedureDefinition> procedureDefinitions =
               Streams.zip(
                       proceduresRecDefinitionCommand.getProcedureDeclarations().stream(),
                       proceduresRecDefinitionCommand.getBodies().stream(),
-                      Pair::of)
+                      ProcedureDefinition::new)
                   .toList();
 
-          for (Pair<SvLibProcedureDeclaration, SvLibStatement> procedure : procedures) {
-            SvLibProcedureDeclaration procedureDeclaration = procedure.getFirst();
-            SvLibStatement body = procedure.getSecond();
+          for (ProcedureDefinition procedureDefinition : procedureDefinitions) {
+            SvLibProcedureDeclaration procedureDeclaration =
+                procedureDefinition.procedureDeclaration;
+            SvLibStatement body = procedureDefinition.body;
 
-            Verify.verify(procedureDeclaration != null);
-            Verify.verify(body != null);
             SvLibProcedureDefinitionCommand dummyProcedureDefinitionCommand =
                 new SvLibProcedureDefinitionCommand(FileLocation.DUMMY, procedureDeclaration, body);
 
@@ -580,5 +579,13 @@ class SvLibCfaBuilder {
             nodesToActualHavocStatementEnd.buildOrThrow(),
             nodeToTagAnnotations.build(),
             nodesToTagReferences.build()));
+  }
+
+  private record ProcedureDefinition(
+      SvLibProcedureDeclaration procedureDeclaration, SvLibStatement body) {
+    private ProcedureDefinition {
+      Objects.requireNonNull(procedureDeclaration);
+      Objects.requireNonNull(body);
+    }
   }
 }
