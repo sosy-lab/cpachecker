@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -19,6 +20,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -281,8 +283,23 @@ public class DssBlockAnalysis {
       Collection<@NonNull ARGState> violations, Collection<@NonNull ARGState> conditions)
       throws CPATransferException, SolverException, InterruptedException {
     ImmutableList.Builder<AbstractState> relevantViolations = ImmutableList.builder();
+    Set<String> ids = new LinkedHashSet<>();
     for (ARGState violation : violations) {
       for (ARGPath path : collectPaths(ImmutableList.of(violation))) {
+        String id =
+            Joiner.on(";")
+                .join(
+                    path.getFullPath().stream()
+                        .map(
+                            p ->
+                                p.getPredecessor().getNodeNumber()
+                                    + "->"
+                                    + p.getSuccessor().getNodeNumber())
+                        .toList());
+        if (ids.contains(id)) {
+          continue;
+        }
+        ids.add(id);
         for (ARGState condition : conditions) {
           Optional<AbstractState> violationCondition =
               dcpa.getViolationConditionOperator()
@@ -298,12 +315,27 @@ public class DssBlockAnalysis {
       Collection<@NonNull ARGState> violations)
       throws CPATransferException, SolverException, InterruptedException {
     ImmutableList.Builder<AbstractState> relevantViolations = ImmutableList.builder();
+    Set<String> ids = new LinkedHashSet<>();
     for (ARGState violation : violations) {
       BlockState condition =
           Objects.requireNonNull(AbstractStates.extractStateByType(violation, BlockState.class));
       ARGState violationState =
           (ARGState) Iterables.getOnlyElement(condition.getViolationConditions());
       for (ARGPath path : collectPaths(ImmutableList.of(violation))) {
+        String id =
+            Joiner.on(";")
+                .join(
+                    path.getFullPath().stream()
+                        .map(
+                            p ->
+                                p.getPredecessor().getNodeNumber()
+                                    + "->"
+                                    + p.getSuccessor().getNodeNumber())
+                        .toList());
+        if (ids.contains(id)) {
+          continue;
+        }
+        ids.add(id);
         Optional<AbstractState> violationCondition =
             dcpa.getViolationConditionOperator()
                 .computeViolationCondition(path, Optional.of(violationState));
@@ -661,7 +693,7 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        if (!result.getSummaries().isEmpty() && result.getAllViolations().isEmpty()) {
+        if (!result.getSummaries().isEmpty()) {
           ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           for (AbstractState summary : result.getSummaries()) {
             summaryWithPrecision.add(
