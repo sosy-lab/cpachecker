@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -684,9 +683,6 @@ public class DssBlockAnalysis {
     }
     Optional<Precision> maybePrecision = combinePrecisionIfPossible();
     for (StateAndPrecision stateAndPrecision : startStates.build()) {
-      if (allowedToSkipTop && dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-        continue;
-      }
       resetStates();
       reachedSet.clear();
       reachedSet.add(
@@ -711,8 +707,10 @@ public class DssBlockAnalysis {
           summaries.addAll(summaryWithPrecision.build());
         }
         if (!result.getAllViolations().isEmpty()) {
-          summaries.add(
-              new StateAndPrecision(makeTopState(block.getFinalLocation()), makeStartPrecision()));
+          if (!allowedToSkipTop)
+            summaries.add(
+                new StateAndPrecision(
+                    makeTopState(block.getFinalLocation()), makeStartPrecision()));
           vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
           if (isOriginal) {
             vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
