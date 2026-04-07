@@ -250,7 +250,9 @@ public final class SeqThreadStatementUtil {
     leftOver.addAll(
         getInstrumentationByType(pInstrumentation, SeqInstrumentationType.BIT_VECTOR_UPDATE));
     leftOver.addAll(
-        getInstrumentationByType(pInstrumentation, SeqInstrumentationType.LAST_BIT_VECTOR_UPDATE));
+        getInstrumentationByType(pInstrumentation, SeqInstrumentationType.PREV_THREAD_UPDATE));
+    leftOver.addAll(
+        getInstrumentationByType(pInstrumentation, SeqInstrumentationType.PREV_BIT_VECTOR_UPDATE));
     rOrdered.addAll(
         pInstrumentation.stream()
             .filter(i -> !leftOver.contains(i))
