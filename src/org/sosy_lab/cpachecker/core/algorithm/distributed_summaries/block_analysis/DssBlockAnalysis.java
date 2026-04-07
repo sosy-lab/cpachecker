@@ -663,7 +663,6 @@ public class DssBlockAnalysis {
 
       if (block.isAbstractionPossible()) {
         if (!result.getSummaries().isEmpty()) {
-          ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           AbstractState combinedState =
               dcpa.getCombineOperator()
                   .combine(
