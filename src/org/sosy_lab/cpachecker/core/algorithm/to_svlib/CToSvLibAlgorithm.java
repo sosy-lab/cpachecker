@@ -158,69 +158,74 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
    *
    * @return The SvLibScript generated from the CFA
    */
-  public SvLibScript transformCfaToSvLib()
+  public SvLibScript transformToSvLib()
       throws UnsupportedOperationException, CPATransferException, InterruptedException {
     SvLibScript outputScript;
 
     logger.log(Level.INFO, "Starting transformation of the input C program to SV-LIB.");
     transformationStatistics.totalTransformationTime.start();
     try {
-      ImmutableList.Builder<SvLibCommand> commandsCollector = ImmutableList.builder();
-      commandsCollector.add(
-          new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
-          new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY));
-
-      // 1. Step: Initialize CurrentScope with declarations of procedures and global variables,
-      // global variables are added to scope +  declaration commands are added to commandsCollector
-
-      transformationStatistics.initializationTime.start();
-      try {
-        initializeScope(commandsCollector);
-      } finally {
-        transformationStatistics.initializationTime.stop();
-      }
-
-      // 2. Step: transform each function to a procedure body
-      transformationStatistics.transformationTime.start();
-      ImmutableList.Builder<SvLibProcedureDeclaration> procedureDeclarationCollector =
-          ImmutableList.builder();
-      ImmutableList.Builder<SvLibStatement> procedureBodiesCollector = ImmutableList.builder();
-
-      try {
-        for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {
-          SvLibStatement procedureBody = transformFunction((CFunctionEntryNode) functionEntryNode);
-
-          procedureDeclarationCollector.add(
-              scope.getProcedureDeclaration(functionEntryNode.getFunctionName()));
-          procedureBodiesCollector.add(procedureBody);
-        }
-      } finally {
-        transformationStatistics.transformationTime.stop();
-      }
-
-      SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand =
-          new SvLibProceduresRecDefinitionCommand(
-              FileLocation.DUMMY,
-              procedureDeclarationCollector.build(),
-              procedureBodiesCollector.build());
-      commandsCollector.add(proceduresRecDefinitionCommand);
-
-      commandsCollector.add(
-          new SvLibVerifyCallCommand(
-              scope.getProcedureDeclaration(cfa.getMainFunction().getFunctionName()),
-              ImmutableList.of(),
-              FileLocation.DUMMY));
-
-      ImmutableList<SvLibCommand> commandsCollectorBuilt = commandsCollector.build();
-
-      transformationStatistics.numberOfCommands = commandsCollectorBuilt.size();
-      outputScript = new SvLibScript(commandsCollectorBuilt, FileLocation.DUMMY);
+      outputScript = transformCfaToSvLibScript();
     } finally {
       transformationStatistics.totalTransformationTime.stop();
     }
     logger.log(Level.INFO, "Finished transformation of the input C program to SV-LIB.");
 
     return outputScript;
+  }
+
+  private SvLibScript transformCfaToSvLibScript()
+      throws CPATransferException, InterruptedException {
+    ImmutableList.Builder<SvLibCommand> commandsCollector = ImmutableList.builder();
+    commandsCollector.add(
+        new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
+        new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY));
+
+    // 1. Step: Initialize CurrentScope with declarations of procedures and global variables,
+    // global variables are added to scope +  declaration commands are added to commandsCollector
+
+    transformationStatistics.initializationTime.start();
+    try {
+      initializeScope(commandsCollector);
+    } finally {
+      transformationStatistics.initializationTime.stop();
+    }
+
+    // 2. Step: transform each function to a procedure body
+    transformationStatistics.transformationTime.start();
+    ImmutableList.Builder<SvLibProcedureDeclaration> procedureDeclarationCollector =
+        ImmutableList.builder();
+    ImmutableList.Builder<SvLibStatement> procedureBodiesCollector = ImmutableList.builder();
+
+    try {
+      for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {
+        SvLibStatement procedureBody = transformFunction((CFunctionEntryNode) functionEntryNode);
+
+        procedureDeclarationCollector.add(
+            scope.getProcedureDeclaration(functionEntryNode.getFunctionName()));
+        procedureBodiesCollector.add(procedureBody);
+      }
+    } finally {
+      transformationStatistics.transformationTime.stop();
+    }
+
+    SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand =
+        new SvLibProceduresRecDefinitionCommand(
+            FileLocation.DUMMY,
+            procedureDeclarationCollector.build(),
+            procedureBodiesCollector.build());
+    commandsCollector.add(proceduresRecDefinitionCommand);
+
+    commandsCollector.add(
+        new SvLibVerifyCallCommand(
+            scope.getProcedureDeclaration(cfa.getMainFunction().getFunctionName()),
+            ImmutableList.of(),
+            FileLocation.DUMMY));
+
+    ImmutableList<SvLibCommand> commandsCollectorBuilt = commandsCollector.build();
+
+    transformationStatistics.numberOfCommands = commandsCollectorBuilt.size();
+    return new SvLibScript(commandsCollectorBuilt, FileLocation.DUMMY);
   }
 
   private SvLibStatement transformFunction(CFunctionEntryNode pEntryNode)

@@ -56,7 +56,7 @@ public class CToSvLibAlgorithmTest {
     SvLibScript script;
     try (CToSvLibAlgorithm algorithm =
         new CToSvLibAlgorithm(config, logger, shutdownNotifier, inputCfa)) {
-      script = algorithm.transformCfaToSvLib();
+      script = algorithm.transformToSvLib();
     }
 
     String scriptAsString = script.toASTString();
