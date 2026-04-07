@@ -358,7 +358,7 @@ class ExpressionValueVisitor
     }
 
     return switch (binaryOperator) {
-      case PLUS, SHIFT_LEFT, BINARY_OR, BINARY_XOR, SHIFT_RIGHT -> {
+      case PLUS, SHIFT_LEFT, BITWISE_OR, BITWISE_XOR, SHIFT_RIGHT -> {
         boolean isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         yield singletonList(SMGValueAndState.of(newState, val));
@@ -393,7 +393,7 @@ class ExpressionValueVisitor
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         yield singletonList(SMGValueAndState.of(newState, val));
       }
-      case MODULO -> {
+      case REMAINDER -> {
         boolean isZero = lVal.equals(rVal);
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         yield singletonList(SMGValueAndState.of(newState, val));
@@ -408,7 +408,7 @@ class ExpressionValueVisitor
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         yield singletonList(SMGValueAndState.of(newState, val));
       }
-      case MULTIPLY, BINARY_AND -> {
+      case MULTIPLY, BITWISE_AND -> {
         boolean isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         yield singletonList(SMGValueAndState.of(newState, val));

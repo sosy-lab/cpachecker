@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 public class SeqVariableDeclarations {
 
-  // last_thread
+  // LAST_THREAD
 
   public static final CVariableDeclaration LAST_THREAD_DUMMY =
       buildVariableDeclaration(

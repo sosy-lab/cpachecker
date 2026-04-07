@@ -311,7 +311,7 @@ public class MemoryModelParameterTest {
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, PARAMETER_Q_MEMORY_LOCATION)
             .build();
 
-    // assert that param_Q is now an implicit global memory location, but local_Z is not
+    // check that param_Q is now an implicit global memory location, but local_Z is not
     assertThat(PARAMETER_Q_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();

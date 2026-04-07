@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -38,7 +40,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -46,7 +47,10 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 public record MemoryModelBuilder(
     MPOROptions options,
     ImmutableList<SeqMemoryLocation> initialMemoryLocations,
-    ImmutableCollection<SubstituteEdge> substituteEdges) {
+    ImmutableCollection<SubstituteEdge> substituteEdges,
+    MachineModel machineModel) {
+
+  private static final int INITIAL_MEMORY_LOCATION_ID = 0;
 
   public Optional<MemoryModel> tryBuildMemoryModel() throws UnsupportedCodeException {
     if (options.linkReduction()) {
@@ -77,7 +81,8 @@ public record MemoryModelBuilder(
               startRoutineArgAssignments,
               parameterAssignments,
               pointerParameterAssignments,
-              pointerDereferences);
+              pointerDereferences,
+              machineModel);
       return Optional.of(memoryModel);
     } else {
       return Optional.empty();
@@ -90,7 +95,8 @@ public record MemoryModelBuilder(
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences,
+      MachineModel pMachineModel)
       throws UnsupportedCodeException {
 
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
@@ -108,7 +114,8 @@ public record MemoryModelBuilder(
         pStartRoutineArgAssignments,
         pParameterAssignments,
         pPointerParameterAssignments,
-        pPointerDereferences);
+        pPointerDereferences,
+        pMachineModel);
   }
 
   // All Memory Locations ==========================================================================
@@ -131,7 +138,7 @@ public record MemoryModelBuilder(
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     ImmutableMap.Builder<SeqMemoryLocation, Integer> rRelevantIds = ImmutableMap.builder();
-    int currentId = BitVectorUtil.RIGHT_INDEX;
+    int currentId = INITIAL_MEMORY_LOCATION_ID;
     for (SeqMemoryLocation memoryLocation : pAllMemoryLocations) {
       if (isRelevantMemoryLocation(
           memoryLocation,
@@ -402,10 +409,9 @@ public record MemoryModelBuilder(
             // use the ID of the created thread for the parameter declaration
             CFunctionDeclaration functionDeclaration =
                 PthreadUtil.extractStartRoutineDeclaration(functionCall);
-            assert functionDeclaration.getParameters().size() == 1
-                : "start_routine functions can only have a single parameter";
+            // start_routine functions can only have a single parameter
             CParameterDeclaration parameterDeclaration =
-                functionDeclaration.getParameters().getFirst();
+                Iterables.getOnlyElement(functionDeclaration.getParameters());
             rAssignments.put(
                 SeqMemoryLocation.of(
                     options,

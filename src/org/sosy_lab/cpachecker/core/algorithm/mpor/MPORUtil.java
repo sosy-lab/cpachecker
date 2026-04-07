@@ -22,12 +22,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -187,6 +189,20 @@ public final class MPORUtil {
     return false;
   }
 
+  public static boolean isVoidPointer(CExpression pExpression) {
+    if (pExpression instanceof CCastExpression castExpression) {
+      if (castExpression.getCastType().equals(CPointerType.POINTER_TO_VOID)) {
+        if (castExpression.getOperand()
+            instanceof CIntegerLiteralExpression integerLiteralExpression) {
+          if (integerLiteralExpression.equals(CIntegerLiteralExpression.ZERO)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   /**
    * Returns an {@link Entry} that maps the {@link CSimpleDeclaration} of the outermost field owner
    * to the {@link CCompositeTypeMemberDeclaration} of the innermost field member accessed in {@code
@@ -222,7 +238,9 @@ public final class MPORUtil {
    * Recursively tries to find the field owner of {@code pFieldReference}, e.g. {@code outer} in
    * {@code outer.intermediary.inner}.
    */
-  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference) {
+  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference)
+      throws UnsupportedCodeException {
+
     if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
       return idExpression;
     }
@@ -235,7 +253,11 @@ public final class MPORUtil {
     if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
       return recursivelyFindFieldOwner(fieldReference);
     }
-    throw new IllegalArgumentException("could not find CIdExpression field owner");
+    throw new UnsupportedCodeException(
+        String.format(
+            "Could not find CIdExpression field owner from CFieldRerefence %s",
+            pFieldReference.toASTString()),
+        null);
   }
 
   private static CType getTypeByIdExpression(CIdExpression pIdExpression) {

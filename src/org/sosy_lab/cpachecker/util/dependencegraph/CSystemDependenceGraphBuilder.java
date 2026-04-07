@@ -301,14 +301,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         }
 
         try {
-          if (method == PointerStateComputationMethod.FLOW_SENSITIVE) {
-            pointerState =
-                GlobalPointerState.createFlowSensitive(cfa, logger, pointerShutdownNotifier);
-          } else if (method == PointerStateComputationMethod.FLOW_INSENSITIVE) {
-            pointerState = GlobalPointerState.createFlowInsensitive(cfa, pointerShutdownNotifier);
-          } else {
-            throw new AssertionError("Invalid PointerStateComputationMethod: " + method);
-          }
+          pointerState =
+              switch (method) {
+                case FLOW_SENSITIVE ->
+                    GlobalPointerState.createFlowSensitive(cfa, logger, pointerShutdownNotifier);
+                case FLOW_INSENSITIVE ->
+                    GlobalPointerState.createFlowInsensitive(cfa, pointerShutdownNotifier);
+              };
         } catch (InterruptedException ex) {
           shutdownNotifier.shutdownIfNecessary(); // handle global shutdown
           if (pointerShutdownNotifier.shouldShutdown()) {

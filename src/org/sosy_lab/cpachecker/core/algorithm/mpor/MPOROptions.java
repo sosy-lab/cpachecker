@@ -12,11 +12,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.MultiSelectionStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -37,7 +36,7 @@ public class MPOROptions {
   private boolean atomicBlockMerge = true;
 
   @Option(secure = true, description = "the encoding of the partial order reduction bit vectors.")
-  private BitVectorEncoding bitVectorEncoding = BitVectorEncoding.NONE;
+  private SeqBitVectorEncoding bitVectorEncoding = SeqBitVectorEncoding.NONE;
 
   @Option(
       secure = false,
@@ -63,13 +62,14 @@ public class MPOROptions {
       secure = true,
       description =
           "defines the syntax in which the next statement of a thread simulation is chosen.")
-  private MultiControlStatementEncoding controlEncodingStatement =
-      MultiControlStatementEncoding.SWITCH_CASE;
+  private MultiSelectionStatementEncoding controlEncodingStatement =
+      MultiSelectionStatementEncoding.SWITCH_CASE;
 
   @Option(
       secure = true,
       description = "defines the syntax in which the next thread executing a statement is chosen.")
-  private MultiControlStatementEncoding controlEncodingThread = MultiControlStatementEncoding.NONE;
+  private MultiSelectionStatementEncoding controlEncodingThread =
+      MultiSelectionStatementEncoding.NONE;
 
   @Option(
       secure = true,
@@ -196,13 +196,6 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
-          "if both reduceLastThreadOrder and reduceUntilConflict are enabled, define the order"
-              + " in which their statements are placed in the output program.")
-  private ReductionOrder reductionOrder = ReductionOrder.NONE;
-
-  @Option(
-      secure = true,
-      description =
           "use separate int values (scalars) for tracking thread pcs instead of int arrays?")
   private boolean scalarPc = true;
 
@@ -251,17 +244,23 @@ public class MPOROptions {
    * {@link AssertionError} if a rejection occurs.
    */
   private void handleOptionRejections() throws InvalidConfigurationException {
-    if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {
+    if (controlEncodingStatement.equals(MultiSelectionStatementEncoding.NONE)) {
       throw new InvalidConfigurationException(
           String.format(
-              "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE));
+              "controlEncodingStatement cannot be %s", MultiSelectionStatementEncoding.NONE));
     }
     if (nondeterminismSource.isNextThreadNondeterministic()) {
       if (!controlEncodingThread.isEnabled()) {
-        throw new InvalidConfigurationException(
-            String.format(
-                "controlEncodingThread cannot be %s when nondeterminismSource contains NEXT_THREAD",
-                MultiControlStatementEncoding.NONE));
+        // if loopUnrolling is enabled, then choosing controlEncodingThread=NONE is allowed even
+        // when nondeterminismSource contains NEXT_THREAD, because then there is no multi control
+        // statement for next_thread in the main() function anyway
+        if (!loopUnrolling) {
+          throw new InvalidConfigurationException(
+              String.format(
+                  "controlEncodingThread cannot be %s when nondeterminismSource contains"
+                      + " NEXT_THREAD",
+                  MultiSelectionStatementEncoding.NONE));
+        }
       }
     }
     if (!linkReduction) {
@@ -286,13 +285,6 @@ public class MPOROptions {
       if (loopUnrolling) {
         throw new InvalidConfigurationException(
             "loopUnrolling can only be enabled when loopIterations > 0");
-      }
-    }
-    if (reduceLastThreadOrder && reduceUntilConflict) {
-      if (!reductionOrder.isEnabled()) {
-        throw new InvalidConfigurationException(
-            "both reduceLastThreadOrder and reduceUntilConflict are enabled, but no reductionOrder"
-                + " is specified.");
       }
     }
     if (!noBackwardGoto) {
@@ -377,7 +369,7 @@ public class MPOROptions {
       // only use with NUM_STATEMENTS nondeterminism, for NEXT_THREAD, just continue;
       if (!nondeterminismSource.isNextThreadNondeterministic()) {
         // in switch case, just use break; instead of continue;
-        if (!controlEncodingStatement.equals(MultiControlStatementEncoding.SWITCH_CASE)) {
+        if (!controlEncodingStatement.equals(MultiSelectionStatementEncoding.SWITCH_CASE)) {
           return true;
         }
       }
@@ -395,7 +387,7 @@ public class MPOROptions {
     return atomicBlockMerge;
   }
 
-  public BitVectorEncoding bitVectorEncoding() {
+  public SeqBitVectorEncoding bitVectorEncoding() {
     return bitVectorEncoding;
   }
 
@@ -411,11 +403,11 @@ public class MPOROptions {
     return consecutiveLabels;
   }
 
-  public MultiControlStatementEncoding controlEncodingStatement() {
+  public MultiSelectionStatementEncoding controlEncodingStatement() {
     return controlEncodingStatement;
   }
 
-  public MultiControlStatementEncoding controlEncodingThread() {
+  public MultiSelectionStatementEncoding controlEncodingThread() {
     return controlEncodingThread;
   }
 
@@ -489,10 +481,6 @@ public class MPOROptions {
 
   public ReductionMode reductionMode() {
     return reductionMode;
-  }
-
-  public ReductionOrder reductionOrder() {
-    return reductionOrder;
   }
 
   public boolean scalarPc() {

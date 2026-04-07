@@ -1358,7 +1358,6 @@ public class ARGUtils {
       // If there is no more to expand - add this path and continue
       if (curPath.getLast() == root) {
         results.add(new ARGPath(curPath.reversed()));
-
         continue;
       }
 

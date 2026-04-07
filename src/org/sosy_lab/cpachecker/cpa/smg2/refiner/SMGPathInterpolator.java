@@ -110,7 +110,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
         pFeasibilityChecker,
         pPrefixProvider,
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig),
+            new SMGOptions(pConfig, pCfa),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
@@ -126,7 +126,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
     cfa = pCfa;
     interpolantManager =
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig),
+            new SMGOptions(pConfig, pCfa),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,

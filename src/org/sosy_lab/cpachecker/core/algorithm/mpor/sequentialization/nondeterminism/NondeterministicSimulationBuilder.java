@@ -23,27 +23,30 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqCountUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqGuardedGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSyncUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadCreationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
+import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
 /**
  * Contains methods that can be used to build thread simulations based on the specified {@link
@@ -53,62 +56,76 @@ public class NondeterministicSimulationBuilder {
 
   public static NondeterministicSimulation buildNondeterministicSimulationBySource(
       MPOROptions pOptions,
+      MachineModel pMachineModel,
+      Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
-          new NextThreadNondeterministicSimulation(pOptions, pGhostElements, pClauses, pUtils);
+          new NextThreadNondeterministicSimulation(
+              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           new NextThreadAndNumStatementsNondeterministicSimulation(
-              pOptions, pGhostElements, pClauses, pUtils);
+              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
       case NUM_STATEMENTS ->
-          new NumStatementsNondeterministicSimulation(pOptions, pGhostElements, pClauses, pUtils);
+          new NumStatementsNondeterministicSimulation(
+              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
     };
   }
 
   // Thread Simulation Functions ===================================================================
 
-  public static ImmutableList<SeqThreadSimulationFunction> buildThreadSimulationFunctions(
+  public static ImmutableMap<MPORThread, CExportFunctionDefinition> buildThreadSimulationFunctions(
       MPOROptions pOptions,
+      MachineModel pMachineModel,
+      Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqThreadSimulationFunction> rFunctions = ImmutableList.builder();
+    ImmutableMap.Builder<MPORThread, CExportFunctionDefinition> rFunctions = ImmutableMap.builder();
     for (MPORThread thread : pClauses.keySet()) {
-      String threadSimulation =
-          buildNondeterministicSimulationBySource(pOptions, pGhostElements, pClauses, pUtils)
+      CCompoundStatement threadSimulation =
+          buildNondeterministicSimulationBySource(
+                  pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils)
               .buildSingleThreadSimulation(thread);
-      rFunctions.add(new SeqThreadSimulationFunction(pOptions, threadSimulation, thread));
+      rFunctions.put(
+          thread,
+          SeqThreadSimulationFunctionBuilder.buildFunctionDefinition(
+              pOptions, threadSimulation, thread));
     }
-    return rFunctions.build();
+    return rFunctions.buildOrThrow();
   }
 
   public static ImmutableList<CFunctionCallStatement> buildThreadSimulationFunctionCallStatements(
-      MPOROptions pOptions, ImmutableList<SeqThreadSimulationFunction> pThreadSimulationFunctions) {
+      MPOROptions pOptions,
+      ImmutableMap<MPORThread, CExportFunctionDefinition> pThreadSimulationFunctions) {
 
     ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
     // start with main thread function call
-    SeqThreadSimulationFunction mainThreadFunction =
+    CExportFunctionDefinition mainThreadFunction =
         Objects.requireNonNull(
-            Iterables.getOnlyElement(
-                pThreadSimulationFunctions.stream()
-                    .filter(Objects::nonNull)
-                    .filter(f -> f.thread.isMain())
-                    .toList()));
-    rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
+                Iterables.getOnlyElement(
+                    pThreadSimulationFunctions.entrySet().stream()
+                        .filter(e -> e.getKey().isMain())
+                        .toList()))
+            .getValue();
+    rFunctionCalls.add(
+        mainThreadFunction.buildFunctionCallStatementWithCExpressions(ImmutableList.of()));
     for (int i = 0; i < pOptions.loopIterations(); i++) {
-      for (SeqThreadSimulationFunction function : pThreadSimulationFunctions) {
-        if (!function.thread.isMain()) {
+      for (var entry : pThreadSimulationFunctions.entrySet()) {
+        if (!entry.getKey().isMain()) {
           // continue with all other threads
-          rFunctionCalls.add(function.buildFunctionCallStatement(ImmutableList.of()));
+          rFunctionCalls.add(
+              entry.getValue().buildFunctionCallStatementWithCExpressions(ImmutableList.of()));
         }
       }
       // end on main thread
-      rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
+      rFunctionCalls.add(
+          mainThreadFunction.buildFunctionCallStatementWithCExpressions(ImmutableList.of()));
     }
     return rFunctionCalls.build();
   }
@@ -177,9 +194,9 @@ public class NondeterministicSimulationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
-    for (CSeqThreadStatement statement : pBlock.getStatements()) {
-      CSeqThreadStatement withRoundGoto =
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
+      SeqThreadStatement withRoundGoto =
           tryInjectRoundGotoIntoStatement(
               pOptions, statement, pLabelClauseMap, pBinaryExpressionBuilder);
       newStatements.add(withRoundGoto);
@@ -187,16 +204,16 @@ public class NondeterministicSimulationBuilder {
     return pBlock.withStatements(newStatements.build());
   }
 
-  private static CSeqThreadStatement tryInjectRoundGotoIntoStatement(
+  private static SeqThreadStatement tryInjectRoundGotoIntoStatement(
       MPOROptions pOptions,
-      CSeqThreadStatement pStatement,
+      SeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pStatement.getTargetPc().isPresent()) {
+    if (pStatement.targetPc().isPresent()) {
       // int target is present -> retrieve label by pc from map
-      int targetPc = pStatement.getTargetPc().orElseThrow();
+      int targetPc = pStatement.targetPc().orElseThrow();
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         // check if the target is a separate loop
@@ -206,18 +223,22 @@ public class NondeterministicSimulationBuilder {
         }
       }
     }
-    if (pStatement.getTargetGoto().isPresent()) {
+    if (pStatement.targetGoto().isPresent()) {
       // target goto present -> use goto label for injection
+      CLabelStatement labelStatement =
+          new CLabelStatement(
+              SeqNameUtil.buildThreadStatementBlockLabelName(
+                  pStatement.data().getThreadId(), pStatement.targetGoto().orElseThrow()));
       return injectRoundGotoIntoStatementByTargetGoto(
-          pStatement.getTargetGoto().orElseThrow(), pStatement, pBinaryExpressionBuilder);
+          labelStatement, pStatement, pBinaryExpressionBuilder);
     }
     // no int target pc -> no replacement
     return pStatement;
   }
 
-  private static CSeqThreadStatement injectRoundGotoIntoStatementByTargetPc(
+  private static SeqThreadStatement injectRoundGotoIntoStatementByTargetPc(
       int pTargetPc,
-      CSeqThreadStatement pStatement,
+      SeqThreadStatement pStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -229,17 +250,17 @@ public class NondeterministicSimulationBuilder {
     CExpressionAssignmentStatement roundIncrement =
         SeqStatementBuilder.buildIncrementStatement(
             SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
-    SeqGuardedGotoStatement roundGoto =
-        new SeqGuardedGotoStatement(
+    SeqInstrumentation roundGoto =
+        SeqInstrumentationBuilder.buildGuardedGotoStatement(
             roundSmallerMax,
             ImmutableList.of(roundIncrement),
-            Objects.requireNonNull(target).getFirstBlock().getLabel());
-    return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, roundGoto);
+            Objects.requireNonNull(target).getFirstBlock().buildLabelStatement());
+    return SeqThreadStatementUtil.appendedInstrumentationStatement(pStatement, roundGoto);
   }
 
-  private static CSeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
-      SeqBlockLabelStatement pTargetGoto,
-      CSeqThreadStatement pStatement,
+  private static SeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
+      CLabelStatement pLabelStatement,
+      SeqThreadStatement pStatement,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -249,9 +270,10 @@ public class NondeterministicSimulationBuilder {
     CExpressionAssignmentStatement roundIncrement =
         SeqStatementBuilder.buildIncrementStatement(
             SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
-    SeqGuardedGotoStatement roundGoto =
-        new SeqGuardedGotoStatement(roundSmallerMax, ImmutableList.of(roundIncrement), pTargetGoto);
-    return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, roundGoto);
+    SeqInstrumentation roundGoto =
+        SeqInstrumentationBuilder.buildGuardedGotoStatement(
+            roundSmallerMax, ImmutableList.of(roundIncrement), pLabelStatement);
+    return SeqThreadStatementUtil.appendedInstrumentationStatement(pStatement, roundGoto);
   }
 
   // thread_count injections =======================================================================
@@ -260,13 +282,13 @@ public class NondeterministicSimulationBuilder {
       SeqThreadStatementBlock pBlock, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
-    for (CSeqThreadStatement statement : pBlock.getStatements()) {
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
       // use a list for thread_count updates, since we can increment and decrement in one statement
       // if the statement creates another thread but also terminates the current thread.
       List<CExpressionAssignmentStatement> countUpdates = new ArrayList<>();
       // if a thread is created -> thread_count = thread_count + 1
-      if (statement instanceof SeqThreadCreationStatement) {
+      if (statement.data().getType().equals(SeqThreadStatementType.THREAD_CREATION)) {
         countUpdates.add(
             SeqStatementBuilder.buildIncrementStatement(
                 SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder));
@@ -277,12 +299,12 @@ public class NondeterministicSimulationBuilder {
             SeqStatementBuilder.buildDecrementStatement(
                 SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder));
       }
-      ImmutableList<SeqInjectedStatement> guardedGotos =
+      ImmutableList<SeqInstrumentation> guardedGotos =
           countUpdates.stream()
-              .map(SeqCountUpdateStatement::new)
+              .map(SeqInstrumentationBuilder::buildThreadCountUpdateStatement)
               .collect(ImmutableList.toImmutableList());
       newStatements.add(
-          SeqThreadStatementUtil.appendedInjectedStatementsToStatement(statement, guardedGotos));
+          SeqThreadStatementUtil.appendedInstrumentationStatement(statement, guardedGotos));
     }
     return pBlock.withStatements(newStatements.build());
   }
@@ -296,10 +318,10 @@ public class NondeterministicSimulationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
-    for (CSeqThreadStatement statement : pBlock.getStatements()) {
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
       if (statement.isTargetPcValid()) {
-        int targetPc = statement.getTargetPc().orElseThrow();
+        int targetPc = statement.targetPc().orElseThrow();
         SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         // check if the target is a separate loop
         if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {
@@ -309,13 +331,13 @@ public class NondeterministicSimulationBuilder {
                   SeqIdExpressions.THREAD_COUNT,
                   SeqIntegerLiteralExpressions.INT_1,
                   BinaryOperator.EQUALS);
-          SeqGuardedGotoStatement singleActiveThreadGoto =
-              new SeqGuardedGotoStatement(
+          SeqInstrumentation singleActiveThreadGoto =
+              SeqInstrumentationBuilder.buildGuardedGotoStatement(
                   threadCountEqualsOne,
                   ImmutableList.of(),
-                  Objects.requireNonNull(target).getFirstBlock().getLabel());
+                  Objects.requireNonNull(target).getFirstBlock().buildLabelStatement());
           newStatements.add(
-              SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+              SeqThreadStatementUtil.appendedInstrumentationStatement(
                   statement, singleActiveThreadGoto));
         } else {
           // if the target is a loop head + noBackwardLoopGoto is enabled -> no replacement
@@ -340,23 +362,23 @@ public class NondeterministicSimulationBuilder {
     if (!pOptions.reduceIgnoreSleep()) {
       return pBlock;
     }
-    ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
-    for (CSeqThreadStatement statement : pBlock.getStatements()) {
-      CSeqThreadStatement withGoto =
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
+      SeqThreadStatement withGoto =
           tryInjectSyncUpdateIntoStatement(statement, pSyncFlag, pLabelClauseMap);
       newStatements.add(withGoto);
     }
     return pBlock.withStatements(newStatements.build());
   }
 
-  private static CSeqThreadStatement tryInjectSyncUpdateIntoStatement(
-      CSeqThreadStatement pStatement,
+  private static SeqThreadStatement tryInjectSyncUpdateIntoStatement(
+      SeqThreadStatement pStatement,
       CIdExpression pSyncVariable,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    if (pStatement.getTargetPc().isPresent()) {
+    if (pStatement.targetPc().isPresent()) {
       // int target is present -> retrieve label by pc from map
-      int targetPc = pStatement.getTargetPc().orElseThrow();
+      int targetPc = pStatement.targetPc().orElseThrow();
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause targetClause =
             Objects.requireNonNull(pLabelClauseMap.get(targetPc));
@@ -370,8 +392,8 @@ public class NondeterministicSimulationBuilder {
     return pStatement;
   }
 
-  private static CSeqThreadStatement injectSyncUpdateIntoStatementByTargetPc(
-      CSeqThreadStatement pStatement,
+  private static SeqThreadStatement injectSyncUpdateIntoStatementByTargetPc(
+      SeqThreadStatement pStatement,
       Optional<SeqThreadStatementClause> pTargetClause,
       CIdExpression pSyncVariable) {
 
@@ -381,7 +403,8 @@ public class NondeterministicSimulationBuilder {
                 pTargetClause.orElseThrow().getAllStatements());
     CIntegerLiteralExpression value =
         isSync ? SeqIntegerLiteralExpressions.INT_1 : SeqIntegerLiteralExpressions.INT_0;
-    SeqSyncUpdateStatement syncUpdate = new SeqSyncUpdateStatement(pSyncVariable, value);
-    return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, syncUpdate);
+    SeqInstrumentation syncUpdate =
+        SeqInstrumentationBuilder.buildThreadSyncUpdateStatement(pSyncVariable, value);
+    return SeqThreadStatementUtil.appendedInstrumentationStatement(pStatement, syncUpdate);
   }
 }

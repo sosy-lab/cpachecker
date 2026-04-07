@@ -85,7 +85,10 @@ public class CPAchecker {
     private final ShutdownManager shutdownManager;
 
     CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
-      super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
+      super(
+          "org.sosy_lab.cpachecker:type=CPAchecker,name=Thread-"
+              + Thread.currentThread().threadId(),
+          logger);
       reached = pReached;
       shutdownManager = pShutdownManager;
     }
@@ -298,7 +301,6 @@ public class CPAchecker {
       factory =
           new CoreComponentsFactory(
               config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
-
       return run0(cfa, factory, stats);
 
     } catch (InvalidConfigurationException
@@ -348,6 +350,7 @@ public class CPAchecker {
         logAboutSpecification();
         specification =
             Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+
         cpa = factory.createCPA(specification);
       } finally {
         stats.cpaCreationTime.stop();

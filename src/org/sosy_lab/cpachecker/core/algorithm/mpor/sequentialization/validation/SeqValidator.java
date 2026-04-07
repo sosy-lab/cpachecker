@@ -23,10 +23,10 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -103,8 +103,8 @@ public class SeqValidator {
     ImmutableMap.Builder<Integer, ImmutableSet<Integer>> rPcMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
-      for (CSeqThreadStatement statement : clause.getAllStatements()) {
-        statement.getTargetPc().ifPresent(targetPcs::add);
+      for (SeqThreadStatement statement : clause.getAllStatements()) {
+        statement.targetPc().ifPresent(targetPcs::add);
       }
       rPcMap.put(clause.labelNumber, targetPcs.build());
     }
@@ -185,10 +185,10 @@ public class SeqValidator {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     for (SeqThreadStatementBlock block : pLabelBlockMap.values()) {
-      for (CSeqThreadStatement statement : block.getStatements()) {
-        if (statement.getTargetGoto().isPresent()) {
-          int blockNumber = block.getLabel().number();
-          int targetNumber = statement.getTargetGoto().orElseThrow().number();
+      for (SeqThreadStatement statement : block.getStatements()) {
+        if (statement.targetGoto().isPresent()) {
+          int blockNumber = block.getLabelNumber();
+          int targetNumber = statement.targetGoto().orElseThrow();
           if (blockNumber > targetNumber) {
             SeqThreadStatementBlock targetBlock =
                 Objects.requireNonNull(pLabelBlockMap.get(targetNumber));

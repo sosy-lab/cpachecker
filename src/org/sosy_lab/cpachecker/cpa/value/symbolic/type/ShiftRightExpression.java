@@ -61,6 +61,39 @@ public final class ShiftRightExpression extends BinarySymbolicExpression {
     shiftType = pShiftType;
   }
 
+  public static SymbolicExpression of(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pType,
+      Type pCalculationType,
+      boolean signed) {
+
+    return new ShiftRightExpression(
+        pOperand1,
+        pOperand2,
+        getCanonicalType(pType),
+        getCanonicalType(pCalculationType),
+        signed ? ShiftRightExpression.ShiftType.SIGNED : ShiftRightExpression.ShiftType.UNSIGNED);
+  }
+
+  public static SymbolicExpression ofUnsigned(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pType,
+      Type pCalculationType) {
+
+    return of(pOperand1, pOperand2, pType, pCalculationType, false);
+  }
+
+  public static SymbolicExpression ofSigned(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pType,
+      Type pCalculationType) {
+
+    return of(pOperand1, pOperand2, pType, pCalculationType, true);
+  }
+
   @Override
   public ShiftRightExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new ShiftRightExpression(

@@ -61,16 +61,16 @@ class LvalueToPointerTargetPatternVisitor
       final CExpression operand2 = e.getOperand2();
 
       return switch (e.getOperator()) {
-        case BINARY_AND,
-            BINARY_OR,
-            BINARY_XOR,
+        case BITWISE_AND,
+            BITWISE_OR,
+            BITWISE_XOR,
             DIVIDE,
             EQUALS,
             GREATER_EQUAL,
             GREATER_THAN,
             LESS_EQUAL,
             LESS_THAN,
-            MODULO,
+            REMAINDER,
             MULTIPLY,
             NOT_EQUALS,
             SHIFT_LEFT,

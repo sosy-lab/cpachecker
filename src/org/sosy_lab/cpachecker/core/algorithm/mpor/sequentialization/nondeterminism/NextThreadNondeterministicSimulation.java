@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -18,59 +19,72 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
 
   NextThreadNondeterministicSimulation(
       MPOROptions pOptions,
+      MachineModel pMachineModel,
+      Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
-    super(pOptions, pGhostElements, pClauses, pUtils);
+    super(pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
   }
 
   @Override
-  public String buildSingleThreadSimulation(MPORThread pThread) throws UnrecognizedCodeException {
-    // return the multi control statement, no adjustments needed for this type of nondeterminism
-    return buildSingleThreadMultiControlStatement(pThread).toASTString();
-  }
-
-  @Override
-  public String buildAllThreadSimulations() throws UnrecognizedCodeException {
-    // the inner multi control statements choose the next statement, e.g. "pc == 1"
-    ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
-        buildInnerMultiControlStatements();
-    // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
-    SeqMultiControlStatement outerMultiControlStatement =
-        SeqMultiControlStatement.buildMultiControlStatementByEncoding(
-            options.controlEncodingThread(),
-            SeqIdExpressions.NEXT_THREAD,
-            // the outer multi control statement never has an assumption
-            ImmutableList.of(),
-            innerMultiControlStatements,
-            utils.binaryExpressionBuilder());
-    return outerMultiControlStatement.toASTString();
-  }
-
-  private ImmutableMap<CExpression, SeqMultiControlStatement> buildInnerMultiControlStatements()
+  public CCompoundStatement buildSingleThreadSimulation(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
-        ImmutableMap.builder();
+    return new CCompoundStatement(
+        listAndElement(
+            buildAllPrecedingStatements(pThread),
+            buildSingleThreadMultiSelectionStatement(pThread)));
+  }
+
+  @Override
+  public CCompoundStatement buildAllThreadSimulations() throws UnrecognizedCodeException {
+
+    // the inner multi control statements choose the next statement, e.g. "pc == 1"
+    ImmutableListMultimap<CExportExpression, CCompoundStatementElement>
+        innerMultiControlStatements = buildInnerMultiControlStatements();
+    // the outer multi control statement chooses the thread, e.g. "next_thread == 0"
+    CExportStatement outerMultiControlStatement =
+        buildMultiSelectionStatementByEncoding(
+            options.controlEncodingThread(),
+            SeqIdExpressions.NEXT_THREAD,
+            innerMultiControlStatements,
+            utils.binaryExpressionBuilder());
+    return new CCompoundStatement(ImmutableList.of(outerMultiControlStatement));
+  }
+
+  private ImmutableListMultimap<CExportExpression, CCompoundStatementElement>
+      buildInnerMultiControlStatements() throws UnrecognizedCodeException {
+
+    ImmutableListMultimap.Builder<CExportExpression, CCompoundStatementElement> rStatements =
+        ImmutableListMultimap.builder();
     for (MPORThread thread : clauses.keySet()) {
       CExpression clauseExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
@@ -78,13 +92,17 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
               SeqIdExpressions.NEXT_THREAD,
               thread.id(),
               utils.binaryExpressionBuilder());
-      rStatements.put(clauseExpression, buildSingleThreadMultiControlStatement(thread));
+      ImmutableList<CExportStatement> statements =
+          listAndElement(
+              buildAllPrecedingStatements(thread),
+              buildSingleThreadMultiSelectionStatement(thread));
+      rStatements.putAll(new CExpressionWrapper(clauseExpression), statements);
     }
-    return rStatements.buildOrThrow();
+    return rStatements.build();
   }
 
   @Override
-  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pThread)
+  public CCompoundStatement buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
@@ -92,17 +110,17 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     Optional<ImmutableList<CStatement>> nextThreadStatements =
         tryBuildNextThreadStatements(pThread);
 
-    ImmutableList.Builder<CStatement> rStatements = ImmutableList.builder();
-    pcUnequalExitAssumption.ifPresent(rStatements::add);
-    nextThreadStatements.ifPresent(rStatements::addAll);
-    return rStatements.build();
+    ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
+    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
+    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(new CStatementWrapper(s))));
+    return new CCompoundStatement(rStatements.build());
   }
 
   /**
    * Returns the {@link CFunctionCallStatement} to {@code assume(pc{pThread.id} != 0);} if {@link
    * MPOROptions#scalarPc()} is enabled. In that case, the assumptions needs to be placed inside the
    * simulation. For array {@code pc}, it is placed at the loop head already (see {@link
-   * SeqMainFunction}).
+   * SeqMainFunctionBuilder}).
    */
   protected Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(MPORThread pThread) {
     return options.scalarPc()
@@ -110,6 +128,12 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
         : Optional.empty();
   }
 
+  /**
+   * Returns {@code next_thread = __VERIFIER_nondet_...(); assume(next_thread == {thread_id};}, but
+   * only if {@link MPOROptions#loopUnrolling()} is enabled since choosing and assuming over {@code
+   * next_thread} is a preceding statement in the respective {@link
+   * SeqThreadSimulationFunctionBuilder}.
+   */
   protected Optional<ImmutableList<CStatement>> tryBuildNextThreadStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
@@ -130,7 +154,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
                 BinaryOperator.EQUALS);
     CFunctionCallStatement nextThreadAssumption =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
     return Optional.of(ImmutableList.of(nextThreadAssignment, nextThreadAssumption));
   }
 }

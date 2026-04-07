@@ -8,30 +8,35 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastBitVectorUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastThreadOrderStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -39,64 +44,97 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
-record ReduceLastThreadOrderInjector(
+public record ReduceLastThreadOrderInjector(
     MPOROptions options,
     int numThreads,
     MPORThread activeThread,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
-    BitVectorVariables bitVectorVariables,
+    SeqBitVectorVariables bitVectorVariables,
+    MachineModel machineModel,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 
-  CSeqThreadStatement injectLastThreadOrderReductionIntoStatement(
-      CSeqThreadStatement pStatement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
-      throws UnrecognizedCodeException {
-
-    CSeqThreadStatement withConflictOrder = injectLastThreadOrderIntoStatement(pStatement);
-    return injectLastUpdatesIntoStatement(withConflictOrder, pLabelClauseMap);
-  }
-
   // Private =======================================================================================
 
-  private CSeqThreadStatement injectLastThreadOrderIntoStatement(CSeqThreadStatement pStatement)
+  /**
+   * Returns a {@link CIfStatement} that encodes the Last Thread Order (LTO) reduction. The
+   * statement precedes a thread simulation and takes the following form:
+   *
+   * <pre>{@code
+   * if (LAST_THREAD < CURRENT_THREAD) {
+   *    assume(*conflict between LAST_THREAD and CURRENT_THREAD*);
+   * }
+   * }</pre>
+   *
+   * <p>This ensures that if {@code LAST_THREAD < CURRENT_THREAD}, the simulation performs a context
+   * switch only when a conflict exists between the two threads.
+   */
+  public CIfStatement buildLastThreadOrderStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    if (activeThread.isMain()) {
-      // do not inject for main thread, because last_thread < 0 never holds
-      return pStatement;
+    checkArgument(
+        !pThread.isMain(),
+        "Cannot build a last thread order (LTO) statement when pThread is the main thread. The LTO"
+            + " statement contains a guard of the form 'if (LAST_THREAD < CURRENT_THREAD)' where"
+            + " CURRENT_THREAD = 0 for the main thread and LAST_THREAD is in the interval"
+            + " [0;NUM_THREADS]. This means that the guard always evaluates to false for the main"
+            + " thread, and the LTO statement should be pruned entirely.");
+
+    SeqThreadStatementBlock firstBlock =
+        Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
+    Optional<CExportExpression> lastBitVectorEvaluation =
+        BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
+            options,
+            labelClauseMap,
+            labelBlockMap,
+            firstBlock,
+            bitVectorVariables,
+            machineModel,
+            memoryModel,
+            utils);
+
+    // LAST_THREAD < n
+    CBinaryExpression lastThreadLessThanThreadId =
+        utils
+            .binaryExpressionBuilder()
+            .buildBinaryExpression(
+                SeqIdExpressions.LAST_THREAD,
+                SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
+                BinaryOperator.LESS_THAN);
+
+    // if (LAST_THREAD < n) ...
+    CExpressionWrapper ifCondition = new CExpressionWrapper(lastThreadLessThanThreadId);
+    if (lastBitVectorEvaluation.isEmpty()) {
+      return new CIfStatement(
+          ifCondition,
+          // if the evaluation is empty, it results in assume(0) i.e. abort()
+          new CCompoundStatement(
+              new CStatementWrapper(SeqAssumeFunctionBuilder.ABORT_FUNCTION_CALL_STATEMENT)));
+    } else {
+      // assume(*conflict*) i.e. continue in thread n only if it is in conflict with LAST_THREAD
+      return new CIfStatement(
+          ifCondition,
+          new CCompoundStatement(
+              SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+                  lastBitVectorEvaluation.orElseThrow())));
     }
-    if (pStatement.isTargetPcValid()) {
-      int targetPc = pStatement.getTargetPc().orElseThrow();
-      SeqThreadStatementClause targetClause = labelClauseMap.get(targetPc);
-      assert targetClause != null : "could not find targetPc in pLabelBlockMap";
-      if (StatementInjector.isReductionAllowed(options, targetClause)) {
-        SeqThreadStatementBlock targetBlock = Objects.requireNonNull(labelBlockMap.get(targetPc));
-        // build last thread order statement (with bit vector evaluations based on targetBlock)
-        Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation =
-            BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
-                options, labelBlockMap, targetBlock, bitVectorVariables, memoryModel, utils);
-        SeqLastThreadOrderStatement lastThreadOrderStatement =
-            new SeqLastThreadOrderStatement(
-                activeThread, lastBitVectorEvaluation, utils.binaryExpressionBuilder());
-        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-            pStatement, lastThreadOrderStatement);
-      }
-    }
-    // no last thread order injected
-    return pStatement;
   }
 
   // Last Updates ==================================================================================
 
-  private CSeqThreadStatement injectLastUpdatesIntoStatement(
-      CSeqThreadStatement pStatement,
+  SeqThreadStatement injectLastUpdatesIntoStatement(
+      SeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    if (pStatement.getTargetPc().isPresent()) {
-      int targetPc = pStatement.getTargetPc().orElseThrow();
+    if (pStatement.targetPc().isPresent()) {
+      int targetPc = pStatement.targetPc().orElseThrow();
       // if a thread exits, set last_thread to NUM_THREADS - 1.
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
         return injectLastThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
@@ -125,8 +163,8 @@ record ReduceLastThreadOrderInjector(
     return pStatement;
   }
 
-  private CSeqThreadStatement injectLastThreadUpdateIntoStatement(
-      CSeqThreadStatement pStatement,
+  private SeqThreadStatement injectLastThreadUpdateIntoStatement(
+      SeqThreadStatement pStatement,
       int pLastThreadValue,
       ImmutableList<CExpressionAssignmentStatement> pLastBitVectorUpdates) {
 
@@ -134,10 +172,10 @@ record ReduceLastThreadOrderInjector(
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             SeqIdExpressions.LAST_THREAD,
             SeqExpressionBuilder.buildIntegerLiteralExpression(pLastThreadValue));
-    SeqLastBitVectorUpdateStatement lastUpdateStatement =
-        new SeqLastBitVectorUpdateStatement(lastThreadExit, pLastBitVectorUpdates);
-    return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-        pStatement, lastUpdateStatement);
+    return SeqThreadStatementUtil.appendedInstrumentationStatement(
+        pStatement,
+        SeqInstrumentationBuilder.buildLastThreadUpdateStatement(lastThreadExit),
+        SeqInstrumentationBuilder.buildLastBitVectorUpdateStatement(pLastBitVectorUpdates));
   }
 
   // Last Access Bit Vectors =======================================================================
@@ -150,7 +188,7 @@ record ReduceLastThreadOrderInjector(
           throw new IllegalArgumentException(
               String.format(
                   "cannot build updates for bitVectorEncoding %s", options.bitVectorEncoding()));
-      case BINARY, DECIMAL, HEXADECIMAL -> buildDenseLastBitVectorUpdates();
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> buildDenseLastBitVectorUpdates();
       case SPARSE -> buildSparseLastBitVectorUpdates();
     };
   }
@@ -211,11 +249,10 @@ record ReduceLastThreadOrderInjector(
         if (reachableVariable.getKey().equals(activeThread)) {
           SeqMemoryLocation memoryLocation = entry.getKey();
           LastSparseBitVector lastSparseBitVector = lastSparseBitVectors.get(memoryLocation);
-          assert lastSparseBitVector != null;
           CIdExpression rightHandSide = reachableVariable.getValue();
           CExpressionAssignmentStatement update =
               SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  lastSparseBitVector.reachableVariable(), rightHandSide);
+                  checkNotNull(lastSparseBitVector).reachableVariable(), rightHandSide);
           rUpdates.add(update);
         }
       }

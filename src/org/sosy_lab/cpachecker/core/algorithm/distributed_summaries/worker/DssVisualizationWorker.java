@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
@@ -40,6 +41,7 @@ public class DssVisualizationWorker extends DssWorker {
       DssConnection pConnection,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
+      CFA cfa,
       LogManager pLogger) {
     super(id, pMessageFactory, pLogger);
     identifier = Instant.now().hashCode();
@@ -48,7 +50,7 @@ public class DssVisualizationWorker extends DssWorker {
     numberOfBlocks = pBlockGraph.getNodes().size();
     try {
       if (pOptions.getBlockCFAFile() != null) {
-        pBlockGraph.export(pOptions.getBlockCFAFile());
+        pBlockGraph.export(pOptions.getBlockCFAFile(), cfa);
       }
     } catch (IOException e) {
       pLogger.logException(

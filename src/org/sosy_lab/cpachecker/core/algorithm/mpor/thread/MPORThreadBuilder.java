@@ -264,8 +264,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       Optional<CFunctionCall> functionCall =
           PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
       if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadFunction(
-            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_EXIT)) {
+        if (PthreadUtil.isCallToPthreadExitWithReturnValue(functionCall.orElseThrow())) {
           String name = SeqNameUtil.buildStartRoutineExitVariableName(options, pThreadCFA.threadId);
           CVariableDeclaration declaration =
               SeqDeclarationBuilder.buildVariableDeclaration(
