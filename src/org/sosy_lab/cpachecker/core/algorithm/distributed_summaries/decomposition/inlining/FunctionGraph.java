@@ -71,7 +71,7 @@ public class FunctionGraph {
     if (calls == null) {
       return ImmutableSet.of();
     }
-    return FluentIterable.from(calls).transform(c -> c.target()).toSet();
+    return transformedImmutableSetCopy(calls, c -> c.target());
   }
 
   /**
@@ -133,7 +133,7 @@ public class FunctionGraph {
               entry.getValue(), ce -> new Call(ce.source, headMap.get(ce.target))));
     }
 
-    var calls = callBuilder.build();
+    ImmutableMap<Function, ImmutableSet<Call>> calls = callBuilder.buildOrThrow();
     return calls;
   }
 
