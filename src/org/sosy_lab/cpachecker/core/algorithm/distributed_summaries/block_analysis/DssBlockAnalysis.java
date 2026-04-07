@@ -693,7 +693,7 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        if (!result.getSummaries().isEmpty()) {
+        if (!result.getSummaries().isEmpty() && result.getAllViolations().isEmpty()) {
           ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           for (AbstractState summary : result.getSummaries()) {
             summaryWithPrecision.add(
