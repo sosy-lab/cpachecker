@@ -74,7 +74,15 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
             .replace("_int", "")
             .replace("_rat", "")
             .replaceAll("_T" + Pattern.quote("(") + "[0-9]+" + Pattern.quote(")"), "");
-    if (pReturnType == SvLibSmtLibPredefinedType.BOOL
+
+    // To ensure that ITE is always detected, it must be processed before the other Boolean
+    // operators; otherwise, ITE with only Boolean parameters will cause an exception
+    if (pArgTypes.size() == 3
+        && pArgTypes.getFirst().equals(SvLibSmtLibPredefinedType.BOOL)
+        && pArgTypes.get(1).equals(pArgTypes.get(2))
+        && actualName.equals("if")) {
+      return new SvLibIdTerm(SmtLibTheoryDeclarations.ite(pArgTypes.get(1)), FileLocation.DUMMY);
+    } else if (pReturnType == SvLibSmtLibPredefinedType.BOOL
         && FluentIterable.from(pArgTypes)
             .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.BOOL))) {
       return switch (actualName) {
@@ -112,8 +120,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
                 SmtLibTheoryDeclarations.intSubtraction(pArgTypes.size()), FileLocation.DUMMY);
         case "*", "Integer_*_" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MULTIPLICATION, FileLocation.DUMMY);
-        case "/", "Integer_/_" ->
+        case "/", "Integer_/_", "div" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_DIV, FileLocation.DUMMY);
+        case "_%_" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MOD, FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.REAL
@@ -153,11 +162,6 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
       return new SvLibIdTerm(
           SmtLibTheoryDeclarations.arrayStore(pArrayType.getKeysType(), pArrayType.getValuesType()),
           FileLocation.DUMMY);
-    } else if (pArgTypes.size() == 3
-        && pArgTypes.getFirst().equals(SvLibSmtLibPredefinedType.BOOL)
-        && pArgTypes.get(1).equals(pArgTypes.get(2))
-        && actualName.equals("if")) {
-      return new SvLibIdTerm(SmtLibTheoryDeclarations.ite(pArgTypes.get(1)), FileLocation.DUMMY);
     }
 
     throw new UnsupportedOperationException("Unknown formula type: " + pName);
