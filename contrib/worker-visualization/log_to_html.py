@@ -53,7 +53,7 @@ class Message:
 
     @classmethod
     def from_json(
-            cls, json_data: Dict[str, Any], block_logs: Dict[str, Any]
+        cls, json_data: Dict[str, Any], block_logs: Dict[str, Any]
     ) -> "Message":
         """Create a Message instance from JSON data."""
         header = json_data["header"]
@@ -146,7 +146,7 @@ def load_json_file(json_file: Path) -> Dict[str, Any]:
 
 
 def filter_content_by_keys(
-        content: Dict[str, Any], export_keys: List[str]
+    content: Dict[str, Any], export_keys: List[str]
 ) -> Dict[str, Any]:
     """Filter message content based on export keys."""
     if not export_keys:
@@ -164,9 +164,9 @@ def html_for_message(message, block_log: Dict[str, str], export_keys: list):
     div = Airium()
 
 def generate_message_html(
-        message: Optional[Dict[str, Any]],
-        block_logs: Dict[str, Any],
-        export_keys: List[str],
+    message: Optional[Dict[str, Any]],
+    block_logs: Dict[str, Any],
+    export_keys: List[str],
 ) -> str:
     """Generate HTML representation of a single message."""
     if not message:
@@ -220,7 +220,7 @@ def generate_message_html(
 
 
 def generate_html_table(
-        messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
 ) -> str:
     """Generate HTML table from messages."""
     if not messages:
@@ -314,10 +314,10 @@ def html_dict_to_html_table(
                     table.th(_t=f"{key}")
 
 def visualize_block_graph(
-        block_structure_file: Path,
-        output_path: Path,
-        output_dot_name: str = "graph.dot",
-        output_png_name: str = "graph.png",
+    block_structure_file: Path,
+    output_path: Path,
+    output_dot_name: str = "graph.dot",
+    output_png_name: str = "graph.png",
 ) -> None:
     """Generate block structure graph visualization."""
     block_logs = load_json_file(block_structure_file)
@@ -376,7 +376,7 @@ def export_messages_table(
 
 
 def generate_timeline_view(
-        messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
 ) -> str:
     """Generate timeline view HTML where messages are shown chronologically."""
     if not messages:
@@ -479,11 +479,11 @@ def generate_timeline_view(
 
 
 def generate_html_report(
-        messages: List[Dict[str, Any]],
-        block_logs: Dict[str, Any],
-        output_path: Path,
-        export_keys: Optional[List[str]] = None,
-        report_filename: str = "report.html",
+    messages: List[Dict[str, Any]],
+    block_logs: Dict[str, Any],
+    output_path: Path,
+    export_keys: Optional[List[str]] = None,
+    report_filename: str = "report.html",
 ) -> Path:
     """Generate the complete HTML report with embedded styles and scripts."""
     export_keys = export_keys or []
@@ -517,105 +517,110 @@ def generate_html_report(
         </div>
     """
 
-    # Build complete HTML document
+    # Get reusable parts first
+    css = get_embedded_css()
+    js = get_embedded_javascript()
+
+    # Build filter buttons separately
+    filter_buttons_html = " ".join(
+        f'<button class="filter-btn active" data-filter-type="{mt}">{mt.replace("_", " ")}</button>'
+        for mt in message_types
+    )
+
+    # Build stats panel
+    stats_html = f"""
+    <div class="stats-panel">
+        <div class="stat-card">
+            <span class="stat-label">Total Messages:</span>
+            <span class="stat-value" id="totalMessages">{len(messages)}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Visible Messages:</span>
+            <span class="stat-value" id="visibleMessages">{len(messages)}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Block Count:</span>
+            <span class="stat-value">{len(block_ids)}</span>
+        </div>
+    </div>
+    """
+
+    # Build filter panel
+    filter_panel_html = f"""
+    <div class="filter-panel">
+        <div class="filter-section">
+            <label>Filter by Message Type:</label>
+            <div class="filter-buttons">{filter_buttons_html}</div>
+        </div>
+        <div class="filter-section">
+            <label>Filter by Block ID:</label>
+            <div class="filter-input-group">
+                <input type="text" id="blockFilter" placeholder="Enter block ID..." />
+                <button id="clearBlockFilter" class="btn-clear">✕</button>
+            </div>
+        </div>
+        <div class="filter-section">
+            <label>Search Message Content:</label>
+            <div class="filter-input-group">
+                <input type="text" id="contentSearch" placeholder="Search in message content..." />
+                <button id="clearContentSearch" class="btn-clear">✕</button>
+            </div>
+        </div>
+    </div>
+    """
+
+    # Build controls
+    controls_html = f"""
+    <div class="controls">
+        <div class="control-group">
+            <div class="view-toggle">
+                <button id="tableViewBtn" class="btn btn-view active"><span>📊</span> Table View</button>
+                <button id="timelineViewBtn" class="btn btn-view"><span>📅</span> Timeline View</button>
+            </div>
+            <button id="resetFiltersBtn" class="btn btn-secondary"><span>🔄</span> Reset Filters</button>
+        </div>
+        {filter_panel_html}
+    </div>
+    """
+
+    # Build the final HTML in parts
     html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker Events - Block Analysis Visualization</title>
-    <style>
-        {get_embedded_css()}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header class="header">
-            <h1>Worker Events Visualization</h1>
-            <p class="subtitle">Distributed Block Analysis Messages</p>
-        </header>
-
-        <div class="controls">
-            <div class="control-group">
-                <div class="view-toggle">
-                    <button id="tableViewBtn" class="btn btn-view active">
-                        <span>📊</span> Table View
-                    </button>
-                    <button id="timelineViewBtn" class="btn btn-view">
-                        <span>📅</span> Timeline View
-                    </button>
-                </div>
-                <button id="resetFiltersBtn" class="btn btn-secondary">
-                    <span>🔄</span> Reset Filters
-                </button>
-            </div>
-
-            <div class="filter-panel">
-                <div class="filter-section">
-                    <label>Filter by Message Type:</label>
-                    <div class="filter-buttons">
-                        {" ".join(f'<button class="filter-btn active" data-filter-type="{mt}">{mt.replace("_", " ")}</button>' for mt in message_types)}
-                    </div>
-                </div>
-
-                <div class="filter-section">
-                    <label>Filter by Block ID:</label>
-                    <div class="filter-input-group">
-                        <input type="text" id="blockFilter" placeholder="Enter block ID..." />
-                        <button id="clearBlockFilter" class="btn-clear">✕</button>
-                    </div>
-                </div>
-
-                <div class="filter-section">
-                    <label>Search Message Content:</label>
-                    <div class="filter-input-group">
-                        <input type="text" id="contentSearch" placeholder="Search in message content..." />
-                        <button id="clearContentSearch" class="btn-clear">✕</button>
-                    </div>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Worker Events - Block Analysis Visualization</title>
+        <style>{css}</style>
+    </head>
+    <body>
+        <div class="container">
+            <header class="header">
+                <h1>Worker Events Visualization</h1>
+                <p class="subtitle">Distributed Block Analysis Messages</p>
+            </header>
+    
+            {controls_html}
+            {stats_html}
+            {views}
+        </div>
+    
+        <button class="floating-graph-btn" id="floatingGraphBtn" title="View Block Graph">📊</button>
+    
+        <div class="modal" id="graphModal">
+            <div class="modal-overlay" id="modalOverlay"></div>
+            <div class="modal-content">
+                <button class="modal-close" id="modalClose">&times;</button>
+                <h2>Block Structure Graph</h2>
+                <div class="modal-body">
+                    <img src="graph.png" alt="Block Structure Graph" id="graphImage" />
                 </div>
             </div>
         </div>
-
-        <div class="stats-panel">
-            <div class="stat-card">
-                <span class="stat-label">Total Messages:</span>
-                <span class="stat-value" id="totalMessages">{len(messages)}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Visible Messages:</span>
-                <span class="stat-value" id="visibleMessages">{len(messages)}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Block Count:</span>
-                <span class="stat-value">{len(block_ids)}</span>
-            </div>
-        </div>
-
-        {views}
-    </div>
-
-    <!-- Fixed floating button for block graph -->
-    <button class="floating-graph-btn" id="floatingGraphBtn" title="View Block Graph">
-        📊
-    </button>
-
-    <div class="modal" id="graphModal">
-        <div class="modal-overlay" id="modalOverlay"></div>
-        <div class="modal-content">
-            <button class="modal-close" id="modalClose">&times;</button>
-            <h2>Block Structure Graph</h2>
-            <div class="modal-body">
-                <img src="graph.png" alt="Block Structure Graph" id="graphImage" />
-            </div>
-        </div>
-    </div>
-
-    <script>
-        {get_embedded_javascript()}
-    </script>
-</body>
-</html>
-"""
+    
+        <script>{js}</script>
+    </body>
+    </html>
+    """
 
     # Write output file
     output_path.mkdir(parents=True, exist_ok=True)
@@ -638,10 +643,10 @@ def generate_html_report(
 
 
 def load_and_process_messages(
-        message_dir: Path,
-        block_structure_json: Path,
-        output_path: Path,
-        export_keys: Optional[List[str]] = None,
+    message_dir: Path,
+    block_structure_json: Path,
+    output_path: Path,
+    export_keys: Optional[List[str]] = None,
 ) -> Optional[Path]:
     """Load messages from directory and generate visualization."""
     all_messages = []
