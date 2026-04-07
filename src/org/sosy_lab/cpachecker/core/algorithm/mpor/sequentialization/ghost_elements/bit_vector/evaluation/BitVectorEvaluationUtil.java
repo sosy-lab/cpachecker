@@ -171,7 +171,7 @@ public class BitVectorEvaluationUtil {
               pRightHandSides, entry.getValue(), entry.getKey());
       sparseExpressions.add(logicalAnd);
     }
-    // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
+    // create disjunction for each memory location: (A && (B || C)) || (A' && (B' || C')) || ...
     return tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
@@ -202,7 +202,7 @@ public class BitVectorEvaluationUtil {
         }
       }
     }
-    // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
+    // create disjunction for each memory location: (A && (B || C)) || (A' && (B' || C')) || ...
     return BitVectorEvaluationUtil.tryBuildLogicalOrExpression(sparseExpressions.build());
   }
 
