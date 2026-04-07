@@ -42,7 +42,10 @@ public class MPOROptions {
       secure = true,
       description =
           "The encoding of bit vectors that are used to instrument the output program with partial"
-              + " order reduction.")
+              + " order reduction. The SPARSE encoding creates separate variables for each index in"
+              + " the bit vector and supports any amount of memory locations. All other encodings"
+              + " are dense and use a single variable to represent the bit vector, supporting up to"
+              + " 64 memory locations.")
   private SeqBitVectorEncoding bitVectorEncoding = SeqBitVectorEncoding.NONE;
 
   @Option(
