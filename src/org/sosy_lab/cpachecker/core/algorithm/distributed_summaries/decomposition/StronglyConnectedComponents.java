@@ -115,7 +115,7 @@ public class StronglyConnectedComponents<T> {
       if (this == pOther) {
         return true;
       }
-      return pOther instanceof Vertex other && wrapped.equals(other.getWrapped());
+      return pOther instanceof Vertex<?> other && wrapped.equals(other.getWrapped());
     }
 
     @Override

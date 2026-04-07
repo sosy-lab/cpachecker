@@ -8,47 +8,28 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.SequencedSet;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
 public class FunctionGraph {
-
-  public record Function(
-      String name,
-      ImmutableSet<BlockNode> blockNodes,
-      BlockNode entryNode,
-      ImmutableSet<BlockNode> exitNode) {
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(entryNode);
-    }
-
-    /** simplified equality check: only compare the first block, as it is unique */
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      return obj instanceof Function other && entryNode.equals(other.entryNode);
-    }
-  }
 
   public record Call(BlockNode location, Function target) {}
 
@@ -85,13 +66,24 @@ public class FunctionGraph {
     return edges;
   }
 
+  public ImmutableSet<Function> getSuccessors(Function f) {
+    ImmutableSet<Call> calls = edges.get(f);
+    if (calls == null) {
+      return ImmutableSet.of();
+    }
+    return FluentIterable.from(calls).transform(c -> c.target()).toSet();
+  }
+
   /**
-   * Partitions the blocks into the functions
+   * Partitions the blocks into the functions they belong to. Assumes that all {@link
+   * FunctionEntryNode} and {@link FunctionExitNode} are abstraction points and therefore only ever
+   * are entry and exit nodes of a block
    *
-   * @param graph the blocks to consider
+   * <p>TODO: enforce this assumption?
+   *
    * @return the found functions as well as the edges of this graph
    */
-  public static FunctionGraph of(BlockGraph graph) {
+  public static FunctionGraph from(BlockGraph graph) {
 
     ImmutableSet.Builder<Function> functions = ImmutableSet.builder();
     Map<Function, ImmutableSet<CallEdge>> edges = new HashMap<>();
@@ -130,16 +122,15 @@ public class FunctionGraph {
     Map<BlockNode, Function> headMap = new HashMap<>();
 
     for (Function f : fs) {
-      headMap.put(f.entryNode, f);
+      headMap.put(f.entryNode(), f);
     }
 
     ImmutableMap.Builder<Function, ImmutableSet<Call>> callBuilder = ImmutableMap.builder();
     for (Entry<Function, ImmutableSet<CallEdge>> entry : edges.entrySet()) {
       callBuilder.put(
           entry.getKey(),
-          FluentIterable.from(entry.getValue())
-              .transform(ce -> new Call(ce.source, headMap.get(ce.target)))
-              .toSet());
+          transformedImmutableSetCopy(
+              entry.getValue(), ce -> new Call(ce.source, headMap.get(ce.target))));
     }
 
     var calls = callBuilder.build();
@@ -172,19 +163,47 @@ public class FunctionGraph {
 
       if (current.getFinalLocation() instanceof FunctionExitNode) {
         exitNodes.add(current);
-      }
-      if (current.getFinalLocation() instanceof FunctionEntryNode) {
-        var succs = graph.getSuccessorsOf(current);
+      } else if (current.getFinalLocation() instanceof FunctionEntryNode) {
+
+        FluentIterable<BlockNode> succs = graph.getSuccessorsOf(current);
         // Currently, this assumption should hold, because the decompositions do not put edges into
         // multiple blocks and the function entry node always has only the function start dummy edge
         // leaving it -> the first block in a function is unique
         assert succs.size() == 1;
-        calls.add(new CallEdge(current, succs.iterator().next()));
+        calls.add(new CallEdge(current, Iterables.getOnlyElement(succs)));
+        // find where the current function actually continues
+        // TODO surely I am not the first who needs this -> is this implemented somewhere else?
+        Set<CFAEdge> returnEdges =
+            current
+                .getFinalLocation()
+                .getAllEnteringEdges()
+                .filter(e -> current.getEdges().contains(e)) // all call edges in this block
+                .transformAndConcat(e -> e.getPredecessor().getAllLeavingEdges())
+                .filter(e -> e instanceof CFunctionSummaryEdge) // the corresponding summary edges
+                .transform(
+                    se ->
+                        Iterables.getOnlyElement(
+                            se.getSuccessor()
+                                .getAllEnteringEdges()
+                                .filter(re -> !(re instanceof CFunctionSummaryEdge))))
+                .toSet(); // the corresponding return edge
+
+        // visit all the blocks that contain such an edge
+        Iterables.addAll(
+            waitlist,
+            FluentIterable.from(graph.getNodes())
+                .filter(
+                    n -> {
+                      for (CFAEdge e : returnEdges) {
+                        if (n.getEdges().contains(e)) {
+                          return true;
+                        }
+                      }
+                      return false;
+                    }));
 
       } else {
-        for (BlockNode n : graph.getSuccessorsOf(current)) {
-          waitlist.add(n);
-        }
+        Iterables.addAll(waitlist, graph.getSuccessorsOf(current));
       }
     }
 
