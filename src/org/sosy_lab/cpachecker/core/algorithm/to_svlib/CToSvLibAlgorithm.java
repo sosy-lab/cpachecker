@@ -162,7 +162,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
    *
    * @return The SvLibScript generated from the CFA
    */
-  public SvLibScript transformCfaToSvLib() throws UnsupportedOperationException {
+  public SvLibScript transformCfaToSvLib()
+      throws UnsupportedOperationException, CPATransferException, InterruptedException {
     SvLibScript outputScript;
 
     logger.log(Level.INFO, "Starting transformation of the input C program to SV-LIB.");
@@ -226,7 +227,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     return outputScript;
   }
 
-  private SvLibStatement transformFunction(CFunctionEntryNode pEntryNode) {
+  private SvLibStatement transformFunction(CFunctionEntryNode pEntryNode)
+      throws CPATransferException, InterruptedException {
     SvLibProcedureDeclaration procedureDeclaration =
         scope.getProcedureDeclaration(pEntryNode.getFunctionName());
     String procedureName = procedureDeclaration.getProcedureName();
@@ -374,7 +376,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     }
   }
 
-  private void handleEdge(CFAEdge pEdge, ListMultimap<CFANode, SvLibStatement> pCreatedStatements) {
+  private void handleEdge(CFAEdge pEdge, ListMultimap<CFANode, SvLibStatement> pCreatedStatements)
+      throws CPATransferException, InterruptedException {
     switch (pEdge.getEdgeType()) {
       case BlankEdge ->
           pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
@@ -436,13 +439,11 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     }
   }
 
-  private @NonNull SvLibTerm transformToSvLibTerm(CFAEdge pEdge) {
+  private @NonNull SvLibTerm transformToSvLibTerm(CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
     PathFormula edgeFormula = pathFormulaManager.makeEmptyPathFormula();
-    try {
-      edgeFormula = pathFormulaManager.makeAnd(edgeFormula, pEdge);
-    } catch (CPATransferException | InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+    edgeFormula = pathFormulaManager.makeAnd(edgeFormula, pEdge);
+
     return formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor);
   }
 
@@ -509,7 +510,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         ImmutableList.of());
   }
 
-  private SvLibProcedureCallStatement handleFunctionCall(CFunctionSummaryEdge pCallEdge) {
+  private SvLibProcedureCallStatement handleFunctionCall(CFunctionSummaryEdge pCallEdge)
+      throws CPATransferException, InterruptedException {
     CFunctionCall functionCall = pCallEdge.getExpression();
 
     if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
@@ -543,7 +545,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   private ImmutableList<SvLibTerm> transformInputParameters(
-      ImmutableList<CExpression> pCParameters, CFunctionSummaryEdge pCallEdge) {
+      ImmutableList<CExpression> pCParameters, CFunctionSummaryEdge pCallEdge)
+      throws CPATransferException, InterruptedException {
     ImmutableList.Builder<SvLibTerm> callInputParameterCollector = ImmutableList.builder();
     for (CExpression inputParameter : pCParameters) {
       CAssumeEdge ghostEdge =
