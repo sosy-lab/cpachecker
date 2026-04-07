@@ -393,7 +393,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       case StatementEdge -> {
         CStatementEdge statementEdge = (CStatementEdge) pEdge;
         if (statementEdge.getStatement() instanceof CFunctionCall) {
-          handleExternalFunctionCall(statementEdge, pCreatedStatements);
+          SvLibStatement externCallStatement = handleExternFunctionCall(statementEdge);
+          pCreatedStatements.put(pEdge.getPredecessor(), externCallStatement);
         } else {
           SvLibTerm transformedTerm = transformToSvLibTerm(pEdge);
           Optional<SvLibStatement> assignmentStatement = handleAssignment(pEdge, transformedTerm);
@@ -446,14 +447,13 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     return formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor);
   }
 
-  private void handleExternalFunctionCall(
-      CStatementEdge pStatementEdge, ListMultimap<CFANode, SvLibStatement> pCreatedStatements) {
-    // TODO handle calls to other external functions
+  private SvLibStatement handleExternFunctionCall(CStatementEdge pStatementEdge) {
+    // TODO handle calls to other extern functions
     //  i.e. every function call which does not have corresponding a functionEntryNode
     if (pStatementEdge.getStatement()
         instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement) {
 
-      /*      if (functionCallAssignmentStatement
+      /*if (functionCallAssignmentStatement
           .getRightHandSide()
           .getFunctionNameExpression()
           .toASTString()
@@ -471,13 +471,11 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         //        CComplexCastExpression, CFieldReference, CPointerExpression)
         SvLibSimpleParsingDeclaration assignedTo =
             scope.getVariableForQualifiedName(lhsIdExpression.getDeclaration().getQualifiedName());
-        SvLibHavocStatement havocStatement =
-            new SvLibHavocStatement(
-                FileLocation.DUMMY,
-                ImmutableList.of(),
-                ImmutableList.of(),
-                ImmutableList.of(assignedTo));
-        pCreatedStatements.put(pStatementEdge.getPredecessor(), havocStatement);
+        return new SvLibHavocStatement(
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableList.of(assignedTo));
       }
     } else if (pStatementEdge.getStatement()
         instanceof CFunctionCallStatement functionCallStatement) {
@@ -485,16 +483,31 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
           .getFunctionCallExpression()
           .getFunctionNameExpression()
           .toASTString()
+          .contains("__VERIFIER_nondet")) {
+        // use 'skip' for __VERIFIER_nondet without assignment
+        return new SvLibAssumeStatement(
+            FileLocation.DUMMY,
+            new SvLibBooleanConstantTerm(true, FileLocation.DUMMY),
+            ImmutableList.of(),
+            ImmutableList.of());
+      } else if (functionCallStatement
+          .getFunctionCallExpression()
+          .getFunctionNameExpression()
+          .toASTString()
           .contains("abort")) {
-        SvLibAssumeStatement assumeFalseStatement =
-            new SvLibAssumeStatement(
-                FileLocation.DUMMY,
-                new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
-                ImmutableList.of(),
-                ImmutableList.of(new SvLibTagReference("abort", FileLocation.DUMMY)));
-        pCreatedStatements.put(pStatementEdge.getPredecessor(), assumeFalseStatement);
+        return new SvLibAssumeStatement(
+            FileLocation.DUMMY,
+            new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+            ImmutableList.of(),
+            ImmutableList.of(new SvLibTagReference("abort", FileLocation.DUMMY)));
       }
     }
+    // FIXME throw instead of returning SKIP
+    return new SvLibAssumeStatement(
+        FileLocation.DUMMY,
+        new SvLibBooleanConstantTerm(true, FileLocation.DUMMY),
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   private SvLibProcedureCallStatement handleFunctionCall(CFunctionSummaryEdge pCallEdge) {
