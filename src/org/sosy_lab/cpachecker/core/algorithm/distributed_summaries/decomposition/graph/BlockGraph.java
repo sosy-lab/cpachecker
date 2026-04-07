@@ -82,6 +82,9 @@ public class BlockGraph {
           !blockNode.getEdges().isEmpty() || blockNode.getPredecessorIds().isEmpty(),
           "Every block needs at least one edge (%s).",
           blockNode);
+      // A block without a successor does not need a unique exit node, as it will never send a
+      // relevant postcondition and never receive a violation condition. Relaxing this check allows
+      // the SingleBlockDecomposition to work for programs with CFATerminationNodes
       if (!blockNode.getSuccessorIds().isEmpty()) {
         Preconditions.checkState(
             isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),

@@ -67,7 +67,8 @@ public class HorizontalMergeDecompositionTest {
 
     CFA cfa = TestUtil.buildTestCFA(path);
 
-    DssBlockDecomposition decomposition = createDecomposition(cfa, -1);
+    DssBlockDecomposition decomposition =
+        createDecomposition(cfa, HorizontalMergeDecomposition.NO_MERGE_LIMIT);
 
     BlockGraph graph = decomposition.decompose(cfa);
 

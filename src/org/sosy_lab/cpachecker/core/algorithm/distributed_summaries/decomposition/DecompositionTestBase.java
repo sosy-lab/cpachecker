@@ -8,18 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.truth.Truth;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -78,10 +78,9 @@ public class DecompositionTestBase {
     for (BlockNode n : graph.getNodes()) {
       for (String id : n.getSuccessorIds()) {
 
-        Optional<@NonNull BlockNode> succOpt =
-            graph.getNodes().stream().filter(b -> b.getId().equals(id)).findAny();
-        Truth.assertWithMessage("Couldn't find successor for block").that(succOpt).isPresent();
-        BlockNode succ = succOpt.orElseThrow();
+        BlockNode succ =
+            Iterables.getOnlyElement(
+                FluentIterable.from(graph.getNodes()).filter(b -> b.getId().equals(id)));
 
         Truth.assertWithMessage("Exit node of block does not match entry node of successor")
             .that(succ.getInitialLocation())
@@ -166,9 +165,7 @@ public class DecompositionTestBase {
         .containsExactlyElementsIn(nodesCFA);
 
     Multiset<CFAEdge> edgesGraph =
-        graph.getNodes().stream()
-            .flatMap(node -> node.getEdges().stream())
-            .collect(Collectors.toCollection(LinkedHashMultiset::create));
+        FluentIterable.from(graph.getNodes()).transformAndConcat(BlockNode::getEdges).toMultiset();
 
     Truth.assertWithMessage("BlockGraph does not contain exactly the edges of the CFA")
         .that(edgesGraph)

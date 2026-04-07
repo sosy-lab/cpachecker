@@ -22,6 +22,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 
 public class HorizontalMergeDecomposition implements DssBlockDecomposition {
 
+  public static final int NO_MERGE_LIMIT = -1;
+
   private final DssBlockDecomposition decomposer;
   private final long targetNumber;
   private final Comparator<BlockNodeWithoutGraphInformation> sort;

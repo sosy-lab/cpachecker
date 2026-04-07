@@ -56,7 +56,7 @@ public class DssDecompositionOptions {
           "Limits the horizontal merge so that blocks with more Nodes than this are not merged,"
               + "allowing for more parallelism in the analysis. Negative value allows all merges",
       secure = true)
-  private int largestHorizontalMerge = 8;
+  private int largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT;
 
   @Option(
       description =
