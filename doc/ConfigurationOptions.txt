@@ -4546,7 +4546,7 @@ distributedSummaries.decomposition.importDecomposition = no default value
 # Limits the horizontal merge so that blocks with more Nodes than this are
 # not merged,allowing for more parallelism in the analysis. Negative value
 # allows all merges
-distributedSummaries.decomposition.largestHorizontalMerge = 8
+distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT
 
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
