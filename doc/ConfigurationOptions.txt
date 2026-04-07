@@ -59,8 +59,10 @@ rootDirectory = "."
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: Apache-2.0 OR GPL-3.0-or-later
 
 # Further options for Bitwuzla in addition to the default options. Format: 
 # "option_name=value" with ’,’ to separate options. Option names and values
@@ -219,11 +221,44 @@ solver.synchronize = false
 # parallelity when solving larger queries.
 solver.synchronized.useSeperateProvers = false
 
+# Enable API tracing to record all calls to the JavaSMT library
+solver.trace = false
+
+# Sets how tracing errors should be handled
+solver.traceError = "log"
+  allowed values: [log, fail]
+
+# Export solver interaction as Java code into a file.
+solver.tracefile = no default value
+
 # Apply additional checks to catch common user errors.
 solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
+
+# Backend to use for the solver
+solver.yices2.solverType = "mcsat"
+  allowed values: [dpllt, mcsat]
+
+# Sets the engine to be used by this Z3 context, corresponding to Z3 option
+# 'engine=...'. Default: auto-config
+solver.z3.engine = "auto-config"
+  allowed values: [auto-config, datalog, bmc, spacer]
+
+# Further options for Z3 in addition to the default options. Format: 
+# "option.name=value" with ’,’ to separate options. Spaces, as well as
+# capitalization in the options are allowed. Option names and values can be
+# found in the Z3 documentation online:
+# https://microsoft.github.io/z3guide/programming/Parameters/ Example:
+# "spacer.order_children = 2, xform.inline_eager = FALSE,
+# xform.inline_linear=false,xform.slice=false,spacer.max_level=10". Please
+# use the dedicated configuration options, and not this option, for the
+# following Z3 options: logic, engine, optsmt_engine, priority,
+# smt.random_seed, and random_seed. Further, please do not configure the
+# following options, which are specified via JavaSMTs ProverOptions: model,
+# proof, unsat_core.
+solver.z3.furtherOptions = ""
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -236,6 +271,12 @@ solver.z3.legacy.requireProofs = true
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
+
+# SMT-LIB logic to configure the SMT solvers (i.e. all Provers created from a
+# SolverContext with this option) with. Default: ALL. Note: this option does
+# not cover specialized logic selection, e.g. 'spacer.logic'! Please use
+# 'furtherOptions' for those.
+solver.z3.logic = "ALL"
 
 # Ordering for objectives in the optimization context
 solver.z3.objectivePrioritizationMode = "box"
