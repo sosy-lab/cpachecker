@@ -161,7 +161,8 @@ public class BitVectorEvaluationUtil {
       SeqBitVectorVariables pBitVectorVariables) {
 
     if (!pBitVectorVariables.areSparseBitVectorsPresentByAccessType(pAccessType)) {
-      // no sparse variables (i.e. no global variables) -> no evaluation
+      // if there are no variables that contain the sparse encoding of the accessed memory
+      // locations, then there is also no evaluation
       return Optional.empty();
     }
     ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
