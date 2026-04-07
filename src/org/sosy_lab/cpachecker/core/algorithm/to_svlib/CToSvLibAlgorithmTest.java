@@ -57,7 +57,7 @@ public class CToSvLibAlgorithmTest {
     SvLibScript script;
     try (CToSvLibAlgorithm algorithm =
         new CToSvLibAlgorithm(
-            config, logger, shutdownNotifier, inputCfa, Specification.alwaysSatisfied())) {
+            config, logger, shutdownNotifier, inputCfa)) {
       script = algorithm.transformCfaToSvLib();
     }
 

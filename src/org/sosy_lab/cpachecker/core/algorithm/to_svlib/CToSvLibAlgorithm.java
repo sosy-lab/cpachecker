@@ -102,7 +102,6 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
 
   private final CFA cfa;
-  private final Specification specification;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -127,8 +126,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCfa,
-      Specification pSpecification)
+      CFA pCfa)
       throws InvalidConfigurationException {
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
@@ -139,7 +137,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       throw new InvalidConfigurationException(
           "Currently only C programs can be transformed to SV-LIB");
     }
-    specification = pSpecification;
 
     solver = Solver.create(config, logger, shutdownNotifier);
     formulaManager = solver.getFormulaManager();
