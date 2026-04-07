@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Iterables;
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.VariableAndTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -66,8 +64,8 @@ public class DssFactory {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    ImmutableMap<Integer, CFANode> integerToNodeMap =
-        ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
+    BiMap<Integer, CFANode> cfaNodeIdMap = createCfaNodeIdMap(pCFA);
+
     ImmutableMap<String, Type> variableAndFunctionToTypeMap = ImmutableMap.copyOf(getTypeMap(pCFA));
     return switch (pCPA) {
       case PredicateCPA predicateCPA ->
@@ -79,10 +77,10 @@ public class DssFactory {
               pOptions,
               pLogManager,
               pShutdownNotifier,
-              integerToNodeMap,
+              cfaNodeIdMap,
               variableAndFunctionToTypeMap);
       case CallstackCPA callstackCPA ->
-          distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
+          distribute(callstackCPA, pBlockNode, pCFA, cfaNodeIdMap);
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
       case ARGCPA argCPA ->
@@ -134,7 +132,7 @@ public class DssFactory {
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
+      BiMap<Integer, CFANode> pCfaNodeIdMap,
       ImmutableMap<String, Type> pVariableAndFunctionToTypeMap)
       throws InvalidConfigurationException {
     return new DistributedPredicateCPA(
@@ -145,7 +143,7 @@ public class DssFactory {
         pOptions,
         pLogManager,
         pShutdownNotifier,
-        pIntegerCFANodeMap,
+        pCfaNodeIdMap,
         pVariableAndFunctionToTypeMap);
   }
 

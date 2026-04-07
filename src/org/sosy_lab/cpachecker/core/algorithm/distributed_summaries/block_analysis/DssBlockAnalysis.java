@@ -458,7 +458,7 @@ public class DssBlockAnalysis {
         summariesWithPrecision.add(
             new StateAndPrecision(finalState, reachedSet.getPrecision(finalState)));
       }
-      return reportPostconditions(summariesWithPrecision.build(), true);
+      return reportPreconditions(summariesWithPrecision.build(), true);
     }
 
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
@@ -599,11 +599,11 @@ public class DssBlockAnalysis {
     }
     ImmutableList<StateAndPrecision> states = soundSummaries.build();
     if (!states.isEmpty()) {
-      messages.addAll(reportPostconditions(states, true));
+      messages.addAll(reportPreconditions(states, true));
     }
     ImmutableList<StateAndPrecision> unsoundStates = unsoundSummaries.build();
     if (!unsoundStates.isEmpty()) {
-      messages.addAll(reportPostconditions(unsoundStates, false));
+      messages.addAll(reportPreconditions(unsoundStates, false));
     }
     return messages.build();
   }

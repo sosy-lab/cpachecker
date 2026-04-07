@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -71,10 +70,6 @@ public class SerializationInfoStorage {
           case ApronCPA apron -> {
             info.apronManager = apron.getManager();
             info.apronLogger = apron.getLogger();
-          }
-          case ValueAnalysisCPA valueAnalysisCPA -> {
-            info.predicateFormulaManagerView =
-                valueAnalysisCPA.getBlockStrengtheningOperator().getSolver().getFormulaManager();
           }
           case AssumptionStorageCPA assumptionStorageCPA -> // override the existing manager
               info.assumptionFormulaManagerView = assumptionStorageCPA.getFormulaManager();
