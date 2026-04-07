@@ -280,7 +280,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
       SvLibAssignmentStatement assginDummyInput =
           new SvLibAssignmentStatement(
-              inputAssignmentsCollector.build(),
+              inputAssignmentsCollector.buildOrThrow(),
               FileLocation.DUMMY,
               ImmutableList.of(),
               ImmutableList.of());
@@ -535,7 +535,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
     } else {
       throw new UnsupportedOperationException(
-          "Failed to convert CFunctionCall to SvLibProcedureCallStatement based on CFunctionSummaryEdge "
+          "Failed to convert CFunctionCall to SvLibProcedureCallStatement based on"
+              + " CFunctionSummaryEdge "
               + pCallEdge);
     }
   }
