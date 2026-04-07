@@ -407,7 +407,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       case DeclarationEdge -> {
         SvLibTerm transformedTerm = transformToSvLibTerm(pEdge);
 
-        // currently ignores function declarations, e.g. {int main();} and type declarations
         Optional<SvLibStatement> assignmentStatement = handleAssignment(pEdge, transformedTerm);
         if (assignmentStatement.isPresent()) {
           pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement.orElseThrow());
