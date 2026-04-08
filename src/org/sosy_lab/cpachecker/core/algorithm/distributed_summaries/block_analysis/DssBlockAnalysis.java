@@ -707,10 +707,11 @@ public class DssBlockAnalysis {
           summaries.addAll(summaryWithPrecision.build());
         }
         if (!result.getAllViolations().isEmpty()) {
-          if (!allowedToSkipTop)
+          if (!allowedToSkipTop) {
             summaries.add(
                 new StateAndPrecision(
                     makeTopState(block.getFinalLocation()), makeStartPrecision()));
+          }
           vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
           if (isOriginal) {
             vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
