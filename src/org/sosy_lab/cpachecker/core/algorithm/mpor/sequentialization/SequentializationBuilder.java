@@ -332,20 +332,20 @@ public class SequentializationBuilder {
     }
 
     if (pOptions.abortCommutingContextSwitches()) {
-      // LAST_THREAD ghost variable
+      // prev_thread ghost variable
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
-      // the initializer of LAST_THREAD is dependent on the number of threads
-      CInitializer lastThreadInitializer =
+      // the initializer of prev_thread is dependent on the number of threads
+      CInitializer prevThreadInitializer =
           new CInitializerExpression(FileLocation.DUMMY, numThreadsExpression);
-      CVariableDeclaration lastThreadDeclaration =
+      CVariableDeclaration prevThreadDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
-              // LAST_THREAD is always unsigned, NUM_THREADS is assigned if a thread terminates
+              // prev_thread is always unsigned, NUM_THREADS is assigned if a thread terminates
               CNumericTypes.UNSIGNED_INT,
-              SeqIdExpressions.LAST_THREAD.getName(),
-              lastThreadInitializer);
-      rDeclarations.add(lastThreadDeclaration.toASTString());
+              SeqIdExpressions.PREV_THREAD.getName(),
+              prevThreadInitializer);
+      rDeclarations.add(prevThreadDeclaration.toASTString());
     }
 
     // next_thread
@@ -373,9 +373,7 @@ public class SequentializationBuilder {
     if (pOptions.isAnyBitVectorReductionEnabled()) {
       SeqBitVectorDeclarationBuilder bitVectorDeclarationBuilder =
           new SeqBitVectorDeclarationBuilder(
-              pOptions.bitVectorEncoding(),
-              pOptions.executeCommutingThreadsFirst(),
-              pOptions.partialOrderReductionMode(),
+              pOptions,
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
               pFields.machineModel,
