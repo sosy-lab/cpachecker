@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -285,12 +286,11 @@ public class DssBlockAnalysis {
       if (this == obj) {
         return true;
       }
-      if (obj == null || getClass() != obj.getClass()) {
+      if (!(obj instanceof ArgPathAndCondition other)) {
         return false;
       }
-      ArgPathAndCondition other = (ArgPathAndCondition) obj;
       return Objects.equals(getIdFromPath(), other.getIdFromPath())
-          && (condition == null ? other.condition == null : condition == other.condition);
+          && Objects.equals(condition, other.condition());
     }
   }
 
@@ -700,10 +700,6 @@ public class DssBlockAnalysis {
           summaries.addAll(summaryWithPrecision.build());
         }
         if (!result.getAllViolations().isEmpty()) {
-          // we do not want to underapproximate the state space
-          summaries.add(
-              new StateAndPrecision(makeTopState(block.getFinalLocation()), makeStartPrecision()));
-
           // pack all violations
           vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
           if (containsViolationInsideBlock) {
@@ -717,7 +713,13 @@ public class DssBlockAnalysis {
                 result.getFinalLocationStates(), violations));
       }
     }
-    return new AnalysisResult(summaries.build(), vcs.build());
+    ImmutableSet<ArgPathAndCondition> uniqueViolations = vcs.build();
+    if (!uniqueViolations.isEmpty()) {
+      // we do not want to underapproximate the state space
+      summaries.add(
+          new StateAndPrecision(makeTopState(block.getFinalLocation()), makeStartPrecision()));
+    }
+    return new AnalysisResult(summaries.build(), uniqueViolations);
   }
 
   private AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
