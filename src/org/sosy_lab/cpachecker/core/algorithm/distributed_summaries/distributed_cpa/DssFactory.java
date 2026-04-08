@@ -79,8 +79,7 @@ public class DssFactory {
               pShutdownNotifier,
               cfaNodeIdMap,
               variableAndFunctionToTypeMap);
-      case CallstackCPA callstackCPA ->
-          distribute(callstackCPA, pBlockNode, pCFA, cfaNodeIdMap);
+      case CallstackCPA callstackCPA -> distribute(callstackCPA, pBlockNode, pCFA, cfaNodeIdMap);
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
       case ARGCPA argCPA ->
