@@ -554,14 +554,14 @@ def generate_html_report(
                 <h1>Worker Events Visualization</h1>
                 <p class="subtitle">Distributed Block Analysis Messages</p>
             </header>
-    
+
             {controls_html}
             {stats_html}
             {views}
         </div>
-    
+
         <button class="floating-graph-btn" id="floatingGraphBtn" title="View Block Graph">📊</button>
-    
+
         <div class="modal" id="graphModal">
             <div class="modal-overlay" id="modalOverlay"></div>
             <div class="modal-content">
@@ -572,7 +572,7 @@ def generate_html_report(
                 </div>
             </div>
         </div>
-    
+
         <script>{js}</script>
     </body>
     </html>
