@@ -36,7 +36,6 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         idAndHistory.size() == 2
             ? Splitter.on(", ").splitToList(idAndHistory.get(1))
             : ImmutableList.of();
-    System.out.println(blockNode.getId() + ": " + history);
     Preconditions.checkNotNull(serializedBlockState);
     Preconditions.checkArgument(
         blockNode.getPredecessorIds().contains(serializedBlockState)
