@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -286,10 +285,8 @@ public class DssBlockAnalysis {
       if (this == obj) {
         return true;
       }
-      if (!(obj instanceof ArgPathAndCondition other)) {
-        return false;
-      }
-      return Objects.equals(getIdFromPath(), other.getIdFromPath())
+      return obj instanceof ArgPathAndCondition other
+          && Objects.equals(getIdFromPath(), other.getIdFromPath())
           && Objects.equals(condition, other.condition());
     }
   }
