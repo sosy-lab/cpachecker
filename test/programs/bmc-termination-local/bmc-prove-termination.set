@@ -8,4 +8,7 @@
 ../simple/termination/nestedWithSpecificK.c
 ../simple/termination/simpleWithSpecificK.c
 ../simple/termination/test.c
+../simple/termination/infiniteForWithBreak.c
+../simple/termination/infiniteForWithReturn.c
+../simple/termination/mixedExitWithBreak.c
 # ../simple/termination/simpleWithBigK.c

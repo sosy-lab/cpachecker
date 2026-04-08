@@ -12,6 +12,7 @@ import com.google.common.collect.FluentIterable;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -36,5 +37,10 @@ public final class FrontierEdgeFormulaNegation extends EdgeFormulaNegation {
                   AbstractStates.extractStateByType(state, LoopBoundState.class);
               return loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance();
             });
+  }
+
+  @Override
+  public void assumeTruth(ReachedSet pReachedSet) {
+    // Keep frontier-only termination candidates observational only.
   }
 }

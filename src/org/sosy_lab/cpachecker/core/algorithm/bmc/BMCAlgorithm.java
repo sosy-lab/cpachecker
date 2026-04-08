@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopScopedFrontierEdgeFormulaNegation;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.StatewiseCandidateInvariantDisjunction;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -145,11 +146,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try {
       AlgorithmStatus status = super.run(reachedSet);
       if (terminationMode && terminationCandidatesIncomplete && status.isSound()) {
-        logger.logf(
+        logger.log(
             Level.WARNING,
-            "Termination mode could not derive loop-continuation candidates for %d loop(s); "
-                + "downgrading the result to UNKNOWN.",
-            loopsWithoutTerminationCandidates);
+            "Termination mode could not derive loop structure information; downgrading the result"
+                + " to UNKNOWN.");
         return status.withSound(false);
       }
       return status;
@@ -180,7 +180,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
         ImmutableSet<CandidateInvariant> loopCandidates = getTerminationCandidates(loop);
         if (loopCandidates.isEmpty()) {
-          terminationCandidatesIncomplete = true;
           loopsWithoutTerminationCandidates++;
           logger.logf(
               Level.FINE,
@@ -192,10 +191,25 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       ImmutableSet<CandidateInvariant> terminationCandidates = candidates.build();
       if (terminationCandidates.isEmpty()) {
-        logger.log(
-            Level.WARNING,
-            "Termination mode is enabled, but no loop-continuation candidates were created.");
+        if (loopsWithoutTerminationCandidates > 0) {
+          logger.logf(
+              Level.INFO,
+              "Termination mode could not derive loop-continuation candidates for %d loop(s); "
+                  + "relying on unwinding assertions only.",
+              loopsWithoutTerminationCandidates);
+        } else {
+          logger.log(
+              Level.INFO,
+              "Termination mode is enabled, but no loop-continuation candidates were created.");
+        }
         return CandidateGenerator.EMPTY_GENERATOR;
+      }
+      if (loopsWithoutTerminationCandidates > 0) {
+        logger.logf(
+            Level.INFO,
+            "Termination mode could not derive loop-continuation candidates for %d loop(s); "
+                + "those loops will be handled via unwinding assertions.",
+            loopsWithoutTerminationCandidates);
       }
       logger.logf(
           Level.INFO,
@@ -229,14 +243,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> getTerminationCandidates(Loop pLoop) {
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
     addLoopHeadCandidates(pLoop, candidates);
-    ImmutableSet<CandidateInvariant> loopHeadCandidates = candidates.build();
-    if (!loopHeadCandidates.isEmpty()) {
-      return loopHeadCandidates;
-    }
-
-    candidates = ImmutableSet.builder();
     addInternalExitGuardCandidates(pLoop, candidates);
-    return candidates.build();
+    ImmutableSet<CandidateInvariant> loopCandidates = candidates.build();
+    if (loopCandidates.isEmpty()) {
+      return loopCandidates;
+    }
+    return ImmutableSet.of(new StatewiseCandidateInvariantDisjunction(loopCandidates));
   }
 
   private void addLoopHeadCandidates(

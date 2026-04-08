@@ -434,7 +434,9 @@ abstract class AbstractBMCAlgorithm
       ctiBlockingClauses = new TreeSet<>();
       checkedClauses = new HashMap<>();
 
-      if (!candidateGenerator.produceMoreCandidates()) {
+      // In termination mode, we may still be able to prove the property from unwinding assertions
+      // alone, even if no loop-continuation candidates were derived syntactically.
+      if (!candidateGenerator.produceMoreCandidates() && !isTerminationMode()) {
         reachedSet.clearWaitlist();
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
@@ -523,7 +525,7 @@ abstract class AbstractBMCAlgorithm
 
           // check bounding assertions
           sound =
-              candidateGenerator.hasCandidatesAvailable()
+              isTerminationMode() || candidateGenerator.hasCandidatesAvailable()
                   ? checkBoundingAssertions(reachedSet, prover)
                   : true;
 
@@ -553,7 +555,7 @@ abstract class AbstractBMCAlgorithm
           }
         }
 
-        if (!candidateGenerator.hasCandidatesAvailable()) {
+        if (!candidateGenerator.hasCandidatesAvailable() && !isTerminationMode()) {
           // no remaining invariants to be proven
           return status;
         }
