@@ -19,6 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
@@ -37,6 +38,8 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.VariableAndTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class DssFactory {
@@ -62,6 +65,7 @@ public class DssFactory {
       throws InvalidConfigurationException {
     BiMap<Integer, CFANode> cfaNodeIdMap = createCfaNodeIdMap(pCFA);
 
+    ImmutableMap<String, Type> variableAndFunctionToTypeMap = ImmutableMap.copyOf(getTypeMap(pCFA));
     return switch (pCPA) {
       case PredicateCPA predicateCPA ->
           distribute(
@@ -72,7 +76,8 @@ public class DssFactory {
               pOptions,
               pLogManager,
               pShutdownNotifier,
-              cfaNodeIdMap);
+              cfaNodeIdMap,
+              variableAndFunctionToTypeMap);
       case CallstackCPA callstackCPA -> distribute(callstackCPA, pBlockNode, pCFA, cfaNodeIdMap);
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
@@ -101,6 +106,12 @@ public class DssFactory {
     };
   }
 
+  private static Map<String, Type> getTypeMap(CFA pCFA) {
+    VariableAndTypeVisitor variableTypeCollector = new VariableAndTypeVisitor();
+    CFATraversal.dfs().traverse(pCFA.getMainFunction(), variableTypeCollector);
+    return variableTypeCollector.getVariablesToTypes();
+  }
+
   private static DistributedConfigurableProgramAnalysis distribute(
       BlockCPA pBlockCPA, BlockNode pBlockNode, DssAnalysisOptions pOptions) {
     return new DistributedBlockCPA(pBlockCPA, pBlockNode, pOptions);
@@ -119,7 +130,8 @@ public class DssFactory {
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      BiMap<Integer, CFANode> pIntegerCFANodeMap)
+      BiMap<Integer, CFANode> pCfaNodeIdMap,
+      ImmutableMap<String, Type> pVariableAndFunctionToTypeMap)
       throws InvalidConfigurationException {
     return new DistributedPredicateCPA(
         pPredicateCPA,
@@ -129,7 +141,8 @@ public class DssFactory {
         pOptions,
         pLogManager,
         pShutdownNotifier,
-        pIntegerCFANodeMap);
+        pCfaNodeIdMap,
+        pVariableAndFunctionToTypeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
@@ -174,7 +187,8 @@ public class DssFactory {
       }
       builder.put(wrappedCPA.getClass(), dcpa);
     }
-    return new DistributedCompositeCPA(pCompositeCPA, pBlockNode, builder.buildOrThrow());
+    return new DistributedCompositeCPA(
+        pLogManager, pCompositeCPA, pBlockNode, builder.buildOrThrow());
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

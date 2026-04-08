@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CSwitchStatement;
  * e.g. in options to define a specific encoding.
  */
 public enum MultiSelectionStatementEncoding {
-  // NONE may be necessary when some other option defines that there is no multi control statement
+  // NONE may be necessary when some other option defines that there is no multi selection statement
   // at all in the exported C code
   NONE,
   BINARY_SEARCH_TREE,

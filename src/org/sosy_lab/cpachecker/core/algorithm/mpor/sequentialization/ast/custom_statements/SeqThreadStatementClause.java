@@ -23,9 +23,13 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CReturnStatementWrapper;
 
 /**
  * A clause features an {@code int} label and a list of {@link SeqThreadStatementBlock}. A clause is
- * reachable from outside a thread simulation via its {@code pc} label.
+ * reachable from outside a thread simulation via its {@code pc} label. Initially each {@link
+ * SeqThreadStatementClause} has only one {@link SeqThreadStatementBlock}, but after merging e.g.
+ * atomic blocks or linking local statements a {@link SeqThreadStatementClause} can contain multiple
+ * {@link SeqThreadStatementBlock}.
  *
- * <p>e.g. {@code case 42: fib(42); break;} when using switch cases.
+ * <p>e.g. {@code case 42: fib(42); break;} for {@link MultiSelectionStatementEncoding#SWITCH_CASE}
+ * with {@code fib(42);} as the only {@link SeqThreadStatementBlock}.
  */
 public final class SeqThreadStatementClause implements SeqExportStatement {
 
@@ -143,11 +147,11 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
   }
 
   @Override
-  public ImmutableList<CCompoundStatementElement> toCExportAstNodes() {
+  public ImmutableList<CCompoundStatementElement> toCExportStatements() {
     ImmutableList.Builder<CCompoundStatementElement> exportedStatements = ImmutableList.builder();
     for (int i = 0; i < blocks.size(); i++) {
       SeqThreadStatementBlock block = blocks.get(i);
-      exportedStatements.addAll(block.toCExportAstNodes());
+      exportedStatements.addAll(block.toCExportStatements());
       tryBuildBlockSuffix(block, i == blocks.size() - 1).ifPresent(s -> exportedStatements.add(s));
     }
     return exportedStatements.build();
@@ -167,13 +171,14 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
       return Optional.empty();
     }
 
-    // use control encoding of the statement since we append the suffix to the statement
-    return switch (options.controlEncodingStatement()) {
+    // use selectionEncodingForStatements since we append the suffix to the statement
+    return switch (options.selectionEncodingForStatements()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build suffix for control encoding " + options.controlEncodingStatement());
+              "cannot build suffix for MultiSelectionStatementEncoding "
+                  + options.selectionEncodingForStatements());
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
-        if (options.loopUnrolling()) {
+        if (options.threadSimulationUnrolling()) {
           // with loop unrolling (and separate thread functions) enabled, always return to main()
           yield Optional.of(new CReturnStatementWrapper(Optional.empty()));
         }

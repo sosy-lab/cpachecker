@@ -34,6 +34,7 @@ public enum SeqThreadStatementType {
    * q->head}.
    */
   CONST_CPACHECKER_TMP(true, false),
+  CPACHECKER_TMP_WITHOUT_INITIALIZER(true, false),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */
   DEFAULT(true, false),
   /** A statement that contains only ghost code without any statement from the input program. */
@@ -54,7 +55,13 @@ public enum SeqThreadStatementType {
   RW_LOCK_WR_LOCK(true, true),
   THREAD_CREATION(true, false),
   THREAD_EXIT(false, false),
-  THREAD_JOIN(true, true);
+  THREAD_JOIN(true, true),
+  /**
+   * A {@code while (1)} loop head is transformed into {@code CFANode -> BlankEdge -> CFANode'}
+   * which would be pruned from the output program. This statement type preserves the {@code
+   * BlankEdge} so that the information on the loop head is not pruned.
+   */
+  WHILE_TRUE_LOOP_HEAD(true, false);
 
   /**
    * Whether this statement type can be linked to its target statement. This is false e.g. for
@@ -72,5 +79,14 @@ public enum SeqThreadStatementType {
   SeqThreadStatementType(boolean pIsLinkable, boolean pSynchronizesThreads) {
     isLinkable = pIsLinkable;
     synchronizesThreads = pSynchronizesThreads;
+  }
+
+  public boolean in(SeqThreadStatementType... pSeqThreadStatementTypes) {
+    for (SeqThreadStatementType statementType : pSeqThreadStatementTypes) {
+      if (statementType.equals(this)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

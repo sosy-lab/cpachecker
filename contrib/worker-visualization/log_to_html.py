@@ -32,6 +32,7 @@ ENCODING = "UTF-8"
 
 class MessageType(Enum):
     """Enumeration of message types in the distributed block analysis."""
+
     POST_CONDITION = "POST_CONDITION"
     VIOLATION_CONDITION = "VIOLATION_CONDITION"
     FOUND_RESULT = "FOUND_RESULT"
@@ -40,6 +41,7 @@ class MessageType(Enum):
 @dataclass
 class Message:
     """Data class representing a worker message."""
+
     timestamp: int
     sender_id: str
     message_type: MessageType
@@ -50,7 +52,9 @@ class Message:
     code: str
 
     @classmethod
-    def from_json(cls, json_data: Dict[str, Any], block_logs: Dict[str, Any]) -> 'Message':
+    def from_json(
+        cls, json_data: Dict[str, Any], block_logs: Dict[str, Any]
+    ) -> "Message":
         """Create a Message instance from JSON data."""
         header = json_data["header"]
         sender_id = header["senderId"]
@@ -64,7 +68,7 @@ class Message:
             filename=json_data.get("filename", ""),
             predecessors=block_info.get("predecessors", []),
             successors=block_info.get("successors", []),
-            code="\n".join(x for x in block_info.get("code", []) if x)
+            code="\n".join(x for x in block_info.get("code", []) if x),
         )
 
 
@@ -78,7 +82,7 @@ Examples:
   %(prog)s
   %(prog)s --messages-json output/messages --block-structure-json output/blocks.json
   %(prog)s -o visualization --export-keys state predicates
-        """
+        """,
     )
     parser.add_argument(
         "--messages-json",
@@ -113,7 +117,9 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
 
     args.block_structure_json = Path(args.block_structure_json)
     if not args.block_structure_json.exists():
-        raise ValueError(f"Block structure file does not exist: {args.block_structure_json}")
+        raise ValueError(
+            f"Block structure file does not exist: {args.block_structure_json}"
+        )
 
     args.messages_json = Path(args.messages_json)
     if not args.messages_json.is_dir():
@@ -137,7 +143,9 @@ def load_json_file(json_file: Path) -> Dict[str, Any]:
         return {}
 
 
-def filter_content_by_keys(content: Dict[str, Any], export_keys: List[str]) -> Dict[str, Any]:
+def filter_content_by_keys(
+    content: Dict[str, Any], export_keys: List[str]
+) -> Dict[str, Any]:
     """Filter message content based on export keys."""
     if not export_keys:
         return content
@@ -151,8 +159,11 @@ def filter_content_by_keys(content: Dict[str, Any], export_keys: List[str]) -> D
     return filtered
 
 
-def generate_message_html(message: Optional[Dict[str, Any]], block_logs: Dict[str, Any],
-                          export_keys: List[str]) -> str:
+def generate_message_html(
+    message: Optional[Dict[str, Any]],
+    block_logs: Dict[str, Any],
+    export_keys: List[str],
+) -> str:
     """Generate HTML representation of a single message."""
     if not message:
         return "<div></div>"
@@ -187,13 +198,13 @@ def generate_message_html(message: Optional[Dict[str, Any]], block_logs: Dict[st
         <div class="message-header">
             <span class="message-arrow">{arrow}</span>
             <span class="message-info">
-                From <strong>{', '.join(senders)}</strong>
+                From <strong>{", ".join(senders)}</strong>
                 <span class="message-id">(ID: {msg_id[1:-5]})</span>
             </span>
         </div>
         <div class="message-direction">
-            To <strong>{', '.join(receivers) if receivers else 'None'}</strong>
-            <span class="message-type-badge">{message_type.replace('_', ' ')}</span>
+            To <strong>{", ".join(receivers) if receivers else "None"}</strong>
+            <span class="message-type-badge">{message_type.replace("_", " ")}</span>
         </div>
         <details class="message-content">
             <summary>View Content</summary>
@@ -204,8 +215,9 @@ def generate_message_html(message: Optional[Dict[str, Any]], block_logs: Dict[st
     return html
 
 
-def generate_html_table(messages: List[Dict[str, Any]], block_logs: Dict[str, Any],
-                        export_keys: List[str]) -> str:
+def generate_html_table(
+    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+) -> str:
     """Generate HTML table from messages."""
     if not messages:
         return "<p>No messages to display.</p>"
@@ -233,7 +245,7 @@ def generate_html_table(messages: List[Dict[str, Any]], block_logs: Dict[str, An
     type_to_class = {
         "POST_CONDITION": "post-condition",
         "VIOLATION_CONDITION": "violation-condition",
-        "FOUND_RESULT": "found-result"
+        "FOUND_RESULT": "found-result",
     }
 
     # Build table HTML
@@ -243,11 +255,13 @@ def generate_html_table(messages: List[Dict[str, Any]], block_logs: Dict[str, An
     html_parts.append('<thead><tr class="header-row">')
     html_parts.append('<th class="time-column">Time</th>')
     for block_id in sorted_block_ids:
-        html_parts.append(f'<th class="block-column" data-block="{block_id}">{block_id}</th>')
-    html_parts.append('</tr></thead>')
+        html_parts.append(
+            f'<th class="block-column" data-block="{block_id}">{block_id}</th>'
+        )
+    html_parts.append("</tr></thead>")
 
     # Table body
-    html_parts.append('<tbody>')
+    html_parts.append("<tbody>")
     for timestamp in sorted(timestamp_to_messages.keys()):
         row_messages = timestamp_to_messages[timestamp]
         html_parts.append(f'<tr data-timestamp="{timestamp}">')
@@ -261,20 +275,21 @@ def generate_html_table(messages: List[Dict[str, Any]], block_logs: Dict[str, An
                 css_class = type_to_class.get(msg_type, "normal")
                 cell_html = generate_message_html(msg, block_logs, export_keys)
                 html_parts.append(
-                    f'<td class="message-cell {css_class}" data-type="{msg_type}">{cell_html}</td>')
+                    f'<td class="message-cell {css_class}" data-type="{msg_type}">{cell_html}</td>'
+                )
 
-        html_parts.append('</tr>')
-    html_parts.append('</tbody>')
-    html_parts.append('</table>')
+        html_parts.append("</tr>")
+    html_parts.append("</tbody>")
+    html_parts.append("</table>")
 
-    return '\n'.join(html_parts)
+    return "\n".join(html_parts)
 
 
 def visualize_block_graph(
-        block_structure_file: Path,
-        output_path: Path,
-        output_dot_name: str = "graph.dot",
-        output_png_name: str = "graph.png",
+    block_structure_file: Path,
+    output_path: Path,
+    output_dot_name: str = "graph.dot",
+    output_png_name: str = "graph.png",
 ) -> None:
     """Generate block structure graph visualization."""
     block_logs = load_json_file(block_structure_file)
@@ -316,12 +331,115 @@ def visualize_block_graph(
         print(f"WARNING: Failed to generate PNG from DOT file: {e}", file=sys.stderr)
 
 
+def generate_timeline_view(
+    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+) -> str:
+    """Generate timeline view HTML where messages are shown chronologically."""
+    if not messages:
+        return "<p>No messages to display.</p>"
+
+    # Group messages by timestamp
+    first_timestamp = int(messages[0]["header"]["timestamp"])
+    timestamp_groups = {}
+
+    for message in messages:
+        relative_time = message["header"]["timestamp"] - first_timestamp
+        if relative_time not in timestamp_groups:
+            timestamp_groups[relative_time] = []
+        timestamp_groups[relative_time].append(message)
+
+    # Message type to CSS class mapping
+    type_to_class = {
+        "POST_CONDITION": "post-condition",
+        "VIOLATION_CONDITION": "violation-condition",
+        "FOUND_RESULT": "found-result",
+    }
+
+    html_parts = ['<div class="timeline-container">']
+
+    for timestamp in sorted(timestamp_groups.keys()):
+        messages_at_time = timestamp_groups[timestamp]
+
+        html_parts.append(f'<div class="timeline-row" data-timestamp="{timestamp}">')
+        html_parts.append(f'<div class="timeline-time">{timestamp}</div>')
+        html_parts.append('<div class="timeline-messages">')
+
+        for msg in messages_at_time:
+            header = msg["header"]
+            sender_id = header["senderId"]
+            message_type = header["messageType"]
+            msg_id = msg["filename"]
+
+            block_info = block_logs.get(sender_id, {})
+            predecessors = block_info.get("predecessors", [])
+            successors = block_info.get("successors", [])
+            code = "\n".join(x for x in block_info.get("code", []) if x)
+            content = msg.get("content", {})
+
+            # Determine message direction and participants
+            arrow, senders, receivers = "-", ["all"], ["all"]
+            if message_type == "POST_CONDITION":
+                arrow, senders, receivers = (
+                    "&darr;",
+                    predecessors or ["Self"],
+                    successors,
+                )
+            elif message_type == "VIOLATION_CONDITION":
+                arrow, senders, receivers = (
+                    "&uarr;",
+                    successors or ["Self"],
+                    predecessors,
+                )
+            elif message_type == "FOUND_RESULT":
+                senders = [msg.get("from", "Self")]
+
+            # Filter content based on export keys
+            filtered_content = filter_content_by_keys(content, export_keys)
+            content_json = json.dumps(filtered_content, indent=2)
+
+            css_class = type_to_class.get(message_type, "normal")
+
+            # Build compact message card
+            html_parts.append(f'''
+            <div class="timeline-message-card {css_class}" data-sender="{sender_id}" data-type="{message_type}" title="{sender_id}:\n{code}">
+                <div class="timeline-card-header">
+                    <span class="timeline-arrow">{arrow}</span>
+                    <span class="timeline-sender"><strong>{sender_id}</strong></span>
+                    <span class="timeline-type-badge">{message_type.replace("_", " ")}</span>
+                </div>
+                <div class="timeline-card-body">
+                    <div class="timeline-participants">
+                        <div class="timeline-participant-group">
+                            <span class="label">From:</span>
+                            <span class="value">{", ".join(senders)}</span>
+                        </div>
+                        <div class="timeline-participant-group">
+                            <span class="label">To:</span>
+                            <span class="value">{", ".join(receivers) if receivers else "None"}</span>
+                        </div>
+                    </div>
+                    <div class="timeline-msg-id">ID: {msg_id[1:-5]}</div>
+                    <details class="timeline-content">
+                        <summary>View Content</summary>
+                        <pre class="timeline-content-json">{content_json}</pre>
+                    </details>
+                </div>
+            </div>
+            ''')
+
+        html_parts.append("</div>")  # Close timeline-messages
+        html_parts.append("</div>")  # Close timeline-row
+
+    html_parts.append("</div>")  # Close timeline-container
+    return "\n".join(html_parts)
+
+
 def generate_html_report(
-        messages: List[Dict[str, Any]],
-        block_logs: Dict[str, Any],
-        output_path: Path,
-        export_keys: Optional[List[str]] = None,
-        report_filename: str = "report.html",
+    messages: List[Dict[str, Any]],
+    block_logs: Dict[str, Any],
+    output_path: Path,
+    export_keys: Optional[List[str]] = None,
+    report_filename: str = "report.html",
 ) -> Path:
     """Generate the complete HTML report with embedded styles and scripts."""
     export_keys = export_keys or []
@@ -335,103 +453,130 @@ def generate_html_report(
     # Generate table HTML
     table_html = generate_html_table(messages, block_logs, export_keys)
 
+    # Generate timeline HTML
+    timeline_html = generate_timeline_view(messages, block_logs, export_keys)
+
     # Get unique block IDs and message types for filters
     block_ids = sorted(block_logs.keys())
     message_types = ["POST_CONDITION", "VIOLATION_CONDITION", "FOUND_RESULT"]
 
-    # Build complete HTML document
+    views = f"""<div class="view-container" id="tableViewContainer">
+            <div class="table-container">
+                {table_html}
+            </div>
+        </div>
+
+        <div class="view-container hidden" id="timelineViewContainer">
+            <div class="timeline-wrapper">
+                {timeline_html}
+            </div>
+        </div>
+    """
+
+    # Get reusable parts first
+    css = get_embedded_css()
+    js = get_embedded_javascript()
+
+    # Build filter buttons separately
+    filter_buttons_html = " ".join(
+        f'<button class="filter-btn active" data-filter-type="{mt}">{mt.replace("_", " ")}</button>'
+        for mt in message_types
+    )
+
+    # Build stats panel
+    stats_html = f"""
+    <div class="stats-panel">
+        <div class="stat-card">
+            <span class="stat-label">Total Messages:</span>
+            <span class="stat-value" id="totalMessages">{len(messages)}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Visible Messages:</span>
+            <span class="stat-value" id="visibleMessages">{len(messages)}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Block Count:</span>
+            <span class="stat-value">{len(block_ids)}</span>
+        </div>
+    </div>
+    """
+
+    # Build filter panel
+    filter_panel_html = f"""
+    <div class="filter-panel">
+        <div class="filter-section">
+            <label>Filter by Message Type:</label>
+            <div class="filter-buttons">{filter_buttons_html}</div>
+        </div>
+        <div class="filter-section">
+            <label>Filter by Block ID:</label>
+            <div class="filter-input-group">
+                <input type="text" id="blockFilter" placeholder="Enter block ID..." />
+                <button id="clearBlockFilter" class="btn-clear">✕</button>
+            </div>
+        </div>
+        <div class="filter-section">
+            <label>Search Message Content:</label>
+            <div class="filter-input-group">
+                <input type="text" id="contentSearch" placeholder="Search in message content..." />
+                <button id="clearContentSearch" class="btn-clear">✕</button>
+            </div>
+        </div>
+    </div>
+    """
+
+    # Build controls
+    controls_html = f"""
+    <div class="controls">
+        <div class="control-group">
+            <div class="view-toggle">
+                <button id="tableViewBtn" class="btn btn-view active"><span>📊</span> Table View</button>
+                <button id="timelineViewBtn" class="btn btn-view"><span>📅</span> Timeline View</button>
+            </div>
+            <button id="resetFiltersBtn" class="btn btn-secondary"><span>🔄</span> Reset Filters</button>
+        </div>
+        {filter_panel_html}
+    </div>
+    """
+
+    # Build the final HTML in parts
     html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker Events - Block Analysis Visualization</title>
-    <style>
-        {get_embedded_css()}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header class="header">
-            <h1>Worker Events Visualization</h1>
-            <p class="subtitle">Distributed Block Analysis Messages</p>
-        </header>
-        
-        <div class="controls">
-            <div class="control-group">
-                <button id="resetFiltersBtn" class="btn btn-secondary">
-                    <span>🔄</span> Reset Filters
-                </button>
-            </div>
-            
-            <div class="filter-panel">
-                <div class="filter-section">
-                    <label>Filter by Message Type:</label>
-                    <div class="filter-buttons">
-                        {' '.join(f'<button class="filter-btn active" data-filter-type="{mt}">{mt.replace("_", " ")}</button>' for mt in message_types)}
-                    </div>
-                </div>
-                
-                <div class="filter-section">
-                    <label>Filter by Block ID:</label>
-                    <div class="filter-input-group">
-                        <input type="text" id="blockFilter" placeholder="Enter block ID..." />
-                        <button id="clearBlockFilter" class="btn-clear">✕</button>
-                    </div>
-                </div>
-                
-                <div class="filter-section">
-                    <label>Search Message Content:</label>
-                    <div class="filter-input-group">
-                        <input type="text" id="contentSearch" placeholder="Search in message content..." />
-                        <button id="clearContentSearch" class="btn-clear">✕</button>
-                    </div>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Worker Events - Block Analysis Visualization</title>
+        <style>{css}</style>
+    </head>
+    <body>
+        <div class="container">
+            <header class="header">
+                <h1>Worker Events Visualization</h1>
+                <p class="subtitle">Distributed Block Analysis Messages</p>
+            </header>
+
+            {controls_html}
+            {stats_html}
+            {views}
+        </div>
+
+        <button class="floating-graph-btn" id="floatingGraphBtn" title="View Block Graph">📊</button>
+
+        <div class="modal" id="graphModal">
+            <div class="modal-overlay" id="modalOverlay"></div>
+            <div class="modal-content">
+                <button class="modal-close" id="modalClose">&times;</button>
+                <h2>Block Structure Graph</h2>
+                <div class="modal-body">
+                    <img src="graph.png" alt="Block Structure Graph" id="graphImage" />
                 </div>
             </div>
         </div>
-        
-        <div class="stats-panel">
-            <div class="stat-card">
-                <span class="stat-label">Total Messages:</span>
-                <span class="stat-value" id="totalMessages">{len(messages)}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Visible Messages:</span>
-                <span class="stat-value" id="visibleMessages">{len(messages)}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Block Count:</span>
-                <span class="stat-value">{len(block_ids)}</span>
-            </div>
-        </div>
-        
-        <div class="table-container">
-            {table_html}
-        </div>
-    </div>
-    
-    <!-- Fixed floating button for block graph -->
-    <button class="floating-graph-btn" id="floatingGraphBtn" title="View Block Graph">
-        📊
-    </button>
-    
-    <div class="modal" id="graphModal">
-        <div class="modal-overlay" id="modalOverlay"></div>
-        <div class="modal-content">
-            <button class="modal-close" id="modalClose">&times;</button>
-            <h2>Block Structure Graph</h2>
-            <div class="modal-body">
-                <img src="graph.png" alt="Block Structure Graph" id="graphImage" />
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        {get_embedded_javascript()}
-    </script>
-</body>
-</html>
-"""
+
+        <script>{js}</script>
+    </body>
+    </html>
+    """
 
     # Write output file
     output_path.mkdir(parents=True, exist_ok=True)
@@ -444,10 +589,10 @@ def generate_html_report(
 
 
 def load_and_process_messages(
-        message_dir: Path,
-        block_structure_json: Path,
-        output_path: Path,
-        export_keys: Optional[List[str]] = None,
+    message_dir: Path,
+    block_structure_json: Path,
+    output_path: Path,
+    export_keys: Optional[List[str]] = None,
 ) -> Optional[Path]:
     """Load messages from directory and generate visualization."""
     all_messages = []
@@ -456,8 +601,12 @@ def load_and_process_messages(
     # Get sorted list of JSON message files
     try:
         json_files = sorted(
-            [f.name for f in message_dir.iterdir() if f.is_file() and f.suffix == ".json"],
-            key=lambda name: name[1:-5] if name[0].isdigit() else name
+            [
+                f.name
+                for f in message_dir.iterdir()
+                if f.is_file() and f.suffix == ".json"
+            ],
+            key=lambda name: name[1:-5] if name[0].isdigit() else name,
         )
     except Exception as e:
         print(f"ERROR: Failed to read message directory: {e}", file=sys.stderr)
@@ -506,660 +655,12 @@ def load_and_process_messages(
 
 def get_embedded_css() -> str:
     """Return the embedded CSS for the HTML report."""
-    return """
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 30px 40px;
-            text-align: center;
-            border-bottom: 3px solid #34495e;
-        }
-        
-        .header h1 {
-            font-size: 2em;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        
-        .subtitle {
-            font-size: 1em;
-            opacity: 0.9;
-            font-weight: 400;
-        }
-        
-        .controls {
-            padding: 24px 40px;
-            background: #fafafa;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .control-group {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            font-size: 0.95em;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .btn-primary {
-            background: #3498db;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #2980b9;
-        }
-        
-        .btn-secondary {
-            background: #95a5a6;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #7f8c8d;
-        }
-        
-        .filter-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        
-        .filter-section {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .filter-section label {
-            font-weight: 500;
-            color: #555;
-            font-size: 0.9em;
-        }
-        
-        .filter-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .filter-btn {
-            padding: 6px 14px;
-            border: 1px solid #d0d0d0;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.85em;
-            font-weight: 500;
-        }
-        
-        .filter-btn.active {
-            background: #3498db;
-            color: white;
-            border-color: #3498db;
-        }
-        
-        .filter-btn:hover {
-            border-color: #3498db;
-        }
-        
-        .filter-input-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .filter-input-group input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #d0d0d0;
-            border-radius: 4px;
-            font-size: 0.9em;
-            transition: all 0.2s ease;
-        }
-        
-        .filter-input-group input:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
-        }
-        
-        .btn-clear {
-            padding: 8px 12px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-clear:hover {
-            background: #c0392b;
-        }
-        
-        .stats-panel {
-            display: flex;
-            gap: 16px;
-            padding: 20px 40px;
-            background: #fafafa;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .stat-card {
-            flex: 1;
-            padding: 14px 18px;
-            background: white;
-            border-radius: 4px;
-            border: 1px solid #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        
-        .stat-label {
-            font-size: 0.8em;
-            color: #777;
-            font-weight: 500;
-        }
-        
-        .stat-value {
-            font-size: 1.6em;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        
-        .table-container {
-            padding: 20px;
-            overflow-x: auto;
-        }
-        
-        .worker-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            font-size: 0.85em;
-        }
-        
-        .worker-table thead {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        
-        .worker-table th {
-            background: #34495e;
-            color: white;
-            padding: 12px 10px;
-            text-align: left;
-            font-weight: 500;
-            border: 1px solid #2c3e50;
-        }
-        
-        .worker-table th:first-child {
-            border-top-left-radius: 4px;
-        }
-        
-        .worker-table th:last-child {
-            border-top-right-radius: 4px;
-        }
-        
-        .worker-table td {
-            padding: 10px;
-            border: 1px solid #e0e0e0;
-            vertical-align: top;
-            max-width: 300px;
-        }
-        
-        .worker-table tr:hover td {
-            background: #fafafa;
-        }
-        
-        .time-cell {
-            font-weight: 500;
-            color: #555;
-            white-space: nowrap;
-        }
-        
-        .empty-cell {
-            background: #f9f9f9;
-        }
-        
-        .message-cell {
-            min-width: 200px;
-            max-width: 300px;
-        }
-        
-        .message-cell.post-condition {
-            background: #fffbf0;
-        }
-        
-        .message-cell.violation-condition {
-            background: #fff5f5;
-        }
-        
-        .message-cell.found-result {
-            background: #f0fff4;
-        }
-        
-        .message-card {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        
-        .message-header {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-        
-        .message-arrow {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #555;
-        }
-        
-        .message-info {
-            flex: 1;
-            font-size: 0.85em;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-        
-        .message-id {
-            color: #888;
-            font-size: 0.8em;
-            font-weight: normal;
-            display: block;
-            margin-top: 2px;
-        }
-        
-        .message-direction {
-            font-size: 0.85em;
-            color: #555;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-        
-        .message-type-badge {
-            padding: 2px 6px;
-            background: #34495e;
-            color: white;
-            border-radius: 3px;
-            font-size: 0.7em;
-            font-weight: 500;
-            white-space: nowrap;
-        }
-        
-        .message-content {
-            margin-top: 4px;
-        }
-        
-        .message-content summary {
-            cursor: pointer;
-            font-weight: 500;
-            color: #3498db;
-            font-size: 0.8em;
-            padding: 4px 0;
-            user-select: none;
-        }
-        
-        .message-content summary:hover {
-            color: #2980b9;
-        }
-        
-        .content-json {
-            margin-top: 6px;
-            padding: 8px;
-            background: #f5f5f5;
-            border-radius: 3px;
-            font-size: 0.75em;
-            font-family: 'Consolas', 'Monaco', monospace;
-            overflow-x: auto;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            word-break: break-all;
-        }
-        
-        /* Fixed floating button for block graph */
-        .floating-graph-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #3498db;
-            color: white;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5em;
-            z-index: 100;
-            transition: all 0.3s ease;
-        }
-        
-        .floating-graph-btn:hover {
-            background: #2980b9;
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            cursor: pointer;
-        }
-        
-        .modal-content {
-            position: relative;
-            background: white;
-            border-radius: 6px;
-            max-width: 90vw;
-            max-height: 90vh;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            z-index: 1001;
-        }
-        
-        .modal-content h2 {
-            padding: 16px 24px;
-            background: #2c3e50;
-            color: white;
-            margin: 0;
-            font-size: 1.3em;
-            font-weight: 500;
-        }
-        
-        .modal-close {
-            position: absolute;
-            top: 16px;
-            right: 24px;
-            font-size: 1.8em;
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            z-index: 1002;
-            line-height: 1;
-            padding: 0;
-            width: 28px;
-            height: 28px;
-        }
-        
-        .modal-close:hover {
-            opacity: 0.8;
-        }
-        
-        .modal-body {
-            padding: 20px;
-            overflow: auto;
-            max-height: calc(90vh - 64px);
-            background: #fafafa;
-        }
-        
-        .modal-body img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        @media (max-width: 768px) {
-            body {
-                padding: 0;
-            }
-            
-            .container {
-                border-radius: 0;
-            }
-            
-            .header h1 {
-                font-size: 1.5em;
-            }
-            
-            .controls {
-                padding: 16px 20px;
-            }
-            
-            .control-group {
-                flex-direction: column;
-            }
-            
-            .stats-panel {
-                flex-direction: column;
-                padding: 16px 20px;
-            }
-            
-            .table-container {
-                padding: 10px;
-            }
-            
-            .worker-table td {
-                max-width: 250px;
-            }
-            
-            .floating-graph-btn {
-                bottom: 20px;
-                right: 20px;
-                width: 50px;
-                height: 50px;
-                font-size: 1.3em;
-            }
-        }
-    """
+    return (Path(__file__).parent / "table.css").read_text(encoding=ENCODING)
 
 
 def get_embedded_javascript() -> str:
     """Return the embedded JavaScript for the HTML report."""
-    return """
-        // Filter state
-        const filterState = {
-            messageTypes: new Set(['POST_CONDITION', 'VIOLATION_CONDITION', 'FOUND_RESULT']),
-            blockId: '',
-            contentSearch: ''
-        };
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeFilters();
-            initializeModal();
-            updateVisibleMessages();
-        });
-        
-        function initializeFilters() {
-            // Message type filters
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const type = this.dataset.filterType;
-                    this.classList.toggle('active');
-                    
-                    if (this.classList.contains('active')) {
-                        filterState.messageTypes.add(type);
-                    } else {
-                        filterState.messageTypes.delete(type);
-                    }
-                    
-                    applyFilters();
-                });
-            });
-            
-            // Block ID filter
-            const blockFilter = document.getElementById('blockFilter');
-            blockFilter.addEventListener('input', function() {
-                filterState.blockId = this.value.toLowerCase();
-                applyFilters();
-            });
-            
-            document.getElementById('clearBlockFilter').addEventListener('click', function() {
-                blockFilter.value = '';
-                filterState.blockId = '';
-                applyFilters();
-            });
-            
-            // Content search
-            const contentSearch = document.getElementById('contentSearch');
-            contentSearch.addEventListener('input', function() {
-                filterState.contentSearch = this.value.toLowerCase();
-                applyFilters();
-            });
-            
-            document.getElementById('clearContentSearch').addEventListener('click', function() {
-                contentSearch.value = '';
-                filterState.contentSearch = '';
-                applyFilters();
-            });
-            
-            // Reset button
-            document.getElementById('resetFiltersBtn').addEventListener('click', function() {
-                filterState.messageTypes = new Set(['POST_CONDITION', 'VIOLATION_CONDITION', 'FOUND_RESULT']);
-                filterState.blockId = '';
-                filterState.contentSearch = '';
-                
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.add('active'));
-                blockFilter.value = '';
-                contentSearch.value = '';
-                
-                applyFilters();
-            });
-        }
-        
-        function applyFilters() {
-            const rows = document.querySelectorAll('#messageTable tbody tr');
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('.message-cell');
-                let showRow = false;
-                
-                cells.forEach(cell => {
-                    const messageType = cell.dataset.type;
-                    const senderId = cell.querySelector('[data-sender]')?.dataset.sender || '';
-                    const content = cell.textContent.toLowerCase();
-                    
-                    // Check filters
-                    const typeMatch = !messageType || filterState.messageTypes.has(messageType);
-                    const blockMatch = !filterState.blockId || senderId.toLowerCase().includes(filterState.blockId);
-                    const contentMatch = !filterState.contentSearch || content.includes(filterState.contentSearch);
-                    
-                    if (messageType && typeMatch && blockMatch && contentMatch) {
-                        cell.style.display = '';
-                        showRow = true;
-                    } else if (messageType) {
-                        cell.style.display = 'none';
-                    }
-                });
-                
-                // Show/hide row
-                row.style.display = showRow ? '' : 'none';
-            });
-            
-            updateVisibleMessages();
-        }
-        
-        function updateVisibleMessages() {
-            const visibleRows = document.querySelectorAll('#messageTable tbody tr:not([style*="display: none"])');
-            let visibleCount = 0;
-            
-            visibleRows.forEach(row => {
-                const visibleCells = row.querySelectorAll('.message-cell:not([style*="display: none"])');
-                visibleCount += visibleCells.length;
-            });
-            
-            document.getElementById('visibleMessages').textContent = visibleCount;
-        }
-        
-        function initializeModal() {
-            const modal = document.getElementById('graphModal');
-            const floatingBtn = document.getElementById('floatingGraphBtn');
-            const closeBtn = document.getElementById('modalClose');
-            const overlay = document.getElementById('modalOverlay');
-            
-            floatingBtn.addEventListener('click', () => {
-                modal.classList.add('active');
-            });
-            
-            closeBtn.addEventListener('click', () => {
-                modal.classList.remove('active');
-            });
-            
-            overlay.addEventListener('click', () => {
-                modal.classList.remove('active');
-            });
-            
-            // Close on Escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && modal.classList.contains('active')) {
-                    modal.classList.remove('active');
-                }
-            });
-        }
-    """
+    return (Path(__file__).parent / "table.js").read_text(encoding=ENCODING)
 
 
 def main(argv=None):
@@ -1178,8 +679,7 @@ def main(argv=None):
     # Generate block graph visualization
     print("Generating block structure visualization...")
     visualize_block_graph(
-        block_structure_file=args.block_structure_json,
-        output_path=output_path
+        block_structure_file=args.block_structure_json, output_path=output_path
     )
 
     # Generate message visualization
@@ -1192,7 +692,7 @@ def main(argv=None):
     )
 
     if output_file:
-        print(f"\n✓ Visualization complete!")
+        print("\n✓ Visualization complete!")
         print(f"Opening {output_file} in browser...")
         webbrowser.open(str(output_file))
         return 0
