@@ -91,8 +91,7 @@ Examples:
     )
     parser.add_argument(
         "--block-structure-json",
-        help="Path to JSON file that contains the block structure used for"
-        " distributed block analysis",
+        help="Path to JSON file that contains the block structure used for distributed block analysis.",
         default="output/block_analysis/blocks.json",
     )
     parser.add_argument(
@@ -103,8 +102,7 @@ Examples:
     )
     parser.add_argument(
         "--export-keys",
-        help="Space separated list of keys to export from the messages. "
-        "If not set, all keys are exported.",
+        help="Space separated list of keys to export from the messages. If not set, all keys are exported.",
         nargs="+",
         action="extend",
         dest="export_keys",
@@ -159,10 +157,6 @@ def filter_content_by_keys(
                 filtered[key.replace(export_key, "")] = value
                 break
     return filtered
-
-
-def html_for_message(message, block_log: Dict[str, str], export_keys: list):
-    div = Airium()
 
 
 def generate_message_html(
@@ -291,32 +285,6 @@ def generate_html_table(
     return "\n".join(html_parts)
 
 
-def html_dict_to_html_table(
-    all_messages, block_logs: Dict[str, str], export_keys: list
-):
-    first_timestamp = int(all_messages[0]["header"]["timestamp"])
-    timestamp_to_message = {}
-    sorted_keys = sorted(block_logs.keys())
-    index_dict = {}
-    for i, index in enumerate(sorted_keys):
-        index_dict[index] = i
-    for message in all_messages:
-        sender = message["header"]["senderId"]
-        if sender not in index_dict:
-            continue
-        timestamp_to_message.setdefault(
-            message["header"]["timestamp"] - first_timestamp, [""] * len(block_logs)
-        )[index_dict[sender]] = message
-    headers = ["time"] + sorted_keys
-    table = Airium()
-    with table.table(klass="worker"):
-        # header
-        with table.thead():
-            with table.tr(klass="header_row"):
-                for key in headers:
-                    table.th(_t=f"{key}")
-
-
 def visualize_block_graph(
     block_structure_file: Path,
     output_path: Path,
@@ -329,19 +297,11 @@ def visualize_block_graph(
         print("WARNING: No block structure data found", file=sys.stderr)
         return
 
-    return str(table)
+    graph = nx.DiGraph()
 
-
-def visualize_blocks(
-    block_structure_file: Path,
-    output_path: Path,
-    output_dot_name="graph.dot",
-    output_png_name="graph.png",
-):
-    g = nx.DiGraph()
-    block_logs = parse_jsons(block_structure_file)
-    for key in block_logs:
-        code_parts = [c.replace('"', "'") for c in block_logs[key]["code"]]
+    # Add nodes with code labels
+    for block_id, block_info in block_logs.items():
+        code_parts = [c.replace('"', "'") for c in block_info.get("code", [])]
         code = "\n".join(c for c in code_parts if c)
 
         # Truncate long code snippets
@@ -363,21 +323,12 @@ def visualize_blocks(
     graph_dot_path = output_path / output_dot_name
     nx.drawing.nx_pydot.write_dot(graph, str(graph_dot_path))
 
-
-def export_messages_table(
-    *,
-    all_messages,
-    block_logs,
-    output_path,
-    export_keys=None,
-    report_filename="report.html",
-    message_table_html_file=None,
-    message_table_css_file=None,
-):
-    if message_table_html_file is None:
-        message_table_html_file = Path(__file__).parent / "table.html"
-    if message_table_css_file is None:
-        message_table_css_file = Path(__file__).parent / "table.css"
+    try:
+        (pydot_graph,) = pydot.graph_from_dot_file(str(graph_dot_path))
+        pydot_graph.write_png(str(output_path / output_png_name))
+        print(f"Block graph visualization saved to {output_path / output_png_name}")
+    except Exception as e:
+        print(f"WARNING: Failed to generate PNG from DOT file: {e}", file=sys.stderr)
 
 
 def generate_timeline_view(
@@ -629,19 +580,11 @@ def generate_html_report(
 
     # Write output file
     output_path.mkdir(parents=True, exist_ok=True)
-    with open(message_table_html_file, encoding=ENCODING) as html:
-        with open(message_table_css_file, encoding=ENCODING) as css:
-            text = (
-                html.read()
-                .replace(
-                    "<!--<<<TABLE>>><!-->",
-                    html_dict_to_html_table(all_messages, block_logs, export_keys),
-                )
-                .replace("/*CSS*/", css.read())
-            )
-            output_file = output_path / report_filename
-            with open(output_file, "w+", encoding=ENCODING) as new_html:
-                new_html.write(text)
+    output_file = output_path / report_filename
+    with open(output_file, "w", encoding=ENCODING) as f:
+        f.write(html_content)
+
+    print(f"HTML report generated: {output_file}")
     return output_file
 
 
