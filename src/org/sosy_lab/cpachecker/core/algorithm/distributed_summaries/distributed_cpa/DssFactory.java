@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -169,7 +168,8 @@ public class DssFactory {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    Builder<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
+    ImmutableMap.Builder<
+            Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
         builder = ImmutableMap.builder();
     for (ConfigurableProgramAnalysis wrappedCPA : pCompositeCPA.getWrappedCPAs()) {
       DistributedConfigurableProgramAnalysis dcpa =
