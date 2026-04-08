@@ -160,8 +160,10 @@ def filter_content_by_keys(
                 break
     return filtered
 
+
 def html_for_message(message, block_log: Dict[str, str], export_keys: list):
     div = Airium()
+
 
 def generate_message_html(
     message: Optional[Dict[str, Any]],
@@ -288,6 +290,7 @@ def generate_html_table(
 
     return "\n".join(html_parts)
 
+
 def html_dict_to_html_table(
     all_messages, block_logs: Dict[str, str], export_keys: list
 ):
@@ -312,6 +315,7 @@ def html_dict_to_html_table(
             with table.tr(klass="header_row"):
                 for key in headers:
                     table.th(_t=f"{key}")
+
 
 def visualize_block_graph(
     block_structure_file: Path,
@@ -358,6 +362,7 @@ def visualize_blocks(
     # Write DOT and PNG files
     graph_dot_path = output_path / output_dot_name
     nx.drawing.nx_pydot.write_dot(graph, str(graph_dot_path))
+
 
 def export_messages_table(
     *,
@@ -630,9 +635,7 @@ def generate_html_report(
                 html.read()
                 .replace(
                     "<!--<<<TABLE>>><!-->",
-                    html_dict_to_html_table(
-                        all_messages, block_logs, export_keys
-                    ),
+                    html_dict_to_html_table(all_messages, block_logs, export_keys),
                 )
                 .replace("/*CSS*/", css.read())
             )
