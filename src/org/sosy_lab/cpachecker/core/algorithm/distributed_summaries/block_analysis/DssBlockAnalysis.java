@@ -608,7 +608,7 @@ public class DssBlockAnalysis {
     AnalysisResult result =
         analyzeViolationCondition(
             transformedImmutableListCopy(violations, v -> (ARGState) v.state()));
-    if (!result.summaries().isEmpty()) {
+    if (!result.summaries().isEmpty() && result.violationConditions().isEmpty()) {
       messages.addAll(reportPostconditions(result.summaries()));
     }
     if (!result.violationConditions().isEmpty()) {
