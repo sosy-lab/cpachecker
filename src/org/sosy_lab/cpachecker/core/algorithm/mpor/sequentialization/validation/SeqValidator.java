@@ -80,7 +80,7 @@ public class SeqValidator {
   public static void tryValidateProgramCounters(
       MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    if (pOptions.validatePc()) {
+    if (pOptions.validateProgramCounters()) {
       for (MPORThread thread : pClauses.keySet()) {
         // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
         ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(pClauses.get(thread));
@@ -193,7 +193,7 @@ public class SeqValidator {
             SeqThreadStatementBlock targetBlock =
                 Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
             // ignore backward jump, if it is to a loop start and enabled in options
-            if (!targetBlock.isLoopStart() || pOptions.noBackwardLoopGoto()) {
+            if (!targetBlock.isLoopHead() || pOptions.noBackwardLoopGoto()) {
               throw new IllegalStateException(
                   String.format(
                       "block number %s is greater than target number %s in thread %s",

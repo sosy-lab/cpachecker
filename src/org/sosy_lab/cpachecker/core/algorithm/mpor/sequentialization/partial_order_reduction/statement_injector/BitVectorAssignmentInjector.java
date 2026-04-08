@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -76,14 +76,13 @@ public record BitVectorAssignmentInjector(
 
   private ImmutableList<SeqInstrumentation> buildBitVectorResets() throws UnsupportedCodeException {
     checkArgument(
-        !options.reductionMode().equals(ReductionMode.NONE),
+        !options.partialOrderReductionMode().equals(PartialOrderReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
           rAssignments.addAll(
               buildBitVectorAssignmentByEncoding(ImmutableSet.of(), accessType, reachType));
         }
@@ -98,14 +97,13 @@ public record BitVectorAssignmentInjector(
       SeqThreadStatementClause pTargetClause) throws UnsupportedCodeException {
 
     checkArgument(
-        !options.reductionMode().equals(ReductionMode.NONE),
+        !options.partialOrderReductionMode().equals(PartialOrderReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap,
@@ -144,8 +142,7 @@ public record BitVectorAssignmentInjector(
       ReachType pReachType)
       throws UnsupportedCodeException {
 
-    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     CIdExpression bitVectorVariable =
@@ -163,34 +160,32 @@ public record BitVectorAssignmentInjector(
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    if (!SeqBitVectorUtil.isAccessReachPairNeeded(
-        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
+    if (!SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     // use list so that the assignment order is deterministic
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
     for (var entry : bitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
-      ImmutableMap<MPORThread, CIdExpression> sparseVariables =
-          entry.getValue().getVariablesByReachType(pReachType);
-      Optional<SeqInstrumentation> assignment =
-          buildSparseBitVectorAssignmentByReachType(
-              entry.getKey(), sparseVariables, pMemoryLocations, pReachType);
-      if (assignment.isPresent()) {
-        rAssignments.add(assignment.orElseThrow());
+      Optional<CIdExpression> sparseVariable =
+          entry.getValue().tryGetVariableByReachTypeAndThread(pReachType, activeThread);
+      if (sparseVariable.isPresent()) {
+        Optional<SeqInstrumentation> assignment =
+            tryBuildSparseBitVectorAssignmentByReachType(
+                entry.getKey(), sparseVariable.orElseThrow(), pMemoryLocations, pReachType);
+        if (assignment.isPresent()) {
+          rAssignments.add(assignment.orElseThrow());
+        }
       }
     }
     return rAssignments.build();
   }
 
-  private Optional<SeqInstrumentation> buildSparseBitVectorAssignmentByReachType(
+  private Optional<SeqInstrumentation> tryBuildSparseBitVectorAssignmentByReachType(
       SeqMemoryLocation pMemoryLocation,
-      ImmutableMap<MPORThread, CIdExpression> pSparseVariables,
+      CIdExpression pSparseVariable,
       ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       ReachType pReachType) {
 
-    if (!pSparseVariables.containsKey(activeThread)) {
-      return Optional.empty();
-    }
     // If 'pruneSparseBitVectorWrites' is enabled, then all sparse reachable bit vectors that are
     // written to 1 (i.e., if rightHandSide is true) such as 'reach = 1;' are pruned.
     // Pruning the write is sound because 'reach' is initialized to 1 anyway and does not have to be
@@ -204,11 +199,10 @@ public record BitVectorAssignmentInjector(
       return Optional.empty();
     }
 
-    CIdExpression sparseVariable = Objects.requireNonNull(pSparseVariables.get(activeThread));
     CIntegerLiteralExpression sparseBitVectorExpression =
         rightHandSide ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO;
     return Optional.of(
         SeqInstrumentationBuilder.buildBitVectorUpdateStatement(
-            sparseVariable, sparseBitVectorExpression));
+            pSparseVariable, sparseBitVectorExpression));
   }
 }
