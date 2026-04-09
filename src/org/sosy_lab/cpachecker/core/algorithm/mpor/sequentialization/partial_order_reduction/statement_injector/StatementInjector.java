@@ -11,14 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -30,89 +30,90 @@ public record StatementInjector(
     ImmutableList<SeqThreadStatementClause> clauses,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
-    BitVectorVariables bitVectorVariables,
-    MemoryModel memoryModel,
+    GhostElements ghostElements,
+    MachineModel machineModel,
+    Optional<MemoryModel> memoryModel,
     SequentializationUtils utils) {
 
   public ImmutableList<SeqThreadStatementClause> injectStatementsIntoClauses()
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
+    ImmutableList.Builder<SeqThreadStatementClause> newClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : clauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        newBlocks.add(injectStatementsIntoBlock(block));
+        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+        for (SeqThreadStatement statement : block.getStatements()) {
+          newStatements.add(injectStatementsIntoStatement(statement));
+        }
+        newBlocks.add(block.withStatements(newStatements.build()));
       }
-      rInjected.add(clause.withBlocks(newBlocks.build()));
+      newClauses.add(clause.withBlocks(newBlocks.build()));
     }
-    return rInjected.build();
+    return newClauses.build();
   }
 
-  private SeqThreadStatementBlock injectStatementsIntoBlock(SeqThreadStatementBlock pBlock)
+  private SeqThreadStatement injectStatementsIntoStatement(SeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
-    for (CSeqThreadStatement statement : pBlock.getStatements()) {
-      newStatements.add(injectStatementsIntoStatement(statement));
+    // always place executeSingleActiveThreadFirst instrumentation first, because it is very cheap
+    if (options.executeSingleActiveThreadFirst()) {
+      SingleActiveThreadFirstInjector singleActiveThreadFirstInjector =
+          new SingleActiveThreadFirstInjector(
+              options, labelClauseMap, utils.binaryExpressionBuilder());
+      pStatement =
+          singleActiveThreadFirstInjector.injectSingleActiveThreadFirstReduction(pStatement);
     }
-    return pBlock.withStatements(newStatements.build());
-  }
-
-  private CSeqThreadStatement injectStatementsIntoStatement(CSeqThreadStatement pStatement)
-      throws UnrecognizedCodeException {
-
-    if (options.reduceUntilConflict()) {
-      ReduceUntilConflictInjector reduceUntilConflictInjector =
-          new ReduceUntilConflictInjector(
+    // then place executeThreadsUntilConflict, because if the reduction succeeds then the
+    // subsequent ghost element updates are unnecessary
+    if (options.executeThreadsUntilConflict()) {
+      ExecuteUntilConflictInjector executeUntilConflictInjector =
+          new ExecuteUntilConflictInjector(
               options,
               otherThreads,
               labelClauseMap,
               labelBlockMap,
-              bitVectorVariables,
-              memoryModel,
+              ghostElements.bitVectorVariables().orElseThrow(),
+              machineModel,
+              memoryModel.orElseThrow(),
               utils);
       pStatement =
-          reduceUntilConflictInjector.injectUntilConflictReductionIntoStatement(pStatement);
+          executeUntilConflictInjector.injectUntilConflictReductionIntoStatement(pStatement);
     }
-    if (options.reduceLastThreadOrder()) {
-      ReduceLastThreadOrderInjector reduceLastThreadOrderInjector =
-          new ReduceLastThreadOrderInjector(
+    if (options.executeCommutingThreadsFirst()) {
+      CommutingThreadsFirstInjector commutingThreadsFirstInjector =
+          new CommutingThreadsFirstInjector(
+              options, activeThread, otherThreads, labelClauseMap, ghostElements, utils);
+      pStatement = commutingThreadsFirstInjector.tryInjectSyncUpdateIntoStatement(pStatement);
+    }
+    if (options.abortCommutingContextSwitches()) {
+      AbortCommutingContextSwitchesInjector abortCommutingContextSwitches =
+          new AbortCommutingContextSwitchesInjector(
               options,
               otherThreads.size() + 1,
               activeThread,
               labelClauseMap,
               labelBlockMap,
-              bitVectorVariables,
-              memoryModel,
+              ghostElements.bitVectorVariables().orElseThrow(),
+              machineModel,
+              memoryModel.orElseThrow(),
               utils);
       pStatement =
-          reduceLastThreadOrderInjector.injectLastUpdatesIntoStatement(pStatement, labelClauseMap);
+          abortCommutingContextSwitches.injectPrevUpdatesIntoStatement(pStatement, labelClauseMap);
     }
-    if (options.reduceIgnoreSleep()) {
-      // this needs to be last, it collects the prior injections
-      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
-          new ReduceIgnoreSleepInjector(
-              options, activeThread, otherThreads, labelClauseMap, bitVectorVariables, utils);
-      pStatement = reduceIgnoreSleepInjector.injectIgnoreSleepReductionIntoStatement(pStatement);
+    if (ghostElements.bitVectorVariables().isPresent()) {
+      // always inject bit vector assignments after evaluations i.e. reductions
+      BitVectorAssignmentInjector bitVectorAssignmentInjector =
+          new BitVectorAssignmentInjector(
+              options,
+              activeThread,
+              labelClauseMap,
+              labelBlockMap,
+              ghostElements.bitVectorVariables().orElseThrow(),
+              machineModel,
+              memoryModel.orElseThrow());
+      pStatement = bitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(pStatement);
     }
-    // always inject bit vector assignments after evaluations i.e. reductions
-    BitVectorAssignmentInjector bitVectorAssignmentInjector =
-        new BitVectorAssignmentInjector(
-            options, activeThread, labelClauseMap, labelBlockMap, bitVectorVariables, memoryModel);
-    pStatement = bitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(pStatement);
     return pStatement;
-  }
-
-  // boolean helpers ===============================================================================
-
-  /**
-   * Checks whether bit vector injections are allowed, i.e. if they do not result in interleaving
-   * loss.
-   */
-  static boolean isReductionAllowed(MPOROptions pOptions, SeqThreadStatementClause pTarget) {
-    // if the target starts with a thread synchronization (i.e. assume), do not inject
-    return !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
-        // check based on pOptions if the target is a loop head that must remain separate
-        && !SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, pTarget);
   }
 }

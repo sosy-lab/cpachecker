@@ -29,7 +29,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
   <!-- Note: MemCleanup is below, as they need to be separate since they share the same tasks -->
 
   <rundefinition name="MemSafety_SVCOMP26">
-    <option name="--svcomp26" />
+    <option name="--svcomp27" />
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
@@ -320,7 +320,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
   <!-- Note: MemCleanup is below, as they need to be separate since they share the same tasks -->
 
   <rundefinition name="SoftwareSystems-MemSafety_SVCOMP26">
-    <option name="--svcomp26" />
+    <option name="--svcomp27" />
     <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
@@ -530,7 +530,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
     <!-- #################### Concurrency-MemSafety #################### -->
 
   <rundefinition name="Concurrency-MemSafety_SVCOMP26">
-    <option name="--svcomp26" />
+    <option name="--svcomp27" />
     <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
@@ -622,7 +622,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
   <!-- #################### MemSafety-MemCleanup #################### -->
 
   <rundefinition name="MemSafety-MemCleanup_SVCOMP26">
-    <option name="--svcomp26" />
+    <option name="--svcomp27" />
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="C.valid-memcleanup.MemCleanup">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
@@ -736,7 +736,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
     <!-- #################### SoftwareSystems-MemCleanup #################### -->
 
   <rundefinition name="SoftwareSystems-MemCleanup_SVCOMP26">
-    <option name="--svcomp26" />
+    <option name="--svcomp27" />
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>

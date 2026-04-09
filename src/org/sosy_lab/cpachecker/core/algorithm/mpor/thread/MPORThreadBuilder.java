@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
@@ -158,10 +159,19 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         Optional.empty(),
         pStartRoutineCall);
 
+    ImmutableList<CFANodeForThread> finalThreadNodes = threadNodes.build();
+
+    ImmutableSet<CFANode> allLoopHeads = cfa.getLoopStructure().orElseThrow().getAllLoopHeads();
+    ImmutableSet<CFANodeForThread> loopHeads =
+        finalThreadNodes.stream()
+            .filter(n -> allLoopHeads.contains(n.getCfaNode()))
+            .collect(ImmutableSet.toImmutableSet());
+
     return new CFAForThread(
         pThreadId,
         pEntryNode,
-        threadNodes.build(),
+        finalThreadNodes,
+        loopHeads,
         ImmutableList.copyOf(threadEdges.buildOrThrow().keySet()));
   }
 
@@ -264,8 +274,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       Optional<CFunctionCall> functionCall =
           PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
       if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadFunction(
-            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_EXIT)) {
+        if (PthreadUtil.isCallToPthreadExitWithReturnValue(functionCall.orElseThrow())) {
           String name = SeqNameUtil.buildStartRoutineExitVariableName(options, pThreadCFA.threadId);
           CVariableDeclaration declaration =
               SeqDeclarationBuilder.buildVariableDeclaration(
