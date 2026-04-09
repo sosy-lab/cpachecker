@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -44,9 +46,7 @@ public final class StatewiseCandidateInvariantDisjunction implements CandidateIn
 
   public StatewiseCandidateInvariantDisjunction(Iterable<? extends CandidateInvariant> pOperands) {
     operands = ImmutableSet.copyOf(pOperands);
-    if (operands.isEmpty()) {
-      throw new IllegalArgumentException("Expected at least one operand.");
-    }
+    checkArgument(!operands.isEmpty(), "Expected at least one operand.");
   }
 
   @Override
