@@ -16,13 +16,21 @@ import java.io.PrintStream;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
+import org.sosy_lab.cpachecker.util.CPAs;
 
-/** Class that represents the result of a CPAchecker analysis. */
-public class CPAcheckerResult {
+/**
+ * Class that represents the result of a CPAchecker analysis.
+ *
+ * <p>Call {@link #close()} after processing to free all native memory allocated by the CPAchecker
+ * run.
+ */
+public class CPAcheckerResult implements AutoCloseable {
 
   /** Enum for the possible outcomes of a CPAchecker analysis */
   public enum Result {
@@ -46,6 +54,10 @@ public class CPAcheckerResult {
 
   private final @Nullable CFA cfa;
 
+  private final @Nullable ConfigurableProgramAnalysis cpa;
+
+  private final LogManager logger;
+
   private final @Nullable Statistics stats;
 
   private @Nullable Statistics proofGeneratorStats = null;
@@ -55,11 +67,15 @@ public class CPAcheckerResult {
       String targetDescription,
       @Nullable ReachedSet reached,
       @Nullable CFA cfa,
+      @Nullable ConfigurableProgramAnalysis cpa,
+      LogManager logger,
       @Nullable Statistics stats) {
     this.targetDescription = checkNotNull(targetDescription);
     this.result = checkNotNull(result);
     this.reached = reached;
     this.cfa = cfa;
+    this.cpa = cpa;
+    this.logger = logger;
     this.stats = stats;
   }
 
@@ -68,7 +84,7 @@ public class CPAcheckerResult {
   }
 
   private CPAcheckerResult(Result result, String targetDescription) {
-    this(result, targetDescription, null, null, null);
+    this(result, targetDescription, null, null, null, LogManager.createNullLogManager(), null);
   }
 
   /** Return the result of the analysis. */
@@ -184,5 +200,20 @@ public class CPAcheckerResult {
 
   public Statistics getStatistics() {
     return stats;
+  }
+
+  /**
+   * Close the result and free native memory.
+   *
+   * <p>This method frees any native memory that was allocated by the original CPAchecker run. It
+   * should be called only after the statistics have been processed and all output files were
+   * written to disk. After closing, this object and all data from the result becomes invalid and
+   * may no longer be used.
+   */
+  @Override
+  public void close() {
+    if (cpa != null) {
+      CPAs.closeCpaIfPossible(cpa, logger);
+    }
   }
 }

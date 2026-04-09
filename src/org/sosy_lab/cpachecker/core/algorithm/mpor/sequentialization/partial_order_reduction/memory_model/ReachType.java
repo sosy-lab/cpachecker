@@ -8,6 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+
 public enum ReachType {
   /** For {@link SeqMemoryLocation}s that are reachable before any context switch occurs. */
   DIRECT("d", "DIRECT"),
@@ -23,5 +28,17 @@ public enum ReachType {
   ReachType(String pShortName, String pLongName) {
     shortName = pShortName;
     longName = pLongName;
+  }
+
+  public static ImmutableList<ReachType> getPossibleReachTypes(MPOROptions pOptions) {
+    if (pOptions.executeCommutingThreadsFirst() || pOptions.abortCommutingContextSwitches()) {
+      return ImmutableList.of(ReachType.DIRECT, ReachType.REACHABLE);
+    }
+    if (pOptions.executeThreadsUntilConflict()) {
+      return ImmutableList.of(ReachType.REACHABLE);
+    }
+    // sanity check, because all options that use any bit vectors should be handled above
+    checkState(!pOptions.isAnyBitVectorReductionEnabled());
+    return ImmutableList.of();
   }
 }

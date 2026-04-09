@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-
 public enum MemoryAccessType {
-  NONE(SeqSyntax.EMPTY_STRING, SeqSyntax.EMPTY_STRING),
+  NONE("", ""),
   /** For both read and write. */
   ACCESS("a", "ACCESS"),
   READ("r", "READ"),

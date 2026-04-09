@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,27 +38,31 @@ public class CFAForThread {
   /** FunctionEntryNode of the main function (main thread) or start_routine (pthreads). */
   public final FunctionEntryNode entryNode;
 
-  /**
-   * FunctionExitNode of the main function (main thread) or start_routine (pthreads). Can be empty,
-   * see {@link FunctionEntryNode#getExitNode()}.
-   */
-  public final Optional<FunctionExitNode> exitNode;
-
   /** The (sub)set of CFANodes from the original input CFA that this thread can reach. */
   public final ImmutableList<CFANodeForThread> threadNodes;
 
+  /** The (sub)set of CFANode loop heads from the original input CFA that this thread can reach. */
+  private final ImmutableSet<CFANodeForThread> loopHeads;
+
   public final ImmutableList<CFAEdgeForThread> threadEdges;
 
-  protected CFAForThread(
+  CFAForThread(
       int pThreadId,
       FunctionEntryNode pEntryNode,
       ImmutableList<CFANodeForThread> pThreadNodes,
+      ImmutableSet<CFANodeForThread> pLoopHeads,
       ImmutableList<CFAEdgeForThread> pThreadEdges) {
+
+    checkArgument(
+        pThreadNodes.stream().anyMatch(n -> n.getCfaNode().equals(pEntryNode)),
+        "pEntryNode must be present in pThreadNodes.");
+    checkArgument(
+        pThreadNodes.containsAll(pLoopHeads), "All pLoopHeads must be present in pThreadNodes.");
 
     threadId = pThreadId;
     entryNode = pEntryNode;
-    exitNode = entryNode.getExitNode();
     threadNodes = pThreadNodes;
+    loopHeads = pLoopHeads;
     threadEdges = pThreadEdges;
     initPredecessors(threadNodes);
     initSuccessors(threadEdges, threadNodes);
@@ -70,7 +75,7 @@ public class CFAForThread {
    */
   private void handleFunctionReturnEdges() {
     for (CFANodeForThread threadNode : threadNodes) {
-      if (threadNode.cfaNode instanceof FunctionExitNode) {
+      if (threadNode.getCfaNode() instanceof FunctionExitNode) {
         Set<CFAEdgeForThread> prunedEdges = new HashSet<>();
         for (CFAEdgeForThread threadEdge : threadNode.leavingEdges()) {
           Optional<CFANodeForThread> returnThreadNode =
@@ -123,7 +128,7 @@ public class CFAForThread {
       if (!(cfaEdge instanceof CFunctionReturnEdge)) {
         for (CFANodeForThread threadNode : pThreadNodes) {
           // check if predecessor node of edge is same as node
-          if (threadNode.cfaNode.equals(cfaEdge.getSuccessor())) {
+          if (threadNode.getCfaNode().equals(cfaEdge.getSuccessor())) {
             // check if calling context for node and edge are the same
             if (cfaEdge instanceof CFunctionCallEdge) {
               // for call edges, we use the edge as the call context
@@ -150,10 +155,7 @@ public class CFAForThread {
     // no call context -> return the single thread node corresponding to pCfaNode
     if (pCallContext.isEmpty()) {
       ImmutableSet<CFANodeForThread> threadNodesByCfaNode = getThreadNodesByCfaNode(pCfaNode);
-      assert threadNodesByCfaNode.size() == 1
-          : "if there is no calling context, the cfa node can have only one corresponding thread"
-              + " node";
-      return Optional.of(threadNodesByCfaNode.iterator().next());
+      return Optional.of(Iterables.getOnlyElement(threadNodesByCfaNode));
     }
 
     // otherwise extract return node based on call context
@@ -173,7 +175,7 @@ public class CFAForThread {
    */
   private ImmutableSet<CFANodeForThread> getThreadNodesByCfaNode(CFANode pCfaNode) {
     return threadNodes.stream()
-        .filter(threadNode -> threadNode.cfaNode.equals(pCfaNode))
+        .filter(threadNode -> threadNode.getCfaNode().equals(pCfaNode))
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -181,7 +183,7 @@ public class CFAForThread {
       CFANode pCfaNode, Optional<CFAEdgeForThread> pCallContext) {
 
     for (CFANodeForThread threadNode : threadNodes) {
-      if (threadNode.cfaNode.equals(pCfaNode)) {
+      if (threadNode.getCfaNode().equals(pCfaNode)) {
         if (threadNode.callContext.equals(pCallContext)) {
           return Optional.of(threadNode);
         }
@@ -190,9 +192,13 @@ public class CFAForThread {
     return Optional.empty();
   }
 
+  public ImmutableSet<CFANodeForThread> getLoopHeads() {
+    return loopHeads;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(threadId, entryNode, exitNode, threadNodes, threadEdges);
+    return Objects.hash(threadId, entryNode, threadNodes, threadEdges);
   }
 
   @Override
@@ -203,7 +209,6 @@ public class CFAForThread {
     return pOther instanceof CFAForThread other
         && threadId == other.threadId
         && entryNode.equals(other.entryNode)
-        && exitNode.equals(other.exitNode)
         && threadNodes.equals(other.threadNodes)
         && threadEdges.equals(other.threadEdges);
   }
