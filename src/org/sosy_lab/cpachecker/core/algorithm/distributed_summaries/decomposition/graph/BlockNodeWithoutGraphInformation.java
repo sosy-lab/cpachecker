@@ -78,6 +78,7 @@ public class BlockNodeWithoutGraphInformation {
     StringBuilder codeLines = new StringBuilder();
     for (CFAEdge leavingEdge : getEdges()) {
       if (leavingEdge.getCode().isBlank()) {
+        codeLines.append(leavingEdge.getDescription().replace('\n', ' ')).append("\n");
         continue;
       }
       if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
