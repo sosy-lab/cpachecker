@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -67,7 +66,7 @@ public class SeqPruner {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
-    // map the original pc to pc that are found after pruning
+    // maps (1) original pc (2) post prune pc
     ImmutableMap<Integer, Integer> pcUpdates = createPrunedPcUpdates(pClauses, labelClauseMap);
     // update each target pc so that it targets a non-blank case
     ImmutableList<SeqThreadStatementClause> rUpdatedTargetPc =
@@ -86,12 +85,13 @@ public class SeqPruner {
 
     Set<Integer> visitedPrePrunePc = new HashSet<>();
     ImmutableMap.Builder<Integer, Integer> rMap = ImmutableMap.builder();
+
     for (SeqThreadStatementClause clause : pClauses) {
       if (!clause.isBlank()) {
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
           if (statement.targetPc().isPresent()) {
-            int targetPc = statement.targetPc().orElseThrow();
             Optional<Integer> postPrunePc = findTargetPc(clause, statement, pLabelClauseMap);
+            int targetPc = statement.targetPc().orElseThrow();
             if (postPrunePc.isPresent() && visitedPrePrunePc.add(targetPc)) {
               rMap.put(targetPc, postPrunePc.orElseThrow());
             }
@@ -108,27 +108,19 @@ public class SeqPruner {
       ImmutableMap<Integer, Integer> pPcUpdates) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rUpdatedTargetPc = ImmutableList.builder();
-    for (int i = 0; i < pClauses.size(); i++) {
-      SeqThreadStatementClause clause = pClauses.get(i);
-      if (isEmptyAtomicBlock(clause, pLabelClauseMap)) {
-        // skip the empty atomic block
-        i++;
-        continue;
-      }
+    for (SeqThreadStatementClause clause : pClauses) {
       if (!clause.isBlank() && !isEmptyAtomicBlock(clause, pLabelClauseMap)) {
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
         for (SeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
-          if (statement.targetPc().isPresent()) {
-            int targetPc = statement.targetPc().orElseThrow();
-            if (pPcUpdates.containsKey(targetPc)) {
-              // if pc was updated in prune, clone statement with new target pc
-              newStatements.add(
-                  statement.withTargetPc(Objects.requireNonNull(pPcUpdates.get(targetPc))));
-              continue;
-            }
-          }
-          // otherwise add unchanged statement
-          newStatements.add(statement);
+          SeqThreadStatement clonedStatement =
+              statement
+                  .targetPc()
+                  // if pc was updated in prune, clone statement with new target pc
+                  .map(pPcUpdates::get)
+                  .map(statement::withTargetPc)
+                  // otherwise add unchanged statement
+                  .orElse(statement);
+          newStatements.add(clonedStatement);
         }
         SeqThreadStatementBlock firstBlock = clause.getFirstBlock();
         SeqThreadStatementBlock newBlock = firstBlock.withStatements(newStatements.build());
@@ -195,9 +187,10 @@ public class SeqPruner {
       SeqThreadStatementClause pCurrent,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    // if pInitial is present, it should only write a pc
     checkArgument(
-        pInitial.isEmpty() || !pInitial.orElseThrow().isBlank(), "pInitial must not be prunable");
+        pInitial.isEmpty() || !pInitial.orElseThrow().isBlank(),
+        "If pInitial is present, then it cannot be blank.");
+
     if (pCurrent.isBlank()) {
       SeqThreadStatement singleStatement = pCurrent.getFirstBlock().getFirstStatement();
       Verify.verify(validPrunableClause(pCurrent));
@@ -208,8 +201,7 @@ public class SeqPruner {
       }
     }
     if (isEmptyAtomicBlock(pCurrent, pLabelClauseMap)) {
-      SeqThreadStatement singleStatement = pCurrent.getFirstBlock().getFirstStatement();
-      int targetPc = singleStatement.targetPc().orElseThrow();
+      int targetPc = pCurrent.getFirstBlock().getFirstStatement().targetPc().orElseThrow();
       assert targetPc != ProgramCounterVariables.EXIT_PC : "atomic begin should not exit thread";
       SeqThreadStatementClause nextClause = requireNonNull(pLabelClauseMap.get(targetPc));
       SeqThreadStatement nextSingleStatement = nextClause.getFirstBlock().getFirstStatement();

@@ -12,6 +12,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Objects;
@@ -70,12 +71,14 @@ public record SeqThreadStatementClauseBuilder(
 
     // ensure that atomic blocks are not interleaved by adding direct gotos
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> atomicBlocks =
-        options.atomicBlockMerge() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
+        options.mergeAtomicBlocks() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
 
     // if enabled, link statements that are guaranteed to commute via gotos
     StatementLinker statementLinker = new StatementLinker(options, memoryModel);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-        options.linkReduction() ? statementLinker.linkClauses(atomicBlocks) : atomicBlocks;
+        options.mergeCommutingStatements()
+            ? statementLinker.linkClauses(atomicBlocks)
+            : atomicBlocks;
 
     // if enabled, ensure that no backward goto exist. this should be done after all pc writes were
     // replaced with goto statements. in addition, the statements are possibly reordered, and it
@@ -86,8 +89,8 @@ public record SeqThreadStatementClauseBuilder(
             : linked;
 
     // ensure label numbers are consecutive (start at 0, end at clauseNum - 1). this must be done
-    // before adding any injected statements, otherwise the injected statements may have to be
-    // adjusted too, e.g., to adjust a 'goto' label in a partial order reduction instrumentation.
+    // before adding any instrumentation statements, otherwise the instrumentation statements may
+    // have to be adjusted too, e.g., to adjust a 'goto' label.
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
         options.consecutiveLabels()
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
@@ -96,12 +99,7 @@ public record SeqThreadStatementClauseBuilder(
     // if enabled, apply partial order reduction and reduce number of clauses
     PartialOrderReducer partialOrderReducer =
         new PartialOrderReducer(
-            options,
-            consecutiveLabels,
-            ghostElements.bitVectorVariables(),
-            machineModel,
-            memoryModel,
-            utils);
+            options, consecutiveLabels, ghostElements, machineModel, memoryModel, utils);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
         partialOrderReducer.reduceClauses();
 
@@ -224,10 +222,15 @@ public record SeqThreadStatementClauseBuilder(
     } else {
       CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
       ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
-      if (pThreadNode.cfaNode instanceof FunctionExitNode) {
+      if (pThreadNode.getCfaNode() instanceof FunctionExitNode) {
+        ImmutableSet<SubstituteEdge> edges =
+            pThreadNode.leavingEdges().stream()
+                .map(substituteEdges::get)
+                .filter(Objects::nonNull)
+                .collect(ImmutableSet.toImmutableSet());
         statements.add(
             SeqThreadStatementBuilder.buildGhostOnlyStatement(
-                pThread.id(), pcLeftHandSide, targetPc));
+                pThread, edges, pcLeftHandSide, targetPc));
       } else {
         statements.addAll(
             pStatementBuilder.buildStatementsFromThreadNode(pThreadNode, pCoveredNodes));
@@ -245,7 +248,7 @@ public record SeqThreadStatementClauseBuilder(
           : "A CFANodeForThread without any leaving edges must have EXIT_PC.";
       return true;
     }
-    FluentIterable<CFAEdge> enteringEdges = pThreadNode.cfaNode.getEnteringEdges();
+    FluentIterable<CFAEdge> enteringEdges = pThreadNode.getCfaNode().getEnteringEdges();
     if (enteringEdges.size() == 1) {
       if (Iterables.getOnlyElement(enteringEdges) instanceof CFunctionSummaryStatementEdge) {
         return true;
@@ -325,8 +328,16 @@ public record SeqThreadStatementClauseBuilder(
       int pLabelPc,
       ImmutableList<SeqThreadStatement> pStatements) {
 
+    ImmutableSet<CFANodeForThread> loopHeads = pThread.cfa().getLoopHeads();
+    boolean isLoopHead =
+        pStatements.stream()
+            .allMatch(
+                s ->
+                    s.data().getSubstituteEdges().stream()
+                        .allMatch(e -> loopHeads.contains(e.getThreadEdge().getPredecessor())));
     SeqThreadStatementBlock block =
-        new SeqThreadStatementBlock(pThread.id(), pLabelPc, pStatements, pNextThreadLabel);
+        new SeqThreadStatementBlock(
+            pThread.id(), pLabelPc, isLoopHead, pStatements, pNextThreadLabel);
     return new SeqThreadStatementClause(options, block);
   }
 }

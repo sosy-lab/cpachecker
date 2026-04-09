@@ -74,6 +74,8 @@ public class DssFactory {
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     BiMap<Integer, CFANode> cfaNodeIdMap = createCfaNodeIdMap(pCFA);
 
+    ImmutableMap<String, Type> variableAndFunctionToTypeMap =
+        ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier));
     return switch (pCPA) {
       case PredicateCPA predicateCPA ->
           distribute(
@@ -85,8 +87,7 @@ public class DssFactory {
               pLogManager,
               pShutdownNotifier,
               cfaNodeIdMap,
-              ImmutableMap.copyOf(
-                  getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier)));
+              variableAndFunctionToTypeMap);
       case CallstackCPA callstackCPA -> distribute(callstackCPA, pBlockNode, pCFA, cfaNodeIdMap);
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
@@ -163,24 +164,6 @@ public class DssFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
-    return new DistributedConstraintsCPA(
-        pConstraintsCPA, pBlockNode.getInitialLocation().getFunctionName());
-  }
-
-  private static DistributedConfigurableProgramAnalysis distribute(
-      ValueAnalysisCPA pValueCPA,
-      CFA pCFA,
-      Configuration pConfiguration,
-      LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier,
-      BlockNode pBlockNode)
-      throws InvalidConfigurationException {
-    return new DistributedValueAnalysisCPA(
-        pValueCPA, pCFA, pConfiguration, pLogManager, pShutdownNotifier, pBlockNode);
-  }
-
-  private static DistributedConfigurableProgramAnalysis distribute(
       PredicateCPA pPredicateCPA,
       BlockNode pBlockNode,
       CFA pCFA,
@@ -188,7 +171,7 @@ public class DssFactory {
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      BiMap<Integer, CFANode> pIntegerCFANodeMap,
+      BiMap<Integer, CFANode> pCfaNodeIdMap,
       ImmutableMap<String, Type> pVariableAndFunctionToTypeMap)
       throws InvalidConfigurationException {
     return new DistributedPredicateCPA(
@@ -199,7 +182,7 @@ public class DssFactory {
         pOptions,
         pLogManager,
         pShutdownNotifier,
-        pIntegerCFANodeMap,
+        pCfaNodeIdMap,
         pVariableAndFunctionToTypeMap);
   }
 
@@ -245,7 +228,8 @@ public class DssFactory {
       }
       builder.put(wrappedCPA.getClass(), dcpa);
     }
-    return new DistributedCompositeCPA(pCompositeCPA, pBlockNode, builder.buildOrThrow());
+    return new DistributedCompositeCPA(
+        pLogManager, pCompositeCPA, pBlockNode, builder.buildOrThrow());
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
@@ -269,6 +253,24 @@ public class DssFactory {
             pMessageFactory,
             pLogManager,
             pShutdownNotifier));
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
+    return new DistributedConstraintsCPA(
+        pConstraintsCPA, pBlockNode.getInitialLocation().getFunctionName());
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      ValueAnalysisCPA pValueCPA,
+      CFA pCFA,
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      BlockNode pBlockNode)
+      throws InvalidConfigurationException {
+    return new DistributedValueAnalysisCPA(
+        pValueCPA, pCFA, pConfiguration, pLogManager, pShutdownNotifier, pBlockNode);
   }
 
   static BiMap<Integer, CFANode> createCfaNodeIdMap(CFA pCFA) {

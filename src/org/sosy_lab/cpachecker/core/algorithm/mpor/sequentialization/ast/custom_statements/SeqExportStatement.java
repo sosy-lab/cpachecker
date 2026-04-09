@@ -14,5 +14,5 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 public sealed interface SeqExportStatement
     permits SeqThreadStatement, SeqThreadStatementBlock, SeqThreadStatementClause {
 
-  ImmutableList<CCompoundStatementElement> toCExportAstNodes();
+  ImmutableList<CCompoundStatementElement> toCExportStatements();
 }

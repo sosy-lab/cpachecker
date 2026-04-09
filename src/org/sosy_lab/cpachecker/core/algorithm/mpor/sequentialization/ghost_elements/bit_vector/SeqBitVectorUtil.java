@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.CIntegerLiter
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -128,16 +128,16 @@ public class SeqBitVectorUtil {
    * {@link ReachType} is required based on the specified options.
    */
   public static boolean isAccessReachPairNeeded(
-      boolean pReduceIgnoreSleep,
-      ReductionMode pReductionMode,
-      MemoryAccessType pAccessType,
-      ReachType pReachType) {
+      MPOROptions pOptions, MemoryAccessType pAccessType, ReachType pReachType) {
 
-    if (pReachType.equals(ReachType.DIRECT) && !pReduceIgnoreSleep) {
+    if (pReachType.equals(ReachType.DIRECT)
+        && !pOptions.executeCommutingThreadsFirst()
+        && !pOptions.abortCommutingContextSwitches()) {
       return false;
     }
-    return switch (pReductionMode) {
-      case NONE -> throw new IllegalArgumentException("cannot check for reductionMode NONE");
+    return switch (pOptions.partialOrderReductionMode()) {
+      case NONE ->
+          throw new IllegalArgumentException("cannot check for partialOrderReductionMode NONE");
       case ACCESS_ONLY -> pAccessType.equals(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           switch (pReachType) {
