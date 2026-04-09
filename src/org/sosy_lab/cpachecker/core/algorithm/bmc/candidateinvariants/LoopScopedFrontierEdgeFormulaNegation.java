@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -19,8 +18,8 @@ import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Termination candidate for loop-internal exit guards such as {@code do-while} conditions or
- * {@code break}-style exits.
+ * Termination candidate for loop-internal exit guards such as {@code do-while} conditions or {@code
+ * break}-style exits.
  *
  * <p>Unlike {@link FrontierEdgeFormulaNegation}, this candidate is not tied to one exact CFA
  * location. Instead, it is checked on all frontier states that are still inside the loop.
@@ -30,7 +29,9 @@ public final class LoopScopedFrontierEdgeFormulaNegation extends EdgeFormulaNega
   private final ImmutableSet<CFANode> applicableLocations;
 
   public LoopScopedFrontierEdgeFormulaNegation(
-      CFANode pRepresentativeLocation, ImmutableSet<CFANode> pApplicableLocations, AssumeEdge pEdge) {
+      CFANode pRepresentativeLocation,
+      ImmutableSet<CFANode> pApplicableLocations,
+      AssumeEdge pEdge) {
     super(pRepresentativeLocation, pEdge);
     applicableLocations = Objects.requireNonNull(pApplicableLocations);
   }

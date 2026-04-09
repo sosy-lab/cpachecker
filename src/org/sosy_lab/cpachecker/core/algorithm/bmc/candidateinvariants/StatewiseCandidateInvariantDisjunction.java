@@ -42,8 +42,7 @@ public final class StatewiseCandidateInvariantDisjunction implements CandidateIn
 
   private final ImmutableSet<CandidateInvariant> operands;
 
-  public StatewiseCandidateInvariantDisjunction(
-      Iterable<? extends CandidateInvariant> pOperands) {
+  public StatewiseCandidateInvariantDisjunction(Iterable<? extends CandidateInvariant> pOperands) {
     operands = ImmutableSet.copyOf(pOperands);
     if (operands.isEmpty()) {
       throw new IllegalArgumentException("Expected at least one operand.");
