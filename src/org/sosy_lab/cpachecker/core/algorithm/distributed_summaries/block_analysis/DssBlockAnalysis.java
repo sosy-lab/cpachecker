@@ -605,7 +605,7 @@ public class DssBlockAnalysis {
     AnalysisResult result =
         analyzeViolationCondition(
             transformedImmutableListCopy(violations, v -> (ARGState) v.state()));
-    if (!result.summaries().isEmpty() && result.violationConditions().isEmpty()) {
+    if (!result.summaries().isEmpty()) {
       messages.addAll(reportPostconditions(result.summaries()));
     }
     if (!result.violationConditions().isEmpty()) {
@@ -687,7 +687,7 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        if (!result.getSummaries().isEmpty()) {
+        if (!result.getSummaries().isEmpty() && result.getTargetStates().isEmpty()) {
           // pack all summaries
           ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           for (AbstractState summary : result.getSummaries()) {
