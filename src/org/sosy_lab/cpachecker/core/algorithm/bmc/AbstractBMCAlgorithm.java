@@ -525,7 +525,7 @@ abstract class AbstractBMCAlgorithm
 
           // check bounding assertions
           sound =
-              isTerminationMode() || candidateGenerator.hasCandidatesAvailable()
+              (isTerminationMode() || candidateGenerator.hasCandidatesAvailable())
                   ? checkBoundingAssertions(reachedSet, prover)
                   : true;
 
