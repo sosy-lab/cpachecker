@@ -63,22 +63,23 @@ public class SeqInstrumentationBuilder {
     return new SeqInstrumentation(SeqInstrumentationType.GUARDED_GOTO, ifStatement);
   }
 
-  public static SeqInstrumentation buildLastThreadUpdateStatement(
-      CExpressionAssignmentStatement pLastThreadUpdate) {
+  public static SeqInstrumentation buildPrevThreadUpdateStatement(
+      CExpressionAssignmentStatement pPrevThreadUpdate) {
 
-    CStatementWrapper lastThreadUpdate = new CStatementWrapper(pLastThreadUpdate);
-    return new SeqInstrumentation(SeqInstrumentationType.LAST_THREAD_UPDATE, lastThreadUpdate);
+    CStatementWrapper prevThreadUpdateWrapped = new CStatementWrapper(pPrevThreadUpdate);
+    return new SeqInstrumentation(
+        SeqInstrumentationType.PREV_THREAD_UPDATE, prevThreadUpdateWrapped);
   }
 
-  public static SeqInstrumentation buildLastBitVectorUpdateStatement(
-      ImmutableList<CExpressionAssignmentStatement> pLastBitVectorUpdates) {
+  public static SeqInstrumentation buildPrevBitVectorUpdateStatement(
+      ImmutableList<CExpressionAssignmentStatement> pPrevBitVectorUpdates) {
 
     ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
-    for (CExpressionAssignmentStatement lastBitVectorUpdate : pLastBitVectorUpdates) {
-      exportStatements.add(new CStatementWrapper(lastBitVectorUpdate));
+    for (CExpressionAssignmentStatement prevBitVectorUpdate : pPrevBitVectorUpdates) {
+      exportStatements.add(new CStatementWrapper(prevBitVectorUpdate));
     }
     return new SeqInstrumentation(
-        SeqInstrumentationType.LAST_BIT_VECTOR_UPDATE,
+        SeqInstrumentationType.PREV_BIT_VECTOR_UPDATE,
         new CCompoundStatement(exportStatements.build()));
   }
 

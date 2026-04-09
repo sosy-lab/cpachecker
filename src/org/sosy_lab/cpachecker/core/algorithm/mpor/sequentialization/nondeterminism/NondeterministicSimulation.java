@@ -188,7 +188,7 @@ public abstract class NondeterministicSimulation {
     ImmutableList.Builder<CExportStatement> rStatements = ImmutableList.builder();
 
     if (options.abortCommutingContextSwitches()) {
-      // do not create the statement for the main thread, since LAST_THREAD < 0 never holds
+      // do not create the statement for the main thread, since prev_thread < 0 never holds
       if (!pThread.isMain()) {
         ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
             SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));
