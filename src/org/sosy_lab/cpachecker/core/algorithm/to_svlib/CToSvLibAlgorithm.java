@@ -410,7 +410,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       }
       case DeclarationEdge -> {
         SvLibTerm transformedTerm = transformToSvLibTerm(pEdge);
-
         Optional<SvLibStatement> assignmentStatement = handleAssignment(pEdge, transformedTerm);
         if (assignmentStatement.isPresent()) {
           pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement.orElseThrow());
@@ -569,8 +568,13 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   private Optional<SvLibStatement> handleAssignment(CFAEdge pEdge, SvLibTerm pTransformedTerm) {
-
-    if (pTransformedTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
+    // For some edges without assignment, such as a declarationEdge for int x;, the
+    // pTransformedTerm is a SvLibBooleanConstantTerm with the value true, and no
+    // SvLibAssignmentStatement should be returned.
+    if (pTransformedTerm instanceof SvLibBooleanConstantTerm booleanConstant
+        && booleanConstant.getValue()) {
+      return Optional.empty();
+    } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
         && symbolApplicationTerm.getSymbol().getName().equals("=")
         && symbolApplicationTerm.getTerms().size() == 2) {
 
@@ -596,7 +600,11 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         return Optional.of(assignmentStatement);
       }
     }
-    return Optional.empty();
+    throw new UnsupportedOperationException(
+        "Failed to handle assignment for edge "
+            + pEdge
+            + " and transformed term "
+            + pTransformedTerm.toASTString());
   }
 
   private ImmutableList<SvLibParsingParameterDeclaration> collectReturnParameter(
