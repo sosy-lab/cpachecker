@@ -17,7 +17,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -261,7 +263,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void addInternalExitGuardCandidates(
       Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
     for (CFANode loopNode : pLoop.getLoopNodes()) {
-      if (pLoop.getLoopHeads().contains(loopNode) || !hasExitEdge(pLoop, loopNode)) {
+      if (pLoop.getLoopHeads().contains(loopNode)) {
         continue;
       }
       addLoopScopedContinuationCandidatesAtNode(pLoop, loopNode, pCandidates);
@@ -281,19 +283,44 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void addLoopScopedContinuationCandidatesAtNode(
       Loop pLoop, CFANode pNode, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
     ImmutableSet<CFANode> loopNodes = ImmutableSet.copyOf(pLoop.getLoopNodes());
+    boolean hasExitAlternative = false;
+    for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
+      if (leavingEdge instanceof AssumeEdge assumeEdge && branchLeavesLoop(pLoop, assumeEdge)) {
+        hasExitAlternative = true;
+        break;
+      }
+    }
+    if (!hasExitAlternative) {
+      return;
+    }
     for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
       if (leavingEdge instanceof AssumeEdge assumeEdge
-          && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
+          && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())
+          && !branchLeavesLoop(pLoop, assumeEdge)) {
         pCandidates.add(new LoopScopedFrontierEdgeFormulaNegation(pNode, loopNodes, assumeEdge));
       }
     }
   }
 
-  private boolean hasExitEdge(Loop pLoop, CFANode pNode) {
-    for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
+  private boolean branchLeavesLoop(Loop pLoop, CFAEdge pEdge) {
+    if (!pLoop.getLoopNodes().contains(pEdge.getSuccessor())) {
+      return true;
+    }
+    return mustLeaveLoopOnStraightLine(pLoop, pEdge.getSuccessor());
+  }
+
+  private boolean mustLeaveLoopOnStraightLine(Loop pLoop, CFANode pStartNode) {
+    Set<CFANode> visited = new HashSet<>();
+    CFANode current = pStartNode;
+    while (pLoop.getLoopNodes().contains(current) && visited.add(current)) {
+      if (current.getNumLeavingEdges() != 1) {
+        return false;
+      }
+      CFAEdge leavingEdge = current.getLeavingEdge(0);
       if (!pLoop.getLoopNodes().contains(leavingEdge.getSuccessor())) {
         return true;
       }
+      current = leavingEdge.getSuccessor();
     }
     return false;
   }

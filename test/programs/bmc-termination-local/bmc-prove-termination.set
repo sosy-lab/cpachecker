@@ -5,10 +5,11 @@
 # SPDX-FileCopyrightText: 2026 CPAchecker contributors
 #
 # SPDX-License-Identifier: Apache-2.0
-../simple/termination/nestedWithSpecificK.c
-../simple/termination/simpleWithSpecificK.c
-../simple/termination/test.c
-../simple/termination/infiniteForWithBreak.c
-../simple/termination/infiniteForWithReturn.c
-../simple/termination/mixedExitWithBreak.c
+../simple/termination/nestedWithSpecificK.yml
+../simple/termination/simpleWithSpecificK.yml
+../simple/termination/test.yml
+../simple/termination/infiniteForWithBreak.yml
+../simple/termination/infiniteForWithReturn.yml
+../simple/termination/mixedExitWithBreak.yml
+../simple/termination/mixedExitWithDelayedBreak.yml
 # ../simple/termination/simpleWithBigK.c
