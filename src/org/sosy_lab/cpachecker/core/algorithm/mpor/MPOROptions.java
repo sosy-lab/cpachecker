@@ -35,6 +35,16 @@ public class MPOROptions {
               + " underapproximation of the state space.")
   private boolean abortCommutingContextSwitches = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Abort if the thread that previously executed a statement is re-entered without another"
+              + " thread executing a statement in between. This option prevents redundant state"
+              + " space explorations because the previous thread continued the execution anyway due"
+              + " to nondeterministic context switches. Can only be enabled if"
+              + " nondeterminismSource contains NUM_STATEMENTS.")
+  private boolean abortPreviousThreadReentry = false;
+
   @Option(secure = true, description = "Allow input programs that write pointer variables?")
   private boolean allowPointerWrites = true;
 
@@ -310,6 +320,13 @@ public class MPOROptions {
             "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
       }
     }
+    if (!nondeterminismSource.isNumStatementsNondeterministic()) {
+      if (abortPreviousThreadReentry) {
+        throw new InvalidConfigurationException(
+            "abortPreviousThreadReentry is enabled, but nondeterminismSource does not contain"
+                + " NUM_STATEMENTS.");
+      }
+    }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
       if (selectionEncodingForThreads.isEnabled()) {
         throw new InvalidConfigurationException(
@@ -419,6 +436,10 @@ public class MPOROptions {
 
   public boolean abortCommutingContextSwitches() {
     return abortCommutingContextSwitches;
+  }
+
+  public boolean abortPreviousThreadReentry() {
+    return abortPreviousThreadReentry;
   }
 
   public boolean allowPointerWrites() {
