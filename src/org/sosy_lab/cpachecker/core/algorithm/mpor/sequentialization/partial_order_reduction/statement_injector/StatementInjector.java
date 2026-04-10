@@ -98,8 +98,7 @@ public record StatementInjector(
               machineModel,
               memoryModel.orElseThrow(),
               utils);
-      pStatement =
-          abortCommutingContextSwitches.injectPrevUpdatesIntoStatement(pStatement, labelClauseMap);
+      pStatement = abortCommutingContextSwitches.injectPrevUpdatesIntoStatement(pStatement);
     }
     if (ghostElements.bitVectorVariables().isPresent()) {
       // always inject bit vector assignments after evaluations i.e. reductions

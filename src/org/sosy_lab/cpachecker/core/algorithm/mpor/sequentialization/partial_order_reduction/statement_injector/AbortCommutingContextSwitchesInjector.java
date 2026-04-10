@@ -128,10 +128,7 @@ public record AbortCommutingContextSwitchesInjector(
 
   // Prev Updates ==================================================================================
 
-  SeqThreadStatement injectPrevUpdatesIntoStatement(
-      SeqThreadStatement pStatement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
-
+  SeqThreadStatement injectPrevUpdatesIntoStatement(SeqThreadStatement pStatement) {
     if (pStatement.targetPc().isPresent()) {
       ImmutableList<CExpressionAssignmentStatement> prevBitVectorUpdates =
           buildPrevAccessBitVectorUpdatesByEncoding();
@@ -142,7 +139,7 @@ public record AbortCommutingContextSwitchesInjector(
         return injectPrevThreadUpdateIntoStatement(pStatement, numThreads, prevBitVectorUpdates);
       }
       // if targetPc != EXIT_PC, then pLabelClause contains targetPc, otherwise NPE
-      SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+      SeqThreadStatementClause targetClause = Objects.requireNonNull(labelClauseMap.get(targetPc));
 
       // for sync locations, set prev_thread to NUM_THREADS - 1. this is necessary, otherwise
       // the analysis is unsound.
