@@ -418,6 +418,10 @@ public class MPOROptions {
         || executeThreadsUntilConflict;
   }
 
+  public boolean isPrevThreadVariableRequired() {
+    return abortCommutingContextSwitches || abortPreviousThreadReentry;
+  }
+
   public boolean isThreadLabelRequired() {
     // only needed if the loop is finite i.e. not 0, otherwise just use continue;
     if (threadSimulationIterations > 0 && !threadSimulationUnrolling) {
