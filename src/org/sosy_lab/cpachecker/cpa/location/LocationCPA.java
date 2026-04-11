@@ -9,18 +9,25 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Collection;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.transformation.ProgramTransformationInformation;
+import org.sosy_lab.cpachecker.cfa.transformation.SubCFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -29,10 +36,21 @@ public class LocationCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
 
   private final LocationStateFactory stateFactory;
+  private final LocationPrecision initialPrecision;
+  private final boolean hasProgramTransformations;
 
-  private LocationCPA(LocationStateFactory pStateFactory) {
+  private LocationCPA(LocationStateFactory pStateFactory, CFA pCFA) {
     super("sep", "sep", new LocationTransferRelation(pStateFactory));
     stateFactory = pStateFactory;
+    hasProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().isPresent();
+    Builder<SubCFA> programTransformations = ImmutableSet.builder();
+    if(hasProgramTransformations){
+      Collection<ProgramTransformationInformation> programTransformationInformations = pCFA.getMetadata().getNodesToProgramTransformations().get().values();
+      for(ProgramTransformationInformation programTransformation : programTransformationInformations){
+        programTransformations.add(programTransformation.subCFA());
+      }
+    }
+    initialPrecision = new LocationPrecision(programTransformations.build());
   }
 
   public static CPAFactory factory() {
@@ -41,7 +59,7 @@ public class LocationCPA extends AbstractCPA
 
   public static LocationCPA create(CFA pCFA, Configuration pConfig)
       throws InvalidConfigurationException {
-    return new LocationCPA(new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig));
+    return new LocationCPA(new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig), pCFA);
   }
 
   @Override
@@ -60,6 +78,17 @@ public class LocationCPA extends AbstractCPA
                 .getAbstractSuccessorsForEdge(
                     pElement, SingletonPrecision.getInstance(), pCfaEdge));
     return successors.equals(actualSuccessors);
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new LocationPrecisionAdjustment();
+  }
+
+  @Override
+  public  Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    return initialPrecision;
   }
 
   public LocationStateFactory getStateFactory() {
