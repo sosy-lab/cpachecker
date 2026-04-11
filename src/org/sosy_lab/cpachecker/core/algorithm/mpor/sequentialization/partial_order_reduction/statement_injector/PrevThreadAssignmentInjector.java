@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -52,6 +53,19 @@ public record PrevThreadAssignmentInjector(
         // T_c aborts. But T_p may e.g. call pthread_join (= sync location) on T_c which results in
         // both aborting, and then the simulation is an unsound underapproximation.
         if (SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
+          return injectPrevThreadUpdateIntoStatement(pStatement, numThreads);
+        }
+      }
+
+      if (options.abortPreviousThreadReentry()) {
+        // For loop heads that must remain separate, set prev_thread to NUM_THREADS. This is
+        // necessary when abortPreviousReentry is enabled, otherwise the analysis is unsound.
+        //
+        // This is because the 'round < round_max' instrumentation is not placed when the target
+        // loop head must remain separate. In this case the thread simulation was not
+        // nondeterministically exited but deterministically, which means that aborting the re-entry
+        // of prev_thread can result in some lost interleavings.
+        if (SeqThreadStatementClauseUtil.isSeparateLoopStart(options, targetClause)) {
           return injectPrevThreadUpdateIntoStatement(pStatement, numThreads);
         }
       }
