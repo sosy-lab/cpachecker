@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersist
 import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
@@ -38,6 +39,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -288,62 +290,70 @@ public final class PredicateMapWriter {
       // Add all local predicates
       if (cfa.isPresent()) {
         AstCfaRelation astCfaRelation = cfa.orElseThrow().getAstCfaRelation();
+        if (astCfaRelation == null) {
+          Verify.verify(
+              !cfa.orElseThrow().getLanguage().equals(Language.C),
+              "We expect an AST-CFA relation for C programs, but it is not present.");
+          logger.log(
+              Level.INFO, "Currently we cannot export local predicates for programs other than C");
+        } else {
 
-        for (CFANode cfaNode : pLocation.keySet()) {
-          String functionName = cfaNode.getFunctionName();
-          Optional<PrecisionScope> precisionScope =
-              PrecisionScope.localPrecisionScopeFor(cfaNode, astCfaRelation);
+          for (CFANode cfaNode : pLocation.keySet()) {
+            String functionName = cfaNode.getFunctionName();
+            Optional<PrecisionScope> precisionScope =
+                PrecisionScope.localPrecisionScopeFor(cfaNode, astCfaRelation);
 
-          if (precisionScope.isEmpty()) {
-            // TODO: This should never happen, it is a bug in the AST-CFA relation.
+            if (precisionScope.isEmpty()) {
+              // TODO: This should never happen, it is a bug in the AST-CFA relation.
 
-            // As a workaround, we export the predicates as function-scoped
-            // predicates, but this is not quite correct.
-            entriesBuilder.add(
-                new PrecisionExchangeEntry(
-                    witnessExpressionType,
-                    new FunctionPrecisionScope(functionName),
-                    PrecisionType.PREDICATES,
-                    FluentIterable.from(pLocation.get(cfaNode))
-                        .transform(
-                            pFormula ->
-                                getPredicateString(
-                                    pFormula,
-                                    witnessPredicateFormat,
-                                    name ->
-                                        notInternalVariable(name)
-                                            && variableNameInFunction(name, functionName),
-                                    fmgr,
-                                    declarationBuilder))
-                        .filter(Optional::isPresent)
-                        .transform(Optional::orElseThrow)
-                        .toSet()
-                        .asList()));
+              // As a workaround, we export the predicates as function-scoped
+              // predicates, but this is not quite correct.
+              entriesBuilder.add(
+                  new PrecisionExchangeEntry(
+                      witnessExpressionType,
+                      new FunctionPrecisionScope(functionName),
+                      PrecisionType.PREDICATES,
+                      FluentIterable.from(pLocation.get(cfaNode))
+                          .transform(
+                              pFormula ->
+                                  getPredicateString(
+                                      pFormula,
+                                      witnessPredicateFormat,
+                                      name ->
+                                          notInternalVariable(name)
+                                              && variableNameInFunction(name, functionName),
+                                      fmgr,
+                                      declarationBuilder))
+                          .filter(Optional::isPresent)
+                          .transform(Optional::orElseThrow)
+                          .toSet()
+                          .asList()));
 
-          } else {
-            entriesBuilder.add(
-                new PrecisionExchangeEntry(
-                    witnessExpressionType,
-                    precisionScope.orElseThrow(),
-                    PrecisionType.PREDICATES,
-                    FluentIterable.from(pLocation.get(cfaNode))
-                        .transform(
-                            pFormula ->
-                                getPredicateString(
-                                    pFormula,
-                                    witnessPredicateFormat,
-                                    variableName ->
-                                        notInternalVariable(variableName)
-                                            && variableNameInFunction(
-                                                variableName, cfaNode.getFunctionName())
-                                            && variableInOriginalProgram(
-                                                variableName, astCfaRelation, cfaNode),
-                                    fmgr,
-                                    declarationBuilder))
-                        .filter(Optional::isPresent)
-                        .transform(Optional::orElseThrow)
-                        .toSet()
-                        .asList()));
+            } else {
+              entriesBuilder.add(
+                  new PrecisionExchangeEntry(
+                      witnessExpressionType,
+                      precisionScope.orElseThrow(),
+                      PrecisionType.PREDICATES,
+                      FluentIterable.from(pLocation.get(cfaNode))
+                          .transform(
+                              pFormula ->
+                                  getPredicateString(
+                                      pFormula,
+                                      witnessPredicateFormat,
+                                      variableName ->
+                                          notInternalVariable(variableName)
+                                              && variableNameInFunction(
+                                                  variableName, cfaNode.getFunctionName())
+                                              && variableInOriginalProgram(
+                                                  variableName, astCfaRelation, cfaNode),
+                                      fmgr,
+                                      declarationBuilder))
+                          .filter(Optional::isPresent)
+                          .transform(Optional::orElseThrow)
+                          .toSet()
+                          .asList()));
+            }
           }
         }
       } else {
