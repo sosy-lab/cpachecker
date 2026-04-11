@@ -389,7 +389,7 @@ public class ProofSlicer {
 
   private Set<String> initState(final ARGState parent) {
     assert !parent.isCovered();
-    for (CFAEdge edge : CFAUtils.leavingEdges(AbstractStates.extractLocation(parent))) {
+    for (CFAEdge edge : AbstractStates.extractLocation(parent).getLeavingEdges()) {
 
       if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
         boolean found = false;

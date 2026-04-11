@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Transfer relation for abstract states used in variable-dependent difference verification. */
@@ -99,7 +98,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
 
         // case 3 outsourced to abstract state creation
 
-        if (CFAUtils.leavingEdges(nodeInMod).contains(pCfaEdge)) {
+        if (nodeInMod.getLeavingEdges().contains(pCfaEdge)) {
           // helper.logCase(pCfaEdge.getCode());
           // prepare further cases by skipping ignored operations
           // for original CFA skip untracked edges in ModificationPropState constructor
@@ -111,7 +110,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
 
           // case 4
-          for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+          for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
             // check function return location later,
             // needed if pCfaEdge instanceof CFunctionReturnEdge
             if (helper.edgesMatchIgnoringFunctionReturnLocation(pCfaEdge, edgeInOriginal)) {
@@ -160,7 +159,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             }
           }
           if (pCfaEdge instanceof CDeclarationEdge declEdge) {
-            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+            for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
               if (edgeInOriginal instanceof CDeclarationEdge declEdgeInOriginal) {
                 final CDeclaration declOr = declEdgeInOriginal.getDeclaration();
                 final CDeclaration declMo = declEdge.getDeclaration();
@@ -182,7 +181,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             }
           }
           if (pCfaEdge instanceof CReturnStatementEdge retMo) {
-            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+            for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
               if (edgeInOriginal instanceof CReturnStatementEdge retOr) {
 
                 if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
@@ -265,7 +264,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             // Pop summary edge goal to compare to function return edge goal.
             final CFANode summaryGoal = stackminus.removeLast();
             if (summaryGoal != null) {
-              for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+              for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
                 if (edgeInOriginal instanceof final CFunctionReturnEdge retOr
                     && edgeInOriginal.getSuccessor().equals(summaryGoal)) {
 
@@ -337,7 +336,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             }
           }
           if (pCfaEdge instanceof CFunctionCallEdge callMo) {
-            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+            for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
               if (edgeInOriginal instanceof final CFunctionCallEdge callOr) {
 
                 final CFunctionEntryNode entryNodeOr = callOr.getSuccessor();
@@ -458,7 +457,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           // case 7
           if (helper.useImplicationCheck()) {
             if (pCfaEdge instanceof CAssumeEdge assGiven) {
-              for (CFAEdge ce : CFAUtils.leavingEdges(nodeInOriginal)) {
+              for (CFAEdge ce : nodeInOriginal.getLeavingEdges()) {
                 if (ce instanceof CAssumeEdge assOrig) {
                   helper.logCase("Checking for case 7 compliance.");
                   if (helper.implies(assGiven, assOrig)) {

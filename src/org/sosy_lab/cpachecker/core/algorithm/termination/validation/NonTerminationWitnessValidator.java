@@ -332,10 +332,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
-      cpa = coreComponents.createCPA(cfa, spec);
+          new CoreComponentsFactory(
+              singleConfig, logger, shutdown, AggregatedReachedSets.empty(), cfa);
+      cpa = coreComponents.createCPA(spec);
 
-      algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
+      algorithm = coreComponents.createAlgorithm(cpa, spec);
 
       AbstractState initialState =
           cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
@@ -398,10 +399,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
-      cpa = coreComponents.createCPA(cfa, spec);
+          new CoreComponentsFactory(
+              singleConfig, logger, shutdown, AggregatedReachedSets.empty(), cfa);
+      cpa = coreComponents.createCPA(spec);
 
-      algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
+      algorithm = coreComponents.createAlgorithm(cpa, spec);
 
       AbstractState initialState =
           cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
@@ -550,15 +552,16 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
-      cpa = coreComponents.createCPA(cfa, spec);
+          new CoreComponentsFactory(
+              singleConfig, logger, shutdown, AggregatedReachedSets.empty(), cfa);
+      cpa = coreComponents.createCPA(spec);
 
       Preconditions.checkArgument(
           cpa instanceof ARGCPA, "Require ARGCPA to check validity of recurrent set:");
 
       ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().getFirst();
 
-      algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
+      algorithm = coreComponents.createAlgorithm(cpa, spec);
 
       shutdown.shutdownIfNecessary();
 
@@ -812,10 +815,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
-      cpa = coreComponents.createCPA(cfa, spec);
+          new CoreComponentsFactory(
+              singleConfig, logger, shutdown, AggregatedReachedSets.empty(), cfa);
+      cpa = coreComponents.createCPA(spec);
 
-      algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
+      algorithm = coreComponents.createAlgorithm(cpa, spec);
 
       AbstractState initialState =
           cpa.getInitialState(pRecurrentStart, StateSpacePartition.getDefaultPartition());

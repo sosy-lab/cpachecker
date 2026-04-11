@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -26,7 +26,7 @@ public class AssumptionToEdgeAllocatorTest {
 
   private MachineModel machineModel;
   private LogManager logger;
-  private CFA cfa;
+  private ImmutableCFA cfa;
 
   private ConcreteState empty;
   private ConcreteState symbolic;

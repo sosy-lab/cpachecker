@@ -26,6 +26,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -68,7 +69,8 @@ public class LoopTransitionFinderTest {
             .withMessage("Z3 requires newer libc than Ubuntu 18.04 provides")
             .that(cause)
             .hasMessageThat()
-            .doesNotContain("version `GLIBCXX_3.4.26' not found");
+            .doesNotContainMatch(
+                "version `(GLIBCXX_3\\.4\\.26|GLIBC_2\\.34|GLIBC_2\\.38)' not found");
       }
       throw e;
     }
@@ -82,7 +84,8 @@ public class LoopTransitionFinderTest {
             notifier,
             MachineModel.LINUX32,
             Optional.empty(),
-            AnalysisDirection.FORWARD);
+            AnalysisDirection.FORWARD,
+            Language.C);
     creator = new CFACreator(config, logger, notifier);
   }
 

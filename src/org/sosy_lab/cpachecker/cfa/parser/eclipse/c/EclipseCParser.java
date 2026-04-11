@@ -51,11 +51,11 @@ import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Parser based on Eclipse CDT */
@@ -273,7 +273,7 @@ class EclipseCParser implements CParser {
       for (IASTPreprocessorIncludeStatement include : result.getIncludeDirectives()) {
         if (!include.isResolved()) {
           if (include.isSystemInclude()) {
-            throw new CFAGenerationRuntimeException(
+            throw new CParsingFailureRequiringPreprocessingException(
                 "File includes system headers, either preprocess it manually or specify"
                     + " --preprocess.");
           } else {
@@ -351,7 +351,7 @@ class EclipseCParser implements CParser {
               AstCfaRelationBuilder.getASTCFARelation(
                   pSourceOriginMapping,
                   from(result.cfaNodes().values())
-                      .transformAndConcat(CFAUtils::allLeavingEdges)
+                      .transformAndConcat(CFANode::getAllLeavingEdges)
                       .toSet(),
                   asts,
                   result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
@@ -448,7 +448,7 @@ class EclipseCParser implements CParser {
       CodePosition result =
           delegate.getOriginLineFromAnalysisCodeLine(analysisFile, pAnalysisCodeLine);
 
-      if (result.getFileName().equals(analysisFile)) {
+      if (result.fileName().equals(analysisFile)) {
         // reverse mapping
         result = result.withFileName(pAnalysisFile);
       }

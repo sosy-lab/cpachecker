@@ -301,9 +301,9 @@ public class ExpressionToFormulaVisitor
 
     final NumeralFormula<CompoundInterval> result =
         switch (pCBinaryExpression.getOperator()) {
-          case BINARY_AND -> allPossibleValues(pCBinaryExpression);
-          case BINARY_OR -> allPossibleValues(pCBinaryExpression);
-          case BINARY_XOR -> allPossibleValues(pCBinaryExpression);
+          case BITWISE_AND -> allPossibleValues(pCBinaryExpression);
+          case BITWISE_OR -> allPossibleValues(pCBinaryExpression);
+          case BITWISE_XOR -> allPossibleValues(pCBinaryExpression);
           case DIVIDE -> compoundIntervalFormulaManager.divide(left, right);
           case EQUALS ->
               compoundIntervalFormulaManager.fromBoolean(
@@ -347,7 +347,7 @@ public class ExpressionToFormulaVisitor
                   "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
             }
           }
-          case MODULO -> compoundIntervalFormulaManager.modulo(left, right);
+          case REMAINDER -> compoundIntervalFormulaManager.modulo(left, right);
           case MULTIPLY -> compoundIntervalFormulaManager.multiply(left, right);
           case NOT_EQUALS ->
               compoundIntervalFormulaManager.fromBoolean(
@@ -425,11 +425,11 @@ public class ExpressionToFormulaVisitor
         compoundIntervalFormulaManager.fromNumeral(right);
     TypeInfo typeInfo = TypeInfo.from(machineModel, pBinaryExpression.getExpressionType());
     return switch (pBinaryExpression.getOperator()) {
-      case BINARY_AND -> allPossibleValues(pBinaryExpression);
+      case BITWISE_AND -> allPossibleValues(pBinaryExpression);
 
-      case BINARY_OR -> allPossibleValues(pBinaryExpression);
+      case BITWISE_OR -> allPossibleValues(pBinaryExpression);
 
-      case BINARY_XOR -> allPossibleValues(pBinaryExpression);
+      case BITWISE_XOR -> allPossibleValues(pBinaryExpression);
 
       case CONDITIONAL_AND -> allPossibleValues(pBinaryExpression);
 
@@ -476,7 +476,7 @@ public class ExpressionToFormulaVisitor
 
       case MINUS -> compoundIntervalFormulaManager.subtract(left, right);
 
-      case MODULO -> compoundIntervalFormulaManager.modulo(left, right);
+      case REMAINDER -> compoundIntervalFormulaManager.modulo(left, right);
 
       case MULTIPLY -> compoundIntervalFormulaManager.multiply(left, right);
 

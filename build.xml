@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="4.1-git"/> <!-- change here for a release -->
+    <property name="version.base" value="4.2.2-git"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="class.dir" value="classes"/>
@@ -36,6 +36,8 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- The following error-prone checks are disabled:
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
+         NotJavadoc: It doesn't hurt to use JavaDoc syntax for comments that have the same goal as a JavaDoc comment
+             but are in places where JavaDoc is not possible (methods in local classes).
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
          UnusedMethods: Most CPAs have private constructors that are called only via reflection
          DuplicateBranches: TODO https://github.com/google/error-prone/issues/4734
@@ -43,6 +45,7 @@ SPDX-License-Identifier: Apache-2.0
     <property name="errorprone.options" value="
         -Xep:DuplicateBranches:OFF
         -Xep:BadImport:OFF
+        -Xep:NotJavadoc:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:BanSerializableRead:OFF
         -Xep:UnusedMethod:OFF
@@ -94,6 +97,7 @@ SPDX-License-Identifier: Apache-2.0
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/svlib/antlr/AntlrParser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" target="clean" inheritAll="false"/>
     </target>
 
@@ -146,6 +150,8 @@ SPDX-License-Identifier: Apache-2.0
             <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
             <echo message="Generate antlr4 parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" inheritAll="false"/>
+            <echo message="Generate SV-LIB parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/svlib/antlr/AntlrParser.xml" inheritAll="false"/>
             <echo message="Generate ACSL parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" inheritAll="false"/>
     </target>

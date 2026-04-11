@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
@@ -141,7 +140,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     CFANode node = extractLocation(pElement);
     results = new ArrayList<>(node.getNumLeavingEdges());
 
-    for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+    for (CFAEdge edge : node.getLeavingEdges()) {
       results.addAll(getAbstractSuccessorsForEdge(pElement, pPrecision, edge));
     }
     return results;
@@ -197,7 +196,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       if (skippedfunctions.contains(functionName)) {
         CFAEdge newEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
         Preconditions.checkNotNull(
-            newEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
+            newEdge, "Cannot find summary edge for %s as skipped function", pCfaEdge);
         logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
         callstackTransfer.enableRecursiveContext();
         return newEdge;

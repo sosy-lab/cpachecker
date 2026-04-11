@@ -210,7 +210,7 @@ public class WitnessExporter {
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
       visited.add(l);
-      for (CFAEdge e : CFAUtils.leavingEdges(l)) {
+      for (CFAEdge e : l.getLeavingEdges()) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (!fileLocations.isEmpty()) {
           return fileLocations.iterator().next().getFileName().toString();

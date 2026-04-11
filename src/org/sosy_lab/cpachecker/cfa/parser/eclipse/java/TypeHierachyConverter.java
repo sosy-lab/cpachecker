@@ -169,7 +169,9 @@ class TypeHierachyConverter {
     IVariableBinding vB = vdf.resolveBinding();
 
     checkNotNull(
-        vdf, "Can't resolve binding of field declaration " + vdf.getName().getFullyQualifiedName());
+        vdf,
+        "Can't resolve binding of field declaration %s",
+        vdf.getName().getFullyQualifiedName());
 
     String qualifiedName = NameConverter.convertName(vB);
     String simpleName = vB.getName();

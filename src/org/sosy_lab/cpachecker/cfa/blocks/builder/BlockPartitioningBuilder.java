@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Helper class can build a <code>BlockPartitioning</code> from a partition of a program's CFA into
@@ -162,7 +161,7 @@ public class BlockPartitioningBuilder {
   private Set<FunctionEntryNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
     ImmutableSet.Builder<FunctionEntryNode> result = ImmutableSet.builder();
     for (CFANode node : pNodes) {
-      for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
+      for (CFAEdge e : node.getLeavingEdges().filter(CFunctionCallEdge.class)) {
         result.add(((CFunctionCallEdge) e).getSuccessor());
       }
     }
@@ -189,7 +188,7 @@ public class BlockPartitioningBuilder {
         continue;
       }
 
-      for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
+      for (CFAEdge edge : node.getAllEnteringEdges()) {
         if (edge.getEdgeType() != CFAEdgeType.FunctionReturnEdge
             && !pNodes.contains(edge.getPredecessor())) {
           // entering edge from "outside" of the given set of nodes.
@@ -222,7 +221,7 @@ public class BlockPartitioningBuilder {
         continue;
       }
 
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+      for (CFAEdge edge : node.getAllLeavingEdges()) {
         if (edge.getEdgeType() != CFAEdgeType.FunctionCallEdge
             && !pNodes.contains(edge.getSuccessor())) {
           // leaving edge from inside of the given set of nodes to outside

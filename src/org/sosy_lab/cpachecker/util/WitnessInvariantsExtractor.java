@@ -63,8 +63,10 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.TransitionInvariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
 /**
@@ -274,7 +276,33 @@ public class WitnessInvariantsExtractor {
                 .getNodeForStatementLocation(invariant.getLine(), invariant.getColumn());
       }
 
-      if (nodes.isEmpty()) {
+      if (!nodes.isEmpty()) {
+        for (CFANode node : nodes) {
+          if (invariant instanceof TransitionInvariant pTransitionInvariant) {
+            candidateInvariants.add(
+                new ExpressionTreeLocationTransitionInvariant(
+                    "Invariant matched at line "
+                        + invariant.getLine()
+                        + " with column "
+                        + invariant.getColumn(),
+                    node,
+                    invariant.getFormula(),
+                    toCodeVisitorCache,
+                    pTransitionInvariant.getMapCurrentVarsToPrev()));
+
+          } else {
+            candidateInvariants.add(
+                new ExpressionTreeLocationInvariant(
+                    "Invariant matched at line "
+                        + invariant.getLine()
+                        + " with column "
+                        + invariant.getColumn(),
+                    node,
+                    invariant.getFormula(),
+                    toCodeVisitorCache));
+          }
+        }
+      } else {
         logger.log(
             Level.WARNING,
             "Could not find node for invariant at location ",
@@ -287,18 +315,6 @@ public class WitnessInvariantsExtractor {
                   + invariant.getLine()
                   + ":"
                   + invariant.getColumn());
-        }
-      } else {
-        for (CFANode node : nodes) {
-          candidateInvariants.add(
-              new ExpressionTreeLocationInvariant(
-                  "Invariant matched at line "
-                      + invariant.getLine()
-                      + " with column "
-                      + invariant.getColumn(),
-                  node,
-                  invariant.getFormula(),
-                  toCodeVisitorCache));
         }
       }
     }
@@ -414,7 +430,7 @@ public class WitnessInvariantsExtractor {
             // Check if there are any leaving return edges:
             // The predecessors are also potential matches for the invariant
             for (FunctionReturnEdge returnEdge :
-                CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
+                location.getLeavingEdges().filter(FunctionReturnEdge.class)) {
               CFANode successor = returnEdge.getSuccessor();
               if (!pCandidateGroupLocations.containsEntry(groupId, successor)
                   && !visited.contains(successor)) {

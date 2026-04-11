@@ -18,18 +18,22 @@ SPDX-License-Identifier: Apache-2.0
 # Developers/Contributors
 - Baier, Daniel (since 2021); LMU Munich, Germany
 - Bajczi, Levente (since 2024); Budapest University of Technology and Economics, Hungary
+- Brocke, Michael (since 2025); LMU Munich, Germany
 - Chien, Po-Chun (since 2021); LMU Munich, Germany
 - Ewerling, Sarah (since 2025); LMU Munich, Germany
 - Friedberger, Karlheinz (since 2011); LMU Munich, Germany
 - Jakobs, Marie-Christine (since 2012); LMU Munich, Germany
 - Jankola, Marek (since 2023); LMU Munich, Germany
 - Kettl, Matthias (since 2019); LMU Munich, Germany
+- Koch, Sarah (since 2025); LMU Munich, Germany
+- König, Noah (since 2024); LMU Munich, Germany
 - Lee, Nian-Ze (since 2020); LMU Munich, Germany
 - Lemberger, Thomas (since 2014); LMU Munich, Germany
 - Lingsch-Rosenfeld, Marian (since 2020); LMU Munich, Germany
 - Raffler, Daniel (since 2024); LMU Munich, Germany
 - Ruckstuhl, Sara (since 2024); LMU Munich, Germany
 - Salgado, Diego (since 2024); LMU Munich, Germany
+- Schlüßlhuber, Johannes (since 2025); LMU Munich, Germany
 - Wachowitz, Henrik (since 2022); LMU Munich, Germany
 
 # Former Developers/Contributors

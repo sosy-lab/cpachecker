@@ -587,7 +587,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+      for (CFAEdge enteringEdge : current.getEnteringEdges()) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
           assumeEdges.add((AssumeEdge) enteringEdge);

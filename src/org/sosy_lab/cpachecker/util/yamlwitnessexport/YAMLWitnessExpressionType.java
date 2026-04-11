@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUti
 
 public enum YAMLWitnessExpressionType {
   C,
+  EXT_C,
   ACSL,
   SMTLIB;
 
@@ -34,6 +35,7 @@ public enum YAMLWitnessExpressionType {
   public String toString() {
     return switch (this) {
       case C -> "c_expression";
+      case EXT_C -> "ext_c_expression";
       case ACSL -> "acsl_expression";
       case SMTLIB -> "smtlib_expression";
     };
@@ -43,6 +45,7 @@ public enum YAMLWitnessExpressionType {
   public static YAMLWitnessExpressionType fromKeyword(String keyword) {
     return switch (keyword) {
       case "c_expression" -> C;
+      case "ext_c_expression" -> EXT_C;
       case "acsl_expression" -> ACSL;
       case "smtlib_expression" -> SMTLIB;
       default -> throw new IllegalArgumentException("Unknown keyword: " + keyword);

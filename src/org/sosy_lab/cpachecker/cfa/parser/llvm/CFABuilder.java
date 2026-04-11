@@ -92,7 +92,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.llvm_j.BasicBlock;
@@ -300,10 +299,10 @@ class CFABuilder {
         CFATraversal.dfs().collectNodesReachableFromTo(pBlock.getEntryNode(), pBlock.getExitNode());
 
     for (CFANode toRemove : blockNodes) {
-      for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(toRemove)) {
+      for (CFAEdge enteringEdge : toRemove.getAllEnteringEdges()) {
         enteringEdge.getPredecessor().removeLeavingEdge(enteringEdge);
       }
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(toRemove)) {
+      for (CFAEdge leavingEdge : toRemove.getAllLeavingEdges()) {
         leavingEdge.getSuccessor().removeEnteringEdge(leavingEdge);
       }
     }
@@ -1027,7 +1026,7 @@ class CFABuilder {
           case UDiv, SDiv, FDiv ->
               BinaryOperator.DIVIDE; // TODO: Respect unsigned and signed divide
           case URem, SRem, FRem ->
-              BinaryOperator.MODULO; // TODO: Respect unsigned and signed modulo
+              BinaryOperator.REMAINDER; // TODO: Respect unsigned and signed modulo
           case Shl -> BinaryOperator.SHIFT_LEFT;
           case LShr, AShr -> {
             // Logical shift right
@@ -1065,9 +1064,9 @@ class CFABuilder {
             internalExpressionType = machineModel.applyIntegerPromotion(op1type);
             yield BinaryOperator.SHIFT_RIGHT;
           }
-          case And -> BinaryOperator.BINARY_AND;
-          case Or -> BinaryOperator.BINARY_OR;
-          case Xor -> BinaryOperator.BINARY_XOR;
+          case And -> BinaryOperator.BITWISE_AND;
+          case Or -> BinaryOperator.BITWISE_OR;
+          case Xor -> BinaryOperator.BITWISE_XOR;
           default -> throw new AssertionError("Unhandled operation " + pOpCode);
         };
 

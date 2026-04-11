@@ -70,7 +70,7 @@ public class SubsumptionOracleForTargetsAsEdges {
     boolean viaInput;
 
     for (CFAEdge predTarget : pCopiedTargets) {
-      for (CFAEdge leaving : CFAUtils.allLeavingEdges(predTarget.getSuccessor())) {
+      for (CFAEdge leaving : predTarget.getSuccessor().getAllLeavingEdges()) {
         if (pCopiedTargets.contains(leaving)) {
           if (predTarget.equals(leaving)) {
             continue;
@@ -79,7 +79,7 @@ public class SubsumptionOracleForTargetsAsEdges {
           pathsToRequiredInputs.put(newPath, false);
           waitlist.add(newPath);
         } else {
-          for (CFAEdge secDescend : CFAUtils.allLeavingEdges(leaving.getSuccessor())) {
+          for (CFAEdge secDescend : leaving.getSuccessor().getAllLeavingEdges()) {
             Preconditions.checkState(pCopiedTargets.contains(secDescend));
 
             newPath = Pair.of(predTarget, secDescend);
@@ -92,7 +92,7 @@ public class SubsumptionOracleForTargetsAsEdges {
 
     while (!waitlist.isEmpty()) {
       path = waitlist.pop();
-      for (CFAEdge leaving : CFAUtils.allLeavingEdges(path.getSecond().getSuccessor())) {
+      for (CFAEdge leaving : path.getSecond().getSuccessor().getAllLeavingEdges()) {
         if (pCopiedTargets.contains(leaving)) {
           newPath = Pair.of(path.getFirst(), leaving);
 
@@ -105,7 +105,7 @@ public class SubsumptionOracleForTargetsAsEdges {
           pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
           waitlist.add(newPath);
         } else {
-          for (CFAEdge secDescend : CFAUtils.allLeavingEdges(leaving.getSuccessor())) {
+          for (CFAEdge secDescend : leaving.getSuccessor().getAllLeavingEdges()) {
             Preconditions.checkState(pCopiedTargets.contains(secDescend));
             newPath = Pair.of(path.getFirst(), secDescend);
 

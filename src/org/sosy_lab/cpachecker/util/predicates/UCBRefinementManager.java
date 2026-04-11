@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -153,7 +152,7 @@ public class UCBRefinementManager {
 
     BooleanFormula res = bfmgr.makeFalse();
 
-    for (CFAEdge edge : CFAUtils.leavingEdges(src)) {
+    for (CFAEdge edge : src.getLeavingEdges()) {
       CFANode next = edge.getSuccessor();
 
       BooleanFormula wp = bfmgr.makeFalse();

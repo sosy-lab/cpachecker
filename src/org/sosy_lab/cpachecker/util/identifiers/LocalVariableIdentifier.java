@@ -19,8 +19,8 @@ public sealed class LocalVariableIdentifier extends VariableIdentifier
 
   protected @NonNull String function; // function, where this variable was declared
 
-  public LocalVariableIdentifier(String nm, CType t, String func, int dereference) {
-    super(nm, t, dereference);
+  public LocalVariableIdentifier(String nm, CType t, String func, int pDereference) {
+    super(nm, t, pDereference);
     function = Strings.nullToEmpty(func);
   }
 

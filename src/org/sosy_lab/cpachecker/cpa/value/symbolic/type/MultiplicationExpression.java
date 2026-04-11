@@ -44,6 +44,15 @@ public final class MultiplicationExpression extends BinarySymbolicExpression {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
   }
 
+  public static SymbolicExpression of(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pType,
+      Type pCalculationType) {
+    return new MultiplicationExpression(
+        pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
+  }
+
   @Override
   public MultiplicationExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new MultiplicationExpression(

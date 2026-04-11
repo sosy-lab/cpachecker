@@ -347,7 +347,7 @@ public class TemplatePrecision implements Precision {
     Set<Template> templates = new HashSet<>();
 
     for (CFANode node : cfa.nodes()) {
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge edge : node.getLeavingEdges()) {
         String statement = edge.getRawStatement();
         Optional<LinearExpression<CIdExpression>> template = Optional.empty();
 
@@ -355,7 +355,7 @@ public class TemplatePrecision implements Precision {
         // do not hardcode the function names.
         if (statement.contains(ASSERT_H_FUNC_NAME) && edge instanceof CStatementEdge) {
 
-          for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
+          for (CFAEdge enteringEdge : node.getEnteringEdges()) {
             if (enteringEdge instanceof CAssumeEdge assumeEdge) {
               CExpression expression = assumeEdge.getExpression();
 
@@ -653,14 +653,13 @@ public class TemplatePrecision implements Precision {
   }
 
   private Collection<ASimpleDeclaration> getVarsForNode(CFANode node) {
-    if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
-      return Sets.union(
-          cfa.getLiveVariables().orElseThrow().getLiveVariablesForNode(node),
-          functionParameters.get(node.getFunctionName()));
-    } else if (varFiltering == VarFilteringStrategy.INTERPOLATION_BASED) {
-      return varsInInterpolant.get(node);
-    } else {
-      return allVariables;
-    }
+    return switch (varFiltering) {
+      case ALL_LIVE ->
+          Sets.union(
+              cfa.getLiveVariables().orElseThrow().getLiveVariablesForNode(node),
+              functionParameters.get(node.getFunctionName()));
+      case INTERPOLATION_BASED -> varsInInterpolant.get(node);
+      default -> allVariables;
+    };
   }
 }

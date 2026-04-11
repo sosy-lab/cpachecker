@@ -102,6 +102,22 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
                   cache.get(newArgs.getFirst()),
                   cache.get(newArgs.get(1)),
                   cache.get(newArgs.get(2)));
+          case FP_IS_ZERO
+              // +0.0 and -0.0 are equal and are both handled here.
+              ->
+              cache.get(newArgs.getFirst()) + " == 0.0";
+          case FP_IS_NAN -> {
+            // NaN is not a number, and it is unequal to itself in C99.
+            // see https://sourceware.org/glibc/manual/2.41/html_node/Infinity-and-NaN.html
+            String nanArg = cache.get(newArgs.getFirst());
+            yield nanArg + " != " + nanArg;
+          }
+          case FP_IS_INF -> {
+            // C99 standard for positive infinity is "1 / 0",
+            // see https://sourceware.org/glibc/manual/2.41/html_node/Infinity-and-NaN.html
+            String infArg = cache.get(newArgs.getFirst());
+            yield infArg + " == (1 / 0) || " + infArg + " == -(1 / 0)";
+          }
           default -> {
             if (functionDeclaration.getName().equals("`bvextract_31_31_32`")) {
               // TODO The naming of this SMT function is specific to one solver
@@ -139,7 +155,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case UMINUS, BV_NEG, FP_NEG -> "-";
       case AND -> " && ";
       case BV_AND -> " & ";
-      case OR -> "\n|| ";
+      case OR -> " || ";
       case BV_OR -> " | ";
       case BV_XOR -> " ^ ";
       case SUB, BV_SUB, FP_SUB -> " - ";

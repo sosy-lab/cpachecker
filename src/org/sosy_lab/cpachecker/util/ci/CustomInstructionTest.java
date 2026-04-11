@@ -26,7 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.annotations.SuppressForbidden;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,7 +46,7 @@ public class CustomInstructionTest {
   private Map<CFANode, AppliedCustomInstruction> cis;
   private CustomInstruction ci;
   private Constructor<? extends AbstractState> locConstructor;
-  private CFA cfa;
+  private ImmutableCFA cfa;
   private CFANode startNode;
   private Set<CFANode> endNodes;
   private ARGState start;
@@ -269,7 +269,7 @@ public class CustomInstructionTest {
           CFAUtils.allPredecessorsOf(node).copyInto(endNodes);
         }
       }
-      for (CFAEdge e : CFAUtils.allLeavingEdges(node)) {
+      for (CFAEdge e : node.getAllLeavingEdges()) {
         if (!visitedNodes.contains(e.getSuccessor())) {
           queue.add(e.getSuccessor());
           visitedNodes.add(e.getSuccessor());

@@ -99,7 +99,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Builder to traverse AST. */
@@ -1298,7 +1297,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     if (isReachableNode(prevNode)) {
 
-      for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
+      for (CFAEdge prevEdge : prevNode.getAllEnteringEdges().toList()) {
 
         boolean isBlankEdge =
             (prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty();

@@ -293,8 +293,10 @@ public final class PredicatePrecisionBootstrapper {
           yield Optional.empty();
         }
       }
-      case ACSL -> {
-        logger.log(Level.WARNING, "ACSL expressions are not supported to exchange precision");
+      case ACSL, EXT_C -> {
+        logger.log(
+            Level.WARNING,
+            "ACSL expressions, and ext_c_expressions are not supported to exchange precision");
         yield Optional.empty();
       }
       case SMTLIB ->
@@ -324,8 +326,10 @@ public final class PredicatePrecisionBootstrapper {
           yield Optional.empty();
         }
       }
-      case ACSL -> {
-        logger.log(Level.WARNING, "ACSL expressions are not supported to exchange precision");
+      case ACSL, EXT_C -> {
+        logger.log(
+            Level.WARNING,
+            "ACSL expressions, and ext_c_expressions are not supported to exchange precision");
         yield Optional.empty();
       }
       case SMTLIB ->
@@ -352,8 +356,10 @@ public final class PredicatePrecisionBootstrapper {
           yield Optional.empty();
         }
       }
-      case ACSL -> {
-        logger.log(Level.WARNING, "ACSL expressions are not supported to exchange precision");
+      case ACSL, EXT_C -> {
+        logger.log(
+            Level.WARNING,
+            "ACSL expressions, and ext_c_expressions are not supported to exchange precision");
         yield Optional.empty();
       }
       case SMTLIB ->
@@ -459,7 +465,8 @@ public final class PredicatePrecisionBootstrapper {
 
             Set<CFANode> location =
                 astCfaRelation.getNodeForStatementLocation(
-                    locationRecord.getLine(), locationRecord.getColumn());
+                    // TODO: Handle missing columns correctly
+                    locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
 
             if (location.isEmpty()) {
               logger.logf(
@@ -486,7 +493,8 @@ public final class PredicatePrecisionBootstrapper {
 
             Optional<CFANode> location =
                 astCfaRelation.getNodeForIterationStatementLocation(
-                    locationRecord.getLine(), locationRecord.getColumn());
+                    // TODO: Handle missing columns correctly
+                    locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
 
             if (location.isEmpty()) {
               logger.logf(

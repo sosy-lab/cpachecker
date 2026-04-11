@@ -125,7 +125,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // it is a local variable, then it will not be in scope. There are methods to check this, see
     // for example outOfScopeVariables in a CFANode.
     // TODO: Add a method to export these assumptions
-    if (!CFAUtils.leavingEdges(pEdge.getSuccessor())
+    if (!pEdge
+        .getSuccessor()
+        .getLeavingEdges()
         .filter(CDeclarationEdge.class)
         .transform(CDeclarationEdge::getDeclaration)
         .filter(CFunctionDeclaration.class)
@@ -140,7 +142,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // Since currently there is no straightforward way to do this, we simply do not export these
     // waypoints currently
     // TODO: Add a method to export these assumptions
-    if (!CFAUtils.leavingEdges(pEdge.getSuccessor()).filter(BlankEdge.class).isEmpty()
+    if (!pEdge.getSuccessor().getLeavingEdges().filter(BlankEdge.class).isEmpty()
         || pEdge instanceof BlankEdge) {
       return Optional.empty();
     }

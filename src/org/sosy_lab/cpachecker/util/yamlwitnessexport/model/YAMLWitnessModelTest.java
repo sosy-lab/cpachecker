@@ -35,7 +35,7 @@ public class YAMLWitnessModelTest {
     for (AbstractEntry e : loadedEntries) {
       if (e instanceof ViolationSequenceEntry violationSequenceEntry) {
         List<SegmentRecord> sequence = violationSequenceEntry.getContent();
-        assertThat(sequence).hasSize(5);
+        assertThat(sequence).hasSize(4);
         assertThat(sequence.getFirst().getSegment().size()).isAtLeast(1);
         assertThat(sequence.getFirst().getSegment().getFirst().getConstraint().getValue())
             .isEqualTo("(x >= 1024U)");

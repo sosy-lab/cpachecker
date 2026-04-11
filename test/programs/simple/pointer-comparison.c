@@ -11,7 +11,7 @@ int main() {
   void *q = -1;
 
   // GCC implements pointer comparisons as unsigned, so this branch is taken
-  if (q > p) {
+  if (q > p) { // This is undefined behavior according to C11 6.5.8.5!
     goto ERROR;
   }
   return 0;

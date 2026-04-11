@@ -13,7 +13,6 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /*
  * Based on paper
@@ -48,7 +47,7 @@ public class TestTargetMinimizerBasicEssential {
       // no additional outgoing edges
       // then we can remove the edge under investigation from the testgoals
       if (predecessor.getNumLeavingEdges() == 1) {
-        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(predecessor)) {
+        for (CFAEdge enteringEdge : predecessor.getEnteringEdges()) {
           if (targetsAfterRule1.contains(enteringEdge)) {
             targetsAfterRule1.remove(currentEdge);
             break;
@@ -70,7 +69,7 @@ public class TestTargetMinimizerBasicEssential {
       }
 
       if (successor.getNumEnteringEdges() == 1) {
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(successor)) {
+        for (CFAEdge leavingEdge : successor.getLeavingEdges()) {
           if (finalTargets.contains(leavingEdge)) {
             finalTargets.remove(currentEdge);
             break;

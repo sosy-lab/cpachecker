@@ -342,11 +342,6 @@ public class PJBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public DD visitBoundVar(BooleanFormula pBooleanFormula, int pI) {
-      throw new UnsupportedOperationException("Not yet implemented"); // TODO
-    }
-
-    @Override
     public DD visitNot(BooleanFormula pBooleanFormula) {
       return bddCreator.makeNot(convert(pBooleanFormula));
     }

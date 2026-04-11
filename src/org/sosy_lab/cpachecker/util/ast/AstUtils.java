@@ -19,7 +19,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class AstUtils {
@@ -82,7 +81,7 @@ public class AstUtils {
     // node which says it is exiting the condition, but in truth is merely calling a function. This
     // is why we need to check if the edges are artificial intermediate edges.
     if (FluentIterable.from(nodesBoundaryCondition)
-        .transformAndConcat(CFAUtils::enteringEdges)
+        .transformAndConcat(CFANode::getEnteringEdges)
         .filter(AssumeEdge.class)
         .anyMatch(AssumeEdge::isArtificialIntermediate)) {
 

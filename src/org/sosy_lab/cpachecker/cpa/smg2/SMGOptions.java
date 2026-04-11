@@ -8,21 +8,61 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
+
+  enum DIRECTION {
+    FORWARD,
+    BACKWARD
+  }
+
+  @Option(
+      secure = true,
+      description =
+          "The direction in which values are assigned when a concrete error path is built (i.e. for"
+              + " a counterexample-check or a witness). Forward assigns concrete values only if"
+              + " they are known at the location. Backward does remember possible assignments from"
+              + " before and carries them over.")
+  private DIRECTION errorPathConcreteValueAssignmentDirection = DIRECTION.BACKWARD;
+
+  @Option(
+      secure = true,
+      description =
+          "Exports concrete variable assignments for internally created CPAchecker variables (e.g."
+              + " '__CPAchecker_TMP_X') if true. Note: Those internal variables are used e.g. to"
+              + " safe results of sub-expressions that are split up, including assumptions, and are"
+              + " always used and exported. This options only controls whether this CPA exports"
+              + " known concrete values for these variables in counterexamples and witnesses.")
+  private boolean exportInternalVariableAssignments = true;
+
+  @Option(
+      secure = true,
+      description =
+          "If true, exports concrete variable assignments along the found path towards errors for"
+              + " counterexamples and violation witnesses. If false, only the found path is"
+              + " exported.")
+  private boolean exportVariableAssignmentsForViolations = true;
 
   private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
 
@@ -40,16 +80,6 @@ public class SMGOptions {
               + " are overlapping but not exactly fitting to the read parameters. Example: int"
               + " value = 1111; char a = (char)((char[])&value)[1];")
   private boolean preciseSMGRead = true;
-
-  @Option(
-      secure = true,
-      description =
-          "with this option enabled, memory addresses (pointers) are transformed into a numeric"
-              + " assumption upon casting the pointer to a number. This assumption can be returned"
-              + " to a proper pointer by casting it back. This enables numeric operations beyond"
-              + " pointer arithmetics, but loses precision for comparisons/assumptions, as the"
-              + " numeric assumption is static. May be unsound!")
-  private boolean castMemoryAddressesToNumeric = false;
 
   @Option(
       secure = true,
@@ -76,24 +106,31 @@ public class SMGOptions {
       toUppercase = true,
       name = "handleUnknownFunctions",
       description =
-          "Sets how unknown functions are handled. Strict: Unknown functions cause a stop in the"
-              + " analysis except for known and handled functions or functions defined in option"
-              + " safeUnknownFunctions, which are handled as SAFE. ASSUME_SAFE: unknown functions"
-              + " are assumed to be safe. No input into the function is checked for validity and"
-              + " the result is a UNKNOWN value (which may itself violate memorysafety etc.)."
-              + " ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and"
-              + " may cause memory based errors. Returned values are unknown, but in a valid new"
-              + " memory section that can be freed normally. Functions allocating external memory"
-              + " and returning their address can be defined with option"
-              + " externalAllocationFunction. externalAllocationSize.")
-  private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
+          "Sets how unknown functions are handled.\n"
+              + "STRICT: Unknown functions cause a stop in the analysis, i.e. known and handled"
+              + " functions are evaluated normally. \n"
+              + "ASSUME_SAFE: unknown functions are assumed to be safe. No input into the function"
+              + " is checked for validity and the result is a UNKNOWN value (which may itself"
+              + " violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound due to side"
+              + " effects, the unknown return value etc.!\n"
+              + "ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and may"
+              + " cause memory based errors. Returned values are unknown, but in a valid new memory"
+              + " section that can be freed normally. Functions allocating external memory and"
+              + " returning their address can be defined with option externalAllocationFunction and"
+              + " externalAllocationSize.\n"
+              + "Functions defined in option \"safeUnknownFunctions\" are handled equally to"
+              + " ASSUME_SAFE in all cases.")
+  private UnknownFunctionHandling handleUnknownFunctions =
+      UnknownFunctionHandling.ASSUME_EXTERNAL_ALLOCATED;
 
   @Option(
       secure = true,
       description =
-          "Which unknown function are always considered as safe functions, "
-              + "i.e., free of memory-related side effects?")
-  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
+          "List of functions that are always considered as safe, i.e. they are not evaluated, even"
+              + " if known to the analysis, nor are their inputs checked for validity. They always"
+              + " return a new, unknown value and therefore overapproximate if their signature does"
+              + " not return void. Using this option might be unsound, depending on the function.")
+  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("");
 
   @Option(
       secure = true,
@@ -127,7 +164,12 @@ public class SMGOptions {
               + " specifies.")
   private int concreteValueForSymbolicOffsetsAssignmentMaximum = 300;
 
-  /* TODO:
+  // TODO: make a option and implementation that allows SOME concrete values to be evaluated, and
+  // then the (restricted) symbolic value is returned once a threshold is reached. The concrete
+  // values chosen should be configurable, e.g. build 1 concrete value at the lowest end of the
+  // value spectrum etc. This would could be used to boost the CEX that is currently unable to
+  // handle symbolic offsets/memory sizes well.
+  /*
     @Option(
         secure = true,
         name = "overapproximateSymbolicOffsetsAsFallback",
@@ -139,17 +181,43 @@ public class SMGOptions {
     private boolean overapproximateSymbolicOffsetsAsFallback = false;
   */
 
+  /*
   @Option(
       secure = true,
-      name = "overapproximateValuesForSymbolicSize",
       description =
-          "If this Option is enabled, all values of a memory region that is written to with a"
-              + " symbolic and non-unique offset in symbolically sized memory are deleted and the"
-              + " value itself is overapproximated to unknown in the memory region.")
-  private boolean overapproximateValuesForSymbolicSize = false;
+          "If this Option is enabled, all symbolic type sizes used when writing to memory (i.e. the"
+              + " bit size of the type of the value written) are evaluated into all possible"
+              + " concrete values by an SMT solver. This might be very expensive, as all possible"
+              + " combinations of values for the symbolic values are concretely evaluated. May not"
+              + " be used together with option overapproximateValuesForSymbolicTypeSize.")
+  private boolean findConcreteValuesForSymbolicTypeSize = false;
 
-  public boolean isOverapproximateValuesForSymbolicSize() {
-    return overapproximateValuesForSymbolicSize;
+  @Option(
+      secure = true,
+      description =
+          "Maximum amount of concrete assignments before the assigning is aborted. The last offset"
+              + " is then once treated as option overapproximateValuesForSymbolicTypeSize"
+              + " specifies.")
+  private int findConcreteValuesForSymbolicTypeSizeAssignmentMaximum = 30;
+   */
+
+  @Option(
+      secure = true,
+      name = "allowSymbolicVariableArrayLength",
+      description = "If this Option is enabled, variable array length may be symbolic.")
+  private boolean allowSymbolicVariableArrayLength = false;
+
+  // TODO: add findConcreteValuesForSymbolicTypeSize to text!
+  @Option(
+      secure = true,
+      description =
+          "If this Option is enabled, writing with symbolic sized value types are overapproximated."
+              + " I.e. the memory region affected is overapproximated, including the"
+              + " value itself, to unknown.")
+  private boolean overapproximateValuesForSymbolicTypeSize = false;
+
+  public boolean isOverapproximateValuesForSymbolicTypeSize() {
+    return overapproximateValuesForSymbolicTypeSize;
   }
 
   public boolean isOverapproximateSymbolicOffsets() {
@@ -168,6 +236,10 @@ public class SMGOptions {
     return concreteValueForSymbolicOffsetsAssignmentMaximum;
   }
 
+  public DIRECTION getErrorPathConcreteValueAssignmentDirection() {
+    return errorPathConcreteValueAssignmentDirection;
+  }
+
   public void incConcreteValueForSymbolicOffsetsAssignmentMaximum() throws SMGException {
     if (actualConcreteValueForSymbolicOffsetsAssignmentMaximum
         > concreteValueForSymbolicOffsetsAssignmentMaximum) {
@@ -181,6 +253,10 @@ public class SMGOptions {
 
   public void decConcreteValueForSymbolicOffsetsAssignmentMaximum() {
     actualConcreteValueForSymbolicOffsetsAssignmentMaximum--;
+  }
+
+  public boolean allowSymbolicVariableArrayLength() {
+    return allowSymbolicVariableArrayLength;
   }
 
   public enum UnknownFunctionHandling {
@@ -245,6 +321,14 @@ public class SMGOptions {
       description = "Allocation functions which set memory to zero")
   private ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of("calloc", "kzalloc");
 
+  @Option(
+      secure = true,
+      name = "enableZeroingOfSymbolicMemorySize",
+      description =
+          "If true, memory with symbolic size can be zeroed, which allows usage of zeroing"
+              + " allocation functions like calloc().")
+  private boolean enableZeroingOfSymbolicMemorySize = false;
+
   @Option(secure = true, name = "deallocationFunctions", description = "Deallocation functions")
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of("free");
 
@@ -266,7 +350,7 @@ public class SMGOptions {
       secure = true,
       name = "trackPredicates",
       description = "Enable track predicates on SMG state")
-  private boolean trackPredicates = false;
+  private boolean trackPredicates = true;
 
   private enum CheckStrategy {
     AT_ASSUME,
@@ -328,7 +412,7 @@ public class SMGOptions {
       secure = true,
       name = "memoryErrors",
       description = "Determines if memory errors are target states")
-  private boolean memoryErrors = true;
+  private boolean memoryErrors = false;
 
   @Option(
       secure = true,
@@ -372,13 +456,6 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      name = "joinOnBlockEnd",
-      description =
-          "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
-  private boolean joinOnBlockEnd = false;
-
-  @Option(
-      secure = true,
       description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
   private boolean assignEqualityAssumptions = true;
 
@@ -402,6 +479,15 @@ public class SMGOptions {
       secure = true,
       description = "Assume that variables used only in a boolean context are either zero or one.")
   private boolean optimizeBooleanVariables = true;
+
+  @Option(
+      secure = true,
+      description =
+          "The SV-COMP defines a list of types that are allowed to be used in __VERIFIER_nondet_X()"
+              + " functions. If this option is false, only those defined in the competition are"
+              + " allowed. All others throw an exception on being evaluated. For true, the type of"
+              + " any __VERIFIER_nondet_X() function is simply accepted without any checks.")
+  private boolean allowNondetFunctionsWithArbitraryTypes = true;
 
   @Option(
       secure = true,
@@ -446,8 +532,21 @@ public class SMGOptions {
     EVERY
   }
 
-  public SMGOptions(Configuration config) throws InvalidConfigurationException {
+  private final SMGAbstractionOptions abstractionOptions;
+  private final SMGMergeOptions mergeOptions;
+
+  public SMGOptions(Configuration config, @Nullable CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
+    abstractionOptions = new SMGAbstractionOptions(config, cfa);
+    mergeOptions = new SMGMergeOptions(config, cfa);
+  }
+
+  public SMGMergeOptions getMergeOptions() {
+    return mergeOptions;
+  }
+
+  public SMGAbstractionOptions getAbstractionOptions() {
+    return abstractionOptions;
   }
 
   public boolean canAtexitFail() {
@@ -472,6 +571,10 @@ public class SMGOptions {
         == UnknownMemoryAllocationHandling.STOP_ANALYSIS;
   }
 
+  public boolean allowNondetFunctionsWithArbitraryTypes() {
+    return allowNondetFunctionsWithArbitraryTypes;
+  }
+
   public boolean isMallocZeroReturnsZero() {
     return mallocZeroReturnsZero;
   }
@@ -494,10 +597,6 @@ public class SMGOptions {
 
   public boolean isEnableMallocFailure() {
     return enableMallocFailure;
-  }
-
-  public boolean isCastMemoryAddressesToNumeric() {
-    return castMemoryAddressesToNumeric;
   }
 
   public boolean isPreciseSMGRead() {
@@ -550,6 +649,10 @@ public class SMGOptions {
 
   public ImmutableSet<String> getZeroingMemoryAllocation() {
     return zeroingMemoryAllocation;
+  }
+
+  public boolean isEnableZeroingOfSymbolicMemorySize() {
+    return enableZeroingOfSymbolicMemorySize;
   }
 
   public ImmutableSet<String> getDeallocationFunctions() {
@@ -608,10 +711,6 @@ public class SMGOptions {
     return handleUnknownDereferenceAsSafe;
   }
 
-  public boolean getJoinOnBlockEnd() {
-    return joinOnBlockEnd;
-  }
-
   public boolean crashOnUnknownInConstraint() {
     return crashOnUnknownInConstraint;
   }
@@ -622,6 +721,14 @@ public class SMGOptions {
 
   boolean isTreatSymbolicValuesAsUnknown() {
     return treatSymbolicValuesAsUnknown;
+  }
+
+  public boolean exportInternalVariableAssignments() {
+    return exportInternalVariableAssignments;
+  }
+
+  public boolean exportVariableAssignmentsForViolations() {
+    return exportVariableAssignmentsForViolations;
   }
 
   public boolean isSatCheckStrategyAtAssume() {
@@ -646,5 +753,301 @@ public class SMGOptions {
 
   public boolean isResolveDefinites() {
     return resolveDefinites;
+  }
+
+  @Options(prefix = "cpa.smg2.merge")
+  public static class SMGMergeOptions {
+
+    @Option(
+        secure = true,
+        description =
+            "Apply merge operator based on Predators join algorithm to determine subsumtion of"
+                + " abstracted lists in the stop operator more precisely. Can be costly.")
+    private boolean useMergeForAbstractionDetectionInStopOperator = false;
+
+    @Option(
+        secure = true,
+        name = "exclusivelyBlockEnds",
+        description = "Apply merge operator only on ends of code blocks.")
+    private boolean mergeOnlyOnBlockEnd = false;
+
+    @Option(
+        secure = true,
+        name = "exclusivelyEqualBlockEnds",
+        description =
+            "Apply merge operator only on equal code block ends if true. Only applied if"
+                + " exclusivelyBlockEnds=true.")
+    private boolean mergeOnlyEqualBlockEnds = false;
+
+    @Option(
+        secure = true,
+        name = "exclusivelyWithAbstractionPresent",
+        description =
+            "Apply merge operator only on states with at least one input state including an"
+                + " abstracted list.")
+    private boolean mergeOnlyWithAbstractionPresent = false;
+
+    @Option(
+        secure = true,
+        name = "overapproximateSymbolicConstraints",
+        description =
+            "When true, unequal constraints on symbolic values are overapproximated when merging.")
+    private boolean overapproximateSymbolicConstraints = false;
+
+    @Option(
+        secure = true,
+        name = "overapproximateConcreteValues",
+        description =
+            "When true, concrete values can be overapproximated when merging, e.g. when merged with"
+                + " a symbolic value, or another, but distinct concrete value.")
+    private boolean overapproximateConcreteValues = false;
+
+    @SuppressWarnings("unused")
+    public SMGMergeOptions(Configuration config, @Nullable CFA pCfa)
+        throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    public boolean mergeOnlyOnBlockEnd() {
+      return mergeOnlyOnBlockEnd;
+    }
+
+    public boolean mergeOnlyEqualBlockEnds() {
+      return mergeOnlyEqualBlockEnds;
+    }
+
+    public boolean mergeOnlyWithAbstractionPresent() {
+      return mergeOnlyWithAbstractionPresent;
+    }
+
+    public boolean isOverapproximateSymbolicConstraints() {
+      return overapproximateSymbolicConstraints;
+    }
+
+    public boolean useMergeInStop() {
+      return useMergeForAbstractionDetectionInStopOperator;
+    }
+
+    public boolean isOverapproximateConcreteValues() {
+      return overapproximateConcreteValues;
+    }
+  }
+
+  @Options(prefix = "cpa.smg2.abstraction")
+  public static class SMGAbstractionOptions {
+
+    @Option(secure = true, description = "restrict abstraction computations to branching points")
+    private boolean alwaysAtBranch = false;
+
+    @Option(secure = true, description = "restrict abstraction computations to join points")
+    private boolean alwaysAtJoin = false;
+
+    @Option(
+        secure = true,
+        description = "restrict abstraction computations to function calls/returns")
+    private boolean alwaysAtFunction = false;
+
+    @Option(
+        secure = true,
+        description =
+            "If enabled, abstraction computations at loop-heads are enabled. List abstraction has"
+                + " to be enabled for this.")
+    private boolean alwaysAtLoop = false;
+
+    @Option(
+        secure = true,
+        description =
+            "toggle liveness abstraction. Is independent of CEGAR, but dependent on the CFAs"
+                + " liveness variables being tracked. Might be unsound for stack-based memory"
+                + " structures like arrays.")
+    private boolean doLivenessAbstraction = true;
+
+    @Option(
+        secure = true,
+        description =
+            "toggle memory sensitive liveness abstraction. Liveness abstraction is supposed to"
+                + " simply abstract all variables away (invalidating memory) when unused, even if"
+                + " there is valid outside pointers on them. With this option enabled, it is first"
+                + " checked if there is a valid address still pointing to the variable before"
+                + " removing it. Liveness abstraction might be unsound without this option.")
+    private boolean doEnforcePointerSensitiveLiveness = true;
+
+    @Option(
+        secure = true,
+        description =
+            "restrict liveness abstractions to nodes with more than one entering and/or leaving"
+                + " edge")
+    private boolean onlyAtNonLinearCFA = false;
+
+    @Option(
+        secure = true,
+        description =
+            "skip abstraction computations until the given number of iterations are reached,"
+                + " after that decision is based on then current level of determinism,"
+                + " setting the option to -1 always performs abstraction computations")
+    @IntegerOption(min = -1)
+    private int iterationThreshold = -1;
+
+    @Option(
+        secure = true,
+        description =
+            "threshold for level of determinism, in percent, up-to which abstraction computations "
+                + "are performed (and iteration threshold was reached)")
+    @IntegerOption(min = 0, max = 100)
+    private int determinismThreshold = 85;
+
+    @Option(
+        secure = true,
+        name = "listAbstractionMinimumLengthThreshold",
+        description =
+            "The minimum list segments directly following each other with the same value needed to"
+                + " abstract them.Minimum is 2.")
+    private int listAbstractionMinimumLengthThreshold = 4;
+
+    @Option(
+        secure = true,
+        name = "listAbstractionMaximumIncreaseLengthThreshold",
+        description =
+            "The minimum list segments that are needed for abstraction may be increased during the"
+                + " analysis based on a heuristic in fixed sized loops. This is the maximum"
+                + " increase that is allowed. E.g. all lists with the length given here are"
+                + " abstracted in any case. If you want to prevent dynamic increase of list"
+                + " abstraction min threshold set this to the same value as"
+                + " listAbstractionMinimumLengthThreshold.")
+    private int listAbstractionMaximumIncreaseLengthThreshold = 6;
+
+    @Option(
+        secure = true,
+        name = "abstractHeapValues",
+        description = "If heap values are to be abstracted based on CEGAR.")
+    private boolean abstractHeapValues = false;
+
+    @Option(
+        secure = true,
+        name = "abstractProgramVariables",
+        description = "Abstraction of program variables via CEGAR.")
+    private boolean abstractProgramVariables = false;
+
+    @Option(
+        secure = true,
+        name = "abstractLinkedLists",
+        description = "Abstraction of all detected linked lists at loop heads.")
+    private boolean abstractLinkedLists = true;
+
+    @Option(
+        secure = true,
+        name = "removeUnusedConstraints",
+        description = "Periodically removes unused constraints from the state.")
+    private boolean cleanUpUnusedConstraints = false;
+
+    // TODO: the goal is to set this in a CEGAR loop one day
+    @Option(
+        secure = true,
+        name = "abstractConcreteValuesAboveThreshold",
+        description =
+            "Periodically removes concrete values from the memory model and replaces them with"
+                + " symbolic values. Only the newest concrete values above this threshold are"
+                + " removed. For negative numbers this option is ignored. Note: 0 also removes the"
+                + " null value, reducing impacting null dereference or free soundness. Currently"
+                + " only supported for given value 0.")
+    private int abstractConcreteValuesAboveThreshold = -1;
+
+    private final @Nullable ImmutableSet<CFANode> loopHeads;
+
+    public SMGAbstractionOptions(Configuration config, @Nullable CFA pCfa)
+        throws InvalidConfigurationException {
+      config.inject(this);
+
+      if (alwaysAtLoop && pCfa != null && pCfa.getAllLoopHeads().isPresent()) {
+        // Gather loop heads for abstraction if requested to abstract at loop heads
+        loopHeads = pCfa.getAllLoopHeads().orElseThrow();
+      } else {
+        loopHeads = null;
+      }
+    }
+
+    public boolean getCleanUpUnusedConstraints() {
+      return cleanUpUnusedConstraints;
+    }
+
+    public boolean doLivenessAbstraction() {
+      return doLivenessAbstraction;
+    }
+
+    public boolean abstractProgramVariables() {
+      return abstractProgramVariables;
+    }
+
+    public boolean abstractLinkedLists() {
+      return abstractLinkedLists;
+    }
+
+    public int getAbstractConcreteValuesAboveThreshold() {
+      Preconditions.checkState(
+          abstractConcreteValuesAboveThreshold <= 0,
+          "Error: option cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold is currently"
+              + " only supported for argument 0.");
+      return abstractConcreteValuesAboveThreshold;
+    }
+
+    public int getListAbstractionMinimumLengthThreshold() {
+      return listAbstractionMinimumLengthThreshold;
+    }
+
+    public boolean isEnforcePointerSensitiveLiveness() {
+      return doEnforcePointerSensitiveLiveness;
+    }
+
+    public int getListAbstractionMaximumIncreaseLengthThreshold() {
+      return listAbstractionMaximumIncreaseLengthThreshold;
+    }
+
+    public void incListAbstractionMinimumLengthThreshold() {
+      listAbstractionMinimumLengthThreshold++;
+    }
+
+    /**
+     * This method determines whether to abstract at each location.
+     *
+     * @return whether an abstraction should be computed at each location
+     */
+    boolean abstractAtEachLocation() {
+      return !alwaysAtBranch && !alwaysAtJoin && !alwaysAtFunction && !alwaysAtLoop;
+    }
+
+    boolean abstractAtBranch(LocationState location) {
+      return alwaysAtBranch && location.getLocationNode().getNumLeavingEdges() > 1;
+    }
+
+    boolean abstractAtJoin(LocationState location) {
+      return alwaysAtJoin && location.getLocationNode().getNumEnteringEdges() > 1;
+    }
+
+    public int getIterationThreshold() {
+      return iterationThreshold;
+    }
+
+    public int getDeterminismThreshold() {
+      return determinismThreshold;
+    }
+
+    public boolean abstractHeapValues() {
+      return abstractHeapValues;
+    }
+
+    public boolean onlyAtNonLinearCFA() {
+      return onlyAtNonLinearCFA;
+    }
+
+    public boolean abstractAtFunction(LocationState location) {
+      return alwaysAtFunction
+          && (location.getLocationNode() instanceof FunctionEntryNode
+              || location.getLocationNode().getEnteringSummaryEdge() != null);
+    }
+
+    boolean abstractAtLoop(LocationState location) {
+      checkState(!alwaysAtLoop || loopHeads != null);
+      return alwaysAtLoop && loopHeads.contains(location.getLocationNode());
+    }
   }
 }

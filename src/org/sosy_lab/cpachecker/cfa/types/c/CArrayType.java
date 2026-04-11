@@ -25,6 +25,13 @@ public final class CArrayType extends AArrayType implements CType {
 
   @Serial private static final long serialVersionUID = -6314468260643330323L;
 
+  /**
+   * A {@link CArrayType} for unsigned integers ({@code unsigned int[]}) without any type
+   * qualifiers.
+   */
+  public static final CArrayType UNSIGNED_INT_ARRAY =
+      new CArrayType(CTypeQualifiers.NONE, CNumericTypes.UNSIGNED_INT);
+
   private final @Nullable CExpression length;
   private final CTypeQualifiers qualifiers;
 

@@ -108,11 +108,10 @@ public class SMGCPAAddressVisitor
   @Override
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CStringLiteralExpression e)
       throws CPATransferException {
-    String globalVarName = evaluator.getCStringLiteralExpressionVairableName(e);
+    String globalVarName = state.getCStringLiteralExpressionVariableName(e);
     SMGState currentState = state;
     if (!currentState.isGlobalVariablePresent(globalVarName)) {
-      Value sizeOfString =
-          new NumericValue(evaluator.getBitSizeof(currentState, e.getExpressionType()));
+      Value sizeOfString = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
       currentState =
           currentState.copyAndAddGlobalVariable(sizeOfString, globalVarName, e.getExpressionType());
       List<SMGState> statesWithString =
@@ -131,7 +130,8 @@ public class SMGCPAAddressVisitor
     }
     // TODO: assertion that the Strings are immutable
     ValueAndSMGState addressValueAndState =
-        evaluator.createAddressForLocalOrGlobalVariable(globalVarName, currentState);
+        evaluator.createAddressForLocalOrGlobalVariable(
+            globalVarName, e.getExpressionType(), currentState);
     Value addressValue = addressValueAndState.getValue();
     currentState = addressValueAndState.getState();
 
@@ -171,7 +171,7 @@ public class SMGCPAAddressVisitor
         Value subscriptValue = subscriptValueAndState.getValue();
         currentState = subscriptValueAndState.getState();
         // If the subscript is an unknown value, we can't read anything and return unknown
-        if (!subscriptValue.isNumericValue() && !options.trackErrorPredicates()) {
+        if (!(subscriptValue instanceof NumericValue) && !options.trackErrorPredicates()) {
           logger.log(
               Level.FINE,
               "A subscript value was found to be non concrete when trying to find a memory location"
@@ -182,7 +182,7 @@ public class SMGCPAAddressVisitor
           continue;
         }
         // Calculate the offset out of the subscript value and the type
-        BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
+        Value typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
         Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         // Get the value from the array and return the value + state
@@ -211,7 +211,7 @@ public class SMGCPAAddressVisitor
 
     if ((arrayValue instanceof AddressExpression arrayAddr)) {
       Value addrOffset = arrayAddr.getOffset();
-      if (!addrOffset.isNumericValue()) {
+      if (!(addrOffset instanceof NumericValue)) {
         if (!options.trackErrorPredicates()) {
           logger.log(
               Level.FINE,
@@ -322,8 +322,8 @@ public class SMGCPAAddressVisitor
 
     } else {
       // Might be numeric 0 (0 object). All else cases are basically invalid requests.
-      if (arrayValue.isNumericValue()
-          && arrayValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
+      if (arrayValue instanceof NumericValue numArrayValue
+          && numArrayValue.bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
         return ImmutableList.of(
             SMGStateAndOptionalSMGObjectAndOffset.of(
                 SMGObject.nullInstance(), subscriptOffset, pCurrentState));
@@ -356,7 +356,8 @@ public class SMGCPAAddressVisitor
       // Assignment using the solver only. While we get the concrete value here,
       //  we can't assign it to a variable.
       List<ValueAndSMGState> assignedResults =
-          pCurrentState.findValueAssignmentsWithSolver(symOffsetToAssign, cfaEdge);
+          pCurrentState.findValueAssignmentsWithSolver(
+              symOffsetToAssign, exprCurrentlyUnderEval, cfaEdge);
       ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
           ImmutableList.builder();
       for (ValueAndSMGState assignedValueAndState : assignedResults) {
@@ -424,7 +425,7 @@ public class SMGCPAAddressVisitor
 
       if (structValue instanceof AddressExpression structAddr) {
         Value addrOffset = structAddr.getOffset();
-        if (!addrOffset.isNumericValue() && !options.trackErrorPredicates()) {
+        if (!(addrOffset instanceof NumericValue) && !options.trackErrorPredicates()) {
           // Non numeric offset -> not usable
           resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         }
@@ -450,8 +451,8 @@ public class SMGCPAAddressVisitor
 
       } else {
         // Might be numeric 0 (0 object). All else cases are basically invalid requests.
-        if (structValue.isNumericValue()
-            && structValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
+        if (structValue instanceof NumericValue numStructValue
+            && numStructValue.bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
           resultBuilder.add(
               SMGStateAndOptionalSMGObjectAndOffset.of(
                   SMGObject.nullInstance(), new NumericValue(fieldOffset), currentState));
@@ -511,7 +512,7 @@ public class SMGCPAAddressVisitor
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();
-      if (!offset.isNumericValue() && !options.trackErrorPredicates()) {
+      if (!(offset instanceof NumericValue) && !options.trackErrorPredicates()) {
         // If the offset is not numerically known we can't read a value, return
         resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         continue;

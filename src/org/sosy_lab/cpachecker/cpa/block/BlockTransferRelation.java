@@ -15,12 +15,12 @@ import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
@@ -32,7 +32,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
     // block end cannot be reached directly before processing the first edge
     if (blockState.getType().equals(BlockStateType.INITIAL)
-        && cfaEdge.getDescription().equals("<<ghost-edge>>")) {
+        && cfaEdge.getDescription().equals(BlockGraph.GHOST_EDGE_DESCRIPTION)) {
       return ImmutableSet.of();
     }
 
@@ -48,8 +48,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
     }
 
     Set<CFAEdge> intersection =
-        Sets.intersection(
-            CFAUtils.leavingEdges(node).toSet(), blockState.getBlockNode().getEdges());
+        Sets.intersection(node.getLeavingEdges().toSet(), blockState.getBlockNode().getEdges());
 
     if (intersection.contains(cfaEdge)) {
       return ImmutableList.of(
@@ -57,7 +56,8 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               cfaEdge.getSuccessor(),
               blockState.getBlockNode(),
               getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-              blockState.getErrorCondition()));
+              blockState.getErrorCondition(),
+              blockState.getHistory()));
     }
 
     return ImmutableList.of();

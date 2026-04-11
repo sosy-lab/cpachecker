@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.hb;
 
 import static com.google.common.base.Preconditions.checkState;
-import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -187,7 +186,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
   private int firstCanExecute(Map<Integer, Pair<LocationState, CallstackState>> pThreads) {
     for (Map.Entry<Integer, Pair<LocationState, CallstackState>> entry : pThreads.entrySet()) {
-      if (!allLeavingEdges(entry.getValue().getFirstNotNull().getLocationNode()).isEmpty()) {
+      if (!entry.getValue().getFirstNotNull().getLocationNode().getAllLeavingEdges().isEmpty()) {
         return entry.getKey();
       }
     }
@@ -200,7 +199,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
     CFANode functioncallNode =
         Preconditions.checkNotNull(
-            cfa.getFunctionHead(functionName), "Function '" + functionName + "' was not found.");
+            cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
 
     CallstackState initialStack =
         (CallstackState)

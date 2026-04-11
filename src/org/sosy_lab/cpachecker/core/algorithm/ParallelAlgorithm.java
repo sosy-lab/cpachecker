@@ -13,7 +13,6 @@ import static com.google.common.base.Predicates.or;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static java.util.concurrent.Executors.newFixedThreadPool;
-import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -60,7 +59,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
@@ -290,14 +288,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             singleConfig,
             singleLogger,
             singleShutdownManager.getNotifier(),
-            aggregatedReachedSetManager.asView());
+            aggregatedReachedSetManager.asView(),
+            cfa);
 
     final ConfigurableProgramAnalysis cpa;
     final Algorithm algorithm;
     final ReachedSet reached;
     try {
-      cpa = coreComponents.createCPA(cfa, specification);
-      algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+      cpa = coreComponents.createCPA(specification);
+      algorithm = coreComponents.createAlgorithm(cpa, specification);
       reached = coreComponents.createReachedSet(cpa);
     } catch (CPAException e) {
       singleLogger.logfUserException(Level.WARNING, e, "Failed to initialize analysis");
@@ -352,7 +351,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       try {
-        initializeReachedSet(cpa, mainEntryNode, reached);
+        coreComponents.initializeReachedSet(reached, mainEntryNode, cpa);
       } catch (InterruptedException e) {
         singleLogger.logUserException(
             Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
@@ -450,7 +449,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           if (!stopAnalysis) {
             currentReached = coreComponents.createReachedSet(cpa);
             pStatisticsEntry.reachedSet.set(currentReached);
-            initializeReachedSet(cpa, mainEntryNode, currentReached);
+            coreComponents.initializeReachedSet(currentReached, mainEntryNode, cpa);
           }
         } while (!stopAnalysis);
       }
@@ -485,22 +484,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
+      // TODO: log/return the config that triggers this!
       pLogger.logUserException(
           Level.WARNING,
           e,
-          "Skipping one analysis because the configuration file "
+          "Skipping one analysis in building a parallel analysis because the configuration file "
               + singleConfigFileName
               + " could not be read");
       return null;
     }
-  }
-
-  private void initializeReachedSet(
-      ConfigurableProgramAnalysis cpa, CFANode mainFunction, ReachedSet reached)
-      throws InterruptedException {
-    AbstractState initialState = cpa.getInitialState(mainFunction, getDefaultPartition());
-    Precision initialPrecision = cpa.getInitialPrecision(mainFunction, getDefaultPartition());
-    reached.add(initialState, initialPrecision);
   }
 
   /** Give the reached set to {@link #aggregatedReachedSetManager}. */

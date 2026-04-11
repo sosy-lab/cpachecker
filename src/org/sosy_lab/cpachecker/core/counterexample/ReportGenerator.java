@@ -679,13 +679,17 @@ public class ReportGenerator {
   /** Build ARG data for all ARG states in the reached set. */
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
     for (AbstractState entry : reached) {
-      int parentStateId = ((ARGState) entry).getStateId();
+      if (!(entry instanceof ARGState argState)) {
+        continue;
+      }
+
+      int parentStateId = argState.getStateId();
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {
-          argNodes.put(parentStateId, createArgNode(parentStateId, node, (ARGState) entry));
+          argNodes.put(parentStateId, createArgNode(parentStateId, node, argState));
         }
-        if (!((ARGState) entry).getChildren().isEmpty()) {
-          for (ARGState child : ((ARGState) entry).getChildren()) {
+        if (!argState.getChildren().isEmpty()) {
+          for (ARGState child : argState.getChildren()) {
             int childStateId = child.getStateId();
             // Covered state is not contained in the reached set
             if (child.isCovered()) {
@@ -696,8 +700,7 @@ public class ReportGenerator {
             }
             argEdges.put(
                 parentStateId + "->" + childStateId,
-                createArgEdge(
-                    parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child)));
+                createArgEdge(parentStateId, childStateId, argState.getEdgesToChild(child)));
           }
         }
       }
@@ -736,7 +739,7 @@ public class ReportGenerator {
 
   /** Build graph data for the reduced ARG */
   private void buildReducedArgGraphData() {
-    if (!witnessOptional.isPresent()) {
+    if (witnessOptional.isEmpty()) {
       return;
     }
     Witness witness = witnessOptional.orElseThrow();

@@ -74,12 +74,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class CParserUtils {
 
@@ -237,6 +239,9 @@ public class CParserUtils {
     boolean fallBack = false;
     ExpressionTree<AExpression> tree =
         parseStatement(pCode, pResultFunction, pCParser, pScope, pParserTools);
+    ToCExpressionVisitor toCExpressionVisitor =
+        new ToCExpressionVisitor(pParserTools.machineModel, pParserTools.logger);
+
     if (!tree.equals(ExpressionTrees.getTrue())) {
       if (tree.equals(ExpressionTrees.getFalse())) {
         return ImmutableSet.of(
@@ -245,21 +250,20 @@ public class CParserUtils {
                 new CIntegerLiteralExpression(
                     FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
       }
-      if (tree instanceof LeafExpression) {
-        LeafExpression<AExpression> leaf = (LeafExpression<AExpression>) tree;
-        AExpression expression = leaf.getExpression();
-        if (expression instanceof CExpression cExpression) {
-          result.add(new CExpressionStatement(FileLocation.DUMMY, cExpression));
-        } else {
+      if (tree instanceof LeafExpression<AExpression> leaf) {
+        try {
+          result.add(
+              new CExpressionStatement(FileLocation.DUMMY, toCExpressionVisitor.visit(leaf)));
+        } catch (UnrecognizedCodeException e) {
           fallBack = true;
         }
       } else if (ExpressionTrees.isAnd(tree)) {
         for (ExpressionTree<AExpression> child : ExpressionTrees.getChildren(tree)) {
-          if (child instanceof LeafExpression) {
-            AExpression expression = ((LeafExpression<AExpression>) child).getExpression();
-            if (expression instanceof CExpression cExpression) {
-              result.add(new CExpressionStatement(FileLocation.DUMMY, cExpression));
-            } else {
+          if (child instanceof LeafExpression<AExpression> leaf) {
+            try {
+              result.add(
+                  new CExpressionStatement(FileLocation.DUMMY, toCExpressionVisitor.visit(leaf)));
+            } catch (UnrecognizedCodeException e) {
               fallBack = true;
             }
           } else {
@@ -457,7 +461,7 @@ public class CParserUtils {
       ExpressionTree<AExpression> currentTree = memo.get(current);
 
       // Compute successor trees
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+      for (CFAEdge leavingEdge : current.getLeavingEdges()) {
 
         CFANode succ = leavingEdge.getSuccessor();
 
@@ -492,7 +496,7 @@ public class CParserUtils {
           AExpression expression = assumeEdge.getExpression();
 
           if (expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
-            for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+            for (CFAEdge enteringEdge : current.getEnteringEdges()) {
               Map<AExpression, AExpression> tmpVariableValues =
                   collectCPAcheckerTMPValues(enteringEdge);
               if (!tmpVariableValues.isEmpty()) {

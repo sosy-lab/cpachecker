@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
@@ -82,7 +81,7 @@ public class ReferencedVariablesCollector {
 
     // collect information
     for (CFANode node : nodes) {
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node)) {
+      for (CFAEdge leavingEdge : node.getAllLeavingEdges()) {
         if (nodes.contains(leavingEdge.getSuccessor())
             || (leavingEdge instanceof CFunctionCallEdge)) {
           collectVars(leavingEdge);

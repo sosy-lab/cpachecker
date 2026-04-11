@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.singletonList;
 import static java.util.logging.Level.FINEST;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -44,6 +46,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -133,7 +138,6 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
 
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
-
     } else if (terminationState.isPartOfStem()
         && terminationInformation.isPredecessorOfIncomingEdge(location)) {
       statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
@@ -144,7 +148,6 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
       targetStatesAtCurrentLocation =
           from(statesAtCurrentLocation).filter(AbstractStates::isTargetState).toList();
       statesAtCurrentLocation.removeAll(targetStatesAtCurrentLocation);
-
     } else {
       statesAtCurrentLocation = Collections.singleton(terminationState);
       targetStatesAtCurrentLocation = ImmutableList.of();
@@ -161,7 +164,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     // before the CPA algorithm stops due to a target state.
     resultingSuccessors.addAll(getAbstractSuccessors0(statesAtCurrentLocation, pPrecision));
 
-    // pass negative ranking relation to other AbstarctStates
+    // pass negative ranking relation to other AbstractStates
     for (TerminationState targetState : targetStatesAtCurrentLocation) {
       Collection<? extends AbstractState> strengthenedStates =
           transferRelation.strengthen(
@@ -306,7 +309,12 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
         getAbstractSuccessorsForEdge0(statesAtNode3, pPrecision, positiveNodetAssumeEdge));
 
     // node5 - BlankEdge -> loopHead
-    CFAEdge edgeBackToLoopHead = createBlankEdge(node5, loopHead, "");
+    CFAEdge edgeBackToLoopHead;
+    if (loopHead instanceof CFunctionEntryNode pFunctionEntryNode) {
+      edgeBackToLoopHead = createBlankFunctionCallEdge(node5, pFunctionEntryNode, "");
+    } else {
+      edgeBackToLoopHead = createBlankEdge(node5, loopHead, "");
+    }
     resultingSuccessors.addAll(
         getAbstractSuccessorsForEdge0(statesAtNode5, pPrecision, edgeBackToLoopHead));
 
@@ -389,6 +397,27 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
 
   private CFANode createCfaNode(AFunctionDeclaration functionName) {
     return new CFANode(functionName);
+  }
+
+  private CFunctionCallEdge createBlankFunctionCallEdge(
+      CFANode pPredecessor, CFunctionEntryNode pSuccessor, String pDescription) {
+    CFunctionCallExpression expression =
+        new CFunctionCallExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            new CIdExpression(FileLocation.DUMMY, pSuccessor.getFunctionDefinition()),
+            transformedImmutableListCopy(
+                pSuccessor.getFunctionParameters(), d -> new CIdExpression(DUMMY, d)),
+            pSuccessor.getFunctionDefinition());
+    CFunctionCallStatement functionCall = new CFunctionCallStatement(DUMMY, expression);
+    CFunctionSummaryEdge summaryEdge =
+        new CFunctionSummaryEdge(
+            pDescription + ";", DUMMY, pPredecessor, pSuccessor, functionCall, pSuccessor);
+    CFunctionCallEdge edge =
+        new CFunctionCallEdge(
+            pDescription + ";", DUMMY, pPredecessor, pSuccessor, functionCall, summaryEdge);
+    addToCfa(edge);
+    return edge;
   }
 
   private BlankEdge createBlankEdge(CFANode pPredecessor, CFANode pSuccessor, String pDescription) {

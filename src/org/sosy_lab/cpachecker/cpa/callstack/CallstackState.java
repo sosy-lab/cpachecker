@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
@@ -18,10 +19,12 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 /**
@@ -45,6 +48,8 @@ public class CallstackState
   protected transient CFANode callerNode;
   private final int depth;
 
+  private @LazyInit Boolean isNormalFunctionCall = null;
+
   public CallstackState(
       @Nullable CallstackState pPreviousElement,
       @NonNull String pFunction,
@@ -59,6 +64,18 @@ public class CallstackState
     } else {
       depth = pPreviousElement.getDepth() + 1;
     }
+  }
+
+  public boolean isNormalFunctionCall() {
+    // Lazy initialization to avoid unnecessary computation
+    if (isNormalFunctionCall == null) {
+      isNormalFunctionCall =
+          CFAUtils.successorsOf(getCallNode())
+              .filter(FunctionEntryNode.class)
+              .transform(CFANode::getFunctionName)
+              .contains(getCurrentFunction());
+    }
+    return isNormalFunctionCall;
   }
 
   public CallstackState getPreviousState() {

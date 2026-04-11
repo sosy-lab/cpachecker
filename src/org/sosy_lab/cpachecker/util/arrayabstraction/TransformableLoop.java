@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
@@ -97,7 +96,7 @@ final class TransformableLoop {
 
     for (CFANode node : domTree) {
       if (node.equals(startNode) || domTree.isAncestorOf(startNode, node)) {
-        builder.addAll(CFAUtils.allLeavingEdges(node));
+        builder.addAll(node.getAllLeavingEdges());
       }
     }
 
@@ -118,7 +117,7 @@ final class TransformableLoop {
 
     for (CFANode node : postDomTree) {
       if (node.equals(startNode) || postDomTree.isAncestorOf(startNode, node)) {
-        builder.addAll(CFAUtils.allEnteringEdges(node));
+        builder.addAll(node.getAllEnteringEdges());
       }
     }
 

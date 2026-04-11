@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation {
 
@@ -84,13 +83,13 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       CFANode nodeInOriginal = locations.getLocationInOriginalCfa();
       ImmutableSet<String> changedVarsInGiven = locations.getChangedVarsInGivenCfa();
 
-      if (CFAUtils.leavingEdges(nodeInGiven).contains(pCfaEdge)) {
+      if (nodeInGiven.getLeavingEdges().contains(pCfaEdge)) {
         // possible successor adheres to control-flow
         CFANode succInGiven = pCfaEdge.getSuccessor();
         Collection<ModificationsRcdState> successors = new HashSet<>();
 
         Optional<ModificationsRcdState> potSucc;
-        for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+        for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
           potSucc = findMatchingSuccessor(pCfaEdge, edgeInOriginal, changedVarsInGiven);
           if (potSucc.isPresent()) {
 
@@ -111,7 +110,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
         // Since the modified edges do not have any successors we do not need to worry about the
         // changed variables any more and can simply pass an empty set instead.
         if (successors.isEmpty()) {
-          for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+          for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
             successors.add(
                 new ModificationsRcdState(
                     succInGiven, edgeInOriginal.getSuccessor(), ImmutableSet.of(), true));
@@ -188,8 +187,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
           }
           // move on one by one node in the given, and by two nodes in the original CPA;
           // find out which edge is matching
-          for (CFAEdge edgeLeavingOrigSuccessor :
-              CFAUtils.leavingEdges(originalEdge.getSuccessor())) {
+          for (CFAEdge edgeLeavingOrigSuccessor : originalEdge.getSuccessor().getLeavingEdges()) {
             if (edgesMatch(pEdgeInGiven, edgeLeavingOrigSuccessor)) {
               changedVarsInSuccessor =
                   removeVariableFromSetIfAssignedInEdge(pEdgeInGiven, changedVarsInSuccessor);
@@ -309,8 +307,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       if (lhsInOriginal != null) {
 
         // check if pEdgeInOriginal has successor edge equal to pEdgeInGiven
-        for (CFAEdge edgeLeavingOrigSuccessor :
-            CFAUtils.leavingEdges(pEdgeInOriginal.getSuccessor())) {
+        for (CFAEdge edgeLeavingOrigSuccessor : pEdgeInOriginal.getSuccessor().getLeavingEdges()) {
           if (edgesMatch(pEdgeInGiven, edgeLeavingOrigSuccessor)) {
             return Optional.of(lhsInOriginal);
           }
@@ -334,8 +331,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       if (lhsInGiven != null) {
 
         // check if pEdgeInGiven has successor edge equal to pEdgeInOriginal
-        for (CFAEdge edgeLeavingGivenSuccessor :
-            CFAUtils.leavingEdges(pEdgeInGiven.getSuccessor())) {
+        for (CFAEdge edgeLeavingGivenSuccessor : pEdgeInGiven.getSuccessor().getLeavingEdges()) {
           if (edgesMatch(edgeLeavingGivenSuccessor, pEdgeInOriginal)) {
             return Optional.of(lhsInGiven);
           }
@@ -352,9 +348,9 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       nextEdge:
       for (CFAEdge enterBeforeCall :
-          CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInGiven).getCallNode())) {
+          ((FunctionReturnEdge) pEdgeInGiven).getCallNode().getEnteringEdges()) {
         for (CFAEdge enterOriginalBeforeCAll :
-            CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInOriginal).getCallNode())) {
+            ((FunctionReturnEdge) pEdgeInOriginal).getCallNode().getEnteringEdges()) {
           if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
             continue nextEdge;
           }

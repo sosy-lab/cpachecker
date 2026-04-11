@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -42,17 +44,24 @@ public class BlockState
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
+  private final ImmutableList<String> history;
   private Optional<AbstractState> errorCondition;
 
   public BlockState(
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
-      Optional<AbstractState> pErrorCondition) {
+      Optional<AbstractState> pErrorCondition,
+      List<String> pHistory) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
     errorCondition = pErrorCondition;
+    history = ImmutableList.copyOf(pHistory);
+  }
+
+  public ImmutableList<String> getHistory() {
+    return history;
   }
 
   public void setViolationCondition(AbstractState pErrorCondition) {
@@ -78,7 +87,7 @@ public class BlockState
 
   @Override
   public @Nullable Object getPartitionKey() {
-    return this;
+    return blockNode;
   }
 
   @Override
@@ -120,7 +129,10 @@ public class BlockState
   // error condition intentionally left out as it is mutable
   @Override
   public boolean equals(Object pO) {
-    return pO instanceof BlockState that && Objects.equals(node, that.node) && type == that.type;
+    return pO instanceof BlockState that
+        && Objects.equals(node, that.node)
+        && type == that.type
+        && blockNode == that.getBlockNode();
   }
 
   @Override

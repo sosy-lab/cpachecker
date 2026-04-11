@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -505,7 +504,7 @@ public final class CCfaTransformer {
       List<SummaryPlaceholderEdge> summaryPlaceholderEdges = new ArrayList<>();
 
       for (CFANode newCfaNode : oldNodeToNewNode.values()) {
-        for (CFAEdge newCfaEdge : CFAUtils.allLeavingEdges(newCfaNode)) {
+        for (CFAEdge newCfaEdge : newCfaNode.getAllLeavingEdges()) {
           if (newCfaEdge instanceof SummaryPlaceholderEdge summaryPlaceholderEdge) {
             summaryPlaceholderEdges.add(summaryPlaceholderEdge);
           }

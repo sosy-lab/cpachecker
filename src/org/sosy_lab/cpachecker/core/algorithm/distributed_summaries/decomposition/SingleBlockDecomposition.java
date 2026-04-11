@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SingleBlockDecomposition implements DssBlockDecomposition {
 
@@ -39,7 +38,7 @@ public class SingleBlockDecomposition implements DssBlockDecomposition {
         lastNode = current;
       }
       seen.add(current);
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current)) {
+      for (CFAEdge leavingEdge : current.getAllLeavingEdges()) {
         edges.add(leavingEdge);
         waitlist.add(leavingEdge.getSuccessor());
       }
@@ -47,7 +46,6 @@ public class SingleBlockDecomposition implements DssBlockDecomposition {
     assert seen.containsAll(cfa.nodes());
     assert lastNode != null;
     return BlockGraph.fromBlockNodesWithoutGraphInformation(
-        cfa,
         ImmutableSet.of(
             new BlockNodeWithoutGraphInformation(
                 "SB1",

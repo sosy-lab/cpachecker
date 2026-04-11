@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -201,7 +199,7 @@ public class NullPointerChecks {
 
     CFANode falseNode = new CFANode(predecessor.getFunction());
 
-    for (CFAEdge otherEdge : leavingEdges(predecessor).toList()) {
+    for (CFAEdge otherEdge : predecessor.getLeavingEdges().toList()) {
       CFAEdge newEdge = createOldEdgeWithNewNodes(falseNode, otherEdge.getSuccessor(), otherEdge);
       CFACreationUtils.removeEdgeFromNodes(otherEdge);
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);

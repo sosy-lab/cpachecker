@@ -30,7 +30,9 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -46,6 +48,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -71,6 +75,8 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitnessExport;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
 
 @Options(prefix = "cpa.arg")
@@ -130,6 +136,16 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("witness-%s.yml");
+
+  @Option(
+      secure = true,
+      name = "svLibCorrectnessWitness",
+      description =
+          "The file into which to write the correctness "
+              + "witness for SV-LIB programs. "
+              + "If not set no witness will be exported.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path svLibCorrectnessWitnessPath = Path.of("witness.svlib");
 
   // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
   // deactivate it in the configs, since when it is 'null' the default value is used, which is not
@@ -227,6 +243,7 @@ public class ARGStatistics implements Statistics {
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
   private final ARGToYAMLWitnessExport argToWitnessWriter;
+  private final ArgToSvLibCorrectnessWitnessExport argToSvLibWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private ARGToAutomatonConverter argToAutomatonSplitter;
@@ -256,7 +273,8 @@ public class ARGStatistics implements Statistics {
         && proofWitnessDot == null
         && pixelGraphicFile == null
         && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
-        && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)) {
+        && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)
+        && svLibCorrectnessWitnessPath == null) {
       exportARG = false;
     }
 
@@ -266,6 +284,15 @@ public class ARGStatistics implements Statistics {
       argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
     } else {
       argToWitnessWriter = null;
+    }
+
+    Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
+    if (svLibMetadata.isPresent() && svLibCorrectnessWitnessPath != null) {
+      argToSvLibWitnessWriter = new ArgToSvLibCorrectnessWitnessExport(pCFA, pLogger);
+    } else {
+      // We do not have SV-LIB metadata, or do not want to export witnesses
+      argToSvLibWitnessWriter = null;
+      svLibCorrectnessWitnessPath = null;
     }
 
     if (counterexampleOptions.disabledCompletely()) {
@@ -348,8 +375,8 @@ public class ARGStatistics implements Statistics {
     Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
     if (!counterexampleOptions.disabledCompletely()
-        && !counterexampleOptions.dumpErrorPathImmediately()
-        && pResult == Result.FALSE) {
+        && pResult == Result.FALSE
+        && !counterexampleOptions.dumpErrorPathImmediately()) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }
@@ -432,8 +459,8 @@ public class ARGStatistics implements Statistics {
     if (pResult == Result.TRUE
         || (exportYamlWitnessesForUnknownVerdict && pResult == Result.UNKNOWN)) {
       try {
-        if (cfa.getMetadata().getInputLanguage() == Language.C) {
-          if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
+        if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
+          if (cfa.getMetadata().getInputLanguage() == Language.C) {
             try {
               argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
             } catch (IOException | ReportingMethodNotImplementedException e) {
@@ -448,6 +475,14 @@ public class ARGStatistics implements Statistics {
           logger.log(
               Level.WARNING,
               "Cannot export correctness witness in YAML format for languages other than C.");
+        }
+
+        // Now export the correctness witnesses for SV-LIB program
+        if (argToSvLibWitnessWriter != null && svLibCorrectnessWitnessPath != null) {
+          List<SvLibAnnotateTagCommand> witnessCommands =
+              argToSvLibWitnessWriter.generateWitnessCommands(rootState);
+          WitnessExportUtils.writeCommandsAsWitness(
+              svLibCorrectnessWitnessPath, witnessCommands, logger);
         }
 
         if (proofWitness != null || proofWitnessDot != null) {
@@ -595,13 +630,12 @@ public class ARGStatistics implements Statistics {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
     for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
-      ARGState s = (ARGState) targetState;
-      CounterexampleInfo cex =
-          ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
-              .orElse(null);
-      if (cex != null) {
-        counterexamples.put(s, cex);
+      if (!(targetState instanceof ARGState s)) {
+        continue;
       }
+
+      ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
+          .ifPresent(cex -> counterexamples.put(s, cex));
     }
 
     Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.buildOrThrow();

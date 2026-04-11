@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -55,6 +56,10 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -177,17 +182,17 @@ public class CFASecondPassBuilder {
       successorNode = tmp;
     }
 
-    AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-    String functionName = functionCallExpression.getDeclaration().getName();
+    String functionName = functionCall.getFunctionCallExpression().getDeclaration().getName();
     FileLocation fileLocation = edge.getFileLocation();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
     Optional<FunctionExitNode> fExitNode = fDefNode.getExitNode();
 
     // get the parameter expression
     // check if the number of function parameters are right
-    if (!checkParamSizes(functionCallExpression, fDefNode.getFunctionDefinition().getType())) {
+    if (!checkParamSizes(functionCall, fDefNode.getFunctionDefinition().getType())) {
       int declaredParameters = fDefNode.getFunctionDefinition().getType().getParameters().size();
-      int actualParameters = functionCallExpression.getParameterExpressions().size();
+      int actualParameters =
+          functionCall.getFunctionCallExpression().getParameterExpressions().size();
 
       switch (language) {
         case JAVA ->
@@ -257,6 +262,25 @@ public class CFASecondPassBuilder {
                 (CFunctionCall) functionCall,
                 (CFunctionSummaryEdge) calltoReturnEdge);
       }
+      case SVLIB -> {
+        calltoReturnEdge =
+            new SvLibProcedureSummaryEdge(
+                edge.getRawStatement(),
+                fileLocation,
+                predecessorNode,
+                successorNode,
+                (SvLibFunctionCallAssignmentStatement) functionCall,
+                (SvLibProcedureEntryNode) fDefNode);
+
+        callEdge =
+            new SvLibFunctionCallEdge(
+                edge.getRawStatement(),
+                fileLocation,
+                predecessorNode,
+                fDefNode,
+                (SvLibFunctionCallAssignmentStatement) functionCall,
+                calltoReturnEdge);
+      }
       case JAVA -> {
         calltoReturnEdge =
             new JMethodSummaryEdge(
@@ -305,6 +329,12 @@ public class CFASecondPassBuilder {
             case C ->
                 new CFunctionReturnEdge(
                     fileLocation, exitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
+            case SVLIB ->
+                new SvLibProcedureReturnEdge(
+                    fileLocation,
+                    exitNode,
+                    successorNode,
+                    (SvLibProcedureSummaryEdge) calltoReturnEdge);
             case JAVA ->
                 new JMethodReturnEdge(
                     fileLocation, exitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
@@ -316,10 +346,10 @@ public class CFASecondPassBuilder {
     }
   }
 
-  private boolean checkParamSizes(
-      AFunctionCallExpression functionCallExpression, AFunctionType functionType) {
+  private boolean checkParamSizes(AFunctionCall pFunctionCall, AFunctionType functionType) {
     // get the parameter expression
-    List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
+    List<? extends AExpression> parameters =
+        pFunctionCall.getFunctionCallExpression().getParameterExpressions();
 
     // check if the number of function parameters are right
     int declaredParameters = functionType.getParameters().size();

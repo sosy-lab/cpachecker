@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 
 /** List of functions defined by standards */
 public final class StandardFunctions {
@@ -600,4 +601,154 @@ public final class StandardFunctions {
 
   /** All functions defined by POSIX from the other sets in this file */
   public static final ImmutableSet<String> POSIX_ALL_FUNCTIONS = POSIX_UNISTD_H_FUNCTIONS;
+
+  /* #################### C11 Memory management functions (see C11 7.22.3) #################### */
+  private static final Set<String> MEMORY_ALLOCATING_FUNCTIONS =
+      ImmutableSet.of("malloc", "calloc", "aligned_alloc");
+  private static final String MEMORY_DEALLOCATING_FUNCTION = "free";
+  private static final String MEMORY_REALLOCATING_FUNCTION = "realloc";
+
+  /**
+   * True if the function names matches any memory management function defined by the C11 standard
+   * in section 7.22.3, i.e. free(), aligned_alloc(), calloc(), malloc(), or realloc().
+   */
+  @SuppressWarnings("unused")
+  public static boolean isMemoryManagementFunction(String functionName) {
+    return isMemoryAllocatingFunction(functionName)
+        || isMemoryDeallocatingFunction(functionName)
+        || isMemoryReallocatingFunction(functionName);
+  }
+
+  /**
+   * True if the function names matches any memory allocating function defined by the C11 standard
+   * in section 7.22.3, i.e. aligned_alloc(), calloc(), malloc().
+   */
+  public static boolean isMemoryAllocatingFunction(String functionName) {
+    return MEMORY_ALLOCATING_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True if the function names matches the memory de-allocation function defined by the C11
+   * standard in section 7.22.3, i.e. free().
+   */
+  public static boolean isMemoryDeallocatingFunction(String functionName) {
+    return MEMORY_DEALLOCATING_FUNCTION.equals(functionName);
+  }
+
+  /**
+   * True if the function names matches the memory re-allocation function defined by the C11
+   * standard in section 7.22.3, i.e. realloc().
+   */
+  public static boolean isMemoryReallocatingFunction(String functionName) {
+    return MEMORY_REALLOCATING_FUNCTION.equals(functionName);
+  }
+
+  /* ############## C11 input/output functions by categories used in the standard ############## */
+
+  // TODO: all below are already part of the functions above (or should be at least). Pull them out
+  // above, and replace by the constants below.
+  // TODO: split the functions above also into the categories used by the standard!
+
+  public static final Set<String> STANDARD_BYTE_INPUT_FUNCTIONS =
+      ImmutableSet.of(
+          "fgetc", "fgets", "fread", "fscanf", "getc", "getchar", "scanf", "vfscanf", "vscanf");
+
+  public static final Set<String> STANDARD_STRING_INPUT_FUNCTIONS =
+      ImmutableSet.of("sscanf", "sscanf_s", "scanf_s");
+
+  // TODO: wide char first arg: "swscanf", "swscanf_s"
+
+  // TODO: add missing functions to categories:  vsscanf, vswscanf_s, vfwscanf_s, wscanf_s,
+  // fscanf_s, vscanf_s, vwscanf_s,
+  //  vsscanf_s, vswscanf, fwscanf_s, vfscanf_s
+
+  public static final Set<String> STANDARD_BYTE_OUTPUT_FUNCTIONS =
+      ImmutableSet.of(
+          "fprintf",
+          "fputc",
+          "fputs",
+          "fwrite",
+          "printf",
+          "vfprintf",
+          "vprintf",
+          "putc",
+          "putchar",
+          "puts",
+          "ungetc");
+
+  private static final Set<String> BUILTIN_STANDARD_WIDE_CHARACTER_INPUT_FUNCTIONS =
+      ImmutableSet.of(
+          "fgetwc", "fgetws", "getwc", "getwchar", "fwscanf", "wscanf", "vfwscanf", "vwscanf");
+
+  private static final String UNGETWC_FUNCTION = "ungetwc";
+
+  private static final Set<String> BUILTIN_STANDARD_WIDE_CHARACTER_OUTPUT_FUNCTIONS =
+      ImmutableSet.of(
+          "fputwc", "fputws", "putwc", "putwchar", "fwprintf", "wprintf", "vfwprintf", "vwprintf");
+
+  /**
+   * True for built-in input or output functions defined by the C11 standard (in §7.21.1.5). Checks
+   * for wide character and byte input and output functions.
+   */
+  @SuppressWarnings("unused")
+  public static boolean isStandardInputOrOutputFunction(String functionName) {
+    return isStandardWideCharInputOrOutputFunction(functionName)
+        || isStandardByteInputOrOutputFunction(functionName);
+  }
+
+  /**
+   * True for built-in wide character input or output functions defined by the C11 standard (in
+   * §7.21.1.5). Checks for wide character input and output functions, as well as the ungetwc()
+   * function, which is not included in the split up sets and checks for wide character input or
+   * output functions!
+   */
+  public static boolean isStandardWideCharInputOrOutputFunction(String functionName) {
+    return UNGETWC_FUNCTION.contains(functionName)
+        || isStandardWideCharInputFunction(functionName)
+        || isStandardWideCharOutputFunction(functionName);
+  }
+
+  /**
+   * True for built-in wide character input functions defined by the C11 standard (in §7.21.1.5).
+   */
+  public static boolean isStandardWideCharInputFunction(String functionName) {
+    return BUILTIN_STANDARD_WIDE_CHARACTER_INPUT_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True for built-in wide character output functions defined by the C11 standard (in §7.21.1.5).
+   */
+  public static boolean isStandardWideCharOutputFunction(String functionName) {
+    return BUILTIN_STANDARD_WIDE_CHARACTER_OUTPUT_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True for built-in functions defined by the C11 standard as byte input or output functions (in
+   * §7.21.1.5).
+   */
+  public static boolean isStandardByteInputOrOutputFunction(String functionName) {
+    return isStandardByteOutputFunction(functionName) || isStandardByteInputFunction(functionName);
+  }
+
+  /**
+   * True for built-in functions defined by the C11 standard as byte input functions (in §7.21.1.5).
+   */
+  public static boolean isStandardByteInputFunction(String functionName) {
+    return STANDARD_BYTE_INPUT_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True for built-in functions defined by the C11 standard as string input functions (in §7.21.1).
+   */
+  public static boolean isStandardStringInputFunction(String functionName) {
+    return STANDARD_STRING_INPUT_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True for built-in functions defined by the C11 standard as byte output functions (in
+   * §7.21.1.5).
+   */
+  public static boolean isStandardByteOutputFunction(String functionName) {
+    return STANDARD_BYTE_OUTPUT_FUNCTIONS.contains(functionName);
+  }
 }

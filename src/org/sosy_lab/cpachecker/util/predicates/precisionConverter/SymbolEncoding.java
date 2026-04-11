@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.FormulaType;
 
@@ -195,7 +194,7 @@ public class SymbolEncoding {
         }
       }
 
-      final FluentIterable<CFAEdge> edges = CFAUtils.allLeavingEdges(node);
+      final FluentIterable<CFAEdge> edges = node.getAllLeavingEdges();
       for (CDeclarationEdge edge : edges.filter(CDeclarationEdge.class)) {
         sd.add(edge.getDeclaration());
       }

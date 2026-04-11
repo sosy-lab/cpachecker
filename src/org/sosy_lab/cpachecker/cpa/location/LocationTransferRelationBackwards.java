@@ -36,7 +36,7 @@ public class LocationTransferRelationBackwards implements TransferRelation {
     LocationState predState = (LocationState) state;
     CFANode predLocation = predState.getLocationNode();
 
-    if (CFAUtils.allEnteringEdges(predLocation).contains(cfaEdge)) {
+    if (predLocation.getAllEnteringEdges().contains(cfaEdge)) {
       return Collections.singleton(factory.getState(cfaEdge.getPredecessor()));
     }
 

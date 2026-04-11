@@ -164,10 +164,11 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
+      if (edge.getSuccessor().getLeavingEdges().filter(CoverageData::coversLine).isEmpty()) {
         return CONST_FALSE;
       }
-      if (CFAUtils.leavingEdges(edge.getSuccessor())
+      if (edge.getSuccessor()
+          .getLeavingEdges()
           .transform(e -> e.getFileLocation().getStartingLineInOrigin())
           .contains(lineToReach)) {
         return CONST_TRUE;
@@ -293,7 +294,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
                   Sets.difference(
                       transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
                       transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
-              .transformAndConcat(CFAUtils::allLeavingEdges)
+              .transformAndConcat(CFANode::getAllLeavingEdges)
               .filter(edge -> pElement.edges().contains(edge))
               .toSet();
     }
@@ -301,8 +302,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (CFAUtils.leavingEdges(edge.getSuccessor())
-          .anyMatch(e -> incomingFrontierEdges.contains(e))) {
+      if (edge.getSuccessor().getLeavingEdges().anyMatch(e -> incomingFrontierEdges.contains(e))) {
         return CONST_TRUE;
       }
 
@@ -513,7 +513,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
+      if (edge.getSuccessor().getLeavingEdges().filter(CoverageData::coversLine).isEmpty()) {
         return CONST_FALSE;
       }
 
@@ -532,11 +532,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       // When there are multiple empty lines between two edges, the line numbers and offsets would
       // not match. Therefore, we need the range comparison instead of an equality comparison.
       if (lineNumber >= edgeLocation.getEndingLineInOrigin()
-          && CFAUtils.leavingEdges(edge.getSuccessor())
+          && edge.getSuccessor()
+              .getLeavingEdges()
               .transform(CFAEdge::getFileLocation)
               .anyMatch(e -> e.getStartingLineInOrigin() >= lineNumber)) {
         if (edgeLocation.getNodeOffset() + edgeLocation.getNodeLength() < offsetToReach) {
-          if (CFAUtils.leavingEdges(edge.getSuccessor())
+          if (edge.getSuccessor()
+              .getLeavingEdges()
               .anyMatch(
                   e ->
                       offsetToReach
@@ -955,7 +957,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         assumeEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
       }
       FluentIterable<FunctionCallEdge> pointerCallEdges =
-          CFAUtils.leavingEdges(assumeEdge.getSuccessor())
+          assumeEdge
+              .getSuccessor()
+              .getLeavingEdges()
               .filter(e -> e.getFileLocation().equals(edge.getFileLocation()))
               .filter(FunctionCallEdge.class);
       for (CFAEdge pointerCallEdge : pointerCallEdges) {
@@ -1373,7 +1377,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         return CONST_TRUE;
       }
       ResultValue<Boolean> result = null;
-      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pArgs.getCfaEdge().getSuccessor())) {
+      for (CFAEdge cfaEdge : pArgs.getCfaEdge().getSuccessor().getLeavingEdges()) {
         result =
             operandExpression.eval(
                 new AutomatonExpressionArguments(
@@ -1420,13 +1424,15 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
       CFAEdge edge = pArgs.getCfaEdge();
-      Iterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(edge.getSuccessor());
+      Iterable<CFAEdge> leavingEdges = edge.getSuccessor().getLeavingEdges();
       if ((edge instanceof FunctionCallEdge callEdge) && (callEdge.getSummaryEdge() != null)) {
         FunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
         AFunctionCall call = callEdge.getFunctionCall();
         if (call instanceof AFunctionCallAssignmentStatement) {
           Iterable<? extends CFAEdge> potentialFurtherMatches =
-              CFAUtils.enteringEdges(callEdge.getReturnNode())
+              callEdge
+                  .getReturnNode()
+                  .getEnteringEdges()
                   .filter(
                       e ->
                           (e instanceof AStatementEdge aStatementEdge
@@ -1472,8 +1478,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
                     pArgs.getAbstractStates(),
                     edge,
                     pArgs.getLogger())))) {
-          edges.addAll(
-              skipSplitDeclarationEdges(CFAUtils.leavingEdges(edge.getSuccessor()), pArgs));
+          edges.addAll(skipSplitDeclarationEdges(edge.getSuccessor().getLeavingEdges(), pArgs));
         } else {
           edges.add(edge);
         }

@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -481,7 +480,9 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       CFAEdge currentEdge = edgesToHandle.pop();
       handledEdges.add(currentEdge);
       FluentIterable<CFAEdge> leaving =
-          CFAUtils.leavingEdges(currentEdge.getSuccessor())
+          currentEdge
+              .getSuccessor()
+              .getLeavingEdges()
               .filter(not(instanceOf(FunctionCallEdge.class)));
 
       // there was a function call, we need to replace it with the correct successor

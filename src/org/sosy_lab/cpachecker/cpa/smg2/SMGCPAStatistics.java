@@ -56,8 +56,17 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
   private final StatTimer totalListSearchTime =
       new StatTimer("Time spend on searching for lists to abstract");
 
-  private final StatCounter assumptions = new StatCounter("Number of assumptions");
-  private final StatCounter deterministicAssumptions =
+  private final StatCounter errorPathAllocations =
+      new StatCounter("Number of concrete error paths allocated");
+  private final StatTimer totalErrorPathsAllocationTime =
+      new StatTimer("Time spend on allocating concrete error paths");
+
+  private final StatTimer totalMergeTime = new StatTimer("Time spend on merging states");
+  private StatCounter successfulMerges = new StatCounter("Number of successful merges");
+  private StatCounter mergeAttempts = new StatCounter("Number of merges attempted");
+
+  private StatCounter assumptions = new StatCounter("Number of assumptions");
+  private StatCounter deterministicAssumptions =
       new StatCounter("Number of deterministic assumptions");
 
   public SMGCPAStatistics() {
@@ -113,6 +122,21 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
     writer.put(
         "Max time spent on searching a single list abstractions: ",
         totalListSearchTime.getMaxTime());
+
+    writer.put("Total time spent on merging states: ", totalMergeTime.getConsumedTime());
+    writer.put("Max time spent on merging two states: ", totalMergeTime.getMaxTime());
+    writer.put("Number of merge attempts: ", mergeAttempts);
+    writer.put("Number of successful merges: ", successfulMerges);
+
+    writer.put(
+        "Total time spent on allocating values in a concrete error-path: ",
+        totalErrorPathsAllocationTime.getConsumedTime());
+    writer.put(
+        "Max time spent on allocating values in a concrete error-path: ",
+        totalErrorPathsAllocationTime.getMaxTime());
+    writer.put(
+        "Number of concrete error-paths allocated with concrete values: ",
+        errorPathAllocations.getValue());
   }
 
   /**
@@ -159,6 +183,18 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
     listAbstractions.inc();
   }
 
+  public void incrementConcreteErrorPathsAllocated() {
+    errorPathAllocations.inc();
+  }
+
+  public void startTotalConcreteErrorPathsAllocationTime() {
+    totalErrorPathsAllocationTime.start();
+  }
+
+  public void stopTotalConcreteErrorPathsAllocationTime() {
+    totalErrorPathsAllocationTime.stop();
+  }
+
   public void startTotalAbstractionTime() {
     totalAbstractionTime.start();
   }
@@ -189,6 +225,18 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
 
   int getCurrentNumberOfIterations() {
     return iterations.intValue();
+  }
+
+  StatTimer getMergeTime() {
+    return totalMergeTime;
+  }
+
+  void incrementNumberOfSuccessfulMerges() {
+    successfulMerges.inc();
+  }
+
+  void incrementMergeAttempts() {
+    mergeAttempts.inc();
   }
 
   int getCurrentLevelOfDeterminism() {

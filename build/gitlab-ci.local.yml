@@ -193,6 +193,12 @@ build-docker:test:node:
     DOCKERFILE: build/gitlab-ci.Dockerfile.node
     IMAGE: /test:node
 
+build-docker:dev-base:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/Dockerfile.dev-base
+    IMAGE: ":dev-base"
+
 # Build Docker images and push to Docker Hub
 # following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 .build-docker-hub:
@@ -215,7 +221,7 @@ build-docker:release:
   extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    TAG: "4.1"
+    TAG: "4.2.2"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest --destination docker.io/sosylab/cpachecker:latest"
   rules:
     - !reference [.build-docker-hub, rules]
@@ -251,16 +257,23 @@ javascript-e2e-tests:
 
 
 # Checks for Python code
-check-format-python:
+.base_ruff:
   stage: checks
   dependencies: []
   needs: []
-  image: python
+  interruptible: true
+  image: ghcr.io/astral-sh/ruff:0.14-alpine
   before_script:
-    - pip install 'black[jupyter]<25'
+    - ruff --version
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ".ruff_cache"
+
+check-format-python:
+  extends: .base_ruff
   script:
-    - black . --check --diff
-  <<: *pip-cache
+    - "ruff format --check --diff"
 
 flake8:
   stage: checks

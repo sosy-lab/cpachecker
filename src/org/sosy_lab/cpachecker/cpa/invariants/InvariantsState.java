@@ -973,7 +973,7 @@ public class InvariantsState
    *     correctness.
    * @param pNewVariableSelection the new variable selection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>
-   *     false</code> otherwise.
+   * false</code> otherwise.
    */
   private InvariantsState assumeInternal(
       Collection<? extends BooleanFormula<CompoundInterval>> pAssumptions,
@@ -997,7 +997,7 @@ public class InvariantsState
    *     correctness.
    * @param pNewVariableSelection the new variable selection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>
-   *     false</code> otherwise.
+   * false</code> otherwise.
    */
   private InvariantsState assumeInternal(
       BooleanFormula<CompoundInterval> pAssumption,

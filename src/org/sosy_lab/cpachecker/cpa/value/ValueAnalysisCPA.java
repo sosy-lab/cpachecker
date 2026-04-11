@@ -123,6 +123,10 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
+  @Option(secure = true, description = "get an initial precision from a correctness witness file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path witnessFileForInitialPrecision = null;
+
   @Option(
       secure = true,
       name = "unknownValueHandling",
@@ -150,7 +154,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
-  private final PredicateToValuePrecisionConverter predToValPrec;
+  private final ToValuePrecisionConverter converterToValPrec;
 
   private SymbolicStatistics symbolicStats;
 
@@ -169,7 +173,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     config.inject(this, ValueAnalysisCPA.class);
 
-    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+    converterToValPrec = new ToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
     statistics =
@@ -197,7 +201,9 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException, InterruptedException {
-    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && witnessFileForInitialPrecision == null) {
       return VariableTrackingPrecision.createStaticPrecision(
           pConfig, pCfa.getVarClassification(), getClass());
     }
@@ -209,13 +215,20 @@ public class ValueAnalysisCPA extends AbstractCPA
             VariableTrackingPrecision.createStaticPrecision(
                 pConfig, pCfa.getVarClassification(), getClass()));
 
+    if (witnessFileForInitialPrecision != null) {
+      initialPrecision =
+          initialPrecision.withIncrement(
+              converterToValPrec.convertWitnessToVariableTrackingPrec(
+                  witnessFileForInitialPrecision));
+    }
     if (initialPredicatePrecisionFile != null) {
       // convert the predicate precision to variable tracking precision and
       // refine precision with increment from the newly gained variable tracking precision
       // otherwise return empty precision if given predicate precision is empty
       initialPrecision =
           initialPrecision.withIncrement(
-              predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
+              converterToValPrec.convertPredPrecToVariableTrackingPrec(
+                  initialPredicatePrecisionFile));
     }
     if (initialPrecisionFile != null) {
       boolean isYAMLWitness;
@@ -301,7 +314,8 @@ public class ValueAnalysisCPA extends AbstractCPA
 
           Optional<CFANode> location =
               astCfaRelation.getNodeForIterationStatementLocation(
-                  locationRecord.getLine(), locationRecord.getColumn());
+                  // TODO: Handle missing columns correctly
+                  locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
           if (location.isEmpty()) {
             continue;
           }
@@ -319,7 +333,8 @@ public class ValueAnalysisCPA extends AbstractCPA
 
           Set<CFANode> location =
               astCfaRelation.getNodeForStatementLocation(
-                  locationRecord.getLine(), locationRecord.getColumn());
+                  // TODO: Handle missing columns correctly
+                  locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
           if (location.isEmpty()) {
             continue;
           }
@@ -378,6 +393,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null
         && initialPredicatePrecisionFile == null
+        && witnessFileForInitialPrecision == null
         && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
@@ -460,8 +476,8 @@ public class ValueAnalysisCPA extends AbstractCPA
       pStatsCollection.add(symbolicStats);
     }
     pStatsCollection.add(constraintsStrengthenOperator);
-    if (predToValPrec.collectedStats()) {
-      pStatsCollection.add(predToValPrec);
+    if (converterToValPrec.collectedStats()) {
+      pStatsCollection.add(converterToValPrec);
     }
     writer.collectStatistics(pStatsCollection);
   }

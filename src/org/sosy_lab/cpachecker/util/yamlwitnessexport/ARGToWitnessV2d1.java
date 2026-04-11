@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Repo
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.FunctionEntryExitPair;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -43,7 +45,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
   }
 
   /**
-   * Create an invariant in the format for witnesses version 3.0 for the abstractions encoded by the
+   * Create an invariant in the format for witnesses version 2.1 for the abstractions encoded by the
    * ARG states
    *
    * @param argStates the ARG states encoding abstractions of the state
@@ -165,7 +167,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
-    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
+    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants();
 
     // Use the collected states to generate invariants
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
@@ -185,7 +187,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
     // If we are exporting to witness version 3.0 then we want to include function contracts
     ImmutableList<FunctionContractCreationResult> functionContractCreationResult =
         handleFunctionContract(
-            statesCollector.functionContractRequires, statesCollector.functionContractEnsures);
+            statesCollector.functionContractRequires(), statesCollector.functionContractEnsures());
     entries.addAll(
         FluentIterable.from(functionContractCreationResult)
             .transform(FunctionContractCreationResult::functionContractEntry));
