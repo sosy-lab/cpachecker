@@ -152,8 +152,7 @@ public class NondeterministicSimulationBuilder {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        newBlocks.add(
-            injectRoundGotoIntoBlock(pOptions, block, labelClauseMap, pBinaryExpressionBuilder));
+        newBlocks.add(injectRoundGotoIntoBlock(block, labelClauseMap, pBinaryExpressionBuilder));
       }
       updatedClauses.add(clause.withBlocks(newBlocks.build()));
     }
@@ -193,7 +192,6 @@ public class NondeterministicSimulationBuilder {
   }
 
   private static SeqThreadStatementBlock injectRoundGotoIntoBlock(
-      MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -202,15 +200,13 @@ public class NondeterministicSimulationBuilder {
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withRoundGoto =
-          tryInjectRoundGotoIntoStatement(
-              pOptions, statement, pLabelClauseMap, pBinaryExpressionBuilder);
+          tryInjectRoundGotoIntoStatement(statement, pLabelClauseMap, pBinaryExpressionBuilder);
       newStatements.add(withRoundGoto);
     }
     return pBlock.withStatements(newStatements.build());
   }
 
   private static SeqThreadStatement tryInjectRoundGotoIntoStatement(
-      MPOROptions pOptions,
       SeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -220,12 +216,8 @@ public class NondeterministicSimulationBuilder {
       // int target is present -> retrieve label by pc from map
       int targetPc = pStatement.targetPc().orElseThrow();
       if (targetPc != ProgramCounterVariables.EXIT_PC) {
-        SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-        // check if the target is a separate loop
-        if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {
-          return injectRoundGotoIntoStatementByTargetPc(
-              targetPc, pStatement, pLabelClauseMap, pBinaryExpressionBuilder);
-        }
+        return injectRoundGotoIntoStatementByTargetPc(
+            targetPc, pStatement, pLabelClauseMap, pBinaryExpressionBuilder);
       }
     }
     if (pStatement.targetGoto().isPresent()) {
