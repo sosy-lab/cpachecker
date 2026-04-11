@@ -107,7 +107,7 @@ public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryM
     SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
     return pStatement.data().getType().isLinkable
         // if the target is a loop start, then backward loop goto must be enabled for linking
-        && !(pTarget.getFirstBlock().isLoopHead() && options.noBackwardLoopGoto())
+        && !SeqThreadStatementClauseUtil.isSeparateLoopStart(options, pTarget)
         // do not link atomic blocks, this is handled by AtomicBlockMerger
         && !(targetBlock.startsAtomicBlock() || targetBlock.startsInAtomicBlock())
         // thread synchronization statements must be directly reachable (via pc) -> no linking
