@@ -31,7 +31,7 @@ public record PrevThreadAssignmentInjector(
     MPORThread activeThread,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap) {
 
-  SeqThreadStatement injectPrevUpdatesIntoStatement(SeqThreadStatement pStatement) {
+  SeqThreadStatement injectPrevThreadUpdatesIntoStatement(SeqThreadStatement pStatement) {
     checkState(options.isPrevThreadVariableRequired());
 
     if (pStatement.targetPc().isPresent()) {

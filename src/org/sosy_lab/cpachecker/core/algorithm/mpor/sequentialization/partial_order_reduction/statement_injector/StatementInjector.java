@@ -90,7 +90,7 @@ public record StatementInjector(
       PrevThreadAssignmentInjector prevThreadAssignmentInjector =
           new PrevThreadAssignmentInjector(
               options, otherThreads.size() + 1, activeThread, labelClauseMap);
-      pStatement = prevThreadAssignmentInjector.injectPrevUpdatesIntoStatement(pStatement);
+      pStatement = prevThreadAssignmentInjector.injectPrevThreadUpdatesIntoStatement(pStatement);
     }
     if (options.abortCommutingContextSwitches()) {
       AbortCommutingContextSwitchesInjector abortCommutingContextSwitches =
