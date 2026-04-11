@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -91,19 +92,25 @@ record SingleActiveThreadFirstInjector(
     if (pStatement.isTargetPcValid()) {
       int targetPc = pStatement.targetPc().orElseThrow();
       SeqThreadStatementClause target = Objects.requireNonNull(labelClauseMap.get(targetPc));
-      // thread_count == 1
-      CBinaryExpression threadCountEqualsOne =
-          binaryExpressionBuilder.buildBinaryExpression(
-              SeqIdExpressions.THREAD_COUNT,
-              SeqIntegerLiteralExpressions.INT_1,
-              BinaryOperator.EQUALS);
-      SeqInstrumentation singleActiveThreadGoto =
-          SeqInstrumentationBuilder.buildGuardedGotoStatement(
-              threadCountEqualsOne,
-              ImmutableList.of(),
-              Objects.requireNonNull(target).getFirstBlock().buildLabelStatement());
-      return SeqThreadStatementUtil.appendedInstrumentationStatement(
-          pStatement, singleActiveThreadGoto);
+      // check if the target is a separate loop
+      if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(options, target)) {
+        // thread_count == 1
+        CBinaryExpression threadCountEqualsOne =
+            binaryExpressionBuilder.buildBinaryExpression(
+                SeqIdExpressions.THREAD_COUNT,
+                SeqIntegerLiteralExpressions.INT_1,
+                BinaryOperator.EQUALS);
+        SeqInstrumentation singleActiveThreadGoto =
+            SeqInstrumentationBuilder.buildGuardedGotoStatement(
+                threadCountEqualsOne,
+                ImmutableList.of(),
+                Objects.requireNonNull(target).getFirstBlock().buildLabelStatement());
+        return SeqThreadStatementUtil.appendedInstrumentationStatement(
+            pStatement, singleActiveThreadGoto);
+      } else {
+        // if the target is a loop head + noBackwardLoopGoto is enabled -> no injection
+        return pStatement;
+      }
     }
     // no valid target pc -> no injection
     return pStatement;
