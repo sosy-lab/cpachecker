@@ -304,6 +304,7 @@ def getToolDataForCloud(benchmark):
 
 def handleCloudResults(benchmark, output_handler, start_time, end_time):
     outputDir = benchmark.log_folder
+    runCollectionId = None
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
         # outputDir does not exist or is empty
         logging.warning(
@@ -330,6 +331,8 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             if os.path.exists(dataFile) and os.path.exists(run.log_file):
                 try:
                     values = parseCloudRunResultFile(dataFile)
+                    if runCollectionId is None and "vcloud-runCollectionId" in values:
+                        runCollectionId = values["vcloud-runCollectionId"]
                     if not benchmark.config.debug:
                         os.remove(dataFile)
                 except IOError as e:
@@ -366,6 +369,13 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                 shutil.move(vcloudFilesDirectory, benchexecFilesDirectory)
 
         output_handler.output_after_run_set(runSet, end_time=end_time)
+
+    if runCollectionId:
+        if benchmark.description:
+            benchmark.description += "\n"
+        else:
+            benchmark.description = ""
+        benchmark.description += "vcloud-runCollectionId=" + runCollectionId
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
