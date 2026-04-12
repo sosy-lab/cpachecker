@@ -59,7 +59,7 @@ public record PrevThreadAssignmentInjector(
 
       if (options.abortPreviousThreadReentry()) {
         // For loop heads that must remain separate, set prev_thread to NUM_THREADS. This is
-        // necessary when abortPreviousReentry is enabled, otherwise the analysis is unsound.
+        // necessary when abortPreviousThreadReentry is enabled, otherwise the analysis is unsound.
         //
         // This is because the 'round < round_max' instrumentation is not placed when the target
         // loop head must remain separate. In this case the thread simulation was not
