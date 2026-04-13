@@ -22,7 +22,7 @@ public enum SvLibSmtLibPredefinedType implements SvLibSmtLibType {
     return switch (this) {
       case INT -> FormulaType.IntegerType;
       case BOOL -> FormulaType.BooleanType;
-      case STRING -> FormulaType.BooleanType;
+      case STRING -> FormulaType.StringType;
       case REAL -> FormulaType.RationalType;
     };
   }
