@@ -582,24 +582,47 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
       ImmutableList<SvLibTerm> termsList = ImmutableList.copyOf(symbolApplicationTerm.getTerms());
       SvLibTerm assignedTo = termsList.getFirst();
-      SvLibTerm value = termsList.get(1);
+      SvLibTerm termToAssign = termsList.get(1);
 
       if (assignedTo instanceof SvLibIdTerm idTerm
           && (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
               || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
-        SvLibSimpleParsingDeclaration assignedToAsDeclaration =
-            new SvLibParsingParameterDeclaration(
-                FileLocation.DUMMY,
-                idTerm.getDeclaration().getType(),
-                idTerm.getDeclaration().getName(),
-                pEdge.getPredecessor().getFunctionName());
+
         SvLibAssignmentStatement assignmentStatement =
-            new SvLibAssignmentStatement(
-                ImmutableMap.of(assignedToAsDeclaration, value),
+            transformTermToAssignmentStatement(
+                idTerm, termToAssign, pEdge.getPredecessor().getFunctionName());
+
+        return Optional.of(assignmentStatement);
+      }
+    } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm outerSymbolApplicationTerm
+        && outerSymbolApplicationTerm.getSymbol().getName().equals("and")
+        && outerSymbolApplicationTerm.getTerms().size() == 2
+        && outerSymbolApplicationTerm.getTerms().getFirst()
+            instanceof SvLibSymbolApplicationTerm innerSymbolApplicationTerm
+        && innerSymbolApplicationTerm.getSymbol().getName().equals("=")
+        && innerSymbolApplicationTerm.getTerms().size() == 2) {
+
+      SvLibTerm assignedTo = innerSymbolApplicationTerm.getTerms().getFirst();
+      SvLibTerm assignedTerm = innerSymbolApplicationTerm.getTerms().get(1);
+      SvLibTerm assumeTerm = outerSymbolApplicationTerm.getTerms().get(1);
+
+      if (assignedTo instanceof SvLibIdTerm idTerm
+          && (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
+              || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
+
+        SvLibAssignmentStatement assignmentStatement =
+            transformTermToAssignmentStatement(
+                idTerm, assignedTerm, pEdge.getPredecessor().getFunctionName());
+        SvLibAssumeStatement assumeStatement =
+            new SvLibAssumeStatement(
+                FileLocation.DUMMY, assumeTerm, ImmutableList.of(), ImmutableList.of());
+
+        return Optional.of(
+            new SvLibSequenceStatement(
+                ImmutableList.of(assignmentStatement, assumeStatement),
                 FileLocation.DUMMY,
                 ImmutableList.of(),
-                ImmutableList.of());
-        return Optional.of(assignmentStatement);
+                ImmutableList.of()));
       }
     }
     throw new UnsupportedOperationException(
@@ -607,6 +630,22 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             + pEdge
             + " and transformed term "
             + pTransformedTerm.toASTString());
+  }
+
+  private SvLibAssignmentStatement transformTermToAssignmentStatement(
+      SvLibIdTerm pIdTerm, SvLibTerm pAssignedTerm, String pFunctionName) {
+    SvLibSimpleParsingDeclaration assignedToAsDeclaration =
+        new SvLibParsingParameterDeclaration(
+            FileLocation.DUMMY,
+            pIdTerm.getDeclaration().getType(),
+            pIdTerm.getDeclaration().getName(),
+            pFunctionName);
+
+    return new SvLibAssignmentStatement(
+        ImmutableMap.of(assignedToAsDeclaration, pAssignedTerm),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   private ImmutableList<SvLibParsingParameterDeclaration> collectReturnParameter(
