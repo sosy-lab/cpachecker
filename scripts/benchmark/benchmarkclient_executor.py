@@ -315,6 +315,9 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
     # Write worker host informations in xml
     parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark)
 
+    # Write description in xml
+    parseAndSetRunDescription(outputDir, benchmark)
+
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
     runsProducedErrorOutput = False
@@ -331,8 +334,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             if os.path.exists(dataFile) and os.path.exists(run.log_file):
                 try:
                     values = parseCloudRunResultFile(dataFile)
-                    if runCollectionId is None and "vcloud-runCollectionId" in values:
-                        runCollectionId = values["vcloud-runCollectionId"]
                     if not benchmark.config.debug:
                         os.remove(dataFile)
                 except IOError as e:
@@ -370,13 +371,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
 
         output_handler.output_after_run_set(runSet, end_time=end_time)
 
-    if runCollectionId:
-        if benchmark.description:
-            benchmark.description += "\n"
-        else:
-            benchmark.description = ""
-        benchmark.description += "vcloud-runCollectionId=" + runCollectionId
-
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
     if not executedAllRuns:
@@ -387,6 +381,29 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             os.path.join(outputDir, "*.stdError"),
         )
 
+def parseAndSetRunDescription(outputDir, benchmark):
+    filePath = os.path.join(outputDir, "runDescription.txt")
+    try:
+        desc_map = {}
+        with open(filePath, "rt") as file:
+            for line in file:
+                line = line.strip()
+                if not line or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                desc_map[key.strip()] = value.strip()
+
+        if desc_map:
+            existing = benchmark.description or ""
+            new_lines = [
+                f"{k}={v}" for k, v in desc_map.items() if v
+            ]
+            if new_lines:
+                benchmark.description = (
+                        existing + ("\n" if existing else "") + "\n".join(new_lines)
+                )
+    except IOError:
+        return None
 
 def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
     filePath = os.path.join(outputDir, "hostInformation.txt")
