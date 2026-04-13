@@ -383,6 +383,8 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
 
 def parseAndSetRunDescription(outputDir, benchmark):
     filePath = os.path.join(outputDir, "runDescription.txt")
+    logging.debug("Parsing run description from %s", filePath)
+
     try:
         desc_map = {}
         with open(filePath, "rt") as file:
@@ -393,17 +395,25 @@ def parseAndSetRunDescription(outputDir, benchmark):
                 key, value = line.split("=", 1)
                 desc_map[key.strip()] = value.strip()
 
+        logging.debug("Parsed run description: %s", desc_map)
+
         if desc_map:
             existing = benchmark.description or ""
-            new_lines = [
-                f"{k}={v}" for k, v in desc_map.items() if v
-            ]
+            new_lines = [f"{k}={v}" for k, v in desc_map.items() if v]
+            logging.debug("New description lines: %s", new_lines)
+
             if new_lines:
                 benchmark.description = (
                         existing + ("\n" if existing else "") + "\n".join(new_lines)
                 )
+
+                logging.debug(
+                    "Final benchmark.description: %s", benchmark.description
+                )
+
     except IOError:
-        return None
+        logging.warning("Run description file not found: %s", filePath)
+
 
 def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
     filePath = os.path.join(outputDir, "hostInformation.txt")
