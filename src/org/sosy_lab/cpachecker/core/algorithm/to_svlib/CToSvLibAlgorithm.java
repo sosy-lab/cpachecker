@@ -697,7 +697,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       }
     } else {
       throw new UnsupportedOperationException(
-          "Transformation to a SvLibType failed for CType " + pCType.toString());
+          "Transformation to a SvLibType failed for CType " + pCType);
     }
   }
 
