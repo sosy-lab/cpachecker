@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -54,6 +53,10 @@ class NextThreadAndNumStatementsNondeterministicSimulation
     Optional<ImmutableList<CExportStatement>> nextThreadStatements =
         tryBuildNextThreadPrecedingStatements(pThread);
 
+    ImmutableList<CCompoundStatementElement> numStatementsNondeterministicStatements =
+        NondeterministicSimulationBuilder.buildNumStatementsNondeterministicPrecedingStatements(
+            options, pThread, utils.binaryExpressionBuilder());
+
     CFunctionCallAssignmentStatement roundMaxNondetAssignment =
         VerifierNondetFunctionType.buildNondetIntegerAssignment(
             options, SeqIdExpressions.ROUND_MAX);
@@ -65,14 +68,13 @@ class NextThreadAndNumStatementsNondeterministicSimulation
                     SeqIdExpressions.ROUND_MAX,
                     SeqIntegerLiteralExpressions.INT_0,
                     BinaryOperator.GREATER_THAN));
-    CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
 
     ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
     nextThreadStatements.ifPresent(l -> rStatements.addAll(l));
     pcStatement.ifPresent(s -> rStatements.add(s));
+    rStatements.addAll(numStatementsNondeterministicStatements);
     rStatements.add(new CStatementWrapper(roundMaxNondetAssignment));
     rStatements.add(new CStatementWrapper(roundMaxGreaterZeroAssumption));
-    rStatements.add(new CStatementWrapper(roundReset));
     return new CCompoundStatement(rStatements.build());
   }
 }
