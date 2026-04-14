@@ -17,4 +17,7 @@ nested_operators/*.yml
 builtin_overflow_functions/*.yml
 multipleCFiles/*.yml
 multipleCFiles/*/*.yml
-../basic/*/*.yml
+witness_output/*.yml
+type_tests/*.yml
+pointer_arithmetics/*.yml
+function_pointers/*.yml

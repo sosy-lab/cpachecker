@@ -31,7 +31,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageWithPointerComplex32Proof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_modified_pointers_in_methods_32_true.c";
+    String testProgram = "simple/arrays/array_usage_modified_pointers_in_methods_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -43,7 +43,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
     doNotTestMemCleanupSpecification();
     doNotTestSMGValueAnalysisConfigurations();
 
-    String testProgram = "basics/pointer_arithmetics/pointer_arithmetics_int_malloc_32_safe.c";
+    String testProgram = "simple/pointer_arithmetics/pointer_arithmetics_int_malloc_32_safe.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -58,7 +58,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
     doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram =
-        "basics/pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_32_safe.c";
+        "simple/pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_32_safe.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -68,7 +68,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void nondetIntegerTypeBoundsProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/type_tests/nondet_generator_integer_types_32_true.c";
+    String testProgram = "simple/type_tests/nondet_generator_integer_types_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -77,7 +77,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void nondetFloatingPointTypeBoundsProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/type_tests/nondet_generator_float_types_32_true.c";
+    String testProgram = "simple/type_tests/nondet_generator_float_types_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -86,7 +86,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_32_true.c";
+    String testProgram = "simple/arrays/array_usage_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -95,7 +95,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_32_false.c";
+    String testProgram = "simple/arrays/array_usage_32_false.c";
     assertThatILP32Program(testProgram).isUnsafe();
   }
 
@@ -104,7 +104,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_methods_32_true.c";
+    String testProgram = "simple/arrays/array_usage_methods_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -113,7 +113,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_methods_32_false.c";
+    String testProgram = "simple/arrays/array_usage_methods_32_false.c";
     assertThatILP32Program(testProgram).isUnsafe();
   }
 
@@ -122,7 +122,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsAsPointersProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_pointers_in_methods_32_true.c";
+    String testProgram = "simple/arrays/array_usage_pointers_in_methods_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -135,7 +135,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
     doNotTestMemCleanupSpecification();
     doNotTestSMGValueAnalysisConfigurations();
 
-    String testProgram = "basics/function_pointers/function_pointers_simple_concrete-false.c";
+    String testProgram = "simple/function_pointers/function_pointers_simple_concrete-false.c";
     assertThatILP32Program(testProgram).isUnsafe();
   }
 
@@ -148,7 +148,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
     doNotTestMemCleanupSpecification();
     doNotTestSMGValueAnalysisConfigurations();
 
-    String testProgram = "basics/function_pointers/function_pointers_simple_concrete-true.c";
+    String testProgram = "simple/function_pointers/function_pointers_simple_concrete-true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 
@@ -162,7 +162,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
     doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram =
-        "basics/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
+        "simple/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
     assertThatILP32Program(testProgram).isUnsafe();
   }
 
@@ -176,7 +176,7 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
     doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram =
-        "basics/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
+        "simple/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
 }
