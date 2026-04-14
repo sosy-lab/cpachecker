@@ -494,6 +494,9 @@ analysis.algorithm.terminationToSafety = false
 # termination
 analysis.algorithm.terminationWitnessCheck = false
 
+# This algorithm transforms a C program to a SV-LIB script. 
+analysis.algorithm.transformToSvLib = false
+
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
 

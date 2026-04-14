@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlg
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.to_svlib.CToSvLibAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -463,6 +464,12 @@ public class CoreComponentsFactory {
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
+  @Option(
+      secure = true,
+      name = "algorithm.transformToSvLib",
+      description = "This algorithm transforms a C program to a SV-LIB script. ")
+  private boolean useTransformationToSvLib = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -578,6 +585,8 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
+    } else if (useTransformationToSvLib) {
+      algorithm = new CToSvLibAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (analysisSequentializesCfa()) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere
@@ -967,6 +976,7 @@ public class CoreComponentsFactory {
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
         || useRandomTestCaseGeneratorAlgorithm
+        || useTransformationToSvLib
         || analysisSequentializesCfa()) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
