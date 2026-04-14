@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.test;
 
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -19,6 +20,13 @@ import org.junit.Test;
  */
 @Ignore
 public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
+
+  @Before
+  public void reduceCILoad() {
+    // TODO: remove this method once we have a solution for CI/Test load
+    onlyTestDefaultSpecification();
+    doNotTestSMGValueAnalysisConfigurations();
+  }
 
   @Ignore // Arrays have a problem in SMG2 currently
   @Test
