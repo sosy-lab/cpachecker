@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.test;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
@@ -59,7 +60,7 @@ public abstract class SMGCPAIntegrationTest0 {
     },
     GRAPHML_CORRECTNESS,
     YML_VIOLATION,
-    YML_CORRECTNESS;
+    YML_CORRECTNESS
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -304,9 +305,7 @@ public abstract class SMGCPAIntegrationTest0 {
 
       checkWitnessType(witness, witnessType);
 
-      if (stringContainedInWitness != null
-          && !stringContainedInWitness.isEmpty()
-          && !witness.contains(stringContainedInWitness)) {
+      if (!isNullOrEmpty(stringContainedInWitness) && !witness.contains(stringContainedInWitness)) {
         failWithActual(
             Fact.fact("witness expected to contain", stringContainedInWitness),
             Fact.simpleFact("but did not contain the wanted string"),
@@ -315,7 +314,7 @@ public abstract class SMGCPAIntegrationTest0 {
     }
 
     private void checkWitnessType(String witnessContent, WitnessType expectedWitnessType) {
-      if (witnessContent == null || witnessContent.isEmpty()) {
+      if (isNullOrEmpty(witnessContent)) {
         failWithoutActual(
             Fact.fact("witness expected to be", expectedWitnessType.name()),
             Fact.fact("but was null or empty:", witnessContent));
