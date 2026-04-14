@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstP
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class CToSvLibAlgorithmTest {
@@ -61,6 +62,22 @@ public class CToSvLibAlgorithmTest {
 
     String scriptAsString = script.toASTString();
     SvLibToAstParser.parseScript(scriptAsString);
+  }
+
+  // *********************************** Test for config file ***********************************
+  private void transformationConfigFileTest(Path pInputFilePath) throws Exception {
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .loadFromFile(Path.of("config/transformToSvLib.properties"))
+            .build();
+
+    CPATestRunner.run(config, pInputFilePath.toString());
+  }
+
+  @Test
+  public void testSimple_File() throws Exception {
+    Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "simple-division.c");
+    transformationConfigFileTest(inputFilePath);
   }
 
   // *********************************** ToSvLibTransformation ***********************************
