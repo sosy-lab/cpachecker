@@ -8,11 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.transformation.SubCFA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -45,6 +49,27 @@ public class LocationTransferRelation implements TransferRelation {
       throws CPATransferException {
 
     CFANode node = ((LocationState) element).getLocationNode();
-    return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
+    ImmutableList<LocationState>
+        successors = CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
+    if (prec instanceof LocationPrecision locPrec) {
+      if (locPrec.hasProgramTransformations()) {
+        // when program transformations are present use the precision to select abstract successors
+        Builder<LocationState> successorBuilder = ImmutableList.builder();
+        for (LocationState successor : successors) {
+          Optional<SubCFA> successorProgramTransformation = locPrec.isPartOfProgramTransformation(successor.getLocationNode());
+          if (successorProgramTransformation.isPresent()) {
+            // only add program transformation successor nodes if they are in the allowed precision set
+            if(locPrec.getAllowedProgramTransformations().contains(successorProgramTransformation.get()))
+              successorBuilder.add(successor);
+          } else {
+            // always add successor nodes of the original CFA
+            successorBuilder.add(successor);
+          }
+        }
+        return successorBuilder.build();
+      }
+      // when no program transformations are present return all successors
+    }
+      return successors;
   }
 }

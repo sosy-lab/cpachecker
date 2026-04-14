@@ -37,12 +37,12 @@ public class LocationCPA extends AbstractCPA
 
   private final LocationStateFactory stateFactory;
   private final LocationPrecision initialPrecision;
-  private final boolean hasProgramTransformations;
 
   private LocationCPA(LocationStateFactory pStateFactory, CFA pCFA) {
     super("sep", "sep", new LocationTransferRelation(pStateFactory));
     stateFactory = pStateFactory;
-    hasProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().isPresent();
+    boolean hasProgramTransformations =
+        pCFA.getMetadata().getNodesToProgramTransformations().isPresent();
     Builder<SubCFA> programTransformations = ImmutableSet.builder();
     if(hasProgramTransformations){
       Collection<ProgramTransformationInformation> programTransformationInformations = pCFA.getMetadata().getNodesToProgramTransformations().get().values();
