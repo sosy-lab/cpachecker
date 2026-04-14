@@ -14,8 +14,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
-import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest0.ProgramSubject.assertUsing;
-import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest0.WitnessType.GRAPHML_VIOLATION;
+import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.ProgramSubject.assertUsing;
+import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.WitnessType.GRAPHML_VIOLATION;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Fact;
@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
  * common specifications.
  */
 @RunWith(Parameterized.class)
-public abstract class SMGBaseCPATest0 {
+public abstract class SMGCPAIntegrationTest0 {
 
   enum WitnessType {
     GRAPHML_VIOLATION {
@@ -183,9 +183,9 @@ public abstract class SMGBaseCPATest0 {
    * Checks assertions about the verification result of a ILP32 program given via its path with
    * {@link com.google.common.truth.Truth}: <code>assertThatILP32Program(pathToProgram).is...()
    * </code>, with e.g. <code>isSafe()</code>, <code>isUnsafe()</code> etc. The verification used is
-   * defined via the current test parameters as defined in {@link SMGBaseCPATest0}. You can disable
+   * defined via the current test parameters as defined in {@link SMGCPAIntegrationTest0}. You can disable
    * certain {@link Configuration}s via methods like {@link
-   * SMGBaseCPATest0#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
+   * SMGCPAIntegrationTest0#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
    *
    * @param pathToProgram path to a ILP32 test program, e.g.
    *     'test/programs/basics/array_tests/array_usage_32_true.c'. The common path-prefix
@@ -201,9 +201,9 @@ public abstract class SMGBaseCPATest0 {
    * Checks assertions about the verification result of a LP64 program given via its path with
    * {@link com.google.common.truth.Truth}: <code>assertThatLP64Program(pathToProgram).is...()
    * </code>, with e.g. <code>isSafe()</code>, <code>isUnsafe()</code> etc. The verification used is
-   * defined via the current test parameters as defined in {@link SMGBaseCPATest0}. You can disable
+   * defined via the current test parameters as defined in {@link SMGCPAIntegrationTest0}. You can disable
    * certain {@link Configuration}s via methods like {@link
-   * SMGBaseCPATest0#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
+   * SMGCPAIntegrationTest0#doNotTestOverflowSpecification()}, or {@link TruthJUnit#assume()} statements.
    *
    * @param pathToProgram path to a LP64 program, e.g.
    *     'test/programs/basics/array_tests/array_usage_64_true.c'. The common path-prefix

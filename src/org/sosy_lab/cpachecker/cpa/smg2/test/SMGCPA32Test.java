@@ -17,7 +17,7 @@ import org.junit.Test;
  * MemSafety, MemCleanup, No-Overflow, in two configurations; SMG based Symbolic Execution and SMG
  * based Value Analysis.
  */
-public class SMGCPA32Test extends SMGBaseCPATest0 {
+public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
 
   @Ignore // Arrays have a problem in SMG2 currently
   @Test

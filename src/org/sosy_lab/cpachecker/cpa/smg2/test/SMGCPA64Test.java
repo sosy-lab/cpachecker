@@ -18,7 +18,7 @@ import org.junit.Test;
  * Analysis.
  */
 @Ignore
-public class SMGCPA64Test extends SMGBaseCPATest0 {
+public class SMGCPA64Test extends SMGCPAIntegrationTest0 {
 
   @Ignore // Arrays have a problem in SMG2 currently
   @Test
