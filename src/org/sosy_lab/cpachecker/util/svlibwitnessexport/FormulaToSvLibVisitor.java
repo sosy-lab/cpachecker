@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -162,6 +163,19 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
       return new SvLibIdTerm(
           SmtLibTheoryDeclarations.arrayStore(pArrayType.getKeysType(), pArrayType.getValuesType()),
           FileLocation.DUMMY);
+    } else if (pReturnType == SvLibSmtLibPredefinedType.BOOL
+        && pArgTypes.size() == 2
+        && FluentIterable.from(pArgTypes).allMatch(type -> type instanceof SvLibSmtLibBitVectorType)
+        && pArgTypes.getFirst() instanceof SvLibSmtLibBitVectorType bitVector) {
+      int size = bitVector.getSize();
+
+      return switch (actualName) {
+        case "=" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorEquality(size, size), FileLocation.DUMMY);
+        // FIXME Add more cases
+        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+      };
     }
 
     throw new UnsupportedOperationException("Unknown formula type: " + pName);

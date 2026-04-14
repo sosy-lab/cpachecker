@@ -14,6 +14,7 @@ import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -253,6 +254,163 @@ public class SmtLibTheoryDeclarations {
             new SvLibSmtLibArrayType(indexType, elementType)),
         "store",
         "store",
+        ImmutableList.of());
+  }
+
+  /** Bit Vector stuff */
+  public static SvLibFunctionDeclaration bitVectorBitwiseNegation(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(pSize)),
+        "bvnot",
+        "bvnot",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorComplemetNegation(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(pSize)),
+        "bvneg",
+        "bvneg",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorEquality(int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "=",
+        "=",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorUnsignedLessThan(
+      int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "bvult",
+        "bvult",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorAnd(int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            new SvLibSmtLibBitVectorType(pSizeFirst)),
+        "bvand",
+        "bvand",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorOr(int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            new SvLibSmtLibBitVectorType(pSizeFirst)),
+        "bvor",
+        "bvor",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorAdd(int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            new SvLibSmtLibBitVectorType(pSizeFirst)),
+        "bvadd",
+        "bvadd",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorMul(int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            new SvLibSmtLibBitVectorType(pSizeFirst)),
+        "bvmul",
+        "bvmul",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorUnsignedDivision(
+      int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            new SvLibSmtLibBitVectorType(pSizeFirst)),
+        "bvudiv",
+        "bvudiv",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorUnsignedRemainder(
+      int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            new SvLibSmtLibBitVectorType(pSizeFirst)),
+        "bvurem",
+        "bvurem",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorShiftLeft(int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            new SvLibSmtLibBitVectorType(pSizeFirst)),
+        "bvshl",
+        "bvshl",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorLogicalShiftRight(
+      int pSizeFirst, int pSizeSecond) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSizeFirst),
+                new SvLibSmtLibBitVectorType(pSizeSecond)),
+            new SvLibSmtLibBitVectorType(pSizeFirst)),
+        "bvlshr",
+        "bvlshr",
         ImmutableList.of());
   }
 }

@@ -11,7 +11,11 @@ package org.sosy_lab.cpachecker.cfa.types.svlib;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public sealed interface SvLibSmtLibType extends SvLibType
-    permits SvLibAnyType, SvLibCustomType, SvLibSmtLibArrayType, SvLibSmtLibPredefinedType {
+    permits SvLibAnyType,
+        SvLibCustomType,
+        SvLibSmtLibArrayType,
+        SvLibSmtLibBitVectorType,
+        SvLibSmtLibPredefinedType {
 
   FormulaType<?> toFormulaType();
 }
