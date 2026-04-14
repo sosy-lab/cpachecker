@@ -179,4 +179,19 @@ public class SMGCPA64Test extends SMGBaseCPATest0 {
         "basics/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
+
+  @Ignore
+  @Test
+  public void violationWitnessV1LongOutputTest() throws Exception {
+    onlyTestDefaultSpecification();
+    onlyTestSMGSymbolicExecutionConfiguration();
+    String testProgram = "basics/witness_output/simple_assignment_long_64_false.c";
+    // TODO: extend returnsViolationWitnessV1Containing() with expected line/location
+    // TODO: extend with "containingAssignment" that automatically resolves assumptions (w
+    // lines/location)
+    // The witness MUST have the assignment of '4294967294U' to 'uint_from_char'
+    assertThatLP64Program(testProgram)
+        .returnsViolationWitnessV1Containing(
+            "<data key=\"assumption\">uint_from_char == (4294967294U);</data>");
+  }
 }

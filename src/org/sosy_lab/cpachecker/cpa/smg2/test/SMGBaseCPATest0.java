@@ -10,10 +10,12 @@ package org.sosy_lab.cpachecker.cpa.smg2.test;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest0.ProgramSubject.assertUsing;
+import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGBaseCPATest0.WitnessType.GRAPHML_VIOLATION;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Fact;
@@ -23,13 +25,18 @@ import com.google.common.truth.Subject;
 import com.google.common.truth.TruthJUnit;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -42,6 +49,20 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
  */
 @RunWith(Parameterized.class)
 public abstract class SMGBaseCPATest0 {
+
+  enum WitnessType {
+    GRAPHML_VIOLATION {
+      @Override
+      public String toString() {
+        return "witness.graphml";
+      }
+    },
+    GRAPHML_CORRECTNESS,
+    YML_VIOLATION,
+    YML_CORRECTNESS;
+  }
+
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   /**
    * The default configuration files to use for running SMG2 as Symbolic Execution and Value
@@ -131,6 +152,22 @@ public abstract class SMGBaseCPATest0 {
   }
 
   /**
+   * Skips all specifications for a test except the default specification, starting from the
+   * position this method is used.
+   */
+  protected void onlyTestDefaultSpecification() {
+    assume().that(specToUse).isEqualTo(DEFAULT_SPECIFICATION);
+  }
+
+  /**
+   * Skips all configurations for a test except the smgSymbolicExecution configuration, starting
+   * from the position this method is used.
+   */
+  protected void onlyTestSMGSymbolicExecutionConfiguration() {
+    assume().that(configToUse).isEqualTo(SMG_SYMBOLIC_EXECUTION);
+  }
+
+  /**
    * Skips the MemCleanup specification for a test, starting from the position this method is used.
    */
   protected void doNotTestMemCleanupSpecification() {
@@ -180,7 +217,8 @@ public abstract class SMGBaseCPATest0 {
 
   private ProgramSubject assertThatProgram(String pathToProgram, MachineModel pMachineModel)
       throws IOException, InvalidConfigurationException {
-    return assertUsing(buildConfigForC(configToUse, specToUse, pMachineModel)).that(pathToProgram);
+    return assertUsing(buildConfigForC(configToUse, specToUse, pMachineModel), tempFolder)
+        .that(pathToProgram);
   }
 
   /**
@@ -194,50 +232,174 @@ public abstract class SMGBaseCPATest0 {
    */
   public static final class ProgramSubject extends Subject {
 
-    private final Configuration analysis;
+    private final Configuration config;
     private final String programPath;
+    private final TemporaryFolder tempFolder;
 
     private ProgramSubject(
-        FailureMetadata pMetadata, String pProgramPath, Configuration pAnalysis) {
+        FailureMetadata pMetadata,
+        String pProgramPath,
+        Configuration pConfig,
+        TemporaryFolder pTemporaryFolder) {
       super(pMetadata, pProgramPath);
       programPath = addProgramPathPrefixIfNeeded(checkNotNull(pProgramPath));
-      analysis = checkNotNull(pAnalysis);
+      config = checkNotNull(pConfig);
+      tempFolder = pTemporaryFolder;
     }
 
     /** Check that the analysis result of the program is SAFE in the current analysis. */
     public void isSafe() throws Exception {
-      isExpectedResult(Result.TRUE, "TRUE (safe program for chosen specification)");
+      verifySafeResult();
+    }
+
+    private void verifySafeResult() throws Exception {
+      isExpectedResult(runAnalysis(), Result.TRUE, "TRUE (safe program for chosen specification)");
     }
 
     /** Check that the analysis result of the program is UNSAFE in the current analysis. */
     public void isUnsafe() throws Exception {
-      isExpectedResult(Result.FALSE, "FALSE (violation found in program for chosen specification)");
+      verifyUnsafeResult(runAnalysis());
+    }
+
+    private void verifyUnsafeResult(TestResults verificationResult) throws Exception {
+      isExpectedResult(
+          verificationResult,
+          Result.FALSE,
+          "FALSE (violation found in program for chosen specification)");
     }
 
     /** Check that the analysis result of the program is UNKNOWN in the current analysis. */
     public void isUnknown() throws Exception {
-      isExpectedResult(Result.UNKNOWN, "UNKNOWN");
+      verifyUnknownResult();
+    }
+
+    private void verifyUnknownResult() throws Exception {
+      isExpectedResult(runAnalysis(), Result.UNKNOWN, "UNKNOWN");
     }
 
     /**
-     * Check that the subject is a certain result, returning an error with the String when failing.
+     * Check that the analysis result of the program is UNSAFE in the current analysis, and that a
+     * graphml violation witness is returned that contains the given string.
      */
-    public void isExpectedResult(Result expectedResult, String expectedResultString)
+    public void returnsViolationWitnessV1Containing(String stringContainedInWitness)
         throws Exception {
+      returnsWitnessContaining(stringContainedInWitness, GRAPHML_VIOLATION);
+    }
+
+    private void returnsWitnessContaining(String stringContainedInWitness, WitnessType witnessType)
+        throws Exception {
+      TestResults res = runAnalysisWithOutputFiles();
+      verifyUnsafeResult(res);
+      // TODO: do we need statistics?
+      // res.getCheckerResult().printStatistics(statisticsStream);
+      res.getCheckerResult().writeOutputFiles();
+      String witness =
+          getWitnessContentCheckingOutputCorrectness(
+              res, getDefaultWitnessOutputPathFor(witnessType));
+
+      assertThat(witness).contains("<data key=\"sourcecodelang\">C</data>");
+      assertThat(witness).contains("<data key=\"witness-type\">violation_witness</data>");
+
+      checkWitnessType(witness, witnessType);
+
+      if (stringContainedInWitness != null
+          && !stringContainedInWitness.isEmpty()
+          && !witness.contains(stringContainedInWitness)) {
+        failWithActual(
+            Fact.fact("witness expected to contain", stringContainedInWitness),
+            Fact.simpleFact("but did not contain the wanted string"),
+            Fact.fact("with witness", witness));
+      }
+    }
+
+    private void checkWitnessType(String witnessContent, WitnessType expectedWitnessType) {
+      if (witnessContent == null || witnessContent.isEmpty()) {
+        failWithoutActual(
+            Fact.fact("witness expected to be", expectedWitnessType.name()),
+            Fact.fact("but was null or empty:", witnessContent));
+      }
+
+      WitnessType actualWitnessType = getWitnessType(witnessContent);
+      if (actualWitnessType != expectedWitnessType) {
+        failWithActual(
+            Fact.fact("witness expected to be", expectedWitnessType.name()),
+            Fact.fact("but was", actualWitnessType.name()));
+      }
+    }
+
+    // TODO:
+    private WitnessType getWitnessType(String witnessContent) {
+      checkNotNull(witnessContent);
+      if (witnessContent.contains("<data key=\"sourcecodelang\">C</data>")) {
+        if (witnessContent.contains("<data key=\"witness-type\">violation_witness</data>")) {
+          return GRAPHML_VIOLATION;
+        }
+      }
+      throw new UnsupportedOperationException("implement me");
+    }
+
+    private Path getDefaultWitnessOutputPathFor(WitnessType witnessTypeForName) {
+      return Path.of(tempFolder.getRoot().getAbsolutePath(), witnessTypeForName.toString());
+    }
+
+    private String getWitnessContentCheckingOutputCorrectness(
+        TestResults pResult, Path pWitnessOutputPath) throws IOException {
+
+      // No CFA -> no witness
+      CFA cfa = pResult.getCheckerResult().getCfa();
+      if (cfa == null) {
+        failWithoutActual(
+            Fact.fact("CFA should be present in the result when witnesses are requested", cfa));
+      }
+
+      if (!Files.exists(pWitnessOutputPath)) {
+        failWithoutActual(Fact.fact("No witness could be found using path", pWitnessOutputPath));
+      }
+
+      // Read entire file content as a single string (UTF-8)
+      // This is safe to do, since the witness files are small.
+      return checkNotNull(Files.readString(pWitnessOutputPath));
+    }
+
+    private TestResults runAnalysis() throws Exception {
+      return runAnalysis(config);
+    }
+
+    /**
+     * Runs the analysis and sets the "output.path" option to the absolute path of this subjects
+     * current tempFolder
+     */
+    private TestResults runAnalysisWithOutputFiles() throws Exception {
+      Configuration configWithOutputFiles =
+          Configuration.builder()
+              .copyFrom(config)
+              .setOption("output.path", tempFolder.getRoot().getAbsolutePath())
+              .build();
+      return runAnalysis(configWithOutputFiles);
+    }
+
+    private TestResults runAnalysis(Configuration configToRun) throws Exception {
       // Check that the file exists and is a C file before running
       checkArgument(
           programPath.endsWith(".i") || programPath.endsWith(".c"),
           "Test program file ending does not match allowed C files endings '.c' or '.i'");
       checkArgument(
           new File(programPath).isFile(), "Test program could not be found: %s", programPath);
-      TestResults results = CPATestRunner.run(analysis, programPath);
-      Result verdict = results.getCheckerResult().getResult();
+      return CPATestRunner.run(configToRun, programPath);
+    }
+
+    /**
+     * Check that the subject is a certain result, returning an error with the String when failing.
+     */
+    public void isExpectedResult(
+        TestResults actualResult, Result expectedResult, String expectedResultString) {
+      Result verdict = actualResult.getCheckerResult().getResult();
 
       if (verdict == expectedResult) {
         return;
       }
 
-      String log = checkNotNull(results.getLog()).trim();
+      String log = checkNotNull(actualResult.getLog()).trim();
       if (verdict == Result.NOT_YET_STARTED) {
         failWithoutActual(
             Fact.fact("analysis result expected to be", expectedResultString),
@@ -248,7 +410,7 @@ public abstract class SMGBaseCPATest0 {
       failWithActual(
           Fact.fact("analysis result expected to be", expectedResultString),
           Fact.fact("but was", verdict),
-          Fact.fact("due to", results.getCheckerResult().getTargetDescription()),
+          Fact.fact("due to", actualResult.getCheckerResult().getTargetDescription()),
           Fact.fact("which has log", log));
     }
 
@@ -257,8 +419,8 @@ public abstract class SMGBaseCPATest0 {
      * assertUsing(context)).that(formula).is...()</code>.
      */
     public static SimpleSubjectBuilder<ProgramSubject, String> assertUsing(
-        final Configuration analysis) {
-      return assert_().about(programSubjectOf(analysis));
+        final Configuration analysis, final TemporaryFolder temporaryFolder) {
+      return assert_().about(programSubjectOf(analysis, temporaryFolder));
     }
 
     /**
@@ -266,8 +428,9 @@ public abstract class SMGBaseCPATest0 {
      * Truth: <code>assert_().about(programSubjectOf(analysis)).that(pathToProgram).is...()</code>.
      */
     public static Subject.Factory<ProgramSubject, String> programSubjectOf(
-        final Configuration analysis) {
-      return (metadata, pathToProgram) -> new ProgramSubject(metadata, pathToProgram, analysis);
+        final Configuration analysis, final TemporaryFolder temporaryFolder) {
+      return (metadata, pathToProgram) ->
+          new ProgramSubject(metadata, pathToProgram, analysis, temporaryFolder);
     }
   }
 }
