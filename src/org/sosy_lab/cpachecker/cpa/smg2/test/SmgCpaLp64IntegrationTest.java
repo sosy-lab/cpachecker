@@ -12,19 +12,20 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Test class to execute the SMG2-CPA with ILP32 test programs. All programs listed here are
- * executed for all valid specifications supported by the SMG2-CPA, i.e. default specification,
- * MemSafety, MemCleanup, No-Overflow, in two configurations; SMG based Symbolic Execution and SMG
- * based Value Analysis.
+ * Test class to execute the SMG2-CPA with LP64 test programs. All programs listed here are executed
+ * for all valid specifications supported by the SMG2-CPA, i.e. default specification, MemSafety,
+ * MemCleanup, No-Overflow, in two configurations; SMG based Symbolic Execution and SMG based Value
+ * Analysis.
  */
-public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
+@Ignore
+public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
 
   @Ignore // Arrays have a problem in SMG2 currently
   @Test
-  public void arrayUsageWithPointerComplex32Proof() throws Exception {
+  public void arrayUsageWithPointerComplex64Proof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_modified_pointers_in_methods_32_true.c";
-    assertThatILP32Program(testProgram).isSafe();
+    String testProgram = "basics/arrays/array_usage_modified_pointers_in_methods_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
   }
 
   @Test
@@ -35,12 +36,10 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
     doNotTestMemCleanupSpecification();
     doNotTestSMGValueAnalysisConfigurations();
 
-    String testProgram = "basics/pointer_arithmetics/pointer_arithmetics_int_malloc_32_safe.c";
-    assertThatILP32Program(testProgram).isSafe();
+    String testProgram = "basics/pointer_arithmetics/pointer_arithmetics_int_malloc_64_safe.c";
+    assertThatLP64Program(testProgram).isSafe();
   }
 
-  // Tests casting of pointers to numeric values + pointer arithmetics and comparisons,
-  //  as well as their correctness in relation to memory layout
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrCastNumericViaMallocProof() throws Exception {
     doNotTestOverflowSpecification();
@@ -50,8 +49,8 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
     doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram =
-        "basics/pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_32_safe.c";
-    assertThatILP32Program(testProgram).isSafe();
+        "basics/pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_64_safe.c";
+    assertThatLP64Program(testProgram).isSafe();
   }
 
   // Tests that (integer) types are not comparable to values from larger types,
@@ -60,8 +59,8 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
   @Test
   public void nondetIntegerTypeBoundsProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/type_tests/nondet_generator_integer_types_32_true.c";
-    assertThatILP32Program(testProgram).isSafe();
+    String testProgram = "basics/type_tests/nondet_generator_integer_types_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
   }
 
   // Tests that (float) types are not comparable to values from larger types
@@ -69,8 +68,8 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
   @Test
   public void nondetFloatingPointTypeBoundsProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/type_tests/nondet_generator_float_types_32_true.c";
-    assertThatILP32Program(testProgram).isSafe();
+    String testProgram = "basics/type_tests/nondet_generator_float_types_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
   }
 
   // Tests basic usage of arrays with constants
@@ -78,8 +77,8 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_32_true.c";
-    assertThatILP32Program(testProgram).isSafe();
+    String testProgram = "basics/arrays/array_usage_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
   }
 
   // Tests basic usage of arrays with constants
@@ -87,8 +86,8 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_32_false.c";
-    assertThatILP32Program(testProgram).isUnsafe();
+    String testProgram = "basics/arrays/array_usage_64_false.c";
+    assertThatLP64Program(testProgram).isUnsafe();
   }
 
   // Tests basic usage of arrays in methods with constants
@@ -96,8 +95,8 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_methods_32_true.c";
-    assertThatILP32Program(testProgram).isSafe();
+    String testProgram = "basics/arrays/array_usage_methods_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
   }
 
   // Tests basic usage of arrays in methods with constants
@@ -105,8 +104,8 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsViolation() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_methods_32_false.c";
-    assertThatILP32Program(testProgram).isUnsafe();
+    String testProgram = "basics/arrays/array_usage_methods_64_false.c";
+    assertThatLP64Program(testProgram).isUnsafe();
   }
 
   // Tests basic usage of arrays in methods as pointers with constants
@@ -114,8 +113,17 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsAsPointersProof() throws Exception {
     doNotTestOverflowSpecification();
-    String testProgram = "basics/arrays/array_usage_pointers_in_methods_32_true.c";
-    assertThatILP32Program(testProgram).isSafe();
+    String testProgram = "basics/arrays/array_usage_pointers_in_methods_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  // Tests basic usage of arrays in methods as pointers with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageInMethodsAsPointersViolation() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "basics/arrays/array_usage_pointers_in_methods_64_false.c";
+    assertThatLP64Program(testProgram).isUnsafe();
   }
 
   // Tests basic usage of function pointers
@@ -128,7 +136,7 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
     doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram = "basics/function_pointers/function_pointers_simple_concrete-false.c";
-    assertThatILP32Program(testProgram).isUnsafe();
+    assertThatLP64Program(testProgram).isUnsafe();
   }
 
   // Tests basic usage of function pointers
@@ -141,7 +149,7 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
     doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram = "basics/function_pointers/function_pointers_simple_concrete-true.c";
-    assertThatILP32Program(testProgram).isSafe();
+    assertThatLP64Program(testProgram).isSafe();
   }
 
   // Tests basic usage of function pointers in/from functions
@@ -155,7 +163,7 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
 
     String testProgram =
         "basics/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
-    assertThatILP32Program(testProgram).isUnsafe();
+    assertThatLP64Program(testProgram).isUnsafe();
   }
 
   // Tests basic usage of function pointers in/from functions
@@ -169,6 +177,21 @@ public class SMGCPA32Test extends SMGCPAIntegrationTest0 {
 
     String testProgram =
         "basics/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
-    assertThatILP32Program(testProgram).isSafe();
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  @Ignore
+  @Test
+  public void violationWitnessV1LongOutputTest() throws Exception {
+    onlyTestDefaultSpecification();
+    onlyTestSMGSymbolicExecutionConfiguration();
+    String testProgram = "basics/witness_output/simple_assignment_long_64_false.c";
+    // TODO: extend returnsViolationWitnessV1Containing() with expected line/location
+    // TODO: extend with "containingAssignment" that automatically resolves assumptions (w
+    // lines/location)
+    // The witness MUST have the assignment of '4294967294U' to 'uint_from_char'
+    assertThatLP64Program(testProgram)
+        .returnsViolationWitnessV1Containing(
+            "<data key=\"assumption\">uint_from_char == (4294967294U);</data>");
   }
 }
