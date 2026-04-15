@@ -21,9 +21,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -42,8 +45,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 /**
  * Contains methods that can be used to build thread simulations based on the specified {@link
@@ -157,11 +162,34 @@ public class NondeterministicSimulationBuilder {
 
   // round and round_max injections ================================================================
 
-  /** Returns the expression for {@code round = 1;} */
-  static CExpressionAssignmentStatement buildRoundReset() {
+  static ImmutableList<CCompoundStatementElement>
+      buildNumStatementsNondeterministicPrecedingStatements(
+          MPOROptions pOptions,
+          MPORThread pThread,
+          CBinaryExpressionBuilder pBinaryExpressionBuilder)
+          throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<CCompoundStatementElement> precedingStatements = ImmutableList.builder();
+
+    if (pOptions.abortPreviousThreadReentry()) {
+      // assume(prev_thread != current_thread_id);
+      CIntegerLiteralExpression threadIdExpression =
+          SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id());
+      CBinaryExpression prevThreadUnequalCurrentThread =
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              SeqIdExpressions.PREV_THREAD, threadIdExpression, BinaryOperator.NOT_EQUALS);
+      CFunctionCallStatement assumeCall =
+          SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(prevThreadUnequalCurrentThread);
+      precedingStatements.add(new CStatementWrapper(assumeCall));
+    }
+
     // r is set to 1, because we increment after the r < K check succeeds
-    return SeqStatementBuilder.buildExpressionAssignmentStatement(
-        SeqIdExpressions.ROUND, SeqIntegerLiteralExpressions.INT_1);
+    CExpressionAssignmentStatement roundReset =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
+            SeqIdExpressions.ROUND, SeqIntegerLiteralExpressions.INT_1);
+    precedingStatements.add(new CStatementWrapper(roundReset));
+
+    return precedingStatements.build();
   }
 
   private static SeqThreadStatementBlock injectRoundGotoIntoBlock(

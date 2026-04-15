@@ -197,12 +197,10 @@ public abstract class NondeterministicSimulation {
         CIfStatement abortCommutingContextSwitchesStatement =
             new AbortCommutingContextSwitchesInjector(
                     options,
-                    clauses.size(),
                     pThread,
                     labelClauseMap,
                     labelBlockMap,
                     ghostElements.bitVectorVariables().orElseThrow(),
-                    machineModel,
                     memoryModel.orElseThrow(),
                     utils)
                 .buildAbortCommutingContextSwitchesStatement(pThread);
