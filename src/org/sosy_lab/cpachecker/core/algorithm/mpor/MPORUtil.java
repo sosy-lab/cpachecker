@@ -310,6 +310,24 @@ public final class MPORUtil {
         "could not extract field member from the given CType: " + pType.toASTString(""), null);
   }
 
+  /**
+   * Converts the given {@link CSimpleDeclaration} to a {@link CVariableDeclaration}.
+   *
+   * @throws IllegalArgumentException if {@link CSimpleDeclaration} is not a {@link
+   *     CVariableDeclaration} or {@link CParameterDeclaration} because only those can be converted.
+   */
+  public static CVariableDeclaration convertToVariableDeclaration(
+      CSimpleDeclaration pSimpleDeclaration) {
+
+    checkArgument(
+        pSimpleDeclaration instanceof CVariableDeclaration
+            || pSimpleDeclaration instanceof CParameterDeclaration,
+        "pSimpleDeclaration must be CVariableDeclaration or CParameterDeclaration");
+    return pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration
+        ? variableDeclaration
+        : ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
+  }
+
   // Collections ===================================================================================
 
   /**

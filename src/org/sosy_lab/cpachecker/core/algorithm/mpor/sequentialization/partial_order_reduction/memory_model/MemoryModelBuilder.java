@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
-import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableCollection;
@@ -29,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -477,7 +475,8 @@ public record MemoryModelBuilder(
       case CIdExpression idExpression ->
           Optional.of(
               getMemoryLocationByDeclaration(
-                  pCallContext, toVariableDeclaration(idExpression.getDeclaration())));
+                  pCallContext,
+                  MPORUtil.convertToVariableDeclaration(idExpression.getDeclaration())));
       case CFieldReference fieldReference ->
           Optional.of(extractFieldReferenceMemoryLocation(pCallContext, fieldReference));
       case CUnaryExpression unaryExpression ->
@@ -498,7 +497,9 @@ public record MemoryModelBuilder(
         MPORUtil.recursivelyFindFieldMemberByFieldOwner(
             pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
     return getMemoryLocationByFieldReference(
-        pCallContext, toVariableDeclaration(fieldOwner.getDeclaration()), fieldMember);
+        pCallContext,
+        MPORUtil.convertToVariableDeclaration(fieldOwner.getDeclaration()),
+        fieldMember);
   }
 
   private SeqMemoryLocation getMemoryLocationByDeclaration(
@@ -551,17 +552,5 @@ public record MemoryModelBuilder(
       }
     }
     return rPointers.buildOrThrow();
-  }
-
-  // Helper
-
-  private static CVariableDeclaration toVariableDeclaration(CSimpleDeclaration pSimpleDeclaration) {
-    checkArgument(
-        pSimpleDeclaration instanceof CVariableDeclaration
-            || pSimpleDeclaration instanceof CParameterDeclaration,
-        "pSimpleDeclaration must be CVariableDeclaration or CParameterDeclaration");
-    return pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration
-        ? variableDeclaration
-        : ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
   }
 }
