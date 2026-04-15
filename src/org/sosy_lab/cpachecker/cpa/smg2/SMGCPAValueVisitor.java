@@ -9,10 +9,26 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_AND;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_OR;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_XOR;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.DIVIDE;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_THAN;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MINUS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.NOT_EQUALS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.REMAINDER;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.SHIFT_LEFT;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.UnsignedLongs;
@@ -23,7 +39,6 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -68,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -82,19 +98,19 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -254,21 +270,16 @@ public class SMGCPAValueVisitor
   @Override
   protected List<ValueAndSMGState> visitDefault(CExpression pExp) throws CPATransferException {
     // Just get a default value and log
-    logger.logf(
-        Level.INFO,
-        "%s, Default value: CExpression %s could not be recognized and the default value %s was"
-            + " used for its value. Related CFAEdge: %s",
-        cfaEdge.getFileLocation(),
-        pExp,
-        SMGValue.zeroValue(),
-        cfaEdge.getRawStatement());
-    return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), state));
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            state,
+            "Unknown value assumed for default handling of unhandled expression " + pExp + "  in ",
+            cfaEdge));
   }
 
   @Override
   public List<ValueAndSMGState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
-
     return handleFunctions(pIastFunctionCallExpression);
   }
 
@@ -295,7 +306,8 @@ public class SMGCPAValueVisitor
       Value arrayValue = arrayValueAndState.getValue();
       SMGState currentState = arrayValueAndState.getState();
 
-      if (currentState.getMemoryModel().isPointer(arrayValue)) {
+      if (currentState.getMemoryModel().isPointer(arrayValue)
+          && !(arrayValue instanceof NumericValue)) {
         arrayValue =
             AddressExpression.withZeroOffset(
                 arrayValue, SMGCPAExpressionEvaluator.getCanonicalType(arrayExpr));
@@ -337,24 +349,24 @@ public class SMGCPAValueVisitor
         Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
-          Preconditions.checkArgument(arrayValue instanceof AddressExpression);
+          checkArgument(
+              arrayValue instanceof AddressExpression || arrayValue instanceof NumericValue);
         } else if (arrayExpr.getExpressionType() instanceof CCompositeType
             || arrayExpr.getExpressionType() instanceof CElaboratedType
             || arrayExpr.getExpressionType() instanceof CArrayType
             || arrayExpr.getExpressionType() instanceof CTypedefType) {
           if (arrayValue instanceof SymbolicIdentifier) {
-            Preconditions.checkArgument(
-                ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent());
+            checkArgument(((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent());
           } else {
-            Preconditions.checkArgument(arrayValue instanceof AddressExpression);
+            checkArgument(
+                arrayValue instanceof AddressExpression || arrayValue instanceof NumericValue);
           }
 
         } else {
           if (arrayValue instanceof SymbolicIdentifier) {
-            Preconditions.checkArgument(
-                ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isEmpty());
+            checkArgument(((SymbolicIdentifier) arrayValue).getRepresentedLocation().isEmpty());
           }
-          Preconditions.checkArgument(!(arrayValue instanceof AddressExpression));
+          checkArgument(!(arrayValue instanceof AddressExpression));
         }
 
         resultBuilder.addAll(
@@ -406,18 +418,20 @@ public class SMGCPAValueVisitor
                 exprThatCalledThis)) {
 
           newState = readPointerAndState.getState();
-          if (readPointerAndState.getValue().isUnknown()) {
+          Value readValue = readPointerAndState.getValue();
+          if (readValue.isUnknown()) {
             returnBuilder.add(
                 ValueAndSMGState.ofUnknownValue(
                     newState,
                     "Returned unknown value due to an invalid address or offset in read expression"
                         + " with dereference in ",
                     cfaEdge));
+          } else if (readValue instanceof NumericValue || !newState.isPointer(readValue)) {
+            returnBuilder.add(ValueAndSMGState.of(readValue, newState));
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
-                    AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
-                    newState));
+                    AddressExpression.withZeroOffset(readValue, returnType), newState));
           }
         }
         return returnBuilder.build();
@@ -470,6 +484,11 @@ public class SMGCPAValueVisitor
                     "Returned unknown value due to an invalid address or offset in read with"
                         + " dereference expression in ",
                     cfaEdge));
+
+          } else if (readPointerAndState.getValue() instanceof NumericValue
+              || !newState.isPointer(readPointerAndState.getValue())) {
+            returnBuilder.add(ValueAndSMGState.of(readPointerAndState.getValue(), newState));
+
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
@@ -503,40 +522,25 @@ public class SMGCPAValueVisitor
 
     final CExpression lVarInBinaryExp = e.getOperand1();
     final CExpression rVarInBinaryExp = e.getOperand2();
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
+    return handleBinaryOperation(lVarInBinaryExp, rVarInBinaryExp, e);
+  }
+
+  private List<ValueAndSMGState> handleBinaryOperation(
+      CExpression lVarInBinaryExp, CExpression rVarInBinaryExp, CBinaryExpression e)
+      throws CPATransferException {
+
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState leftValueAndState : lVarInBinaryExp.accept(this)) {
       Value leftValue = leftValueAndState.getValue();
       SMGState currentState = leftValueAndState.getState();
-      // We can't work with unknowns
-      // Return the unknown value directly and not a new one! The mapping to the Value
-      // object is important!
-      if (leftValue.isUnknown()) {
-        resultBuilder.add(
-            ValueAndSMGState.ofUnknownValue(
-                currentState,
-                "Returned unknown value due unknown left value in binary expression in ",
-                cfaEdge));
-        continue;
-      }
 
       for (ValueAndSMGState rightValueAndState :
           rVarInBinaryExp.accept(
-              new SMGCPAValueVisitor(
-                  evaluator, leftValueAndState.getState(), cfaEdge, logger, options))) {
+              new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options))) {
 
         currentState = rightValueAndState.getState();
-
         Value rightValue = rightValueAndState.getValue();
-        if (rightValue.isUnknown()) {
-          resultBuilder.add(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due unknown right value in binary expression in ",
-                  cfaEdge));
-          continue;
-        }
-
         resultBuilder.addAll(handleBinaryOperation(leftValue, rightValue, e, currentState));
       }
     }
@@ -544,21 +548,18 @@ public class SMGCPAValueVisitor
   }
 
   private List<ValueAndSMGState> handleBinaryOperation(
-      Value leftValue, Value rightValue, CBinaryExpression e, SMGState currentState)
+      final Value pLeftValue, final Value pRightValue, CBinaryExpression e, SMGState currentState)
       throws CPATransferException {
     final BinaryOperator binaryOperator = e.getOperator();
     final CType calculationType = e.getCalculationType();
-    final CExpression lVarInBinaryExp = e.getOperand1();
-    final CExpression rVarInBinaryExp = e.getOperand2();
-    final CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
-    Preconditions.checkArgument(!leftValue.isUnknown());
-    Preconditions.checkArgument(!rightValue.isUnknown());
+    final CType leftType = e.getOperand1().getExpressionType().getCanonicalType();
+    final CType rightType = e.getOperand2().getExpressionType().getCanonicalType();
 
-    ValueAndSMGState castLeftValue = castCValue(leftValue, calculationType, currentState);
-    leftValue = castLeftValue.getValue();
-    currentState = castLeftValue.getState();
-    if (binaryOperator != BinaryOperator.SHIFT_LEFT
-        && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
+    ValueAndSMGState castLeftValueAndState = castCValue(pLeftValue, calculationType, currentState);
+    final Value leftValueWithCorrectType = castLeftValueAndState.getValue();
+    currentState = castLeftValueAndState.getState();
+    Value rightValueWithCorrectType;
+    if (binaryOperator != SHIFT_LEFT && binaryOperator != SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We do not even need integer-promotion,
        * because the maximum SHIFT of 64 is lower than MAX_CHAR.
@@ -570,206 +571,389 @@ public class SMGCPAValueVisitor
        * or equal to the width of the promoted left operand,
        * the behavior is undefined.
        */
-      ValueAndSMGState castRightValue = castCValue(rightValue, calculationType, currentState);
-      rightValue = castRightValue.getValue();
+      ValueAndSMGState castRightValue = castCValue(pRightValue, calculationType, currentState);
+      rightValueWithCorrectType = castRightValue.getValue();
       currentState = castRightValue.getState();
+    } else {
+      rightValueWithCorrectType = pRightValue;
     }
 
-    // TODO: extract this mess into a method and clean it up
-    if ((leftValue instanceof AddressExpression
-            || rightValue instanceof AddressExpression
-            || (evaluator.isPointerValue(rightValue, currentState)
-                && evaluator.isPointerValue(leftValue, currentState))
-            || ((leftValue instanceof ConstantSymbolicExpression
-                    && evaluator.isPointerValue(
-                        ((ConstantSymbolicExpression) leftValue).getValue(), currentState))
-                && (rightValue instanceof ConstantSymbolicExpression
-                    && evaluator.isPointerValue(
-                        ((ConstantSymbolicExpression) rightValue).getValue(), currentState))))
-        && !(leftValue instanceof NumericValue && rightValue instanceof NumericValue)) {
+    if (isPointerArithmetics(
+        leftValueWithCorrectType, rightValueWithCorrectType, e, currentState)) {
+      // Pointer arithmetics/comparisons
 
-      // It is possible that addresses get cast to int or smth like it
-      // Then the SymbolicIdentifier is returned not in an AddressExpression
-      // They might be wrapped in a ConstantSymbolicExpression
-      // We don't remove this wrapping for the rest of the analysis as they might actually get
-      // treated as ints or something
-      Value nonConstRightValue = rightValue;
-      if (rightValue instanceof ConstantSymbolicExpression
-          && evaluator.isPointerValue(
-              ((ConstantSymbolicExpression) rightValue).getValue(), currentState)) {
-        nonConstRightValue = ((ConstantSymbolicExpression) rightValue).getValue();
-      }
-      Value nonConstLeftValue = leftValue;
-      if (leftValue instanceof ConstantSymbolicExpression
-          && evaluator.isPointerValue(
-              ((ConstantSymbolicExpression) leftValue).getValue(), currentState)) {
-        nonConstLeftValue = ((ConstantSymbolicExpression) leftValue).getValue();
+      if (leftValueWithCorrectType.isUnknown() || rightValueWithCorrectType.isUnknown()) {
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Overapproximated result of binary expression "
+                    + e
+                    + " to unknown due to at least one input being unknown",
+                cfaEdge));
       }
 
-      switch (binaryOperator) {
-        case EQUALS -> {
-          Preconditions.checkArgument(returnType instanceof CSimpleType);
-          if ((!(nonConstLeftValue instanceof AddressExpression)
-                  && !evaluator.isPointerValue(nonConstLeftValue, currentState))
-              || (!(nonConstRightValue instanceof AddressExpression)
-                  && !evaluator.isPointerValue(nonConstRightValue, currentState))) {
-            return ImmutableList.of(
-                ValueAndSMGState.ofUnknownValue(
-                    currentState,
-                    "Returned unknown value due non-address value in binary expression evaluated as"
-                        + " pointer arithmetics in ",
-                    cfaEdge));
-          }
-          // address == address or address == not address
+      return handlePointerArithmetics(
+          leftValueWithCorrectType,
+          leftType,
+          rightValueWithCorrectType,
+          rightType,
+          e,
+          currentState,
+          binaryOperator,
+          calculationType);
+    }
+
+    if (binaryOperator == MINUS
+        && leftValueWithCorrectType instanceof NumericValue numLeft
+        && !(rightValueWithCorrectType instanceof NumericValue)
+        && currentState.isPointer(
+            unwrapPotentialAddressExpression(rightValueWithCorrectType, currentState))) {
+      // Cases like '0 - pointer' or '1122 - pointer' that can happen in linux drivers
+      if (rightValueWithCorrectType instanceof AddressExpression rightAddrExpr) {
+        Value rightMemAddr = rightAddrExpr.getMemoryAddress();
+        Value rightMemAddrOffset = rightAddrExpr.getOffset();
+        if (rightMemAddrOffset instanceof NumericValue rightMemAddrOffsetNum
+            && rightMemAddrOffsetNum.bigIntegerValue().equals(BigInteger.ZERO)) {
+          rightValueWithCorrectType = rightMemAddr;
+        } else {
+          // TODO: if this is problematic, switch to finding a pointer value and subsequent symbolic
+          //  evaluation
           return ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due to subtraction of address (pointer) value from"
+                      + " numeric value: "
+                      + numLeft
+                      + " - "
+                      + rightValueWithCorrectType,
+                  cfaEdge));
+        }
+      }
+    }
+
+    // We don't want AddressExpressions beyond this point, as they might be handled/bundled as
+    // symbolicExpressions, and this is only correct if we don't use the wrapping of the
+    // AddressExpressions, but full pointers
+    checkArgument(
+        !(leftValueWithCorrectType instanceof AddressExpression
+            || rightValueWithCorrectType instanceof AddressExpression));
+
+    // We also don't want location representations in SymbolicIdentifiers (as we use them for arrays
+    // in SMG2)
+    checkArgument(
+        !(leftValueWithCorrectType instanceof SymbolicIdentifier leftSymIdent)
+            || leftSymIdent.getRepresentedLocation().isEmpty());
+    checkArgument(
+        !(rightValueWithCorrectType instanceof SymbolicIdentifier rightSymIdent)
+            || rightSymIdent.getRepresentedLocation().isEmpty());
+    // TODO: unwrap consts to check as well?
+
+    if (binaryOperator.isLogicalOperator()) {
+      // Comparisons, i.e. ==, !=, <, >, <=, >=
+      Value returnValue =
+          handleComparisonOperation(
+              leftValueWithCorrectType, rightValueWithCorrectType, binaryOperator, e);
+      // We do not cast here, because 0 and 1 are small enough for every type.
+      return ImmutableList.of(ValueAndSMGState.of(returnValue, currentState));
+
+    } else {
+      // Arithmetic and bitwise operations, i.e. +, -, *, /, %, <<, >>, |, &, ^
+      Value arithResult =
+          handleBinaryArithmeticOrBitwiseOperation(
+              leftValueWithCorrectType, rightValueWithCorrectType, binaryOperator, e);
+      return ImmutableList.of(castCValue(arithResult, e.getExpressionType(), currentState));
+    }
+  }
+
+  private List<ValueAndSMGState> handlePointerArithmetics(
+      Value leftValue,
+      CType leftValueType,
+      Value rightValue,
+      CType rightValueType,
+      CBinaryExpression e,
+      SMGState currentState,
+      BinaryOperator binaryOperator,
+      CType calculationType)
+      throws CPATransferException {
+    // At least one value is a pointer.
+    // This pointer, if there is only one, may not be numeric (e.g. 0).
+    // If both are pointers, they may not be both numeric (e.g. 0).
+    // Non-pointers may be numeric or symbolic.
+
+    // TODO: check the types used in the calculations! Make sure that we do use larger types when
+    //  handling bits instead of bytes!
+
+    // It is possible that addresses get cast to int or smth like it
+    // Then the SymbolicIdentifier is returned not in an AddressExpression
+    // They might be wrapped in a ConstantSymbolicExpression
+    // We don't remove this wrapping for the rest of the analysis as they might actually get
+    // treated as the cast value!
+    Value nonConstRightValue = rightValue;
+    if (rightValue instanceof ConstantSymbolicExpression rightConst
+        && currentState.isPointer(rightConst.getValue())) {
+      nonConstRightValue = rightConst.getValue();
+    }
+    Value nonConstLeftValue = leftValue;
+    if (leftValue instanceof ConstantSymbolicExpression constLeft
+        && currentState.isPointer(constLeft.getValue())) {
+      nonConstLeftValue = constLeft.getValue();
+    }
+
+    ValueAndSMGState leftValueAndState =
+        evaluator.unpackAddressExpression(nonConstLeftValue, currentState);
+    nonConstLeftValue = leftValueAndState.getValue();
+    ValueAndSMGState rightValueAndState =
+        evaluator.unpackAddressExpression(nonConstRightValue, leftValueAndState.getState());
+    nonConstRightValue = rightValueAndState.getValue();
+    currentState = rightValueAndState.getState();
+    // From this pointer forward, there is no AddressExpressions anymore.
+    // At least one arg needs to be a pointer!
+    checkArgument(
+        currentState.isPointer(nonConstLeftValue) || currentState.isPointer(nonConstRightValue));
+
+    boolean leftIsNumeric = nonConstLeftValue instanceof NumericValue;
+    boolean rightIsNumeric = nonConstRightValue instanceof NumericValue;
+    checkState(!(leftIsNumeric && rightIsNumeric));
+
+    return switch (binaryOperator) {
+      case EQUALS -> {
+        // address == address or address == not address
+        if (leftIsNumeric) {
+          yield ImmutableList.of(
               ValueAndSMGState.of(
-                  evaluator.checkEqualityForAddresses(
-                      nonConstLeftValue, nonConstRightValue, currentState),
+                  getAddressEqualityWithNumber(
+                      nonConstRightValue,
+                      rightValueType,
+                      nonConstLeftValue,
+                      leftValueType,
+                      currentState,
+                      calculationType),
+                  currentState));
+        } else if (rightIsNumeric) {
+          yield ImmutableList.of(
+              ValueAndSMGState.of(
+                  getAddressEqualityWithNumber(
+                      nonConstLeftValue,
+                      leftValueType,
+                      nonConstRightValue,
+                      rightValueType,
+                      currentState,
+                      calculationType),
                   currentState));
         }
 
-        case NOT_EQUALS -> {
-          Preconditions.checkArgument(returnType instanceof CSimpleType);
-          // address != address or address != not address
-          return ImmutableList.of(
-              ValueAndSMGState.of(
-                  evaluator.checkNonEqualityForAddresses(
-                      nonConstLeftValue, nonConstRightValue, currentState),
-                  currentState));
-        }
+        // only address == address
+        yield ImmutableList.of(
+            ValueAndSMGState.of(
+                evaluator.checkEqualityForAddresses(
+                    nonConstLeftValue, nonConstRightValue, currentState),
+                currentState));
+      }
 
-        case PLUS, MINUS -> {
-          Value leftAddrExpr = nonConstLeftValue;
-          if (!(nonConstLeftValue instanceof AddressExpression)
-              && evaluator.isPointerValue(nonConstLeftValue, currentState)
-              && !leftAddrExpr.isExplicitlyKnown()) {
-            leftAddrExpr =
-                AddressExpression.withZeroOffset(
-                    nonConstLeftValue, SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
-          }
-          Value rightAddrExpr = nonConstRightValue;
-          if (!(nonConstRightValue instanceof AddressExpression)
-              && evaluator.isPointerValue(nonConstRightValue, currentState)
-              && !rightAddrExpr.isExplicitlyKnown()) {
-            rightAddrExpr =
-                AddressExpression.withZeroOffset(
+      case NOT_EQUALS -> {
+        // address != address or address != not address
+        if (leftIsNumeric || rightIsNumeric) {
+          Value equalityRes;
+          if (leftIsNumeric) {
+            equalityRes =
+                getAddressEqualityWithNumber(
                     nonConstRightValue,
-                    SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
+                    rightValueType,
+                    nonConstLeftValue,
+                    leftValueType,
+                    currentState,
+                    calculationType);
+          } else {
+            equalityRes =
+                getAddressEqualityWithNumber(
+                    nonConstLeftValue,
+                    leftValueType,
+                    nonConstRightValue,
+                    rightValueType,
+                    currentState,
+                    calculationType);
           }
-          // Pointer arithmetics case and fall through (handled inside the method)
-          // i.e. address + 3
-          // (This only handles address +- value!)
-          return calculatePointerArithmetics(
-              leftAddrExpr,
-              rightAddrExpr,
+          Value inequalityRes = equalityRes;
+          if (equalityRes instanceof NumericValue numEqualityRes) {
+            if (numEqualityRes.bigIntegerValue().equals(BigInteger.ZERO)) {
+              inequalityRes = new NumericValue(BigInteger.ONE);
+            } else {
+              checkState(numEqualityRes.bigIntegerValue().equals(BigInteger.ONE));
+              inequalityRes = new NumericValue(BigInteger.ZERO);
+            }
+          } else {
+            checkState(equalityRes.isUnknown());
+          }
+          yield ImmutableList.of(ValueAndSMGState.of(inequalityRes, currentState));
+        }
+
+        yield ImmutableList.of(
+            ValueAndSMGState.of(
+                evaluator.checkNonEqualityForAddresses(
+                    nonConstLeftValue, nonConstRightValue, currentState),
+                currentState));
+      }
+
+      case PLUS, MINUS ->
+          // TODO: make sure this handled normal pointers only (no addressExpr)!
+          // Only arithmetic operators are allowed here
+          calculatePointerArithmetics(
+              nonConstLeftValue,
+              nonConstRightValue,
               binaryOperator,
               e.getExpressionType(),
               calculationType,
               SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
               SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
-              currentState);
+              currentState,
+              e);
+
+      case GREATER_EQUAL, LESS_EQUAL, GREATER_THAN, LESS_THAN -> {
+        // TODO: this is wrong for abstracted targets! Fix!
+        if (!currentState.pointsToSameMemoryRegion(nonConstLeftValue, nonConstRightValue)) {
+          // This is undefined behavior in C99/C11
+          // But since we don't really handle this we just return unknown :D
+          yield ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due to address values in binary pointer comparison"
+                      + " expression not pointing to the same target memory in ",
+                  cfaEdge));
         }
 
-        case GREATER_EQUAL, LESS_EQUAL, GREATER_THAN, LESS_THAN -> {
-          // < <= > >=
-          // For the same memory, we can check < etc.
-          // First check that left and right point to the SAME memory region
-          // Check that both Values are truly addresses
-          ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
-          leftValue = leftValueAndState.getValue();
-          ValueAndSMGState rightValueAndState =
-              evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
-          rightValue = rightValueAndState.getValue();
-          currentState = rightValueAndState.getState();
-          if (!evaluator.isPointerValue(rightValue, currentState)
-              || !evaluator.isPointerValue(leftValue, currentState)) {
-            return ImmutableList.of(
-                ValueAndSMGState.ofUnknownValue(
-                    currentState,
-                    "Returned unknown value due to non-address value in binary pointer comparison"
-                        + " expression in ",
-                    cfaEdge));
-          }
-          if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
-            // This is undefined behavior in C99/C11
-            // But since we don't really handle this we just return unknown :D
-            return ImmutableList.of(
-                ValueAndSMGState.ofUnknownValue(
-                    currentState,
-                    "Returned unknown value due to address values in binary pointer comparison"
-                        + " expression not pointing to the same target memory in ",
-                    cfaEdge));
-          }
-
-          // Then get the offsets
-          Value offsetLeft = currentState.getPointerOffset(leftValue);
-          Value offsetRight = currentState.getPointerOffset(rightValue);
-          if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
-            return ImmutableList.of(
-                ValueAndSMGState.ofUnknownValue(
-                    currentState,
-                    "Returned unknown value due to unknown offset value(s) in binary pointer"
-                        + " comparison expression in ",
-                    cfaEdge));
-          }
-
-          // Create binary expr with offsets and restart this with it
-          return handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
+        // Then get the offsets
+        Value offsetLeft = currentState.getPointerOffset(nonConstLeftValue);
+        Value offsetRight = currentState.getPointerOffset(nonConstRightValue);
+        if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
+          yield ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due to unknown offset value(s) in binary pointer"
+                      + " comparison expression in ",
+                  cfaEdge));
         }
 
-        default -> {
-          // handled below
-        }
+        // Create binary expr with offsets and restart this with it
+        yield handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
       }
+
+      // Can never happen
+      default ->
+          throw new IllegalStateException(
+              "Unexpected binary operator " + binaryOperator + " for pointer arithmetics");
+    };
+  }
+
+  /**
+   * Calculates the equality (==) between an address and a non-address (symbolic of numeric number).
+   * Returns either numeric true/false, unknown or throws (instead of unknown, depending on
+   * options). This method guarantees that if true or false is returned, the negation also holds
+   * (i.e. that !(ptr == 123) == ptr != 123)
+   */
+  private Value getAddressEqualityWithNumber(
+      Value address,
+      CType addressType,
+      Value nonAddressValue,
+      CType nonAddressValueType,
+      SMGState pCurrentState,
+      CType calculationType)
+      throws SMGException, SMGSolverException {
+    checkArgument(pCurrentState.isPointer(address));
+
+    // TODO: the types will be useful later to determine in/equality w type info
+    checkNotNull(addressType);
+    checkNotNull(nonAddressValueType);
+
+    if (pCurrentState.isPointer(nonAddressValue)) {
+      return evaluator.checkEqualityForAddresses(address, nonAddressValue, pCurrentState);
     }
 
-    if (leftValue instanceof FunctionValue || rightValue instanceof FunctionValue) {
-      return ImmutableList.of(
-          ValueAndSMGState.of(
-              calculateExpressionWithFunctionValue(binaryOperator, rightValue, leftValue),
-              currentState));
+    if (nonAddressValue instanceof NumericValue numericValue
+        && numericValue.bigIntegerValue().equals(BigInteger.ZERO)) {
+      // We generally expect that not both are numeric and the address is non-zero (as that would
+      // mean they are actually 2 numbers)
+      checkArgument(!address.isNumericValue());
+      checkArgument(
+          pCurrentState.getMemoryModel().getSMGValueFromValue(address).isEmpty()
+              || !pCurrentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(address)
+                  .orElseThrow()
+                  .isZero());
+      // Known to be false
+      return new NumericValue(0);
     }
 
-    if (leftValue instanceof SymbolicValue || rightValue instanceof SymbolicValue) {
-      if (leftValue instanceof SymbolicIdentifier) {
-        Preconditions.checkArgument(
-            ((SymbolicIdentifier) leftValue).getRepresentedLocation().isEmpty());
-      } else if (rightValue instanceof SymbolicIdentifier) {
-        Preconditions.checkArgument(
-            ((SymbolicIdentifier) rightValue).getRepresentedLocation().isEmpty());
+    // Suppose you have a memory region with size 4 bytes. It can not be allocated at 0,
+    // but possibly at 1, hence [1, 5). If we compare the initial pointer to this region with
+    // the number 1 or 100, we find that they can be equal, but does not have to.
+    // However, suppose we increment the pointer to the memory region by 1, we now know that
+    // comparing the pointer for equality with the number 1 can never yield true.
+
+    // Types are relevant, as truly negative values in the numeric can never be equal.
+    // Also, if the non-address value (and the used calculation type allows it) is larger than the
+    // possible address-range, they can never be equal.
+    if (!(calculationType.getCanonicalType() instanceof CSimpleType simpleCalcType)
+        || machineModel.isSigned(simpleCalcType)
+        || machineModel.getSizeof(simpleCalcType) > machineModel.getSizeofPtr()) {
+      // TODO: handle
+      // TODO: most cases are trivial and may just be handed to below
+    }
+
+    // Simple check whether the number of bytes fits in between zero and the offset of the address
+    // to its origin
+    Optional<SMGStateAndOptionalSMGObjectAndOffset> deref =
+        pCurrentState.dereferencePointerWithoutMaterilization(address);
+    checkState(deref.isPresent());
+    checkState(deref.orElseThrow().hasSMGObjectAndOffset());
+    // SMGObject obj = deref.orElseThrow().getSMGObject();
+    Value offsetToObjectSourceInBits = deref.orElseThrow().getOffsetForObject();
+
+    // We already know that nonAddressValue is either numeric and > 0 or symbolic (no restrictions)
+    if (offsetToObjectSourceInBits instanceof NumericValue numericOffsetToObjectSourceInBits
+        && nonAddressValue instanceof NumericValue numericValue) {
+      // Note: numericValue is in Bytes here!
+      BigInteger numericOffsetToObjectSourceInBytes =
+          numericOffsetToObjectSourceInBits
+              .bigIntegerValue()
+              .divide(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
+      if (numericValue
+              .bigIntegerValue()
+              .compareTo(numericOffsetToObjectSourceInBytes.add(BigInteger.ONE))
+          < 0) {
+        // Guaranteed to be not-equal
+        return new NumericValue(0);
       }
-      return ImmutableList.of(
-          ValueAndSMGState.of(
-              calculateSymbolicBinaryExpression(leftValue, rightValue, e), currentState));
+      // Fallthrough for Unknown (can be equal or inequal)
+
+    } else if (options.trackPredicates()) {
+      // TODO: handle
+      throw new SMGException(
+          "Complex relations between addresses and their locations are currently not supported");
     }
 
-    if (!(leftValue instanceof NumericValue numLeftValue)
-        || !(rightValue instanceof NumericValue numRightValue)) {
-      logger.logf(
-          Level.FINE,
-          "Parameters to binary operation '%s %s %s' are no numeric values. Returned unknown value"
-              + " in %s",
-          leftValue,
-          binaryOperator,
-          rightValue,
+    // Unknown (can be equal or inequal)
+    return handleOverapproximatedMemoryAddressRelation(pCurrentState);
+  }
+
+  /**
+   * Complex cases of pointer relations (e.g. pointer equals some number: ptr1 == 1234 && ptr2 ==
+   * 1234 so that ptr1 != ptr2) may need to remember relation to found values and to other
+   * addresses, or simple cases need to be overapproximated (e.g. ptr == 1234, with results true and
+   * false possible). This method either returns UNKNOWN or throws, depending on options.
+   */
+  private UnknownValue handleOverapproximatedMemoryAddressRelation(SMGState currentStateForLogging)
+      throws SMGException {
+    if (options.overapproximateMemoryAddressRelations()) {
+      // TODO: return a list with 1 and 0? This is guaranteed boolean.
+      currentStateForLogging.logUnknownValue(
+          "Returned unknown value for result of complex pointer relation that could not be handled"
+              + " ",
           cfaEdge);
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
-    }
-
-    if (isArithmeticOperation(binaryOperator)) {
-      // Actual computations
-      Value arithResult =
-          arithmeticOperation(numLeftValue, numRightValue, binaryOperator, calculationType);
-      return ImmutableList.of(castCValue(arithResult, e.getExpressionType(), currentState));
-
-    } else if (isComparison(binaryOperator)) {
-      // comparisons
-      Value returnValue =
-          comparisonOperation(numLeftValue, numRightValue, binaryOperator, calculationType);
-      // we do not cast here, because 0 and 1 are small enough for every type.
-      return ImmutableList.of(ValueAndSMGState.of(returnValue, currentState));
+      return UnknownValue.getInstance();
     } else {
-      throw new AssertionError("Unhandled binary operator in the value visitor.");
+      throw new SMGException(
+          "Complex relations between addresses and their locations are currently not supported");
     }
   }
 
@@ -801,23 +985,43 @@ public class SMGCPAValueVisitor
 
   public ValueAndSMGState castCValue(Value value, CType targetType, SMGState currentState)
       throws CPATransferException {
+
+    if (value.isUnknown()) {
+      return ValueAndSMGState.of(value, currentState);
+    }
+
     if (targetType instanceof CPointerType) {
       if (value instanceof AddressExpression || value instanceof NumericValue) {
+        // TODO: warn on non 0 numeric pointers
         return ValueAndSMGState.of(value, currentState);
 
       } else if (evaluator.isPointerValue(value, currentState)) {
+        checkArgument(
+            !(value instanceof ConstantSymbolicExpression constValue)
+                || !(constValue.getValue() instanceof NumericValue));
         return ValueAndSMGState.of(
             AddressExpression.withZeroOffset(value, targetType), currentState);
+      } else if (value instanceof ConstantSymbolicExpression constValue
+          && currentState.isPointer(constValue.getValue())) {
+        checkArgument(!(constValue.getValue() instanceof NumericValue));
+        return ValueAndSMGState.of(
+            AddressExpression.withZeroOffset(constValue.getValue(), targetType), currentState);
 
-      } else if (options.trackPredicates() && value instanceof SymbolicValue) {
+      } else if (value instanceof SymbolicValue) {
         return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
       } else {
-        return ValueAndSMGState.of(UnknownValue.getInstance(), currentState);
+        return ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Overapproximated cast to type "
+                + targetType
+                + " and returned unknown value due to unhandled case ",
+            cfaEdge);
       }
     }
 
     if (!value.isExplicitlyKnown()) {
+      // TODO: Unknowns end up here, NOT below!
       return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
     }
 
@@ -888,19 +1092,19 @@ public class SMGCPAValueVisitor
               explicitReference.getFieldName());
 
       if (ownerExpression.getExpressionType() instanceof CPointerType) {
-        Preconditions.checkArgument(structValue instanceof AddressExpression);
+        checkArgument(structValue instanceof AddressExpression);
       } else if (ownerExpression.getExpressionType() instanceof CCompositeType
           || ownerExpression.getExpressionType() instanceof CElaboratedType
           || ownerExpression.getExpressionType() instanceof CArrayType
           || ownerExpression.getExpressionType() instanceof CTypedefType) {
         if (structValue instanceof SymbolicIdentifier symbolicIdentifier) {
-          Preconditions.checkArgument(symbolicIdentifier.getRepresentedLocation().isPresent());
+          checkArgument(symbolicIdentifier.getRepresentedLocation().isPresent());
         } else {
-          Preconditions.checkArgument(structValue instanceof AddressExpression);
+          checkArgument(structValue instanceof AddressExpression);
         }
       } else {
-        Preconditions.checkArgument(!(structValue instanceof SymbolicIdentifier));
-        Preconditions.checkArgument(!(structValue instanceof AddressExpression));
+        checkArgument(!(structValue instanceof SymbolicIdentifier));
+        checkArgument(!(structValue instanceof AddressExpression));
       }
 
       builder.addAll(
@@ -968,13 +1172,12 @@ public class SMGCPAValueVisitor
                 currentState));
 
       } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
-        // Pointer/Array/Function types should return a Value that internally can be translated into
-        // a
-        // SMGValue that leads to an SMGPointsToEdge that leads to the correct object (with
-        // potential
-        // offsets inside the points to edge). These have to be packaged into an AddressExpression
-        // with a 0 offset. Modifications of the offset of the address can be done by subsequent
-        // methods. (The check is fine because we already filtered out structs/unions)
+        // Pointer/Array/Function types should return a Value that internally can be translated
+        // into a SMGValue that leads to an SMGPointsToEdge that leads to the correct object
+        // (with potential offsets inside the points to edge).
+        // These have to be packaged into an AddressExpression with a 0 offset.
+        // Modifications of the offset of the address can be done by subsequent methods.
+        // (The check is fine because we already filtered out structs/unions)
         Value sizeInBitsValue =
             evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
         BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
@@ -1002,7 +1205,8 @@ public class SMGCPAValueVisitor
           }
 
           Value addressValue;
-          if (evaluator.isPointerValue(readValue, newState)) {
+          if (evaluator.isPointerValue(readValue, newState)
+              && !(readValue instanceof NumericValue)) {
             addressValue = AddressExpression.withZeroOffset(readValue, returnType);
           } else {
             // Not a known pointer value, most likely an unknown value as symbolic identifier
@@ -1067,8 +1271,11 @@ public class SMGCPAValueVisitor
     // TODO: both the value and old SMG analysis simply return unknown in this case
     // String string = e.getContentString();
     // ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
-    logger.log(Level.WARNING, "Analysis approximated string literal expression in " + cfaEdge);
-    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            state,
+            "Analysis overapproximated string literal expression " + e + " to unknown in ",
+            cfaEdge));
   }
 
   @Override
@@ -1090,14 +1297,14 @@ public class SMGCPAValueVisitor
         BigInteger align = evaluator.getAlignOf(innerType);
         yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
       }
-      case TYPEOF -> {
-        // This can't really be solved here as we can only return Values
-        logger.log(
-            Level.WARNING,
-            "Approximated unknown value due to missing handling of type id expression in "
-                + cfaEdge);
-        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
-      }
+      case TYPEOF -> // This can't really be solved here as we can only return Values
+          ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  state,
+                  "Returned unknown value due to missing handling of typeof expression "
+                      + e
+                      + " in ",
+                  cfaEdge));
     };
   }
 
@@ -1128,7 +1335,9 @@ public class SMGCPAValueVisitor
                 state));
       }
       case AMPER -> {
-        // Note: this returns AddressExpressions! Unwrap before saving!
+        // Address operator
+        // Note: this returns AddressExpressions so that we can easily reuse the offsets etc.!
+        // Unwrap before saving!
         return evaluator.createAddress(unaryOperand, state, cfaEdge);
       }
       default -> {}
@@ -1143,15 +1352,14 @@ public class SMGCPAValueVisitor
       if (value instanceof SymbolicValue) {
         newValueAndState =
             ValueAndSMGState.of(
-                createSymbolicExpression(value, operandType, unaryOperator, returnType),
+                createBinarySymbolicExpression(value, operandType, unaryOperator, returnType),
                 currentState);
       } else if (!(value instanceof NumericValue numericValue)) {
-        logger.logf(
-            Level.FINE,
-            "Returned unknown due to invalid argument %s for unary operator %s.",
-            value,
-            unaryOperator);
-        newValueAndState = ValueAndSMGState.ofUnknownValue(currentState);
+        newValueAndState =
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown due to non-numeric argument for unary expression " + e + " in ",
+                cfaEdge);
       } else {
 
         final NumericValue newValue =
@@ -1189,11 +1397,15 @@ public class SMGCPAValueVisitor
         // A possibility is that the program tries to deref a nondet for example
         builder.add(
             ValueAndSMGState.ofUnknownValue(
-                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge), cfaEdge));
+                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge),
+                "Returned unknown value for pointer dereference of unknown value in ",
+                cfaEdge));
         continue;
       }
 
-      if (!(value instanceof AddressExpression) && evaluator.isPointerValue(value, currentState)) {
+      if (!(value instanceof AddressExpression)
+          && evaluator.isPointerValue(value, currentState)
+          && !(value instanceof NumericValue)) {
         // For pointer deref on arrays only
         value =
             AddressExpression.of(value, e.getExpressionType(), new NumericValue(BigInteger.ZERO));
@@ -1201,7 +1413,7 @@ public class SMGCPAValueVisitor
 
       if (!(value instanceof AddressExpression pointerValue)) {
         // Non-pointer dereference, either numeric or symbolic
-        Preconditions.checkArgument(
+        checkArgument(
             (value instanceof NumericValue numValue
                     && numValue.bigIntegerValue().equals(BigInteger.ZERO))
                 || !evaluator.isPointerValue(value, currentState));
@@ -1263,7 +1475,7 @@ public class SMGCPAValueVisitor
 
         // Dereference the Value and return it. The read checks for validity etc.
         // The precondition is a precondition for get(0) because of no state split
-        Preconditions.checkArgument(
+        checkArgument(
             !currentState.getMemoryModel().pointsToZeroPlus(pointerValue.getMemoryAddress()));
         ValueAndSMGState readValueAndState =
             evaluator
@@ -1277,7 +1489,9 @@ public class SMGCPAValueVisitor
                 .getFirst();
         currentState = readValueAndState.getState();
 
-        if (returnType instanceof CPointerType) {
+        if (returnType instanceof CPointerType
+            && currentState.isPointer(readValueAndState.getValue())
+            && !(readValueAndState.getValue() instanceof NumericValue)) {
           // In the pointer case we would need to encapsulate it again
           builder.add(
               ValueAndSMGState.of(
@@ -1317,7 +1531,7 @@ public class SMGCPAValueVisitor
   }
 
   // Copied from value CPA
-  private Value createSymbolicExpression(
+  private Value createBinarySymbolicExpression(
       Value pValue, CType pOperandType, UnaryOperator pUnaryOperator, CType pExpressionType) {
     SymbolicExpression operand = ConstantSymbolicExpression.of(pValue, pOperandType);
 
@@ -1367,6 +1581,11 @@ public class SMGCPAValueVisitor
           Optional<BigInteger> maybeInteger = numericValue.getFloatValue().toInteger();
           if (maybeInteger.isEmpty()) {
             // If the value was NaN or Infinity the result of the conversion is undefined
+            state.logUnknownValue(
+                "Returned unknown value due to undefined conversion of float value "
+                    + numericValue.getFloatValue()
+                    + " to integer value ",
+                cfaEdge);
             return UnknownValue.getInstance();
           } else {
             integerValue = maybeInteger.orElseThrow();
@@ -1399,6 +1618,11 @@ public class SMGCPAValueVisitor
           if (isGreaterThan(integerValue, signedUpperBound)
               || isLessThan(integerValue, signedLowerBound)) {
             // If the number does not fit into the target type the result is undefined
+            state.logUnknownValue(
+                "Returned unknown value due to undefined conversion of float value "
+                    + numericValue.getFloatValue()
+                    + " to integer value ",
+                cfaEdge);
             return UnknownValue.getInstance();
           } else {
             result = integerValue;
@@ -1424,19 +1648,19 @@ public class SMGCPAValueVisitor
       }
 
       case FLOAT, DOUBLE, FLOAT128 -> {
-        FloatValue.Format target;
+        Format target;
 
         // Find the target format
         final int bitPerByte = machineModel.getSizeofCharInBits();
         if (size == machineModel.getSizeofFloat() * bitPerByte) {
-          target = FloatValue.Format.Float32;
+          target = Format.Float32;
         } else if (size == machineModel.getSizeofDouble() * bitPerByte) {
-          target = FloatValue.Format.Float64;
+          target = Format.Float64;
         } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
           // Must be Linux32 or Linux64, otherwise the second clause would have matched
-          target = FloatValue.Format.Float80;
+          target = Format.Float80;
         } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
-          target = FloatValue.Format.Float128;
+          target = Format.Float128;
         } else {
           // Unsupported target format
           throw new AssertionError(
@@ -1522,11 +1746,14 @@ public class SMGCPAValueVisitor
         && cSimpleType.getType() == CBasicType.UNSPECIFIED;
   }
 
-  /** Cast the argument to a floating point type */
+  /**
+   * Cast the argument to a floating point type. If it already is, will modify the precision to the
+   * correct one if necessary. If the input type is already correct, this will do nothing.
+   */
   private static FloatValue castToFloat(
       MachineModel pMachineModel, CSimpleType pTargetType, NumericValue pValue) {
     checkArgument(pTargetType.getType().isFloatingPointType());
-    FloatValue.Format precision = FloatValue.Format.fromCType(pMachineModel, pTargetType);
+    Format precision = Format.fromCType(pMachineModel, pTargetType);
     return pValue.floatingPointValue(precision);
   }
 
@@ -1550,7 +1777,11 @@ public class SMGCPAValueVisitor
 
       return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value), pState));
     } else {
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              pState,
+              "Returned unknown value due to unhandled builtin function " + pName + " in ",
+              cfaEdge));
     }
   }
 
@@ -1575,7 +1806,11 @@ public class SMGCPAValueVisitor
 
       return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value1, value2), pState));
     } else {
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              pState,
+              "Returned unknown value due to unhandled builtin function " + pName + " in ",
+              cfaEdge));
     }
   }
 
@@ -1617,7 +1852,7 @@ public class SMGCPAValueVisitor
               new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options);
           List<ValueAndSMGState> newValuesAndStates =
               vv.evaluate(currParamExp, SMGCPAExpressionEvaluator.getCanonicalType(currParamExp));
-          Preconditions.checkArgument(newValuesAndStates.size() == 1);
+          checkArgument(newValuesAndStates.size() == 1);
           Value newValue = newValuesAndStates.getFirst().getValue();
           // CPA access has side effects! Always take the newest state!
           currentState = newValuesAndStates.getFirst().getState();
@@ -1637,7 +1872,13 @@ public class SMGCPAValueVisitor
            * return BuiltinOverflowFunctions.evaluateFunctionCall(
            *   pIastFunctionCallExpression, this, machineModel, logger);
            */
-          return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
+          return ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown result of unhandled builtin function "
+                      + calledFunctionName
+                      + " ",
+                  cfaEdge));
 
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           return handleBuiltinFunction1(
@@ -1649,8 +1890,8 @@ public class SMGCPAValueVisitor
         } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
             || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
           checkArgument(parameterValues.isEmpty());
-          FloatValue.Format precision =
-              FloatValue.Format.fromCType(
+          Format precision =
+              Format.fromCType(
                   machineModel,
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
           return ImmutableList.of(
@@ -1659,8 +1900,8 @@ public class SMGCPAValueVisitor
         } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
           // FIXME: Add support for NaN payloads
           checkArgument(parameterValues.size() < 2);
-          FloatValue.Format precision =
-              FloatValue.Format.fromCType(
+          Format precision =
+              Format.fromCType(
                   machineModel,
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
           return ImmutableList.of(
@@ -1700,22 +1941,21 @@ public class SMGCPAValueVisitor
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> new NumericValue(arg.round(FloatValue.RoundingMode.FLOOR)));
+              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.FLOOR)));
 
         } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> new NumericValue(arg.round(FloatValue.RoundingMode.CEILING)));
+              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.CEILING)));
 
         } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) ->
-                  new NumericValue(arg.round(FloatValue.RoundingMode.NEAREST_AWAY)));
+              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.NEAREST_AWAY)));
 
         } else if (BuiltinFloatFunctions.matchesLround(calledFunctionName)) {
           return handleBuiltinFunction1(
@@ -1727,7 +1967,16 @@ public class SMGCPAValueVisitor
                 return switch (machineModel.getSizeofLongInt()) {
                   case Integer.BYTES -> new NumericValue(value.integerValue());
                   case Long.BYTES -> new NumericValue(value.longValue());
-                  default -> Value.UnknownValue.getInstance();
+                  default -> {
+                    state.logUnknownValue(
+                        "Returned unknown value due to undefined conversion of float value "
+                            + value
+                            + " in builtin function "
+                            + calledFunctionName
+                            + " ",
+                        cfaEdge);
+                    yield UnknownValue.getInstance();
+                  }
                 };
               });
 
@@ -1741,7 +1990,16 @@ public class SMGCPAValueVisitor
                 return switch (machineModel.getSizeofLongLongInt()) {
                   case Integer.BYTES -> new NumericValue(value.integerValue());
                   case Long.BYTES -> new NumericValue(value.longValue());
-                  default -> Value.UnknownValue.getInstance();
+                  default -> {
+                    state.logUnknownValue(
+                        "Returned unknown value due to undefined conversion of float value "
+                            + value
+                            + " in builtin function "
+                            + calledFunctionName
+                            + " ",
+                        cfaEdge);
+                    yield UnknownValue.getInstance();
+                  }
                 };
               });
 
@@ -1750,7 +2008,7 @@ public class SMGCPAValueVisitor
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> new NumericValue(arg.round(FloatValue.RoundingMode.TRUNCATE)));
+              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.TRUNCATE)));
 
         } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
           return handleBuiltinFunction2(
@@ -1939,31 +2197,20 @@ public class SMGCPAValueVisitor
 
   /* ++++++++++++++++++ Below this point value arithmetics and comparisons  ++++++++++++++++++ */
 
-  // TODO: check if we can really just change the ordering / that all possible calculations are
-  // commutative
-  private Value calculateExpressionWithFunctionValue(
-      BinaryOperator binaryOperator, Value val1, Value val2) {
-    if (val1 instanceof FunctionValue functionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val2);
-    } else if (val2 instanceof FunctionValue functionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val1);
-    } else {
-      return new Value.UnknownValue();
-    }
-  }
-
   /**
    * Calculates pointer/address arithmetic expressions. Valid is only address + value or value +
    * address and address minus value or address minus address. All others are simply unknown value!
-   * One of the 2 entered values must be an AddressExpression, no other preconditions have to be
-   * met.
+   * One of the 2 entered values must be a pointer and none may be an {@link AddressExpression}, no
+   * other preconditions have to be met.
    *
-   * @param leftValue left hand side value of the arithmetic operation.
-   * @param rightValue right hand side value of the arithmetic operation.
+   * @param leftValue left hand side value of the pointer arithmetic operation.
+   * @param rightValue right hand side value of the pointer arithmetic operation.
    * @param binaryOperator {@link BinaryOperator} in between the values.
    * @param expressionType {@link CType} of the final expression.
    * @param calculationType {@link CType} of the calculation. (Should be int for pointers)
    * @param currentState current {@link SMGState}
+   * @param originalExpression {@link CBinaryExpression} that caused this evaluation. Needed to
+   *     retrieve type information in certain circumstances from cast pointers.
    * @return {@link ValueAndSMGState} with the result Value that may be {@link AddressExpression} /
    *     {@link UnknownValue} or a symbolic/numeric one depending on input + the new up-to-date
    *     state.
@@ -1976,162 +2223,107 @@ public class SMGCPAValueVisitor
       CType calculationType,
       CType leftValueType,
       CType rightValueType,
-      SMGState currentState)
+      SMGState currentState,
+      CBinaryExpression originalExpression)
       throws CPATransferException {
     // Find the address, check that the other is a numeric value and use as offset, else if both
     // are addresses we allow the distance, else unknown (we can't dereference symbolics)
-    // TODO: stop for illegal pointer arith?
-    if (binaryOperator != BinaryOperator.PLUS && binaryOperator != BinaryOperator.MINUS) {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState,
-              "Returned unknown value due to invalid pointer arithmetics operator "
-                  + binaryOperator
-                  + " in ",
-              cfaEdge));
+    checkState(binaryOperator == PLUS || binaryOperator == MINUS);
+    boolean leftIsPointer = currentState.isPointer(leftValue);
+    boolean rightIsPointer = currentState.isPointer(rightValue);
+    if (!leftIsPointer && !rightIsPointer) {
+      // We allow only 0 for now here, see if someone does something like: 0 + 3
+      checkArgument(
+          rightValue instanceof NumericValue numRightValue
+              && leftValue instanceof NumericValue
+              && numRightValue.bigIntegerValue().equals(BigInteger.ZERO));
+      return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
     }
+    // At least one is a pointer from this point onward
 
     // The canonical type is the return type of the pointer expression!
-    CType canonicalReturnType = expressionType;
+    CType canonicalReturnType = expressionType.getCanonicalType();
     if (calculationType instanceof CPointerType) {
       canonicalReturnType = ((CPointerType) expressionType).getType();
     }
 
-    if (leftValue instanceof AddressExpression addressValue
-        && !(rightValue instanceof AddressExpression)) {
-      Value addressOffset = addressValue.getOffset();
-      if (!options.trackPredicates()
-          && (!(rightValue instanceof NumericValue) || !(addressOffset instanceof NumericValue))) {
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                currentState,
-                "Returned unknown value due to symbolic or unknown offset value in pointer"
-                    + " arithmetics expression without predicate tracking in ",
-                cfaEdge));
-      }
+    boolean leftIsZero =
+        leftValue instanceof NumericValue numLeftValue
+            && numLeftValue.bigIntegerValue().equals(BigInteger.ZERO);
+    boolean rightIsZero =
+        rightValue instanceof NumericValue numRightValue
+            && numRightValue.bigIntegerValue().equals(BigInteger.ZERO);
+    checkArgument(
+        !(leftValue instanceof ConstantSymbolicExpression leftConst)
+            || !(leftConst.getValue() instanceof NumericValue));
+    checkArgument(
+        !(rightValue instanceof ConstantSymbolicExpression rightConst)
+            || !(rightConst.getValue() instanceof NumericValue));
 
-      Value correctlyTypedOffset;
-      if (calculationType instanceof CPointerType) {
-        // This is the pointer++; case for example.
-        // We need the correct types here; the types of the returned value after the pointer
-        // expression!
-        correctlyTypedOffset =
-            calculateArithmeticOperationWithBitPromotion(
-                evaluator.getBitSizeof(currentState, canonicalReturnType, cfaEdge),
-                leftValueType,
-                rightValue,
-                rightValueType,
-                BinaryOperator.MULTIPLY);
-      } else {
-        // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
-        // then this is just the numeric value * 8 and then the operation.
-        correctlyTypedOffset =
-            calculateArithmeticOperationWithBitPromotion(
-                new NumericValue(BigInteger.valueOf(8)),
-                leftValueType,
-                rightValue,
-                rightValueType,
-                BinaryOperator.MULTIPLY);
-      }
+    if (rightIsZero) {
+      return ImmutableList.of(ValueAndSMGState.of(leftValue, currentState));
+    } else if (leftIsZero) {
+      return ImmutableList.of(ValueAndSMGState.of(rightValue, currentState));
+    } else if (leftValue == rightValue
+        && binaryOperator == MINUS
+        && (leftValueType instanceof CSimpleType simpleLeftType
+            && rightValueType instanceof CSimpleType simpleRightType
+            && calculationType instanceof CSimpleType simpleCalcType
+            && machineModel.getSizeofInBits(simpleLeftType)
+                >= machineModel.getSizeofInBits(machineModel.getPointerSizedIntType())
+            && machineModel.getSizeofInBits(simpleRightType)
+                >= machineModel.getSizeofInBits(machineModel.getPointerSizedIntType())
+            && machineModel.getSizeofInBits(simpleCalcType)
+                >= machineModel.getSizeofInBits(machineModel.getPointerSizedIntType()))) {
+      // Types are not allowed to restrict the address (i.e. be smaller than the address)
+      // x - x == 0
+      return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
+    }
 
-      Value finalOffset =
-          calculateArithmeticOperationWithBitPromotion(
-              addressOffset, leftValueType, correctlyTypedOffset, rightValueType, binaryOperator);
+    if (leftIsPointer && !rightIsPointer) {
 
-      if (finalOffset instanceof SymbolicExpression symOffset) {
-        int currentOffsetTypeBits =
-            evaluator
-                .getMachineModel()
-                .getSizeofInBits((CType) symOffset.getType())
-                .intValueExact();
-        int pointerTypeInBits =
-            evaluator
-                .getMachineModel()
-                .getSizeofInBits(CPointerType.POINTER_TO_CHAR)
-                .intValueExact();
-        Preconditions.checkArgument(currentOffsetTypeBits >= (pointerTypeInBits + 3));
-      }
+      // e.g. pointer + 3
+      return calculatePointerArithmeticsOperationWithPointerAndNonPointer(
+          leftValue,
+          leftValueType,
+          rightValue,
+          rightValueType,
+          binaryOperator,
+          calculationType,
+          currentState,
+          originalExpression,
+          canonicalReturnType);
 
-      return ImmutableList.of(
-          ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
+    } else if (!leftIsPointer) {
 
-    } else if (!(leftValue instanceof AddressExpression)
-        && rightValue instanceof AddressExpression addressValue) {
-      Value addressOffset = addressValue.getOffset();
-      if (!(leftValue instanceof NumericValue numLeftValue)
-          || !(addressOffset instanceof NumericValue numAddressOffset)
-          || binaryOperator == BinaryOperator.MINUS) {
-        // TODO: symbolic values if possible
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                currentState,
-                "Returned unknown value due to unknown offset value in pointer arithmetics"
-                    + " expression in ",
-                cfaEdge));
-      }
-      Value correctlyTypedOffset;
-      if (calculationType instanceof CPointerType) {
-        Value bitSizedType = evaluator.getBitSizeof(currentState, canonicalReturnType, cfaEdge);
-        correctlyTypedOffset =
-            arithmeticOperation(
-                (NumericValue) bitSizedType,
-                numLeftValue,
-                BinaryOperator.MULTIPLY,
-                machineModel.getPointerSizedIntType());
-      } else {
-        // If it's a cast pointer, i.e. ((unsigned int) pointer) + 8;
-        // then this is just the numeric value * 8 and then the operation.
-        correctlyTypedOffset =
-            arithmeticOperation(
-                new NumericValue(BigInteger.valueOf(8)),
-                numLeftValue,
-                BinaryOperator.MULTIPLY,
-                calculationType);
-      }
-
-      Value finalOffset =
-          arithmeticOperation(
-              (NumericValue) correctlyTypedOffset,
-              numAddressOffset,
-              binaryOperator,
-              calculationType);
-
-      return ImmutableList.of(
-          ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
+      // e.g. 3 + pointer
+      // Just the reverse of above (with the caveat that 3 - pointer does not make sense ;D but some
+      // SoftwareSystems/linux tasks do it for some reason. We disallow this here, as the result is
+      // numeric and not a pointer! These cases should already be filtered out and handled using
+      // symbolic handling)
+      checkArgument(binaryOperator != MINUS);
+      return calculatePointerArithmeticsOperationWithPointerAndNonPointer(
+          rightValue,
+          rightValueType,
+          leftValue,
+          leftValueType,
+          binaryOperator,
+          calculationType,
+          currentState,
+          originalExpression,
+          canonicalReturnType);
 
     } else {
-      // Either we have 2 address expressions or 2 numeric 0
-      if (rightValue instanceof NumericValue numRightValue
-          && leftValue instanceof NumericValue numLeftValue
-          && numRightValue.getNumber().equals(numLeftValue.getNumber())) {
-        return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
-      }
-      // Both are pointers, we allow minus here to get the distance
-      AddressExpression addressRight = (AddressExpression) rightValue;
-      AddressExpression addressLeft = (AddressExpression) leftValue;
-      Value leftOffset = addressLeft.getOffset();
-      Value rightOffset = addressRight.getOffset();
 
-      // This fails if the underlying structure is not the same!
-      // We need the non-equal method for SMGs here as it might be that due to abstraction 2 values
-      // are not equal but refer to the same structure!
-      if (binaryOperator != BinaryOperator.MINUS
-          || !(rightOffset instanceof NumericValue)
-          || !(leftOffset instanceof NumericValue)) {
-        // TODO: symbolic values if possible
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                currentState,
-                "Returned unknown value due to unknown offset value in pointer dereference"
-                    + " expression in ",
-                cfaEdge));
-      }
+      // Both are pointers, we allow minus here to get the distance between them
+      checkArgument(currentState.isPointer(rightValue));
+      checkArgument(currentState.isPointer(leftValue));
+      checkArgument(binaryOperator == MINUS);
 
       ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
       // Our offsets are in bits here! This also checks that it's the same underlying memory object.
       for (ValueAndSMGState distanceInBitsAndState :
-          evaluator.calculateAddressDistance(
-              currentState, addressLeft.getMemoryAddress(), addressRight.getMemoryAddress())) {
+          evaluator.calculateAddressDistance(currentState, leftValue, rightValue)) {
 
         Value distanceInBits = distanceInBitsAndState.getValue();
         currentState = distanceInBitsAndState.getState();
@@ -2140,14 +2332,24 @@ public class SMGCPAValueVisitor
           continue;
         }
 
-        // distance in bits / type size = distance
-        // The type in both pointers is the same, we need the return type from one of them
-        Value size;
+        // For pointer types (distance is in objects for pointers):
+        // distance in bits / object type size in bits = distance
+        // The type in both pointers should be the same, we need the return type from one of them.
+        // For integer types (distance is in bytes for numeric addresses):
+        // distance in bits / byte size in bits = distance
+        CType objectType;
+        // TODO: we need to make sure that at no point a type is used (e.g. casts) that lose part of
+        // the address (e.g. (int *) (char) pointer).
         if (leftValueType instanceof CPointerType cPointerType) {
-          size = evaluator.getBitSizeof(currentState, cPointerType.getType(), cfaEdge);
-        } else if (addressRight.getType() instanceof CArrayType) {
-          size =
-              evaluator.getBitSizeof(currentState, ((CArrayType) leftValueType).getType(), cfaEdge);
+          objectType = cPointerType.getType();
+        } else if (leftValueType.getCanonicalType() instanceof CArrayType arrayType) {
+          objectType = arrayType.getType();
+        } else if (leftValueType instanceof CSimpleType simpleType
+            && simpleType.getType().isIntegerType()
+            && machineModel.getSizeofInBits(simpleType)
+                >= machineModel.getSizeofInBits(machineModel.getPointerSizedIntType())) {
+          // Char is always byte sized
+          objectType = CNumericTypes.CHAR;
         } else {
           returnBuilder.add(
               ValueAndSMGState.ofUnknownValue(
@@ -2156,14 +2358,22 @@ public class SMGCPAValueVisitor
                   cfaEdge));
           continue;
         }
-        // Undefined behavior if this assertion does not hold
+
+        Value objectTypeBitSize = new NumericValue(machineModel.getSizeofInBits(objectType));
+
+        // Undefined behavior if this assertion does not hold for every pointer/address related type
+        // Casts to numbers can have variations, but are not checked
         assert leftValueType.equals(rightValueType);
         Value distance =
-            arithmeticOperation(
+            handleBinaryArithmeticOrBitwiseOperation(
                 numDistanceInBits,
-                (NumericValue) size,
-                BinaryOperator.DIVIDE,
-                machineModel.getPointerSizedIntType());
+                leftValueType,
+                objectTypeBitSize,
+                rightValueType,
+                DIVIDE,
+                machineModel.getPointerSizedIntType(),
+                machineModel.getPointerSizedIntType(),
+                originalExpression);
 
         returnBuilder.add(ValueAndSMGState.of(distance, currentState));
       }
@@ -2171,52 +2381,145 @@ public class SMGCPAValueVisitor
     }
   }
 
-  private Value calculateArithmeticOperationWithBitPromotion(
+  /**
+   * Calculates a pointer arithmetics expression of ONLY the form "pointer +- non-pointer"!
+   *
+   * @param leftValue some pointer.
+   * @param rightValue some non-pointer. Either a {@link NumericValue}, {@link UnknownValue}, or
+   *     variable in the form of a {@link SymbolicValue}.
+   */
+  private ImmutableList<ValueAndSMGState>
+      calculatePointerArithmeticsOperationWithPointerAndNonPointer(
+          Value leftValue,
+          CType leftValueType,
+          Value rightValue,
+          CType rightValueType,
+          BinaryOperator binaryOperator,
+          CType calculationType,
+          SMGState currentState,
+          CBinaryExpression originalExpressionForErrorMessages,
+          CType canonicalReturnType)
+          throws CPATransferException {
+
+    if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Returned unknown value due to unknown input value in pointer"
+                  + " arithmetics expression in ",
+              cfaEdge));
+    }
+    checkArgument(currentState.isPointer(leftValue));
+    checkArgument(!currentState.isPointer(rightValue)); // 0 would be allowed, add if this happens
+
+    if (!options.trackPredicates() && !(rightValue instanceof NumericValue)) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Returned unknown value due to symbolic or unknown offset value in pointer"
+                  + " arithmetics expression without predicate tracking in ",
+              cfaEdge));
+    }
+
+    Value bitSize;
+    if (calculationType instanceof CPointerType) {
+      // This is the pointer++; case for example.
+      // We need the correct types here; the types of the returned value after the pointer
+      // expression!
+      // TODO: is the type correct?
+      bitSize = evaluator.getBitSizeof(currentState, canonicalReturnType, cfaEdge);
+    } else {
+      // If it's a cast pointer, i.e. ((unsigned int) pointer) + 8;
+      // then this is just the numeric value * char size (i.e. char size is always 1 byte, but 1
+      // byte is not always 8 bits) and then the operation.
+      bitSize = new NumericValue(machineModel.getSizeofCharInBits());
+    }
+    // Transform the numeric byte value into bits, as we calculate with bits internally
+    // (e.g. a "pointer + 3" becomes "pointer + (3*8)" for an int pointer)
+    Value additionalOffsetInBits =
+        calculateArithmeticOperationWithBitPromotionForAddresses(
+            bitSize,
+            leftValueType,
+            rightValue,
+            rightValueType,
+            MULTIPLY,
+            originalExpressionForErrorMessages);
+
+    // We don't really dereference here, we only want the offset and target, so we don't break
+    // abstraction here!
+    Optional<SMGStateAndOptionalSMGObjectAndOffset> dereferencedLeftValue =
+        currentState.dereferencePointerWithoutMaterilization(leftValue);
+    SMGObject pointerTarget = dereferencedLeftValue.orElseThrow().getSMGObject();
+    Value pointerOffsetInBits = dereferencedLeftValue.orElseThrow().getOffsetForObject();
+
+    if (!options.trackPredicates() && !(pointerOffsetInBits instanceof NumericValue)) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Returned unknown value due to symbolic or unknown offset value in pointer"
+                  + " arithmetics expression without predicate tracking in ",
+              cfaEdge));
+    }
+
+    Value newOffsetInBits =
+        calculateArithmeticOperationWithBitPromotionForAddresses(
+            pointerOffsetInBits,
+            leftValueType,
+            additionalOffsetInBits,
+            rightValueType,
+            binaryOperator,
+            originalExpressionForErrorMessages);
+
+    if (newOffsetInBits instanceof SymbolicExpression newSymbolicOffsetInBits) {
+      int newOffsetTypeBits =
+          evaluator
+              .getMachineModel()
+              .getSizeofInBits((CType) newSymbolicOffsetInBits.getType())
+              .intValueExact();
+      int pointerTypeInBits =
+          evaluator.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_CHAR).intValueExact();
+      // Make sure that the bit type can truly fit the byte * 8 sizes!
+      checkArgument(newOffsetTypeBits >= (pointerTypeInBits + 3));
+    }
+
+    return ImmutableList.of(
+        evaluator.searchOrCreatePointer(
+            pointerTarget, leftValueType, newOffsetInBits, currentState));
+  }
+
+  /**
+   * Used for binary arithmetic operations that need artificial extension of their types width
+   * during calculation due to memory addresses being handled.
+   */
+  private Value calculateArithmeticOperationWithBitPromotionForAddresses(
       Value leftValue,
       CType leftValueType,
       Value rightValue,
       CType rightValueType,
-      BinaryOperator binOp)
-      throws CPATransferException {
-    if (rightValue instanceof NumericValue numValueRight
-        && leftValue instanceof NumericValue numValueLeft) {
-      return arithmeticOperation(
-          numValueLeft, numValueRight, binOp, evaluator.getCTypeForBitPreciseMemoryAddresses());
-    } else {
-      // Symbolic offset
-      return createSymbolicExpression(
-          leftValue,
-          leftValueType,
-          rightValue,
-          rightValueType,
-          binOp,
-          evaluator.getCTypeForBitPreciseMemoryAddresses(),
-          evaluator.getCTypeForBitPreciseMemoryAddresses());
-    }
+      BinaryOperator binOp,
+      CBinaryExpression originalExpressionForErrorMessages)
+      throws UnsupportedCodeException {
+
+    CType promotedType = evaluator.getCTypeForBitPreciseMemoryAddresses();
+    return handleBinaryArithmeticOrBitwiseOperation(
+        leftValue,
+        leftValueType,
+        rightValue,
+        rightValueType,
+        binOp,
+        promotedType,
+        promotedType,
+        originalExpressionForErrorMessages);
   }
 
   /**
-   * Join a symbolic expression with something else using a binary expression.
+   * Join a symbolic expression with something else using a binary expression. One of the values
+   * needs to be symbolic. None may be unknown.
    *
-   * <p>e.g. joining `a` and `5` with `+` will produce `a + 5`
-   *
-   * @param pLValue left hand side value
-   * @param pRValue right hand side value
-   * @param pExpression the binary expression with the operator
-   * @return the calculated Value
+   * <p>e.g. joining `a` and `5` with operator `+` will produce `a + 5`.
    */
   public Value calculateSymbolicBinaryExpression(
-      Value pLValue, Value pRValue, final CBinaryExpression pExpression) throws SMGException {
-
-    // While the offsets and even the values of the addresses may be symbolic, the address
-    // expressions themselves may never be handled in such a way
-    if (pLValue instanceof AddressExpression || pRValue instanceof AddressExpression) {
-      logger.logf(
-          Level.ALL,
-          "Could not determine result of %s operation on one or more memory addresses.",
-          pExpression);
-      return UnknownValue.getInstance();
-    }
+      Value pLValue, Value pRValue, final CBinaryExpression pExpression) {
 
     final BinaryOperator operator = pExpression.getOperator();
 
@@ -2225,15 +2528,7 @@ public class SMGCPAValueVisitor
     final CType expressionType = pExpression.getExpressionType();
     final CType calculationType = pExpression.getCalculationType();
 
-    // Evaluate == symbolics if possible
-    if (operator.equals(BinaryOperator.EQUALS)
-        && pLValue.equals(pRValue)
-        && !(calculationType instanceof CSimpleType simpleType
-            && simpleType.getType().isFloatingPointType())) {
-      return new NumericValue(1);
-    }
-
-    return createSymbolicExpression(
+    return createBinarySymbolicExpression(
         pLValue,
         leftOperandType,
         pRValue,
@@ -2243,222 +2538,1297 @@ public class SMGCPAValueVisitor
         calculationType);
   }
 
-  private Value createSymbolicExpression(
+  /**
+   * Transforms both input values into constant symbolic expressions if needed, and builds the
+   * binary symbolic expression. None of the inputs is allowed to be unknown. One (left or right)
+   * may be numeric, but not both!
+   */
+  private SymbolicExpression createBinarySymbolicExpression(
       Value pLeftValue,
       CType pLeftType,
       Value pRightValue,
       CType pRightType,
-      CBinaryExpression.BinaryOperator pOperator,
+      BinaryOperator pOperator,
       CType pExpressionType,
-      CType pCalculationType)
-      throws SMGException {
+      CType pCalculationType) {
 
-    if (pLeftValue instanceof NumericValue && pRightValue instanceof NumericValue) {
-      throw new SMGException(
-          "Error when creating a symbolic expression. Please inform the maintainer of SMG2.");
-    }
+    // TODO: do we want to try to canonize symbolic expressions to allow things like (1 + a) == (a
+    //  + 1) to be recognized? (this is more of a general question)
+    // TODO: add automatic NaN behavior to numeric/symbolic values!
+    // TODO: move to handling of common simplifications to the expressions directly?
+
+    checkArgument(!(pLeftValue instanceof NumericValue && pRightValue instanceof NumericValue));
+    checkArgument(!pLeftValue.isUnknown() || !pRightValue.isUnknown());
 
     SymbolicExpression leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
     SymbolicExpression rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
-
-    // Simplify floating point expressions
-    // TODO Add more simplifications
-    // TODO Move this code to the methods in SymbolicValueFactory?
-    if (pLeftValue instanceof NumericValue leftValue && leftValue.hasFloatType()) {
-      FloatValue leftNum = leftValue.getFloatValue();
-      if (ImmutableList.of(
-                  BinaryOperator.PLUS,
-                  BinaryOperator.MINUS,
-                  BinaryOperator.MULTIPLY,
-                  BinaryOperator.DIVIDE)
-              .contains(pOperator)
-          && leftNum.isNan()) {
-        return pLeftValue;
-      }
-    }
-    if (pRightValue instanceof NumericValue rightValue && rightValue.hasFloatType()) {
-      FloatValue rightNum = rightValue.getFloatValue();
-      if (ImmutableList.of(
-                  BinaryOperator.PLUS,
-                  BinaryOperator.MINUS,
-                  BinaryOperator.MULTIPLY,
-                  BinaryOperator.DIVIDE)
-              .contains(pOperator)
-          && rightNum.isNan()) {
-        return pRightValue;
-      }
-    }
-
-    if (pLeftValue instanceof NumericValue leftValue) {
-      BigInteger leftNum = leftValue.bigIntegerValue();
-      rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
-      if ((pOperator == BinaryOperator.PLUS && leftNum.equals(BigInteger.ZERO))
-          || (pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ONE))) {
-        if (!pLeftType.equals(pExpressionType)) {
-          return CastExpression.of(rightOperand, pExpressionType);
-        }
-        return rightOperand;
-      } else if (pOperator == BinaryOperator.MINUS && leftNum.equals(BigInteger.ZERO)) {
-        return NegationExpression.of(rightOperand, pExpressionType);
-      } else if ((pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ZERO))
-          || (pOperator == BinaryOperator.DIVIDE && leftNum.equals(BigInteger.ZERO))) {
-        return new NumericValue(BigInteger.ZERO);
-      }
-    } else if (pRightValue instanceof NumericValue rightValue) {
-      leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
-      BigInteger rightNum = rightValue.bigIntegerValue();
-      if ((pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ONE))
-          || (pOperator == BinaryOperator.PLUS && rightNum.equals(BigInteger.ZERO))
-          || (pOperator == BinaryOperator.MINUS && rightNum.equals(BigInteger.ZERO))) {
-        if (!pLeftType.equals(pExpressionType)) {
-          return CastExpression.of(leftOperand, pExpressionType);
-        }
-        return leftOperand;
-      } else if (pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ZERO)) {
-        return new NumericValue(BigInteger.ZERO);
-      }
-    }
 
     return BinarySymbolicExpression.of(
         leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
   }
 
-  private NumericValue calculateOperationWithFunctionValue(
-      BinaryOperator binaryOperator, FunctionValue val1, Value val2) {
-    return switch (binaryOperator) {
-      case EQUALS -> new NumericValue(val1.equals(val2) ? 1 : 0);
-      case NOT_EQUALS -> new NumericValue(val1.equals(val2) ? 0 : 1);
+  /**
+   * Calculates binary arithmetic or bitwise operations (i.e. +, -, *, /, %, <<, >>, &, |, ^) of two
+   * arbitrary {@link Value}s. Types are derived from the given expression.
+   */
+  private Value handleBinaryArithmeticOrBitwiseOperation(
+      final Value leftValue,
+      final Value rightValue,
+      final BinaryOperator op,
+      final CBinaryExpression expression)
+      throws UnsupportedCodeException {
+
+    final CType leftType = expression.getOperand1().getExpressionType();
+    final CType rightType = expression.getOperand2().getExpressionType();
+    final CType returnType = expression.getExpressionType();
+    final CType calculationType = expression.getCalculationType();
+
+    return handleBinaryArithmeticOrBitwiseOperation(
+        leftValue, leftType, rightValue, rightType, op, returnType, calculationType, expression);
+  }
+
+  /**
+   * Calculates binary arithmetic or bitwise operations (i.e. +, -, *, /, %, <<, >>, &, |, ^) of two
+   * arbitrary {@link Value}s.
+   */
+  private Value handleBinaryArithmeticOrBitwiseOperation(
+      final Value leftValue,
+      final CType leftType,
+      final Value rightValue,
+      final CType rightType,
+      final BinaryOperator op,
+      final CType returnType,
+      final CType calculationType,
+      CBinaryExpression originalExpressionForErrorMessages)
+      throws UnsupportedCodeException {
+    assert !op.isLogicalOperator();
+
+    // At this point we're only handling values of simple types
+    final Optional<CSimpleType> maybeSimpleCalculationType = getSimplifiedType(calculationType);
+    if (maybeSimpleCalculationType.isEmpty()) {
+      throw new UnsupportedCodeException(
+          "Unsupported calculation type "
+              + calculationType
+              + " in binary comparison operation "
+              + originalExpressionForErrorMessages,
+          cfaEdge);
+    }
+    CSimpleType simpleCalculationType = maybeSimpleCalculationType.orElseThrow();
+
+    return switch (op) {
+      case PLUS ->
+          handleAddition(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case MINUS ->
+          handleSubtraction(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case MULTIPLY ->
+          handleMultiplication(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case DIVIDE ->
+          handleDivision(
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              originalExpressionForErrorMessages);
+      case REMAINDER ->
+          handleRemainder(
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              originalExpressionForErrorMessages);
+      case SHIFT_LEFT ->
+          handleShiftLeft(
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              originalExpressionForErrorMessages);
+      case SHIFT_RIGHT ->
+          handleShiftRight(
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              originalExpressionForErrorMessages);
+      case BITWISE_AND ->
+          handleBitwiseAnd(
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              originalExpressionForErrorMessages);
+      case BITWISE_XOR ->
+          handleBitwiseXOR(
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              originalExpressionForErrorMessages);
+      case BITWISE_OR ->
+          handleBitwiseOR(
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              originalExpressionForErrorMessages);
       default ->
           throw new AssertionError(
-              "Operation " + binaryOperator + " is not supported for function values");
+              "Unknown binary operation "
+                  + op
+                  + " in arithmetic operation "
+                  + originalExpressionForErrorMessages);
     };
   }
 
-  /**
-   * Calculate an arithmetic operation on two Value types.
-   *
-   * @param lNum left hand side value
-   * @param rNum right hand side value
-   * @param op the binary operator
-   * @param calculationType The type the result of the calculation should have
-   * @return the resulting values
-   */
-  private Value arithmeticOperation(
-      final NumericValue lNum,
-      final NumericValue rNum,
-      final BinaryOperator op,
-      final CType calculationType) {
+  private Value handleAddition(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType)
+      throws UnsupportedCodeException {
 
-    // At this point we're only handling values of simple types.
-    final CSimpleType type = getArithmeticType(calculationType);
-    if (type == null) {
-      logger.logf(
-          Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
-      return Value.UnknownValue.getInstance();
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both l and r must be of the same type, which in this case is INT, so we can cast to
+            // long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, PLUS, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, PLUS);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      PLUS,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      PLUS.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(), leftNumeric, leftType, PLUS.getOperator(), rightNumeric, rightType),
+            cfaEdge);
+
+        // Previous handling:
+        // TODO: do we want this? Or do we want this with an option?
+        // Log warning and ignore expression
+        /*
+        logger.logf(
+            Level.WARNING,errorMsg
+            );
+        return UnknownValue.getInstance();*/
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for addition due to at least one unknown operand ", cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+
+      // Simplification is only needed for symbolics here, as all calculations are well-defined for
+      // 2 numeric values.
+      // Simplify (x + 0) = x
+      if (leftValue instanceof NumericValue numLeft
+          && numLeft.bigIntegerValue().equals(BigInteger.ZERO)
+          && !calculationType.getType().isFloatingPointType()) {
+        return rightValue;
+      }
+      if (rightValue instanceof NumericValue numRight
+          && numRight.bigIntegerValue().equals(BigInteger.ZERO)
+          && !calculationType.getType().isFloatingPointType()) {
+        return leftValue;
+      }
+
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, PLUS, returnType, calculationType);
+    }
+  }
+
+  private Value handleSubtraction(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType)
+      throws UnsupportedCodeException {
+
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both l and r must be of the same type, which in this case is INT, so we can cast to
+            // long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, MINUS, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, MINUS);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      MINUS,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      MINUS.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                MINUS.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for subtraction due to at least one unknown operand ", cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+
+      // Simplification is only needed for symbolics here, as all calculations are well defined for
+      // 2 numerics.
+      // Simplify (0 - x) = -x
+      if (leftValue instanceof NumericValue numLeft
+          && numLeft.bigIntegerValue().equals(BigInteger.ZERO)
+          && !calculationType.getType().isFloatingPointType()) {
+        // Automatically strips negation if already present
+        return createBinarySymbolicExpression(
+            rightValue, calculationType, UnaryOperator.MINUS, returnType);
+      }
+      // Simplify (x - 0) = x
+      if (rightValue instanceof NumericValue numRight
+          && numRight.bigIntegerValue().equals(BigInteger.ZERO)
+          && !calculationType.getType().isFloatingPointType()) {
+        return leftValue;
+      }
+
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, MINUS, returnType, calculationType);
+    }
+  }
+
+  private Value handleMultiplication(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType)
+      throws UnsupportedCodeException {
+
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, MULTIPLY, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, MULTIPLY);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      MULTIPLY,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      MULTIPLY.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                MULTIPLY.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else {
+      // Both values may be unknown or symbolic, while one may be numeric
+
+      // Simplification is only needed for symbolics here, as all calculations are well defined for
+      // 2 numerics.
+      // Simplify (0 * x) = 0 and (1 * x) = x
+      if (leftValue instanceof NumericValue numLeft
+          && !calculationType.getType().isFloatingPointType()) {
+        if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+          return leftValue; // 0
+        } else if (numLeft.bigIntegerValue().equals(BigInteger.ONE)) {
+          return rightValue;
+        }
+      }
+      // Simplify (x * 0) = 0 and (x * 1) = x
+      if (rightValue instanceof NumericValue numRight
+          && !calculationType.getType().isFloatingPointType()) {
+        if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+          return rightValue; // 0
+        } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
+          return leftValue;
+        }
+      }
+
+      if (leftValue.isUnknown() || rightValue.isUnknown()) {
+        state.logUnknownValue(
+            "Returned unknown value for multiplication operation due to at least one unknown"
+                + " operand ",
+            cfaEdge);
+        return UnknownValue.getInstance();
+      }
+
+      // At least 1 value is symbolic, the other can be symbolic or numeric from this point onward
+
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, MULTIPLY, returnType, calculationType);
+    }
+  }
+
+  private Value handleDivision(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
+
+    // Simplify (x / 0) = 0 and (x / 1) = x
+    if (rightValue instanceof NumericValue numRight
+        && !calculationType.getType().isFloatingPointType()) {
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return handleDivisionByZero(expression);
+      } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
+        return leftValue;
+      }
     }
 
-    try {
-      return switch (type.getType()) {
-        case INT -> {
-          // Both l and r must be of the same type, which in this case is INT, so we can cast to
-          // long.
-          long lVal = lNum.getNumber().longValue();
-          long rVal = rNum.getNumber().longValue();
-          long result = arithmeticOperation(lVal, rVal, op, calculationType);
-          yield new NumericValue(result);
-        }
-        case INT128 -> {
-          BigInteger lVal = lNum.bigIntegerValue();
-          BigInteger rVal = rNum.bigIntegerValue();
-          BigInteger result = arithmeticOperation(lVal, rVal, op);
-          yield new NumericValue(result);
-        }
-        case FLOAT, DOUBLE, FLOAT128 ->
-            new NumericValue(
-                arithmeticOperation(
-                    op,
-                    castToFloat(machineModel, type, lNum),
-                    castToFloat(machineModel, type, rNum)));
-        default -> {
-          logger.logf(
-              Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-          yield Value.UnknownValue.getInstance();
-        }
-      };
-    } catch (ArithmeticException e) { // log warning and ignore expression
-      logger.logf(
-          Level.WARNING,
-          "expression causes arithmetic exception (%s): %s %s %s",
-          e.getMessage(),
-          lNum,
-          op.getOperator(),
-          rNum);
-      return Value.UnknownValue.getInstance();
+    // Simplify (0 / x) = 0
+    if (leftValue instanceof NumericValue numLeft
+        && !calculationType.getType().isFloatingPointType()) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue; // 0
+      }
+    }
+
+    // Simplify (x / x) = 1
+    if (leftValue.equals(rightValue) && !calculationType.getType().isFloatingPointType()) {
+      return new NumericValue(1);
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, DIVIDE, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, DIVIDE);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      DIVIDE,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      DIVIDE.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                DIVIDE.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for division due to at least one unknown operand ", cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, DIVIDE, returnType, calculationType);
+    }
+  }
+
+  /** % operator in C. (Which is called remainder, NOT REMAINDER!) */
+  private Value handleRemainder(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+    // Given an integer a (leftValue) and a non-zero integer b (rightValue), it can be shown that
+    // there exist unique integers q and r, such that a = qb + r and 0 ≤ r < |b|
+    // with q = a/b.
+    // The number q is called the quotient, while r is called the remainder.
+    // -> remainder r = a — (b x q)
+    // => r = 0   for a = 0
+    // => r = 0   for b = 1
+    // => r = 0   for a = b
+    // Other simplifications (e.g. a = 1) fail due to rounding.
+    // Notes on C: C99+ chooses the remainder with the same sign as the dividend a.
+    // C11 §6.5.5.6: When integers are divided, the result of the / operator
+    // is the algebraic quotient with any fractional part discarded. If the quotient a/b is
+    // representable, the expression (a/b)*b + a%b shall equal a; otherwise, the behavior of
+    // both a/b and a%b is undefined.
+
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
+
+    // Handle (x % 0) = 0 and simplify (a % 1) = 0
+    if (rightValue instanceof NumericValue numRight
+        && !calculationType.getType().isFloatingPointType()) {
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return handleDivisionByZero(expression);
+      } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
+        return new NumericValue(0);
+      }
+    }
+
+    // Simplify (0 % b) = 0
+    if (leftValue instanceof NumericValue numLeft
+        && !calculationType.getType().isFloatingPointType()) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue; // 0
+      }
+    }
+    // Simplify (x % x) = 0
+    if (leftValue.equals(rightValue) && !calculationType.getType().isFloatingPointType()) {
+      return new NumericValue(0);
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, REMAINDER, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, REMAINDER);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      REMAINDER,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      REMAINDER.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                REMAINDER.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for remainder operation due to at least one unknown operand ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, REMAINDER, returnType, calculationType);
+    }
+  }
+
+  /** << */
+  private Value handleShiftLeft(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+    // C11 §6.5.7 Bitwise shift operators:
+    // The integer promotions are performed on each of the operands. The type of the result is
+    // that of the promoted left operand. If the value of the right operand is negative or is
+    // greater than or equal to the width of the promoted left operand, the behavior is undefined.
+
+    // The result of E1 << E2 is E1 left-shifted E2 bit positions; vacated bits are filled with
+    // zeros. If E1 has an unsigned type, the value of the result is E1 × 2E2, reduced REMAINDER
+    // one more than the maximum value representable in the result type. If E1 has a signed
+    // type and nonnegative value, and E1 × 2E2 is representable in the result type, then that is
+    // the resulting value; otherwise, the behavior is undefined.
+    // TODO: handle the type thingy
+
+    // Handle negative or larger second arguments
+    if (rightValue instanceof NumericValue numRight
+        && !calculationType.getType().isFloatingPointType()) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().signum() < 0) {
+        return handleUndefinedBitwiseShift(
+            expression, "Second argument in left shift operation is negative.");
+      } else if (BigInteger.valueOf(machineModel.getSizeofInBits(calculationType))
+              .compareTo(numRight.bigIntegerValue())
+          >= 0) {
+        return handleUndefinedBitwiseShift(
+            expression,
+            "Second argument in left shift operation is equal or exceeding the width of the first"
+                + " arguments type.");
+      }
+    }
+
+    // Simplify (0 << x) = 0 ?
+    if (leftValue instanceof NumericValue numLeft
+        && !calculationType.getType().isFloatingPointType()) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        // TODO: look into this!
+        // return leftValue; // 0
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, SHIFT_LEFT, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, SHIFT_LEFT);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              throw new UnsupportedOperationException(
+                  SHIFT_LEFT.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
+
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      SHIFT_LEFT.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                SHIFT_LEFT.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for left shift operation due to at least one unknown operand ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, SHIFT_LEFT, returnType, calculationType);
+    }
+  }
+
+  /** >> */
+  private Value handleShiftRight(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+    // C11 §6.5.7 Bitwise shift operators:
+    // The integer promotions are performed on each of the operands. The type of the result is
+    // that of the promoted left operand. If the value of the right operand is negative or is
+    // greater than or equal to the width of the promoted left operand, the behavior is undefined.
+
+    // The result of E1 >> E2 is E1 right-shifted E2 bit positions. If E1 has an unsigned type
+    // or if E1 has a signed type and a nonnegative value, the value of the result is the integral
+    // part of the quotient of E1 / 2E2. If E1 has a signed type and a negative value, the
+    // resulting value is implementation-defined.
+    // TODO: handle the type thingy
+
+    // Handle negative or larger second arguments
+    if (rightValue instanceof NumericValue numRight
+        && !calculationType.getType().isFloatingPointType()) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().signum() < 0) {
+        return handleUndefinedBitwiseShift(
+            expression, "Second argument in left shift operation is negative.");
+      } else if (BigInteger.valueOf(machineModel.getSizeofInBits(calculationType))
+              .compareTo(numRight.bigIntegerValue())
+          >= 0) {
+        return handleUndefinedBitwiseShift(
+            expression,
+            "Second argument in left shift operation is equal or exceeding the width of the first"
+                + " arguments type.");
+      }
+    }
+
+    // Simplify (0 << x) = 0 ?
+    if (leftValue instanceof NumericValue numLeft
+        && !calculationType.getType().isFloatingPointType()) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        // TODO: look into this!
+        // return leftValue; // 0
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, SHIFT_RIGHT, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, SHIFT_RIGHT);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              throw new UnsupportedOperationException(
+                  SHIFT_RIGHT.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      SHIFT_RIGHT.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                SHIFT_RIGHT.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for right shift operation due to at least one unknown operand ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, SHIFT_RIGHT, returnType, calculationType);
     }
   }
 
   /**
-   * Calculate an arithmetic operation on two integer types.
+   * & operator. Each bit in the result is set if and only if each of the corresponding bits in the
+   * converted operands is set.
+   */
+  private Value handleBitwiseAnd(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+
+    // TODO: // x & x == x
+    // TODO: more simplifications possible?
+    // If one operand is 0, all bits are 0, hence the other does not matter, the result is 0!
+    if (rightValue instanceof NumericValue numRight
+        && !calculationType.getType().isFloatingPointType()) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return rightValue; // 0
+      }
+    }
+
+    if (leftValue instanceof NumericValue numLeft
+        && !calculationType.getType().isFloatingPointType()) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue; // 0
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, BITWISE_AND, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, BITWISE_AND);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              throw new UnsupportedOperationException(
+                  BITWISE_AND.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      BITWISE_AND.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                BITWISE_AND.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for bitwise & (AND) operation due to at least one unknown operand"
+              + " ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, BITWISE_AND, returnType, calculationType);
+    }
+  }
+
+  /**
+   * ^ operator. The result of the ^ operator is the bitwise exclusive OR of the operands (that is,
+   * each bit in the result is set if and only if exactly one of the corresponding bits in the
+   * converted operands is set).
+   */
+  private Value handleBitwiseXOR(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+
+    // TODO: x ^ x == 0 ?
+    // TODO: more simplifications possible?
+    // If one operand is 0, all bits of the other are taken
+    // x ^ 0 = x
+    if (rightValue instanceof NumericValue numRight
+        && !calculationType.getType().isFloatingPointType()) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue;
+      }
+    }
+
+    // 0 ^ x = x
+    if (leftValue instanceof NumericValue numLeft
+        && !calculationType.getType().isFloatingPointType()) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return rightValue;
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, BITWISE_XOR, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, BITWISE_XOR);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              throw new UnsupportedOperationException(
+                  BITWISE_XOR.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      BITWISE_XOR.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                BITWISE_XOR.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for bitwise ^ (XOR) operation due to at least one unknown operand"
+              + " ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, BITWISE_XOR, returnType, calculationType);
+    }
+  }
+
+  /**
+   * | operator. The result of the | operator is the bitwise inclusive OR of the operands (that is,
+   * each bit in the result is set if and only if at least one of the corresponding bits in the
+   * converted operands is set).
+   */
+  private Value handleBitwiseOR(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+
+    // TODO: x | x == x
+    // TODO: max value (in the current type) -> max value returned
+
+    // TODO: more simplifications (e.g. based on types) possible?
+
+    // If one operand is 0, all bits of the other are taken
+    // x ^ 0 = x
+    if (rightValue instanceof NumericValue numRight
+        && !calculationType.getType().isFloatingPointType()) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue;
+      }
+    }
+
+    // 0 ^ x = x
+    if (leftValue instanceof NumericValue numLeft
+        && !calculationType.getType().isFloatingPointType()) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return rightValue;
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, BITWISE_OR, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, BITWISE_OR);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              throw new UnsupportedOperationException(
+                  BITWISE_OR.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      BITWISE_OR.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                BITWISE_OR.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for bitwise | (OR) operation due to at least one unknown operand"
+              + " ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, BITWISE_OR, returnType, calculationType);
+    }
+  }
+
+  /**
+   * Calculate an arithmetic operation on two integer types. All divisions by zero (that includes /
+   * and %) should be handled BEFORE calling this method!
    *
-   * @param l left hand side value
-   * @param r right hand side value
+   * @param left left hand side value
+   * @param right right hand side value. Not allowed to be zero for division operations (including
+   *     the REMAINDER operator %).
    * @param op the binary operator
-   * @param calculationType The type the result of the calculation should have
+   * @param calculationType the type the result of the calculation should have
    * @return the resulting value
    */
   private long arithmeticOperation(
-      final long l, final long r, final BinaryOperator op, final CType calculationType) {
+      final long left,
+      final long right,
+      final BinaryOperator op,
+      final CSimpleType calculationType) {
 
-    // special handling for UNSIGNED_LONGLONG (32 and 64bit), UNSIGNED_LONG (64bit)
-    // because Java only has SIGNED_LONGLONG
-    CSimpleType st = getArithmeticType(calculationType);
-    if (st != null) {
-      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.hasUnsignedSpecifier()) {
-        switch (op) {
-          case DIVIDE -> {
-            if (r == 0) {
-              logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
-              return 0;
-            }
-            return UnsignedLongs.divide(l, r);
-          }
-          case REMAINDER -> {
-            return UnsignedLongs.remainder(l, r);
-          }
-          case SHIFT_RIGHT -> {
-            /*
-             * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
-             *
-             * The unsigned right shift operator ">>>" shifts a zero
-             * into the leftmost position, while the leftmost position
-             * after ">>" depends on sign extension.
-             */
-            return l >>> r;
-          }
-          default -> {}
+    if (machineModel.getSizeofInBits(calculationType) >= SIZE_OF_JAVA_LONG
+        && !machineModel.isSigned(calculationType)) {
+      // Special handling for UNSIGNED_LONG (32 and 64bit), UNSIGNED_LONGLONG (64bit)
+      // because Java only has one signed long type (64bit)
+      switch (op) {
+        case DIVIDE -> {
+          checkArgument(right != 0);
+          return UnsignedLongs.divide(left, right);
         }
+        case REMAINDER -> {
+          checkArgument(right != 0);
+          return UnsignedLongs.remainder(left, right);
+        }
+        case SHIFT_RIGHT -> {
+          /*
+           * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
+           *
+           * The unsigned right shift operator ">>>" shifts a zero
+           * into the leftmost position, while the leftmost position
+           * after ">>" depends on sign extension.
+           */
+          return left >>> right;
+        }
+        default -> {}
       }
     }
 
     switch (op) {
       case PLUS -> {
-        return l + r;
+        return left + right;
       }
       case MINUS -> {
-        return l - r;
+        return left - right;
       }
       case DIVIDE -> {
-        if (r == 0) {
-          logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
-          return 0;
-        }
-        return l / r;
+        checkArgument(right != 0);
+        return left / right;
       }
       case REMAINDER -> {
-        return l % r;
+        checkArgument(right != 0);
+        return left % right;
       }
       case MULTIPLY -> {
-        return l * r;
+        return left * right;
       }
       case SHIFT_LEFT -> {
         /* There is a difference in the SHIFT-operation in Java and C.
@@ -2472,29 +3842,84 @@ public class SMGCPAValueVisitor
          * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
          * The shift distance actually used is therefore always in the range 0 to 63.
          */
-        return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
+        return (right >= SIZE_OF_JAVA_LONG) ? 0 : left << right;
       }
       case SHIFT_RIGHT -> {
-        return l >> r;
+        return left >> right;
       }
       case BITWISE_AND -> {
-        return l & r;
+        return left & right;
       }
       case BITWISE_OR -> {
-        return l | r;
+        return left | right;
       }
       case BITWISE_XOR -> {
-        return l ^ r;
+        return left ^ right;
       }
       default -> throw new AssertionError("unknown binary operation: " + op);
     }
   }
 
   /**
-   * Calculate an arithmetic operation on two int128 types.
+   * To be called for handling of bitwise shift operations (<< or >>) that exhibit undefined
+   * behavior, e.g. due to negative second argument.
+   */
+  private Value handleUndefinedBitwiseShift(
+      final CBinaryExpression pExpression, final String additionalMsg)
+      throws UnsupportedCodeException {
+    final String loggedMsg =
+        String.format(
+            "Bitwise shift operation with undefined behavior detected in expression %s due to %s."
+                + " %s",
+            pExpression, additionalMsg, cfaEdge);
+    return handleArithmeticUndefinedBehavior(loggedMsg);
+  }
+
+  /**
+   * To be called for handling of division or REMAINDER with second operand equal to zero. Either
+   * throws {@link UnsupportedCodeException}, or returns a {@link UnknownValue}, or a {@link
+   * NumericValue}, depending on the set option for how this is handled.
+   */
+  private Value handleDivisionByZero(final CBinaryExpression pExpression)
+      throws UnsupportedCodeException {
+    // C11 §6.5.5.5: The result of the / operator is the quotient from the division of the first
+    // operand by the second; the result of the % operator is the remainder. In both operations,
+    // if the value of the second operand is zero, the behavior is undefined.
+    final String loggedMsg =
+        String.format(
+            "Concrete division by Zero detected in expression %s, in %s", pExpression, cfaEdge);
+    return handleArithmeticUndefinedBehavior(loggedMsg);
+  }
+
+  private Value handleArithmeticUndefinedBehavior(final String loggedMsg)
+      throws UnsupportedCodeException {
+    return switch (options.getArithmeticUndefinedBehaviorHandling()) {
+      case WARN_AND_RETURN_UNKNOWN ->
+          logDivisionByZeroAndReturnValue(UnknownValue.getInstance(), loggedMsg);
+      case WARN_AND_RETURN_ZERO -> logDivisionByZeroAndReturnValue(new NumericValue(0), loggedMsg);
+      case WARN_AND_RETURN_ONE -> logDivisionByZeroAndReturnValue(new NumericValue(1), loggedMsg);
+      case STOP_ANALYSIS ->
+          throw new UnsupportedCodeException(
+              loggedMsg
+                  + ". Stopping analysis as defined in option"
+                  + " 'arithmeticUndefinedBehaviorHandling'.",
+              cfaEdge);
+    };
+  }
+
+  @SuppressWarnings("FormatStringAnnotation")
+  private Value logDivisionByZeroAndReturnValue(final Value returnedValue, final String loggedMsg) {
+    logger.logf(Level.SEVERE, loggedMsg, cfaEdge);
+    return returnedValue;
+  }
+
+  /**
+   * Calculate an arithmetic operation on two int128 types. No operation involving division must
+   * divide by zero (i.e. / or %). These cases must be handled before calling this!
    *
    * @param l left hand side value
-   * @param r right hand side value
+   * @param r right hand side value. Not allowed to be zero for division operations (including the
+   *     REMAINDER operator %).
    * @param op the binary operator
    * @return the resulting value
    */
@@ -2509,14 +3934,11 @@ public class SMGCPAValueVisitor
         return l.subtract(r);
       }
       case DIVIDE -> {
-        if (r.equals(BigInteger.ZERO)) {
-          // this matches the behavior of long
-          logger.logf(Level.SEVERE, "Division by Zero (%s / %s)", l.toString(), r.toString());
-          return BigInteger.ZERO;
-        }
+        checkArgument(!r.equals(BigInteger.ZERO));
         return l.divide(r);
       }
       case REMAINDER -> {
+        checkArgument(!r.equals(BigInteger.ZERO));
         return l.mod(r);
       }
       case MULTIPLY -> {
@@ -2557,9 +3979,10 @@ public class SMGCPAValueVisitor
   }
 
   /**
-   * Calculate an arithmetic operation on two floating point values.
+   * Calculate an arithmetic operation on two floating point values. Supported arithmetic operations
+   * are PLUS, MINUS, DIVIDE, REMAINDER, and MULTIPLY.
    *
-   * @param pOperation the binary operator
+   * @param pOperation the binary operator, either +, -, *, /, or %.
    * @param pArg1 left hand side value
    * @param pArg2 right hand side value
    * @return the resulting value
@@ -2580,55 +4003,345 @@ public class SMGCPAValueVisitor
     };
   }
 
-  private Value comparisonOperation(
-      final NumericValue l,
-      final NumericValue r,
+  /**
+   * Handled all (binary) comparisons, i.e. ==, !=, <, <=, >, >=, including common simplifications.
+   */
+  private Value handleComparisonOperation(
+      final Value left,
+      final Value right,
       final BinaryOperator op,
-      final CType calculationType) {
+      final CBinaryExpression expression)
+      throws UnsupportedCodeException {
+    assert op.isLogicalOperator();
 
-    // At this point we're only handling values of simple types.
-    final CSimpleType type = getArithmeticType(calculationType);
-    if (type == null) {
-      logger.logf(
-          Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
-      return Value.UnknownValue.getInstance();
+    final CType leftType = expression.getOperand1().getExpressionType();
+    final CType rightType = expression.getOperand2().getExpressionType();
+    final CType returnType = expression.getExpressionType();
+    final CType calculationType = expression.getCalculationType();
+    // TODO: make sure that the calculation type is actually the calculation type AFTER integer
+    //  promotion etc.
+    // TODO: write unit tests for this! (i.e. all of the common handling in this class)
+
+    // At this point we're only handling values of simple types
+    final Optional<CSimpleType> maybeSimpleCalculationType = getSimplifiedType(calculationType);
+    if (maybeSimpleCalculationType.isEmpty()) {
+      throw new UnsupportedCodeException(
+          "Unsupported calculation type "
+              + calculationType
+              + " in binary comparison operation "
+              + expression,
+          cfaEdge);
     }
 
-    return switch (type.getType()) {
-      case INT128, CHAR, INT -> {
-        // TODO: test this in particular!
-        BigInteger leftBigInt = l.bigIntegerValue();
-        BigInteger rightBigInt = r.bigIntegerValue();
-        final int cmp = leftBigInt.compareTo(rightBigInt);
-        // returns True, iff cmp fulfills the boolean operation.
-        boolean result =
-            switch (op) {
-              case GREATER_THAN -> cmp > 0;
-              case GREATER_EQUAL -> cmp >= 0;
-              case LESS_THAN -> cmp < 0;
-              case LESS_EQUAL -> cmp <= 0;
-              case EQUALS -> cmp == 0;
-              case NOT_EQUALS -> cmp != 0;
-              default -> throw new AssertionError("Unknown binary operation: " + op);
-            };
-        // return 1 if expression holds, 0 otherwise
-        yield new NumericValue(result ? 1 : 0);
-      }
-      case FLOAT, DOUBLE, FLOAT128 -> {
-        boolean result =
-            comparisonOperation(
-                op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        yield new NumericValue(result ? 1 : 0);
-      }
-      default -> {
-        logger.logf(
-            Level.FINE,
-            "unsupported type %s for result of binary operation %s",
-            type.toString(),
-            op);
-        yield Value.UnknownValue.getInstance();
-      }
+    CSimpleType simpleCalculationType = maybeSimpleCalculationType.orElseThrow();
+
+    return switch (op) {
+      case EQUALS ->
+          handleEqualityOperator(
+              left, leftType, right, rightType, simpleCalculationType, returnType);
+      case NOT_EQUALS ->
+          handleInequalityOperator(
+              left, leftType, right, rightType, simpleCalculationType, returnType);
+      case GREATER_THAN ->
+          handleGreaterThanOperator(
+              left, leftType, right, rightType, simpleCalculationType, returnType);
+      case GREATER_EQUAL ->
+          handleGreaterEqualsOperator(
+              left, leftType, right, rightType, simpleCalculationType, returnType);
+      case LESS_THAN ->
+          handleLessThanOperator(
+              left, leftType, right, rightType, simpleCalculationType, returnType);
+      case LESS_EQUAL ->
+          handleLessEqualsOperator(
+              left, leftType, right, rightType, simpleCalculationType, returnType);
+      default ->
+          throw new AssertionError(
+              "Unknown binary operation " + op + " in arithmetic operation " + expression);
     };
+  }
+
+  // ==
+  private Value handleEqualityOperator(
+      final Value left,
+      final CType leftType,
+      final Value right,
+      final CType rightType,
+      final CSimpleType calculationType,
+      final CType returnType) {
+
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean equals =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                leftNumeric.bigIntegerValue().equals(rightNumeric.bigIntegerValue());
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    EQUALS,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(equals ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for equality (==) due to at least one unknown operand ", cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      if (left.equals(right) && !calculationType.getType().isFloatingPointType()) {
+        return new NumericValue(1);
+      }
+      // TODO: we can handle some Float combinations here as well! e.g. if one is NaN, this is
+      //  always false etc.
+      // TODO: we can also handle some additional cases like a == !a
+      // TODO: do we want to try to canonize symbolic expressions to allow things like (1 + a) == (a
+      //  + 1) to be recognized? (this is more of a general question)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, EQUALS, returnType, calculationType);
+    }
+  }
+
+  // !=
+  private Value handleInequalityOperator(
+      final Value left,
+      final CType leftType,
+      final Value right,
+      final CType rightType,
+      final CSimpleType calculationType,
+      final CType returnType) {
+
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean notEquals =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                !leftNumeric.bigIntegerValue().equals(rightNumeric.bigIntegerValue());
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    NOT_EQUALS,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(notEquals ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for inequality (!=) due to at least one unknown operand ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      if (left.equals(right) && !calculationType.getType().isFloatingPointType()) {
+        return new NumericValue(0);
+      }
+      // TODO: we can handle some Float combinations here as well! e.g. if one is NaN, this is
+      //  always true etc.
+      // TODO: we can also handle some additional cases like a != !a
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, NOT_EQUALS, returnType, calculationType);
+    }
+  }
+
+  // <
+  private Value handleLessThanOperator(
+      final Value left,
+      final CType leftType,
+      final Value right,
+      final CType rightType,
+      final CSimpleType calculationType,
+      final CType returnType) {
+
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean lessThan =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                leftNumeric.bigIntegerValue().compareTo(rightNumeric.bigIntegerValue()) < 0;
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    LESS_THAN,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(lessThan ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for < (less than) operation due to at least one unknown operand ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      // if (!left.equals(right) && !calculationType.getType().isFloatingPointType()) {
+      //   return new NumericValue(1);
+      // }
+      // TODO: look into additional cases (e.g. equality -> can't be less than)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, LESS_THAN, returnType, calculationType);
+    }
+  }
+
+  // <=
+  private Value handleLessEqualsOperator(
+      final Value left,
+      final CType leftType,
+      final Value right,
+      final CType rightType,
+      final CSimpleType calculationType,
+      final CType returnType) {
+
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean lessEquals =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                leftNumeric.bigIntegerValue().compareTo(rightNumeric.bigIntegerValue()) <= 0;
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    LESS_EQUAL,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(lessEquals ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for <= (less equals) operation due to at least one unknown"
+              + " operand ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      if (left.equals(right) && !calculationType.getType().isFloatingPointType()) {
+        return new NumericValue(1);
+      }
+      // TODO: look into additional cases (beyond equality == less equals)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, LESS_EQUAL, returnType, calculationType);
+    }
+  }
+
+  // <
+  private Value handleGreaterThanOperator(
+      final Value left,
+      final CType leftType,
+      final Value right,
+      final CType rightType,
+      final CSimpleType calculationType,
+      final CType returnType) {
+
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean greaterThan =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                leftNumeric.bigIntegerValue().compareTo(rightNumeric.bigIntegerValue()) > 0;
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    GREATER_THAN,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(greaterThan ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for > (greater than) operation due to at least one unknown"
+              + " operand ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      // if (!left.equals(right) && !calculationType.getType().isFloatingPointType()) {
+      //   return new NumericValue(1);
+      // }
+      // TODO: look into additional cases (e.g. equality -> not greater than)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, GREATER_THAN, returnType, calculationType);
+    }
+  }
+
+  // <=
+  private Value handleGreaterEqualsOperator(
+      final Value left,
+      final CType leftType,
+      final Value right,
+      final CType rightType,
+      final CSimpleType calculationType,
+      final CType returnType) {
+
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean greaterEquals =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                leftNumeric.bigIntegerValue().compareTo(rightNumeric.bigIntegerValue()) >= 0;
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    GREATER_EQUAL,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(greaterEquals ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      state.logUnknownValue(
+          "Returned unknown value for >= (greater equals) operation due to at least one unknown"
+              + " operand ",
+          cfaEdge);
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      if (left.equals(right) && !calculationType.getType().isFloatingPointType()) {
+        return new NumericValue(1);
+      }
+      // TODO: look into additional cases (beyond equality == greater equals)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, GREATER_EQUAL, returnType, calculationType);
+    }
   }
 
   /**
@@ -2711,45 +4424,19 @@ public class SMGCPAValueVisitor
 
   /**
    * Returns a numeric type that can be used to perform arithmetics on an instance of the type
-   * directly, or null if none.
+   * directly if possible.
    *
    * <p>Most notably, CPointerType will be converted to the unsigned integer type of correct size.
-   *
-   * @param type the input type
    */
-  public static @Nullable CSimpleType getArithmeticType(CType type) {
+  public Optional<CSimpleType> getSimplifiedType(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CPointerType) {
-      return CNumericTypes.INT;
-    } else if (type instanceof CSimpleType) {
-      return (CSimpleType) type;
+      return Optional.of(machineModel.getPointerAsUnsignedIntType());
+    } else if (type instanceof CSimpleType simpleType) {
+      return Optional.of(simpleType);
     } else {
-      return null;
+      return Optional.empty();
     }
-  }
-
-  private boolean isArithmeticOperation(BinaryOperator binaryOperator) {
-    return switch (binaryOperator) {
-      case PLUS,
-          MINUS,
-          DIVIDE,
-          REMAINDER,
-          MULTIPLY,
-          SHIFT_LEFT,
-          SHIFT_RIGHT,
-          BITWISE_AND,
-          BITWISE_OR,
-          BITWISE_XOR ->
-          true;
-      default -> false;
-    };
-  }
-
-  private boolean isComparison(BinaryOperator binaryOperator) {
-    return switch (binaryOperator) {
-      case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> true;
-      default -> false;
-    };
   }
 
   /**
@@ -2795,5 +4482,135 @@ public class SMGCPAValueVisitor
    */
   protected LogManagerWithoutDuplicates getInitialVisitorLogger() {
     return logger;
+  }
+
+  /**
+   * Returns true for the following:
+   *
+   * <p>- Addition of integer to a pointer
+   *
+   * <p>- Subtraction of integer from a pointer
+   *
+   * <p>- Subtracting two pointers of the same type
+   *
+   * <p>- Comparison of pointers
+   */
+  private boolean isPointerArithmetics(
+      Value pLeftValue, Value pRightValue, CBinaryExpression expr, SMGState currentState) {
+    // CType leftType = expr.getOperand1().getExpressionType().getCanonicalType();
+    // CType rightType = expr.getOperand2().getExpressionType().getCanonicalType();
+    BinaryOperator op = expr.getOperator();
+
+    // Filter out non-pointer arithmetic operators
+    if (!op.isLogicalOperator() && op != PLUS && op != MINUS) {
+      return false;
+    }
+
+    Value leftValue = unwrapPotentialAddressExpression(pLeftValue, currentState);
+    boolean leftIsPointer = currentState.isPointer(leftValue);
+    // We only care about 0 if it is a pointer. Even an offset stripped in
+    // unwrapPotentialAddressExpression() does not matter here!
+    boolean leftIsNumeric = leftValue instanceof NumericValue;
+    boolean leftIsZero =
+        leftIsNumeric && leftValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO);
+    checkState(!(leftIsPointer && leftIsNumeric) || leftIsZero);
+
+    Value rightValue = unwrapPotentialAddressExpression(pRightValue, currentState);
+    boolean rightIsPointer = currentState.isPointer(rightValue);
+    boolean rightIsNumeric = rightValue instanceof NumericValue;
+    boolean rightIsZero =
+        rightIsNumeric && rightValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO);
+    checkState(!(rightIsPointer && rightIsNumeric) || rightIsZero);
+
+    if (rightIsNumeric && leftIsNumeric) {
+      return false; // 0 is a pointer internally, but this can just be calculated normally
+    }
+
+    // TODO: also calc type? Can it even happen that calc is pointer but none of the values 2?
+    // boolean oneTypeIsPointer =
+    //    leftType instanceof CPointerType || rightType instanceof CPointerType;
+
+    boolean leftValueIsPointerButNotNumeric = leftIsPointer && !leftIsNumeric;
+    boolean rightValueIsPointerButNotNumeric = rightIsPointer && !rightIsNumeric;
+
+    if (op == MINUS && leftIsNumeric && rightValueIsPointerButNotNumeric) {
+      // Cases like '0 - pointer' or '1122 - pointer' can happen in linux drivers.
+      // We want symbolic evaluation for those cases
+      return false;
+    }
+
+    // Check that at least 1 is a pointer that needs special handling (not numeric)
+    return leftValueIsPointerButNotNumeric || rightValueIsPointerButNotNumeric;
+    // Below is the previous checking (before the current return was introduced). May be useful?
+    /*
+    if (op.isLogicalOperator()) {
+      // Both need to be pointers with the same type or numeric 0
+      if ((leftIsZero && rightType instanceof CPointerType)
+          || (rightIsZero && leftType instanceof CPointerType)) {
+        return true;
+      }
+      if (!(leftType instanceof CPointerType leftPtrType
+          && rightType instanceof CPointerType rightPtrType)) {
+        if (leftType instanceof CArrayType && rightType instanceof CArrayType) {
+          // Arrays do not count towards pointer arithmetics, but I want to see whether we encounter
+          // this case and we missed something!
+          logger.logf(
+              Level.WARNING,
+              "Binary comparison with operator %s, left-hand type %s, and right-hand type %s not"
+                  + " recognized as pointer arithmetics in %s",
+              op,
+              leftType,
+              rightType,
+              cfaEdge);
+        }
+        // "Pseudo" pointer arithmetics; i.e. something like: ((unsigned long) pointer) == pointer
+        // We still want to solve this using pointer arithmetics, as it uses memory layout
+        // information that is more accurate!
+        // TODO: check that there is 2 pointers underneath?
+        return true;
+      }
+      if (!leftPtrType
+          .getType()
+          .getCanonicalType()
+          .equals(rightPtrType.getType().getCanonicalType())) {
+        if (rightIsPointer && leftIsPointer) {
+          logger.logf(
+              Level.WARNING,
+              "Binary comparison with 2 pointer values, operator %s, left-hand type %s, and"
+                  + " right-hand type %s not recognized as pointer arithmetics in %s",
+              op,
+              leftType,
+              rightType,
+              cfaEdge);
+        }
+        return false;
+      }
+    }
+    // If both are numeric or symbolic (non-pointers), let it be calculated using regular
+    // arithmetics
+    return leftIsPointer || rightIsPointer;*/
+  }
+
+  /**
+   * Unwraps {@link AddressExpression}s and {@link ConstantSymbolicExpression}s into their {@link
+   * SymbolicIdentifier} used to identify pointers. Returns the input for all other cases. The
+   * returned value should never be used on its own, just to check whether it is a pointer or not!
+   */
+  private Value unwrapPotentialAddressExpression(Value pMaybeAddress, SMGState currentState) {
+    Value maybeAddress = pMaybeAddress;
+    if (maybeAddress instanceof AddressExpression targetAddress) {
+      maybeAddress = targetAddress.getMemoryAddress();
+      if (maybeAddress instanceof ConstantSymbolicExpression constRight) {
+        maybeAddress = constRight.getValue();
+      }
+      // AddressExpressions may never be nested
+      checkState(!(maybeAddress instanceof AddressExpression));
+      // Also, a pointer is always a symbolicIdentifier, never a const expr in SMG2
+      checkState(currentState.isPointer(maybeAddress));
+    }
+    if (maybeAddress instanceof ConstantSymbolicExpression constRight) {
+      maybeAddress = constRight.getValue();
+    }
+    return maybeAddress;
   }
 }
