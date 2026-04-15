@@ -11,7 +11,7 @@ format_version: '2.0'
 input_files: 'nondet_generator_integer_types_32_true.c'
 
 properties:
-  - property_file: ../../../config/specification/Assertion.spc
+  - property_file: ../../../config/properties/assert.prp
     expected_verdict: true
 
 options:
