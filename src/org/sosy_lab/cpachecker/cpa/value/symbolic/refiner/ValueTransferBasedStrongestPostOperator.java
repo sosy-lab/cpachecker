@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -57,9 +58,16 @@ public class ValueTransferBasedStrongestPostOperator
       final CFA pCfa)
       throws InvalidConfigurationException {
 
+    LogManagerWithoutDuplicates loggerWoDupl;
+    if (pLogger instanceof LogManagerWithoutDuplicates pLogManagerWithoutDuplicates) {
+      loggerWoDupl = pLogManagerWithoutDuplicates;
+    } else {
+      loggerWoDupl = new LogManagerWithoutDuplicates(pLogger);
+    }
+
     valueTransfer =
         new ValueAnalysisTransferRelation(
-            pLogger,
+            loggerWoDupl,
             pCfa,
             new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
             new SymbolicValueAssigner(pConfig),
