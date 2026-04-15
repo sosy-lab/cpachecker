@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class MemoryModelParameterTest {
@@ -206,42 +204,35 @@ public class MemoryModelParameterTest {
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
 
   private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
 
   private final SeqMemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_Q_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_Q.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration());
 
-  public MemoryModelParameterTest() throws InvalidConfigurationException {}
+  public MemoryModelParameterTest() {}
 
   @Test
   public void test_pointer_parameter_dereference() {

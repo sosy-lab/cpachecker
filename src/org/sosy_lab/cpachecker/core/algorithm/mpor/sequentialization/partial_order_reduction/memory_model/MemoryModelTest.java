@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -27,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
 public class MemoryModelTest {
 
@@ -131,41 +129,33 @@ public class MemoryModelTest {
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_POINTER_D_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_D_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_POINTER_D_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_Y_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_Y_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_Y_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
 
-  public MemoryModelTest() throws InvalidConfigurationException {}
+  public MemoryModelTest() {}
 
   @Test
-  public void test_memory_location_equals() throws InvalidConfigurationException {
+  public void test_memory_location_equals() {
     // create new MemoryLocation with the same parameters
     SeqMemoryLocation int_pointer_a_memory_location_alt =
-        SeqMemoryLocation.of(
-            MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+        SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
     // test that .equals returns true
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION).isEqualTo(int_pointer_a_memory_location_alt);
     // test that .equals returns false

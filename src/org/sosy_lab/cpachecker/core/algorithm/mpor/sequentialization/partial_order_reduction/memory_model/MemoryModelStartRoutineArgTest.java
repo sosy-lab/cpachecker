@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -29,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
 public class MemoryModelStartRoutineArgTest {
 
@@ -79,18 +77,16 @@ public class MemoryModelStartRoutineArgTest {
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION);
 
   private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
 
   private final SeqMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
 
-  public MemoryModelStartRoutineArgTest() throws InvalidConfigurationException {}
+  public MemoryModelStartRoutineArgTest() {}
 
   @Test
   public void test_local_start_routine_arg_implicit_global() {

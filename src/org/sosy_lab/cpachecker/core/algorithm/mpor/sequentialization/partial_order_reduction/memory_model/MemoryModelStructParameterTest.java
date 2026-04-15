@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -36,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
 public class MemoryModelStructParameterTest {
 
@@ -188,46 +186,31 @@ public class MemoryModelStructParameterTest {
   // Memory Locations (structs)
 
   private final SeqMemoryLocation OUTER_STRUCT_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), OUTER_STRUCT_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), OUTER_STRUCT_DECLARATION);
 
   private final SeqMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          OUTER_STRUCT_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_MEMBER_DECLARATION);
 
   private final SeqMemoryLocation OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          OUTER_STRUCT_POINTER_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_POINTER_MEMBER_DECLARATION);
 
   private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          INNER_STRUCT_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
 
   private final SeqMemoryLocation INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          INNER_STRUCT_POINTER_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_POINTER_MEMBER_DECLARATION);
 
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation GLOBAL_G1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_G1_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_G1_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION);
 
   // Memory Locations (parameters)
 
@@ -235,24 +218,21 @@ public class MemoryModelStructParameterTest {
 
   private final SeqMemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_OUTER_STRUCT
               .asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P1.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration());
 
-  public MemoryModelStructParameterTest() throws InvalidConfigurationException {}
+  public MemoryModelStructParameterTest() {}
 
   @Test
   public void test_outer_struct_pointer_parameter_dereference() {

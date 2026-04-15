@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -414,9 +413,7 @@ public record MemoryModelBuilder(
                 Iterables.getOnlyElement(functionDeclaration.getParameters());
             rAssignments.put(
                 SeqMemoryLocation.of(
-                    options,
-                    Optional.of(callContext),
-                    parameterDeclaration.asVariableDeclaration()),
+                    Optional.of(callContext), parameterDeclaration.asVariableDeclaration()),
                 rhsMemoryLocation.orElseThrow());
           }
         }
@@ -460,8 +457,7 @@ public record MemoryModelBuilder(
           extractMemoryLocation(pCallContext, arguments.get(i));
       if (rhsMemoryLocation.isPresent()) {
         rAssignments.put(
-            SeqMemoryLocation.of(
-                options, Optional.of(pCallContext), leftHandSide.asVariableDeclaration()),
+            SeqMemoryLocation.of(Optional.of(pCallContext), leftHandSide.asVariableDeclaration()),
             rhsMemoryLocation.orElseThrow());
       }
     }
@@ -510,7 +506,7 @@ public record MemoryModelBuilder(
         return memoryLocation;
       }
     }
-    return SeqMemoryLocation.of(options, Optional.of(pCallContext), pVariableDeclaration);
+    return SeqMemoryLocation.of(Optional.of(pCallContext), pVariableDeclaration);
   }
 
   private SeqMemoryLocation getMemoryLocationByFieldReference(
@@ -526,7 +522,7 @@ public record MemoryModelBuilder(
         }
       }
     }
-    return SeqMemoryLocation.of(options, Optional.of(pCallContext), pFieldOwner, pFieldMember);
+    return SeqMemoryLocation.of(Optional.of(pCallContext), pFieldOwner, pFieldMember);
   }
 
   // Pointer Dereferences ==========================================================================

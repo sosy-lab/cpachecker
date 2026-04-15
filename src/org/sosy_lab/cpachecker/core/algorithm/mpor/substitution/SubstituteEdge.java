@@ -16,7 +16,6 @@ import com.google.common.collect.Sets;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -108,24 +107,21 @@ public class SubstituteEdge {
    * pTracker}.
    */
   public static SubstituteEdge of(
-      MPOROptions pOptions,
-      CFAEdge pCfaEdge,
-      CFAEdgeForThread pThreadEdge,
-      MPORSubstitutionTracker pTracker) {
+      CFAEdge pCfaEdge, CFAEdgeForThread pThreadEdge, MPORSubstitutionTracker pTracker) {
 
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
-        SubstituteUtil.mapPointerAssignments(pOptions, pThreadEdge.callContext, pTracker),
+        SubstituteUtil.mapPointerAssignments(pThreadEdge.callContext, pTracker),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
+            pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE),
+            pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE),
         SubstituteUtil.getMemoryLocationsByAccessType(
-            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
+            pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
         SubstituteUtil.getMemoryLocationsByAccessType(
-            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE));
+            pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE));
   }
 
   public ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(
