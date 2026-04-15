@@ -12,13 +12,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -43,19 +41,6 @@ public class MPORThreadUtil {
       Optional<CFAEdgeForThread> pCallContext, Optional<CFAEdgeForThread> pStartRoutineCall) {
 
     return pCallContext.isPresent() ? pCallContext : pStartRoutineCall;
-  }
-
-  protected static <T extends CFAEdge> ImmutableList<CFAEdgeForThread> getEdgesByClass(
-      ImmutableSet<CFAEdgeForThread> pThreadEdges, Class<T> pEdgeClass) {
-
-    ImmutableList.Builder<CFAEdgeForThread> rEdges = ImmutableList.builder();
-    for (CFAEdgeForThread threadEdge : pThreadEdges) {
-      CFAEdge cfaEdge = threadEdge.cfaEdge;
-      if (pEdgeClass.isInstance(cfaEdge)) {
-        rEdges.add(threadEdge);
-      }
-    }
-    return rEdges.build();
   }
 
   /**
@@ -113,15 +98,6 @@ public class MPORThreadUtil {
       }
     }
     throw new IllegalArgumentException("no MPORThread with pThreadObject found in threads");
-  }
-
-  public static MPORThread getThreadById(ImmutableCollection<MPORThread> pThreads, int pId) {
-    for (MPORThread thread : pThreads) {
-      if (thread.id() == pId) {
-        return thread;
-      }
-    }
-    throw new IllegalArgumentException("no MPORThread with pId found in threads");
   }
 
   static int getHighestPc(ImmutableList<CFANodeForThread> pThreadNodes) {
