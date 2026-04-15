@@ -308,6 +308,13 @@ analysis.algorithm.MPI = false
 # underapproximation of the state space.
 analysis.algorithm.MPOR.abortCommutingContextSwitches = false
 
+# Abort if the thread that previously executed a statement is re-entered
+# without another thread executing a statement in between. This option
+# prevents redundant state space explorations because the previous thread
+# continued the execution anyway due to nondeterministic context switches.
+# Can only be enabled if nondeterminismSource contains NUM_STATEMENTS.
+analysis.algorithm.MPOR.abortPreviousThreadReentry = false
+
 # Allow input programs that write pointer variables?
 analysis.algorithm.MPOR.allowPointerWrites = true
 

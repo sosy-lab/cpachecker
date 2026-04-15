@@ -86,20 +86,24 @@ public record StatementInjector(
               options, activeThread, otherThreads, labelClauseMap, ghostElements, utils);
       pStatement = commutingThreadsFirstInjector.tryInjectSyncUpdateIntoStatement(pStatement);
     }
+    if (options.isPrevThreadVariableRequired()) {
+      PrevThreadAssignmentInjector prevThreadAssignmentInjector =
+          new PrevThreadAssignmentInjector(
+              options, otherThreads.size() + 1, activeThread, labelClauseMap);
+      pStatement = prevThreadAssignmentInjector.injectPrevThreadUpdatesIntoStatement(pStatement);
+    }
     if (options.abortCommutingContextSwitches()) {
       AbortCommutingContextSwitchesInjector abortCommutingContextSwitches =
           new AbortCommutingContextSwitchesInjector(
               options,
-              otherThreads.size() + 1,
               activeThread,
               labelClauseMap,
               labelBlockMap,
               ghostElements.bitVectorVariables().orElseThrow(),
-              machineModel,
               memoryModel.orElseThrow(),
               utils);
       pStatement =
-          abortCommutingContextSwitches.injectPrevUpdatesIntoStatement(pStatement, labelClauseMap);
+          abortCommutingContextSwitches.injectPrevBitVectorUpdatesIntoStatement(pStatement);
     }
     if (ghostElements.bitVectorVariables().isPresent()) {
       // always inject bit vector assignments after evaluations i.e. reductions

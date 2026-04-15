@@ -4169,18 +4169,16 @@ public class SMGState
 
   private static long getMask(BigInteger readSizeInBits) throws SMGException {
     int readSize = readSizeInBits.intValueExact();
-    long mask;
-    switch (readSize) {
-      case 1 -> mask = 1;
-      case 2 -> mask = 3;
-      case 4 -> mask = 0x0000000F;
-      case 8 -> mask = 0x000000FF;
-      case 16 -> mask = 0x0000FFFF;
-      case 32 -> mask = 0xFFFFFFFF;
-      case 64 -> mask = -1;
+    return switch (readSize) {
+      case 1 -> 1;
+      case 2 -> 3;
+      case 4 -> 0x0000000F;
+      case 8 -> 0x000000FF;
+      case 16 -> 0x0000FFFF;
+      case 32 -> 0xFFFFFFFF;
+      case 64 -> -1;
       default -> throw new SMGException("Unhandled bit size in partial memory read.");
-    }
-    return mask;
+    };
   }
 
   /*
