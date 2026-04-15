@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.Iterables;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -21,13 +22,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class PthreadUtil {
@@ -99,6 +104,45 @@ public class PthreadUtil {
         if (fieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
           return idExpression;
         }
+      }
+    }
+    throw new UnsupportedCodeException(
+        String.format(
+            "Could not extract pthread object of type %s from expression %s",
+            pPthreadObjectType, parameterExpression.toASTString()),
+        null);
+  }
+
+  public static SeqMemoryLocation extractPthreadObjectMemoryLocation(
+      CFunctionCall pFunctionCall,
+      Optional<CFAEdgeForThread> pCallContext,
+      PthreadObjectType pPthreadObjectType)
+      throws UnsupportedCodeException {
+
+    CExpression parameterExpression =
+        getParameterExpressionAtPthreadObjectTypeIndex(pFunctionCall, pPthreadObjectType);
+    CExpression expression = MPORUtil.getOperandFromUnaryExpression(parameterExpression);
+    // first handle pthread_t, the only pthread object type that may not be a pointer
+    if (pPthreadObjectType.equals(PthreadObjectType.PTHREAD_T)) {
+      PthreadFunctionType functionType = getPthreadFunctionType(pFunctionCall);
+      if (functionType.isPthreadTPointer()) {
+        if (expression instanceof CIdExpression pthreadT) {
+          return SeqMemoryLocation.of(
+              pCallContext, MPORUtil.convertToVariableDeclaration(pthreadT.getDeclaration()));
+        }
+      }
+    } else {
+      if (expression instanceof CIdExpression idExpression) {
+        return SeqMemoryLocation.of(
+            pCallContext, MPORUtil.convertToVariableDeclaration(idExpression.getDeclaration()));
+      } else if (expression instanceof CFieldReference fieldReference) {
+        // TODO this may have to be adjusted, if the struct itself contains arrays
+        Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldReferenceEntry =
+            MPORUtil.getFieldMemberPointer(fieldReference);
+        return SeqMemoryLocation.of(
+            pCallContext,
+            MPORUtil.convertToVariableDeclaration(fieldReferenceEntry.getKey()),
+            fieldReferenceEntry.getValue());
       }
     }
     throw new UnsupportedCodeException(

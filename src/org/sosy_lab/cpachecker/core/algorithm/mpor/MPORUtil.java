@@ -241,7 +241,7 @@ public final class MPORUtil {
     return Optional.empty();
   }
 
-  private static Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> getFieldMemberPointer(
+  public static Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> getFieldMemberPointer(
       CFieldReference pFieldReference) throws UnsupportedCodeException {
 
     CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
