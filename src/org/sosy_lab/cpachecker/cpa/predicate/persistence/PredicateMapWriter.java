@@ -198,7 +198,10 @@ public final class PredicateMapWriter {
 
   public static boolean notInternalVariable(String pQualifiedVariableName) {
     return !pQualifiedVariableName.contains("__CPAchecker_")
-        && !pQualifiedVariableName.contains("__ADDRESS_OF_");
+        && !pQualifiedVariableName.contains("__ADDRESS_OF_")
+        // Renaming of same variables in scope is done by appending `__i` for some `i` to the
+        // variable name
+        && !pQualifiedVariableName.matches(".*__[1-9][0-9]*");
   }
 
   public static boolean variableNameInFunction(
@@ -217,10 +220,10 @@ public final class PredicateMapWriter {
                 // For local variables
                 (pLocation.getFunctionName()
                             + FUNCTION_DELIMITER
-                            + Objects.requireNonNull(var).getName())
+                            + Objects.requireNonNull(var).getOrigName())
                         .equals(pQualifiedVariableName)
                     // For global variables
-                    || var.getName().equals(pQualifiedVariableName));
+                    || var.getOrigName().equals(pQualifiedVariableName));
   }
 
   public void writePredicateMapAsWitness(
