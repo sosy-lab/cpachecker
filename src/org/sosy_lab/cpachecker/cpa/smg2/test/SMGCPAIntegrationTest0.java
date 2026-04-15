@@ -230,8 +230,8 @@ public abstract class SMGCPAIntegrationTest0 {
    * program to be analyzed.
    *
    * <p>For a test use <code>assertThatILP64Program(pathToProgram).is...()</code>. via either {@link
-   * ProgramSubject#assertThatLP64Program(String)} or {@link
-   * ProgramSubject#assertThatILP32Program(String)}.
+   * SMGCPAIntegrationTest0#assertThatLP64Program(String)} or {@link
+   * SMGCPAIntegrationTest0#assertThatILP32Program(String)}.
    */
   public static final class ProgramSubject extends Subject {
 
