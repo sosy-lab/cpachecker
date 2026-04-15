@@ -1561,9 +1561,7 @@ public class SMG {
                     && offset.compareTo(n.getOffset().add(n.getSizeInBits())) <= 0)
         .collect(
             ImmutableSortedMap.toImmutableSortedMap(
-                SMGHasValueEdge::getOffset,
-                SMGHasValueEdge::getSizeInBits,
-                BigInteger::max));
+                SMGHasValueEdge::getOffset, SMGHasValueEdge::getSizeInBits, BigInteger::max));
   }
 
   /**
