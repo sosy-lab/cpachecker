@@ -14,6 +14,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
@@ -31,7 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
  */
 public record ThreadSyncFlags(
     ImmutableMap<CIdExpression, CondSignaledFlag> condSignaledFlags,
-    ImmutableMap<CIdExpression, MutexLockedFlag> mutexLockedFlags,
+    ImmutableMap<SeqMemoryLocation, MutexLockedFlag> mutexLockedFlags,
     ImmutableMap<CIdExpression, RwLockNumReadersWritersFlag> rwLockFlags,
     ImmutableMap<MPORThread, CIdExpression> syncFlags) {
 
@@ -62,8 +63,8 @@ public record ThreadSyncFlags(
     return Objects.requireNonNull(condSignaledFlags.get(pIdExpression));
   }
 
-  public MutexLockedFlag getMutexLockedFlag(CIdExpression pIdExpression) {
-    return Objects.requireNonNull(mutexLockedFlags.get(pIdExpression));
+  public MutexLockedFlag getMutexLockedFlag(SeqMemoryLocation pMemoryLocation) {
+    return Objects.requireNonNull(mutexLockedFlags.get(pMemoryLocation));
   }
 
   public RwLockNumReadersWritersFlag getRwLockFlag(CIdExpression pIdExpression) {

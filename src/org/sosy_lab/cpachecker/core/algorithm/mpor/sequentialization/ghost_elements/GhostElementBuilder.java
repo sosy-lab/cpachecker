@@ -60,7 +60,8 @@ public record GhostElementBuilder(
         pcVariableBuilder.buildProgramCounterVariables();
 
     ThreadSyncFlagsBuilder threadSyncFlagsBuilder =
-        new ThreadSyncFlagsBuilder(options, threads, binaryExpressionBuilder);
+        new ThreadSyncFlagsBuilder(
+            options, threads, substituteEdges, memoryModel, binaryExpressionBuilder);
     ThreadSyncFlags threadSyncFlags = threadSyncFlagsBuilder.buildThreadSyncFlags();
 
     return new GhostElements(

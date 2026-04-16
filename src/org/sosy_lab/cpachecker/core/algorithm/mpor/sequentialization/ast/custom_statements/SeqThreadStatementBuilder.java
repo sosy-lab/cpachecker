@@ -65,6 +65,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
@@ -84,6 +88,7 @@ public record SeqThreadStatementBuilder(
     MPORThread thread,
     ImmutableList<MPORThread> allThreads,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
+    MemoryModel memoryModel,
     FunctionStatements functionStatements,
     ThreadSyncFlags threadSyncFlags,
     CLeftHandSide pcLeftHandSide,
@@ -568,9 +573,8 @@ public record SeqThreadStatementBuilder(
           buildThreadCreationStatement(functionCall, pThreadEdge, pSubstituteEdge, pTargetPc);
       case PTHREAD_EXIT -> buildThreadExitStatement(pThreadEdge, pSubstituteEdge, pTargetPc);
       case PTHREAD_JOIN -> buildThreadJoinStatement(functionCall, pSubstituteEdge, pTargetPc);
-      case PTHREAD_MUTEX_LOCK -> buildMutexLockStatement(functionCall, pSubstituteEdge, pTargetPc);
-      case PTHREAD_MUTEX_UNLOCK ->
-          buildMutexUnlockStatement(functionCall, pSubstituteEdge, pTargetPc);
+      case PTHREAD_MUTEX_LOCK -> buildMutexLockStatement(pSubstituteEdge, pTargetPc);
+      case PTHREAD_MUTEX_UNLOCK -> buildMutexUnlockStatement(pSubstituteEdge, pTargetPc);
       case PTHREAD_RWLOCK_RDLOCK, PTHREAD_RWLOCK_UNLOCK, PTHREAD_RWLOCK_WRLOCK ->
           buildRwLockStatement(functionCall, pSubstituteEdge, pTargetPc, pthreadFunctionType);
       case VERIFIER_ATOMIC_BEGIN ->
@@ -633,20 +637,16 @@ public record SeqThreadStatementBuilder(
       CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
-    CIdExpression pthreadCondT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_COND_T);
-    CondSignaledFlag condSignaledFlag = threadSyncFlags.getCondSignaledFlag(pthreadCondT);
-
-    CIdExpression pthreadMutexT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
-    MutexLockedFlag mutexLockedFlag = threadSyncFlags.getMutexLockedFlag(pthreadMutexT);
-
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.COND_WAIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
     // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
+    CIdExpression pthreadCondT =
+        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_COND_T);
+    CondSignaledFlag condSignaledFlag = threadSyncFlags.getCondSignaledFlag(pthreadCondT);
+
     CFunctionCallStatement assumeSignaled =
         SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
             condSignaledFlag.isSignaledExpression());
@@ -655,17 +655,17 @@ public record SeqThreadStatementBuilder(
             condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
 
     // step 2: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
-    CExpressionAssignmentStatement setMutexLockedTrue =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
+    ImmutableList<CCompoundStatementElement> mutexStatements =
+        buildMutexStatementsByStatementType(SeqThreadStatementType.COND_WAIT, pSubstituteEdge);
 
     return SeqThreadStatement.of(
         data,
         pTargetPc,
-        ImmutableList.of(
-            new CStatementWrapper(assumeSignaled),
-            new CStatementWrapper(setSignaledFalse),
-            new CStatementWrapper(setMutexLockedTrue)));
+        ImmutableList.<CCompoundStatementElement>builder()
+            .add(new CStatementWrapper(assumeSignaled))
+            .add(new CStatementWrapper(setSignaledFalse))
+            .addAll(mutexStatements)
+            .build());
   }
 
   private SeqThreadStatement buildThreadCreationStatement(
@@ -779,50 +779,92 @@ public record SeqThreadStatementBuilder(
         pSubstituteEdge.cfaEdge);
   }
 
-  private SeqThreadStatement buildMutexLockStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
+  private SeqThreadStatement buildMutexLockStatement(SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
-    CIdExpression pthreadMutexT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
-    MutexLockedFlag mutexLockedFlag = threadSyncFlags.getMutexLockedFlag(pthreadMutexT);
-
-    CFunctionCallStatement assumeCall =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-            mutexLockedFlag.notLockedExpression());
-    CExpressionAssignmentStatement setMutexLockedTrue =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
-
     return SeqThreadStatement.of(
         data,
         pTargetPc,
-        ImmutableList.of(
-            new CStatementWrapper(assumeCall), new CStatementWrapper(setMutexLockedTrue)));
+        buildMutexStatementsByStatementType(SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge));
   }
 
-  public SeqThreadStatement buildMutexUnlockStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
+  public SeqThreadStatement buildMutexUnlockStatement(SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
-    CIdExpression pthreadMutexT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
-    MutexLockedFlag mutexLockedFlag = threadSyncFlags.getMutexLockedFlag(pthreadMutexT);
+    return SeqThreadStatement.of(
+        data,
+        pTargetPc,
+        buildMutexStatementsByStatementType(SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge));
+  }
 
-    CStatementWrapper lockedFalseAssignment =
-        new CStatementWrapper(
+  private ImmutableList<CCompoundStatementElement> buildMutexStatementsByStatementType(
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge)
+      throws UnsupportedCodeException {
+
+    ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
+
+    ImmutableSet<SeqMemoryLocation> mutexMemoryLocations =
+        SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
+            pSubstituteEdge, memoryModel, MemoryAccessType.ACCESS);
+
+    checkState(!mutexMemoryLocations.isEmpty(), "mutexMemoryLocations is empty");
+
+    if (mutexMemoryLocations.size() == 1) {
+      // if there is only a single memory location for the mutex, just add the statements
+      MutexLockedFlag mutexLockedFlag =
+          threadSyncFlags.getMutexLockedFlag(Iterables.getOnlyElement(mutexMemoryLocations));
+      rStatements.addAll(buildMutexStatements(pStatementType, mutexLockedFlag));
+
+    } else {
+      // TODO
+      //  if there are multiple memory locations for the mutex, then matching the actual address is
+      //  necessary in an if-else chain, otherwise the analysis is unsound.
+      throw new UnsupportedCodeException("", pSubstituteEdge.cfaEdge);
+    }
+
+    return rStatements.build();
+  }
+
+  private ImmutableList<CCompoundStatementElement> buildMutexStatements(
+      SeqThreadStatementType pStatementType, MutexLockedFlag mutexLockedFlag) {
+
+    return switch (pStatementType) {
+      case SeqThreadStatementType.COND_WAIT -> {
+        CExpressionAssignmentStatement setMutexLockedTrue =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
-                mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0));
-
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(lockedFalseAssignment));
+                mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
+        yield ImmutableList.of(new CStatementWrapper(setMutexLockedTrue));
+      }
+      case SeqThreadStatementType.MUTEX_LOCK -> {
+        CFunctionCallStatement assumeCall =
+            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+                mutexLockedFlag.notLockedExpression());
+        CExpressionAssignmentStatement setMutexLockedTrue =
+            SeqStatementBuilder.buildExpressionAssignmentStatement(
+                mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
+        yield ImmutableList.of(
+            new CStatementWrapper(assumeCall), new CStatementWrapper(setMutexLockedTrue));
+      }
+      case SeqThreadStatementType.MUTEX_UNLOCK -> {
+        CExpressionAssignmentStatement lockedFalseAssignment =
+            SeqStatementBuilder.buildExpressionAssignmentStatement(
+                mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
+        yield ImmutableList.of(new CStatementWrapper(lockedFalseAssignment));
+      }
+      default ->
+          throw new IllegalArgumentException(
+              String.format(
+                  "The following SeqThreadStatementType does not contain a mutex statement: %s",
+                  pStatementType));
+    };
   }
 
   // rw_lock statements

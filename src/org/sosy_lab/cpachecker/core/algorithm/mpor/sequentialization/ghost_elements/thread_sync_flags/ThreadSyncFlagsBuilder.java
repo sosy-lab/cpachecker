@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -29,7 +30,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -38,18 +44,20 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 public record ThreadSyncFlagsBuilder(
     MPOROptions options,
     ImmutableList<MPORThread> threads,
+    ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
+    MemoryModel memoryModel,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   public ThreadSyncFlags buildThreadSyncFlags() throws UnrecognizedCodeException {
     ImmutableSet<CIdExpression> condExpressions =
         getIdExpressionsByObjectType(PthreadObjectType.PTHREAD_COND_T);
-    ImmutableSet<CIdExpression> mutexExpressions =
-        getIdExpressionsByObjectType(PthreadObjectType.PTHREAD_MUTEX_T);
+    ImmutableSet<SeqMemoryLocation> mutexMemoryLocations =
+        getMemoryLocationsByObjectType(PthreadObjectType.PTHREAD_MUTEX_T);
     ImmutableSet<CIdExpression> rwLockExpressions =
         getIdExpressionsByObjectType(PthreadObjectType.PTHREAD_RWLOCK_T);
     return new ThreadSyncFlags(
         buildCondSignaledFlags(condExpressions),
-        buildMutexLockedFlags(mutexExpressions),
+        buildMutexLockedFlags(mutexMemoryLocations),
         buildRwLockFlags(rwLockExpressions),
         buildSyncFlags());
   }
@@ -70,6 +78,28 @@ public record ThreadSyncFlagsBuilder(
       }
     }
     return ImmutableSet.copyOf(rIdExpressions);
+  }
+
+  private ImmutableSet<SeqMemoryLocation> getMemoryLocationsByObjectType(
+      PthreadObjectType pObjectType) {
+
+    Set<SeqMemoryLocation> rMemoryLocations = new HashSet<>();
+    for (MPORThread thread : threads) {
+      for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
+        Optional<CFunctionCall> functionCallOptional =
+            PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
+        if (functionCallOptional.isPresent()) {
+          CFunctionCall functionCall = functionCallOptional.orElseThrow();
+          if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(functionCall, pObjectType)) {
+            SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
+            rMemoryLocations.addAll(
+                SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
+                    substituteEdge, memoryModel, MemoryAccessType.ACCESS));
+          }
+        }
+      }
+    }
+    return ImmutableSet.copyOf(rMemoryLocations);
   }
 
   // Private Builder Methods =======================================================================
@@ -99,12 +129,13 @@ public record ThreadSyncFlagsBuilder(
    * ghost variables. We use {@link CIdExpression} of substituted expressions instead of {@link
    * CVariableDeclaration} due to call-context sensitivity.
    */
-  private ImmutableMap<CIdExpression, MutexLockedFlag> buildMutexLockedFlags(
-      ImmutableSet<CIdExpression> pMutexExpressions) throws UnrecognizedCodeException {
+  private ImmutableMap<SeqMemoryLocation, MutexLockedFlag> buildMutexLockedFlags(
+      ImmutableSet<SeqMemoryLocation> pMutexExpressions) throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<CIdExpression, MutexLockedFlag> rMutexLockedFlags = ImmutableMap.builder();
-    for (CIdExpression mutexExpression : pMutexExpressions) {
-      String varName = buildMutexLockedName(mutexExpression.getName());
+    ImmutableMap.Builder<SeqMemoryLocation, MutexLockedFlag> rMutexLockedFlags =
+        ImmutableMap.builder();
+    for (SeqMemoryLocation mutexMemoryLocation : pMutexExpressions) {
+      String varName = buildMutexLockedName(mutexMemoryLocation.getName());
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression mutexLocked =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
@@ -116,7 +147,7 @@ public record ThreadSyncFlagsBuilder(
           binaryExpressionBuilder.buildBinaryExpression(
               mutexLocked, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
       rMutexLockedFlags.put(
-          mutexExpression,
+          mutexMemoryLocation,
           new MutexLockedFlag(mutexLocked, isLockedExpression, notLockedExpression));
     }
     return rMutexLockedFlags.buildOrThrow();

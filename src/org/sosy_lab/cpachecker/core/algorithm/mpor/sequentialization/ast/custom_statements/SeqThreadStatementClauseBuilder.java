@@ -169,6 +169,7 @@ public record SeqThreadStatementClauseBuilder(
             pThread,
             allThreads,
             substituteEdges,
+            memoryModel,
             ghostElements.getFunctionStatementsByThread(pThread),
             ghostElements.threadSyncFlags(),
             ghostElements.getPcVariables().getPcLeftHandSide(pThread.id()),
@@ -309,7 +310,7 @@ public record SeqThreadStatementClauseBuilder(
     // step 1: reuse pthread_mutex_unlock statements for pthread_cond_wait
     int nextFreePc = pThread.cfa().getNextFreePc();
     SeqThreadStatement mutexUnlockStatement =
-        pStatementBuilder.buildMutexUnlockStatement(pFunctionCall, pSubstituteEdge, nextFreePc);
+        pStatementBuilder.buildMutexUnlockStatement(pSubstituteEdge, nextFreePc);
     rClauses.add(
         buildClause(pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(mutexUnlockStatement)));
 
