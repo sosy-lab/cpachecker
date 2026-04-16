@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class SubstituteUtil {
@@ -102,9 +103,10 @@ public class SubstituteUtil {
       MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rPointerDereferences = ImmutableSet.builder();
-    for (CVariableDeclaration pointerDereference :
+    for (CVariableDeclarationTrackerResult pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
-      rPointerDereferences.add(SeqMemoryLocation.of(pCallContext, pointerDereference));
+      rPointerDereferences.add(
+          SeqMemoryLocation.of(pCallContext, pointerDereference.variableDeclaration()));
     }
     ImmutableSet<CFieldReferenceTrackerResult> fieldReferencePointerDereferences =
         pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType);
@@ -125,16 +127,16 @@ public class SubstituteUtil {
       MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
-    for (CVariableDeclaration declaration : pTracker.getDeclarationsByAccessType(pAccessType)) {
-      rMemoryLocations.add(SeqMemoryLocation.of(pCallContext, declaration));
+    for (CVariableDeclarationTrackerResult variableDeclaration :
+        pTracker.getDeclarationsByAccessType(pAccessType)) {
+      rMemoryLocations.add(
+          SeqMemoryLocation.of(pCallContext, variableDeclaration.variableDeclaration()));
     }
-    for (CFieldReferenceTrackerResult fieldReferenceTrackerResult :
+    for (CFieldReferenceTrackerResult fieldMembers :
         pTracker.getFieldMembersByAccessType(pAccessType)) {
       rMemoryLocations.add(
           SeqMemoryLocation.of(
-              pCallContext,
-              fieldReferenceTrackerResult.fieldOwner(),
-              fieldReferenceTrackerResult.fieldMember()));
+              pCallContext, fieldMembers.fieldOwner(), fieldMembers.fieldMember()));
     }
     return rMemoryLocations.build();
   }
@@ -152,7 +154,8 @@ public class SubstituteUtil {
         ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
       SeqMemoryLocation leftHandSide = SeqMemoryLocation.of(pCallContext, entry.getKey());
-      SeqMemoryLocation rightHandSide = SeqMemoryLocation.of(pCallContext, entry.getValue());
+      SeqMemoryLocation rightHandSide =
+          SeqMemoryLocation.of(pCallContext, entry.getValue().variableDeclaration());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     for (var entry : pTracker.getPointerFieldMemberAssignments().entrySet()) {

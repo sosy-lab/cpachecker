@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitutionTrackerUtil {
@@ -54,7 +55,8 @@ public class MPORSubstitutionTrackerUtil {
     }
     // pointer assignments
     for (var entry : pFrom.getPointerAssignments().entrySet()) {
-      pTo.addPointerAssignment(entry.getKey(), entry.getValue());
+      pTo.addPointerAssignment(
+          entry.getKey(), entry.getValue().variableDeclaration(), entry.getValue().expression());
     }
     for (var entry : pFrom.getPointerFieldMemberAssignments().entrySet()) {
       pTo.addPointerFieldMemberAssignment(
@@ -64,11 +66,16 @@ public class MPORSubstitutionTrackerUtil {
           entry.getValue().fieldReference());
     }
     // pointer dereferences
-    for (CVariableDeclaration accessedPointerDereference : pFrom.getAccessedPointerDereferences()) {
-      pTo.addAccessedPointerDereference(accessedPointerDereference);
+    for (CVariableDeclarationTrackerResult accessedPointerDereference :
+        pFrom.getAccessedPointerDereferences()) {
+      pTo.addAccessedPointerDereference(
+          accessedPointerDereference.variableDeclaration(),
+          accessedPointerDereference.expression());
     }
-    for (CVariableDeclaration writtenPointerDereference : pFrom.getWrittenPointerDereferences()) {
-      pTo.addWrittenPointerDereference(writtenPointerDereference);
+    for (CVariableDeclarationTrackerResult writtenPointerDereference :
+        pFrom.getWrittenPointerDereferences()) {
+      pTo.addWrittenPointerDereference(
+          writtenPointerDereference.variableDeclaration(), writtenPointerDereference.expression());
     }
     // pointer dereferences from field members
     for (CFieldReferenceTrackerResult fieldReferencePointerDereference :
@@ -86,26 +93,22 @@ public class MPORSubstitutionTrackerUtil {
           fieldReferencePointerDereference.fieldReference());
     }
     // declarations accessed
-    for (CVariableDeclaration accessedDeclaration : pFrom.getAccessedDeclarations()) {
-      pTo.addAccessedDeclaration(accessedDeclaration);
+    for (CVariableDeclarationTrackerResult accessedDeclaration : pFrom.getAccessedDeclarations()) {
+      pTo.addAccessedDeclaration(
+          accessedDeclaration.variableDeclaration(), accessedDeclaration.expression());
     }
-    for (CVariableDeclaration writtenDeclaration : pFrom.getWrittenDeclarations()) {
-      pTo.addWrittenDeclaration(writtenDeclaration);
+    for (CVariableDeclarationTrackerResult writtenDeclaration : pFrom.getWrittenDeclarations()) {
+      pTo.addWrittenDeclaration(
+          writtenDeclaration.variableDeclaration(), writtenDeclaration.expression());
     }
     // field members accessed
-    for (CFieldReferenceTrackerResult fieldReferenceTrackerResult :
-        pFrom.getAccessedFieldMembers()) {
+    for (CFieldReferenceTrackerResult fieldMember : pFrom.getAccessedFieldMembers()) {
       pTo.addAccessedFieldMember(
-          fieldReferenceTrackerResult.fieldOwner(),
-          fieldReferenceTrackerResult.fieldMember(),
-          fieldReferenceTrackerResult.fieldReference());
+          fieldMember.fieldOwner(), fieldMember.fieldMember(), fieldMember.fieldReference());
     }
-    for (CFieldReferenceTrackerResult fieldReferenceTrackerResult :
-        pFrom.getWrittenFieldMembers()) {
+    for (CFieldReferenceTrackerResult fieldMember : pFrom.getWrittenFieldMembers()) {
       pTo.addWrittenFieldMember(
-          fieldReferenceTrackerResult.fieldOwner(),
-          fieldReferenceTrackerResult.fieldMember(),
-          fieldReferenceTrackerResult.fieldReference());
+          fieldMember.fieldOwner(), fieldMember.fieldMember(), fieldMember.fieldReference());
     }
   }
 
@@ -136,12 +139,12 @@ public class MPORSubstitutionTrackerUtil {
     // exclude pointer dereferences, they are handled separately
     if (!pIsPointerDereference) {
       CSimpleDeclaration simpleDeclaration = pIdExpression.getDeclaration();
-      pTracker.addAccessedDeclaration(simpleDeclaration);
+      pTracker.addAccessedDeclaration(simpleDeclaration, pIdExpression);
       CType type = simpleDeclaration.getType();
       boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
       // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
       if (pIsWrite || isMutex) {
-        pTracker.addWrittenDeclaration(simpleDeclaration);
+        pTracker.addWrittenDeclaration(simpleDeclaration, pIdExpression);
       }
     }
   }
@@ -175,7 +178,8 @@ public class MPORSubstitutionTrackerUtil {
         Optional<CSimpleDeclaration> pointerDeclaration =
             tryExtractSingleDeclaration(rightHandSide);
         if (pointerDeclaration.isPresent()) {
-          pTracker.addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
+          pTracker.addPointerAssignment(
+              lhsDeclaration, pointerDeclaration.orElseThrow(), rightHandSide);
         } else {
           Optional<CFieldReferenceTrackerResult> fieldMemberPointer =
               tryGetFieldMemberPointer(rightHandSide);
@@ -240,7 +244,8 @@ public class MPORSubstitutionTrackerUtil {
         if (initializerDeclaration.isPresent()) {
           CSimpleDeclaration pointerDeclaration = initializerDeclaration.orElseThrow();
           if (SubstituteUtil.isSubstitutable(pointerDeclaration)) {
-            pTracker.addPointerAssignment(pVariableDeclaration, pointerDeclaration);
+            pTracker.addPointerAssignment(
+                pVariableDeclaration, pointerDeclaration, initializerExpression.getExpression());
           }
         }
       }
@@ -254,9 +259,9 @@ public class MPORSubstitutionTrackerUtil {
       // do not consider CFunctionDeclarations
       if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
         if (pIsWrite) {
-          pTracker.addWrittenPointerDereference(idExpression.getDeclaration());
+          pTracker.addWrittenPointerDereference(idExpression.getDeclaration(), idExpression);
         }
-        pTracker.addAccessedPointerDereference(idExpression.getDeclaration());
+        pTracker.addAccessedPointerDereference(idExpression.getDeclaration(), idExpression);
       }
     }
   }
@@ -274,9 +279,9 @@ public class MPORSubstitutionTrackerUtil {
         // do not consider CFunctionDeclarations
         if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
           if (pIsWrite) {
-            pTracker.addWrittenPointerDereference(idExpression.getDeclaration());
+            pTracker.addWrittenPointerDereference(idExpression.getDeclaration(), idExpression);
           }
-          pTracker.addAccessedPointerDereference(idExpression.getDeclaration());
+          pTracker.addAccessedPointerDereference(idExpression.getDeclaration(), idExpression);
         }
       }
     }
