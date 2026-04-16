@@ -9,6 +9,8 @@
 #include <pthread.h>
 int x;
 int x = 1;
+pthread_mutex_t mutexA;
+pthread_mutex_t mutexB;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 int printk(const char *arg0, ...) {
   return __VERIFIER_nondet_int();
@@ -55,6 +57,18 @@ int main() {
     }
     x = 0;
     local_increment(x);
+    int local_non_const = 3;
+    pthread_mutex_init(&mutexA, (void *) 0);
+    pthread_mutex_init(&mutexB, (void *) 0);
+    // mutex aliasing must be handled
+    pthread_mutex_t *mutex_ptr;
+    mutex_ptr = &mutexA;
+    mutex_ptr = &mutexB;
+    pthread_mutex_lock(mutex_ptr);
+    x = 42;
+    pthread_mutex_unlock(mutex_ptr);
+    pthread_mutex_destroy(&mutexA);
+    pthread_mutex_destroy(&mutexB);
     pthread_t id1, id2;
     pthread_create(&id1, (void *) 0, task1, (void *) 0);
     pthread_create(&id2, (void *) 0, task2, (void *) 0);
