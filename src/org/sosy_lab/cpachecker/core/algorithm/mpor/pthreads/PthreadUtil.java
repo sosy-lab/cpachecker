@@ -111,7 +111,20 @@ public class PthreadUtil {
         null);
   }
 
-  public static ImmutableSet<SeqMemoryLocation> getMemoryLocationsWithPthreadObjectPointers(
+  // Memory Locations ==============================================================================
+
+  public static ImmutableSet<SeqMemoryLocation> getNonPointerMemoryLocationsByPthreadObject(
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations, PthreadObjectType pObjectType) {
+
+    return pMemoryLocations.stream()
+        .filter(
+            m ->
+                !(m.declaration().getType() instanceof CPointerType)
+                    && pObjectType.equalsType(m.declaration().getType()))
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  public static ImmutableSet<SeqMemoryLocation> getPointerMemoryLocationsByPthreadObject(
       ImmutableSet<SeqMemoryLocation> pMemoryLocations, PthreadObjectType pObjectType) {
 
     return pMemoryLocations.stream()
