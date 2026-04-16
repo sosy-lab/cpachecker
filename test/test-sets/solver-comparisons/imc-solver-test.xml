@@ -11,10 +11,8 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!--
-Interpolating Model Checking (IMC) test-set that uses each available solver for SAT checking, but always uses MathSAT5 as interpolating solver.
-This tests each solver for their performance in regards to incremental SAT checking in multiple theories/logics, model retrieval, as well as parsing and dumping of SMTLIB2.
-Interpolation is not required by each solver, as satisfiable formulas are dumped to SMTLIB2 and parsed by MathSAT5, which is then used as interpolating solver.
-MathSAT5s results are then dumped to SMTLIB2 again and parsed by the original solver again.
+Interpolating Model Checking (IMC) test-set that uses each available solver for SAT checking and Craig-interpolant generation.
+This tests each solver for their performance in regards to incremental SAT checking in multiple theories/logics, model retrieval, as well as interpolation.
 Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment below.
 -->
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
@@ -27,7 +25,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
 
 
   <option name="--bmc-interpolation"/>
-  <!-- Disable fallback to BMC, as we want to test interpolation/parsing/dumping -->
+  <!-- Disable fallback to BMC, as we want to test interpolation -->
   <option name="--option">imc.fallBack=false</option>
 
 
@@ -35,44 +33,70 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="z3">
-    <option name="--option">solver.solver=z3</option>
-    <option name="--option">solver.interpolationSolver=mathsat5</option>
-  </rundefinition>
-
-  <rundefinition name="cvc4">
-    <option name="--option">solver.solver=cvc4</option>
-    <option name="--option">solver.interpolationSolver=mathsat5</option>
-    <!-- CVC4 needs a larger stack -->
-    <option name="--stack">50M</option>
-  </rundefinition>
-
   <rundefinition name="cvc5">
     <option name="--option">solver.solver=cvc5</option>
-    <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
   <rundefinition name="smtinterpol">
     <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=smtinterpol</option>
-    <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
   <rundefinition name="princess">
     <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=princess</option>
-    <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
   <rundefinition name="opensmt2">
     <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <!-- Add Bitwuzla w native interpolation once JavaSMT 6.0.0 is available. -->
+
+  <!-- Add Yices2 w native interpolation and SMTInterpol w bitvector support once JavaSMT 6.0.0+ is available. -->
+
+  <!-- We can also interpolate on a distinct solver to the one checking for satisfiability -->
+  <rundefinition name="z3-interpolate_with_mathsat5">
+    <option name="--option">solver.solver=z3</option>
     <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="boolector">
+  <rundefinition name="cvc4-interpolate_with_mathsat5">
+    <option name="--option">solver.solver=cvc4</option>
+    <option name="--option">solver.interpolationSolver=mathsat5</option>
+    <!-- CVC4 needs a larger stack -->
+    <option name="--stack">50M</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5-interpolate_with_mathsat5">
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">solver.interpolationSolver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="smtinterpol-interpolate_with_mathsat5">
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+    <option name="--option">solver.interpolationSolver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="princess-interpolate_with_mathsat5">
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=princess</option>
+    <option name="--option">solver.interpolationSolver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="opensmt2-interpolate_with_mathsat5">
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+    <option name="--option">solver.interpolationSolver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="boolector-interpolate_with_mathsat5">
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <!-- Pointer aliasing requires visitation, but Boolector does not support visitation -->
@@ -83,21 +107,81 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
     <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="bitwuzla">
+  <rundefinition name="bitwuzla-interpolate_with_mathsat5">
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
     <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
 
   <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licensed parts of JavaSMT. -->
-  <rundefinition name="yices2">
+  <rundefinition name="yices2-interpolate_with_mathsat5">
     <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=yices2</option>
     <option name="--option">solver.interpolationSolver=mathsat5</option>
   </rundefinition>
-  
 
-  <!-- SV-COMP26 unreach-call benchmark-set -->
+  <rundefinition name="mathsat5-interpolate_with_cvc5">
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="z3-interpolate_with_cvc5">
+    <option name="--option">solver.solver=z3</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="cvc4-interpolate_with_cvc5">
+    <option name="--option">solver.solver=cvc4</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+    <!-- CVC4 needs a larger stack -->
+    <option name="--stack">50M</option>
+  </rundefinition>
+
+  <rundefinition name="smtinterpol-interpolate_with_cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="princess-interpolate_with_cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=princess</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+    <rundefinition name="opensmt2-interpolate_with_cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="boolector-interpolate_with_cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <!-- Pointer aliasing requires visitation, but Boolector does not support visitation -->
+    <option name="--option">cpa.predicate.handlePointerAliasing=false</option>
+    <!-- No pointer aliasing makes counterexamples imprecise -->
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+    <rundefinition name="bitwuzla-interpolate_with_cvc5">
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licensed parts of JavaSMT. -->
+  <rundefinition name="yices2-interpolate_with_cvc5">
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+    <option name="--option">solver.interpolationSolver=cvc5</option>
+  </rundefinition>
+
+  <!-- SV-COMP26 task-set consisting of the ReachSafety category, as well as all unreach-call tasks from Concurrency and SoftwareSystems -->
   <tasks name="C.unreach-call.Arrays">
     <includesfile>../../programs/benchmarks/Arrays.set</includesfile>
     <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
