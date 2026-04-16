@@ -809,43 +809,66 @@ public record SeqThreadStatementBuilder(
       SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge)
       throws UnsupportedCodeException {
 
-    ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
+    ImmutableSet<SeqMemoryLocation> accessedMemoryLocations =
+        pSubstituteEdge.getMemoryLocationsByAccessType(MemoryAccessType.ACCESS);
+    // TODO does this also hold for mutexes passed on as parameters? then this does not work on
+    //  the actual memory location, but the parameter memory location -> add test
+    if (!accessedMemoryLocations.isEmpty()) {
+      return buildMutexStatementsByMemoryLocation(pStatementType, accessedMemoryLocations);
+    }
 
     // Accesses to mutex pointers are treated as dereferences, even if they are not actually
-    // dereferences in the input program because the mutex function dereferences the pointer anyway.
+    // dereferences in the input program because the mutex function dereferences the pointer.
     //
     // Example: pthread_mutex_t *m_ptr; m_ptr = &m; pthread_mutex_lock(m_ptr);
     //
-    // 'm_ptr' in the call to 'pthread_mutex_lock' is not a dereference, but it should be treated as
-    // one to find the associated memory locations 'm_ptr' was dereferenced here.
+    // 'm_ptr' in the call to 'pthread_mutex_lock' is not dereferenced, but it should be treated as
+    // dereferenced to find the associated memory locations of 'm_ptr'.
     ImmutableSet<SeqMemoryLocation> mutexPointerMemoryLocations =
         PthreadUtil.getMemoryLocationsWithPthreadObjectPointers(
-            pSubstituteEdge.getMemoryLocationsByAccessType(MemoryAccessType.ACCESS),
-            PthreadObjectType.PTHREAD_MUTEX_T);
+            accessedMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
     ImmutableSet<SeqMemoryLocation> mutexMemoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdgeAndPointerDereferences(
             mutexPointerMemoryLocations, memoryModel);
 
-    // 1 pointer can point to multiple memory locations, but we never expect multiple pointers here.
-    checkState(
-        mutexPointerMemoryLocations.size() == 1,
-        "mutexPointerMemoryLocations can have only one element.");
-    checkState(!mutexMemoryLocations.isEmpty(), "mutexMemoryLocations is empty");
+    return buildMutexStatementsByPointerMemoryLocations(
+        pStatementType, mutexPointerMemoryLocations, mutexMemoryLocations);
+  }
 
-    if (mutexMemoryLocations.size() == 1) {
+  private ImmutableList<CCompoundStatementElement> buildMutexStatementsByMemoryLocation(
+      SeqThreadStatementType pStatementType,
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations) {
+
+    checkArgument(
+        pAccessedMemoryLocations.size() == 1, "accessedMemoryLocations can have only one element.");
+    MutexLockedFlag mutexLockedFlag =
+        threadSyncFlags.getMutexLockedFlag(Iterables.getOnlyElement(pAccessedMemoryLocations));
+    return buildMutexStatements(pStatementType, mutexLockedFlag);
+  }
+
+  private ImmutableList<CCompoundStatementElement> buildMutexStatementsByPointerMemoryLocations(
+      SeqThreadStatementType pStatementType,
+      ImmutableSet<SeqMemoryLocation> pMutexPointerMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pMutexMemoryLocations)
+      throws UnsupportedCodeException {
+
+    // a mutex pointer can target many memory locations, but we never expect multiple pointers
+    checkState(
+        pMutexPointerMemoryLocations.size() == 1,
+        "mutexPointerMemoryLocations can have only one element.");
+    checkState(!pMutexMemoryLocations.isEmpty(), "mutexMemoryLocations is empty");
+
+    if (pMutexMemoryLocations.size() == 1) {
       // if there is only a single memory location for the mutex, just add the statements
       MutexLockedFlag mutexLockedFlag =
-          threadSyncFlags.getMutexLockedFlag(Iterables.getOnlyElement(mutexMemoryLocations));
-      rStatements.addAll(buildMutexStatements(pStatementType, mutexLockedFlag));
-
-    } else {
-      // TODO
-      //  if there are multiple memory locations for the mutex, then matching the actual address is
-      //  necessary in an if-else chain, otherwise the analysis is unsound.
-      throw new UnsupportedCodeException("", pSubstituteEdge.cfaEdge);
+          threadSyncFlags.getMutexLockedFlag(Iterables.getOnlyElement(pMutexMemoryLocations));
+      return buildMutexStatements(pStatementType, mutexLockedFlag);
     }
 
-    return rStatements.build();
+    // TODO
+    //  if there are multiple memory locations for the mutex, then matching the actual address is
+    //  necessary in an if-else chain, otherwise the analysis is unsound.
+    throw new UnsupportedCodeException("", null);
   }
 
   private ImmutableList<CCompoundStatementElement> buildMutexStatements(
