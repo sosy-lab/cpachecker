@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -123,21 +124,28 @@ public class SeqMemoryLocationFinder {
   public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsBySubstituteEdge(
       SubstituteEdge pSubstituteEdge, MemoryModel pMemoryModel, MemoryAccessType pAccessType) {
 
-    ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
-    // first check direct accesses on the memory locations themselves
-    rMemLocations.addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType));
-    // then check indirect accesses via pointers that point to the variables
-    ImmutableSet<SeqMemoryLocation> pointerDereferences =
-        pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
-    for (SeqMemoryLocation pointerDereference : pointerDereferences) {
-      rMemLocations.addAll(
-          findMemoryLocationsByPointerDereference(
-              pointerDereference,
-              pMemoryModel.pointerAssignments,
-              pMemoryModel.startRoutineArgAssignments,
-              pMemoryModel.pointerParameterAssignments));
-    }
-    return rMemLocations.build();
+    return ImmutableSet.<SeqMemoryLocation>builder()
+        .addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType))
+        .addAll(
+            findMemoryLocationsBySubstituteEdgeAndPointerDereferences(
+                pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType), pMemoryModel))
+        .build();
+  }
+
+  public static ImmutableSet<SeqMemoryLocation>
+      findMemoryLocationsBySubstituteEdgeAndPointerDereferences(
+          ImmutableSet<SeqMemoryLocation> pPointerDereferences, MemoryModel pMemoryModel) {
+
+    return pPointerDereferences.stream()
+        .flatMap(
+            pointerDereference ->
+                findMemoryLocationsByPointerDereference(
+                    pointerDereference,
+                    pMemoryModel.pointerAssignments,
+                    pMemoryModel.startRoutineArgAssignments,
+                    pMemoryModel.pointerParameterAssignments)
+                    .stream())
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   // Extraction by Pointer Dereference =============================================================

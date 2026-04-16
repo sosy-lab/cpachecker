@@ -811,9 +811,20 @@ public record SeqThreadStatementBuilder(
 
     ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
 
+    // Accesses to mutex pointers are treated as dereferences, even if they are not actually
+    // dereferences in the input program because the mutex function dereferences the pointer anyway.
+    //
+    // Example: pthread_mutex_t *m_ptr; m_ptr = &m; pthread_mutex_lock(m_ptr);
+    //
+    // 'm_ptr' in the call to 'pthread_mutex_lock' is not a dereference, but it should be treated as
+    // one to find the associated memory locations 'm_ptr' was dereferenced here.
+    ImmutableSet<SeqMemoryLocation> mutexPointerMemoryLocations =
+        PthreadUtil.getMemoryLocationsWithPthreadObjectPointers(
+            pSubstituteEdge.getMemoryLocationsByAccessType(MemoryAccessType.ACCESS),
+            PthreadObjectType.PTHREAD_MUTEX_T);
     ImmutableSet<SeqMemoryLocation> mutexMemoryLocations =
-        SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
-            pSubstituteEdge, memoryModel, MemoryAccessType.ACCESS);
+        SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdgeAndPointerDereferences(
+            mutexPointerMemoryLocations, memoryModel);
 
     checkState(!mutexMemoryLocations.isEmpty(), "mutexMemoryLocations is empty");
 

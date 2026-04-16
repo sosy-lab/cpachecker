@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
@@ -111,6 +113,17 @@ public class PthreadUtil {
             "Could not extract pthread object of type %s from expression %s",
             pPthreadObjectType, parameterExpression.toASTString()),
         null);
+  }
+
+  public static ImmutableSet<SeqMemoryLocation> getMemoryLocationsWithPthreadObjectPointers(
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations, PthreadObjectType pObjectType) {
+
+    return pMemoryLocations.stream()
+        .filter(
+            m ->
+                m.declaration().getType() instanceof CPointerType pointerType
+                    && pObjectType.equalsType(pointerType.getType()))
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   public static SeqMemoryLocation extractPthreadObjectMemoryLocation(
