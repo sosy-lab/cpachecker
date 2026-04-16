@@ -91,7 +91,6 @@ public class ConstraintsTransferRelation
     pConfig.inject(this);
 
     logger = new LogManagerWithoutDuplicates(pLogger);
-
     machineModel = pMachineModel;
     simplifier = new StateSimplifier(pConfig, pStats);
     solver = pSolver;

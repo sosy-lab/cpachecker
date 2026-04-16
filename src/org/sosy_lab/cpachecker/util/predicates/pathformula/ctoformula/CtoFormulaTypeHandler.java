@@ -38,7 +38,6 @@ public class CtoFormulaTypeHandler {
 
   public CtoFormulaTypeHandler(LogManager pLogger, MachineModel pMachineModel) {
     logger = new LogManagerWithoutDuplicates(pLogger);
-
     machineModel = pMachineModel;
     pointerType = FormulaType.getBitvectorTypeWithSize(machineModel.getSizeofPtrInBits());
   }
