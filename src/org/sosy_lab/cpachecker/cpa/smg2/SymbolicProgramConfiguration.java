@@ -3795,7 +3795,7 @@ public class SymbolicProgramConfiguration {
         identsBuilder.put(symIdent, (CType) constSym.getType());
       }
     }
-    return identsBuilder.buildOrThrow();
+    return identsBuilder.buildKeepingLast();
   }
 
   protected Set<ConstantSymbolicExpression> getConstantSymbolicExpressionsForValue(Value value) {

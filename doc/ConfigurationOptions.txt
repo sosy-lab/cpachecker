@@ -3583,6 +3583,14 @@ cpa.smg2.abstraction.doEnforcePointerSensitiveLiveness = true
 # memory structures like arrays.
 cpa.smg2.abstraction.doLivenessAbstraction = true
 
+# Sets behavior of the analysis when errors/exceptions are encountered when
+# abstracting. STOP_CPACHECKER: stops CPAchecker with a RuntimeException.
+# STOP_CURRENT: throws a exception that stops only the CPA it is thrown in.
+# IGNORE: does not throw anything and continues the analysis without
+# abstracting the state causing the error.
+cpa.smg2.abstraction.errorHandling = IGNORE
+  enum:     [STOP_CPACHECKER, STOP_CURRENT, IGNORE]
+
 # skip abstraction computations until the given number of iterations are
 # reached, after that decision is based on then current level of determinism,
 # setting the option to -1 always performs abstraction computations
@@ -3594,7 +3602,7 @@ cpa.smg2.abstraction.iterationThreshold = -1
 # are abstracted in any case. If you want to prevent dynamic increase of list
 # abstraction min threshold set this to the same value as
 # listAbstractionMinimumLengthThreshold.
-cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 6
+cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 25
 
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
@@ -3619,6 +3627,15 @@ cpa.smg2.allowNondetFunctionsWithArbitraryTypes = true
 
 # If this Option is enabled, variable array length may be symbolic.
 cpa.smg2.allowSymbolicVariableArrayLength = false
+
+# Specifies the handling for all concrete arithmetic and bitwise operations
+# resulting in undefined behavior. Examples: divisions by zero as a result of
+# division or remainder operations, or bitwise shift operations with a
+# negative second argument, or bitwise shift operations with a second
+# argument exceeding the width of the first arguments type.
+cpa.smg2.arithmeticUndefinedBehaviorHandling = WARN_AND_RETURN_ZERO
+  enum:     [WARN_AND_RETURN_UNKNOWN, WARN_AND_RETURN_ZERO, WARN_AND_RETURN_ONE,
+             STOP_ANALYSIS]
 
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
@@ -3756,6 +3773,12 @@ cpa.smg2.initialPrecisionFile = no default value
 # get an initial precision from a predicate precision file
 cpa.smg2.initialPredicatePrecisionFile = no default value
 
+# Log level of unknown value usage in this CPA. E.g. due to
+# overapproximations, unhandled cases etc. Can be used to warn of a possible
+# inaccurate analysis (many unknown values do not lead to an inaccurate
+# analysis!), help with debugging etc.
+cpa.smg2.logLevelOfUnknownValueAssumptions = Level.FINE
+
 # If this option is enabled, a call to malloc with value zero results in a
 # return value that is equal to zero. If this option is disabled, a non-zero
 # memory section that may not be accessed but freed is returned.
@@ -3812,6 +3835,20 @@ cpa.smg2.minimalSatCheck = true
 # Assume that variables used only in a boolean context are either zero or
 # one.
 cpa.smg2.optimizeBooleanVariables = true
+
+# Overapproximates all logical C pointer comparisons that require (unknown)
+# address relations that are currently not handled. E.g. casting two distinct
+# pointers that are not equal to integer and then comparing both against a
+# constant integer literal that may be equal to both (the relation between
+# the pointers says that they can't be both equal to the same constant
+# integer literal).
+cpa.smg2.overapproximateMemoryAddressRelations = true
+
+# Overapproximates all C pointers that point out of bounds to their
+# originating memory to also point towards all other pointers when comparing
+# pointers using (in)equality operators (== and !=). No effect on other
+# relational operators (i.e. <,>,<=,>=) or pointer arithmetics.
+cpa.smg2.overapproximatePointerArithmeticsOutOfBoundsEquality = true
 
 # If this Option is enabled, all values of a memory region that is written or
 # read with a symbolic offset are overapproximated. I.e. when writing to a

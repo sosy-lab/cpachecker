@@ -1,0 +1,205 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.smg2.test;
+
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+
+/**
+ * Test class to execute the SMG2-CPA with LP64 test programs. All programs listed here are executed
+ * for all valid specifications supported by the SMG2-CPA, i.e. default specification, MemSafety,
+ * MemCleanup, No-Overflow, in two configurations; SMG based Symbolic Execution and SMG based Value
+ * Analysis.
+ */
+@Ignore
+public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
+
+  @Before
+  public void reduceCILoad() {
+    // TODO: remove this method once we have a solution for CI/Test load
+    onlyTestDefaultSpecification();
+    doNotTestSMGValueAnalysisConfigurations();
+  }
+
+  @Ignore // Arrays have a problem in SMG2 currently
+  @Test
+  public void arrayUsageWithPointerComplex64Proof() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "simple/arrays/array_usage_modified_pointers_in_methods_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  @Test
+  public void pointerArithmeticsAndComparisonsIntPtrViaMallocProof() throws Exception {
+    doNotTestOverflowSpecification();
+
+    // TODO: added to reduce CI load, find a better solution!
+    doNotTestMemCleanupSpecification();
+    doNotTestSMGValueAnalysisConfigurations();
+
+    String testProgram = "simple/pointer_arithmetics/pointer_arithmetics_int_malloc_64_safe.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  @Test
+  public void pointerArithmeticsAndComparisonsIntPtrCastNumericViaMallocProof() throws Exception {
+    doNotTestOverflowSpecification();
+
+    // TODO: added to reduce CI load, find a better solution!
+    doNotTestMemCleanupSpecification();
+    doNotTestSMGValueAnalysisConfigurations();
+
+    String testProgram =
+        "simple/pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_64_safe.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  // Tests that (integer) types are not comparable to values from larger types,
+  //  e.g. nondet_bool() != 2;
+  @Ignore // Ignore as we currently fail this in SMG2
+  @Test
+  public void nondetIntegerTypeBoundsProof() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "simple/type_tests/nondet_generator_integer_types_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  // Tests that (float) types are not comparable to values from larger types
+  @Ignore // Ignore as we currently fail this in SMG2
+  @Test
+  public void nondetFloatingPointTypeBoundsProof() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "simple/type_tests/nondet_generator_float_types_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  // Tests basic usage of arrays with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageProof() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "simple/arrays/array_usage_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  // Tests basic usage of arrays with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageViolation() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "simple/arrays/array_usage_64_false.c";
+    assertThatLP64Program(testProgram).isUnsafe();
+  }
+
+  // Tests basic usage of arrays in methods with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageInMethodsProof() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "simple/arrays/array_usage_methods_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  // Tests basic usage of arrays in methods with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageInMethodsViolation() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "simple/arrays/array_usage_methods_64_false.c";
+    assertThatLP64Program(testProgram).isUnsafe();
+  }
+
+  // Tests basic usage of arrays in methods as pointers with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageInMethodsAsPointersProof() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "simple/arrays/array_usage_pointers_in_methods_64_true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  // Tests basic usage of arrays in methods as pointers with constants
+  @Ignore // TODO: enable and see whether we pass this
+  @Test
+  public void arrayUsageInMethodsAsPointersViolation() throws Exception {
+    doNotTestOverflowSpecification();
+    String testProgram = "simple/arrays/array_usage_pointers_in_methods_64_false.c";
+    assertThatLP64Program(testProgram).isUnsafe();
+  }
+
+  // Tests basic usage of function pointers
+  @Test
+  public void functionPointerSimpleUsageViolation() throws Exception {
+    doNotTestOverflowSpecification();
+
+    // TODO: added to reduce CI load, find a better solution!
+    doNotTestMemCleanupSpecification();
+    doNotTestSMGValueAnalysisConfigurations();
+
+    String testProgram = "simple/function_pointers/function_pointers_simple_concrete-false.c";
+    assertThatLP64Program(testProgram).isUnsafe();
+  }
+
+  // Tests basic usage of function pointers
+  @Test
+  public void functionPointerSimpleUsageProof() throws Exception {
+    doNotTestOverflowSpecification();
+
+    // TODO: added to reduce CI load, find a better solution!
+    doNotTestMemCleanupSpecification();
+    doNotTestSMGValueAnalysisConfigurations();
+
+    String testProgram = "simple/function_pointers/function_pointers_simple_concrete-true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  // Tests basic usage of function pointers in/from functions
+  @Test
+  public void functionPointerSimpleUsageInFunctionsAndReturnsViolation() throws Exception {
+    doNotTestOverflowSpecification();
+
+    // TODO: added to reduce CI load, find a better solution!
+    doNotTestMemCleanupSpecification();
+    doNotTestSMGValueAnalysisConfigurations();
+
+    String testProgram =
+        "simple/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
+    assertThatLP64Program(testProgram).isUnsafe();
+  }
+
+  // Tests basic usage of function pointers in/from functions
+  @Test
+  public void functionPointerSimpleUsageInFunctionsAndReturnsProof() throws Exception {
+    doNotTestOverflowSpecification();
+
+    // TODO: added to reduce CI load, find a better solution!
+    doNotTestMemCleanupSpecification();
+    doNotTestSMGValueAnalysisConfigurations();
+
+    String testProgram =
+        "simple/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
+    assertThatLP64Program(testProgram).isSafe();
+  }
+
+  @Ignore
+  @Test
+  public void violationWitnessV1LongOutputTest() throws Exception {
+    onlyTestDefaultSpecification();
+    onlyTestSMGSymbolicExecutionConfiguration();
+    String testProgram = "simple/witness_output/simple_assignment_long_64_false.c";
+    // TODO: extend returnsViolationWitnessV1Containing() with expected line/location
+    // TODO: extend with "containingAssignment" that automatically resolves assumptions (w
+    // lines/location)
+    // The witness MUST have the assignment of '4294967294U' to 'uint_from_char'
+    assertThatLP64Program(testProgram)
+        .returnsViolationWitnessV1Containing(
+            "<data key=\"assumption\">uint_from_char == (4294967294U);</data>");
+  }
+}

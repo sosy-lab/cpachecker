@@ -167,22 +167,28 @@ public class SMGCPAExpressionEvaluator {
    * SPC/SMG of the given state. This returns a Value with the result, which is a boolean (1 or 0).
    * Note: this returns always false (0) if one of the 2 given Values is no valid address.
    *
-   * @param leftValue the left hand side address of the equality.
-   * @param rightValue the right hand side address of the equality.
+   * @param leftValue the left hand side address of the equality. Not allowed to be {@link
+   *     AddressExpression}.
+   * @param rightValue the right hand side address of the equality. Not allowed to be {@link
+   *     AddressExpression}.
    * @param state the current state in which the 2 values are address values.
    * @return a {@link Value} that is either 1 or 0 as true and false result of the equality.
    * @throws SMGException in case of critical errors
    */
   public Value checkEqualityForAddresses(Value leftValue, Value rightValue, SMGState state)
       throws SMGException, SMGSolverException {
+    checkArgument(!(leftValue instanceof AddressExpression));
+    checkArgument(!(rightValue instanceof AddressExpression));
     Value isNotEqual = checkNonEqualityForAddresses(leftValue, rightValue, state);
     if (!(isNotEqual instanceof NumericValue knownInequality)) {
-      checkArgument(isNotEqual.isUnknown()); // Guaranteed from checkNonEqualityForAddresses()
       return isNotEqual;
     }
-    return knownInequality.bigIntegerValue().compareTo(BigInteger.ZERO) == 0
-        ? new NumericValue(1)
-        : new NumericValue(0);
+    if (knownInequality.bigIntegerValue().equals(BigInteger.ZERO)) {
+      return new NumericValue(1);
+    } else if (knownInequality.bigIntegerValue().equals(BigInteger.ONE)) {
+      return new NumericValue(0);
+    }
+    throw new SMGException("Disallowed C style numeric boolean value found: " + knownInequality);
   }
 
   /**
@@ -205,6 +211,7 @@ public class SMGCPAExpressionEvaluator {
         unpackAddressExpression(rightValue, leftValueAndState.getState());
     rightValue = rightValueAndState.getValue();
     SMGState currentState = rightValueAndState.getState();
+
     // Check that both Values are truly addresses
     if (!isPointerValue(rightValue, currentState) || !isPointerValue(leftValue, currentState)) {
       return UnknownValue.getInstance();
@@ -227,19 +234,22 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException in case of critical errors.
    */
   public ValueAndSMGState unpackAddressExpression(Value value, SMGState state) throws SMGException {
-    if (!(value instanceof AddressExpression address1)) {
+    if (!(value instanceof AddressExpression addressExpr)) {
+      checkState(
+          !(value instanceof ConstantSymbolicExpression constValue)
+              || !(constValue.getValue() instanceof AddressExpression));
       return ValueAndSMGState.of(value, state);
     }
 
-    Value offsetValue = address1.getOffset();
+    Value offsetValue = addressExpr.getOffset();
     if (offsetValue instanceof NumericValue numOffset
         && numOffset.bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
-      return ValueAndSMGState.of(address1.getMemoryAddress(), state);
+      return ValueAndSMGState.of(addressExpr.getMemoryAddress(), state);
     } else {
       // Get the correct address with its offset in the SMGPointsToEdge
       Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
-          state.getPointsToTarget(address1.getMemoryAddress());
-      CType pointerType = state.getMemoryModel().getTypeForValue(address1.getMemoryAddress());
+          state.getPointsToTarget(addressExpr.getMemoryAddress());
+      CType pointerType = state.getMemoryModel().getTypeForValue(addressExpr.getMemoryAddress());
       checkNotNull(pointerType);
       if (maybeTargetAndOffset.isEmpty()) {
         return ValueAndSMGState.ofUnknownValue(
@@ -389,7 +399,7 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
-   * This creates or finds and returns the address Value for the underyling expression. This also
+   * This creates or finds and returns the address Value for the underlying expression. This also
    * creates the pointers in the SMG if not yet created. Throws the exception only if either there
    * is no object or if nonsensical addresses are requested; i.e. &3; Used with the & operator for
    * example.
@@ -446,11 +456,12 @@ public class SMGCPAExpressionEvaluator {
       if (!(offset instanceof NumericValue)) {
         if (!options.trackPredicates()) {
           // Value analysis
-          logger.log(
-              Level.FINE,
-              "Symbolic offset when creating an address not supported when not"
-                  + " tracking predicates. Unknown value returned.");
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(objectAndOffsetOrState.getSMGState()));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  objectAndOffsetOrState.getSMGState(),
+                  "Symbolic offset when creating an address not supported in case"
+                      + " predicates are not tracked. Unknown value returned in ",
+                  cfaEdge));
           continue;
         }
       }
@@ -911,18 +922,20 @@ public class SMGCPAExpressionEvaluator {
    * @param leftPointer {@link Value} left hand side pointer in the minus operation.
    * @param rightPointer {@link Value} right hand side pointer in the minus operation.
    * @return Either distance as {@link NumericValue} or {@link UnknownValue}.
-   * @throws SMGException in case of critical list materilization errors
+   * @throws SMGException in case of critical list materialization errors
    */
   public List<ValueAndSMGState> calculateAddressDistance(
       SMGState state, Value leftPointer, Value rightPointer) throws SMGException {
     SymbolicProgramConfiguration spc = state.getMemoryModel();
     if (!spc.isPointer(leftPointer) || !spc.isPointer(rightPointer)) {
+      // At least one should be a pointer, else there was an error on the way here!
+      checkArgument(spc.isPointer(leftPointer) || spc.isPointer(rightPointer));
       // Not known or not known as a pointer, return nothing
       return ImmutableList.of(
           ValueAndSMGState.ofUnknownValue(
               state,
               "Returned unknown value due non-address argument when calculating address"
-                  + " distance."));
+                  + " distance in pointer arithmetics."));
     }
     ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
     // We can only compare the underlying SMGObject for equality as the Values are distinct if they
@@ -935,7 +948,7 @@ public class SMGCPAExpressionEvaluator {
             ValueAndSMGState.ofUnknownValue(
                 leftTargetAndOffset.getSMGState(),
                 "Returned unknown value due to unknown target or offset when calculating address"
-                    + " distance."));
+                    + " distance in pointer arithmetics."));
         continue;
       }
 
@@ -947,7 +960,7 @@ public class SMGCPAExpressionEvaluator {
               ValueAndSMGState.ofUnknownValue(
                   rightTargetAndOffset.getSMGState(),
                   "Returned unknown value due to unknown target or offset when calculating address"
-                      + " distance."));
+                      + " distance in pointer arithmetics."));
           continue;
         }
 
@@ -959,7 +972,8 @@ public class SMGCPAExpressionEvaluator {
               ValueAndSMGState.ofUnknownValue(
                   state,
                   "Returned unknown value due to addresses not originating from same memory"
-                      + " allocating function call when calculating address distance."));
+                      + " allocating function call when calculating address distance in pointer"
+                      + " arithmetics."));
           continue;
         }
 
@@ -973,7 +987,7 @@ public class SMGCPAExpressionEvaluator {
                 ValueAndSMGState.ofUnknownValue(
                     state,
                     "Returned unknown value due to unknown offset when calculating address"
-                        + " distance."));
+                        + " distance in pointer arithmetics."));
             break;
           }
           CType addressDistanceType = getCTypeForBitPreciseMemoryAddresses();
@@ -1281,7 +1295,7 @@ public class SMGCPAExpressionEvaluator {
    * Used for correct symbolic offset calculations. Always at least 3 bit larger than the current
    * size of addresses to avoid overflows in the calculation of addresses. Note: When using a
    * symbolic offset that's transformed to bit size, the original value itself needs its original
-   * correct type!
+   * correct type! (Usually INT128 or LONG_LONG_INT)
    *
    * @return a type that's at least 3 bit larger than the current size of addresses.
    */
@@ -1481,7 +1495,6 @@ public class SMGCPAExpressionEvaluator {
 
   public Value getBitSizeof(SMGState pInitialSmgState, CType pType, CFAEdge pEdge)
       throws CPATransferException {
-    // TODO: return VALUE instead of BigInt in all of these methods
     try {
       // TODO: add edge to sizeOfVisitor!
       return new NumericValue(
