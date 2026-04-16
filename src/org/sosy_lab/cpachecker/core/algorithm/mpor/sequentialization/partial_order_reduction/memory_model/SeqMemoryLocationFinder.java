@@ -189,7 +189,16 @@ public class SeqMemoryLocationFinder {
         }
       } else {
         // if it is not a pointer (i.e. a target memory location), add it to found
-        found.add(currentMemoryLocation);
+        if (pPointerDereference.fieldMember().isPresent()) {
+          // pass on the fieldMember, because currentMemoryLocation does not contain it
+          found.add(
+              SeqMemoryLocation.of(
+                  currentMemoryLocation.callContext(),
+                  currentMemoryLocation.declaration(),
+                  pPointerDereference.fieldMember().orElseThrow()));
+        } else {
+          found.add(currentMemoryLocation);
+        }
       }
     }
     return ImmutableSet.copyOf(found);
