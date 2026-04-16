@@ -24,40 +24,87 @@ This tests each solver for their performance in regards to incremental SAT check
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <option name="--bmc"/>
-  <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
   
 
-  <rundefinition name="mathsat5">
+  <rundefinition name="mathsat5-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="z3">
+  <rundefinition name="mathsat5-maxLoopBound10">
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+  </rundefinition>
+
+  <rundefinition name="z3-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">solver.solver=z3</option>
   </rundefinition>
 
-  <rundefinition name="cvc4">
+  <rundefinition name="z3-maxLoopBound10">
+    <option name="--option">solver.solver=z3</option>
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+  </rundefinition>
+
+  <rundefinition name="cvc4-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">solver.solver=cvc4</option>
     <!-- CVC4 needs a larger stack -->
     <option name="--stack">50M</option>
   </rundefinition>
 
-  <rundefinition name="cvc5">
+  <rundefinition name="cvc4-maxLoopBound10">
+    <option name="--option">solver.solver=cvc4</option>
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <!-- CVC4 needs a larger stack -->
+    <option name="--stack">50M</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">solver.solver=cvc5</option>
   </rundefinition>
 
-  <rundefinition name="princess">
+  <rundefinition name="cvc5-maxLoopBound10">
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+  </rundefinition>
+
+  <rundefinition name="princess-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
-  <rundefinition name="bitwuzla">
+  <rundefinition name="princess-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <rundefinition name="bitwuzla-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <!-- Integer as BV is not impacting soundness -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="bitwuzla-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
     <!-- Integer as BV is not impacting soundness -->
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
   </rundefinition>
 
   <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licensed parts of JavaSMT. -->
-  <rundefinition name="yices2">
+  <rundefinition name="yices2-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+  <rundefinition name="yices2-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">solver.solver=yices2</option>
   </rundefinition>

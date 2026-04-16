@@ -11,13 +11,12 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!--
-Runs Bounded Model Checking (BMC) with a maximum loop bound of 10 for all solvers available on the executing environment
-that support all theories necessary for a sound analysis.
+Runs Bounded Model Checking (BMC) with a maximum loop bound of 1 for all solvers available on the executing environment.
 This tests each solver for their performance in regards to incremental SAT checking in multiple theories/logics, as well as model retrieval.
 Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment below.
 -->
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
 
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
@@ -25,43 +24,139 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <option name="--bmc"/>
-  <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
-  
 
-  <rundefinition name="mathsat5">
+
+  <rundefinition name="mathsat5-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="z3">
+  <rundefinition name="mathsat5-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="z3-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">solver.solver=z3</option>
   </rundefinition>
 
-  <rundefinition name="cvc4">
+  <rundefinition name="z3-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <rundefinition name="cvc4-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">solver.solver=cvc4</option>
     <!-- CVC4 needs a larger stack -->
     <option name="--stack">50M</option>
   </rundefinition>
 
-  <rundefinition name="cvc5">
+  <rundefinition name="cvc4-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">solver.solver=cvc4</option>
+    <!-- CVC4 needs a larger stack -->
+    <option name="--stack">50M</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">solver.solver=cvc5</option>
   </rundefinition>
 
-  <rundefinition name="princess">
-    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+  <rundefinition name="cvc5-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="smtinterpol-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <rundefinition name="smtinterpol-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <rundefinition name="princess-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
-  <rundefinition name="bitwuzla">
-    <!-- Integer as BV is not impacting soundness -->
+  <rundefinition name="princess-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <rundefinition name="opensmt2-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <rundefinition name="opensmt2-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <rundefinition name="boolector-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <!-- Pointer aliasing requires visitation, but Boolector does not support visitation -->
+    <option name="--option">cpa.predicate.handlePointerAliasing=false</option>
+    <!-- No pointer aliasing makes counterexamples imprecise -->
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <rundefinition name="boolector-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <!-- Pointer aliasing requires visitation, but Boolector does not support visitation -->
+    <option name="--option">cpa.predicate.handlePointerAliasing=false</option>
+    <!-- No pointer aliasing makes counterexamples imprecise -->
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <rundefinition name="bitwuzla-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="bitwuzla-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
   </rundefinition>
 
   <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licensed parts of JavaSMT. -->
-  <rundefinition name="yices2">
-    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+  <rundefinition name="yices2-maxLoopBound1">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=yices2</option>
   </rundefinition>
+
+  <rundefinition name="yices2-maxLoopBound10">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
 
 
   <!-- SV-COMP26 unreach-call benchmark-set -->
