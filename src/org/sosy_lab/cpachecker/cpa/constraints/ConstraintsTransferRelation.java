@@ -73,7 +73,7 @@ public class ConstraintsTransferRelation
       description = "When to check the satisfiability of constraints")
   private CheckStrategy checkStrategy = CheckStrategy.AT_ASSUME;
 
-  private final LogManagerWithoutDuplicates logger;
+  private final LogManager logger;
 
   private MachineModel machineModel;
 
@@ -90,11 +90,7 @@ public class ConstraintsTransferRelation
 
     pConfig.inject(this);
 
-    if (pLogger instanceof LogManagerWithoutDuplicates pLogManagerWithoutDuplicates) {
-      logger = pLogManagerWithoutDuplicates;
-    } else {
-      logger = new LogManagerWithoutDuplicates(pLogger);
-    }
+    logger = new LogManagerWithoutDuplicates(pLogger);
 
     machineModel = pMachineModel;
     simplifier = new StateSimplifier(pConfig, pStats);

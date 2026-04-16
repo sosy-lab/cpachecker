@@ -16,7 +16,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -70,7 +69,7 @@ public class ConstraintsCPA
   @Option(description = "Type of merge operator to use", toUppercase = true)
   private MergeType mergeType = MergeType.SEP;
 
-  private final LogManagerWithoutDuplicates logger;
+  private final LogManager logger;
 
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
@@ -94,7 +93,7 @@ public class ConstraintsCPA
 
     pConfig.inject(this);
 
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    logger = pLogger;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     CtoFormulaConverter converter =
