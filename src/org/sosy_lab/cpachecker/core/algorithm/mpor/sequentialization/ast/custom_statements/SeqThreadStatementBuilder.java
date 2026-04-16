@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.elementsAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -661,11 +662,10 @@ public record SeqThreadStatementBuilder(
     return SeqThreadStatement.of(
         data,
         pTargetPc,
-        ImmutableList.<CCompoundStatementElement>builder()
-            .add(new CStatementWrapper(assumeSignaled))
-            .add(new CStatementWrapper(setSignaledFalse))
-            .addAll(mutexStatements)
-            .build());
+        elementsAndList(
+            new CStatementWrapper(assumeSignaled),
+            new CStatementWrapper(setSignaledFalse),
+            mutexStatements));
   }
 
   private SeqThreadStatement buildThreadCreationStatement(
