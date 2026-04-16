@@ -82,7 +82,7 @@ public class ValueTransferBasedStrongestPostOperator
 
     constraintsTransfer =
         new ConstraintsTransferRelation(
-            pSolver, constraintsStatistics, pCfa.getMachineModel(), pLogger, pConfig);
+            pSolver, constraintsStatistics, pCfa.getMachineModel(), loggerWoDupl, pConfig);
   }
 
   @Override
