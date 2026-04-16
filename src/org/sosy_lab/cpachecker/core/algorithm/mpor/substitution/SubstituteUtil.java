@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -42,20 +40,6 @@ public class SubstituteUtil {
   static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
     return pSimpleDeclaration instanceof CVariableDeclaration
         || pSimpleDeclaration instanceof CParameterDeclaration;
-  }
-
-  static CVariableDeclaration asVariableDeclaration(CSimpleDeclaration pSimpleDeclaration) {
-    checkArgument(isSubstitutable(pSimpleDeclaration));
-    if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
-      return variableDeclaration;
-    }
-    return ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
-  }
-
-  public static MPORSubstitution extractMainThreadSubstitution(
-      ImmutableList<MPORSubstitution> pSubstitutions) {
-
-    return pSubstitutions.stream().filter(s -> s.thread.isMain()).findAny().orElseThrow();
   }
 
   /** Function and Type declarations are placed outside {@code main()}. */
@@ -166,17 +150,5 @@ public class SubstituteUtil {
       rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();
-  }
-
-  // Main Function Arg =============================================================================
-
-  public static ImmutableSet<CVariableDeclaration> findAllMainFunctionArgs(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
-    ImmutableSet.Builder<CVariableDeclaration> rArgs = ImmutableSet.builder();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      rArgs.addAll(substituteEdge.accessedMainFunctionArgs);
-    }
-    return rArgs.build();
   }
 }

@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -121,7 +122,7 @@ public class MPORSubstitutionTracker {
   // add methods ===================================================================================
 
   public void addAccessedMainFunctionArg(CSimpleDeclaration pMainFunctionArg) {
-    accessedMainFunctionArgs.add(SubstituteUtil.asVariableDeclaration(pMainFunctionArg));
+    accessedMainFunctionArgs.add(MPORUtil.convertToVariableDeclaration(pMainFunctionArg));
   }
 
   public void addPointerAssignment(
@@ -132,9 +133,9 @@ public class MPORSubstitutionTracker {
 
     InputRejection.checkFunctionPointerAssignment(pRightHandSide);
     pointerAssignments.put(
-        SubstituteUtil.asVariableDeclaration(pLeftHandSide),
+        MPORUtil.convertToVariableDeclaration(pLeftHandSide),
         new CVariableDeclarationTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pRightHandSide), pRightHandSideExpression));
+            MPORUtil.convertToVariableDeclaration(pRightHandSide), pRightHandSideExpression));
   }
 
   public void addPointerFieldMemberAssignment(
@@ -144,9 +145,9 @@ public class MPORSubstitutionTracker {
       CFieldReference pFieldReference) {
 
     pointerFieldMemberAssignments.put(
-        SubstituteUtil.asVariableDeclaration(pLeftHandSide),
+        MPORUtil.convertToVariableDeclaration(pLeftHandSide),
         new CFieldReferenceTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pFieldOwner),
+            MPORUtil.convertToVariableDeclaration(pFieldOwner),
             pMemberDeclaration,
             pFieldReference));
   }
@@ -156,7 +157,7 @@ public class MPORSubstitutionTracker {
 
     accessedPointerDereferences.add(
         new CVariableDeclarationTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pAccessedPointerDereference), pExpression));
+            MPORUtil.convertToVariableDeclaration(pAccessedPointerDereference), pExpression));
   }
 
   public void addWrittenPointerDereference(
@@ -164,7 +165,7 @@ public class MPORSubstitutionTracker {
 
     writtenPointerDereferences.add(
         new CVariableDeclarationTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pWrittenPointerDereference), pExpression));
+            MPORUtil.convertToVariableDeclaration(pWrittenPointerDereference), pExpression));
   }
 
   public void addAccessedFieldReferencePointerDereference(
@@ -174,7 +175,7 @@ public class MPORSubstitutionTracker {
 
     accessedFieldReferencePointerDereferences.add(
         new CFieldReferenceTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
+            MPORUtil.convertToVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
   }
 
   public void addWrittenFieldReferencePointerDereference(
@@ -184,7 +185,7 @@ public class MPORSubstitutionTracker {
 
     writtenFieldReferencePointerDereferences.add(
         new CFieldReferenceTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
+            MPORUtil.convertToVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
   }
 
   public void addAccessedDeclaration(
@@ -192,7 +193,7 @@ public class MPORSubstitutionTracker {
 
     accessedDeclarations.add(
         new CVariableDeclarationTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pAccessedDeclaration), pExpression));
+            MPORUtil.convertToVariableDeclaration(pAccessedDeclaration), pExpression));
   }
 
   public void addWrittenDeclaration(
@@ -200,7 +201,7 @@ public class MPORSubstitutionTracker {
 
     writtenDeclarations.add(
         new CVariableDeclarationTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pWrittenDeclaration), pExpression));
+            MPORUtil.convertToVariableDeclaration(pWrittenDeclaration), pExpression));
   }
 
   public void addAccessedFieldMember(
@@ -210,7 +211,7 @@ public class MPORSubstitutionTracker {
 
     accessedFieldMembers.add(
         new CFieldReferenceTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pOwnerDeclaration),
+            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration),
             pAccessedFieldMember,
             pFieldReference));
   }
@@ -222,7 +223,7 @@ public class MPORSubstitutionTracker {
 
     writtenFieldMembers.add(
         new CFieldReferenceTrackerResult(
-            SubstituteUtil.asVariableDeclaration(pOwnerDeclaration),
+            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration),
             pWrittenFieldMember,
             pFieldReference));
   }

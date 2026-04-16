@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermin
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.CommutingThreadsFirstInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -171,7 +170,9 @@ public final class SeqMainFunctionBuilder {
     ImmutableSet<SubstituteEdge> allSubstituteEdges =
         SeqThreadStatementClauseUtil.collectAllSubstituteEdges(pFields.clauses);
     ImmutableSet<CVariableDeclaration> accessedMainFunctionArgs =
-        SubstituteUtil.findAllMainFunctionArgs(allSubstituteEdges);
+        allSubstituteEdges.stream()
+            .flatMap(substituteEdge -> substituteEdge.accessedMainFunctionArgs.stream())
+            .collect(ImmutableSet.toImmutableSet());
 
     // then add main function arg nondet assignments, if necessary
     ImmutableList.Builder<CExportStatement> rAssignments = ImmutableList.builder();

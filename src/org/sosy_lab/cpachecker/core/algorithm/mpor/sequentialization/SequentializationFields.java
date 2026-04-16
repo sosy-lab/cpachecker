@@ -80,7 +80,8 @@ public class SequentializationFields {
     MPORSubstitutionBuilder substitutionBuilder =
         new MPORSubstitutionBuilder(pOptions, allGlobalVariableDeclarations, threads, pUtils);
     substitutions = substitutionBuilder.buildSubstitutions();
-    mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
+    mainSubstitution =
+        substitutions.stream().filter(s -> s.thread.isMain()).findAny().orElseThrow();
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
 
     machineModel = pInputCfa.getMachineModel();

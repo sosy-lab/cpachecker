@@ -225,7 +225,7 @@ public class MPORSubstitutionTrackerUtil {
             ? pointerType.getType()
             : idExpression.getExpressionType();
     return new CFieldReferenceTrackerResult(
-        SubstituteUtil.asVariableDeclaration(idExpression.getDeclaration()),
+        MPORUtil.convertToVariableDeclaration(idExpression.getDeclaration()),
         MPORUtil.recursivelyFindFieldMemberByFieldOwner(pFieldReference, type),
         pFieldReference);
   }
