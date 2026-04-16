@@ -46,7 +46,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   NextThreadNondeterministicSimulation(
       MPOROptions pOptions,
       MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
+      MemoryModel pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {

@@ -47,8 +47,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(4);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
@@ -71,8 +70,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(2);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     // mutex1, mutex2, i (implicit global with pthread_create) and __global_lock (from racemacros.h)
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
     // we want to identify int * p = (int *) arg; as a pointer assignment, even on declaration
@@ -100,8 +98,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(2);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     // only local variables
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(0);
     assertThat(memoryModel.pointerAssignments).isEmpty();
@@ -124,8 +121,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(8);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
@@ -165,8 +161,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(8);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
@@ -188,8 +183,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(4);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     // mutex and data
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(2);
     assertThat(memoryModel.pointerAssignments).isEmpty();
@@ -213,8 +207,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     // 49 global variables, but 4 are never accessed -> not identified by tracker
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(45);
     assertThat(memoryModel.parameterAssignments).hasSize(2);
@@ -242,8 +235,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     // 32 global variables, but _Bool a$read_delayed; and int *a$read_delayed_var; are never
     // accessed, i.e. never substituted -> tracker does not identify them
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(30);
@@ -270,8 +262,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     // TODO should actually be 9, though 5 is still fine (overapproximation)
     // check that each member of queue struct is identified as relevant individually
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(5);
@@ -301,8 +292,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
@@ -328,8 +318,7 @@ public class SequentializationFieldsTest {
     // reachable due to a while (1) loop that never terminates.
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(1);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
@@ -353,8 +342,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(7);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(1);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
@@ -381,8 +369,7 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    assertThat(fields.memoryModel).isPresent();
-    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    MemoryModel memoryModel = fields.memoryModel;
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(3);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     // unsigned int * stack = static unsigned int arr[SIZE]

@@ -51,70 +51,43 @@ public record MemoryModelBuilder(
 
   private static final int INITIAL_MEMORY_LOCATION_ID = 0;
 
-  public Optional<MemoryModel> tryBuildMemoryModel() throws UnsupportedCodeException {
-    if (options.mergeCommutingStatements()) {
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
-          mapStartRoutineArgAssignments();
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-          mapParameterAssignments();
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-          getPointerParameterAssignments(parameterAssignments);
-      ImmutableList<SeqMemoryLocation> newMemoryLocations =
-          ImmutableList.<SeqMemoryLocation>builder()
-              .addAll(parameterAssignments.values())
-              .addAll(startRoutineArgAssignments.keySet())
-              .addAll(startRoutineArgAssignments.values())
-              .build();
+  public MemoryModel buildMemoryModel() throws UnsupportedCodeException {
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
+        mapStartRoutineArgAssignments();
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
+        mapParameterAssignments();
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
+        getPointerParameterAssignments(parameterAssignments);
+    ImmutableList<SeqMemoryLocation> newMemoryLocations =
+        ImmutableList.<SeqMemoryLocation>builder()
+            .addAll(parameterAssignments.values())
+            .addAll(startRoutineArgAssignments.keySet())
+            .addAll(startRoutineArgAssignments.values())
+            .build();
 
-      // use distinct list so that sequentialization is deterministic
-      ImmutableList<SeqMemoryLocation> allMemoryLocations =
-          getAllMemoryLocations(newMemoryLocations);
-      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
-          mapPointerAssignments();
-      ImmutableSet<SeqMemoryLocation> pointerDereferences = getAllPointerDereferences();
-
-      MemoryModel memoryModel =
-          buildMemoryModel(
-              allMemoryLocations,
-              pointerAssignments,
-              startRoutineArgAssignments,
-              parameterAssignments,
-              pointerParameterAssignments,
-              pointerDereferences,
-              machineModel);
-      return Optional.of(memoryModel);
-    } else {
-      return Optional.empty();
-    }
-  }
-
-  private MemoryModel buildMemoryModel(
-      ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
-      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences,
-      MachineModel pMachineModel)
-      throws UnsupportedCodeException {
+    // use distinct list so that sequentialization is deterministic
+    ImmutableList<SeqMemoryLocation> allMemoryLocations = getAllMemoryLocations(newMemoryLocations);
+    ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
+        mapPointerAssignments();
+    ImmutableSet<SeqMemoryLocation> pointerDereferences = getAllPointerDereferences();
 
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         getRelevantMemoryLocationsIds(
-            pAllMemoryLocations,
-            pPointerAssignments,
-            pStartRoutineArgAssignments,
-            pPointerParameterAssignments,
-            pPointerDereferences);
+            allMemoryLocations,
+            pointerAssignments,
+            startRoutineArgAssignments,
+            pointerParameterAssignments,
+            pointerDereferences);
     return new MemoryModel(
         options,
-        pAllMemoryLocations,
+        allMemoryLocations,
         relevantMemoryLocationIds,
-        pPointerAssignments,
-        pStartRoutineArgAssignments,
-        pParameterAssignments,
-        pPointerParameterAssignments,
-        pPointerDereferences,
-        pMachineModel);
+        pointerAssignments,
+        startRoutineArgAssignments,
+        parameterAssignments,
+        pointerParameterAssignments,
+        pointerDereferences,
+        machineModel);
   }
 
   // All Memory Locations ==========================================================================

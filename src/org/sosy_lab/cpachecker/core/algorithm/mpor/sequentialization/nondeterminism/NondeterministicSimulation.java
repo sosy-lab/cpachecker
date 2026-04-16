@@ -88,7 +88,7 @@ public abstract class NondeterministicSimulation {
 
   final MachineModel machineModel;
 
-  final Optional<MemoryModel> memoryModel;
+  final MemoryModel memoryModel;
 
   final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
@@ -99,7 +99,7 @@ public abstract class NondeterministicSimulation {
   NondeterministicSimulation(
       MPOROptions pOptions,
       MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
+      MemoryModel pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
@@ -201,7 +201,7 @@ public abstract class NondeterministicSimulation {
                     labelClauseMap,
                     labelBlockMap,
                     ghostElements.bitVectorVariables().orElseThrow(),
-                    memoryModel.orElseThrow(),
+                    memoryModel,
                     utils)
                 .buildAbortCommutingContextSwitchesStatement(pThread);
         rStatements.add(abortCommutingContextSwitchesStatement);

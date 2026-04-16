@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -30,7 +29,7 @@ public record PartialOrderReducer(
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
     GhostElements ghostElements,
     MachineModel machineModel,
-    Optional<MemoryModel> memoryModel,
+    MemoryModel memoryModel,
     SequentializationUtils utils) {
 
   /**

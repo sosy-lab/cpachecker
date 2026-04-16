@@ -52,7 +52,7 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
     MachineModel machineModel,
-    Optional<MemoryModel> memoryModel,
+    MemoryModel memoryModel,
     GhostElements ghostElements,
     SequentializationUtils utils) {
 

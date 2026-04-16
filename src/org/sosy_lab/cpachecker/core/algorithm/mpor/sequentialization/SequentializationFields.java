@@ -58,7 +58,7 @@ public class SequentializationFields {
 
   public final MachineModel machineModel;
 
-  public final Optional<MemoryModel> memoryModel;
+  public final MemoryModel memoryModel;
 
   public final GhostElements ghostElements;
 
@@ -91,7 +91,7 @@ public class SequentializationFields {
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values(),
             machineModel);
-    memoryModel = memoryModelBuilder.tryBuildMemoryModel();
+    memoryModel = memoryModelBuilder.buildMemoryModel();
 
     GhostElementBuilder ghostElementBuilder =
         new GhostElementBuilder(

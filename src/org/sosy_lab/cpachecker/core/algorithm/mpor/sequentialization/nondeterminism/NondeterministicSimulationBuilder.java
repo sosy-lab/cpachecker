@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -59,7 +58,7 @@ public class NondeterministicSimulationBuilder {
   public static NondeterministicSimulation buildNondeterministicSimulationBySource(
       MPOROptions pOptions,
       MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
+      MemoryModel pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
@@ -82,7 +81,7 @@ public class NondeterministicSimulationBuilder {
   public static ImmutableMap<MPORThread, CExportFunctionDefinition> buildThreadSimulationFunctions(
       MPOROptions pOptions,
       MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
+      MemoryModel pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils)

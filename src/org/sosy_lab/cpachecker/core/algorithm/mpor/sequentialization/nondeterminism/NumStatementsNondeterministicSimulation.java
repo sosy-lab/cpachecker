@@ -43,7 +43,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   NumStatementsNondeterministicSimulation(
       MPOROptions pOptions,
       MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
+      MemoryModel pMemoryModel,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {

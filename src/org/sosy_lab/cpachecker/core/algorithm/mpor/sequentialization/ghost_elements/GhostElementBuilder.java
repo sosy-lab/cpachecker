@@ -35,14 +35,13 @@ public record GhostElementBuilder(
     ImmutableList<MPORThread> threads,
     ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
-    Optional<MemoryModel> memoryModel,
+    MemoryModel memoryModel,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   public GhostElements buildGhostElements() throws UnrecognizedCodeException {
     Optional<SeqBitVectorVariables> bitVectorVariables =
         options.isAnyBitVectorReductionEnabled()
-            ? new SeqBitVectorVariablesBuilder(
-                    options, threads, substituteEdges, memoryModel.orElseThrow())
+            ? new SeqBitVectorVariablesBuilder(options, threads, substituteEdges, memoryModel)
                 .buildBitVectorVariables()
             : Optional.empty();
 

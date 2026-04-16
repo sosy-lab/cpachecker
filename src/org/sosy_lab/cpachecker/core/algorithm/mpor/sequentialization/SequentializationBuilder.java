@@ -377,7 +377,7 @@ public class SequentializationBuilder {
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
               pFields.machineModel,
-              pFields.memoryModel.orElseThrow());
+              pFields.memoryModel);
       ImmutableList<CVariableDeclaration> bitVectorDeclarations =
           bitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding();
       for (CVariableDeclaration bitVectorDeclaration : bitVectorDeclarations) {
