@@ -36,13 +36,13 @@ public class SubstituteEdge {
 
   // POINTER DEREFERENCES ==========================================================================
 
-  /** The set of accessed pointer derefs i.e. reads and writes. */
+  /** The set of accessed pointer dereferences i.e. reads and writes. */
   public final ImmutableSet<SeqMemoryLocation> accessedPointerDereferences;
 
-  /** The set of read pointer derefs including reads, e.g. {@code var = 42 + *ptr;} */
+  /** The set of read pointer dereferences including reads, e.g. {@code var = 42 + *ptr;} */
   public final ImmutableSet<SeqMemoryLocation> readPointerDereferences;
 
-  /** The set of written pointer derefs, .e.g {@code *ptr = 42;} */
+  /** The set of written pointer dereferences, .e.g {@code *ptr = 42;} */
   public final ImmutableSet<SeqMemoryLocation> writtenPointerDereferences;
 
   // MEMORY LOCATIONS ==============================================================================

@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.FieldReferencePointerDereference;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class SubstituteUtil {
@@ -107,14 +108,15 @@ public class SubstituteUtil {
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
       rPointerDereferences.add(SeqMemoryLocation.of(pCallContext, pointerDereference));
     }
-    ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-        fieldReferencePointerDereferences =
-            pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType);
-    for (CVariableDeclaration fieldOwner : fieldReferencePointerDereferences.keySet()) {
-      for (CCompositeTypeMemberDeclaration fieldMember :
-          fieldReferencePointerDereferences.get(fieldOwner)) {
-        rPointerDereferences.add(SeqMemoryLocation.of(pCallContext, fieldOwner, fieldMember));
-      }
+    ImmutableSet<FieldReferencePointerDereference> fieldReferencePointerDereferences =
+        pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType);
+    for (FieldReferencePointerDereference fieldReferencePointerDereference :
+        fieldReferencePointerDereferences) {
+      rPointerDereferences.add(
+          SeqMemoryLocation.of(
+              pCallContext,
+              fieldReferencePointerDereference.fieldOwner(),
+              fieldReferencePointerDereference.fieldMember()));
     }
     return rPointerDereferences.build();
   }

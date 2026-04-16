@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.FieldReferencePointerDereference;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitutionTrackerUtil {
@@ -66,19 +67,19 @@ public class MPORSubstitutionTrackerUtil {
       pTo.addWrittenPointerDereference(writtenPointerDereference);
     }
     // pointer dereferences from field members
-    for (CVariableDeclaration fieldOwner :
-        pFrom.getAccessedFieldReferencePointerDereferences().keySet()) {
-      for (CCompositeTypeMemberDeclaration fieldMember :
-          pFrom.getAccessedFieldReferencePointerDereferences().get(fieldOwner)) {
-        pTo.addAccessedFieldReferencePointerDereference(fieldOwner, fieldMember);
-      }
+    for (FieldReferencePointerDereference fieldReferencePointerDereference :
+        pFrom.getAccessedFieldReferencePointerDereferences()) {
+      pTo.addAccessedFieldReferencePointerDereference(
+          fieldReferencePointerDereference.fieldOwner(),
+          fieldReferencePointerDereference.fieldMember(),
+          fieldReferencePointerDereference.fieldReference());
     }
-    for (CVariableDeclaration fieldOwner :
-        pFrom.getWrittenFieldReferencePointerDereferences().keySet()) {
-      for (CCompositeTypeMemberDeclaration fieldMember :
-          pFrom.getWrittenFieldReferencePointerDereferences().get(fieldOwner)) {
-        pTo.addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember);
-      }
+    for (FieldReferencePointerDereference fieldReferencePointerDereference :
+        pFrom.getWrittenFieldReferencePointerDereferences()) {
+      pTo.addWrittenFieldReferencePointerDereference(
+          fieldReferencePointerDereference.fieldOwner(),
+          fieldReferencePointerDereference.fieldMember(),
+          fieldReferencePointerDereference.fieldReference());
     }
     // declarations accessed
     for (CVariableDeclaration accessedDeclaration : pFrom.getAccessedDeclarations()) {
@@ -251,9 +252,11 @@ public class MPORSubstitutionTrackerUtil {
       CCompositeTypeMemberDeclaration fieldMember =
           MPORUtil.recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
       if (pIsWrite) {
-        pTracker.addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember);
+        pTracker.addWrittenFieldReferencePointerDereference(
+            fieldOwner, fieldMember, pFieldReference);
       }
-      pTracker.addAccessedFieldReferencePointerDereference(fieldOwner, fieldMember);
+      pTracker.addAccessedFieldReferencePointerDereference(
+          fieldOwner, fieldMember, pFieldReference);
     }
   }
 

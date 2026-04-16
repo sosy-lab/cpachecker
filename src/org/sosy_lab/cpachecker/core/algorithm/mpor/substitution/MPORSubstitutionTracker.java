@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -64,11 +65,14 @@ public class MPORSubstitutionTracker {
   /** Written pointer dereferences e.g. of the form {@code *ptr = x;}. */
   private final Set<CVariableDeclaration> writtenPointerDereferences;
 
-  private final SetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      accessedFieldReferencePointerDereferences;
+  record FieldReferencePointerDereference(
+      CVariableDeclaration fieldOwner,
+      CCompositeTypeMemberDeclaration fieldMember,
+      CFieldReference fieldReference) {}
 
-  private final SetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      writtenFieldReferencePointerDereferences;
+  private final Set<FieldReferencePointerDereference> accessedFieldReferencePointerDereferences;
+
+  private final Set<FieldReferencePointerDereference> writtenFieldReferencePointerDereferences;
 
   // GLOBAL VARIABLES ==============================================================================
 
@@ -108,8 +112,8 @@ public class MPORSubstitutionTracker {
     accessedPointerDereferences = new HashSet<>();
     writtenPointerDereferences = new HashSet<>();
 
-    accessedFieldReferencePointerDereferences = HashMultimap.create();
-    writtenFieldReferencePointerDereferences = HashMultimap.create();
+    accessedFieldReferencePointerDereferences = new HashSet<>();
+    writtenFieldReferencePointerDereferences = new HashSet<>();
 
     accessedDeclarations = new HashSet<>();
     writtenDeclarations = new HashSet<>();
@@ -156,17 +160,23 @@ public class MPORSubstitutionTracker {
   }
 
   public void addAccessedFieldReferencePointerDereference(
-      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+      CSimpleDeclaration pFieldOwner,
+      CCompositeTypeMemberDeclaration pFieldMember,
+      CFieldReference pFieldReference) {
 
-    accessedFieldReferencePointerDereferences.put(
-        SubstituteUtil.asVariableDeclaration(pFieldOwner), pFieldMember);
+    accessedFieldReferencePointerDereferences.add(
+        new FieldReferencePointerDereference(
+            SubstituteUtil.asVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
   }
 
   public void addWrittenFieldReferencePointerDereference(
-      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+      CSimpleDeclaration pFieldOwner,
+      CCompositeTypeMemberDeclaration pFieldMember,
+      CFieldReference pFieldReference) {
 
-    writtenFieldReferencePointerDereferences.put(
-        SubstituteUtil.asVariableDeclaration(pFieldOwner), pFieldMember);
+    writtenFieldReferencePointerDereferences.add(
+        new FieldReferencePointerDereference(
+            SubstituteUtil.asVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
   }
 
   public void addAccessedDeclaration(CSimpleDeclaration pAccessedDeclaration) {
@@ -228,8 +238,8 @@ public class MPORSubstitutionTracker {
     return ImmutableSet.copyOf(writtenPointerDereferences);
   }
 
-  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      getFieldReferencePointerDereferencesByAccessType(MemoryAccessType pAccessType) {
+  ImmutableSet<FieldReferencePointerDereference> getFieldReferencePointerDereferencesByAccessType(
+      MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
@@ -239,16 +249,14 @@ public class MPORSubstitutionTracker {
     };
   }
 
-  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      getAccessedFieldReferencePointerDereferences() {
+  ImmutableSet<FieldReferencePointerDereference> getAccessedFieldReferencePointerDereferences() {
 
-    return ImmutableSetMultimap.copyOf(accessedFieldReferencePointerDereferences);
+    return ImmutableSet.copyOf(accessedFieldReferencePointerDereferences);
   }
 
-  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      getWrittenFieldReferencePointerDereferences() {
+  ImmutableSet<FieldReferencePointerDereference> getWrittenFieldReferencePointerDereferences() {
 
-    return ImmutableSetMultimap.copyOf(writtenFieldReferencePointerDereferences);
+    return ImmutableSet.copyOf(writtenFieldReferencePointerDereferences);
   }
 
   // variables
