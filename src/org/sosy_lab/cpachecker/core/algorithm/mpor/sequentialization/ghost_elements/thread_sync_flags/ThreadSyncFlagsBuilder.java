@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -29,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
@@ -117,7 +117,7 @@ public record ThreadSyncFlagsBuilder(
               true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializers.INT_0);
       CBinaryExpression isSignaledExpression =
           binaryExpressionBuilder.buildBinaryExpression(
-              condSignaled, SeqIntegerLiteralExpressions.INT_1, BinaryOperator.EQUALS);
+              condSignaled, CIntegerLiteralExpression.ONE, BinaryOperator.EQUALS);
       rCondSignaledFlags.put(
           condExpression, new CondSignaledFlag(condSignaled, isSignaledExpression));
     }
@@ -142,10 +142,10 @@ public record ThreadSyncFlagsBuilder(
               true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializers.INT_0);
       CBinaryExpression isLockedExpression =
           binaryExpressionBuilder.buildBinaryExpression(
-              mutexLocked, SeqIntegerLiteralExpressions.INT_1, BinaryOperator.EQUALS);
+              mutexLocked, CIntegerLiteralExpression.ONE, BinaryOperator.EQUALS);
       CBinaryExpression notLockedExpression =
           binaryExpressionBuilder.buildBinaryExpression(
-              mutexLocked, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
+              mutexLocked, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
       rMutexLockedFlags.put(
           mutexMemoryLocation,
           new MutexLockedFlag(mutexLocked, isLockedExpression, notLockedExpression));
@@ -172,10 +172,10 @@ public record ThreadSyncFlagsBuilder(
 
       CBinaryExpression readersEqualsZero =
           binaryExpressionBuilder.buildBinaryExpression(
-              readersIdExpression, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
+              readersIdExpression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
       CBinaryExpression writersEqualsZero =
           binaryExpressionBuilder.buildBinaryExpression(
-              writersIdExpression, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
+              writersIdExpression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
 
       CExpressionAssignmentStatement readersIncrement =
           SeqStatementBuilder.buildIncrementStatement(readersIdExpression, binaryExpressionBuilder);

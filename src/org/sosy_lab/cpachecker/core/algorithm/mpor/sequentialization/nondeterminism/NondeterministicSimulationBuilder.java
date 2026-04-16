@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -185,7 +184,7 @@ public class NondeterministicSimulationBuilder {
     // r is set to 1, because we increment after the r < K check succeeds
     CExpressionAssignmentStatement roundReset =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            SeqIdExpressions.ROUND, SeqIntegerLiteralExpressions.INT_1);
+            SeqIdExpressions.ROUND, CIntegerLiteralExpression.ONE);
     precedingStatements.add(new CStatementWrapper(roundReset));
 
     return precedingStatements.build();

@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -36,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
@@ -106,7 +106,7 @@ public final class SeqMainFunctionBuilder {
                 .binaryExpressionBuilder()
                 .buildBinaryExpression(
                     SeqIdExpressions.THREAD_COUNT,
-                    SeqIntegerLiteralExpressions.INT_0,
+                    CIntegerLiteralExpression.ZERO,
                     BinaryOperator.GREATER_THAN);
         CFunctionCallStatement countAssumption =
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
@@ -213,7 +213,7 @@ public final class SeqMainFunctionBuilder {
     if (pOptions.threadSimulationIterations() == 0) {
       // infinite while (1) loop
       return new CWhileLoopStatement(
-          new CExpressionWrapper(SeqIntegerLiteralExpressions.INT_1), pLoopBody);
+          new CExpressionWrapper(CIntegerLiteralExpression.ONE), pLoopBody);
 
     } else {
       // bounded while (i < N) loop

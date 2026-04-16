@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -91,9 +90,7 @@ public record CommutingThreadsFirstInjector(
         utils
             .binaryExpressionBuilder()
             .buildBinaryExpression(
-                SeqIdExpressions.ROUND_MAX,
-                SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.EQUALS);
+                SeqIdExpressions.ROUND_MAX, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
     CExpression syncEqualsZero = buildSyncEqualsZeroExpression();
     CLogicalAndExpression logicalAnd = CLogicalAndExpression.of(roundMaxEqualsZero, syncEqualsZero);
 
@@ -184,7 +181,7 @@ public record CommutingThreadsFirstInjector(
         .binaryExpressionBuilder()
         .buildBinaryExpression(
             ghostElements.threadSyncFlags().getSyncFlag(activeThread),
-            SeqIntegerLiteralExpressions.INT_0,
+            CIntegerLiteralExpression.ZERO,
             BinaryOperator.EQUALS);
   }
 
@@ -222,7 +219,7 @@ public record CommutingThreadsFirstInjector(
             && SeqThreadStatementUtil.anySynchronizesThreads(
                 pTargetClause.orElseThrow().getAllStatements());
     CIntegerLiteralExpression value =
-        isSync ? SeqIntegerLiteralExpressions.INT_1 : SeqIntegerLiteralExpressions.INT_0;
+        isSync ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO;
     CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(activeThread);
     SeqInstrumentation syncUpdate =
         SeqInstrumentationBuilder.buildThreadSyncUpdateStatement(syncFlag, value);

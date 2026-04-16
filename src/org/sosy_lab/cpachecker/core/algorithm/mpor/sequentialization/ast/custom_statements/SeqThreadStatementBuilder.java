@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -55,7 +56,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
@@ -623,7 +623,7 @@ public record SeqThreadStatementBuilder(
     CondSignaledFlag condSignaledFlag = threadSyncFlags.getCondSignaledFlag(pthreadCondT);
     CExpressionAssignmentStatement setCondSignaledTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
+            condSignaledFlag.idExpression(), CIntegerLiteralExpression.ONE);
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
@@ -652,7 +652,7 @@ public record SeqThreadStatementBuilder(
             condSignaledFlag.isSignaledExpression());
     CExpressionAssignmentStatement setSignaledFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
+            condSignaledFlag.idExpression(), CIntegerLiteralExpression.ZERO);
 
     // step 2: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
     ImmutableList<CCompoundStatementElement> mutexStatements =
@@ -840,7 +840,7 @@ public record SeqThreadStatementBuilder(
       case SeqThreadStatementType.COND_WAIT -> {
         CExpressionAssignmentStatement setMutexLockedTrue =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
-                mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
+                mutexLockedFlag.idExpression(), CIntegerLiteralExpression.ONE);
         yield ImmutableList.of(new CStatementWrapper(setMutexLockedTrue));
       }
       case SeqThreadStatementType.MUTEX_LOCK -> {
@@ -849,14 +849,14 @@ public record SeqThreadStatementBuilder(
                 mutexLockedFlag.notLockedExpression());
         CExpressionAssignmentStatement setMutexLockedTrue =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
-                mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
+                mutexLockedFlag.idExpression(), CIntegerLiteralExpression.ONE);
         yield ImmutableList.of(
             new CStatementWrapper(assumeCall), new CStatementWrapper(setMutexLockedTrue));
       }
       case SeqThreadStatementType.MUTEX_UNLOCK -> {
         CExpressionAssignmentStatement lockedFalseAssignment =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
-                mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
+                mutexLockedFlag.idExpression(), CIntegerLiteralExpression.ZERO);
         yield ImmutableList.of(new CStatementWrapper(lockedFalseAssignment));
       }
       default ->
@@ -919,7 +919,7 @@ public record SeqThreadStatementBuilder(
 
     CExpressionAssignmentStatement setNumWritersToZero =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            pRwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_0);
+            pRwLockFlags.writersIdExpression(), CIntegerLiteralExpression.ZERO);
     CIfStatement ifStatement =
         new CIfStatement(
             new CExpressionWrapper(pRwLockFlags.writerEqualsZero()),
@@ -938,7 +938,7 @@ public record SeqThreadStatementBuilder(
 
     CExpressionAssignmentStatement setWritersToOne =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            pRwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_1);
+            pRwLockFlags.writersIdExpression(), CIntegerLiteralExpression.ONE);
 
     CFunctionCallStatement assumptionWriters =
         SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(pRwLockFlags.writerEqualsZero());
