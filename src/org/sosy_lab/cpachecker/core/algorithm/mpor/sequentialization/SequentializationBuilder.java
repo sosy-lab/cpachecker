@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
@@ -87,9 +86,7 @@ public class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalVariableDeclarationSubstitutes();
     for (CVariableDeclaration globalDeclaration : globalDeclarations) {
-      if (!PthreadUtil.isAnyPthreadObjectType(globalDeclaration.getType())) {
-        rDeclarations.add(globalDeclaration.toASTString());
-      }
+      rDeclarations.add(globalDeclaration.toASTString());
     }
     return rDeclarations.toString();
   }
@@ -129,22 +126,19 @@ public class SequentializationBuilder {
       }
     }
     // otherwise, for non-const variables
-    if (!PthreadUtil.isAnyPthreadObjectType(pLocalVariableDeclaration.getType())) {
-      CInitializer initializer = pLocalVariableDeclaration.getInitializer();
-      if (initializer == null) {
-        // no initializer -> add declaration as is
-        return Optional.of(pLocalVariableDeclaration.toASTString());
-      }
-      if (MPORUtil.isFunctionPointer(pLocalVariableDeclaration.getInitializer())) {
-        // function pointer initializer -> add declaration as is
-        return Optional.of(pLocalVariableDeclaration.toASTString());
-      }
-      // everything else: add declaration without initializer (and assign later in statements)
-      return Optional.of(
-          SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-              pLocalVariableDeclaration, AAstNodeRepresentation.DEFAULT));
+    CInitializer initializer = pLocalVariableDeclaration.getInitializer();
+    if (initializer == null) {
+      // no initializer -> add declaration as is
+      return Optional.of(pLocalVariableDeclaration.toASTString());
     }
-    return Optional.empty();
+    if (MPORUtil.isFunctionPointer(pLocalVariableDeclaration.getInitializer())) {
+      // function pointer initializer -> add declaration as is
+      return Optional.of(pLocalVariableDeclaration.toASTString());
+    }
+    // everything else: add declaration without initializer (and assign later in statements)
+    return Optional.of(
+        SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
+            pLocalVariableDeclaration, AAstNodeRepresentation.DEFAULT));
   }
 
   private static Optional<String> tryBuildInputConstLocalVariableDeclaration(
@@ -185,12 +179,9 @@ public class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarationSubstitutes();
       for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
-        // exclude all pthread objects such as pthread_mutex_t, they are not required in the output
-        if (!PthreadUtil.isAnyPthreadObjectType(parameterDeclaration.getType())) {
-          rDeclarations.add(
-              SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-                  parameterDeclaration, AAstNodeRepresentation.DEFAULT));
-        }
+        rDeclarations.add(
+            SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
+                parameterDeclaration, AAstNodeRepresentation.DEFAULT));
       }
     }
     return rDeclarations.toString();
@@ -225,12 +216,9 @@ public class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
     for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
-      // TODO why exclude pthread objects here? add explaining comment
-      if (!PthreadUtil.isAnyPthreadObjectType(startRoutineArgDeclaration.getType())) {
-        rDeclarations.add(
-            SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-                startRoutineArgDeclaration, AAstNodeRepresentation.DEFAULT));
-      }
+      rDeclarations.add(
+          SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
+              startRoutineArgDeclaration, AAstNodeRepresentation.DEFAULT));
     }
     return rDeclarations.toString();
   }
