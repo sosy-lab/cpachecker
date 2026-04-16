@@ -11,22 +11,53 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!--
-Runs Bounded Model Checking (BMC) with three settings; a maximum loop bound of 1, a maximum loop bound of 10, and with automatically incrementing maximum loop bound.
+Runs Bounded Model Checking (BMC) with three settings;
+a maximum loop bound of 1,
+a maximum loop bound of 10,
+and with automatically incrementing maximum loop bound.
 -->
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
-
-  <option name="--heap">10000M</option>
-  <option name="--benchmark"/>
-   <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="--heap">13000M</option>
+  <option name="--no-output-files"/>
+  <option name="--disable-java-assertions"/>
+  <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
+  <tasks name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="DeviceDrivers64">
+    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ECA">
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="HeapManipulation">
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
   
   <!-- Bounded Model Checking (BMC) with an automatically incrementing maximum loop bound -->
   <rundefinition name="bmc-incremental">
     <option name="--bmc-incremental"/>
   </rundefinition>
-
 
   <!-- Bounded Model Checking (BMC) with a fixed maximum loop bound of 1 -->
   <rundefinition name="bmc-max-loop-bound-1">
@@ -34,114 +65,17 @@ Runs Bounded Model Checking (BMC) with three settings; a maximum loop bound of 1
     <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
   </rundefinition>
 
-
   <!-- Bounded Model Checking (BMC) with a fixed maximum loop bound of 10 -->
   <rundefinition name="bmc-max-loop-bound-10">
     <option name="--bmc"/>
     <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
   </rundefinition>
 
-
-  <!-- SV-COMP26 unreach-call benchmark-set -->
-  <tasks name="C.unreach-call.Arrays">
-    <includesfile>../../programs/benchmarks/Arrays.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.BitVectors">
-    <includesfile>../../programs/benchmarks/BitVectors.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.ControlFlow">
-    <includesfile>../../programs/benchmarks/ControlFlow.set</includesfile>
-    <includesfile>../../programs/benchmarks/Sanity.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.ECA">
-    <includesfile>../../programs/benchmarks/ECA.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.Floats">
-    <includesfile>../../programs/benchmarks/Floats.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.Heap">
-    <includesfile>../../programs/benchmarks/Heap.set</includesfile>
-    <includesfile>../../programs/benchmarks/LinkedLists.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.Loops">
-    <includesfile>../../programs/benchmarks/Loops.set</includesfile>
-    <includesfile>../../programs/benchmarks/VerifyThis-Loops.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.ProductLines">
-    <includesfile>../../programs/benchmarks/ProductLines.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.Recursive">
-    <includesfile>../../programs/benchmarks/Recursive.set</includesfile>
-    <includesfile>../../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.Sequentialized">
-    <includesfile>../../programs/benchmarks/Sequentialized.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.XCSP">
-    <includesfile>../../programs/benchmarks/XCSP.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.Combinations">
-    <includesfile>../../programs/benchmarks/Combinations.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.Hardware">
-    <includesfile>../../programs/benchmarks/Hardware.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.Hardness">
-    <includesfile>../../programs/benchmarks/Hardness.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.Concurrency">
-    <includesfile>../../programs/benchmarks/Concurrency.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.SoftwareSystems-AWS-C-Common">
-    <includesfile>../../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.SoftwareSystems-DeviceDriversLinux64">
-    <includesfile>../../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
-    <excludesfile>../../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large.set</excludesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.SoftwareSystems-DeviceDriversLinux64Large">
-    <includesfile>../../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.SoftwareSystems-Other">
-    <includesfile>../../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
-    <includesfile>../../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
-    <includesfile>../../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.SoftwareSystems-uthash">
-    <includesfile>../../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="C.unreach-call.SoftwareSystems-Intel-TDX-Module">
-    <includesfile>../../programs/benchmarks/SoftwareSystems-Intel-TDX-Module.set</includesfile>
-    <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-
-
   <columns>
     <column title="total">time for CPAchecker</column>
-    <column title="reached">Size of reached set</column>
-    <column title="targets">Number of target states</column>
-    <column title="sat check time">Time for final sat check</column>
-    <column title="assertions check time">Time for bounding assertions check</column>
+    <column title="cut points">cut points for induction</column>
+    <column title="formula creation">Time for induction formula creation</column>
+    <column title="induction check">Time for induction check</column>
+    <column title="invariant creation">Time for invariant generation</column>
   </columns>
-
 </benchmark>
