@@ -1459,9 +1459,8 @@ public class FloatValueTest {
             "0x0.1e43", // that starts with a "p", and not "e"...
             "0x0.1pab" // and is a decimal number
             )) {
-      assertThrows(
-          IllegalArgumentException.class,
-          () -> FloatValue.fromString(floatTestOptions.format, input));
+      Format format = floatTestOptions.format;
+      assertThrows(IllegalArgumentException.class, () -> FloatValue.fromString(format, input));
     }
   }
 

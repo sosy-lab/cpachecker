@@ -1,0 +1,85 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.util.cwriter.export;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
+/**
+ * Represents the entirety of a switch statement. Note that every {@code case} statement is followed
+ * by a {@code break;} so that no fall through happens. Example with an {@code int expression}
+ * between {@code 0} and {@code 2}:
+ *
+ * <pre>{@code
+ * switch (expression) {
+ *    case 0:
+ *       ...
+ *       break;
+ *    case 1:
+ *       ...
+ *       break;
+ *    case 2:
+ *       ...
+ *       break;
+ * }
+ * }</pre>
+ *
+ * <p>For most verifiers, the {@link CSwitchStatement} is a good choice because it scales well with
+ * the number of statements. For CBMC however, the {@link
+ * CMultiSelectionStatementBuilder#buildBinarySearchTree} performed better.
+ */
+public final class CSwitchStatement implements CExportStatement {
+
+  record CSwitchCaseStatement(CExportExpression expression, CCompoundStatement statement)
+      implements CExportStatement {
+
+    @Override
+    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+        throws UnrecognizedCodeException {
+
+      StringJoiner caseStatement = new StringJoiner(System.lineSeparator());
+      caseStatement.add("case " + expression.toASTString(pAAstNodeRepresentation) + ":");
+      caseStatement.add(statement.toASTString(pAAstNodeRepresentation));
+      caseStatement.add("break;");
+      return caseStatement.toString();
+    }
+  }
+
+  private final CExpression switchExpression;
+
+  private final ImmutableMap<CExportExpression, CCompoundStatement> statements;
+
+  public CSwitchStatement(
+      CExpression pSwitchExpression,
+      ImmutableMap<CExportExpression, CCompoundStatement> pStatements) {
+
+    switchExpression = pSwitchExpression;
+    statements = pStatements;
+  }
+
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
+      throws UnrecognizedCodeException {
+
+    StringJoiner switchCase = new StringJoiner(System.lineSeparator());
+
+    // add switch (expression) ...
+    switchCase.add("switch (" + switchExpression.toASTString(pAAstNodeRepresentation) + ")");
+    ImmutableList.Builder<CCompoundStatementElement> caseStatements = ImmutableList.builder();
+    // add all case expression: stmt1; ... break;
+    statements.forEach((key, value) -> caseStatements.add(new CSwitchCaseStatement(key, value)));
+    switchCase.add(
+        new CCompoundStatement(caseStatements.build()).toASTString(pAAstNodeRepresentation));
+    return switchCase.toString();
+  }
+}

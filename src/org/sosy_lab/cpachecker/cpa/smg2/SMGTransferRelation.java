@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -99,6 +101,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
@@ -132,6 +136,11 @@ public class SMGTransferRelation
   // (see SMGCPAAssigningValueVisitor). Used to assign boolean concrete values.
   private final Collection<String> booleanVariables;
 
+  // Loop heads do not need to be near assumptions (e.g. do-while, the do is the head, but we want
+  // the condition, which is an outgoing edge!)
+  private final Optional<ImmutableSet<CFANode>> maybeLoopHeads;
+  private final ImmutableSet<CFAEdge> incomingAndOutgoingLoopEdges;
+
   private final @Nullable SMGCPAStatistics stats;
 
   private final ConstraintsSolver solver;
@@ -163,6 +172,17 @@ public class SMGTransferRelation
     evaluator = pEvaluator;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = pStats;
+    maybeLoopHeads = cfa.getAllLoopHeads();
+    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+    ImmutableSet.Builder<CFAEdge> incomingAndOutgoing = ImmutableSet.builder();
+    if (loopStructure.isPresent()) {
+      ImmutableCollection<Loop> allLoops = loopStructure.orElseThrow().getAllLoops();
+      for (Loop loop : allLoops) {
+        incomingAndOutgoing.addAll(loop.getOutgoingEdges());
+        incomingAndOutgoing.addAll(loop.getIncomingEdges());
+      }
+    }
+    incomingAndOutgoingLoopEdges = incomingAndOutgoing.build();
   }
 
   /* For tests only. */
@@ -214,6 +234,8 @@ public class SMGTransferRelation
 
     evaluator = pEvaluator;
     cfa = null;
+    maybeLoopHeads = Optional.empty();
+    incomingAndOutgoingLoopEdges = ImmutableSet.of();
   }
 
   @Override
@@ -817,12 +839,8 @@ public class SMGTransferRelation
     // always be a CBinaryExpression.
     // We also might learn something by assuming symbolic or unknown values based on known values
     try {
-      Collection<SMGState> handledAssumptions =
-          handleAssumption(expression, cfaEdge, truthAssumption);
-      if (handledAssumptions == null || handledAssumptions.isEmpty()) {
-        return null;
-      }
-      return handledAssumptions;
+      return handleAssumption(expression, cfaEdge, truthAssumption);
+
     } catch (SMGSolverException e) {
       if (e.isSolverException()) {
         throw new CPATransferException(
@@ -841,7 +859,7 @@ public class SMGTransferRelation
     }
   }
 
-  private @Nullable Collection<SMGState> handleAssumption(
+  private Collection<SMGState> handleAssumption(
       AExpression expression, CFAEdge cfaEdge, boolean truthValue)
       throws CPATransferException, SolverException, InterruptedException {
 
@@ -854,7 +872,12 @@ public class SMGTransferRelation
     CExpression cExpression = (CExpression) simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
 
+    // TODO: add option to only return proofs once we abstracted one,
+    //   as this is only a fix for certain cases, but not in general!
     if (expression instanceof CBinaryExpression binEx
+        && (incomingAndOutgoingLoopEdges.contains(cfaEdge)
+            || (maybeLoopHeads.isPresent()
+                && maybeLoopHeads.orElseThrow().contains(cfaEdge.getPredecessor())))
         && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound
         && loopBound.getValue().bitCount() <= 32) {
       if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
@@ -900,12 +923,24 @@ public class SMGTransferRelation
                 functionName);
         try {
           List<ValueAndSMGState> maybeFeasiblePaths = cExpression.accept(avv);
-          if (maybeFeasiblePaths == null) {
-            // Infeasible
-            return null;
+          if (maybeFeasiblePaths != null && !maybeFeasiblePaths.isEmpty()) {
+            // Feasible
+            resultStateBuilder.addAll(
+                transformedImmutableListCopy(maybeFeasiblePaths, ValueAndSMGState::getState));
           }
-          return transformedImmutableListCopy(maybeFeasiblePaths, ValueAndSMGState::getState);
+          // } else { Assumption not fulfilled }
+
         } catch (SMGSolverException e) {
+          // This might happen while we already have valid result states
+          // TODO: how to handle these cases? Option that allows/disallows?
+          if (!resultStateBuilder.build().isEmpty()) {
+            // This only checks fulfilled assumptions, but ignores not-fulfilled
+            logger.log(
+                Level.WARNING,
+                () ->
+                    "Exception when handling assumptions, but fulfilled assumptions have been found"
+                        + " already");
+          }
           if (e.isSolverException()) {
             throw e.getSolverException();
           } else {
@@ -915,15 +950,12 @@ public class SMGTransferRelation
         }
 
       } else if (representsBoolean(value, truthValue)) {
-        // We do not know more than before, and the assumption is fulfilled, so return the state
-        // from the value visitor (we don't need a copy as every state operation generates a new
-        // state and never modifies the old state)
+        // The assumption is fulfilled, but we do not know more than before, return the state
+        // from the value visitor
         resultStateBuilder.add(currentState);
-
-      } else {
-        // Assumption not fulfilled
-        return null;
       }
+      // } else { Assumption not fulfilled }
+
     }
     return resultStateBuilder.build();
   }
@@ -1305,7 +1337,12 @@ public class SMGTransferRelation
         // This is a copy based on a pointer
         Value pointerOffset = addressInValue.getOffset();
         if (!(pointerOffset instanceof NumericValue numPointerOffset)) {
-          // Write unknown to left
+          // Write unknown to left due to symbolic/unknown offset
+          //  => copy start can not be determined
+          currentState.logUnknownValue(
+              "Writing unknown value(s) due to unknown or symbolic offset in memory copy operation"
+                  + " for struct/union type in: ",
+              edge);
           return ImmutableList.of(
               currentState.writeValueWithChecks(
                   addressToWriteTo,
@@ -1380,7 +1417,13 @@ public class SMGTransferRelation
           currentState = newAddressAndState.getState();
           valueToWrite = newAddressAndState.getValue();
         } else {
-          // Offset unknown/symbolic. This is not usable!
+          // Offset unknown or symbolic (in value analysis only). This is not usable!
+          // TODO: always build/use symbolics. Value can at least check ==
+          currentState.logUnknownValue(
+              "Writing unknown value(s) due to "
+                  + (options.trackPredicates() ? "unknown " : "unknown or symbolic")
+                  + "offset of a pointer that is supposed to be saved: ",
+              edge);
           valueToWrite = UnknownValue.getInstance();
         }
         Preconditions.checkArgument(
