@@ -826,6 +826,10 @@ public record SeqThreadStatementBuilder(
         SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdgeAndPointerDereferences(
             mutexPointerMemoryLocations, memoryModel);
 
+    // 1 pointer can point to multiple memory locations, but we never expect multiple pointers here.
+    checkState(
+        mutexPointerMemoryLocations.size() == 1,
+        "mutexPointerMemoryLocations can have only one element.");
     checkState(!mutexMemoryLocations.isEmpty(), "mutexMemoryLocations is empty");
 
     if (mutexMemoryLocations.size() == 1) {
