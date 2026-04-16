@@ -15,11 +15,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -66,10 +67,22 @@ public record MemoryModelBuilder(
             .build();
 
     // use distinct list so that sequentialization is deterministic
-    ImmutableList<SeqMemoryLocation> allMemoryLocations = getAllMemoryLocations(newMemoryLocations);
+    ImmutableList<SeqMemoryLocation> allMemoryLocations =
+        Stream.concat(initialMemoryLocations.stream(), newMemoryLocations.stream())
+            .distinct()
+            .collect(ImmutableList.toImmutableList());
     ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
-        mapPointerAssignments();
-    ImmutableSet<SeqMemoryLocation> pointerDereferences = getAllPointerDereferences();
+        substituteEdges.stream()
+            .flatMap(edge -> edge.pointerAssignments.asMultimap().entries().stream())
+            .collect(ImmutableSetMultimap.toImmutableSetMultimap(Entry::getKey, Entry::getValue));
+    ImmutableSet<SeqMemoryLocation> pointerDereferences =
+        substituteEdges.stream()
+            .flatMap(
+                substituteEdge ->
+                    substituteEdge
+                        .getPointerDereferencesByAccessType(MemoryAccessType.ACCESS)
+                        .stream())
+            .collect(ImmutableSet.toImmutableSet());
 
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         getRelevantMemoryLocationsIds(
@@ -88,16 +101,6 @@ public record MemoryModelBuilder(
         pointerParameterAssignments,
         pointerDereferences,
         machineModel);
-  }
-
-  // All Memory Locations ==========================================================================
-
-  private ImmutableList<SeqMemoryLocation> getAllMemoryLocations(
-      ImmutableList<SeqMemoryLocation> pNewMemoryLocations) {
-
-    List<SeqMemoryLocation> rAllMemoryLocations = new ArrayList<>(initialMemoryLocations);
-    rAllMemoryLocations.addAll(pNewMemoryLocations);
-    return rAllMemoryLocations.stream().distinct().collect(ImmutableList.toImmutableList());
   }
 
   // Collection helpers ============================================================================
@@ -343,17 +346,6 @@ public record MemoryModelBuilder(
     }
   }
 
-  // Pointer Assignments ===========================================================================
-
-  private ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments() {
-    ImmutableSetMultimap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAllAssignments =
-        ImmutableSetMultimap.builder();
-    for (SubstituteEdge substituteEdge : substituteEdges) {
-      rAllAssignments.putAll(substituteEdge.pointerAssignments.asMultimap());
-    }
-    return rAllAssignments.build();
-  }
-
   // start_routine arg Assignments =================================================================
 
   private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapStartRoutineArgAssignments()
@@ -496,16 +488,6 @@ public record MemoryModelBuilder(
       }
     }
     return SeqMemoryLocation.of(Optional.of(pCallContext), pFieldOwner, pFieldMember);
-  }
-
-  // Pointer Dereferences ==========================================================================
-
-  private ImmutableSet<SeqMemoryLocation> getAllPointerDereferences() {
-    return substituteEdges.stream()
-        .flatMap(
-            substituteEdge ->
-                substituteEdge.getPointerDereferencesByAccessType(MemoryAccessType.ACCESS).stream())
-        .collect(ImmutableSet.toImmutableSet());
   }
 
   // Pointer Parameter Assignments =================================================================
