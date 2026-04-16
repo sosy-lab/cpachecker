@@ -73,7 +73,7 @@ public class ConstraintsTransferRelation
       description = "When to check the satisfiability of constraints")
   private CheckStrategy checkStrategy = CheckStrategy.AT_ASSUME;
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
   private MachineModel machineModel;
 
