@@ -13,9 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.AbstractMap;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -221,37 +219,6 @@ public final class MPORUtil {
   }
 
   /**
-   * Returns an {@link Entry} that maps the {@link CSimpleDeclaration} of the outermost field owner
-   * to the {@link CCompositeTypeMemberDeclaration} of the innermost field member accessed in {@code
-   * pExpression} and {@link Optional#empty()} if it can't be found.
-   */
-  public static Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-      tryGetFieldMemberPointer(CExpression pExpression) throws UnsupportedCodeException {
-
-    // e.g. 'ptr = &field.member;'
-    if (pExpression instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
-        return Optional.of(getFieldMemberPointer(fieldReference));
-      }
-
-      // e.g. 'ptr = field.member;' where member is a pointer
-    } else if (pExpression instanceof CFieldReference fieldReference) {
-      return Optional.of(getFieldMemberPointer(fieldReference));
-    }
-    return Optional.empty();
-  }
-
-  public static Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> getFieldMemberPointer(
-      CFieldReference pFieldReference) throws UnsupportedCodeException {
-
-    CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
-    CType type = getTypeByIdExpression(idExpression);
-    return new AbstractMap.SimpleEntry<>(
-        idExpression.getDeclaration(),
-        recursivelyFindFieldMemberByFieldOwner(pFieldReference, type));
-  }
-
-  /**
    * Recursively tries to find the field owner of {@code pFieldReference}, e.g. {@code outer} in
    * {@code outer.intermediary.inner}.
    */
@@ -275,13 +242,6 @@ public final class MPORUtil {
             "Could not find CIdExpression field owner from CFieldRerefence %s",
             pFieldReference.toASTString()),
         null);
-  }
-
-  private static CType getTypeByIdExpression(CIdExpression pIdExpression) {
-    if (pIdExpression.getExpressionType() instanceof CPointerType pointerType) {
-      return pointerType.getType();
-    }
-    return pIdExpression.getExpressionType();
   }
 
   /**

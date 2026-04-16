@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.FieldReferencePointerDereference;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitutionTrackerUtil {
@@ -56,8 +56,12 @@ public class MPORSubstitutionTrackerUtil {
     for (var entry : pFrom.getPointerAssignments().entrySet()) {
       pTo.addPointerAssignment(entry.getKey(), entry.getValue());
     }
-    for (var cell : pFrom.getPointerFieldMemberAssignments().cellSet()) {
-      pTo.addPointerFieldMemberAssignment(cell.getRowKey(), cell.getColumnKey(), cell.getValue());
+    for (var entry : pFrom.getPointerFieldMemberAssignments().entrySet()) {
+      pTo.addPointerFieldMemberAssignment(
+          entry.getKey(),
+          entry.getValue().fieldOwner(),
+          entry.getValue().fieldMember(),
+          entry.getValue().fieldReference());
     }
     // pointer dereferences
     for (CVariableDeclaration accessedPointerDereference : pFrom.getAccessedPointerDereferences()) {
@@ -67,14 +71,14 @@ public class MPORSubstitutionTrackerUtil {
       pTo.addWrittenPointerDereference(writtenPointerDereference);
     }
     // pointer dereferences from field members
-    for (FieldReferencePointerDereference fieldReferencePointerDereference :
+    for (CFieldReferenceTrackerResult fieldReferencePointerDereference :
         pFrom.getAccessedFieldReferencePointerDereferences()) {
       pTo.addAccessedFieldReferencePointerDereference(
           fieldReferencePointerDereference.fieldOwner(),
           fieldReferencePointerDereference.fieldMember(),
           fieldReferencePointerDereference.fieldReference());
     }
-    for (FieldReferencePointerDereference fieldReferencePointerDereference :
+    for (CFieldReferenceTrackerResult fieldReferencePointerDereference :
         pFrom.getWrittenFieldReferencePointerDereferences()) {
       pTo.addWrittenFieldReferencePointerDereference(
           fieldReferencePointerDereference.fieldOwner(),
@@ -89,17 +93,19 @@ public class MPORSubstitutionTrackerUtil {
       pTo.addWrittenDeclaration(writtenDeclaration);
     }
     // field members accessed
-    for (CVariableDeclaration fieldOwner : pFrom.getAccessedFieldMembers().keySet()) {
-      for (CCompositeTypeMemberDeclaration fieldMember :
-          pFrom.getAccessedFieldMembers().get(fieldOwner)) {
-        pTo.addAccessedFieldMember(fieldOwner, fieldMember);
-      }
+    for (CFieldReferenceTrackerResult fieldReferenceTrackerResult :
+        pFrom.getAccessedFieldMembers()) {
+      pTo.addAccessedFieldMember(
+          fieldReferenceTrackerResult.fieldOwner(),
+          fieldReferenceTrackerResult.fieldMember(),
+          fieldReferenceTrackerResult.fieldReference());
     }
-    for (CVariableDeclaration fieldOwner : pFrom.getWrittenFieldMembers().keySet()) {
-      for (CCompositeTypeMemberDeclaration fieldMember :
-          pFrom.getWrittenFieldMembers().get(fieldOwner)) {
-        pTo.addWrittenFieldMember(fieldOwner, fieldMember);
-      }
+    for (CFieldReferenceTrackerResult fieldReferenceTrackerResult :
+        pFrom.getWrittenFieldMembers()) {
+      pTo.addWrittenFieldMember(
+          fieldReferenceTrackerResult.fieldOwner(),
+          fieldReferenceTrackerResult.fieldMember(),
+          fieldReferenceTrackerResult.fieldReference());
     }
   }
 
@@ -171,17 +177,53 @@ public class MPORSubstitutionTrackerUtil {
         if (pointerDeclaration.isPresent()) {
           pTracker.addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
         } else {
-          Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>> fieldMemberPointer =
-              MPORUtil.tryGetFieldMemberPointer(rightHandSide);
+          Optional<CFieldReferenceTrackerResult> fieldMemberPointer =
+              tryGetFieldMemberPointer(rightHandSide);
           if (fieldMemberPointer.isPresent()) {
             pTracker.addPointerFieldMemberAssignment(
                 lhsDeclaration,
-                fieldMemberPointer.orElseThrow().getKey(),
-                fieldMemberPointer.orElseThrow().getValue());
+                fieldMemberPointer.orElseThrow().fieldOwner(),
+                fieldMemberPointer.orElseThrow().fieldMember(),
+                fieldMemberPointer.orElseThrow().fieldReference());
           }
         }
       }
     }
+  }
+
+  /**
+   * Returns an {@link Entry} that maps the {@link CSimpleDeclaration} of the outermost field owner
+   * to the {@link CCompositeTypeMemberDeclaration} of the innermost field member accessed in {@code
+   * pExpression} and {@link Optional#empty()} if it can't be found.
+   */
+  private static Optional<CFieldReferenceTrackerResult> tryGetFieldMemberPointer(
+      CExpression pExpression) throws UnsupportedCodeException {
+
+    // e.g. 'ptr = &field.member;'
+    if (pExpression instanceof CUnaryExpression unaryExpression) {
+      if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
+        return Optional.of(getFieldMemberPointer(fieldReference));
+      }
+
+      // e.g. 'ptr = field.member;' where member is a pointer
+    } else if (pExpression instanceof CFieldReference fieldReference) {
+      return Optional.of(getFieldMemberPointer(fieldReference));
+    }
+    return Optional.empty();
+  }
+
+  private static CFieldReferenceTrackerResult getFieldMemberPointer(CFieldReference pFieldReference)
+      throws UnsupportedCodeException {
+
+    CIdExpression idExpression = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
+    CType type =
+        idExpression.getExpressionType() instanceof CPointerType pointerType
+            ? pointerType.getType()
+            : idExpression.getExpressionType();
+    return new CFieldReferenceTrackerResult(
+        SubstituteUtil.asVariableDeclaration(idExpression.getDeclaration()),
+        MPORUtil.recursivelyFindFieldMemberByFieldOwner(pFieldReference, type),
+        pFieldReference);
   }
 
   public static void trackPointerAssignmentInVariableDeclaration(
@@ -316,9 +358,9 @@ public class MPORSubstitutionTrackerUtil {
         if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
           CSimpleDeclaration simpleDeclaration = pIdExpression.getDeclaration();
           if (pIsWrite) {
-            pTracker.addWrittenFieldMember(simpleDeclaration, memberDeclaration);
+            pTracker.addWrittenFieldMember(simpleDeclaration, memberDeclaration, pFieldReference);
           }
-          pTracker.addAccessedFieldMember(simpleDeclaration, memberDeclaration);
+          pTracker.addAccessedFieldMember(simpleDeclaration, memberDeclaration, pFieldReference);
         }
       }
     }
