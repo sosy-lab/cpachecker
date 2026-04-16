@@ -15,6 +15,9 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
@@ -198,11 +201,19 @@ public class SeqMemoryLocationFinder {
         // if it is not a pointer (i.e. a target memory location), add it to found
         if (pPointerDereference.fieldMember().isPresent()) {
           // pass on the fieldMember, because currentMemoryLocation does not contain it
+          CFieldReference fieldReference =
+              new CFieldReference(
+                  FileLocation.DUMMY,
+                  currentMemoryLocation.declaration().getType(),
+                  pPointerDereference.fieldMember().orElseThrow().getName(),
+                  currentMemoryLocation.expression(),
+                  currentMemoryLocation.expression() instanceof CPointerExpression);
           found.add(
               SeqMemoryLocation.of(
                   currentMemoryLocation.callContext(),
                   currentMemoryLocation.declaration(),
-                  pPointerDereference.fieldMember().orElseThrow()));
+                  pPointerDereference.fieldMember().orElseThrow(),
+                  fieldReference));
         } else {
           found.add(currentMemoryLocation);
         }

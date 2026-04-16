@@ -378,7 +378,9 @@ public record MemoryModelBuilder(
                 Iterables.getOnlyElement(functionDeclaration.getParameters());
             rAssignments.put(
                 SeqMemoryLocation.of(
-                    Optional.of(callContext), parameterDeclaration.asVariableDeclaration()),
+                    Optional.of(callContext),
+                    parameterDeclaration.asVariableDeclaration(),
+                    startRoutineArgExpression),
                 rhsMemoryLocation.orElseThrow());
           }
         }
@@ -418,11 +420,15 @@ public record MemoryModelBuilder(
       // we use both pointer and non-pointer parameters, e.g. 'global_ptr = &non_ptr_param;'
       CParameterDeclaration leftHandSide =
           MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
+      CExpression argumentExpression = arguments.get(i);
       Optional<SeqMemoryLocation> rhsMemoryLocation =
-          extractMemoryLocation(pCallContext, arguments.get(i));
+          extractMemoryLocation(pCallContext, argumentExpression);
       if (rhsMemoryLocation.isPresent()) {
         rAssignments.put(
-            SeqMemoryLocation.of(Optional.of(pCallContext), leftHandSide.asVariableDeclaration()),
+            SeqMemoryLocation.of(
+                Optional.of(pCallContext),
+                leftHandSide.asVariableDeclaration(),
+                argumentExpression),
             rhsMemoryLocation.orElseThrow());
       }
     }
@@ -437,7 +443,8 @@ public record MemoryModelBuilder(
           Optional.of(
               getMemoryLocationByDeclaration(
                   pCallContext,
-                  MPORUtil.convertToVariableDeclaration(idExpression.getDeclaration())));
+                  MPORUtil.convertToVariableDeclaration(idExpression.getDeclaration()),
+                  pRightHandSide));
       case CFieldReference fieldReference ->
           Optional.of(extractFieldReferenceMemoryLocation(pCallContext, fieldReference));
       case CUnaryExpression unaryExpression ->
@@ -460,24 +467,28 @@ public record MemoryModelBuilder(
     return getMemoryLocationByFieldReference(
         pCallContext,
         MPORUtil.convertToVariableDeclaration(fieldOwner.getDeclaration()),
-        fieldMember);
+        fieldMember,
+        pFieldReference);
   }
 
   private SeqMemoryLocation getMemoryLocationByDeclaration(
-      CFAEdgeForThread pCallContext, CVariableDeclaration pVariableDeclaration) {
+      CFAEdgeForThread pCallContext,
+      CVariableDeclaration pVariableDeclaration,
+      CExpression pExpression) {
 
     for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
       if (memoryLocation.declaration().equals(pVariableDeclaration)) {
         return memoryLocation;
       }
     }
-    return SeqMemoryLocation.of(Optional.of(pCallContext), pVariableDeclaration);
+    return SeqMemoryLocation.of(Optional.of(pCallContext), pVariableDeclaration, pExpression);
   }
 
   private SeqMemoryLocation getMemoryLocationByFieldReference(
       CFAEdgeForThread pCallContext,
       CVariableDeclaration pFieldOwner,
-      CCompositeTypeMemberDeclaration pFieldMember) {
+      CCompositeTypeMemberDeclaration pFieldMember,
+      CFieldReference pFieldReference) {
 
     for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
       if (memoryLocation.fieldMember().isPresent()) {
@@ -487,7 +498,8 @@ public record MemoryModelBuilder(
         }
       }
     }
-    return SeqMemoryLocation.of(Optional.of(pCallContext), pFieldOwner, pFieldMember);
+    return SeqMemoryLocation.of(
+        Optional.of(pCallContext), pFieldOwner, pFieldMember, pFieldReference);
   }
 
   // Pointer Parameter Assignments =================================================================

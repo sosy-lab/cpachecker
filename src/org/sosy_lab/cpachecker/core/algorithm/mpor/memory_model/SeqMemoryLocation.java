@@ -12,6 +12,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -20,20 +23,33 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 public record SeqMemoryLocation(
     Optional<CFAEdgeForThread> callContext,
     CVariableDeclaration declaration,
-    Optional<CCompositeTypeMemberDeclaration> fieldMember) {
+    Optional<CCompositeTypeMemberDeclaration> fieldMember,
+    @Nullable CExpression expression) {
 
-  public static SeqMemoryLocation of(
-      Optional<CFAEdgeForThread> pCallContext, CVariableDeclaration pDeclaration) {
-
-    return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty());
+  public SeqMemoryLocation {
+    if (expression != null) {
+      checkArgument(
+          fieldMember.isEmpty() || expression instanceof CFieldReference,
+          "If fieldMember is present, then expression must be a CFieldReference.");
+    }
   }
 
   public static SeqMemoryLocation of(
       Optional<CFAEdgeForThread> pCallContext,
       CVariableDeclaration pDeclaration,
-      CCompositeTypeMemberDeclaration pFieldMember) {
+      CExpression pExpression) {
 
-    return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.of(pFieldMember));
+    return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty(), pExpression);
+  }
+
+  public static SeqMemoryLocation of(
+      Optional<CFAEdgeForThread> pCallContext,
+      CVariableDeclaration pDeclaration,
+      CCompositeTypeMemberDeclaration pFieldMember,
+      CFieldReference pFieldReference) {
+
+    return new SeqMemoryLocation(
+        pCallContext, pDeclaration, Optional.of(pFieldMember), pFieldReference);
   }
 
   public String getName() {
@@ -66,8 +82,9 @@ public record SeqMemoryLocation(
   public SeqMemoryLocation getFieldOwnerMemoryLocation() {
     checkArgument(
         fieldMember.isPresent(), "cannot get field owner MemoryLocation, field member is empty");
+    CFieldReference fieldReference = (CFieldReference) expression;
     // just return the declaration of the field owner, without any field member
-    return SeqMemoryLocation.of(callContext, declaration);
+    return SeqMemoryLocation.of(callContext, declaration, fieldReference.getFieldOwner());
   }
 
   @Override
@@ -86,11 +103,13 @@ public record SeqMemoryLocation(
             SeqMemoryLocation(
                 Optional<CFAEdgeForThread> pCallContext,
                 CVariableDeclaration pDeclaration,
-                Optional<CCompositeTypeMemberDeclaration> pFieldMember)
+                Optional<CCompositeTypeMemberDeclaration> pFieldMember,
+                CExpression pExpression)
         // consider call context only for non-global variables
         && (declaration.isGlobal() || callContext.equals(pCallContext))
         && fieldMember.equals(pFieldMember)
-        && declaration.equals(pDeclaration);
+        && declaration.equals(pDeclaration)
+        && expression.equals(pExpression);
   }
 
   @Override

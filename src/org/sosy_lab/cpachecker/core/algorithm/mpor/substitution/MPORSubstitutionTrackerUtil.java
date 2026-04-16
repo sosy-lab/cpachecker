@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -56,11 +57,15 @@ public class MPORSubstitutionTrackerUtil {
     // pointer assignments
     for (var entry : pFrom.getPointerAssignments().entrySet()) {
       pTo.addPointerAssignment(
-          entry.getKey(), entry.getValue().variableDeclaration(), entry.getValue().expression());
+          entry.getKey().variableDeclaration(),
+          entry.getKey().expression(),
+          entry.getValue().variableDeclaration(),
+          entry.getValue().expression());
     }
     for (var entry : pFrom.getPointerFieldMemberAssignments().entrySet()) {
       pTo.addPointerFieldMemberAssignment(
-          entry.getKey(),
+          entry.getKey().variableDeclaration(),
+          entry.getKey().expression(),
           entry.getValue().fieldOwner(),
           entry.getValue().fieldMember(),
           entry.getValue().fieldReference());
@@ -179,13 +184,14 @@ public class MPORSubstitutionTrackerUtil {
             tryExtractSingleDeclaration(rightHandSide);
         if (pointerDeclaration.isPresent()) {
           pTracker.addPointerAssignment(
-              lhsDeclaration, pointerDeclaration.orElseThrow(), rightHandSide);
+              lhsDeclaration, lhsId, pointerDeclaration.orElseThrow(), rightHandSide);
         } else {
           Optional<CFieldReferenceTrackerResult> fieldMemberPointer =
               tryGetFieldMemberPointer(rightHandSide);
           if (fieldMemberPointer.isPresent()) {
             pTracker.addPointerFieldMemberAssignment(
                 lhsDeclaration,
+                lhsId,
                 fieldMemberPointer.orElseThrow().fieldOwner(),
                 fieldMemberPointer.orElseThrow().fieldMember(),
                 fieldMemberPointer.orElseThrow().fieldReference());
@@ -244,8 +250,13 @@ public class MPORSubstitutionTrackerUtil {
         if (initializerDeclaration.isPresent()) {
           CSimpleDeclaration pointerDeclaration = initializerDeclaration.orElseThrow();
           if (SubstituteUtil.isSubstitutable(pointerDeclaration)) {
+            CIdExpression variableIdExpression =
+                SeqExpressionBuilder.buildIdExpression(pVariableDeclaration);
             pTracker.addPointerAssignment(
-                pVariableDeclaration, pointerDeclaration, initializerExpression.getExpression());
+                pVariableDeclaration,
+                variableIdExpression,
+                pointerDeclaration,
+                initializerExpression.getExpression());
           }
         }
       }

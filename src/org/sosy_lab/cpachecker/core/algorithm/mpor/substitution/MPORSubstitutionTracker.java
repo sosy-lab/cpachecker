@@ -49,13 +49,14 @@ public class MPORSubstitutionTracker {
   // POINTER ASSIGNMENTS ===========================================================================
 
   /** Pointer assignments updates to the address. */
-  private final Map<CVariableDeclaration, CVariableDeclarationTrackerResult> pointerAssignments;
+  private final Map<CVariableDeclarationTrackerResult, CVariableDeclarationTrackerResult>
+      pointerAssignments;
 
   /**
    * e.g. {@code ptr = &outer.inner}. {@link CCompositeTypeMemberDeclaration} is always the
    * innermost member, {@link CVariableDeclaration} the declaration of the outer struct.
    */
-  private final Map<CVariableDeclaration, CFieldReferenceTrackerResult>
+  private final Map<CVariableDeclarationTrackerResult, CFieldReferenceTrackerResult>
       pointerFieldMemberAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
@@ -127,25 +128,29 @@ public class MPORSubstitutionTracker {
 
   public void addPointerAssignment(
       CSimpleDeclaration pLeftHandSide,
+      CExpression pLeftHandSideExpression,
       CSimpleDeclaration pRightHandSide,
       CExpression pRightHandSideExpression)
       throws UnsupportedCodeException {
 
     InputRejection.checkFunctionPointerAssignment(pRightHandSide);
     pointerAssignments.put(
-        MPORUtil.convertToVariableDeclaration(pLeftHandSide),
+        new CVariableDeclarationTrackerResult(
+            MPORUtil.convertToVariableDeclaration(pLeftHandSide), pLeftHandSideExpression),
         new CVariableDeclarationTrackerResult(
             MPORUtil.convertToVariableDeclaration(pRightHandSide), pRightHandSideExpression));
   }
 
   public void addPointerFieldMemberAssignment(
       CSimpleDeclaration pLeftHandSide,
+      CExpression pLeftHandSideExpression,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pMemberDeclaration,
       CFieldReference pFieldReference) {
 
     pointerFieldMemberAssignments.put(
-        MPORUtil.convertToVariableDeclaration(pLeftHandSide),
+        new CVariableDeclarationTrackerResult(
+            MPORUtil.convertToVariableDeclaration(pLeftHandSide), pLeftHandSideExpression),
         new CFieldReferenceTrackerResult(
             MPORUtil.convertToVariableDeclaration(pFieldOwner),
             pMemberDeclaration,
@@ -234,11 +239,12 @@ public class MPORSubstitutionTracker {
     return ImmutableSet.copyOf(accessedMainFunctionArgs);
   }
 
-  ImmutableMap<CVariableDeclaration, CVariableDeclarationTrackerResult> getPointerAssignments() {
+  ImmutableMap<CVariableDeclarationTrackerResult, CVariableDeclarationTrackerResult>
+      getPointerAssignments() {
     return ImmutableMap.copyOf(pointerAssignments);
   }
 
-  ImmutableMap<CVariableDeclaration, CFieldReferenceTrackerResult>
+  ImmutableMap<CVariableDeclarationTrackerResult, CFieldReferenceTrackerResult>
       getPointerFieldMemberAssignments() {
 
     return ImmutableMap.copyOf(pointerFieldMemberAssignments);
