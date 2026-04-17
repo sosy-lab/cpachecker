@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -887,7 +888,7 @@ public record SeqThreadStatementBuilder(
     // if there are multiple memory locations for the mutex, then matching the actual address is
     // necessary, otherwise the analysis is unsound.
     CExpression mutexPointerExpression =
-        Objects.requireNonNull(Iterables.getOnlyElement(pMutexPointerMemoryLocations).expression());
+        getMutexPointerExpression(Iterables.getOnlyElement(pMutexPointerMemoryLocations));
     ImmutableMap.Builder<CExportExpression, CCompoundStatement> statements = ImmutableMap.builder();
     for (SeqMemoryLocation mutexMemoryLocation : pMutexMemoryLocations) {
       CType mutexType = mutexMemoryLocation.declaration().getType();
@@ -910,6 +911,25 @@ public record SeqThreadStatementBuilder(
     return ImmutableList.of(
         CMultiSelectionStatementBuilder.buildIfElseChain(
             statements.buildOrThrow(), Optional.empty()));
+  }
+
+  private CExpression getMutexPointerExpression(SeqMemoryLocation pMutexPointerMemoryLocation) {
+    CExpression mutexPointerExpression =
+        Objects.requireNonNull(pMutexPointerMemoryLocation.expression());
+
+    // if the field owner is a pointer, but the field member is not, then the expression is wrapped
+    // with in an unary expression.
+    if (mutexPointerExpression instanceof CFieldReference) {
+      CType fieldMemberType = pMutexPointerMemoryLocation.fieldMember().orElseThrow().getType();
+      if (!(fieldMemberType instanceof CPointerType)) {
+        CPointerType unaryExpressionType =
+            new CPointerType(fieldMemberType.getQualifiers(), fieldMemberType);
+        return new CUnaryExpression(
+            FileLocation.DUMMY, unaryExpressionType, mutexPointerExpression, UnaryOperator.AMPER);
+      }
+    }
+
+    return mutexPointerExpression;
   }
 
   private ImmutableList<CCompoundStatementElement> buildMutexStatements(
