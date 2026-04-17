@@ -37,7 +37,7 @@ public record SeqMemoryLocation(
   public static SeqMemoryLocation of(
       Optional<CFAEdgeForThread> pCallContext,
       CVariableDeclaration pDeclaration,
-      CExpression pExpression) {
+      @Nullable CExpression pExpression) {
 
     return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty(), pExpression);
   }
@@ -46,7 +46,7 @@ public record SeqMemoryLocation(
       Optional<CFAEdgeForThread> pCallContext,
       CVariableDeclaration pDeclaration,
       CCompositeTypeMemberDeclaration pFieldMember,
-      CFieldReference pFieldReference) {
+      @Nullable CFieldReference pFieldReference) {
 
     return new SeqMemoryLocation(
         pCallContext, pDeclaration, Optional.of(pFieldMember), pFieldReference);
@@ -82,15 +82,17 @@ public record SeqMemoryLocation(
   public SeqMemoryLocation getFieldOwnerMemoryLocation() {
     checkArgument(
         fieldMember.isPresent(), "cannot get field owner MemoryLocation, field member is empty");
-    CFieldReference fieldReference = (CFieldReference) expression;
     // just return the declaration of the field owner, without any field member
-    return SeqMemoryLocation.of(callContext, declaration, fieldReference.getFieldOwner());
+    return SeqMemoryLocation.of(
+        callContext,
+        declaration,
+        expression == null ? null : ((CFieldReference) expression).getFieldOwner());
   }
 
   @Override
   public int hashCode() {
     // consider call context only for non-global variables
-    return Objects.hash(declaration.isGlobal() ? null : callContext, fieldMember);
+    return Objects.hash(declaration.isGlobal() ? null : callContext, declaration, fieldMember);
   }
 
   @Override
@@ -104,12 +106,13 @@ public record SeqMemoryLocation(
                 Optional<CFAEdgeForThread> pCallContext,
                 CVariableDeclaration pDeclaration,
                 Optional<CCompositeTypeMemberDeclaration> pFieldMember,
-                CExpression pExpression)
+                // the expression is not used for equality because a memory location is defined by
+                // its declaration and its call context, but not the way it is expressed
+                CExpression ignored)
         // consider call context only for non-global variables
         && (declaration.isGlobal() || callContext.equals(pCallContext))
         && fieldMember.equals(pFieldMember)
-        && declaration.equals(pDeclaration)
-        && expression.equals(pExpression);
+        && declaration.equals(pDeclaration);
   }
 
   @Override
