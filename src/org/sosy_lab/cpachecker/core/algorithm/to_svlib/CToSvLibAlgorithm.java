@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStat
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -93,10 +94,21 @@ import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
 
@@ -108,6 +120,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   private final Solver solver;
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
+  private final CtoFormulaConverter converter;
+
   private final SvLibCurrentScope scope;
   private final FormulaToSvLibVisitor formulaToSvLibVisitor;
 
@@ -146,6 +160,16 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             logger,
             shutdownNotifier,
             cfa,
+            AnalysisDirection.FORWARD);
+    converter =
+        new CtoFormulaConverter(
+            new CFormulaEncodingOptions(config),
+            solver.getFormulaManager(),
+            cfa.getMachineModel(),
+            cfa.getVarClassification(),
+            logger,
+            shutdownNotifier,
+            new CtoFormulaTypeHandler(logger, cfa.getMachineModel()),
             AnalysisDirection.FORWARD);
 
     scope = new SvLibCurrentScope();
@@ -685,20 +709,31 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   private SvLibType convertToSvLibType(CType pCType) {
-    if (pCType instanceof CSimpleType cSimpleType) {
-      if (cSimpleType.getType().isIntegerType()) {
-        return SvLibSmtLibPredefinedType.INT;
-      } else if (cSimpleType.getType().isFloatingPointType()) {
-        return SvLibSmtLibPredefinedType.REAL;
-      } else {
-        throw new UnsupportedOperationException(
-            "Transformation of CSimpleType to SvLibSmtLibPredefinedType failed for type "
-                + cSimpleType);
+    FormulaType<?> formulaType = converter.getFormulaTypeFromType(pCType);
+    Formula dummyFormula = formulaManager.makeVariable(formulaType, "dummy");
+    Formula unwrapedDummyFormula = formulaManager.unwrap(dummyFormula);
+
+    switch (unwrapedDummyFormula) {
+      case BooleanFormula ignored -> {
+        return SvLibSmtLibPredefinedType.BOOL;
       }
-    } else {
-      throw new UnsupportedOperationException(
-          "Transformation to a SvLibType failed for CType " + pCType);
+      case IntegerFormula ignored -> {
+        return SvLibSmtLibPredefinedType.INT;
+      }
+      case RationalFormula ignored -> {
+        return SvLibSmtLibPredefinedType.REAL;
+      }
+      case FloatingPointFormula ignored -> {
+        return SvLibSmtLibPredefinedType.REAL;
+      }
+      case BitvectorFormula ignored when formulaType.isBitvectorType() -> {
+        BitvectorType bitvectorType = (BitvectorType) formulaType;
+        return new SvLibSmtLibBitVectorType(bitvectorType.getSize());
+      }
+      default -> {}
     }
+    throw new UnsupportedOperationException(
+        "Transformation to a SvLibType failed for CType " + pCType);
   }
 
   private ImmutableList<CFAEdge> getAllRelevantEdges(FunctionEntryNode pEntryNode) {

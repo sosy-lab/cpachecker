@@ -450,7 +450,7 @@ public class FormulaManagerView {
     return wrappingHandler.wrap(targetType, toWrap);
   }
 
-  private <T extends Formula> Formula unwrap(T f) {
+  public <T extends Formula> Formula unwrap(T f) {
     return wrappingHandler.unwrap(f);
   }
 
