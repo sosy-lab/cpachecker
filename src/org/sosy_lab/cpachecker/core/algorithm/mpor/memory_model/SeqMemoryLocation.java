@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Objects;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -24,20 +23,18 @@ public record SeqMemoryLocation(
     Optional<CFAEdgeForThread> callContext,
     CVariableDeclaration declaration,
     Optional<CCompositeTypeMemberDeclaration> fieldMember,
-    @Nullable CExpression expression) {
+    CExpression expression) {
 
   public SeqMemoryLocation {
-    if (expression != null) {
-      checkArgument(
-          fieldMember.isEmpty() || expression instanceof CFieldReference,
-          "If fieldMember is present, then expression must be a CFieldReference.");
-    }
+    checkArgument(
+        fieldMember.isEmpty() || expression instanceof CFieldReference,
+        "If fieldMember is present, then expression must be a CFieldReference.");
   }
 
   public static SeqMemoryLocation of(
       Optional<CFAEdgeForThread> pCallContext,
       CVariableDeclaration pDeclaration,
-      @Nullable CExpression pExpression) {
+      CExpression pExpression) {
 
     return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty(), pExpression);
   }
@@ -46,7 +43,7 @@ public record SeqMemoryLocation(
       Optional<CFAEdgeForThread> pCallContext,
       CVariableDeclaration pDeclaration,
       CCompositeTypeMemberDeclaration pFieldMember,
-      @Nullable CFieldReference pFieldReference) {
+      CFieldReference pFieldReference) {
 
     return new SeqMemoryLocation(
         pCallContext, pDeclaration, Optional.of(pFieldMember), pFieldReference);

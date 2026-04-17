@@ -99,7 +99,12 @@ int main() {
     x = 42;
     pthread_mutex_unlock(mutex_ptr);
 
+    // this is undefined behavior in the pthread standard (assign mutex and pass by value)
+    pthread_mutex_t uninit_mutex;
+    uninit_mutex = mutexA;
     pass_mutex(mutexA);
+
+    // passing a pointer to a mutex is fine and not undefined behavior
     pass_mutex_pointer(mutex_ptr);
 
     PQUEUE *ptr_to_struct;
@@ -119,7 +124,7 @@ int main() {
     } else {
         ptr_to_struct_with_ptr = &yet_another_struct_with_mutex_ptr;
     }
-    pass_mutex_pointer(ptr_to_struct_with_ptr->inner_mutex_pointer);
+    //pass_mutex_pointer(ptr_to_struct_with_ptr->inner_mutex_pointer);
 
     pthread_mutex_destroy(&mutexA);
     pthread_mutex_destroy(&mutexB);
