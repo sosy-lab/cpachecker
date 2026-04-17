@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -84,6 +86,22 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
 
   public boolean allSuccessorsAreLoopSuccessors() {
     return successorIds.equals(loopSuccessorIds);
+  }
+
+    public BlockNode withMappedIds(
+      Function<String, String> idMapper,
+      Function<String, String> predecessorMapper,
+      Function<String, String> successorMapper) {
+    return new BlockNode(
+        idMapper.apply(getId()),
+        getInitialLocation(),
+        getFinalLocation(),
+        getNodes(),
+        getEdges(),
+        Collections3.transformedImmutableSetCopy(predecessorIds, predecessorMapper),
+        Collections3.transformedImmutableSetCopy(loopPredecessorIds, idMapper),
+        Collections3.transformedImmutableSetCopy(successorIds, successorMapper),
+        Collections3.transformedImmutableSetCopy(loopSuccessorIds, successorMapper));
   }
 
   @Override

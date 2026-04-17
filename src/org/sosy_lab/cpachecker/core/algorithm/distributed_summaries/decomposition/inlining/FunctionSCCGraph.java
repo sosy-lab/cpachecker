@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 
 public class FunctionSCCGraph {
 
-  public record FunctionSCC(ImmutableSet<Function> functions) {
+  public record FunctionSCC(ImmutableSet<BlockFunction> functions) {
 
     @Override
     public String toString() {
@@ -33,10 +33,10 @@ public class FunctionSCCGraph {
 
   private final FunctionSCC root;
   private final FunctionGraph originalGraph;
-  private final ImmutableMap<Function, FunctionSCC> functionToSCC;
+  private final ImmutableMap<BlockFunction, FunctionSCC> functionToSCC;
 
   private FunctionSCCGraph(
-      FunctionSCC pRoot, FunctionGraph pGraph, ImmutableMap<Function, FunctionSCC> pFunctionToSCC) {
+      FunctionSCC pRoot, FunctionGraph pGraph, ImmutableMap<BlockFunction, FunctionSCC> pFunctionToSCC) {
     root = pRoot;
     originalGraph = pGraph;
     functionToSCC = pFunctionToSCC;
@@ -44,16 +44,16 @@ public class FunctionSCCGraph {
 
   public static FunctionSCCGraph from(FunctionGraph graph) {
 
-    ImmutableList<List<Function>> sccList =
+    ImmutableList<List<BlockFunction>> sccList =
         StronglyConnectedComponents.performTarjanAlgorithm(graph.getRoot(), graph::getSuccessors);
 
-    ImmutableMap.Builder<Function, FunctionSCC> functionToSCCBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<BlockFunction, FunctionSCC> functionToSCCBuilder = ImmutableMap.builder();
 
     FunctionSCC root = null;
 
-    for (List<Function> scc : sccList) {
+    for (List<BlockFunction> scc : sccList) {
       FunctionSCC curr = new FunctionSCC(ImmutableSet.copyOf(scc));
-      for (Function f : scc) {
+      for (BlockFunction f : scc) {
         functionToSCCBuilder.put(f, curr);
       }
       if (curr.functions().contains(graph.getRoot())) {
@@ -62,7 +62,7 @@ public class FunctionSCCGraph {
       }
     }
 
-    ImmutableMap<Function, FunctionSCC> functionToSCC = functionToSCCBuilder.buildOrThrow();
+    ImmutableMap<BlockFunction, FunctionSCC> functionToSCC = functionToSCCBuilder.buildOrThrow();
 
     assert root != null;
     return new FunctionSCCGraph(root, graph, functionToSCC);

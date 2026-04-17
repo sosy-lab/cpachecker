@@ -107,12 +107,12 @@ public class FunctionGraphTest {
                 .transform(f -> f.name()))
         .containsExactly("f", "g");
 
-    for (Function fun : funcGraph.getSuccessors(funcGraph.getRoot())) {
+    for (BlockFunction fun : funcGraph.getSuccessors(funcGraph.getRoot())) {
       if (fun.name().equals("f")) {
         Truth.assertThat(FluentIterable.from(funcGraph.getSuccessors(fun)).transform(f -> f.name()))
             .containsExactly("g");
       } else if (fun.name().equals("g")) {
-        Function h = Iterables.getOnlyElement(FluentIterable.from(funcGraph.getSuccessors(fun)));
+        BlockFunction h = Iterables.getOnlyElement(FluentIterable.from(funcGraph.getSuccessors(fun)));
 
         Truth.assertThat(h.name()).isEqualTo("h");
         Truth.assertThat(funcGraph.getSuccessors(h)).isEmpty();
