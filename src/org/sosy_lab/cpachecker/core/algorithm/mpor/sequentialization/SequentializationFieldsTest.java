@@ -122,7 +122,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(8);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(12);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     assertThat(memoryModel.pointerDereferences).isEmpty();
@@ -208,8 +208,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    // 49 global variables, but 4 are never accessed -> not identified by tracker
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(45);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(47);
     assertThat(memoryModel.parameterAssignments).hasSize(2);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
@@ -236,9 +235,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    // 32 global variables, but _Bool a$read_delayed; and int *a$read_delayed_var; are never
-    // accessed, i.e. never substituted -> tracker does not identify them
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(30);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(32);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     assertThat(memoryModel.pointerDereferences).isEmpty();
@@ -263,12 +260,12 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    // TODO should actually be 9, though 5 is still fine (overapproximation)
+    // TODO should actually be 9, though 6 is still fine (overapproximation)
     // check that each member of queue struct is identified as relevant individually
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(5);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(6);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     // 2 in main, 3 in t1, 1 in t2
-    // (pthread_mutex_lock(&m) does not count as poitner parameter assignment)
+    // (pthread_mutex_lock(&m) does not count as pointer parameter assignment)
     assertThat(memoryModel.pointerParameterAssignments).hasSize(6);
     assertThat(memoryModel.pointerDereferences).hasSize(16);
     // both pthread_create calls take &queue as arguments
@@ -319,7 +316,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(3);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
     assertThat(memoryModel.pointerAssignments).hasSize(2);
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     assertThat(memoryModel.pointerDereferences).isEmpty();
@@ -370,7 +367,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(3);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     // unsigned int * stack = static unsigned int arr[SIZE]
     // counts as pointer parameter assignments
