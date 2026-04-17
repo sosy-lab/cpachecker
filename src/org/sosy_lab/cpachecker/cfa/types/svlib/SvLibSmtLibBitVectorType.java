@@ -34,12 +34,12 @@ public final class SvLibSmtLibBitVectorType implements SvLibSmtLibType {
 
   @Override
   public String toASTString() {
-    return "BitVector<" + size + ">";
+    return "(_ BitVec " + size + ")";
   }
 
   @Override
   public String toASTString(String declarator) {
-    return declarator + " : BitVector<" + size + ">";
+    return declarator + " : (_ BitVec " + size + ")";
   }
 
   @Override
