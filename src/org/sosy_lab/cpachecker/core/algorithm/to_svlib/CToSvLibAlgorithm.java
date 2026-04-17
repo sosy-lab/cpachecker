@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -29,16 +31,18 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
@@ -270,12 +274,44 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     // in the main() function if no return value has been explicitly defined.
     if (pEntryNode.getFunctionName().contains("main")
         && !procedureDeclaration.getReturnValues().isEmpty()) {
+      // TODO: Refactor into own function or class
+      CStatementEdge statementEdge =
+          new CStatementEdge(
+              "return = 0;",
+              new CExpressionAssignmentStatement(
+                  FileLocation.DUMMY,
+                  new CIdExpression(
+                      FileLocation.DUMMY, pEntryNode.getReturnVariable().orElseThrow()),
+                  new CIntegerLiteralExpression(
+                      FileLocation.DUMMY,
+                      pEntryNode.getReturnVariable().orElseThrow().getType(),
+                      BigInteger.ZERO)),
+              FileLocation.DUMMY,
+              pEntryNode,
+              pEntryNode);
+      SvLibTerm assignmentTerm = transformToSvLibTerm(statementEdge);
+      // Obtain the only constant term inside the previous term
+      // could be done with a visitor but is easier like this
+      // and works for most cases
+      SvLibConstantTerm returnValue;
+      if (assignmentTerm instanceof SvLibConstantTerm pConstantTerm) {
+        returnValue = pConstantTerm;
+      } else if (assignmentTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm) {
+        List<SvLibConstantTerm> constantTerms =
+            FluentIterable.from(symbolApplicationTerm.getTerms())
+                .filter(SvLibConstantTerm.class)
+                .toList();
+        returnValue = Iterables.getOnlyElement(constantTerms);
+      } else {
+        throw new UnsupportedOperationException(
+            "Unexpected term generated for return value initialization in main function: "
+                + assignmentTerm);
+      }
+
       createdStatements.put(
           pEntryNode,
           new SvLibAssignmentStatement(
-              ImmutableMap.of(
-                  procedureDeclaration.getReturnValues().getFirst(),
-                  new SvLibIntegerConstantTerm(BigInteger.ZERO, FileLocation.DUMMY)),
+              ImmutableMap.of(procedureDeclaration.getReturnValues().getFirst(), returnValue),
               FileLocation.DUMMY,
               ImmutableList.of(),
               ImmutableList.of()));
