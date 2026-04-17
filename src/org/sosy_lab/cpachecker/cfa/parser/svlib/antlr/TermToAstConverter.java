@@ -21,6 +21,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ApplicationTermContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.IdentifierUnderscoreContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.QualIdentifierTermContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Qual_identiferContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SpecConstantTermContext;
@@ -57,8 +59,44 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       return new SvLibBooleanConstantTerm(identifier.equals("true"), fileLocation);
     }
 
+    // We handle the special case that this is an underscore identifier sepparately
+    // Currently we only handle bitvector constants like this, so one may need to
+    // extend this for the general case
+    if (ctx.qual_identifer().GRW_As() == null
+        && ctx.qual_identifer().identifier()
+            instanceof IdentifierUnderscoreContext pUnderscoreContext) {
+      return visitIdentifierUnderscore(pUnderscoreContext);
+    }
+
     // We now handle the general case of a variable
     return new SvLibIdTerm(scope.getVariable(identifier).toSimpleDeclaration(), fileLocation);
+  }
+
+  @Override
+  public SvLibTerm visitIdentifierUnderscore(IdentifierUnderscoreContext ctx) {
+    if (ctx.index().size() == 1) {
+      Verify.verify(ctx.index().size() == 1, "BitVec should have exactly one index");
+      BigInteger bitvectorSize = new BigInteger(ctx.index(0).getText());
+      String valueString = ctx.symbol().getText();
+      BigInteger bitvectorValue;
+      if (valueString.startsWith("bv")) {
+        bitvectorValue = new BigInteger(valueString.substring("bv".length()));
+      } else if (valueString.startsWith("#b")) {
+        bitvectorValue = new BigInteger(valueString.substring("#b".length()), 2);
+      } else if (valueString.startsWith("#x")) {
+        bitvectorValue = new BigInteger(valueString.substring("#b".length()), 16);
+      } else {
+        throw new UnsupportedOperationException(
+            "Unsupported format for bitvector constant: " + valueString);
+      }
+
+      // In case the parsed int does not fit into an integer we want to crash explicitly
+      return new SvLibBitVectorConstantTerm(
+          bitvectorValue, bitvectorSize.intValueExact(), fileLocationFromContext(ctx));
+    }
+
+    throw new UnsupportedOperationException(
+        "Underscore identifiers apart from bitvectors are not yet implemented");
   }
 
   @Override
