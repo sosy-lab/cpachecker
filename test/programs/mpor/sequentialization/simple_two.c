@@ -16,7 +16,15 @@ struct __anonstruct_PQUEUE_63 {
     pthread_mutex_t inner_mutex ;
 };
 typedef struct __anonstruct_PQUEUE_63 PQUEUE;
+struct __anonstruct_PQUEUE_64 {
+    int occupied ;
+    pthread_mutex_t *inner_mutex_pointer ;
+};
+typedef struct __anonstruct_PQUEUE_64 PQUEUE_PTR;
 PQUEUE struct_with_mutex;
+PQUEUE another_struct_with_mutex;
+PQUEUE_PTR struct_with_mutex_ptr;
+PQUEUE_PTR yet_another_struct_with_mutex_ptr;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 int printk(const char *arg0, ...) {
   return __VERIFIER_nondet_int();
@@ -60,6 +68,11 @@ void unused_parameter(int number) {
         x = 32;
     }
 }
+void pass_mutex_pointer(pthread_mutex_t *the_mutex_pointer) {
+    pthread_mutex_lock(the_mutex_pointer);
+    printk("mutex pointer sandwich");
+    pthread_mutex_unlock(the_mutex_pointer);
+}
 const int global_const = 0;
 int main() {
     const int local_const = 7;
@@ -80,11 +93,28 @@ int main() {
     pthread_mutex_lock(mutex_ptr);
     x = 42;
     pthread_mutex_unlock(mutex_ptr);
-    PQUEUE *ptr_to_struct_with_mutex = &struct_with_mutex;
-    pthread_mutex_lock(ptr_to_struct_with_mutex->inner_mutex);
+    pass_mutex_pointer(mutex_ptr);
+
+    PQUEUE *ptr_to_struct;
+    if (x == 123456789) {
+        ptr_to_struct = &struct_with_mutex;
+    } else {
+        ptr_to_struct = &another_struct_with_mutex;
+    }
+    pthread_mutex_lock(ptr_to_struct->inner_mutex);
+
+    PQUEUE_PTR *ptr_to_struct_with_ptr;
+    if (x == 987654321) {
+        ptr_to_struct_with_ptr = &struct_with_mutex_ptr;
+    } else {
+        ptr_to_struct_with_ptr = &yet_another_struct_with_mutex_ptr;
+    }
+    pass_mutex_pointer(ptr_to_struct_with_ptr->inner_mutex_pointer);
+
     pthread_mutex_destroy(&mutexA);
     pthread_mutex_destroy(&mutexB);
     pthread_mutex_destroy(&struct_with_mutex.inner_mutex);
+
     pthread_t id1, id2;
     pthread_create(&id1, (void *) 0, task1, (void *) 0);
     pthread_create(&id2, (void *) 0, task2, (void *) 0);

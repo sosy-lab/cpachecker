@@ -819,15 +819,14 @@ public record SeqThreadStatementBuilder(
       throws UnrecognizedCodeException {
 
     // all memory locations (potentially) accessed in pSubstituteEdge including aliased pointers
-    ImmutableSet<SeqMemoryLocation> allMemoryLocations =
-        SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
-            pSubstituteEdge, memoryModel, MemoryAccessType.ACCESS);
+    ImmutableSet<SeqMemoryLocation> accessedMemoryLocations =
+        pSubstituteEdge.getMemoryLocationsByAccessType(MemoryAccessType.ACCESS);
 
     // First check the non-pointer memory locations which is the usual case for mutexes.
     // Example: pthread_mutex_lock(&m);
     ImmutableSet<SeqMemoryLocation> mutexNonPointerMemoryLocations =
         PthreadUtil.getNonPointerMemoryLocationsByPthreadObject(
-            allMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
+            accessedMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
     // TODO does this also hold for mutexes passed on as parameters? then this does not work on
     //  the actual memory location, but the parameter memory location -> add test
     if (!mutexNonPointerMemoryLocations.isEmpty()) {
@@ -843,8 +842,8 @@ public record SeqThreadStatementBuilder(
     // 'm_ptr' in the call to 'pthread_mutex_lock' is not dereferenced, but it should be treated as
     // dereferenced to find the associated memory locations of 'm_ptr'.
     ImmutableSet<SeqMemoryLocation> mutexPointerMemoryLocations =
-        PthreadUtil.getPointerMemoryLocationsByPthreadObject(
-            allMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
+        PthreadUtil.getPointerMemoryLocationsByPthreadObjectType(
+            accessedMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
     ImmutableSet<SeqMemoryLocation> mutexMemoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereferences(
             mutexPointerMemoryLocations, memoryModel);
