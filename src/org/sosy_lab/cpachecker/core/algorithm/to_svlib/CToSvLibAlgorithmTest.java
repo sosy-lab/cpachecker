@@ -123,7 +123,7 @@ public class CToSvLibAlgorithmTest {
     testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
   }
 
-  @Test(timeout = 18000000)
+  @Test(timeout = 1800)
   public void testGotosBitvectorEncoding() throws Exception {
     Path inputFilePath = Path.of(examplesPathProgramTranslation(), "gotos.c");
     testTransformationToSvLib(inputFilePath, encodeBitvectorsAsBitvectorsOption);
