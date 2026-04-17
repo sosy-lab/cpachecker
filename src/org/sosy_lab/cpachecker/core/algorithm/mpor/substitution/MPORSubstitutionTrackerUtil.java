@@ -8,12 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -178,21 +175,8 @@ public class MPORSubstitutionTrackerUtil {
     if (leftHandSide instanceof CIdExpression lhsId) {
       CSimpleDeclaration lhsDeclaration = lhsId.getDeclaration();
       if (lhsDeclaration.getType() instanceof CPointerType) {
-        CPointerAssignmentVisitResult visitResult =
-            pAssignment.getRightHandSide().accept(new CPointerAssignmentVisitor());
-        switch (visitResult) {
-          case CPointerAssignmentExpressionResult expressionResult ->
-              pTracker.addPointerAssignment(
-                  lhsDeclaration, lhsId, expressionResult.declaration, expressionResult.expression);
-          case CPointerAssignmentFieldReferenceResult fieldReferenceResult ->
-              pTracker.addPointerFieldMemberAssignment(
-                  lhsDeclaration,
-                  lhsId,
-                  fieldReferenceResult.fieldOwner,
-                  fieldReferenceResult.fieldMember,
-                  fieldReferenceResult.fieldReference);
-          default -> throw new IllegalStateException("Unexpected value: " + visitResult);
-        }
+        visitPointerAssignmentAndStoreResultInTracker(
+            lhsDeclaration, lhsId, pAssignment.getRightHandSide(), pTracker);
       }
     }
   }
@@ -206,21 +190,41 @@ public class MPORSubstitutionTrackerUtil {
     if (pVariableDeclaration.getType() instanceof CPointerType) {
       CInitializer initializer = pVariableDeclaration.getInitializer();
       if (initializer instanceof CInitializerExpression initializerExpression) {
-        Optional<CSimpleDeclaration> initializerDeclaration =
-            tryExtractSingleDeclaration(initializerExpression.getExpression());
-        if (initializerDeclaration.isPresent()) {
-          CSimpleDeclaration pointerDeclaration = initializerDeclaration.orElseThrow();
-          if (SubstituteUtil.isSubstitutable(pointerDeclaration)) {
-            CIdExpression variableIdExpression =
-                SeqExpressionBuilder.buildIdExpression(pVariableDeclaration);
-            pTracker.addPointerAssignment(
-                pVariableDeclaration,
-                variableIdExpression,
-                pointerDeclaration,
-                initializerExpression.getExpression());
-          }
-        }
+        CIdExpression variableIdExpression =
+            SeqExpressionBuilder.buildIdExpression(pVariableDeclaration);
+        visitPointerAssignmentAndStoreResultInTracker(
+            pVariableDeclaration,
+            variableIdExpression,
+            initializerExpression.getExpression(),
+            pTracker);
       }
+    }
+  }
+
+  private static void visitPointerAssignmentAndStoreResultInTracker(
+      CSimpleDeclaration pLeftHandSideDeclaration,
+      CIdExpression pLeftHandSideIdExpression,
+      CExpression pRightHandSide,
+      MPORSubstitutionTracker pTracker)
+      throws UnsupportedCodeException {
+
+    CPointerAssignmentVisitResult visitResult =
+        pRightHandSide.accept(new CPointerAssignmentVisitor());
+    switch (visitResult) {
+      case CPointerAssignmentExpressionResult expressionResult ->
+          pTracker.addPointerAssignment(
+              pLeftHandSideDeclaration,
+              pLeftHandSideIdExpression,
+              expressionResult.declaration,
+              expressionResult.expression);
+      case CPointerAssignmentFieldReferenceResult fieldReferenceResult ->
+          pTracker.addPointerFieldMemberAssignment(
+              pLeftHandSideDeclaration,
+              pLeftHandSideIdExpression,
+              fieldReferenceResult.fieldOwner,
+              fieldReferenceResult.fieldMember,
+              fieldReferenceResult.fieldReference);
+      default -> throw new IllegalStateException("Unexpected value: " + visitResult);
     }
   }
 
@@ -412,65 +416,6 @@ public class MPORSubstitutionTrackerUtil {
     @Override
     protected @Nullable CPointerAssignmentVisitResult visitDefault(CExpression exp) {
       return null;
-    }
-  }
-
-  /** Extracts the single {@link CSimpleDeclaration} of {@code expression} if it can be found. */
-  private static Optional<CSimpleDeclaration> tryExtractSingleDeclaration(CExpression pExpression)
-      throws UnsupportedCodeException {
-
-    checkArgument(
-        !(pExpression instanceof CBinaryExpression),
-        "expression cannot be CBinaryExpression, since there may be multiple"
-            + " CSimpleDeclarations.");
-    CIdExpression idExpression = pExpression.accept(new CPointerDeclarationVisitor());
-    return Optional.ofNullable(idExpression).map(CIdExpression::getDeclaration);
-  }
-
-  private static final class CPointerDeclarationVisitor
-      extends DefaultCExpressionVisitor<CIdExpression, UnsupportedCodeException> {
-
-    @Override
-    public CIdExpression visit(CArraySubscriptExpression pArraySubscriptExpression)
-        throws UnsupportedCodeException {
-      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
-    }
-
-    @Override
-    public CIdExpression visit(CFieldReference pFieldReference) throws UnsupportedCodeException {
-      return pFieldReference.getFieldOwner().accept(this);
-    }
-
-    @Override
-    public CIdExpression visit(CPointerExpression pPointerExpression)
-        throws UnsupportedCodeException {
-      return pPointerExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CIdExpression visit(CComplexCastExpression pComplexCastExpression)
-        throws UnsupportedCodeException {
-      return pComplexCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CIdExpression visit(CCastExpression pCastExpression) throws UnsupportedCodeException {
-      return pCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CIdExpression visit(CUnaryExpression pUnaryExpression) throws UnsupportedCodeException {
-      return pUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CIdExpression visit(CIdExpression pIdExpression) {
-      return pIdExpression;
-    }
-
-    @Override
-    protected @Nullable CIdExpression visitDefault(CExpression pExpression) {
-      return null; // ignore
     }
   }
 }
