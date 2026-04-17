@@ -64,12 +64,12 @@ public final class SvLibBitVectorConstantTerm implements SvLibConstantTerm {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return value.toString(2);
+    return "(_ bv" + value + " " + size + ")";
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return value.toString(2);
+    return "(_ bv" + value + " " + size + ")";
   }
 
   @Override
