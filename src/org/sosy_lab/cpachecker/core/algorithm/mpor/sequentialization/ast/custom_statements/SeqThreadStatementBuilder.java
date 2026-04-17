@@ -817,7 +817,8 @@ public record SeqThreadStatementBuilder(
       throws UnrecognizedCodeException {
 
     ImmutableSet<SeqMemoryLocation> accessedMemoryLocations =
-        pSubstituteEdge.getMemoryLocationsByAccessType(MemoryAccessType.ACCESS);
+        SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
+            pSubstituteEdge, memoryModel, MemoryAccessType.ACCESS);
 
     // First check the non-pointer memory locations. Example: pthread_mutex_lock(&m);
     ImmutableSet<SeqMemoryLocation> mutexNonPointerMemoryLocations =

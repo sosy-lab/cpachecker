@@ -118,9 +118,21 @@ public class PthreadUtil {
 
     return pMemoryLocations.stream()
         .filter(
-            m ->
-                !(m.declaration().getType() instanceof CPointerType)
-                    && pObjectType.equalsType(m.declaration().getType()))
+            m -> {
+              if (!(m.declaration().getType() instanceof CPointerType)) {
+                if (pObjectType.equalsType(m.declaration().getType())) {
+                  return true;
+                }
+                // when searching for non-ptr, the field member is only considered if the field
+                // owner is not a pointer itself.
+                if (m.fieldMember().isPresent()) {
+                  if (pObjectType.equalsType(m.fieldMember().orElseThrow().getType())) {
+                    return true;
+                  }
+                }
+              }
+              return false;
+            })
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -129,9 +141,21 @@ public class PthreadUtil {
 
     return pMemoryLocations.stream()
         .filter(
-            m ->
-                m.declaration().getType() instanceof CPointerType pointerType
-                    && pObjectType.equalsType(pointerType.getType()))
+            m -> {
+              if (m.declaration().getType() instanceof CPointerType) {
+                if (pObjectType.equalsType(m.declaration().getType())) {
+                  return true;
+                }
+              }
+              // when searching for ptr, the field member is considered even if the field owner is
+              // not a pointer itself, because the field member can be a pointer.
+              if (m.fieldMember().isPresent()) {
+                if (pObjectType.equalsType(m.fieldMember().orElseThrow().getType())) {
+                  return true;
+                }
+              }
+              return false;
+            })
         .collect(ImmutableSet.toImmutableSet());
   }
 
