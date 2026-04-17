@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope.TypeCollector;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -52,18 +53,12 @@ public class MPORSubstitutionTrackerUtil {
     // pointer assignments
     for (var entry : pFrom.getPointerAssignments().entrySet()) {
       pTo.addPointerAssignment(
-          entry.getKey().variableDeclaration(),
+          entry.getKey().declaration(),
+          entry.getKey().fieldMember(),
           entry.getKey().expression(),
-          entry.getValue().variableDeclaration(),
+          entry.getValue().declaration(),
+          entry.getKey().fieldMember(),
           entry.getValue().expression());
-    }
-    for (var entry : pFrom.getPointerFieldMemberAssignments().entrySet()) {
-      pTo.addPointerFieldMemberAssignment(
-          entry.getKey().variableDeclaration(),
-          entry.getKey().expression(),
-          entry.getValue().fieldOwner(),
-          entry.getValue().fieldMember(),
-          entry.getValue().fieldReference());
     }
     // pointer dereferences
     for (CVariableDeclarationTrackerResult accessedPointerDereference :
@@ -176,26 +171,19 @@ public class MPORSubstitutionTrackerUtil {
     CSimpleDeclaration leftHandSideDeclaration =
         pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
     if (isAnyCPointerType(leftHandSideDeclaration.getType())) {
-      CPointerAssignmentVisitResult visitResult =
+      CPointerAssignmentVisitResult leftHandSideVisitResult =
+          pLeftHandSide.accept(new CPointerAssignmentVisitor());
+      CPointerAssignmentVisitResult rightHandSideVisitResult =
           pRightHandSide.accept(new CPointerAssignmentVisitor());
       // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
-      if (visitResult != null) {
-        switch (visitResult) {
-          case CPointerAssignmentExpressionResult expressionResult ->
-              pTracker.addPointerAssignment(
-                  leftHandSideDeclaration,
-                  pLeftHandSide,
-                  expressionResult.declaration,
-                  expressionResult.expression);
-          case CPointerAssignmentFieldReferenceResult fieldReferenceResult ->
-              pTracker.addPointerFieldMemberAssignment(
-                  leftHandSideDeclaration,
-                  pLeftHandSide,
-                  fieldReferenceResult.fieldOwner,
-                  fieldReferenceResult.fieldMember,
-                  fieldReferenceResult.fieldReference);
-          default -> throw new IllegalStateException("Unexpected value: " + visitResult);
-        }
+      if (leftHandSideVisitResult != null && rightHandSideVisitResult != null) {
+        pTracker.addPointerAssignment(
+            leftHandSideVisitResult.declaration(),
+            leftHandSideVisitResult.fieldMember(),
+            leftHandSideVisitResult.expression(),
+            rightHandSideVisitResult.declaration(),
+            rightHandSideVisitResult.fieldMember(),
+            rightHandSideVisitResult.expression());
       }
     }
   }
@@ -386,17 +374,10 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  private interface CPointerAssignmentVisitResult {}
-
-  private record CPointerAssignmentExpressionResult(
-      CSimpleDeclaration declaration, CExpression expression)
-      implements CPointerAssignmentVisitResult {}
-
-  private record CPointerAssignmentFieldReferenceResult(
-      CSimpleDeclaration fieldOwner,
-      CCompositeTypeMemberDeclaration fieldMember,
-      CFieldReference fieldReference)
-      implements CPointerAssignmentVisitResult {}
+  private record CPointerAssignmentVisitResult(
+      CSimpleDeclaration declaration,
+      Optional<CCompositeTypeMemberDeclaration> fieldMember,
+      CExpression expression) {}
 
   private static final class CPointerAssignmentVisitor
       extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, UnsupportedCodeException> {
@@ -411,14 +392,13 @@ public class MPORSubstitutionTrackerUtil {
     public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference)
         throws UnsupportedCodeException {
 
-      CPointerAssignmentExpressionResult fieldOwnerResult =
-          (CPointerAssignmentExpressionResult) pFieldReference.getFieldOwner().accept(this);
+      CPointerAssignmentVisitResult fieldOwnerResult = pFieldReference.getFieldOwner().accept(this);
       // TODO this should also be a visitor
       CCompositeTypeMemberDeclaration fieldMember =
           MPORUtil.recursivelyFindFieldMemberByFieldOwner(
               pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
-      return new CPointerAssignmentFieldReferenceResult(
-          fieldOwnerResult.declaration, fieldMember, pFieldReference);
+      return new CPointerAssignmentVisitResult(
+          fieldOwnerResult.declaration, Optional.of(fieldMember), pFieldReference);
     }
 
     @Override
@@ -447,7 +427,8 @@ public class MPORSubstitutionTrackerUtil {
 
     @Override
     public CPointerAssignmentVisitResult visit(CIdExpression pIdExpression) {
-      return new CPointerAssignmentExpressionResult(pIdExpression.getDeclaration(), pIdExpression);
+      return new CPointerAssignmentVisitResult(
+          pIdExpression.getDeclaration(), Optional.empty(), pIdExpression);
     }
 
     @Override

@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -37,6 +38,11 @@ public class MPORSubstitutionTracker {
   record CVariableDeclarationTrackerResult(
       CVariableDeclaration variableDeclaration, CExpression expression) {}
 
+  record CDeclarationTrackerResult(
+      CVariableDeclaration declaration,
+      Optional<CCompositeTypeMemberDeclaration> fieldMember,
+      CExpression expression) {}
+
   /**
    * The set of accessed main function arguments, used to decide whether to assign them
    * non-deterministically. The nondet assignment may be expensive for some verifiers and should
@@ -46,16 +52,7 @@ public class MPORSubstitutionTracker {
 
   // POINTER ASSIGNMENTS ===========================================================================
 
-  /** Pointer assignments updates to the address. */
-  private final Map<CVariableDeclarationTrackerResult, CVariableDeclarationTrackerResult>
-      pointerAssignments;
-
-  /**
-   * e.g. {@code ptr = &outer.inner}. {@link CCompositeTypeMemberDeclaration} is always the
-   * innermost member, {@link CVariableDeclaration} the declaration of the outer struct.
-   */
-  private final Map<CVariableDeclarationTrackerResult, CFieldReferenceTrackerResult>
-      pointerFieldMemberAssignments;
+  private final Map<CDeclarationTrackerResult, CDeclarationTrackerResult> pointerAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
@@ -103,7 +100,6 @@ public class MPORSubstitutionTracker {
     accessedMainFunctionArgs = new HashSet<>();
 
     pointerAssignments = new HashMap<>();
-    pointerFieldMemberAssignments = new HashMap<>();
 
     accessedPointerDereferences = new HashSet<>();
     writtenPointerDereferences = new HashSet<>();
@@ -126,31 +122,21 @@ public class MPORSubstitutionTracker {
 
   void addPointerAssignment(
       CSimpleDeclaration pLeftHandSideDeclaration,
+      Optional<CCompositeTypeMemberDeclaration> pLeftHandSideFieldMemberDeclaration,
       CExpression pLeftHandSide,
       CSimpleDeclaration pRightHandSideDeclaration,
+      Optional<CCompositeTypeMemberDeclaration> pRightHandSideFieldMemberDeclaration,
       CExpression pRightHandSide) {
 
     pointerAssignments.put(
-        new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pLeftHandSideDeclaration), pLeftHandSide),
-        new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pRightHandSideDeclaration), pRightHandSide));
-  }
-
-  void addPointerFieldMemberAssignment(
-      CSimpleDeclaration pLeftHandSideDeclaration,
-      CExpression pLeftHandSide,
-      CSimpleDeclaration pFieldOwnerDeclaration,
-      CCompositeTypeMemberDeclaration pFieldMemberDeclaration,
-      CFieldReference pFieldReference) {
-
-    pointerFieldMemberAssignments.put(
-        new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pLeftHandSideDeclaration), pLeftHandSide),
-        new CFieldReferenceTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pFieldOwnerDeclaration),
-            pFieldMemberDeclaration,
-            pFieldReference));
+        new CDeclarationTrackerResult(
+            MPORUtil.convertToVariableDeclaration(pLeftHandSideDeclaration),
+            pLeftHandSideFieldMemberDeclaration,
+            pLeftHandSide),
+        new CDeclarationTrackerResult(
+            MPORUtil.convertToVariableDeclaration(pRightHandSideDeclaration),
+            pRightHandSideFieldMemberDeclaration,
+            pRightHandSide));
   }
 
   void addAccessedPointerDereference(
@@ -233,15 +219,8 @@ public class MPORSubstitutionTracker {
     return ImmutableSet.copyOf(accessedMainFunctionArgs);
   }
 
-  ImmutableMap<CVariableDeclarationTrackerResult, CVariableDeclarationTrackerResult>
-      getPointerAssignments() {
+  ImmutableMap<CDeclarationTrackerResult, CDeclarationTrackerResult> getPointerAssignments() {
     return ImmutableMap.copyOf(pointerAssignments);
-  }
-
-  ImmutableMap<CVariableDeclarationTrackerResult, CFieldReferenceTrackerResult>
-      getPointerFieldMemberAssignments() {
-
-    return ImmutableMap.copyOf(pointerFieldMemberAssignments);
   }
 
   // pointer dereferences
@@ -330,7 +309,6 @@ public class MPORSubstitutionTracker {
     return Objects.hash(
         accessedMainFunctionArgs,
         pointerAssignments,
-        pointerFieldMemberAssignments,
         accessedPointerDereferences,
         writtenPointerDereferences,
         accessedFieldReferencePointerDereferences,
@@ -349,7 +327,6 @@ public class MPORSubstitutionTracker {
     return pOther instanceof MPORSubstitutionTracker other
         && accessedMainFunctionArgs.equals(other.accessedMainFunctionArgs)
         && pointerAssignments.equals(other.pointerAssignments)
-        && pointerFieldMemberAssignments.equals(other.pointerFieldMemberAssignments)
         && accessedPointerDereferences.equals(other.accessedPointerDereferences)
         && writtenPointerDereferences.equals(other.writtenPointerDereferences)
         && accessedFieldReferencePointerDereferences.equals(

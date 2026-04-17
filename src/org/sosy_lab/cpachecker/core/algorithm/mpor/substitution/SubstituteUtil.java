@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -145,24 +146,14 @@ public class SubstituteUtil {
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
+      CDeclarationTrackerResult key = entry.getKey();
       SeqMemoryLocation leftHandSide =
-          SeqMemoryLocation.of(
-              pCallContext, entry.getKey().variableDeclaration(), entry.getKey().expression());
+          new SeqMemoryLocation(
+              pCallContext, key.declaration(), key.fieldMember(), key.expression());
+      CDeclarationTrackerResult value = entry.getValue();
       SeqMemoryLocation rightHandSide =
-          SeqMemoryLocation.of(
-              pCallContext, entry.getValue().variableDeclaration(), entry.getValue().expression());
-      rAssignments.put(leftHandSide, rightHandSide);
-    }
-    for (var entry : pTracker.getPointerFieldMemberAssignments().entrySet()) {
-      SeqMemoryLocation leftHandSide =
-          SeqMemoryLocation.of(
-              pCallContext, entry.getKey().variableDeclaration(), entry.getKey().expression());
-      SeqMemoryLocation rightHandSide =
-          SeqMemoryLocation.of(
-              pCallContext,
-              entry.getValue().fieldOwner(),
-              entry.getValue().fieldMember(),
-              entry.getValue().fieldReference());
+          new SeqMemoryLocation(
+              pCallContext, value.declaration(), value.fieldMember(), value.expression());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();
