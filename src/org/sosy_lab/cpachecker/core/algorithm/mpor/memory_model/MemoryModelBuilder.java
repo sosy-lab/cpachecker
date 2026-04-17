@@ -434,7 +434,7 @@ public record MemoryModelBuilder(
             MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
         // adjust the argument index, in case the function is variadic
         int variadicArgumentIndex;
-        if (i >= functionDeclaration.getParameters().size()) {
+        if (i > functionDeclaration.getParameters().size()) {
           checkState(functionDeclaration.getType().takesVarArgs());
           variadicArgumentIndex = i - functionDeclaration.getParameters().size();
         } else {

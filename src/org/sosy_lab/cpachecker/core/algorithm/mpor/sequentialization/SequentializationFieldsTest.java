@@ -122,7 +122,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(12);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(8);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     assertThat(memoryModel.pointerDereferences).isEmpty();
@@ -208,7 +208,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(47);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(45);
     assertThat(memoryModel.parameterAssignments).hasSize(2);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
@@ -235,7 +235,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(32);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(30);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     assertThat(memoryModel.pointerDereferences).isEmpty();
@@ -367,7 +367,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(3);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     // unsigned int * stack = static unsigned int arr[SIZE]
     // counts as pointer parameter assignments
