@@ -20,6 +20,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -75,13 +78,16 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CComment;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementBuilder;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
@@ -93,7 +99,8 @@ public record SeqThreadStatementBuilder(
     FunctionStatements functionStatements,
     ThreadSyncFlags threadSyncFlags,
     CLeftHandSide pcLeftHandSide,
-    ProgramCounterVariables pcVariables) {
+    ProgramCounterVariables pcVariables,
+    CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   private static final String REACH_ERROR_FUNCTION_NAME = "reach_error";
 
@@ -124,7 +131,7 @@ public record SeqThreadStatementBuilder(
 
   public ImmutableList<SeqThreadStatement> buildStatementsFromThreadNode(
       CFANodeForThread pThreadNode, Set<CFANodeForThread> pCoveredNodes)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
     for (CFAEdgeForThread threadEdge : pThreadNode.leavingEdges()) {
@@ -360,7 +367,7 @@ public record SeqThreadStatementBuilder(
 
   private SeqThreadStatement buildStatementFromThreadEdge(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
@@ -558,7 +565,7 @@ public record SeqThreadStatementBuilder(
 
   private SeqThreadStatement buildStatementFromPthreadFunction(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     CFunctionCall functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge).orElseThrow();
@@ -636,7 +643,7 @@ public record SeqThreadStatementBuilder(
 
   public SeqThreadStatement buildCondWaitStatement(
       CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
@@ -780,7 +787,7 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildMutexLockStatement(SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
@@ -793,7 +800,7 @@ public record SeqThreadStatementBuilder(
   }
 
   public SeqThreadStatement buildMutexUnlockStatement(SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
@@ -807,7 +814,7 @@ public record SeqThreadStatementBuilder(
 
   private ImmutableList<CCompoundStatementElement> buildMutexStatementsByStatementType(
       SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     ImmutableSet<SeqMemoryLocation> accessedMemoryLocations =
         pSubstituteEdge.getMemoryLocationsByAccessType(MemoryAccessType.ACCESS);
@@ -858,7 +865,7 @@ public record SeqThreadStatementBuilder(
       SeqThreadStatementType pStatementType,
       ImmutableSet<SeqMemoryLocation> pMutexPointerMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pMutexMemoryLocations)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     // a mutex pointer can target many memory locations, but we never expect multiple pointers
     checkState(
@@ -866,17 +873,34 @@ public record SeqThreadStatementBuilder(
         "mutexPointerMemoryLocations can have only one element.");
     checkState(!pMutexMemoryLocations.isEmpty(), "mutexMemoryLocations is empty");
 
+    // if there is only a single memory location for the mutex, just add the statements
     if (pMutexMemoryLocations.size() == 1) {
-      // if there is only a single memory location for the mutex, just add the statements
       MutexLockedFlag mutexLockedFlag =
           threadSyncFlags.getMutexLockedFlag(Iterables.getOnlyElement(pMutexMemoryLocations));
       return buildMutexStatements(pStatementType, mutexLockedFlag);
     }
 
-    // TODO
-    //  if there are multiple memory locations for the mutex, then matching the actual address is
-    //  necessary in an if-else chain, otherwise the analysis is unsound.
-    throw new UnsupportedCodeException("", null);
+    // if there are multiple memory locations for the mutex, then matching the actual address is
+    // necessary, otherwise the analysis is unsound.
+    CExpression mutexPointerExpression =
+        Objects.requireNonNull(Iterables.getOnlyElement(pMutexPointerMemoryLocations).expression());
+    ImmutableMap.Builder<CExportExpression, CCompoundStatement> statements = ImmutableMap.builder();
+    for (SeqMemoryLocation mutexMemoryLocation : pMutexMemoryLocations) {
+      CBinaryExpression pointerComparison =
+          binaryExpressionBuilder.buildBinaryExpression(
+              mutexPointerExpression,
+              Objects.requireNonNull(mutexMemoryLocation.expression()),
+              BinaryOperator.EQUALS);
+      ImmutableList<CCompoundStatementElement> mutexStatements =
+          buildMutexStatements(
+              pStatementType, threadSyncFlags.getMutexLockedFlag(mutexMemoryLocation));
+      statements.put(
+          new CExpressionWrapper(pointerComparison), new CCompoundStatement(mutexStatements));
+    }
+
+    return ImmutableList.of(
+        CMultiSelectionStatementBuilder.buildIfElseChain(
+            statements.buildOrThrow(), Optional.empty()));
   }
 
   private ImmutableList<CCompoundStatementElement> buildMutexStatements(

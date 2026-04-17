@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
 public record SeqThreadStatementClauseBuilder(
@@ -161,7 +160,7 @@ public record SeqThreadStatementClauseBuilder(
    * once via {@code pVisitedNodes}.
    */
   private ImmutableList<SeqThreadStatementClause> initClausesForSingleThread(
-      MPORThread pThread, Set<CFANodeForThread> pVisitedNodes) throws UnsupportedCodeException {
+      MPORThread pThread, Set<CFANodeForThread> pVisitedNodes) throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
     SeqThreadStatementBuilder statementBuilder =
@@ -173,7 +172,8 @@ public record SeqThreadStatementClauseBuilder(
             ghostElements.getFunctionStatementsByThread(pThread),
             ghostElements.threadSyncFlags(),
             ghostElements.getPcVariables().getPcLeftHandSide(pThread.id()),
-            ghostElements.getPcVariables());
+            ghostElements.getPcVariables(),
+            utils.binaryExpressionBuilder());
     for (CFANodeForThread threadNode : pThread.cfa().threadNodes) {
       if (pVisitedNodes.add(threadNode)) {
         rClauses.addAll(
@@ -193,7 +193,7 @@ public record SeqThreadStatementClauseBuilder(
       Set<CFANodeForThread> pCoveredNodes,
       CFANodeForThread pThreadNode,
       SeqThreadStatementBuilder pStatementBuilder)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -268,7 +268,7 @@ public record SeqThreadStatementClauseBuilder(
       int pLabelPc,
       int pTargetPc,
       SeqThreadStatementBuilder pStatementBuilder)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     Optional<CFunctionCall> optionalFunctionCall =
         PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge);
@@ -303,7 +303,7 @@ public record SeqThreadStatementClauseBuilder(
       int pLabelPc,
       int pTargetPc,
       SeqThreadStatementBuilder pStatementBuilder)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
 
