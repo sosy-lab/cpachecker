@@ -404,8 +404,7 @@ public class MPORSubstitution {
       CSimpleDeclaration pSimpleDeclaration,
       boolean pIsDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
-      MPORSubstitutionTracker pTracker)
-      throws UnsupportedCodeException {
+      MPORSubstitutionTracker pTracker) {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localVariableSubstitutes.contains(pCallContext, variableDeclaration)) {

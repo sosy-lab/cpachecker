@@ -214,7 +214,7 @@ public class MPORSubstitutionTrackerUtil {
   /** Checks if {@code pType} or any nested type is a {@link CPointerType}. */
   private static boolean isAnyCPointerType(CType pType) {
     TypeCollector typeCollector = new TypeCollector();
-    Void ignored = pType.accept(typeCollector);
+    pType.accept(typeCollector);
     return typeCollector.getCollectedTypes().stream().anyMatch(t -> t instanceof CPointerType);
   }
 
