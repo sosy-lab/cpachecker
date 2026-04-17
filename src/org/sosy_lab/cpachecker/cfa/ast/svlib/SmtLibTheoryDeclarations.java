@@ -399,4 +399,32 @@ public class SmtLibTheoryDeclarations {
         "bvlshr",
         ImmutableList.of());
   }
+
+  /* Bit Vector stuff not in the SMT-LIB FixedSizeBitVector theory but used by Z3 */
+
+  /** Used by Z3 */
+  public static SvLibFunctionDeclaration bitVectorSignedLessEqual(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "bvsle",
+        "bvsle",
+        ImmutableList.of());
+  }
+
+  /** Used by Z3 */
+  public static SvLibFunctionDeclaration bitVectorSignedLessThan(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "bvslt",
+        "bvslt",
+        ImmutableList.of());
+  }
 }
