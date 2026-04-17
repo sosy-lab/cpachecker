@@ -176,6 +176,12 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "bvult" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.bitVectorUnsignedLessThan(size), FileLocation.DUMMY);
+        case "bvslt" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorSignedLessThan(size), FileLocation.DUMMY);
+        case "bvsle" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorSignedLessEqual(size), FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType instanceof SvLibSmtLibBitVectorType bitVector
