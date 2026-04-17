@@ -427,4 +427,17 @@ public class SmtLibTheoryDeclarations {
         "bvslt",
         ImmutableList.of());
   }
+
+  /** Used by Z3 */
+  public static SvLibFunctionDeclaration bitVectorSignedDivision(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(pSize)),
+        "bvsdiv",
+        "bvsdiv",
+        ImmutableList.of());
+  }
 }

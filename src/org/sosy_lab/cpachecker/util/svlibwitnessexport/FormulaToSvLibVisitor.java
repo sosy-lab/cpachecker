@@ -223,6 +223,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "bvlshr" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.bitVectorLogicalShiftRight(size), FileLocation.DUMMY);
+        case "bvsdiv" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorSignedDivision(size), FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     }
