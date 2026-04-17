@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -397,40 +399,72 @@ public record MemoryModelBuilder(
         ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : substituteEdges) {
       // use the substitute edge, so that we use the substituted declarations
-      if (substituteEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
+      if (substituteEdge.cfaEdge instanceof CFunctionCallEdge) {
         CFAEdgeForThread callContext = substituteEdge.getThreadEdge();
-        rAssignments.putAll(buildParameterAssignments(callContext, functionCallEdge));
+        rAssignments.putAll(buildParameterAssignments(callContext, substituteEdge));
       }
     }
     return rAssignments.buildOrThrow();
   }
 
   private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> buildParameterAssignments(
-      CFAEdgeForThread pCallContext, CFunctionCallEdge pFunctionCallEdge)
+      CFAEdgeForThread pCallContext, SubstituteEdge pSubstituteEdge)
       throws UnsupportedCodeException {
+
+    checkArgument(
+        pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge,
+        "pSubstituteEdge.cfaEdge must be CFunctionCallEdge.");
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
+
+    CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pSubstituteEdge.cfaEdge;
     CFunctionDeclaration functionDeclaration =
-        pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
-    ImmutableList<CExpression> arguments = pFunctionCallEdge.getArguments();
+        functionCallEdge.getFunctionCallExpression().getDeclaration();
+    ImmutableList<CExpression> arguments = functionCallEdge.getArguments();
+
     for (int i = 0; i < arguments.size(); i++) {
       // we use both pointer and non-pointer parameters, e.g. 'global_ptr = &non_ptr_param;'
-      CParameterDeclaration leftHandSide =
-          MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
       CExpression argumentExpression = arguments.get(i);
       Optional<SeqMemoryLocation> rhsMemoryLocation =
           extractMemoryLocation(pCallContext, argumentExpression);
       if (rhsMemoryLocation.isPresent()) {
-        rAssignments.put(
-            SeqMemoryLocation.of(
-                Optional.of(pCallContext),
-                leftHandSide.asVariableDeclaration(),
-                argumentExpression),
-            rhsMemoryLocation.orElseThrow());
+        CParameterDeclaration lhsDeclaration =
+            MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
+        SeqMemoryLocation lhsMemoryLocation =
+            getParameterMemoryLocation(pCallContext, lhsDeclaration, i);
+        rAssignments.put(lhsMemoryLocation, rhsMemoryLocation.orElseThrow());
       }
     }
     return rAssignments.buildOrThrow();
+  }
+
+  private SeqMemoryLocation getParameterMemoryLocation(
+      CFAEdgeForThread pCallContext,
+      CParameterDeclaration pParameterDeclaration,
+      int pArgumentIndex) {
+
+    for (SubstituteEdge substituteEdge : substituteEdges) {
+      if (substituteEdge.getCallContext().isPresent()) {
+        if (substituteEdge.getCallContext().orElseThrow().equals(pCallContext)) {
+          if (substituteEdge.parameterSubstitutes.containsKey(pParameterDeclaration)) {
+            ImmutableList<CIdExpression> argumentExpressions =
+                substituteEdge.parameterSubstitutes.get(pParameterDeclaration);
+            if (pArgumentIndex < argumentExpressions.size()) {
+              CIdExpression idExpression = argumentExpressions.get(pArgumentIndex);
+              return SeqMemoryLocation.of(
+                  Optional.of(pCallContext),
+                  MPORUtil.convertToVariableDeclaration(idExpression.getDeclaration()),
+                  idExpression);
+            }
+          }
+        }
+      }
+    }
+    // this should never occur, even if a parameter is declared but never used inside a function
+    throw new IllegalArgumentException(
+        "Could not find memory location for the given pCallContext, pParameterDeclaration and"
+            + " pArgumentIndex.");
   }
 
   private Optional<SeqMemoryLocation> extractMemoryLocation(

@@ -49,6 +49,11 @@ void pass_parameter(int number) {
     local_increment(number);
     number += 1;
 }
+void unused_parameter(int number) {
+    if (x == 64) {
+        x = 32;
+    }
+}
 const int global_const = 0;
 int main() {
     const int local_const = 7;
@@ -89,6 +94,7 @@ int main() {
         }
     }
     pass_parameter(x);
+    unused_parameter(x);
     while (1) {
         local_increment(x);
     }
