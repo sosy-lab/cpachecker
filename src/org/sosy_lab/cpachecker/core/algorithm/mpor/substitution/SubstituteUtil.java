@@ -95,10 +95,8 @@ public class SubstituteUtil {
               pointerDereference.variableDeclaration(),
               pointerDereference.expression()));
     }
-    ImmutableSet<CFieldReferenceTrackerResult> fieldReferencePointerDereferences =
-        pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType);
     for (CFieldReferenceTrackerResult fieldReferencePointerDereference :
-        fieldReferencePointerDereferences) {
+        pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType)) {
       rPointerDereferences.add(
           SeqMemoryLocation.of(
               pCallContext,

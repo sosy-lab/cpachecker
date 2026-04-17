@@ -73,7 +73,9 @@ public class MPORSubstitution {
 
   /**
    * The map of parameter to variable declaration substitutes. The {@link CFAEdgeForThread}s allow
-   * call-context sensitive parameter substitutes.
+   * call-context sensitive parameter substitutes. The values are {@link ImmutableList} because a
+   * single {@link CParameterDeclaration} may map to multiple {@link CIdExpression} if the function
+   * takes variadic arguments.
    */
   public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
       parameterSubstitutes;
@@ -81,7 +83,7 @@ public class MPORSubstitution {
   /** Note that main functions cannot take variadic arguments. */
   public final ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes;
 
-  /** Note that main functions cannot take variadic arguments. */
+  /** Note that start routines cannot take variadic arguments. */
   public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
       startRoutineArgSubstitutes;
 
@@ -457,7 +459,7 @@ public class MPORSubstitution {
       // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
       // -> void assume_abort_if_not(int);
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCallContext.cfaEdge;
-      List<CParameterDeclaration> parameterDeclarations =
+      ImmutableList<CParameterDeclaration> parameterDeclarations =
           functionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
       // search for the corresponding parameter, throw if not found
       for (CParameterDeclaration parameterDeclarationWithoutName : parameterDeclarations) {
