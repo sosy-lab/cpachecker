@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Map.Entry;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -179,61 +178,23 @@ public class MPORSubstitutionTrackerUtil {
     if (leftHandSide instanceof CIdExpression lhsId) {
       CSimpleDeclaration lhsDeclaration = lhsId.getDeclaration();
       if (lhsDeclaration.getType() instanceof CPointerType) {
-        CExpression rightHandSide = pAssignment.getRightHandSide();
-        Optional<CSimpleDeclaration> pointerDeclaration =
-            tryExtractSingleDeclaration(rightHandSide);
-        if (pointerDeclaration.isPresent()) {
-          pTracker.addPointerAssignment(
-              lhsDeclaration, lhsId, pointerDeclaration.orElseThrow(), rightHandSide);
-        } else {
-          Optional<CFieldReferenceTrackerResult> fieldMemberPointer =
-              tryGetFieldMemberPointer(rightHandSide);
-          if (fieldMemberPointer.isPresent()) {
-            pTracker.addPointerFieldMemberAssignment(
-                lhsDeclaration,
-                lhsId,
-                fieldMemberPointer.orElseThrow().fieldOwner(),
-                fieldMemberPointer.orElseThrow().fieldMember(),
-                fieldMemberPointer.orElseThrow().fieldReference());
-          }
+        CPointerAssignmentVisitResult visitResult =
+            pAssignment.getRightHandSide().accept(new CPointerAssignmentVisitor());
+        switch (visitResult) {
+          case CPointerAssignmentExpressionResult expressionResult ->
+              pTracker.addPointerAssignment(
+                  lhsDeclaration, lhsId, expressionResult.declaration, expressionResult.expression);
+          case CPointerAssignmentFieldReferenceResult fieldReferenceResult ->
+              pTracker.addPointerFieldMemberAssignment(
+                  lhsDeclaration,
+                  lhsId,
+                  fieldReferenceResult.fieldOwner,
+                  fieldReferenceResult.fieldMember,
+                  fieldReferenceResult.fieldReference);
+          default -> throw new IllegalStateException("Unexpected value: " + visitResult);
         }
       }
     }
-  }
-
-  /**
-   * Returns an {@link Entry} that maps the {@link CSimpleDeclaration} of the outermost field owner
-   * to the {@link CCompositeTypeMemberDeclaration} of the innermost field member accessed in {@code
-   * pExpression} and {@link Optional#empty()} if it can't be found.
-   */
-  private static Optional<CFieldReferenceTrackerResult> tryGetFieldMemberPointer(
-      CExpression pExpression) throws UnsupportedCodeException {
-
-    // e.g. 'ptr = &field.member;'
-    if (pExpression instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
-        return Optional.of(getFieldMemberPointer(fieldReference));
-      }
-
-      // e.g. 'ptr = field.member;' where member is a pointer
-    } else if (pExpression instanceof CFieldReference fieldReference) {
-      return Optional.of(getFieldMemberPointer(fieldReference));
-    }
-    return Optional.empty();
-  }
-
-  private static CFieldReferenceTrackerResult getFieldMemberPointer(CFieldReference pFieldReference)
-      throws UnsupportedCodeException {
-
-    CIdExpression idExpression = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
-    CType type =
-        idExpression.getExpressionType() instanceof CPointerType pointerType
-            ? pointerType.getType()
-            : idExpression.getExpressionType();
-    return new CFieldReferenceTrackerResult(
-        MPORUtil.convertToVariableDeclaration(idExpression.getDeclaration()),
-        MPORUtil.recursivelyFindFieldMemberByFieldOwner(pFieldReference, type),
-        pFieldReference);
   }
 
   public static void trackPointerAssignmentInVariableDeclaration(
@@ -385,13 +346,82 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  /** Extracts the single {@link CSimpleDeclaration} of {@code pExpression} if it can be found. */
+  private interface CPointerAssignmentVisitResult {}
+
+  private record CPointerAssignmentExpressionResult(
+      CSimpleDeclaration declaration, CExpression expression)
+      implements CPointerAssignmentVisitResult {}
+
+  private record CPointerAssignmentFieldReferenceResult(
+      CSimpleDeclaration fieldOwner,
+      CCompositeTypeMemberDeclaration fieldMember,
+      CFieldReference fieldReference)
+      implements CPointerAssignmentVisitResult {}
+
+  private static final class CPointerAssignmentVisitor
+      extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, UnsupportedCodeException> {
+
+    @Override
+    public CPointerAssignmentVisitResult visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws UnsupportedCodeException {
+      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
+    }
+
+    @Override
+    public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference)
+        throws UnsupportedCodeException {
+
+      CPointerAssignmentExpressionResult fieldOwnerResult =
+          (CPointerAssignmentExpressionResult) pFieldReference.getFieldOwner().accept(this);
+      CCompositeTypeMemberDeclaration fieldMember =
+          MPORUtil.recursivelyFindFieldMemberByFieldOwner(
+              pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
+      return new CPointerAssignmentFieldReferenceResult(
+          fieldOwnerResult.declaration, fieldMember, pFieldReference);
+    }
+
+    @Override
+    public CPointerAssignmentVisitResult visit(CPointerExpression pPointerExpression)
+        throws UnsupportedCodeException {
+      return pPointerExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public CPointerAssignmentVisitResult visit(CComplexCastExpression pComplexCastExpression)
+        throws UnsupportedCodeException {
+      return pComplexCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public CPointerAssignmentVisitResult visit(CCastExpression pCastExpression)
+        throws UnsupportedCodeException {
+      return pCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public CPointerAssignmentVisitResult visit(CUnaryExpression pUnaryExpression)
+        throws UnsupportedCodeException {
+      return pUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public CPointerAssignmentVisitResult visit(CIdExpression pIdExpression) {
+      return new CPointerAssignmentExpressionResult(pIdExpression.getDeclaration(), pIdExpression);
+    }
+
+    @Override
+    protected @Nullable CPointerAssignmentVisitResult visitDefault(CExpression exp) {
+      return null;
+    }
+  }
+
+  /** Extracts the single {@link CSimpleDeclaration} of {@code expression} if it can be found. */
   private static Optional<CSimpleDeclaration> tryExtractSingleDeclaration(CExpression pExpression)
       throws UnsupportedCodeException {
 
     checkArgument(
         !(pExpression instanceof CBinaryExpression),
-        "pExpression cannot be CBinaryExpression, since there may be multiple"
+        "expression cannot be CBinaryExpression, since there may be multiple"
             + " CSimpleDeclarations.");
     CIdExpression idExpression = pExpression.accept(new CPointerDeclarationVisitor());
     return Optional.ofNullable(idExpression).map(CIdExpression::getDeclaration);
