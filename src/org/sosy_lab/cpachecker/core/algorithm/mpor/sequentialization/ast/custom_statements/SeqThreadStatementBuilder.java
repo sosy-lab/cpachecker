@@ -828,11 +828,14 @@ public record SeqThreadStatementBuilder(
     ImmutableSet<SeqMemoryLocation> mutexNonPointerMemoryLocations =
         PthreadUtil.getNonPointerMemoryLocationsByPthreadObject(
             accessedMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
-    // TODO does this also hold for mutexes passed on as parameters? then this does not work on
-    //  the actual memory location, but the parameter memory location -> add test
     if (!mutexNonPointerMemoryLocations.isEmpty()) {
-      return buildMutexStatementsByNonPointerMemoryLocation(
-          pStatementType, mutexNonPointerMemoryLocations);
+      checkState(
+          mutexNonPointerMemoryLocations.size() == 1,
+          "mutexNonPointerMemoryLocations must have exactly one element.");
+      MutexLockedFlag mutexLockedFlag =
+          threadSyncFlags.getMutexLockedFlag(
+              Iterables.getOnlyElement(mutexNonPointerMemoryLocations));
+      return buildMutexStatements(pStatementType, mutexLockedFlag);
     }
 
     // Accesses to mutex pointers are treated as dereferences, even if they are not actually
@@ -851,19 +854,6 @@ public record SeqThreadStatementBuilder(
 
     return buildMutexStatementsByPointerMemoryLocations(
         pStatementType, mutexPointerMemoryLocations, mutexMemoryLocations);
-  }
-
-  private ImmutableList<CCompoundStatementElement> buildMutexStatementsByNonPointerMemoryLocation(
-      SeqThreadStatementType pStatementType,
-      ImmutableSet<SeqMemoryLocation> pMutexNonPointerMemoryLocations) {
-
-    checkArgument(
-        pMutexNonPointerMemoryLocations.size() == 1,
-        "pMutexNonPointerMemoryLocations must have exactly one element.");
-    MutexLockedFlag mutexLockedFlag =
-        threadSyncFlags.getMutexLockedFlag(
-            Iterables.getOnlyElement(pMutexNonPointerMemoryLocations));
-    return buildMutexStatements(pStatementType, mutexLockedFlag);
   }
 
   private ImmutableList<CCompoundStatementElement> buildMutexStatementsByPointerMemoryLocations(

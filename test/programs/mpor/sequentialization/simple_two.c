@@ -68,6 +68,11 @@ void unused_parameter(int number) {
         x = 32;
     }
 }
+void pass_mutex(pthread_mutex_t the_mutex) {
+    pthread_mutex_lock(&the_mutex);
+    printk("another print");
+    pthread_mutex_unlock(&the_mutex);
+}
 void pass_mutex_pointer(pthread_mutex_t *the_mutex_pointer) {
     pthread_mutex_lock(the_mutex_pointer);
     printk("mutex pointer sandwich");
@@ -93,6 +98,8 @@ int main() {
     pthread_mutex_lock(mutex_ptr);
     x = 42;
     pthread_mutex_unlock(mutex_ptr);
+
+    pass_mutex(mutexA);
     pass_mutex_pointer(mutex_ptr);
 
     PQUEUE *ptr_to_struct;
@@ -102,6 +109,9 @@ int main() {
         ptr_to_struct = &another_struct_with_mutex;
     }
     pthread_mutex_lock(ptr_to_struct->inner_mutex);
+
+    struct_with_mutex_ptr.inner_mutex_pointer = &mutexA;
+    yet_another_struct_with_mutex_ptr.inner_mutex_pointer = &mutexB;
 
     PQUEUE_PTR *ptr_to_struct_with_ptr;
     if (x == 987654321) {
