@@ -61,6 +61,8 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
       SvLibSmtLibType indexType = formulaTypeToSvLibType(pFormulaType.getIndexType());
       SvLibSmtLibType elementType = formulaTypeToSvLibType(pFormulaType.getElementType());
       return new SvLibSmtLibArrayType(indexType, elementType);
+    } else if (formulaType instanceof FormulaType.BitvectorType bitVectorType) {
+      return new SvLibSmtLibBitVectorType(bitVectorType.getSize());
     }
 
     throw new UnsupportedOperationException("Unsupported formula type: " + formulaType);
