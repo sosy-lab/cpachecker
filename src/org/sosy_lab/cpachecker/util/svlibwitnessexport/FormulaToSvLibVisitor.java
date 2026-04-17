@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.svlibwitnessexport;
 
 import com.google.common.base.Splitter;
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
@@ -252,7 +253,12 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
     } else if (pO instanceof BigInteger pInteger && pFormula instanceof IntegerFormula) {
       return new SvLibIntegerConstantTerm(pInteger, FileLocation.DUMMY);
     } else if (pO instanceof BigInteger pInteger && pFormula instanceof BitvectorFormula) {
-      return new SvLibBitVectorConstantTerm(pInteger, 32, FileLocation.DUMMY);
+      FormulaType<?> formulaType = fmgr.getFormulaType(pFormula);
+      Verify.verify(
+          formulaType instanceof FormulaType.BitvectorType,
+          "Obtained a bitvector formula which does not have the bitvector type");
+      return new SvLibBitVectorConstantTerm(
+          pInteger, ((FormulaType.BitvectorType) formulaType).getSize(), FileLocation.DUMMY);
     } else if (pO instanceof Rational pRational) {
       return new SvLibRealConstantTerm(pRational, FileLocation.DUMMY);
     }
