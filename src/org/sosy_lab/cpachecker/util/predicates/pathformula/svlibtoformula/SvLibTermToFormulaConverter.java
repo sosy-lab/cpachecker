@@ -15,6 +15,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibGeneralSymbolApplicationTerm;
@@ -84,6 +85,10 @@ public class SvLibTermToFormulaConverter {
           fmgr.getBooleanFormulaManager().makeBoolean(pSvLibBooleanConstantTerm.getValue());
       case SvLibRealConstantTerm pSvLibRealConstantTerm ->
           fmgr.getRationalFormulaManager().makeNumber(pSvLibRealConstantTerm.getValue());
+      case SvLibBitVectorConstantTerm pSvLibBitVectorConstantTerm ->
+          fmgr.getBitvectorFormulaManager()
+              .makeBitvector(
+                  pSvLibBitVectorConstantTerm.getSize(), pSvLibBitVectorConstantTerm.getValue());
     };
   }
 

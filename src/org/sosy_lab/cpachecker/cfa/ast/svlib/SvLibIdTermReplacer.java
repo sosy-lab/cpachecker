@@ -96,4 +96,10 @@ public abstract class SvLibIdTermReplacer
       throws NoException {
     return pSvLibRealConstantTerm;
   }
+
+  @Override
+  public SvLibRelationalTerm accept(SvLibBitVectorConstantTerm pSvLibBitVectorConstantTerm)
+      throws NoException {
+    return pSvLibBitVectorConstantTerm;
+  }
 }

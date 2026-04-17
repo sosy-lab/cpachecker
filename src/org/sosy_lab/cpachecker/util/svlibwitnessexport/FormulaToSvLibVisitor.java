@@ -18,6 +18,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
@@ -32,11 +33,13 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
@@ -246,8 +249,10 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
   public SvLibTerm visitConstant(Formula pFormula, Object pO) {
     if (pO instanceof Boolean pBoolean) {
       return new SvLibBooleanConstantTerm(pBoolean, FileLocation.DUMMY);
-    } else if (pO instanceof BigInteger pInteger) {
+    } else if (pO instanceof BigInteger pInteger && pFormula instanceof IntegerFormula) {
       return new SvLibIntegerConstantTerm(pInteger, FileLocation.DUMMY);
+    } else if (pO instanceof BigInteger pInteger && pFormula instanceof BitvectorFormula) {
+      return new SvLibBitVectorConstantTerm(pInteger, 32, FileLocation.DUMMY);
     } else if (pO instanceof Rational pRational) {
       return new SvLibRealConstantTerm(pRational, FileLocation.DUMMY);
     }
