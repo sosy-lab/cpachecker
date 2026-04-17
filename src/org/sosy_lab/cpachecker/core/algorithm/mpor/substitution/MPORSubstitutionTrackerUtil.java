@@ -385,7 +385,7 @@ public class MPORSubstitutionTrackerUtil {
     @Override
     public CPointerAssignmentVisitResult visit(CArraySubscriptExpression pArraySubscriptExpression)
         throws UnsupportedCodeException {
-      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
+      return pArraySubscriptExpression.getArrayExpression().accept(this);
     }
 
     @Override

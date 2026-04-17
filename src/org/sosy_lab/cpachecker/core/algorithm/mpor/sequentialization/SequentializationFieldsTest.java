@@ -271,7 +271,7 @@ public class SequentializationFieldsTest {
     // TODO should actually be 9, though 6 is still fine (overapproximation)
     // check that each member of queue struct is identified as relevant individually
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(6);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerAssignments).hasSize(2);
     // 2 in main, 3 in t1, 1 in t2
     // (pthread_mutex_lock(&m) does not count as pointer parameter assignment)
     assertThat(memoryModel.pointerParameterAssignments).hasSize(6);
@@ -380,7 +380,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(3);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerAssignments).hasSize(1);
     // unsigned int * stack = static unsigned int arr[SIZE]
     // counts as pointer parameter assignments
     assertThat(memoryModel.pointerParameterAssignments).hasSize(2);
