@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
@@ -887,11 +889,16 @@ public record SeqThreadStatementBuilder(
         Objects.requireNonNull(Iterables.getOnlyElement(pMutexPointerMemoryLocations).expression());
     ImmutableMap.Builder<CExportExpression, CCompoundStatement> statements = ImmutableMap.builder();
     for (SeqMemoryLocation mutexMemoryLocation : pMutexMemoryLocations) {
+      CType mutexType = mutexMemoryLocation.declaration().getType();
+      CUnaryExpression unaryExpression =
+          new CUnaryExpression(
+              FileLocation.DUMMY,
+              new CPointerType(mutexType.getQualifiers(), mutexType),
+              mutexMemoryLocation.expression(),
+              UnaryOperator.AMPER);
       CBinaryExpression pointerComparison =
           binaryExpressionBuilder.buildBinaryExpression(
-              mutexPointerExpression,
-              Objects.requireNonNull(mutexMemoryLocation.expression()),
-              BinaryOperator.EQUALS);
+              mutexPointerExpression, unaryExpression, BinaryOperator.EQUALS);
       ImmutableList<CCompoundStatementElement> mutexStatements =
           buildMutexStatements(
               pStatementType, threadSyncFlags.getMutexLockedFlag(mutexMemoryLocation));
