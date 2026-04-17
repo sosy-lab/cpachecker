@@ -358,6 +358,9 @@ public class MPORSubstitutionTrackerUtil {
     if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
       trackFieldReferenceByElaboratedType(
           pFieldReference, pIdExpression, elaboratedType, pIsWrite, pTracker);
+    } else if (pTypedefType.getRealType() instanceof CTypedefType typeDefType) {
+      trackFieldReferenceByTypedefType(
+          pFieldReference, pIdExpression, typeDefType, pIsWrite, pTracker);
     }
   }
 
