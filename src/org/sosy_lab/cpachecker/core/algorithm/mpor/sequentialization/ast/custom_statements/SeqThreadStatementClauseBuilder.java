@@ -114,7 +114,7 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
         ImmutableListMultimap.builder();
     for (MPORSubstitution substitution : substitutions) {
-      MPORThread thread = substitution.thread;
+      MPORThread thread = substitution.getThread();
       rClauses.putAll(thread, initClausesForSingleThread(thread, new HashSet<>()));
     }
     // only check pc validation, since clauses are not reordered at this point

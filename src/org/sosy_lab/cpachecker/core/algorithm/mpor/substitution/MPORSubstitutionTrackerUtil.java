@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -44,7 +43,7 @@ public class MPORSubstitutionTrackerUtil {
 
   // Copy ==========================================================================================
 
-  public static void copyContents(MPORSubstitutionTracker pFrom, MPORSubstitutionTracker pTo)
+  private static void copyContents(MPORSubstitutionTracker pFrom, MPORSubstitutionTracker pTo)
       throws UnsupportedCodeException {
 
     for (CVariableDeclaration mainFunctionArg : pFrom.getAccessedMainFunctionArgs()) {
@@ -120,7 +119,7 @@ public class MPORSubstitutionTrackerUtil {
    * sets. {@code pIsWrite} is used to determine whether the expression to substitute is written,
    * i.e. a LHS in an assignment.
    */
-  public static void trackDeclarationAccess(
+  static void trackDeclarationAccess(
       MPOROptions pOptions,
       CIdExpression pIdExpression,
       boolean pIsWrite,
@@ -150,7 +149,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  public static void trackContentFromLocalVariableDeclaration(
+  static void trackContentFromLocalVariableDeclaration(
       boolean pIsDeclaration,
       LocalVariableDeclarationSubstitute pLocalVariableDeclarationSubstitute,
       MPORSubstitutionTracker pTracker)
@@ -166,7 +165,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  public static void trackPointerAssignment(
+  static void trackPointerAssignment(
       CExpressionAssignmentStatement pAssignment, MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
@@ -181,7 +180,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  public static void trackPointerAssignmentInVariableDeclaration(
+  static void trackPointerAssignmentInVariableDeclaration(
       CVariableDeclaration pVariableDeclaration, MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
@@ -228,7 +227,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  public static void trackPointerDereferenceByPointerExpression(
+  static void trackPointerDereferenceByPointerExpression(
       CPointerExpression pPointerExpression, boolean pIsWrite, MPORSubstitutionTracker pTracker) {
 
     if (pPointerExpression.getOperand() instanceof CIdExpression idExpression) {
@@ -242,7 +241,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  public static void trackPointerDereferenceByArraySubscriptExpression(
+  static void trackPointerDereferenceByArraySubscriptExpression(
       CArraySubscriptExpression pArraySubscriptExpression,
       boolean pIsWrite,
       MPORSubstitutionTracker pTracker) {
@@ -263,7 +262,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  public static void trackPointerDereferenceByFieldReference(
+  private static void trackPointerDereferenceByFieldReference(
       CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
@@ -283,7 +282,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  public static void trackFieldReference(
+  static void trackFieldReference(
       CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
@@ -312,7 +311,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  public static void trackFieldReferenceByTypedefType(
+  private static void trackFieldReferenceByTypedefType(
       CFieldReference pFieldReference,
       CIdExpression pIdExpression,
       CTypedefType pTypedefType,
@@ -329,7 +328,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  public static void trackFieldReferenceByElaboratedType(
+  private static void trackFieldReferenceByElaboratedType(
       CFieldReference pFieldReference,
       CIdExpression pIdExpression,
       CElaboratedType pElaboratedType,

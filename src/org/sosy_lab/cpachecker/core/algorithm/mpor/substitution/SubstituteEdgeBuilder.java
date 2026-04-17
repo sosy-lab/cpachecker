@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -42,9 +41,7 @@ public class SubstituteEdgeBuilder {
     // using map so that we can use .containsKey (+ linked hash map retains insertion order)
     Map<CFAEdgeForThread, SubstituteEdge> rSubstituteEdges = new LinkedHashMap<>();
     for (MPORSubstitution substitution : pSubstitutions) {
-      MPORThread thread = substitution.thread;
-
-      for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
+      for (CFAEdgeForThread threadEdge : substitution.getThread().cfa().threadEdges) {
         // prevent duplicate keys by excluding parallel edges
         if (!rSubstituteEdges.containsKey(threadEdge)) {
           CFAEdge cfaEdge = threadEdge.cfaEdge;
@@ -75,7 +72,7 @@ public class SubstituteEdgeBuilder {
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     Optional<CFAEdgeForThread> callContext =
         MPORThreadUtil.getCallContextOrStartRoutineCall(
-            pThreadEdge.callContext, pSubstitution.thread);
+            pThreadEdge.callContext, pSubstitution.getThread());
 
     if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
       // TODO what about structs?

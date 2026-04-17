@@ -57,7 +57,7 @@ public class MPORSubstitution {
 
   private final MPOROptions options;
 
-  public final MPORThread thread;
+  private final MPORThread thread;
 
   /**
    * The list of entries mapping global variable declarations to their substitutes. This does not
@@ -473,7 +473,7 @@ public class MPORSubstitution {
         "parameter declaration could not be found for given call context");
   }
 
-  public CVariableDeclaration getVariableDeclarationSubstitute(
+  CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker)

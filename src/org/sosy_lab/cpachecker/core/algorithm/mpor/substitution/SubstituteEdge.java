@@ -44,22 +44,22 @@ public class SubstituteEdge {
   // POINTER DEREFERENCES ==========================================================================
 
   /** The set of accessed pointer dereferences i.e. reads and writes. */
-  public final ImmutableSet<SeqMemoryLocation> accessedPointerDereferences;
+  final ImmutableSet<SeqMemoryLocation> accessedPointerDereferences;
 
   /** The set of read pointer dereferences including reads, e.g. {@code var = 42 + *ptr;} */
-  public final ImmutableSet<SeqMemoryLocation> readPointerDereferences;
+  private final ImmutableSet<SeqMemoryLocation> readPointerDereferences;
 
   /** The set of written pointer dereferences, .e.g {@code *ptr = 42;} */
-  public final ImmutableSet<SeqMemoryLocation> writtenPointerDereferences;
+  private final ImmutableSet<SeqMemoryLocation> writtenPointerDereferences;
 
   // MEMORY LOCATIONS ==============================================================================
 
   /** The set of global variable declarations that this edge accesses. */
-  public final ImmutableSet<SeqMemoryLocation> accessedMemoryLocations;
+  final ImmutableSet<SeqMemoryLocation> accessedMemoryLocations;
 
-  public final ImmutableSet<SeqMemoryLocation> readMemoryLocations;
+  private final ImmutableSet<SeqMemoryLocation> readMemoryLocations;
 
-  public final ImmutableSet<SeqMemoryLocation> writtenMemoryLocations;
+  private final ImmutableSet<SeqMemoryLocation> writtenMemoryLocations;
 
   private SubstituteEdge(
       CFAEdge pCfaEdge,
@@ -99,7 +99,7 @@ public class SubstituteEdge {
         Sets.symmetricDifference(writtenMemoryLocations, accessedMemoryLocations).immutableCopy();
   }
 
-  public static SubstituteEdge of(CFAEdge pCfaEdge, CFAEdgeForThread pThreadEdge) {
+  static SubstituteEdge of(CFAEdge pCfaEdge, CFAEdgeForThread pThreadEdge) {
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
@@ -116,7 +116,7 @@ public class SubstituteEdge {
    * Creates a {@link SubstituteEdge} based on the {@link MPORSubstitutionTracker} in {@code
    * pTracker}.
    */
-  public static SubstituteEdge of(
+  static SubstituteEdge of(
       CFAEdge pCfaEdge,
       CFAEdgeForThread pThreadEdge,
       MPORSubstitution pSubstitution,
