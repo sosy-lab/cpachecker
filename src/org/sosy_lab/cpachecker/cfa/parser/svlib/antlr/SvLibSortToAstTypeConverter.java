@@ -8,10 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
+import com.google.common.base.Verify;
+import java.math.BigInteger;
 import java.nio.file.Path;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.IdentifierSymbolContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.IdentifierUnderscoreContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ParametricSortContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SimpleSortContext;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
@@ -26,8 +31,26 @@ public class SvLibSortToAstTypeConverter extends AbstractAntlrToAstConverter<SvL
   }
 
   @Override
+  public SvLibType visitIdentifierSymbol(IdentifierSymbolContext pContext) {
+    return scope.getTypeForName(pContext.getText());
+  }
+
+  @Override
+  public SvLibType visitIdentifierUnderscore(IdentifierUnderscoreContext pContext) {
+    if (pContext.symbol().getText().equals("BitVec")) {
+      Verify.verify(pContext.index().size() == 1, "BitVec should have exactly one index");
+      BigInteger bitvectorSize = new BigInteger(pContext.index(0).getText());
+      // In case the parsed int does not fit into an integer we want to crash explicitly
+      return new SvLibSmtLibBitVectorType(bitvectorSize.intValueExact());
+    }
+
+    throw new UnsupportedOperationException(
+        "Underscore sorts apart from bitvectors are not yet implemented");
+  }
+
+  @Override
   public SvLibType visitSimpleSort(SimpleSortContext pContext) {
-    return scope.getTypeForName(pContext.identifier().getText());
+    return visit(pContext.identifier());
   }
 
   @Override

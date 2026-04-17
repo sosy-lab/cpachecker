@@ -756,8 +756,8 @@ index
     ;
 
 identifier
-    : symbol
-    | ParOpen GRW_Underscore symbol index+ ParClose
+    : symbol                                          # IdentifierSymbol
+    | ParOpen GRW_Underscore symbol index+ ParClose   # IdentifierUnderscore
     ;
 
 // Attributes
