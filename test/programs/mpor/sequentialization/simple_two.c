@@ -80,6 +80,8 @@ int main() {
     pthread_mutex_lock(mutex_ptr);
     x = 42;
     pthread_mutex_unlock(mutex_ptr);
+    PQUEUE *ptr_to_struct_with_mutex = &struct_with_mutex;
+    pthread_mutex_lock(ptr_to_struct_with_mutex->inner_mutex);
     pthread_mutex_destroy(&mutexA);
     pthread_mutex_destroy(&mutexB);
     pthread_mutex_destroy(&struct_with_mutex.inner_mutex);

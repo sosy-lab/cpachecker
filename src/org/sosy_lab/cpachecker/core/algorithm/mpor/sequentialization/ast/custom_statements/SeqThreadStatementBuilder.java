@@ -818,19 +818,21 @@ public record SeqThreadStatementBuilder(
       SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge)
       throws UnrecognizedCodeException {
 
-    ImmutableSet<SeqMemoryLocation> accessedMemoryLocations =
+    // all memory locations (potentially) accessed in pSubstituteEdge including aliased pointers
+    ImmutableSet<SeqMemoryLocation> allMemoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
             pSubstituteEdge, memoryModel, MemoryAccessType.ACCESS);
 
-    // First check the non-pointer memory locations. Example: pthread_mutex_lock(&m);
+    // First check the non-pointer memory locations which is the usual case for mutexes.
+    // Example: pthread_mutex_lock(&m);
     ImmutableSet<SeqMemoryLocation> mutexNonPointerMemoryLocations =
         PthreadUtil.getNonPointerMemoryLocationsByPthreadObject(
-            accessedMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
+            allMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
     // TODO does this also hold for mutexes passed on as parameters? then this does not work on
     //  the actual memory location, but the parameter memory location -> add test
     if (!mutexNonPointerMemoryLocations.isEmpty()) {
       return buildMutexStatementsByNonPointerMemoryLocation(
-          pStatementType, accessedMemoryLocations);
+          pStatementType, mutexNonPointerMemoryLocations);
     }
 
     // Accesses to mutex pointers are treated as dereferences, even if they are not actually
@@ -842,7 +844,7 @@ public record SeqThreadStatementBuilder(
     // dereferenced to find the associated memory locations of 'm_ptr'.
     ImmutableSet<SeqMemoryLocation> mutexPointerMemoryLocations =
         PthreadUtil.getPointerMemoryLocationsByPthreadObject(
-            accessedMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
+            allMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
     ImmutableSet<SeqMemoryLocation> mutexMemoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereferences(
             mutexPointerMemoryLocations, memoryModel);
