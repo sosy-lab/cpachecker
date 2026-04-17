@@ -842,7 +842,7 @@ public record SeqThreadStatementBuilder(
         PthreadUtil.getPointerMemoryLocationsByPthreadObject(
             accessedMemoryLocations, PthreadObjectType.PTHREAD_MUTEX_T);
     ImmutableSet<SeqMemoryLocation> mutexMemoryLocations =
-        SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdgeAndPointerDereferences(
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereferences(
             mutexPointerMemoryLocations, memoryModel);
 
     return buildMutexStatementsByPointerMemoryLocations(

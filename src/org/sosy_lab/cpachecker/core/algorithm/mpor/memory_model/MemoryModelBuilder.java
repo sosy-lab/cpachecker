@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -397,9 +396,8 @@ public record MemoryModelBuilder(
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : substituteEdges) {
-      // use the original edge, so that we use the original variable declarations
-      CFAEdge original = substituteEdge.getOriginalCfaEdge();
-      if (original instanceof CFunctionCallEdge functionCallEdge) {
+      // use the substitute edge, so that we use the substituted declarations
+      if (substituteEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
         CFAEdgeForThread callContext = substituteEdge.getThreadEdge();
         rAssignments.putAll(buildParameterAssignments(callContext, functionCallEdge));
       }
@@ -415,7 +413,7 @@ public record MemoryModelBuilder(
         ImmutableMap.builder();
     CFunctionDeclaration functionDeclaration =
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
-    List<CExpression> arguments = pFunctionCallEdge.getArguments();
+    ImmutableList<CExpression> arguments = pFunctionCallEdge.getArguments();
     for (int i = 0; i < arguments.size(); i++) {
       // we use both pointer and non-pointer parameters, e.g. 'global_ptr = &non_ptr_param;'
       CParameterDeclaration leftHandSide =

@@ -126,14 +126,13 @@ public class SeqMemoryLocationFinder {
     return ImmutableSet.<SeqMemoryLocation>builder()
         .addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType))
         .addAll(
-            findMemoryLocationsBySubstituteEdgeAndPointerDereferences(
+            findMemoryLocationsByPointerDereferences(
                 pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType), pMemoryModel))
         .build();
   }
 
-  public static ImmutableSet<SeqMemoryLocation>
-      findMemoryLocationsBySubstituteEdgeAndPointerDereferences(
-          ImmutableSet<SeqMemoryLocation> pPointerDereferences, MemoryModel pMemoryModel) {
+  public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereferences(
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences, MemoryModel pMemoryModel) {
 
     return pPointerDereferences.stream()
         .flatMap(
