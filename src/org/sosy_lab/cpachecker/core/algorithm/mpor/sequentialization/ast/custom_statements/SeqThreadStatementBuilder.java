@@ -854,7 +854,7 @@ public record SeqThreadStatementBuilder(
 
     checkArgument(
         pMutexNonPointerMemoryLocations.size() == 1,
-        "accessedMemoryLocations can have only one element.");
+        "pMutexNonPointerMemoryLocations must have exactly one element.");
     MutexLockedFlag mutexLockedFlag =
         threadSyncFlags.getMutexLockedFlag(
             Iterables.getOnlyElement(pMutexNonPointerMemoryLocations));
@@ -870,8 +870,8 @@ public record SeqThreadStatementBuilder(
     // a mutex pointer can target many memory locations, but we never expect multiple pointers
     checkState(
         pMutexPointerMemoryLocations.size() == 1,
-        "mutexPointerMemoryLocations can have only one element.");
-    checkState(!pMutexMemoryLocations.isEmpty(), "mutexMemoryLocations is empty");
+        "pMutexPointerMemoryLocations must have exactly one element.");
+    checkState(!pMutexMemoryLocations.isEmpty(), "pMutexMemoryLocations is empty");
 
     // if there is only a single memory location for the mutex, just add the statements
     if (pMutexMemoryLocations.size() == 1) {

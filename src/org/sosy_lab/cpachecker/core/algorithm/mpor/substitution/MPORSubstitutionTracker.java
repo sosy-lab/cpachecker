@@ -122,11 +122,11 @@ public class MPORSubstitutionTracker {
 
   // add methods ===================================================================================
 
-  public void addAccessedMainFunctionArg(CSimpleDeclaration pMainFunctionArg) {
+  void addAccessedMainFunctionArg(CSimpleDeclaration pMainFunctionArg) {
     accessedMainFunctionArgs.add(MPORUtil.convertToVariableDeclaration(pMainFunctionArg));
   }
 
-  public void addPointerAssignment(
+  void addPointerAssignment(
       CSimpleDeclaration pLeftHandSide,
       CExpression pLeftHandSideExpression,
       CSimpleDeclaration pRightHandSide,
@@ -141,7 +141,7 @@ public class MPORSubstitutionTracker {
             MPORUtil.convertToVariableDeclaration(pRightHandSide), pRightHandSideExpression));
   }
 
-  public void addPointerFieldMemberAssignment(
+  void addPointerFieldMemberAssignment(
       CSimpleDeclaration pLeftHandSide,
       CExpression pLeftHandSideExpression,
       CSimpleDeclaration pFieldOwner,
@@ -157,7 +157,7 @@ public class MPORSubstitutionTracker {
             pFieldReference));
   }
 
-  public void addAccessedPointerDereference(
+  void addAccessedPointerDereference(
       CSimpleDeclaration pAccessedPointerDereference, CExpression pExpression) {
 
     accessedPointerDereferences.add(
@@ -165,7 +165,7 @@ public class MPORSubstitutionTracker {
             MPORUtil.convertToVariableDeclaration(pAccessedPointerDereference), pExpression));
   }
 
-  public void addWrittenPointerDereference(
+  void addWrittenPointerDereference(
       CSimpleDeclaration pWrittenPointerDereference, CExpression pExpression) {
 
     writtenPointerDereferences.add(
@@ -173,7 +173,7 @@ public class MPORSubstitutionTracker {
             MPORUtil.convertToVariableDeclaration(pWrittenPointerDereference), pExpression));
   }
 
-  public void addAccessedFieldReferencePointerDereference(
+  void addAccessedFieldReferencePointerDereference(
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember,
       CFieldReference pFieldReference) {
@@ -183,7 +183,7 @@ public class MPORSubstitutionTracker {
             MPORUtil.convertToVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
   }
 
-  public void addWrittenFieldReferencePointerDereference(
+  void addWrittenFieldReferencePointerDereference(
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember,
       CFieldReference pFieldReference) {
@@ -193,23 +193,21 @@ public class MPORSubstitutionTracker {
             MPORUtil.convertToVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
   }
 
-  public void addAccessedDeclaration(
-      CSimpleDeclaration pAccessedDeclaration, CExpression pExpression) {
+  void addAccessedDeclaration(CSimpleDeclaration pAccessedDeclaration, CExpression pExpression) {
 
     accessedDeclarations.add(
         new CVariableDeclarationTrackerResult(
             MPORUtil.convertToVariableDeclaration(pAccessedDeclaration), pExpression));
   }
 
-  public void addWrittenDeclaration(
-      CSimpleDeclaration pWrittenDeclaration, CExpression pExpression) {
+  void addWrittenDeclaration(CSimpleDeclaration pWrittenDeclaration, CExpression pExpression) {
 
     writtenDeclarations.add(
         new CVariableDeclarationTrackerResult(
             MPORUtil.convertToVariableDeclaration(pWrittenDeclaration), pExpression));
   }
 
-  public void addAccessedFieldMember(
+  void addAccessedFieldMember(
       CSimpleDeclaration pOwnerDeclaration,
       CCompositeTypeMemberDeclaration pAccessedFieldMember,
       CFieldReference pFieldReference) {
@@ -221,7 +219,7 @@ public class MPORSubstitutionTracker {
             pFieldReference));
   }
 
-  public void addWrittenFieldMember(
+  void addWrittenFieldMember(
       CSimpleDeclaration pOwnerDeclaration,
       CCompositeTypeMemberDeclaration pWrittenFieldMember,
       CFieldReference pFieldReference) {
