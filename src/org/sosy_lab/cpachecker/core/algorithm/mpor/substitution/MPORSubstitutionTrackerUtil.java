@@ -209,21 +209,24 @@ public class MPORSubstitutionTrackerUtil {
 
     CPointerAssignmentVisitResult visitResult =
         pRightHandSide.accept(new CPointerAssignmentVisitor());
-    switch (visitResult) {
-      case CPointerAssignmentExpressionResult expressionResult ->
-          pTracker.addPointerAssignment(
-              pLeftHandSideDeclaration,
-              pLeftHandSideIdExpression,
-              expressionResult.declaration,
-              expressionResult.expression);
-      case CPointerAssignmentFieldReferenceResult fieldReferenceResult ->
-          pTracker.addPointerFieldMemberAssignment(
-              pLeftHandSideDeclaration,
-              pLeftHandSideIdExpression,
-              fieldReferenceResult.fieldOwner,
-              fieldReferenceResult.fieldMember,
-              fieldReferenceResult.fieldReference);
-      default -> throw new IllegalStateException("Unexpected value: " + visitResult);
+    // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
+    if (visitResult != null) {
+      switch (visitResult) {
+        case CPointerAssignmentExpressionResult expressionResult ->
+            pTracker.addPointerAssignment(
+                pLeftHandSideDeclaration,
+                pLeftHandSideIdExpression,
+                expressionResult.declaration,
+                expressionResult.expression);
+        case CPointerAssignmentFieldReferenceResult fieldReferenceResult ->
+            pTracker.addPointerFieldMemberAssignment(
+                pLeftHandSideDeclaration,
+                pLeftHandSideIdExpression,
+                fieldReferenceResult.fieldOwner,
+                fieldReferenceResult.fieldMember,
+                fieldReferenceResult.fieldReference);
+        default -> throw new IllegalStateException("Unexpected value: " + visitResult);
+      }
     }
   }
 
