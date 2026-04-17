@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableCollection;
@@ -431,8 +432,16 @@ public record MemoryModelBuilder(
       if (rhsMemoryLocation.isPresent()) {
         CParameterDeclaration lhsDeclaration =
             MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
+        // adjust the argument index, in case the function is variadic
+        int variadicArgumentIndex;
+        if (i >= functionDeclaration.getParameters().size()) {
+          checkState(functionDeclaration.getType().takesVarArgs());
+          variadicArgumentIndex = i - functionDeclaration.getParameters().size();
+        } else {
+          variadicArgumentIndex = 0;
+        }
         SeqMemoryLocation lhsMemoryLocation =
-            getParameterMemoryLocation(pCallContext, lhsDeclaration, i);
+            getParameterMemoryLocation(pCallContext, lhsDeclaration, variadicArgumentIndex);
         rAssignments.put(lhsMemoryLocation, rhsMemoryLocation.orElseThrow());
       }
     }
@@ -442,29 +451,25 @@ public record MemoryModelBuilder(
   private SeqMemoryLocation getParameterMemoryLocation(
       CFAEdgeForThread pCallContext,
       CParameterDeclaration pParameterDeclaration,
-      int pArgumentIndex) {
+      int pVariadicArgumentIndex) {
 
     for (SubstituteEdge substituteEdge : substituteEdges) {
-      if (substituteEdge.getCallContext().isPresent()) {
-        if (substituteEdge.getCallContext().orElseThrow().equals(pCallContext)) {
-          if (substituteEdge.parameterSubstitutes.containsKey(pParameterDeclaration)) {
-            ImmutableList<CIdExpression> argumentExpressions =
-                substituteEdge.parameterSubstitutes.get(pParameterDeclaration);
-            if (pArgumentIndex < argumentExpressions.size()) {
-              CIdExpression idExpression = argumentExpressions.get(pArgumentIndex);
-              return SeqMemoryLocation.of(
-                  Optional.of(pCallContext),
-                  MPORUtil.convertToVariableDeclaration(idExpression.getDeclaration()),
-                  idExpression);
-            }
-          }
+      if (substituteEdge.getCallContext().equals(Optional.of(pCallContext))) {
+        if (substituteEdge.parameterSubstitutes.containsKey(pParameterDeclaration)) {
+          ImmutableList<CIdExpression> argumentExpressions =
+              substituteEdge.parameterSubstitutes.get(pParameterDeclaration);
+          CIdExpression idExpression = argumentExpressions.get(pVariadicArgumentIndex);
+          return SeqMemoryLocation.of(
+              Optional.of(pCallContext),
+              MPORUtil.convertToVariableDeclaration(idExpression.getDeclaration()),
+              idExpression);
         }
       }
     }
     // this should never occur, even if a parameter is declared but never used inside a function
     throw new IllegalArgumentException(
         "Could not find memory location for the given pCallContext, pParameterDeclaration and"
-            + " pArgumentIndex.");
+            + " pVariadicArgumentIndex.");
   }
 
   private Optional<SeqMemoryLocation> extractMemoryLocation(
