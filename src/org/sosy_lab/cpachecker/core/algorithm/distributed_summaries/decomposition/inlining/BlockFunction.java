@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
-public record Function(
+public record BlockFunction(
     String name,
     ImmutableSet<BlockNode> blockNodes,
     BlockNode entryNode,
@@ -29,7 +29,7 @@ public record Function(
     if (this == obj) {
       return true;
     }
-    return obj instanceof Function other && entryNode.equals(other.entryNode);
+    return obj instanceof BlockFunction other && entryNode.equals(other.entryNode);
   }
 
   @Override

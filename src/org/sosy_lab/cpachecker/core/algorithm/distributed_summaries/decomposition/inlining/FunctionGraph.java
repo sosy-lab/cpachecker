@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 
 public class FunctionGraph {
 
-  public record Call(BlockNode location, Function target) {}
+  public record Call(BlockNode location, BlockFunction target) {}
 
   /**
    * When visiting the graph, not all function objects exist, so we collect this instead and convert
@@ -39,34 +39,34 @@ public class FunctionGraph {
    */
   private record CallEdge(BlockNode source, BlockNode target) {}
 
-  private record FunctionInfo(Function function, ImmutableSet<CallEdge> calls) {}
+  private record FunctionInfo(BlockFunction function, ImmutableSet<CallEdge> calls) {}
 
-  private final ImmutableSet<Function> functions;
-  private final Function root;
-  private final ImmutableMap<Function, ImmutableSet<Call>> edges;
+  private final ImmutableSet<BlockFunction> functions;
+  private final BlockFunction root;
+  private final ImmutableMap<BlockFunction, ImmutableSet<Call>> edges;
 
   private FunctionGraph(
-      ImmutableSet<Function> pFunctions,
-      Function pRoot,
-      ImmutableMap<Function, ImmutableSet<Call>> pEdges) {
+      ImmutableSet<BlockFunction> pFunctions,
+      BlockFunction pRoot,
+      ImmutableMap<BlockFunction, ImmutableSet<Call>> pEdges) {
     functions = pFunctions;
     root = pRoot;
     edges = pEdges;
   }
 
-  public ImmutableSet<Function> getFunctions() {
+  public ImmutableSet<BlockFunction> getFunctions() {
     return functions;
   }
 
-  public Function getRoot() {
+  public BlockFunction getRoot() {
     return root;
   }
 
-  public ImmutableMap<Function, ImmutableSet<Call>> getEdges() {
+  public ImmutableMap<BlockFunction, ImmutableSet<Call>> getEdges() {
     return edges;
   }
 
-  public ImmutableSet<Function> getSuccessors(Function f) {
+  public ImmutableSet<BlockFunction> getSuccessors(BlockFunction f) {
     ImmutableSet<Call> calls = edges.get(f);
     if (calls == null) {
       return ImmutableSet.of();
@@ -85,10 +85,10 @@ public class FunctionGraph {
    */
   public static FunctionGraph from(BlockGraph graph) {
 
-    ImmutableSet.Builder<Function> functions = ImmutableSet.builder();
-    Map<Function, ImmutableSet<CallEdge>> edges = new HashMap<>();
+    ImmutableSet.Builder<BlockFunction> functions = ImmutableSet.builder();
+    Map<BlockFunction, ImmutableSet<CallEdge>> edges = new HashMap<>();
 
-    Function first = null;
+    BlockFunction first = null;
 
     List<BlockNode> waitlist = new ArrayList<>();
     SequencedSet<BlockNode> seen = new LinkedHashSet<>();
@@ -112,28 +112,28 @@ public class FunctionGraph {
     }
     // We should have found at least one function
     assert first != null;
-    ImmutableSet<Function> fs = functions.build();
+    ImmutableSet<BlockFunction> fs = functions.build();
 
     return new FunctionGraph(fs, first, convertCallEdgesToCalls(edges, fs));
   }
 
-  private static ImmutableMap<Function, ImmutableSet<Call>> convertCallEdgesToCalls(
-      Map<Function, ImmutableSet<CallEdge>> edges, ImmutableSet<Function> fs) {
-    Map<BlockNode, Function> headMap = new HashMap<>();
+  private static ImmutableMap<BlockFunction, ImmutableSet<Call>> convertCallEdgesToCalls(
+      Map<BlockFunction, ImmutableSet<CallEdge>> edges, ImmutableSet<BlockFunction> fs) {
+    Map<BlockNode, BlockFunction> headMap = new HashMap<>();
 
-    for (Function f : fs) {
+    for (BlockFunction f : fs) {
       headMap.put(f.entryNode(), f);
     }
 
-    ImmutableMap.Builder<Function, ImmutableSet<Call>> callBuilder = ImmutableMap.builder();
-    for (Entry<Function, ImmutableSet<CallEdge>> entry : edges.entrySet()) {
+    ImmutableMap.Builder<BlockFunction, ImmutableSet<Call>> callBuilder = ImmutableMap.builder();
+    for (Entry<BlockFunction, ImmutableSet<CallEdge>> entry : edges.entrySet()) {
       callBuilder.put(
           entry.getKey(),
           transformedImmutableSetCopy(
               entry.getValue(), ce -> new Call(ce.source, headMap.get(ce.target))));
     }
 
-    ImmutableMap<Function, ImmutableSet<Call>> calls = callBuilder.buildOrThrow();
+    ImmutableMap<BlockFunction, ImmutableSet<Call>> calls = callBuilder.buildOrThrow();
     return calls;
   }
 
@@ -142,7 +142,7 @@ public class FunctionGraph {
    *
    * @param graph the whole block graph
    * @param pEntryNode the first block inside this function
-   * @return the information for the {@link Function} record as well all calls to different function
+   * @return the information for the {@link BlockFunction} record as well all calls to different function
    */
   private static FunctionInfo exploreFunction(BlockGraph graph, BlockNode pEntryNode) {
 
@@ -207,8 +207,8 @@ public class FunctionGraph {
       }
     }
 
-    Function f =
-        new Function(
+    BlockFunction f =
+        new BlockFunction(
             pEntryNode.getInitialLocation().getFunctionName(),
             ImmutableSet.copyOf(seen),
             pEntryNode,
