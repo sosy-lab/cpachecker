@@ -328,7 +328,10 @@ public class MPORSubstitution {
                 (CLeftHandSide) leftHandSideSubstitute,
                 // for the RHS, it's not a left hand side of an assignment
                 substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
-        MPORSubstitutionTrackerUtil.trackPointerAssignment(assignmentSubstitute, pTracker);
+        MPORSubstitutionTrackerUtil.trackPointerAssignment(
+            assignmentSubstitute.getLeftHandSide(),
+            assignmentSubstitute.getRightHandSide(),
+            pTracker);
         return assignmentSubstitute;
       }
       case CExpressionStatement expression -> {
@@ -481,9 +484,11 @@ public class MPORSubstitution {
 
     CIdExpression idExpressionSubstitute =
         getSimpleDeclarationSubstitute(pVariableDeclaration, true, pCallContext, pTracker);
+    CVariableDeclaration variableDeclarationSubstitute =
+        (CVariableDeclaration) idExpressionSubstitute.getDeclaration();
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
-        (CVariableDeclaration) idExpressionSubstitute.getDeclaration(), pTracker);
-    return (CVariableDeclaration) idExpressionSubstitute.getDeclaration();
+        variableDeclarationSubstitute, idExpressionSubstitute, pTracker);
+    return variableDeclarationSubstitute;
   }
 
   // Declaration Extraction ========================================================================

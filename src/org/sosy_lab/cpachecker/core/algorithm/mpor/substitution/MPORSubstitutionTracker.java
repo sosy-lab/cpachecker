@@ -21,9 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * A class to track certain expressions, statements, ... (such as pointer dereferences and variable
@@ -127,33 +125,31 @@ public class MPORSubstitutionTracker {
   }
 
   void addPointerAssignment(
-      CSimpleDeclaration pLeftHandSide,
-      CExpression pLeftHandSideExpression,
-      CSimpleDeclaration pRightHandSide,
-      CExpression pRightHandSideExpression)
-      throws UnsupportedCodeException {
+      CSimpleDeclaration pLeftHandSideDeclaration,
+      CExpression pLeftHandSide,
+      CSimpleDeclaration pRightHandSideDeclaration,
+      CExpression pRightHandSide) {
 
-    InputRejection.checkFunctionPointerAssignment(pRightHandSide);
     pointerAssignments.put(
         new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pLeftHandSide), pLeftHandSideExpression),
+            MPORUtil.convertToVariableDeclaration(pLeftHandSideDeclaration), pLeftHandSide),
         new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pRightHandSide), pRightHandSideExpression));
+            MPORUtil.convertToVariableDeclaration(pRightHandSideDeclaration), pRightHandSide));
   }
 
   void addPointerFieldMemberAssignment(
-      CSimpleDeclaration pLeftHandSide,
-      CExpression pLeftHandSideExpression,
-      CSimpleDeclaration pFieldOwner,
-      CCompositeTypeMemberDeclaration pMemberDeclaration,
+      CSimpleDeclaration pLeftHandSideDeclaration,
+      CExpression pLeftHandSide,
+      CSimpleDeclaration pFieldOwnerDeclaration,
+      CCompositeTypeMemberDeclaration pFieldMemberDeclaration,
       CFieldReference pFieldReference) {
 
     pointerFieldMemberAssignments.put(
         new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pLeftHandSide), pLeftHandSideExpression),
+            MPORUtil.convertToVariableDeclaration(pLeftHandSideDeclaration), pLeftHandSide),
         new CFieldReferenceTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pFieldOwner),
-            pMemberDeclaration,
+            MPORUtil.convertToVariableDeclaration(pFieldOwnerDeclaration),
+            pFieldMemberDeclaration,
             pFieldReference));
   }
 

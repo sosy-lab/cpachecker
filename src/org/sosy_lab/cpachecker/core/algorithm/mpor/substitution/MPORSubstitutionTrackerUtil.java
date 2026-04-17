@@ -8,17 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.CProgramScope.TypeCollector;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -34,18 +36,16 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitutionTrackerUtil {
 
   // Copy ==========================================================================================
 
-  private static void copyContents(MPORSubstitutionTracker pFrom, MPORSubstitutionTracker pTo)
-      throws UnsupportedCodeException {
-
+  private static void copyContents(MPORSubstitutionTracker pFrom, MPORSubstitutionTracker pTo) {
     for (CVariableDeclaration mainFunctionArg : pFrom.getAccessedMainFunctionArgs()) {
       pTo.addAccessedMainFunctionArg(mainFunctionArg);
     }
@@ -112,7 +112,7 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  // Track =========================================================================================
+  // Declarations ==================================================================================
 
   /**
    * If applicable, adds the {@link CVariableDeclaration} of {@code pIdExpression} to the respective
@@ -152,8 +152,7 @@ public class MPORSubstitutionTrackerUtil {
   static void trackContentFromLocalVariableDeclaration(
       boolean pIsDeclaration,
       LocalVariableDeclarationSubstitute pLocalVariableDeclarationSubstitute,
-      MPORSubstitutionTracker pTracker)
-      throws UnsupportedCodeException {
+      MPORSubstitutionTracker pTracker) {
 
     // only track the global variables when actually substituting the declaration. otherwise when
     // we use the local, non-pointer variable, the global variable is considered as accessed too
@@ -165,70 +164,65 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
+  // Pointer Assignments ===========================================================================
+
   static void trackPointerAssignment(
-      CExpressionAssignmentStatement pAssignment, MPORSubstitutionTracker pTracker)
+      CLeftHandSide pLeftHandSide, CExpression pRightHandSide, MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
-    InputRejection.checkPointerWriteBinaryExpression(pAssignment);
-    CLeftHandSide leftHandSide = pAssignment.getLeftHandSide();
-    if (leftHandSide instanceof CIdExpression lhsId) {
-      CSimpleDeclaration lhsDeclaration = lhsId.getDeclaration();
-      if (lhsDeclaration.getType() instanceof CPointerType) {
-        visitPointerAssignmentAndStoreResultInTracker(
-            lhsDeclaration, lhsId, pAssignment.getRightHandSide(), pTracker);
+    InputRejection.checkFunctionPointerAssignment(pRightHandSide);
+    InputRejection.checkPointerWriteBinaryExpression(pLeftHandSide, pRightHandSide);
+
+    CSimpleDeclaration leftHandSideDeclaration =
+        pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
+    if (isAnyCPointerType(leftHandSideDeclaration.getType())) {
+      CPointerAssignmentVisitResult visitResult =
+          pRightHandSide.accept(new CPointerAssignmentVisitor());
+      // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
+      if (visitResult != null) {
+        switch (visitResult) {
+          case CPointerAssignmentExpressionResult expressionResult ->
+              pTracker.addPointerAssignment(
+                  leftHandSideDeclaration,
+                  pLeftHandSide,
+                  expressionResult.declaration,
+                  expressionResult.expression);
+          case CPointerAssignmentFieldReferenceResult fieldReferenceResult ->
+              pTracker.addPointerFieldMemberAssignment(
+                  leftHandSideDeclaration,
+                  pLeftHandSide,
+                  fieldReferenceResult.fieldOwner,
+                  fieldReferenceResult.fieldMember,
+                  fieldReferenceResult.fieldReference);
+          default -> throw new IllegalStateException("Unexpected value: " + visitResult);
+        }
       }
     }
   }
 
   static void trackPointerAssignmentInVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration, MPORSubstitutionTracker pTracker)
-      throws UnsupportedCodeException {
-
-    InputRejection.checkFunctionPointerAssignment(pVariableDeclaration);
-    InputRejection.checkPointerWriteBinaryExpression(pVariableDeclaration);
-    if (pVariableDeclaration.getType() instanceof CPointerType) {
-      CInitializer initializer = pVariableDeclaration.getInitializer();
-      if (initializer instanceof CInitializerExpression initializerExpression) {
-        CIdExpression variableIdExpression =
-            SeqExpressionBuilder.buildIdExpression(pVariableDeclaration);
-        visitPointerAssignmentAndStoreResultInTracker(
-            pVariableDeclaration,
-            variableIdExpression,
-            initializerExpression.getExpression(),
-            pTracker);
-      }
-    }
-  }
-
-  private static void visitPointerAssignmentAndStoreResultInTracker(
-      CSimpleDeclaration pLeftHandSideDeclaration,
-      CIdExpression pLeftHandSideIdExpression,
-      CExpression pRightHandSide,
+      CVariableDeclaration pVariableDeclaration,
+      CIdExpression pIdExpression,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
-    CPointerAssignmentVisitResult visitResult =
-        pRightHandSide.accept(new CPointerAssignmentVisitor());
-    // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
-    if (visitResult != null) {
-      switch (visitResult) {
-        case CPointerAssignmentExpressionResult expressionResult ->
-            pTracker.addPointerAssignment(
-                pLeftHandSideDeclaration,
-                pLeftHandSideIdExpression,
-                expressionResult.declaration,
-                expressionResult.expression);
-        case CPointerAssignmentFieldReferenceResult fieldReferenceResult ->
-            pTracker.addPointerFieldMemberAssignment(
-                pLeftHandSideDeclaration,
-                pLeftHandSideIdExpression,
-                fieldReferenceResult.fieldOwner,
-                fieldReferenceResult.fieldMember,
-                fieldReferenceResult.fieldReference);
-        default -> throw new IllegalStateException("Unexpected value: " + visitResult);
-      }
+    checkArgument(
+        pVariableDeclaration.equals(pIdExpression.getDeclaration()),
+        "pVariableDeclaration must be equal to pIdExpression.getDeclaration().");
+    if (pVariableDeclaration.getInitializer()
+        instanceof CInitializerExpression initializerExpression) {
+      trackPointerAssignment(pIdExpression, initializerExpression.getExpression(), pTracker);
     }
   }
+
+  /** Checks if {@code pType} or any nested type is a {@link CPointerType}. */
+  private static boolean isAnyCPointerType(CType pType) {
+    TypeCollector typeCollector = new TypeCollector();
+    Void ignored = pType.accept(typeCollector);
+    return typeCollector.getCollectedTypes().stream().anyMatch(t -> t instanceof CPointerType);
+  }
+
+  // Pointer Dereferences ==========================================================================
 
   static void trackPointerDereferenceByPointerExpression(
       CPointerExpression pPointerExpression, boolean pIsWrite, MPORSubstitutionTracker pTracker) {
@@ -352,6 +346,46 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
+  // Visitors ======================================================================================
+
+  private static final class CLeftHandSideSimpleDeclarationVisitor
+      implements CLeftHandSideVisitor<CSimpleDeclaration, NoException> {
+
+    @Override
+    public CSimpleDeclaration visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws NoException {
+
+      CLeftHandSide arrayLeftHandSide =
+          (CLeftHandSide) pArraySubscriptExpression.getArrayExpression();
+      return arrayLeftHandSide.accept(this);
+    }
+
+    @Override
+    public CSimpleDeclaration visit(CFieldReference pFieldReference) throws NoException {
+      CLeftHandSide fieldOwnerLeftHandSide = (CLeftHandSide) pFieldReference.getFieldOwner();
+      return fieldOwnerLeftHandSide.accept(this);
+    }
+
+    @Override
+    public CSimpleDeclaration visit(CIdExpression pIdExpression) throws NoException {
+      return pIdExpression.getDeclaration();
+    }
+
+    @Override
+    public CSimpleDeclaration visit(CPointerExpression pPointerExpression) throws NoException {
+      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pPointerExpression.getOperand();
+      return operandLeftHandSide.accept(this);
+    }
+
+    @Override
+    public CSimpleDeclaration visit(CComplexCastExpression pComplexCastExpression)
+        throws NoException {
+
+      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
+      return operandLeftHandSide.accept(this);
+    }
+  }
+
   private interface CPointerAssignmentVisitResult {}
 
   private record CPointerAssignmentExpressionResult(
@@ -379,6 +413,7 @@ public class MPORSubstitutionTrackerUtil {
 
       CPointerAssignmentExpressionResult fieldOwnerResult =
           (CPointerAssignmentExpressionResult) pFieldReference.getFieldOwner().accept(this);
+      // TODO this should also be a visitor
       CCompositeTypeMemberDeclaration fieldMember =
           MPORUtil.recursivelyFindFieldMemberByFieldOwner(
               pFieldReference, pFieldReference.getFieldOwner().getExpressionType());

@@ -17,16 +17,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -240,29 +238,13 @@ public class InputRejection {
     }
   }
 
-  public static void checkFunctionPointerAssignment(CSimpleDeclaration pRightHandSide)
+  public static void checkFunctionPointerAssignment(CExpression pRightHandSide)
       throws UnsupportedCodeException {
 
-    if (pRightHandSide instanceof CFunctionDeclaration) {
+    if (pRightHandSide.accept(new FunctionDeclarationVisitor())) {
       throw new UnsupportedCodeException(
           InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
           null);
-    }
-  }
-
-  public static void checkFunctionPointerAssignment(CVariableDeclaration pVariableDeclaration)
-      throws UnsupportedCodeException {
-
-    if (pVariableDeclaration.getInitializer() != null) {
-      if (pVariableDeclaration.getInitializer()
-          instanceof CInitializerExpression initializerExpression) {
-        CExpression expression = initializerExpression.getExpression();
-        if (expression.accept(new FunctionDeclarationVisitor())) {
-          throw new UnsupportedCodeException(
-              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + expression.toASTString(),
-              null);
-        }
-      }
     }
   }
 
@@ -336,34 +318,16 @@ public class InputRejection {
     }
   }
 
-  public static void checkPointerWriteBinaryExpression(CVariableDeclaration pVariableDeclaration)
-      throws UnsupportedCodeException {
+  public static void checkPointerWriteBinaryExpression(
+      CLeftHandSide pLeftHandSide, CExpression pRightHandSide) throws UnsupportedCodeException {
 
-    if (pVariableDeclaration.getType() instanceof CPointerType) {
-      if (pVariableDeclaration.getInitializer()
-          instanceof CInitializerExpression initializerExpression) {
-        if (initializerExpression.getExpression().accept(new CBinaryExpressionVisitor())) {
-          throw new UnsupportedCodeException(
-              String.format(
-                  InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
-                  initializerExpression.getExpression().getFileLocation().getStartingLineInOrigin(),
-                  initializerExpression.getExpression().toASTString()),
-              null);
-        }
-      }
-    }
-  }
-
-  public static void checkPointerWriteBinaryExpression(CExpressionAssignmentStatement pAssignment)
-      throws UnsupportedCodeException {
-
-    if (pAssignment.getLeftHandSide().getExpressionType() instanceof CPointerType) {
-      if (pAssignment.getRightHandSide().accept(new CBinaryExpressionVisitor())) {
+    if (pLeftHandSide.getExpressionType() instanceof CPointerType) {
+      if (pRightHandSide.accept(new CBinaryExpressionVisitor())) {
         throw new UnsupportedCodeException(
             String.format(
                 InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
-                pAssignment.getRightHandSide().getFileLocation().getStartingLineInOrigin(),
-                pAssignment.getRightHandSide().toASTString()),
+                pRightHandSide.getFileLocation().getStartingLineInOrigin(),
+                pRightHandSide.toASTString()),
             null);
       }
     }
