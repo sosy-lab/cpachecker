@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
@@ -314,7 +313,7 @@ public class ValueAnalysisTransferRelation
       ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable", "__assert_fail");
 
   public ValueAnalysisTransferRelation(
-      LogManager pLogger,
+      LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
       ValueTransferOptions pOptions,
       MemoryLocationValueHandler pUnknownValueHandler,
@@ -322,7 +321,8 @@ public class ValueAnalysisTransferRelation
       @Nullable ValueAnalysisCPAStatistics pStats) {
     options = pOptions;
     machineModel = pCfa.getMachineModel();
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    logger = pLogger;
+
     stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
