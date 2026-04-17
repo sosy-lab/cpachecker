@@ -14,18 +14,30 @@ public enum SmtLibLogic {
   QF_ALIA,
   QF_LIA,
   QF_NIA,
+  QF_BV,
+  QF_ABV,
+  QF_UFBV,
+  QF_AUFBV,
   ;
 
   public boolean containsIntegerArithmetic() {
     return switch (this) {
       case ALL, LIA, QF_LIA, QF_NIA, QF_ALIA -> true;
+      case QF_AUFBV, QF_ABV, QF_UFBV, QF_BV -> false;
     };
   }
 
   public boolean containsNonLinearIntegerArithmetic() {
     return switch (this) {
       case ALL, QF_NIA -> true;
-      case LIA, QF_LIA, QF_ALIA -> false;
+      case LIA, QF_LIA, QF_ALIA, QF_AUFBV, QF_ABV, QF_UFBV, QF_BV -> false;
+    };
+  }
+
+  public boolean containsBitvectorOperations() {
+    return switch (this) {
+      case QF_AUFBV, QF_ABV, QF_UFBV, QF_BV, ALL -> true;
+      case LIA, QF_LIA, QF_NIA, QF_ALIA -> false;
     };
   }
 
@@ -36,6 +48,10 @@ public enum SmtLibLogic {
       case "LIA" -> LIA;
       case "QF_LIA" -> QF_LIA;
       case "QF_NIA" -> QF_NIA;
+      case "QF_BV" -> QF_BV;
+      case "QF_ABV" -> QF_ABV;
+      case "QF_UFBV" -> QF_UFBV;
+      case "QF_AUFBV" -> QF_AUFBV;
       default -> throw new IllegalArgumentException("Unknown SMT-LIB logic: " + pLogic);
     };
   }
