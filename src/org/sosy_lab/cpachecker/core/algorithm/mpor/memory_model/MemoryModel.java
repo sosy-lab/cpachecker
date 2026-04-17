@@ -18,6 +18,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -115,20 +116,23 @@ public class MemoryModel {
 
     // check that all left hand sides in pointer assignments are CPointerType
     for (SeqMemoryLocation memoryLocation : pPointerAssignments.keySet()) {
+      CType declarationType = memoryLocation.declaration().getType();
       if (memoryLocation.fieldMember().isPresent()) {
-        // for field owner / members: only the member must be CPointerType
         CCompositeTypeMemberDeclaration memberDeclaration =
             memoryLocation.fieldMember().orElseThrow();
+        // for field owner / members:
+        // if the field owner is not CPointerType, then the field member must be CPointerType
         checkArgument(
-            memberDeclaration.getType() instanceof CPointerType,
-            "memberDeclaration must be CPointerType, got %s",
+            declarationType instanceof CPointerType
+                || memberDeclaration.getType() instanceof CPointerType,
+            "memberDeclaration.getType() must be CPointerType, got %s",
             memberDeclaration.getType());
       } else {
         // for all else: the variable itself must be CPointerType
         checkArgument(
-            memoryLocation.declaration().getType() instanceof CPointerType,
-            "variableDeclaration must be CPointerType, got %s",
-            memoryLocation.declaration().getType());
+            declarationType instanceof CPointerType,
+            "declarationType must be CPointerType, got %s",
+            declarationType);
       }
     }
 
