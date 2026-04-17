@@ -142,8 +142,8 @@ public class PthreadUtil {
     return pMemoryLocations.stream()
         .filter(
             m -> {
-              if (m.declaration().getType() instanceof CPointerType) {
-                if (pObjectType.equalsType(m.declaration().getType())) {
+              if (m.declaration().getType() instanceof CPointerType pointerType) {
+                if (pObjectType.equalsType(pointerType.getType())) {
                   return true;
                 }
               }
