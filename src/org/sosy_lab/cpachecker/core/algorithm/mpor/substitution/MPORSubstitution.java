@@ -151,10 +151,17 @@ public class MPORSubstitution {
       }
       case CIdExpression idExpression -> {
         if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
+          CIdExpression idExpressionSubstitute =
+              getSimpleDeclarationSubstitute(
+                  idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
           MPORSubstitutionTrackerUtil.trackDeclarationAccess(
-              options, idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
-          return getSimpleDeclarationSubstitute(
-              idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
+              options,
+              idExpressionSubstitute,
+              pIsWrite,
+              pIsPointerDereference,
+              pIsFieldReference,
+              pTracker);
+          return idExpressionSubstitute;
         }
       }
       case CBinaryExpression binary -> {
@@ -185,8 +192,6 @@ public class MPORSubstitution {
         }
       }
       case CArraySubscriptExpression arraySubscript -> {
-        MPORSubstitutionTrackerUtil.trackPointerDereferenceByArraySubscriptExpression(
-            arraySubscript, pIsWrite, pTracker);
         CExpression arrayExpression = arraySubscript.getArrayExpression();
         CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
         CExpression arraySubstitute =
@@ -198,12 +203,15 @@ public class MPORSubstitution {
                 subscriptExpression, pCallContext, pIsDeclaration, false, false, false, pTracker);
         // only create a new expression if any expr was substituted (compare references)
         if (arraySubstitute != arrayExpression || subscriptSubstitute != subscriptExpression) {
-          return new CArraySubscriptExpression(
-              fileLocation, type, arraySubstitute, subscriptSubstitute);
+          CArraySubscriptExpression arraySubscriptSubstitute =
+              new CArraySubscriptExpression(
+                  fileLocation, type, arraySubstitute, subscriptSubstitute);
+          MPORSubstitutionTrackerUtil.trackPointerDereferenceByArraySubscriptExpression(
+              arraySubscriptSubstitute, pIsWrite, pTracker);
+          return arraySubscriptSubstitute;
         }
       }
       case CFieldReference fieldReference -> {
-        MPORSubstitutionTrackerUtil.trackFieldReference(fieldReference, pIsWrite, pTracker);
         CExpression fieldOwnerSubstitute =
             substitute(
                 fieldReference.getFieldOwner(),
@@ -217,12 +225,16 @@ public class MPORSubstitution {
                 pTracker);
         // only create a new expression if any expr was substituted (compare references)
         if (fieldOwnerSubstitute != fieldReference.getFieldOwner()) {
-          return new CFieldReference(
-              fileLocation,
-              fieldReference.getExpressionType(),
-              fieldReference.getFieldName(),
-              fieldOwnerSubstitute,
-              fieldReference.isPointerDereference());
+          CFieldReference fieldReferenceSubstitute =
+              new CFieldReference(
+                  fileLocation,
+                  fieldReference.getExpressionType(),
+                  fieldReference.getFieldName(),
+                  fieldOwnerSubstitute,
+                  fieldReference.isPointerDereference());
+          MPORSubstitutionTrackerUtil.trackFieldReference(
+              fieldReferenceSubstitute, pIsWrite, pTracker);
+          return fieldReferenceSubstitute;
         }
       }
       case CUnaryExpression unary -> {
@@ -241,19 +253,21 @@ public class MPORSubstitution {
             unary.getOperator());
       }
       case CPointerExpression pointer -> {
+        CPointerExpression pointerSubstitute =
+            new CPointerExpression(
+                pointer.getFileLocation(),
+                pointer.getExpressionType(),
+                substitute(
+                    pointer.getOperand(),
+                    pCallContext,
+                    pIsDeclaration,
+                    pIsWrite,
+                    true,
+                    false,
+                    pTracker));
         MPORSubstitutionTrackerUtil.trackPointerDereferenceByPointerExpression(
-            pointer, pIsWrite, pTracker);
-        return new CPointerExpression(
-            pointer.getFileLocation(),
-            pointer.getExpressionType(),
-            substitute(
-                pointer.getOperand(),
-                pCallContext,
-                pIsDeclaration,
-                pIsWrite,
-                true,
-                false,
-                pTracker));
+            pointerSubstitute, pIsWrite, pTracker);
+        return pointerSubstitute;
       }
       case CCastExpression cast -> {
         return new CCastExpression(
@@ -302,16 +316,18 @@ public class MPORSubstitution {
       }
       // e.g. int x = 42;
       case CExpressionAssignmentStatement assignment -> {
-        MPORSubstitutionTrackerUtil.trackPointerAssignment(assignment, pTracker);
         CLeftHandSide leftHandSide = assignment.getLeftHandSide();
         CExpression rightHandSide = assignment.getRightHandSide();
         CExpression leftHandSideSubstitute =
             substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
-        return new CExpressionAssignmentStatement(
-            fileLocation,
-            (CLeftHandSide) leftHandSideSubstitute,
-            // for the RHS, it's not a left hand side of an assignment
-            substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
+        CExpressionAssignmentStatement assignmentSubstitute =
+            new CExpressionAssignmentStatement(
+                fileLocation,
+                (CLeftHandSide) leftHandSideSubstitute,
+                // for the RHS, it's not a left hand side of an assignment
+                substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
+        MPORSubstitutionTrackerUtil.trackPointerAssignment(assignmentSubstitute, pTracker);
+        return assignmentSubstitute;
       }
       case CExpressionStatement expression -> {
         return new CExpressionStatement(
@@ -461,11 +477,11 @@ public class MPORSubstitution {
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
-    MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
-        pVariableDeclaration, pTracker);
-    CIdExpression idExpression =
+    CIdExpression idExpressionSubstitute =
         getSimpleDeclarationSubstitute(pVariableDeclaration, true, pCallContext, pTracker);
-    return (CVariableDeclaration) idExpression.getDeclaration();
+    MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
+        (CVariableDeclaration) idExpressionSubstitute.getDeclaration(), pTracker);
+    return (CVariableDeclaration) idExpressionSubstitute.getDeclaration();
   }
 
   // Declaration Extraction ========================================================================
