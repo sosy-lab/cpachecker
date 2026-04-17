@@ -269,7 +269,7 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
-  public static SvLibFunctionDeclaration bitVectorComplemetNegation(int pSize) {
+  public static SvLibFunctionDeclaration bitVectorComplementNegation(int pSize) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
         new SvLibFunctionType(
@@ -328,7 +328,7 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
-  public static SvLibFunctionDeclaration bitVectorAdd(int pSize) {
+  public static SvLibFunctionDeclaration bitVectorAddition(int pSize) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
         new SvLibFunctionType(

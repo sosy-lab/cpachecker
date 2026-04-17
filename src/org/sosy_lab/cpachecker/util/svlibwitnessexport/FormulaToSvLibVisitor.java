@@ -196,7 +196,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
       return switch (actualName) {
         case "bvneg" ->
             new SvLibIdTerm(
-                SmtLibTheoryDeclarations.bitVectorComplemetNegation(size), FileLocation.DUMMY);
+                SmtLibTheoryDeclarations.bitVectorComplementNegation(size), FileLocation.DUMMY);
         case "bvnot" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.bitVectorBitwiseNegation(size), FileLocation.DUMMY);
@@ -213,7 +213,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "bvor" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorOr(size), FileLocation.DUMMY);
         case "bvadd" ->
-            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorAdd(size), FileLocation.DUMMY);
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorAddition(size), FileLocation.DUMMY);
         case "bvmul" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorMul(size), FileLocation.DUMMY);
         case "bvudiv" ->
