@@ -31,7 +31,10 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class CToSvLibAlgorithmTest {
 
-  private void testTransformationToSvLib(Path pInputFilePath)
+  private final String encodeBitvectorsAsIntegersOption = "INTEGER";
+  private final String encodeBitvectorsAsBitvectorsOption = "BITVECTOR";
+
+  private void testTransformationToSvLib(Path pInputFilePath, String bitVectorEncoding)
       throws InvalidConfigurationException,
           ParserException,
           IOException,
@@ -45,7 +48,7 @@ public class CToSvLibAlgorithmTest {
             .setOptions(
                 ImmutableMap.of(
                     "cpa.predicate.encodeBitvectorAs",
-                    "INTEGER",
+                    bitVectorEncoding,
                     "cpa.predicate.ignoreIrrelevantVariables",
                     "false",
                     "solver.solver",
@@ -89,7 +92,7 @@ public class CToSvLibAlgorithmTest {
   @Test(timeout = 1800)
   public void testSimpleDivision() throws Exception {
     Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "simple-division.c");
-    testTransformationToSvLib(inputFilePath);
+    testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
   }
 
   // *********************************** CfaToCExport ***********************************
@@ -101,7 +104,7 @@ public class CToSvLibAlgorithmTest {
     Path directoryPath = Path.of("test", "programs", "cfa_to_c_export").toAbsolutePath();
     try (DirectoryStream<Path> stream = Files.newDirectoryStream(directoryPath, "*.c")) {
       for (Path path : stream) {
-        testTransformationToSvLib(path);
+        testTransformationToSvLib(path, encodeBitvectorsAsIntegersOption);
       }
     } catch (IOException e) {
       throw new SvLibAstParseException("Could not read input files", e);
@@ -117,13 +120,19 @@ public class CToSvLibAlgorithmTest {
   @Test(timeout = 1800)
   public void testGotos() throws Exception {
     Path inputFilePath = Path.of(examplesPathProgramTranslation(), "gotos.c");
-    testTransformationToSvLib(inputFilePath);
+    testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
+  }
+
+  @Test(timeout = 18000000)
+  public void testGotosBitvectorEncoding() throws Exception {
+    Path inputFilePath = Path.of(examplesPathProgramTranslation(), "gotos.c");
+    testTransformationToSvLib(inputFilePath, encodeBitvectorsAsBitvectorsOption);
   }
 
   @Test(timeout = 1800)
   public void testFunctionReturn() throws Exception {
     Path inputFilePath = Path.of(examplesPathProgramTranslation(), "functionreturn.c");
-    testTransformationToSvLib(inputFilePath);
+    testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
   }
 
   // *********************************** Real C ***********************************
@@ -135,12 +144,12 @@ public class CToSvLibAlgorithmTest {
   @Test(timeout = 1800)
   public void testTestOr() throws Exception {
     Path inputFilePath = Path.of(examplesPathRealC(), "test-or.c");
-    testTransformationToSvLib(inputFilePath);
+    testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
   }
 
   @Test(timeout = 1800)
   public void testRandom() throws Exception {
     Path inputFilePath = Path.of(examplesPathRealC(), "random.c");
-    testTransformationToSvLib(inputFilePath);
+    testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
   }
 }
