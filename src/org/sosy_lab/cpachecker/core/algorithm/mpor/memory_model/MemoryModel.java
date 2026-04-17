@@ -123,8 +123,7 @@ public class MemoryModel {
         // for field owner / members:
         // if the field owner is not CPointerType, then the field member must be CPointerType
         checkArgument(
-            declarationType instanceof CPointerType
-                || memberDeclaration.getType() instanceof CPointerType,
+            memberDeclaration.getType() instanceof CPointerType,
             "memberDeclaration.getType() must be CPointerType, got %s",
             memberDeclaration.getType());
       } else {

@@ -173,17 +173,25 @@ public class MPORSubstitutionTrackerUtil {
     if (isAnyCPointerType(leftHandSideDeclaration.getType())) {
       CPointerAssignmentVisitResult leftHandSideVisitResult =
           pLeftHandSide.accept(new CPointerAssignmentVisitor());
-      CPointerAssignmentVisitResult rightHandSideVisitResult =
-          pRightHandSide.accept(new CPointerAssignmentVisitor());
-      // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
-      if (leftHandSideVisitResult != null && rightHandSideVisitResult != null) {
-        pTracker.addPointerAssignment(
-            leftHandSideVisitResult.declaration(),
-            leftHandSideVisitResult.fieldMember(),
-            leftHandSideVisitResult.expression(),
-            rightHandSideVisitResult.declaration(),
-            rightHandSideVisitResult.fieldMember(),
-            rightHandSideVisitResult.expression());
+      if (leftHandSideVisitResult != null) {
+        // if LHS has a field member that is not CPointerType, then it is not a pointer assignment
+        if (leftHandSideVisitResult.fieldMember().isPresent()) {
+          if (!isAnyCPointerType(leftHandSideVisitResult.fieldMember().orElseThrow().getType())) {
+            return;
+          }
+        }
+        CPointerAssignmentVisitResult rightHandSideVisitResult =
+            pRightHandSide.accept(new CPointerAssignmentVisitor());
+        // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
+        if (rightHandSideVisitResult != null) {
+          pTracker.addPointerAssignment(
+              leftHandSideVisitResult.declaration(),
+              leftHandSideVisitResult.fieldMember(),
+              leftHandSideVisitResult.expression(),
+              rightHandSideVisitResult.declaration(),
+              rightHandSideVisitResult.fieldMember(),
+              rightHandSideVisitResult.expression());
+        }
       }
     }
   }
