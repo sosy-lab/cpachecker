@@ -170,12 +170,53 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         && FluentIterable.from(pArgTypes).allMatch(type -> type instanceof SvLibSmtLibBitVectorType)
         && pArgTypes.getFirst() instanceof SvLibSmtLibBitVectorType bitVector) {
       int size = bitVector.getSize();
-
       return switch (actualName) {
         case "=" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorEquality(size), FileLocation.DUMMY);
+        case "bvult" ->
             new SvLibIdTerm(
-                SmtLibTheoryDeclarations.bitVectorEquality(size, size), FileLocation.DUMMY);
-        // FIXME Add more cases
+                SmtLibTheoryDeclarations.bitVectorUnsignedLessThan(size), FileLocation.DUMMY);
+        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+      };
+    } else if (pReturnType instanceof SvLibSmtLibBitVectorType bitVector
+        && pArgTypes.size() == 1
+        && FluentIterable.from(pArgTypes)
+            .allMatch(type -> type instanceof SvLibSmtLibBitVectorType)) {
+      int size = bitVector.getSize();
+      return switch (actualName) {
+        case "bvneg" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorComplemetNegation(size), FileLocation.DUMMY);
+        case "bvnot" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorBitwiseNegation(size), FileLocation.DUMMY);
+        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+      };
+    } else if (pReturnType instanceof SvLibSmtLibBitVectorType bitVector
+        && pArgTypes.size() == 2
+        && FluentIterable.from(pArgTypes)
+            .allMatch(type -> type instanceof SvLibSmtLibBitVectorType)) {
+      int size = bitVector.getSize();
+      return switch (actualName) {
+        case "bvand" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorAnd(size), FileLocation.DUMMY);
+        case "bvor" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorOr(size), FileLocation.DUMMY);
+        case "bvadd" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorAdd(size), FileLocation.DUMMY);
+        case "bvmul" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorMul(size), FileLocation.DUMMY);
+        case "bvudiv" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorUnsignedDivision(size), FileLocation.DUMMY);
+        case "bvurem" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorUnsignedRemainder(size), FileLocation.DUMMY);
+        case "bvshl" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorShiftLeft(size), FileLocation.DUMMY);
+        case "bvlshr" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorLogicalShiftRight(size), FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     }
