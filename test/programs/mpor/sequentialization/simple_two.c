@@ -79,6 +79,18 @@ void pass_mutex_pointer(pthread_mutex_t *the_mutex_pointer) {
     printk("mutex pointer sandwich");
     pthread_mutex_unlock(the_mutex_pointer);
 }
+void pass_struct_ptr(PQUEUE * a_struct_ptr) {
+    pthread_mutex_lock(a_struct_ptr->inner_mutex);
+    printk("look!", "what happens here?");
+    pthread_mutex_unlock(a_struct_ptr->inner_mutex);
+
+    pass_struct_ptr_again(a_struct_ptr);
+}
+void pass_struct_ptr_again(PQUEUE * a_struct_ptr_again) {
+    pthread_mutex_lock(a_struct_ptr_again->inner_mutex);
+    printk("and what about this?");
+    pthread_mutex_unlock(a_struct_ptr_again->inner_mutex);
+}
 const int global_const = 0;
 int main() {
     const int local_const = 7;
@@ -137,6 +149,16 @@ int main() {
         ptr_to_struct_with_ptr->inner_mutex_pointer = &mutexC;
     }
     pass_mutex_pointer(ptr_to_struct_with_ptr->inner_mutex_pointer);
+
+    pthread_mutex_t *yet_another_mutex_ptr;
+    yet_another_mutex_ptr = struct_with_mutex_ptr.inner_mutex_pointer;
+    pthread_mutex_lock(yet_another_mutex_ptr);
+    pthread_mutex_unlock(yet_another_mutex_ptr);
+    pass_mutex_pointer(yet_another_mutex_ptr);
+
+    PQUEUE *another_ptr_to_struct;
+    another_ptr_to_struct = &struct_with_mutex;
+    pass_struct_ptr(another_ptr_to_struct);
 
     pthread_mutex_destroy(&mutexA);
     pthread_mutex_destroy(&mutexB);

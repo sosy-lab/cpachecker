@@ -167,7 +167,7 @@ public class SeqMemoryLocationFinder {
    * are at some point in the program assigned to the pointer.
    */
   static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
-      SeqMemoryLocation pPointerDereference,
+      final SeqMemoryLocation pPointerDereference,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
@@ -217,7 +217,7 @@ public class SeqMemoryLocationFinder {
   }
 
   private static SeqMemoryLocation getTargetMemoryLocation(
-      SeqMemoryLocation pPointerDereference, SeqMemoryLocation pCurrentMemoryLocation) {
+      final SeqMemoryLocation pPointerDereference, SeqMemoryLocation pCurrentMemoryLocation) {
 
     checkArgument(
         !pCurrentMemoryLocation.isFieldOwnerPointerType(),
