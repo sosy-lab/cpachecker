@@ -30,11 +30,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CCompositeTypeMemberDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldReferenceVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTrackerUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 public class SeqMemoryLocationFinder {
@@ -226,7 +226,9 @@ public class SeqMemoryLocationFinder {
         "pCurrentMemoryLocation field owner cannot be CPointerType.");
 
     CType currentType = pCurrentMemoryLocation.declaration().getType();
-    if (MPORSubstitutionTrackerUtil.isAnyTypeTargetType(currentType, CCompositeType.class)) {
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+
+    if (MemoryModelUtil.isAnyTypeTargetType(currentType, CCompositeType.class, stopNames)) {
       CInitializer initializer = pPointerDereference.declaration().getInitializer();
       if (initializer instanceof CInitializerExpression initializerExpression) {
         CFieldReferenceVisitor fieldReferenceVisitor = new CFieldReferenceVisitor();

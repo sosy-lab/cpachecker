@@ -35,9 +35,192 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class MemoryModelUtil {
+
+  /**
+   * Checks if {@code pType} or any nested type is an instance of {@code pTargetType}. The search
+   * for nested types stops when encountering any name in {@code pStopNames}.
+   *
+   * <p>For example, {@link PthreadObjectType#PTHREAD_MUTEX_T} contains an inner pointer somewhere,
+   * even if the outer type is not a pointer, but then it would be treated as a pointer. But for the
+   * sequentialization, it is only necessary to treat a {@link PthreadObjectType#PTHREAD_MUTEX_T} as
+   * a pointer if it is a pointer itself, not any of its inner types.
+   */
+  public static boolean isAnyTypeTargetType(
+      CType pType, Class<? extends CType> pTargetType, ImmutableSet<String> pStopNames) {
+
+    TypeCollectorWithStopNames typeCollectorWithStop = new TypeCollectorWithStopNames(pStopNames);
+    pType.accept(typeCollectorWithStop);
+    return typeCollectorWithStop.getCollectedTypes().stream()
+        .anyMatch(t -> pTargetType.isInstance(t));
+  }
+
+  // CType Visitors
+
+  public static final class TypeCollectorWithStopNames
+      extends DefaultCTypeVisitor<Void, NoException> {
+
+    private final Set<CType> collectedTypes;
+
+    private final ImmutableSet<String> stopNames;
+
+    public TypeCollectorWithStopNames(ImmutableSet<String> pStopNames) {
+      collectedTypes = new HashSet<>();
+      stopNames = pStopNames;
+    }
+
+    public ImmutableSet<CType> getCollectedTypes() {
+      return ImmutableSet.copyOf(collectedTypes);
+    }
+
+    @Override
+    public @Nullable Void visitDefault(CType pT) {
+      collectedTypes.add(pT);
+      return null;
+    }
+
+    @Override
+    public @Nullable Void visit(CArrayType pArrayType) {
+      if (collectedTypes.add(pArrayType)) {
+        // just visit the actual CArrayType, and stop there if needed
+        pArrayType.getType().accept(this);
+        if (pArrayType.getLength() != null) {
+          pArrayType.getLength().getExpressionType().accept(this);
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public @Nullable Void visit(CCompositeType pCompositeType) {
+      if (collectedTypes.add(pCompositeType)) {
+        if (!stopNames.contains(pCompositeType.getName())) {
+          for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
+            member.getType().accept(this);
+          }
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public @Nullable Void visit(CElaboratedType pElaboratedType) {
+      if (collectedTypes.add(pElaboratedType)) {
+        if (!stopNames.contains(pElaboratedType.getName())) {
+          if (pElaboratedType.getRealType() != null) {
+            pElaboratedType.getRealType().accept(this);
+          }
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public @Nullable Void visit(CFunctionType pFunctionType) {
+      if (collectedTypes.add(pFunctionType)) {
+        if (!stopNames.contains(pFunctionType.getName())) {
+          for (CType parameterType : pFunctionType.getParameters()) {
+            parameterType.accept(this);
+          }
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public @Nullable Void visit(CPointerType pPointerType) {
+      if (collectedTypes.add(pPointerType)) {
+        // just visit the actual CPointerType, and stop there if needed
+        pPointerType.getType().accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public @Nullable Void visit(CTypedefType pTypedefType) {
+      if (collectedTypes.add(pTypedefType)) {
+        if (!stopNames.contains(pTypedefType.getName())) {
+          pTypedefType.getRealType().accept(this);
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public @Nullable Void visit(CBitFieldType pCBitFieldType) {
+      if (collectedTypes.add(pCBitFieldType)) {
+        // just visit the actual CBitFieldType, and stop there if needed
+        pCBitFieldType.getType().accept(this);
+      }
+      return null;
+    }
+  }
+
+  public static final class CCompositeTypeMemberDeclarationVisitor
+      extends DefaultCTypeVisitor<CCompositeTypeMemberDeclaration, NoException> {
+
+    private final CFieldReference fieldReference;
+
+    public CCompositeTypeMemberDeclarationVisitor(CFieldReference pFieldReference) {
+      fieldReference = pFieldReference;
+    }
+
+    @Override
+    public @Nullable CCompositeTypeMemberDeclaration visitDefault(CType pT) {
+      return null;
+    }
+
+    @Override
+    public CCompositeTypeMemberDeclaration visit(CArrayType pArrayType) {
+      return pArrayType.getType().accept(this);
+    }
+
+    @Override
+    public @Nullable CCompositeTypeMemberDeclaration visit(CCompositeType pCompositeType) {
+      for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
+        if (member.getName().equals(fieldReference.getFieldName())) {
+          return member;
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public @Nullable CCompositeTypeMemberDeclaration visit(CElaboratedType pElaboratedType) {
+      if (pElaboratedType.getRealType() != null) {
+        return pElaboratedType.getRealType().accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public @Nullable CCompositeTypeMemberDeclaration visit(CFunctionType pFunctionType) {
+      for (CType parameterType : pFunctionType.getParameters()) {
+        return parameterType.accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public CCompositeTypeMemberDeclaration visit(CPointerType pPointerType) {
+      return pPointerType.getType().accept(this);
+    }
+
+    @Override
+    public CCompositeTypeMemberDeclaration visit(CTypedefType pTypedefType) {
+      return pTypedefType.getRealType().accept(this);
+    }
+
+    @Override
+    public CCompositeTypeMemberDeclaration visit(CBitFieldType pCBitFieldType) {
+      return pCBitFieldType.getType().accept(this);
+    }
+  }
+
+  // CLeftHandSide Visitors
 
   public static final class CLeftHandSideSimpleDeclarationVisitor
       implements CLeftHandSideVisitor<CSimpleDeclaration, NoException> {
@@ -76,6 +259,8 @@ public class MemoryModelUtil {
       return operandLeftHandSide.accept(this);
     }
   }
+
+  // CExpression Visitors
 
   public static final class CFieldReferenceVisitor
       extends DefaultCExpressionVisitor<Void, NoException> {
@@ -142,67 +327,6 @@ public class MemoryModelUtil {
     @Override
     protected Void visitDefault(CExpression pExpression) {
       return null;
-    }
-  }
-
-  public static final class CCompositeTypeMemberDeclarationVisitor
-      extends DefaultCTypeVisitor<CCompositeTypeMemberDeclaration, NoException> {
-
-    private final CFieldReference fieldReference;
-
-    public CCompositeTypeMemberDeclarationVisitor(CFieldReference pFieldReference) {
-      fieldReference = pFieldReference;
-    }
-
-    @Override
-    public @Nullable CCompositeTypeMemberDeclaration visitDefault(CType pT) {
-      return null;
-    }
-
-    @Override
-    public CCompositeTypeMemberDeclaration visit(CArrayType pArrayType) {
-      return pArrayType.getType().accept(this);
-    }
-
-    @Override
-    public @Nullable CCompositeTypeMemberDeclaration visit(CCompositeType pCompositeType) {
-      for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
-        if (member.getName().equals(fieldReference.getFieldName())) {
-          return member;
-        }
-      }
-      return null;
-    }
-
-    @Override
-    public @Nullable CCompositeTypeMemberDeclaration visit(CElaboratedType pElaboratedType) {
-      if (pElaboratedType.getRealType() != null) {
-        return pElaboratedType.getRealType().accept(this);
-      }
-      return null;
-    }
-
-    @Override
-    public @Nullable CCompositeTypeMemberDeclaration visit(CFunctionType pFunctionType) {
-      for (CType parameterType : pFunctionType.getParameters()) {
-        return parameterType.accept(this);
-      }
-      return null;
-    }
-
-    @Override
-    public CCompositeTypeMemberDeclaration visit(CPointerType pPointerType) {
-      return pPointerType.getType().accept(this);
-    }
-
-    @Override
-    public CCompositeTypeMemberDeclaration visit(CTypedefType pTypedefType) {
-      return pTypedefType.getRealType().accept(this);
-    }
-
-    @Override
-    public CCompositeTypeMemberDeclaration visit(CBitFieldType pCBitFieldType) {
-      return pCBitFieldType.getType().accept(this);
     }
   }
 }

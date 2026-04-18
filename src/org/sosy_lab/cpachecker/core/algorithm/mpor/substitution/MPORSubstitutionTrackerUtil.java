@@ -11,10 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -29,18 +27,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CCompositeTypeMemberDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -177,14 +172,18 @@ public class MPORSubstitutionTrackerUtil {
 
     CSimpleDeclaration leftHandSideDeclaration =
         pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
-    if (isAnyTypeTargetType(leftHandSideDeclaration.getType(), CPointerType.class)) {
+    CType leftHandSideType = leftHandSideDeclaration.getType();
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+
+    if (MemoryModelUtil.isAnyTypeTargetType(leftHandSideType, CPointerType.class, stopNames)) {
       CPointerAssignmentVisitResult leftHandSideVisitResult =
           pLeftHandSide.accept(new CPointerAssignmentVisitor());
       if (leftHandSideVisitResult != null) {
         // if LHS has a field member that is not CPointerType, then it is not a pointer assignment
         if (leftHandSideVisitResult.fieldMember().isPresent()) {
           CType fieldMemberType = leftHandSideVisitResult.fieldMember().orElseThrow().getType();
-          if (!isAnyTypeTargetType(fieldMemberType, CPointerType.class)) {
+          if (!MemoryModelUtil.isAnyTypeTargetType(
+              fieldMemberType, CPointerType.class, stopNames)) {
             return;
           }
         }
@@ -217,24 +216,6 @@ public class MPORSubstitutionTrackerUtil {
         instanceof CInitializerExpression initializerExpression) {
       trackPointerAssignment(pIdExpression, initializerExpression.getExpression(), pTracker);
     }
-  }
-
-  /**
-   * Checks if {@code pType} or any nested type is a {@link CPointerType}. The search for nested
-   * types stops when encountering the name of a {@link PthreadObjectType} so that these are not
-   * fully searched.
-   *
-   * <p>For example, {@link PthreadObjectType#PTHREAD_MUTEX_T} contains an inner pointer somewhere,
-   * even if the outer type is not a pointer, but then it would be treated as a pointer. But for the
-   * sequentialization, it is only necessary to treat a {@link PthreadObjectType#PTHREAD_MUTEX_T} as
-   * a pointer if it is a pointer itself, not any of its inner types.
-   */
-  public static boolean isAnyTypeTargetType(CType pType, Class<? extends CType> pTargetType) {
-    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
-    TypeCollectorWithStopNames typeCollectorWithStop = new TypeCollectorWithStopNames(stopNames);
-    pType.accept(typeCollectorWithStop);
-    return typeCollectorWithStop.getCollectedTypes().stream()
-        .anyMatch(t -> pTargetType.isInstance(t));
   }
 
   // Pointer Dereferences ==========================================================================
@@ -361,105 +342,6 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   // Visitors ======================================================================================
-
-  private static final class TypeCollectorWithStopNames
-      extends DefaultCTypeVisitor<Void, NoException> {
-
-    private final Set<CType> collectedTypes;
-
-    private final ImmutableSet<String> stopNames;
-
-    TypeCollectorWithStopNames(ImmutableSet<String> pStopNames) {
-      collectedTypes = new HashSet<>();
-      stopNames = pStopNames;
-    }
-
-    ImmutableSet<CType> getCollectedTypes() {
-      return ImmutableSet.copyOf(collectedTypes);
-    }
-
-    @Override
-    public @Nullable Void visitDefault(CType pT) {
-      collectedTypes.add(pT);
-      return null;
-    }
-
-    @Override
-    public @Nullable Void visit(CArrayType pArrayType) {
-      if (collectedTypes.add(pArrayType)) {
-        // just visit the actual CArrayType, and stop there if needed
-        pArrayType.getType().accept(this);
-        if (pArrayType.getLength() != null) {
-          pArrayType.getLength().getExpressionType().accept(this);
-        }
-      }
-      return null;
-    }
-
-    @Override
-    public @Nullable Void visit(CCompositeType pCompositeType) {
-      if (collectedTypes.add(pCompositeType)) {
-        if (!stopNames.contains(pCompositeType.getName())) {
-          for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
-            member.getType().accept(this);
-          }
-        }
-      }
-      return null;
-    }
-
-    @Override
-    public @Nullable Void visit(CElaboratedType pElaboratedType) {
-      if (collectedTypes.add(pElaboratedType)) {
-        if (!stopNames.contains(pElaboratedType.getName())) {
-          if (pElaboratedType.getRealType() != null) {
-            pElaboratedType.getRealType().accept(this);
-          }
-        }
-      }
-      return null;
-    }
-
-    @Override
-    public @Nullable Void visit(CFunctionType pFunctionType) {
-      if (collectedTypes.add(pFunctionType)) {
-        if (!stopNames.contains(pFunctionType.getName())) {
-          for (CType parameterType : pFunctionType.getParameters()) {
-            parameterType.accept(this);
-          }
-        }
-      }
-      return null;
-    }
-
-    @Override
-    public @Nullable Void visit(CPointerType pPointerType) {
-      if (collectedTypes.add(pPointerType)) {
-        // just visit the actual CPointerType, and stop there if needed
-        pPointerType.getType().accept(this);
-      }
-      return null;
-    }
-
-    @Override
-    public @Nullable Void visit(CTypedefType pTypedefType) {
-      if (collectedTypes.add(pTypedefType)) {
-        if (!stopNames.contains(pTypedefType.getName())) {
-          pTypedefType.getRealType().accept(this);
-        }
-      }
-      return null;
-    }
-
-    @Override
-    public @Nullable Void visit(CBitFieldType pCBitFieldType) {
-      if (collectedTypes.add(pCBitFieldType)) {
-        // just visit the actual CBitFieldType, and stop there if needed
-        pCBitFieldType.getType().accept(this);
-      }
-      return null;
-    }
-  }
 
   private record CPointerAssignmentVisitResult(
       CSimpleDeclaration declaration,
