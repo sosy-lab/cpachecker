@@ -396,9 +396,7 @@ public record MemoryModelBuilder(
 
   // Parameter Assignments =========================================================================
 
-  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments()
-      throws UnsupportedCodeException {
-
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments() {
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : substituteEdges) {
@@ -412,8 +410,7 @@ public record MemoryModelBuilder(
   }
 
   private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> buildParameterAssignments(
-      CFAEdgeForThread pCallContext, SubstituteEdge pSubstituteEdge)
-      throws UnsupportedCodeException {
+      CFAEdgeForThread pCallContext, SubstituteEdge pSubstituteEdge) {
 
     checkArgument(
         pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge,
