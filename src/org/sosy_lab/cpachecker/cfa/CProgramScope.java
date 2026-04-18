@@ -717,11 +717,11 @@ public class CProgramScope implements Scope {
     return null;
   }
 
-  public static class TypeCollector extends DefaultCTypeVisitor<Void, NoException> {
+  private static class TypeCollector extends DefaultCTypeVisitor<Void, NoException> {
 
     private final Set<CType> collectedTypes;
 
-    public TypeCollector() {
+    TypeCollector() {
       this(new HashSet<>());
     }
 
@@ -729,7 +729,7 @@ public class CProgramScope implements Scope {
       collectedTypes = pCollectedTypes;
     }
 
-    public Set<CType> getCollectedTypes() {
+    Set<CType> getCollectedTypes() {
       return Collections.unmodifiableSet(collectedTypes);
     }
 

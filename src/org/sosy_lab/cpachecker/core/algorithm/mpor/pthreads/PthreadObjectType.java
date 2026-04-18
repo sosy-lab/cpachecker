@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public enum PthreadObjectType {
@@ -33,5 +35,16 @@ public enum PthreadObjectType {
   public boolean equalsType(CType pType) {
     // there seems no better way than comparing by string, unfortunately
     return this.name.equals(pType.toASTString("").strip());
+  }
+
+  /**
+   * Returns an {@link ImmutableSet} of all non-empty string representations associated with {@link
+   * PthreadObjectType}.
+   */
+  public static ImmutableSet<String> getAllPthreadObjectTypeNames() {
+    return Arrays.stream(values())
+        .map(type -> type.name)
+        .filter(name -> !name.isEmpty())
+        .collect(ImmutableSet.toImmutableSet());
   }
 }
