@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -116,22 +117,23 @@ public class MemoryModel {
 
     // check that all left hand sides in pointer assignments are CPointerType
     for (SeqMemoryLocation memoryLocation : pPointerAssignments.keySet()) {
-      CType declarationType = memoryLocation.declaration().getType();
-      if (memoryLocation.fieldMember().isPresent()) {
+      if (memoryLocation.fieldMember().isEmpty()) {
+        // if there is no field member, then the declaration must be a valid CPointerType
+        checkArgument(
+            isValidDeclarationPointerType(memoryLocation.declaration().getType()),
+            "The CType of the memory locations declaration is not a valid CPointerType: %s",
+            memoryLocation.declaration().getType());
+      } else {
         CCompositeTypeMemberDeclaration memberDeclaration =
             memoryLocation.fieldMember().orElseThrow();
-        // for field owner / members:
-        // if the field owner is not CPointerType, then the field member must be CPointerType
-        checkArgument(
-            memberDeclaration.getType() instanceof CPointerType,
-            "memberDeclaration.getType() must be CPointerType, got %s",
-            memberDeclaration.getType());
-      } else {
-        // for all else: the variable itself must be CPointerType
-        checkArgument(
-            declarationType instanceof CPointerType,
-            "declarationType must be CPointerType, got %s",
-            declarationType);
+        // if there is a field member and the field owner is not a valid CPointerType
+        // then the field member must be a validCPointerType
+        if (!isValidDeclarationPointerType(memoryLocation.declaration().getType())) {
+          checkArgument(
+              isValidDeclarationPointerType(memberDeclaration.getType()),
+              "The CType of the memory locations field member is not a valid CPointerType: %s",
+              memberDeclaration.getType());
+        }
       }
     }
 
@@ -144,6 +146,17 @@ public class MemoryModel {
           Objects.equals(pParameterAssignments.get(entry.getKey()), entry.getValue()),
           "pParameterAssignments must contain all pPointerParameterAssignments");
     }
+  }
+
+  private static boolean isValidDeclarationPointerType(CType pType) {
+    if (pType instanceof CPointerType) {
+      return true;
+    }
+    // CArrayType.getType() corresponds to the CType of the arrays elements
+    if (pType instanceof CArrayType arrayType && arrayType.getType() instanceof CPointerType) {
+      return true;
+    }
+    return false;
   }
 
   // boolean helpers ===============================================================================
