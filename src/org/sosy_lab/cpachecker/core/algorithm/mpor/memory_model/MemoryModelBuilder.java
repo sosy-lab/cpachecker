@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldMemberDeclarationVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -474,7 +476,7 @@ public record MemoryModelBuilder(
   }
 
   private Optional<SeqMemoryLocation> extractMemoryLocation(
-      CFAEdgeForThread pCallContext, CExpression pRightHandSide) throws UnsupportedCodeException {
+      CFAEdgeForThread pCallContext, CExpression pRightHandSide) {
 
     return switch (pRightHandSide) {
       case CIdExpression idExpression ->
@@ -495,10 +497,10 @@ public record MemoryModelBuilder(
   }
 
   private SeqMemoryLocation extractFieldReferenceMemoryLocation(
-      CFAEdgeForThread pCallContext, CFieldReference pFieldReference)
-      throws UnsupportedCodeException {
+      CFAEdgeForThread pCallContext, CFieldReference pFieldReference) {
 
-    CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
+    CSimpleDeclaration fieldOwner =
+        pFieldReference.accept(new CLeftHandSideSimpleDeclarationVisitor());
     CCompositeTypeMemberDeclaration fieldMember =
         pFieldReference
             .getFieldOwner()
@@ -506,7 +508,7 @@ public record MemoryModelBuilder(
             .accept(new CFieldMemberDeclarationVisitor(pFieldReference));
     return getMemoryLocationByFieldReference(
         pCallContext,
-        MPORUtil.convertToVariableDeclaration(fieldOwner.getDeclaration()),
+        MPORUtil.convertToVariableDeclaration(fieldOwner),
         fieldMember,
         pFieldReference);
   }

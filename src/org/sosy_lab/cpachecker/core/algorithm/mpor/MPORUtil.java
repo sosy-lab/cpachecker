@@ -19,10 +19,8 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -212,32 +210,6 @@ public final class MPORUtil {
       }
     }
     return false;
-  }
-
-  /**
-   * Recursively tries to find the field owner of {@code pFieldReference}, e.g. {@code outer} in
-   * {@code outer.intermediary.inner}.
-   */
-  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference)
-      throws UnsupportedCodeException {
-
-    if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
-      return idExpression;
-    }
-    if (pFieldReference.getFieldOwner()
-        instanceof CArraySubscriptExpression arraySubscriptExpression) {
-      if (arraySubscriptExpression.getArrayExpression() instanceof CIdExpression idExpression) {
-        return idExpression;
-      }
-    }
-    if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
-      return recursivelyFindFieldOwner(fieldReference);
-    }
-    throw new UnsupportedCodeException(
-        String.format(
-            "Could not find CIdExpression field owner from CFieldRerefence %s",
-            pFieldReference.toASTString()),
-        null);
   }
 
   /**

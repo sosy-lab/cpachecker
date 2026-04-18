@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -41,9 +40,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldMemberDeclarationVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
@@ -275,14 +274,13 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   private static void trackPointerDereferenceByFieldReference(
-      CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker)
-      throws UnsupportedCodeException {
+      CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker) {
 
     if (pFieldReference.isPointerDereference()) {
       // if pFieldReference is a pointer dereference, its owner type must be CPointerType
       CPointerType pointerType = (CPointerType) pFieldReference.getFieldOwner().getExpressionType();
       CSimpleDeclaration fieldOwner =
-          MPORUtil.recursivelyFindFieldOwner(pFieldReference).getDeclaration();
+          pFieldReference.accept(new CLeftHandSideSimpleDeclarationVisitor());
       CCompositeTypeMemberDeclaration fieldMember =
           pointerType.getType().accept(new CFieldMemberDeclarationVisitor(pFieldReference));
       if (pIsWrite) {
@@ -295,10 +293,10 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   static void trackFieldReference(
-      CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker)
-      throws UnsupportedCodeException {
+      CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker) {
 
     trackPointerDereferenceByFieldReference(pFieldReference, pIsWrite, pTracker);
+
     // CIdExpression is e.g. 'queue' in 'queue->amount'
     if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
       // typedef is e.g. 'QType' or for pointers 'QType*'
@@ -462,50 +460,12 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  private static final class CLeftHandSideSimpleDeclarationVisitor
-      implements CLeftHandSideVisitor<CSimpleDeclaration, NoException> {
-
-    @Override
-    public CSimpleDeclaration visit(CArraySubscriptExpression pArraySubscriptExpression)
-        throws NoException {
-
-      CLeftHandSide arrayLeftHandSide =
-          (CLeftHandSide) pArraySubscriptExpression.getArrayExpression();
-      return arrayLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CFieldReference pFieldReference) throws NoException {
-      CLeftHandSide fieldOwnerLeftHandSide = (CLeftHandSide) pFieldReference.getFieldOwner();
-      return fieldOwnerLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CIdExpression pIdExpression) throws NoException {
-      return pIdExpression.getDeclaration();
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CPointerExpression pPointerExpression) throws NoException {
-      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pPointerExpression.getOperand();
-      return operandLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CComplexCastExpression pComplexCastExpression)
-        throws NoException {
-
-      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
-      return operandLeftHandSide.accept(this);
-    }
-  }
-
-  public record CPointerAssignmentVisitResult(
+  private record CPointerAssignmentVisitResult(
       CSimpleDeclaration declaration,
       Optional<CCompositeTypeMemberDeclaration> fieldMember,
       CExpression expression) {}
 
-  public static final class CPointerAssignmentVisitor
+  private static final class CPointerAssignmentVisitor
       extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, NoException> {
 
     @Override

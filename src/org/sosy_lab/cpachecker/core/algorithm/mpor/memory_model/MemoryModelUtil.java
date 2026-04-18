@@ -9,7 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -23,6 +30,44 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class MemoryModelUtil {
+
+  public static final class CLeftHandSideSimpleDeclarationVisitor
+      implements CLeftHandSideVisitor<CSimpleDeclaration, NoException> {
+
+    @Override
+    public CSimpleDeclaration visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws NoException {
+
+      CLeftHandSide arrayLeftHandSide =
+          (CLeftHandSide) pArraySubscriptExpression.getArrayExpression();
+      return arrayLeftHandSide.accept(this);
+    }
+
+    @Override
+    public CSimpleDeclaration visit(CFieldReference pFieldReference) throws NoException {
+      CLeftHandSide fieldOwnerLeftHandSide = (CLeftHandSide) pFieldReference.getFieldOwner();
+      return fieldOwnerLeftHandSide.accept(this);
+    }
+
+    @Override
+    public CSimpleDeclaration visit(CIdExpression pIdExpression) throws NoException {
+      return pIdExpression.getDeclaration();
+    }
+
+    @Override
+    public CSimpleDeclaration visit(CPointerExpression pPointerExpression) throws NoException {
+      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pPointerExpression.getOperand();
+      return operandLeftHandSide.accept(this);
+    }
+
+    @Override
+    public CSimpleDeclaration visit(CComplexCastExpression pComplexCastExpression)
+        throws NoException {
+
+      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
+      return operandLeftHandSide.accept(this);
+    }
+  }
 
   public static final class CFieldMemberDeclarationVisitor
       extends DefaultCTypeVisitor<CCompositeTypeMemberDeclaration, NoException> {
