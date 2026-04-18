@@ -18,7 +18,6 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -28,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CCompositeTypeMemberDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldReferenceVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -237,11 +235,9 @@ public class SeqMemoryLocationFinder {
           CFieldReference fieldReference =
               Iterables.getOnlyElement(fieldReferenceVisitor.getFieldReferences());
           CCompositeTypeMemberDeclaration fieldMemberDeclaration =
-              Objects.requireNonNull(
-                  fieldReference
-                      .getFieldOwner()
-                      .getExpressionType()
-                      .accept(new CCompositeTypeMemberDeclarationVisitor(fieldReference)));
+              MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(
+                  fieldReference.getFieldOwner().getExpressionType(),
+                  fieldReference.getFieldName());
           // pass on the fieldMember, because currentMemoryLocation does not contain it
           CFieldReference newFieldReference =
               new CFieldReference(

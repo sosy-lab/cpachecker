@@ -91,7 +91,12 @@ int main() {
 
     pthread_mutex_init(&mutexA, (void *) 0);
     pthread_mutex_init(&mutexB, (void *) 0);
-    pthread_mutex_init(&mutexC, (void *) 0);
+
+    // a ghost variable should still be created for the mutex, even if it is not explicitly accessed
+    // in the pthread method call
+    pthread_mutex_t *mutexC_ptr = &mutexC;
+    pthread_mutex_init(mutexC_ptr, (void *) 0);
+
     pthread_mutex_init(&struct_with_mutex.inner_mutex, (void *) 0);
     pthread_mutex_init(&another_struct_with_mutex.inner_mutex, (void *) 0);
 

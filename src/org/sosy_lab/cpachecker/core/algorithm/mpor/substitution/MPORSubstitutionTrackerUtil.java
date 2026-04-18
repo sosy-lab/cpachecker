@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -36,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CCompositeTypeMemberDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
@@ -264,7 +262,8 @@ public class MPORSubstitutionTrackerUtil {
       CSimpleDeclaration fieldOwner =
           pFieldReference.accept(new CLeftHandSideSimpleDeclarationVisitor());
       CCompositeTypeMemberDeclaration fieldMember =
-          pointerType.getType().accept(new CCompositeTypeMemberDeclarationVisitor(pFieldReference));
+          MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(
+              pointerType.getType(), pFieldReference.getFieldName());
       if (pIsWrite) {
         pTracker.addWrittenFieldReferencePointerDereference(
             fieldOwner, fieldMember, pFieldReference);
@@ -361,11 +360,8 @@ public class MPORSubstitutionTrackerUtil {
     public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference) {
       CPointerAssignmentVisitResult fieldOwnerResult = pFieldReference.getFieldOwner().accept(this);
       CCompositeTypeMemberDeclaration fieldMember =
-          Objects.requireNonNull(
-              pFieldReference
-                  .getFieldOwner()
-                  .getExpressionType()
-                  .accept(new CCompositeTypeMemberDeclarationVisitor(pFieldReference)));
+          MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(
+              pFieldReference.getFieldOwner().getExpressionType(), pFieldReference.getFieldName());
       return new CPointerAssignmentVisitResult(
           fieldOwnerResult.declaration, Optional.of(fieldMember), pFieldReference);
     }

@@ -15,20 +15,25 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -83,23 +88,46 @@ public record ThreadSyncFlagsBuilder(
   private ImmutableSet<SeqMemoryLocation> getMemoryLocationsByObjectType(
       PthreadObjectType pObjectType) {
 
-    Set<SeqMemoryLocation> rMemoryLocations = new HashSet<>();
+    ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+
     for (MPORThread thread : threads) {
       for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
-        Optional<CFunctionCall> functionCallOptional =
-            PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
-        if (functionCallOptional.isPresent()) {
-          CFunctionCall functionCall = functionCallOptional.orElseThrow();
-          if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(functionCall, pObjectType)) {
-            SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
-            rMemoryLocations.addAll(
-                SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
-                    substituteEdge, memoryModel, MemoryAccessType.ACCESS));
+        SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
+        if (substituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
+          if (declarationEdge.getDeclaration()
+              instanceof CVariableDeclaration variableDeclaration) {
+            CType type = variableDeclaration.getType();
+            if (!(type instanceof CPointerType)) {
+              if (MemoryModelUtil.isAnyTypeTargetName(type, pObjectType.name, stopNames)) {
+                CIdExpression idExpression =
+                    new CIdExpression(FileLocation.DUMMY, variableDeclaration);
+                if (pObjectType.equalsType(type)) {
+                  rMemoryLocations.add(
+                      SeqMemoryLocation.of(
+                          substituteEdge.getCallContext(), variableDeclaration, idExpression));
+                }
+                for (CCompositeTypeMemberDeclaration declaration :
+                    MemoryModelUtil.getCompositeTypeMemberDeclarationsByTypeName(
+                        type, pObjectType.name)) {
+                  CFieldReference fieldReference =
+                      new CFieldReference(
+                          FileLocation.DUMMY, type, declaration.getName(), idExpression, false);
+                  rMemoryLocations.add(
+                      SeqMemoryLocation.of(
+                          substituteEdge.getCallContext(),
+                          variableDeclaration,
+                          declaration,
+                          ImmutableList.of(fieldReference)));
+                }
+              }
+            }
           }
         }
       }
     }
-    return ImmutableSet.copyOf(rMemoryLocations);
+
+    return rMemoryLocations.build();
   }
 
   // Private Builder Methods =======================================================================
