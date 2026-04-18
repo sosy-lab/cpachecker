@@ -208,7 +208,7 @@ public class MPORSubstitution {
           CArraySubscriptExpression arraySubscriptSubstitute =
               new CArraySubscriptExpression(
                   fileLocation, type, arraySubstitute, subscriptSubstitute);
-          MPORSubstitutionTrackerUtil.trackPointerDereferenceByArraySubscriptExpression(
+          MPORSubstitutionTrackerUtil.trackPointerDereferenceByLeftHandSide(
               arraySubscriptSubstitute, pIsWrite, pTracker);
           return arraySubscriptSubstitute;
         }
@@ -267,7 +267,7 @@ public class MPORSubstitution {
                     true,
                     false,
                     pTracker));
-        MPORSubstitutionTrackerUtil.trackPointerDereferenceByPointerExpression(
+        MPORSubstitutionTrackerUtil.trackPointerDereferenceByLeftHandSide(
             pointerSubstitute, pIsWrite, pTracker);
         return pointerSubstitute;
       }

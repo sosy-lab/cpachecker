@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CLeftHandSideSimpleDeclarationVisitor;
@@ -271,38 +273,23 @@ public class MPORSubstitutionTrackerUtil {
 
   // Pointer Dereferences ==========================================================================
 
-  static void trackPointerDereferenceByPointerExpression(
-      CPointerExpression pPointerExpression, boolean pIsWrite, MPORSubstitutionTracker pTracker) {
+  /**
+   * Tracks pointer dereferences through {@link CLeftHandSide}, e.g., {@code *var} or {@code arr[i]}
+   * which is equivalent to {@code *(arr + i)}.
+   */
+  static void trackPointerDereferenceByLeftHandSide(
+      CLeftHandSide pLeftHandSide, boolean pIsWrite, MPORSubstitutionTracker pTracker) {
 
-    if (pPointerExpression.getOperand() instanceof CIdExpression idExpression) {
-      // do not consider CFunctionDeclarations
-      if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
-        if (pIsWrite) {
-          pTracker.addWrittenPointerDereference(idExpression.getDeclaration(), idExpression);
-        }
-        pTracker.addAccessedPointerDereference(idExpression.getDeclaration(), idExpression);
+    CSimpleDeclaration declaration =
+        pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
+    // do not consider CFunctionDeclarations
+    if (SubstituteUtil.isSubstitutable(declaration)) {
+      CVariableDeclaration variableDeclaration = MPORUtil.convertToVariableDeclaration(declaration);
+      CIdExpression idExpression = new CIdExpression(FileLocation.DUMMY, variableDeclaration);
+      if (pIsWrite) {
+        pTracker.addWrittenPointerDereference(declaration, idExpression);
       }
-    }
-  }
-
-  static void trackPointerDereferenceByArraySubscriptExpression(
-      CArraySubscriptExpression pArraySubscriptExpression,
-      boolean pIsWrite,
-      MPORSubstitutionTracker pTracker) {
-
-    // TODO if the subscript expression is an integer literal, track the exact index, not just the
-    //  entire array
-    CExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
-    if (arrayExpression instanceof CIdExpression idExpression) {
-      if (idExpression.getExpressionType() instanceof CPointerType) {
-        // do not consider CFunctionDeclarations
-        if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
-          if (pIsWrite) {
-            pTracker.addWrittenPointerDereference(idExpression.getDeclaration(), idExpression);
-          }
-          pTracker.addAccessedPointerDereference(idExpression.getDeclaration(), idExpression);
-        }
-      }
+      pTracker.addAccessedPointerDereference(declaration, idExpression);
     }
   }
 
