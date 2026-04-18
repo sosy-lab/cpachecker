@@ -176,14 +176,12 @@ public class MPORSubstitutionTracker {
   }
 
   void addAccessedDeclaration(CSimpleDeclaration pAccessedDeclaration, CExpression pExpression) {
-
     accessedDeclarations.add(
         new CVariableDeclarationTrackerResult(
             MPORUtil.convertToVariableDeclaration(pAccessedDeclaration), pExpression));
   }
 
   void addWrittenDeclaration(CSimpleDeclaration pWrittenDeclaration, CExpression pExpression) {
-
     writtenDeclarations.add(
         new CVariableDeclarationTrackerResult(
             MPORUtil.convertToVariableDeclaration(pWrittenDeclaration), pExpression));

@@ -322,12 +322,12 @@ public class MemoryModelUtil {
 
   // CExpression Visitors
 
-  public static final class CFieldReferenceVisitor
+  public static final class CFieldReferenceCollector
       extends DefaultCExpressionVisitor<Void, NoException> {
 
     private final Set<CFieldReference> fieldReferences;
 
-    public CFieldReferenceVisitor() {
+    public CFieldReferenceCollector() {
       fieldReferences = new HashSet<>();
     }
 

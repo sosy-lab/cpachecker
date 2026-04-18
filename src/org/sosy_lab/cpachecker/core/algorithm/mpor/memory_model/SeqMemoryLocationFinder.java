@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldReferenceVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldReferenceCollector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
@@ -229,11 +229,11 @@ public class SeqMemoryLocationFinder {
     if (MemoryModelUtil.isAnyTypeTargetType(currentType, CCompositeType.class, stopNames)) {
       CInitializer initializer = pPointerDereference.declaration().getInitializer();
       if (initializer instanceof CInitializerExpression initializerExpression) {
-        CFieldReferenceVisitor fieldReferenceVisitor = new CFieldReferenceVisitor();
-        initializerExpression.getExpression().accept(fieldReferenceVisitor);
-        if (!fieldReferenceVisitor.getFieldReferences().isEmpty()) {
+        CFieldReferenceCollector fieldReferenceCollector = new CFieldReferenceCollector();
+        initializerExpression.getExpression().accept(fieldReferenceCollector);
+        if (!fieldReferenceCollector.getFieldReferences().isEmpty()) {
           CFieldReference fieldReference =
-              Iterables.getOnlyElement(fieldReferenceVisitor.getFieldReferences());
+              Iterables.getOnlyElement(fieldReferenceCollector.getFieldReferences());
           return getTargetMemoryLocationWithFieldMember(
               fieldReference.getFieldOwner().getExpressionType(),
               fieldReference.getFieldName(),
