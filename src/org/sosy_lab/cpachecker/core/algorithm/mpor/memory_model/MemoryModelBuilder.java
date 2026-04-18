@@ -536,7 +536,7 @@ public record MemoryModelBuilder(
       }
     }
     return SeqMemoryLocation.of(
-        Optional.of(pCallContext), pFieldOwner, pFieldMember, pFieldReference);
+        Optional.of(pCallContext), pFieldOwner, pFieldMember, ImmutableList.of(pFieldReference));
   }
 
   // Pointer Parameter Assignments =================================================================

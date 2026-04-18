@@ -886,7 +886,7 @@ public record SeqThreadStatementBuilder(
           new CUnaryExpression(
               FileLocation.DUMMY,
               new CPointerType(mutexType.getQualifiers(), mutexType),
-              mutexMemoryLocation.expression(),
+              Iterables.getOnlyElement(mutexMemoryLocation.expressions()),
               UnaryOperator.AMPER);
       CBinaryExpression pointerComparison =
           binaryExpressionBuilder.buildBinaryExpression(
@@ -905,7 +905,7 @@ public record SeqThreadStatementBuilder(
 
   private CExpression getMutexPointerExpression(SeqMemoryLocation pMutexPointerMemoryLocation) {
     CExpression mutexPointerExpression =
-        Objects.requireNonNull(pMutexPointerMemoryLocation.expression());
+        Objects.requireNonNull(Iterables.getOnlyElement(pMutexPointerMemoryLocation.expressions()));
 
     // if the field owner is a pointer, but the field member is not, then the expression is wrapped
     // with in an unary expression.

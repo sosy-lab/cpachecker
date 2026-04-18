@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -204,7 +206,7 @@ public class SeqMemoryLocationFinder {
                   FileLocation.DUMMY,
                   currentMemoryLocation.declaration().getType(),
                   pPointerDereference.fieldMember().orElseThrow().getName(),
-                  currentMemoryLocation.expression(),
+                  Iterables.getOnlyElement(currentMemoryLocation.expressions()),
                   // not a pointer dereference because currentMemoryLocation is not a pointer
                   false);
           found.add(
@@ -212,7 +214,7 @@ public class SeqMemoryLocationFinder {
                   currentMemoryLocation.callContext(),
                   currentMemoryLocation.declaration(),
                   pPointerDereference.fieldMember().orElseThrow(),
-                  fieldReference));
+                  ImmutableList.of(fieldReference)));
         } else {
           found.add(currentMemoryLocation);
         }

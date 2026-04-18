@@ -240,14 +240,14 @@ public class MemoryModelStructParameterTest {
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_MEMBER_DECLARATION,
-          OUTER_STRUCT_MEMBER_EXPRESSION);
+          ImmutableList.of(OUTER_STRUCT_MEMBER_EXPRESSION));
 
   private final SeqMemoryLocation OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_POINTER_MEMBER_DECLARATION,
-          OUTER_STRUCT_POINTER_MEMBER_EXPRESSION);
+          ImmutableList.of(OUTER_STRUCT_POINTER_MEMBER_EXPRESSION));
 
   private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(

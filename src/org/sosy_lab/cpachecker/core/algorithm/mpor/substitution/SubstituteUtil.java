@@ -103,7 +103,7 @@ public class SubstituteUtil {
               pCallContext,
               fieldReferencePointerDereference.fieldOwner(),
               fieldReferencePointerDereference.fieldMember(),
-              fieldReferencePointerDereference.fieldReference()));
+              ImmutableList.of(fieldReferencePointerDereference.fieldReference())));
     }
     return rPointerDereferences.build();
   }
@@ -129,7 +129,7 @@ public class SubstituteUtil {
               pCallContext,
               fieldMembers.fieldOwner(),
               fieldMembers.fieldMember(),
-              fieldMembers.fieldReference()));
+              ImmutableList.of(fieldMembers.fieldReference())));
     }
     return rMemoryLocations.build();
   }
@@ -149,11 +149,17 @@ public class SubstituteUtil {
       CDeclarationTrackerResult key = entry.getKey();
       SeqMemoryLocation leftHandSide =
           new SeqMemoryLocation(
-              pCallContext, key.declaration(), key.fieldMember(), key.expression());
+              pCallContext,
+              key.declaration(),
+              key.fieldMember(),
+              ImmutableList.of(key.expression()));
       CDeclarationTrackerResult value = entry.getValue();
       SeqMemoryLocation rightHandSide =
           new SeqMemoryLocation(
-              pCallContext, value.declaration(), value.fieldMember(), value.expression());
+              pCallContext,
+              value.declaration(),
+              value.fieldMember(),
+              ImmutableList.of(value.expression()));
       rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();

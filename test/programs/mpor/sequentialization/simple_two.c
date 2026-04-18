@@ -124,7 +124,7 @@ int main() {
     } else {
         ptr_to_struct_with_ptr = &yet_another_struct_with_mutex_ptr;
     }
-    //pass_mutex_pointer(ptr_to_struct_with_ptr->inner_mutex_pointer);
+    pass_mutex_pointer(ptr_to_struct_with_ptr->inner_mutex_pointer);
 
     pthread_mutex_destroy(&mutexA);
     pthread_mutex_destroy(&mutexB);
