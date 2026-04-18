@@ -158,16 +158,19 @@ public class MemoryModel {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
+    final boolean isLeftHandSide =
+        pPointerAssignments.containsKey(pMemoryLocation)
+            || pStartRoutineArgAssignments.containsKey(pMemoryLocation)
+            || pPointerParameterAssignments.containsKey(pMemoryLocation);
     if (pMemoryLocation.isFieldOwnerPointerType()) {
-      return isLeftHandSideInPointerAssignment(
-          pMemoryLocation.getFieldOwnerMemoryLocation(),
-          pPointerAssignments,
-          pStartRoutineArgAssignments,
-          pPointerParameterAssignments);
+      return isLeftHandSide
+          || isLeftHandSideInPointerAssignment(
+              pMemoryLocation.getFieldOwnerMemoryLocation(),
+              pPointerAssignments,
+              pStartRoutineArgAssignments,
+              pPointerParameterAssignments);
     }
-    return pPointerAssignments.containsKey(pMemoryLocation)
-        || pStartRoutineArgAssignments.containsKey(pMemoryLocation)
-        || pPointerParameterAssignments.containsKey(pMemoryLocation);
+    return isLeftHandSide;
   }
 
   public boolean isMemoryLocationReachableByThread(
@@ -196,15 +199,11 @@ public class MemoryModel {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
-    if (pMemoryLocation.isFieldOwnerPointerType()) {
-      return getPointerAssignmentRightHandSides(
-          pMemoryLocation.getFieldOwnerMemoryLocation(),
-          pPointerAssignments,
-          pStartRoutineArgAssignments,
-          pPointerParameterAssignments);
-    }
     ImmutableSet.Builder<SeqMemoryLocation> rRightHandSides = ImmutableSet.builder();
-    rRightHandSides.addAll(pPointerAssignments.get(pMemoryLocation));
+
+    if (pPointerAssignments.containsKey(pMemoryLocation)) {
+      rRightHandSides.addAll(pPointerAssignments.get(pMemoryLocation));
+    }
     if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
       rRightHandSides.add(Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
     }
@@ -212,6 +211,15 @@ public class MemoryModel {
       rRightHandSides.add(
           Objects.requireNonNull(pPointerParameterAssignments.get(pMemoryLocation)));
     }
+    if (pMemoryLocation.isFieldOwnerPointerType()) {
+      rRightHandSides.addAll(
+          getPointerAssignmentRightHandSides(
+              pMemoryLocation.getFieldOwnerMemoryLocation(),
+              pPointerAssignments,
+              pStartRoutineArgAssignments,
+              pPointerParameterAssignments));
+    }
+
     return rRightHandSides.build();
   }
 

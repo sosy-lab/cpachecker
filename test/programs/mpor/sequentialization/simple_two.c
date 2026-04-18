@@ -11,6 +11,7 @@ int x;
 int x = 1;
 pthread_mutex_t mutexA;
 pthread_mutex_t mutexB;
+pthread_mutex_t mutexC;
 struct __anonstruct_PQUEUE_63 {
     int occupied ;
     pthread_mutex_t inner_mutex ;
@@ -87,9 +88,12 @@ int main() {
     x = 0;
     local_increment(x);
     int local_non_const = 3;
+
     pthread_mutex_init(&mutexA, (void *) 0);
     pthread_mutex_init(&mutexB, (void *) 0);
     pthread_mutex_init(&struct_with_mutex.inner_mutex, (void *) 0);
+    pthread_mutex_init(&another_struct_with_mutex.inner_mutex, (void *) 0);
+
     // mutex aliasing must be handled
     pthread_mutex_t *mutex_ptr;
     mutex_ptr = &mutexA;
@@ -124,11 +128,15 @@ int main() {
     } else {
         ptr_to_struct_with_ptr = &yet_another_struct_with_mutex_ptr;
     }
+    if (x == 192837465) {
+        ptr_to_struct_with_ptr->inner_mutex_pointer = &mutexC;
+    }
     pass_mutex_pointer(ptr_to_struct_with_ptr->inner_mutex_pointer);
 
     pthread_mutex_destroy(&mutexA);
     pthread_mutex_destroy(&mutexB);
     pthread_mutex_destroy(&struct_with_mutex.inner_mutex);
+    pthread_mutex_destroy(&another_struct_with_mutex.inner_mutex);
 
     pthread_t id1, id2;
     pthread_create(&id1, (void *) 0, task1, (void *) 0);

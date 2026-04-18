@@ -203,13 +203,8 @@ public class SeqMemoryLocationFinder {
                 pPointerParameterAssignments);
 
         // add unvisited RHSs into the stack
-        for (SeqMemoryLocation rightHandSide : rightHandSides) {
-          if (visited.add(rightHandSide)) {
-            stack.push(rightHandSide);
-          }
-        }
+        rightHandSides.stream().filter(visited::add).forEach(stack::push);
       } else {
-        // if it is not a pointer (i.e. a target memory location), add it to found
         SeqMemoryLocation targetMemoryLocation =
             getTargetMemoryLocation(pPointerDereference, currentMemoryLocation);
         // if field member is a pointer then it must be dereferenced too, otherwise add to found
