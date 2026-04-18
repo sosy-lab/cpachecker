@@ -326,10 +326,10 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
-    assertThat(memoryModel.pointerAssignments).hasSize(3);
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
-    assertThat(memoryModel.pointerDereferences).isEmpty();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(14);
+    assertThat(memoryModel.pointerAssignments).hasSize(10);
+    assertThat(memoryModel.pointerParameterAssignments).hasSize(2);
+    assertThat(memoryModel.pointerDereferences).hasSize(2);
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())

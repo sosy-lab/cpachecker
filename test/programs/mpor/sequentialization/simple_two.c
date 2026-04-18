@@ -91,6 +91,7 @@ int main() {
 
     pthread_mutex_init(&mutexA, (void *) 0);
     pthread_mutex_init(&mutexB, (void *) 0);
+    pthread_mutex_init(&mutexC, (void *) 0);
     pthread_mutex_init(&struct_with_mutex.inner_mutex, (void *) 0);
     pthread_mutex_init(&another_struct_with_mutex.inner_mutex, (void *) 0);
 
