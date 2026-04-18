@@ -234,27 +234,40 @@ public class SeqMemoryLocationFinder {
         if (!fieldReferenceVisitor.getFieldReferences().isEmpty()) {
           CFieldReference fieldReference =
               Iterables.getOnlyElement(fieldReferenceVisitor.getFieldReferences());
-          CCompositeTypeMemberDeclaration fieldMemberDeclaration =
-              MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(
-                  fieldReference.getFieldOwner().getExpressionType(),
-                  fieldReference.getFieldName());
-          // pass on the fieldMember, because currentMemoryLocation does not contain it
-          CFieldReference newFieldReference =
-              new CFieldReference(
-                  FileLocation.DUMMY,
-                  pCurrentMemoryLocation.declaration().getType(),
-                  fieldMemberDeclaration.getName(),
-                  Iterables.getOnlyElement(pCurrentMemoryLocation.expressions()),
-                  // not a pointer dereference because currentMemoryLocation is not a pointer
-                  false);
-          return SeqMemoryLocation.of(
-              pCurrentMemoryLocation.callContext(),
-              pCurrentMemoryLocation.declaration(),
-              fieldMemberDeclaration,
-              ImmutableList.of(newFieldReference));
+          return getTargetMemoryLocationWithFieldMember(
+              fieldReference.getFieldOwner().getExpressionType(),
+              fieldReference.getFieldName(),
+              pCurrentMemoryLocation);
         }
+      }
+      if (pPointerDereference.fieldMember().isPresent()) {
+        return getTargetMemoryLocationWithFieldMember(
+            currentType,
+            pPointerDereference.fieldMember().orElseThrow().getName(),
+            pCurrentMemoryLocation);
       }
     }
     return pCurrentMemoryLocation;
+  }
+
+  private static SeqMemoryLocation getTargetMemoryLocationWithFieldMember(
+      CType pFieldOwnerType, String pFieldName, SeqMemoryLocation pCurrentMemoryLocation) {
+
+    CCompositeTypeMemberDeclaration fieldMemberDeclaration =
+        MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(pFieldOwnerType, pFieldName);
+    // pass on the fieldMember, because currentMemoryLocation does not contain it
+    CFieldReference newFieldReference =
+        new CFieldReference(
+            FileLocation.DUMMY,
+            pCurrentMemoryLocation.declaration().getType(),
+            fieldMemberDeclaration.getName(),
+            Iterables.getOnlyElement(pCurrentMemoryLocation.expressions()),
+            // not a pointer dereference because currentMemoryLocation is not a pointer
+            false);
+    return SeqMemoryLocation.of(
+        pCurrentMemoryLocation.callContext(),
+        pCurrentMemoryLocation.declaration(),
+        fieldMemberDeclaration,
+        ImmutableList.of(newFieldReference));
   }
 }

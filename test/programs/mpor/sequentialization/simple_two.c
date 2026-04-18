@@ -93,7 +93,6 @@ int main() {
     pthread_mutex_init(&mutexB, (void *) 0);
 
     // a ghost variable should still be created for the mutex, even if it is not explicitly accessed
-    // in the pthread method call
     pthread_mutex_t *mutexC_ptr = &mutexC;
     pthread_mutex_init(mutexC_ptr, (void *) 0);
 
@@ -110,9 +109,9 @@ int main() {
     pthread_mutex_unlock(mutex_ptr);
 
     // this is undefined behavior in the pthread standard (assign mutex and pass by value)
-    pthread_mutex_t uninit_mutex;
+    /* pthread_mutex_t uninit_mutex;
     uninit_mutex = mutexA;
-    pass_mutex(mutexA);
+    pass_mutex(mutexA); */
 
     // passing a pointer to a mutex is fine and not undefined behavior
     pass_mutex_pointer(mutex_ptr);

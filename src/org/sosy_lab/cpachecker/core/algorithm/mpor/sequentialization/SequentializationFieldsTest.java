@@ -327,7 +327,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     MemoryModel memoryModel = fields.memoryModel;
     assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(14);
-    assertThat(memoryModel.pointerAssignments).hasSize(10);
+    assertThat(memoryModel.pointerAssignments).hasSize(11);
     assertThat(memoryModel.pointerParameterAssignments).hasSize(2);
     assertThat(memoryModel.pointerDereferences).hasSize(2);
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
