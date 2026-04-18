@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldMemberDeclarationVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CCompositeTypeMemberDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -502,7 +502,7 @@ public record MemoryModelBuilder(
         pFieldReference
             .getFieldOwner()
             .getExpressionType()
-            .accept(new CFieldMemberDeclarationVisitor(pFieldReference));
+            .accept(new CCompositeTypeMemberDeclarationVisitor(pFieldReference));
     return getMemoryLocationByFieldReference(
         pCallContext,
         MPORUtil.convertToVariableDeclaration(fieldOwner),

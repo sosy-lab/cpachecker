@@ -87,6 +87,13 @@ public record SeqMemoryLocation(
     return false;
   }
 
+  public boolean isFieldMemberPointerType() {
+    if (fieldMember.isPresent()) {
+      return fieldMember.orElseThrow().getType() instanceof CPointerType;
+    }
+    return false;
+  }
+
   public SeqMemoryLocation getFieldOwnerMemoryLocation() {
     checkArgument(
         fieldMember.isPresent(),

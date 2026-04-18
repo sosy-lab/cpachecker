@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -16,14 +18,23 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CCompositeTypeMemberDeclarationVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldReferenceVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTrackerUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 public class SeqMemoryLocationFinder {
@@ -199,27 +210,58 @@ public class SeqMemoryLocationFinder {
         }
       } else {
         // if it is not a pointer (i.e. a target memory location), add it to found
-        if (pPointerDereference.fieldMember().isPresent()) {
-          // pass on the fieldMember, because currentMemoryLocation does not contain it
-          CFieldReference fieldReference =
-              new CFieldReference(
-                  FileLocation.DUMMY,
-                  currentMemoryLocation.declaration().getType(),
-                  pPointerDereference.fieldMember().orElseThrow().getName(),
-                  Iterables.getOnlyElement(currentMemoryLocation.expressions()),
-                  // not a pointer dereference because currentMemoryLocation is not a pointer
-                  false);
-          found.add(
-              SeqMemoryLocation.of(
-                  currentMemoryLocation.callContext(),
-                  currentMemoryLocation.declaration(),
-                  pPointerDereference.fieldMember().orElseThrow(),
-                  ImmutableList.of(fieldReference)));
+        SeqMemoryLocation targetMemoryLocation =
+            getTargetMemoryLocation(pPointerDereference, currentMemoryLocation);
+        // if field member is a pointer then it must be dereferenced too, otherwise add to found
+        if (targetMemoryLocation.isFieldMemberPointerType()) {
+          stack.push(targetMemoryLocation);
         } else {
-          found.add(currentMemoryLocation);
+          found.add(targetMemoryLocation);
         }
       }
     }
     return ImmutableSet.copyOf(found);
+  }
+
+  private static SeqMemoryLocation getTargetMemoryLocation(
+      SeqMemoryLocation pPointerDereference, SeqMemoryLocation pCurrentMemoryLocation) {
+
+    checkArgument(
+        !pCurrentMemoryLocation.isFieldOwnerPointerType(),
+        "pCurrentMemoryLocation field owner cannot be CPointerType.");
+
+    CType currentType = pCurrentMemoryLocation.declaration().getType();
+    if (MPORSubstitutionTrackerUtil.isAnyTypeTargetType(currentType, CCompositeType.class)) {
+      CInitializer initializer = pPointerDereference.declaration().getInitializer();
+      if (initializer instanceof CInitializerExpression initializerExpression) {
+        CFieldReferenceVisitor fieldReferenceVisitor = new CFieldReferenceVisitor();
+        initializerExpression.getExpression().accept(fieldReferenceVisitor);
+        if (!fieldReferenceVisitor.getFieldReferences().isEmpty()) {
+          CFieldReference fieldReference =
+              Iterables.getOnlyElement(fieldReferenceVisitor.getFieldReferences());
+          CCompositeTypeMemberDeclaration fieldMemberDeclaration =
+              Objects.requireNonNull(
+                  fieldReference
+                      .getFieldOwner()
+                      .getExpressionType()
+                      .accept(new CCompositeTypeMemberDeclarationVisitor(fieldReference)));
+          // pass on the fieldMember, because currentMemoryLocation does not contain it
+          CFieldReference newFieldReference =
+              new CFieldReference(
+                  FileLocation.DUMMY,
+                  pCurrentMemoryLocation.declaration().getType(),
+                  fieldMemberDeclaration.getName(),
+                  Iterables.getOnlyElement(pCurrentMemoryLocation.expressions()),
+                  // not a pointer dereference because currentMemoryLocation is not a pointer
+                  false);
+          return SeqMemoryLocation.of(
+              pCurrentMemoryLocation.callContext(),
+              pCurrentMemoryLocation.declaration(),
+              fieldMemberDeclaration,
+              ImmutableList.of(newFieldReference));
+        }
+      }
+    }
+    return pCurrentMemoryLocation;
   }
 }

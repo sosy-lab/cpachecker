@@ -8,15 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -69,12 +77,80 @@ public class MemoryModelUtil {
     }
   }
 
-  public static final class CFieldMemberDeclarationVisitor
+  public static final class CFieldReferenceVisitor
+      extends DefaultCExpressionVisitor<Void, NoException> {
+
+    private final Set<CFieldReference> fieldReferences;
+
+    public CFieldReferenceVisitor() {
+      fieldReferences = new HashSet<>();
+    }
+
+    ImmutableSet<CFieldReference> getFieldReferences() {
+      return ImmutableSet.copyOf(fieldReferences);
+    }
+
+    @Override
+    public Void visit(CArraySubscriptExpression pArraySubscriptExpression) {
+      pArraySubscriptExpression.getSubscriptExpression().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CFieldReference pFieldReference) {
+      fieldReferences.add(pFieldReference);
+      pFieldReference.getFieldOwner().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CPointerExpression pPointerExpression) {
+      pPointerExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CComplexCastExpression pComplexCastExpression) {
+      pComplexCastExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CBinaryExpression pBinaryExpression) {
+      pBinaryExpression.getOperand1().accept(this);
+      pBinaryExpression.getOperand2().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CCastExpression pCastExpression) {
+      pCastExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CUnaryExpression pUnaryExpression) {
+      pUnaryExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CIdExpression pIdExpression) {
+      return null;
+    }
+
+    @Override
+    protected Void visitDefault(CExpression pExpression) {
+      return null;
+    }
+  }
+
+  public static final class CCompositeTypeMemberDeclarationVisitor
       extends DefaultCTypeVisitor<CCompositeTypeMemberDeclaration, NoException> {
 
     private final CFieldReference fieldReference;
 
-    public CFieldMemberDeclarationVisitor(CFieldReference pFieldReference) {
+    public CCompositeTypeMemberDeclarationVisitor(CFieldReference pFieldReference) {
       fieldReference = pFieldReference;
     }
 

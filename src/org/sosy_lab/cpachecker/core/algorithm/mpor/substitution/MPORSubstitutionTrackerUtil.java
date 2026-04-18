@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldMemberDeclarationVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CCompositeTypeMemberDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
@@ -177,13 +177,14 @@ public class MPORSubstitutionTrackerUtil {
 
     CSimpleDeclaration leftHandSideDeclaration =
         pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
-    if (isAnyCPointerType(leftHandSideDeclaration.getType())) {
+    if (isAnyTypeTargetType(leftHandSideDeclaration.getType(), CPointerType.class)) {
       CPointerAssignmentVisitResult leftHandSideVisitResult =
           pLeftHandSide.accept(new CPointerAssignmentVisitor());
       if (leftHandSideVisitResult != null) {
         // if LHS has a field member that is not CPointerType, then it is not a pointer assignment
         if (leftHandSideVisitResult.fieldMember().isPresent()) {
-          if (!isAnyCPointerType(leftHandSideVisitResult.fieldMember().orElseThrow().getType())) {
+          CType fieldMemberType = leftHandSideVisitResult.fieldMember().orElseThrow().getType();
+          if (!isAnyTypeTargetType(fieldMemberType, CPointerType.class)) {
             return;
           }
         }
@@ -228,12 +229,12 @@ public class MPORSubstitutionTrackerUtil {
    * sequentialization, it is only necessary to treat a {@link PthreadObjectType#PTHREAD_MUTEX_T} as
    * a pointer if it is a pointer itself, not any of its inner types.
    */
-  private static boolean isAnyCPointerType(CType pType) {
+  public static boolean isAnyTypeTargetType(CType pType, Class<? extends CType> pTargetType) {
     ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
     TypeCollectorWithStopNames typeCollectorWithStop = new TypeCollectorWithStopNames(stopNames);
     pType.accept(typeCollectorWithStop);
     return typeCollectorWithStop.getCollectedTypes().stream()
-        .anyMatch(t -> t instanceof CPointerType);
+        .anyMatch(t -> pTargetType.isInstance(t));
   }
 
   // Pointer Dereferences ==========================================================================
@@ -282,7 +283,7 @@ public class MPORSubstitutionTrackerUtil {
       CSimpleDeclaration fieldOwner =
           pFieldReference.accept(new CLeftHandSideSimpleDeclarationVisitor());
       CCompositeTypeMemberDeclaration fieldMember =
-          pointerType.getType().accept(new CFieldMemberDeclarationVisitor(pFieldReference));
+          pointerType.getType().accept(new CCompositeTypeMemberDeclarationVisitor(pFieldReference));
       if (pIsWrite) {
         pTracker.addWrittenFieldReferencePointerDereference(
             fieldOwner, fieldMember, pFieldReference);
@@ -482,7 +483,7 @@ public class MPORSubstitutionTrackerUtil {
               pFieldReference
                   .getFieldOwner()
                   .getExpressionType()
-                  .accept(new CFieldMemberDeclarationVisitor(pFieldReference)));
+                  .accept(new CCompositeTypeMemberDeclarationVisitor(pFieldReference)));
       return new CPointerAssignmentVisitResult(
           fieldOwnerResult.declaration, Optional.of(fieldMember), pFieldReference);
     }
