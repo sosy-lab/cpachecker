@@ -507,19 +507,24 @@ public final class CfaMetadata {
   }
 
   /**
-   * TODO
+   * Returns the map from eCFA nodes to information about used program transformations.
    *
-   * @return TODO
+   * @return If this metadata instance contains the map from nodes to program transformation
+   *     information for the CFA, an optional containing the map is returned. Otherwise, if this
+   *     metadata instance doesn't contain the map for the CFA, an empty optional is returned.
    */
   public Optional<ImmutableMap<CFANode, ProgramTransformationInformation>> getNodesToProgramTransformations() {
     return Optional.ofNullable(nodesToProgramTransformations);
   }
 
   /**
-   * TODO
+   * Returns a copy of this metadata instance, but with the specified map from nodes to information
+   * about program transformations.
    *
-   * @param TODO
-   * @return TODO
+   * @param pNodesToProgramTransformations the map to store in the returned metadata instance (use
+   *     {@code null} to create an instance without map)
+   * @return a copy of this metadata instance, but with the specified map from nodes to program
+   *     transformation informations
    */
   public CfaMetadata withNodesToProgramTransformations(
       @Nullable ImmutableMap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformations) {

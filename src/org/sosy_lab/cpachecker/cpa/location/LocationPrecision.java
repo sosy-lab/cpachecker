@@ -23,7 +23,7 @@ public class LocationPrecision implements AdjustablePrecision {
   private ImmutableSet<SubCFA> allowedProgramTransformations;
   private final ImmutableMap<CFANode, SubCFA> nodesToSubCFA;
   private boolean hasProgramTransformations;
-  private Comparator<SubCFA> precisionOrder = (a,b) -> 1;
+  //private Comparator<SubCFA> precisionOrder = (a,b) -> 1;
 
   public LocationPrecision(Set<SubCFA> pPrecisions) {
     hasProgramTransformations = !pPrecisions.isEmpty();

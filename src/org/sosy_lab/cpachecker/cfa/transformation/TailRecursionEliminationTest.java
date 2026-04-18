@@ -27,7 +27,7 @@ public class TailRecursionEliminationTest {
 
   private ImmutableCFA tailRecursiveCFA;
   private ImmutableCFA nonTailRecursiveCFA;
-  private FunctionEntryNode N1;
+  //private FunctionEntryNode N1;
   private String mainProgram;
   private String tailRecursiveAdd;
   private String nonTailRecursiveAdd;
@@ -56,7 +56,6 @@ public class TailRecursionEliminationTest {
     }
     """;
     try{
-      String test = tailRecursiveAdd + mainProgram;
       tailRecursiveCFA = TestDataTools.makeCFA(tailRecursiveAdd, mainProgram);
     } catch (InterruptedException | ParserException pE) {
       throw new RuntimeException(pE);

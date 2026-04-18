@@ -120,7 +120,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     }
     // add parameter edges
     CFANode nodeBeforeParams = nodeMap.get(transformationData.tmpVarDeclarationEdge.getPredecessor());
-    ImmutableList<CExpression> parameterExpressions = ((CFunctionCallAssignmentStatement)(((CStatementEdge)transformationData.tmpVarAssignmentEdge).getStatement())).getFunctionCallExpression().getParameterExpressions();
+    ImmutableList<CExpression> parameterExpressions = ((CFunctionCallAssignmentStatement)((CStatementEdge)transformationData.tmpVarAssignmentEdge).getStatement()).getFunctionCallExpression().getParameterExpressions();
     CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) ((FunctionEntryNode)pNode).getFunctionDefinition();
     CFANode preNode = nodeBeforeParams;
     CFANode succNode;
