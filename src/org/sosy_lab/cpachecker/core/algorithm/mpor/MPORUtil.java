@@ -36,11 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -242,32 +238,6 @@ public final class MPORUtil {
             "Could not find CIdExpression field owner from CFieldRerefence %s",
             pFieldReference.toASTString()),
         null);
-  }
-
-  /**
-   * Extracts the {@link CCompositeTypeMemberDeclaration} of the field member accessed in {@code
-   * pFieldReference}, e.g. {@code member} in {@code owner->member}.
-   */
-  public static CCompositeTypeMemberDeclaration recursivelyFindFieldMemberByFieldOwner(
-      CFieldReference pFieldReference, CType pType) throws UnsupportedCodeException {
-
-    // use getType() on CPointerType/CArrayType since getCanonicalType() returns the
-    // CPointerType/CArrayType itself
-    if (pType.getCanonicalType() instanceof CPointerType pointerType) {
-      return recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
-    }
-    if (pType.getCanonicalType() instanceof CArrayType arrayType) {
-      return recursivelyFindFieldMemberByFieldOwner(pFieldReference, arrayType.getType());
-    }
-    if (pType.getCanonicalType() instanceof CCompositeType compositeType) {
-      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-          return memberDeclaration;
-        }
-      }
-    }
-    throw new UnsupportedCodeException(
-        "could not extract field member from the given CType: " + pType.toASTString(""), null);
   }
 
   /**

@@ -38,7 +38,7 @@ public record SeqMemoryLocation(
         "If fieldMember is empty, then expressions cannot contain a CFieldReference.");
     checkArgument(
         fieldMember.isEmpty() || expressions.stream().allMatch(e -> e instanceof CFieldReference),
-        "If fieldMember is present, then expression must be a CFieldReference.");
+        "If fieldMember is present, then all expressions must be a CFieldReference.");
   }
 
   public static SeqMemoryLocation of(

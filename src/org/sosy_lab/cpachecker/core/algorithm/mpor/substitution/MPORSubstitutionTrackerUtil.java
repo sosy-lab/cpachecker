@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldMemberDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
@@ -282,7 +284,7 @@ public class MPORSubstitutionTrackerUtil {
       CSimpleDeclaration fieldOwner =
           MPORUtil.recursivelyFindFieldOwner(pFieldReference).getDeclaration();
       CCompositeTypeMemberDeclaration fieldMember =
-          MPORUtil.recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
+          pointerType.getType().accept(new CFieldMemberDeclarationVisitor(pFieldReference));
       if (pIsWrite) {
         pTracker.addWrittenFieldReferencePointerDereference(
             fieldOwner, fieldMember, pFieldReference);
@@ -498,54 +500,50 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  private record CPointerAssignmentVisitResult(
+  public record CPointerAssignmentVisitResult(
       CSimpleDeclaration declaration,
       Optional<CCompositeTypeMemberDeclaration> fieldMember,
       CExpression expression) {}
 
-  private static final class CPointerAssignmentVisitor
-      extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, UnsupportedCodeException> {
+  public static final class CPointerAssignmentVisitor
+      extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, NoException> {
 
     @Override
-    public CPointerAssignmentVisitResult visit(CArraySubscriptExpression pArraySubscriptExpression)
-        throws UnsupportedCodeException {
+    public CPointerAssignmentVisitResult visit(
+        CArraySubscriptExpression pArraySubscriptExpression) {
       return pArraySubscriptExpression.getArrayExpression().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference)
-        throws UnsupportedCodeException {
-
+    public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference) {
       CPointerAssignmentVisitResult fieldOwnerResult = pFieldReference.getFieldOwner().accept(this);
-      // TODO this should also be a visitor
       CCompositeTypeMemberDeclaration fieldMember =
-          MPORUtil.recursivelyFindFieldMemberByFieldOwner(
-              pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
+          Objects.requireNonNull(
+              pFieldReference
+                  .getFieldOwner()
+                  .getExpressionType()
+                  .accept(new CFieldMemberDeclarationVisitor(pFieldReference)));
       return new CPointerAssignmentVisitResult(
           fieldOwnerResult.declaration, Optional.of(fieldMember), pFieldReference);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CPointerExpression pPointerExpression)
-        throws UnsupportedCodeException {
+    public CPointerAssignmentVisitResult visit(CPointerExpression pPointerExpression) {
       return pPointerExpression.getOperand().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CComplexCastExpression pComplexCastExpression)
-        throws UnsupportedCodeException {
+    public CPointerAssignmentVisitResult visit(CComplexCastExpression pComplexCastExpression) {
       return pComplexCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CCastExpression pCastExpression)
-        throws UnsupportedCodeException {
+    public CPointerAssignmentVisitResult visit(CCastExpression pCastExpression) {
       return pCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CUnaryExpression pUnaryExpression)
-        throws UnsupportedCodeException {
+    public CPointerAssignmentVisitResult visit(CUnaryExpression pUnaryExpression) {
       return pUnaryExpression.getOperand().accept(this);
     }
 

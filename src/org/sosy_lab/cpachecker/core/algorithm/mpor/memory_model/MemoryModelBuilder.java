@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldMemberDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -499,8 +500,10 @@ public record MemoryModelBuilder(
 
     CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
     CCompositeTypeMemberDeclaration fieldMember =
-        MPORUtil.recursivelyFindFieldMemberByFieldOwner(
-            pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
+        pFieldReference
+            .getFieldOwner()
+            .getExpressionType()
+            .accept(new CFieldMemberDeclarationVisitor(pFieldReference));
     return getMemoryLocationByFieldReference(
         pCallContext,
         MPORUtil.convertToVariableDeclaration(fieldOwner.getDeclaration()),
