@@ -258,14 +258,16 @@ public class SeqMemoryLocationFinder {
             pCurrentMemoryLocation);
       }
       for (SeqMemoryLocation rightHandSide : pPointerDereferenceRightHandSides) {
-        CType rhsType = rightHandSide.declaration().getType();
-        if (rhsType.equals(currentType)
-            || (rhsType instanceof CPointerType pointerType
-                && pointerType.getType().equals(currentType))) {
-          return getTargetMemoryLocationWithFieldMember(
-              currentType,
-              rightHandSide.fieldMember().orElseThrow().getName(),
-              pCurrentMemoryLocation);
+        if (rightHandSide.fieldMember().isPresent()) {
+          CType rhsType = rightHandSide.declaration().getType();
+          if (rhsType.equals(currentType)
+              || (rhsType instanceof CPointerType pointerType
+                  && pointerType.getType().equals(currentType))) {
+            return getTargetMemoryLocationWithFieldMember(
+                currentType,
+                rightHandSide.fieldMember().orElseThrow().getName(),
+                pCurrentMemoryLocation);
+          }
         }
       }
     }
