@@ -95,6 +95,13 @@ public class InputRejectionTest {
   }
 
   @Test
+  public void testRejectDuplicateStructMemberNames() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/duplicate-struct-member-names.c");
+    testExpectedRejection(inputFilePath, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
+  }
+
+  @Test
   public void testRejectNotParallel() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sequential-program.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.NOT_CONCURRENT);

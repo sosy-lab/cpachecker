@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -206,7 +207,7 @@ public class MemoryModelUtil {
     return rDeclarations.build();
   }
 
-  public static ImmutableSet<CCompositeTypeMemberDeclaration> getCompositeTypeMemberDeclarations(
+  public static ImmutableList<CCompositeTypeMemberDeclaration> getCompositeTypeMemberDeclarations(
       CType pTypeToSearch) {
     CCompositeTypeMemberDeclarationCollector collector =
         new CCompositeTypeMemberDeclarationCollector();
@@ -217,15 +218,19 @@ public class MemoryModelUtil {
   private static final class CCompositeTypeMemberDeclarationCollector
       extends DefaultCTypeVisitor<Void, NoException> {
 
-    private final Set<CCompositeTypeMemberDeclaration> collectedCompositeTypeMemberDeclarations;
+    private final ImmutableList.Builder<CCompositeTypeMemberDeclaration>
+        collectedCompositeTypeMemberDeclarations;
+
+    private final Set<CCompositeType> visitedCompositeTypes;
 
     private CCompositeTypeMemberDeclarationCollector() {
-      collectedCompositeTypeMemberDeclarations = new HashSet<>();
+      collectedCompositeTypeMemberDeclarations = ImmutableList.builder();
+      visitedCompositeTypes = new HashSet<>();
     }
 
-    private ImmutableSet<CCompositeTypeMemberDeclaration>
+    private ImmutableList<CCompositeTypeMemberDeclaration>
         getCollectedCompositeTypeMemberDeclarations() {
-      return ImmutableSet.copyOf(collectedCompositeTypeMemberDeclarations);
+      return collectedCompositeTypeMemberDeclarations.build();
     }
 
     @Override
@@ -241,9 +246,10 @@ public class MemoryModelUtil {
 
     @Override
     public Void visit(CCompositeType pCompositeType) {
-      for (CCompositeTypeMemberDeclaration memberDeclaration : pCompositeType.getMembers()) {
-        // prevent overflow from circular references
-        if (collectedCompositeTypeMemberDeclarations.add(memberDeclaration)) {
+      // prevent overflow from circular references
+      if (visitedCompositeTypes.add(pCompositeType)) {
+        collectedCompositeTypeMemberDeclarations.addAll(pCompositeType.getMembers());
+        for (CCompositeTypeMemberDeclaration memberDeclaration : pCompositeType.getMembers()) {
           memberDeclaration.getType().accept(this);
         }
       }

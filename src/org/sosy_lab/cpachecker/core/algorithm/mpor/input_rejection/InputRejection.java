@@ -10,11 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -40,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -61,6 +65,8 @@ public class InputRejection {
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
+    DUPLICATE_STRUCT_MEMBER_NAMES(
+        "MPOR does not support non unique nested struct member names in line ", true),
     NO_PTHREAD_OBJECT_ARRAYS(
         "MPOR does not support arrays of pthread objects or arrays of structs with inner pthread"
             + " objects in line ",
@@ -102,6 +108,7 @@ public class InputRejection {
     checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
     checkFunctionPointerInitializer(pInputCfa);
+    checkDuplicateStructMemberNames(pInputCfa);
     checkPthreadObjectArrays(pInputCfa);
     checkPthreadFunctionReturnValues(pInputCfa);
     // these are recursive and can be expensive, so they are last
@@ -138,6 +145,25 @@ public class InputRejection {
     }
     if (!isParallel) {
       throw new UnsupportedCodeException(InputRejectionMessage.NOT_CONCURRENT.message, null);
+    }
+  }
+
+  private static void checkDuplicateStructMemberNames(CFA pInputCfa)
+      throws UnsupportedCodeException {
+
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          ImmutableList<CCompositeTypeMemberDeclaration> memberDeclarations =
+              MemoryModelUtil.getCompositeTypeMemberDeclarations(variableDeclaration.getType());
+          Set<String> memberNames = new HashSet<>();
+          for (CCompositeTypeMemberDeclaration memberDeclaration : memberDeclarations) {
+            if (!memberNames.add(memberDeclaration.getName())) {
+              rejectCfaEdge(declarationEdge, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
+            }
+          }
+        }
+      }
     }
   }
 
