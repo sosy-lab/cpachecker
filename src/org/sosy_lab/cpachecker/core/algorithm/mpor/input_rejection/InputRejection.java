@@ -151,11 +151,13 @@ public class InputRejection {
   private static void checkDuplicateStructMemberNames(CFA pInputCfa)
       throws UnsupportedCodeException {
 
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
         if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           ImmutableList<CCompositeTypeMemberDeclaration> memberDeclarations =
-              MemoryModelUtil.getCompositeTypeMemberDeclarations(variableDeclaration.getType());
+              MemoryModelUtil.getNestedCompositeTypeMemberDeclarations(
+                  variableDeclaration.getType(), stopNames);
           Set<String> memberNames = new HashSet<>();
           for (CCompositeTypeMemberDeclaration memberDeclaration : memberDeclarations) {
             if (!memberNames.add(memberDeclaration.getName())) {
@@ -258,6 +260,7 @@ public class InputRejection {
 
   private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
       throws UnsupportedCodeException {
+
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
       if (functionCall.isPresent()) {

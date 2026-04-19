@@ -185,7 +185,7 @@ public class MemoryModelUtil {
       CType pTypeToSearch, String pFieldName) {
 
     for (CCompositeTypeMemberDeclaration declaration :
-        getCompositeTypeMemberDeclarations(pTypeToSearch)) {
+        getNestedCompositeTypeMemberDeclarations(pTypeToSearch, ImmutableSet.of())) {
       if (declaration.getName().equals(pFieldName)) {
         return declaration;
       }
@@ -199,7 +199,7 @@ public class MemoryModelUtil {
       getCompositeTypeMemberDeclarationsByTypeName(CType pTypeToSearch, String pTypeName) {
     ImmutableSet.Builder<CCompositeTypeMemberDeclaration> rDeclarations = ImmutableSet.builder();
     for (CCompositeTypeMemberDeclaration declaration :
-        getCompositeTypeMemberDeclarations(pTypeToSearch)) {
+        getNestedCompositeTypeMemberDeclarations(pTypeToSearch, ImmutableSet.of())) {
       if (declaration.getType().toASTString("").strip().equals(pTypeName)) {
         rDeclarations.add(declaration);
       }
@@ -207,15 +207,17 @@ public class MemoryModelUtil {
     return rDeclarations.build();
   }
 
-  public static ImmutableList<CCompositeTypeMemberDeclaration> getCompositeTypeMemberDeclarations(
-      CType pTypeToSearch) {
-    CCompositeTypeMemberDeclarationCollector collector =
-        new CCompositeTypeMemberDeclarationCollector();
+  public static ImmutableList<CCompositeTypeMemberDeclaration>
+      getNestedCompositeTypeMemberDeclarations(
+          CType pTypeToSearch, ImmutableSet<String> pStopNames) {
+
+    CCompositeTypeMemberDeclarationCollectorWithStopNames collector =
+        new CCompositeTypeMemberDeclarationCollectorWithStopNames(pStopNames);
     pTypeToSearch.accept(collector);
     return collector.getCollectedCompositeTypeMemberDeclarations();
   }
 
-  private static final class CCompositeTypeMemberDeclarationCollector
+  private static final class CCompositeTypeMemberDeclarationCollectorWithStopNames
       extends DefaultCTypeVisitor<Void, NoException> {
 
     private final ImmutableList.Builder<CCompositeTypeMemberDeclaration>
@@ -223,9 +225,12 @@ public class MemoryModelUtil {
 
     private final Set<CCompositeType> visitedCompositeTypes;
 
-    private CCompositeTypeMemberDeclarationCollector() {
+    private final ImmutableSet<String> stopNames;
+
+    private CCompositeTypeMemberDeclarationCollectorWithStopNames(ImmutableSet<String> pStopNames) {
       collectedCompositeTypeMemberDeclarations = ImmutableList.builder();
       visitedCompositeTypes = new HashSet<>();
+      stopNames = pStopNames;
     }
 
     private ImmutableList<CCompositeTypeMemberDeclaration>
@@ -248,9 +253,11 @@ public class MemoryModelUtil {
     public Void visit(CCompositeType pCompositeType) {
       // prevent overflow from circular references
       if (visitedCompositeTypes.add(pCompositeType)) {
-        collectedCompositeTypeMemberDeclarations.addAll(pCompositeType.getMembers());
-        for (CCompositeTypeMemberDeclaration memberDeclaration : pCompositeType.getMembers()) {
-          memberDeclaration.getType().accept(this);
+        if (!stopNames.contains(pCompositeType.getName())) {
+          collectedCompositeTypeMemberDeclarations.addAll(pCompositeType.getMembers());
+          for (CCompositeTypeMemberDeclaration memberDeclaration : pCompositeType.getMembers()) {
+            memberDeclaration.getType().accept(this);
+          }
         }
       }
       return null;
@@ -258,16 +265,20 @@ public class MemoryModelUtil {
 
     @Override
     public Void visit(CElaboratedType pElaboratedType) {
-      if (pElaboratedType.getRealType() != null) {
-        pElaboratedType.getRealType().accept(this);
+      if (!stopNames.contains(pElaboratedType.getName())) {
+        if (pElaboratedType.getRealType() != null) {
+          pElaboratedType.getRealType().accept(this);
+        }
       }
       return null;
     }
 
     @Override
     public Void visit(CFunctionType pFunctionType) {
-      for (CType parameterType : pFunctionType.getParameters()) {
-        parameterType.accept(this);
+      if (!stopNames.contains(pFunctionType.getName())) {
+        for (CType parameterType : pFunctionType.getParameters()) {
+          parameterType.accept(this);
+        }
       }
       return null;
     }
@@ -280,7 +291,9 @@ public class MemoryModelUtil {
 
     @Override
     public Void visit(CTypedefType pTypedefType) {
-      pTypedefType.getRealType().accept(this);
+      if (!stopNames.contains(pTypedefType.getName())) {
+        pTypedefType.getRealType().accept(this);
+      }
       return null;
     }
 
