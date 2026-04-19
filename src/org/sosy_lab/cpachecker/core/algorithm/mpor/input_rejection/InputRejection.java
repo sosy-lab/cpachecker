@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -69,7 +72,7 @@ public class InputRejection {
         true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
-    PTHREAD_OBJECT_POINTER_ALIASING("MPOR does not aliasing for pthread object pointers: ", false),
+    PTHREAD_OBJECT_POINTER_ALIASING("MPOR does not aliasing for pthread object pointers:", false),
     PTHREAD_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
     RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
@@ -139,18 +142,19 @@ public class InputRejection {
   }
 
   public static void checkPthreadObjectPointerAliasing(
-      ImmutableSet<SeqMemoryLocation> pMutexPointerMemoryLocations,
-      ImmutableSet<SeqMemoryLocation> pMutexMemoryLocations)
+      ImmutableSet<SeqMemoryLocation> pPointerMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations)
       throws UnsupportedCodeException {
 
-    if (pMutexMemoryLocations.size() > 1) {
+    if (pMemoryLocations.size() > 1) {
       throw new UnsupportedCodeException(
-          String.format(
-              InputRejectionMessage.PTHREAD_OBJECT_POINTER_ALIASING.message + "%s %s",
-              Iterables.getOnlyElement(pMutexPointerMemoryLocations).getName(),
-              pMutexMemoryLocations.stream()
-                  .map(m -> m.getName())
-                  .collect(ImmutableSet.toImmutableSet())),
+          String.join(
+              " ",
+              InputRejectionMessage.PTHREAD_OBJECT_POINTER_ALIASING.message,
+              Iterables.getOnlyElement(pPointerMemoryLocations).getName(),
+              transformedImmutableSetCopy(
+                      pMemoryLocations, m -> Objects.requireNonNull(m).getName())
+                  .toString()),
           null);
     }
   }
