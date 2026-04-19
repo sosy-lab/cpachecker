@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -67,6 +69,8 @@ public class InputRejection {
         true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
+    PTHREAD_OBJECT_POINTER_ALIASING(
+        "MPOR does not aliasing for pthread object pointers: %s %s", false),
     PTHREAD_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
     RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
@@ -132,6 +136,23 @@ public class InputRejection {
     }
     if (!isParallel) {
       throw new UnsupportedCodeException(InputRejectionMessage.NOT_CONCURRENT.message, null);
+    }
+  }
+
+  public static void checkPthreadObjectPointerAliasing(
+      ImmutableSet<SeqMemoryLocation> pMutexPointerMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pMutexMemoryLocations)
+      throws UnsupportedCodeException {
+
+    if (pMutexMemoryLocations.size() > 1) {
+      throw new UnsupportedCodeException(
+          String.format(
+              InputRejectionMessage.PTHREAD_OBJECT_POINTER_ALIASING.message,
+              Iterables.getOnlyElement(pMutexPointerMemoryLocations).getName(),
+              pMutexMemoryLocations.stream()
+                  .map(m -> m.getName())
+                  .collect(ImmutableSet.toImmutableSet())),
+          null);
     }
   }
 

@@ -20,14 +20,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -55,10 +52,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
@@ -86,11 +82,9 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CComment;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CMultiSelectionStatementBuilder;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
@@ -868,58 +862,12 @@ public record SeqThreadStatementBuilder(
         "pMutexPointerMemoryLocations must have exactly one element.");
     checkState(!pMutexMemoryLocations.isEmpty(), "pMutexMemoryLocations is empty");
 
-    // if there is only a single memory location for the mutex, just add the statements
-    if (pMutexMemoryLocations.size() == 1) {
-      MutexLockedFlag mutexLockedFlag =
-          threadSyncFlags.getMutexLockedFlag(Iterables.getOnlyElement(pMutexMemoryLocations));
-      return buildMutexStatements(pStatementType, mutexLockedFlag);
-    }
+    InputRejection.checkPthreadObjectPointerAliasing(
+        pMutexPointerMemoryLocations, pMutexMemoryLocations);
 
-    // if there are multiple memory locations for the mutex, then matching the actual address is
-    // necessary, otherwise the analysis is unsound.
-    CExpression mutexPointerExpression =
-        getMutexPointerExpression(Iterables.getOnlyElement(pMutexPointerMemoryLocations));
-    ImmutableMap.Builder<CExportExpression, CCompoundStatement> statements = ImmutableMap.builder();
-    for (SeqMemoryLocation mutexMemoryLocation : pMutexMemoryLocations) {
-      CType mutexType = mutexMemoryLocation.declaration().getType();
-      CUnaryExpression unaryExpression =
-          new CUnaryExpression(
-              FileLocation.DUMMY,
-              new CPointerType(mutexType.getQualifiers(), mutexType),
-              Iterables.getOnlyElement(mutexMemoryLocation.expressions()),
-              UnaryOperator.AMPER);
-      CBinaryExpression pointerComparison =
-          binaryExpressionBuilder.buildBinaryExpression(
-              mutexPointerExpression, unaryExpression, BinaryOperator.EQUALS);
-      ImmutableList<CCompoundStatementElement> mutexStatements =
-          buildMutexStatements(
-              pStatementType, threadSyncFlags.getMutexLockedFlag(mutexMemoryLocation));
-      statements.put(
-          new CExpressionWrapper(pointerComparison), new CCompoundStatement(mutexStatements));
-    }
-
-    return ImmutableList.of(
-        CMultiSelectionStatementBuilder.buildIfElseChain(
-            statements.buildOrThrow(), Optional.empty()));
-  }
-
-  private CExpression getMutexPointerExpression(SeqMemoryLocation pMutexPointerMemoryLocation) {
-    CExpression mutexPointerExpression =
-        Objects.requireNonNull(Iterables.getOnlyElement(pMutexPointerMemoryLocation.expressions()));
-
-    // if the field owner is a pointer, but the field member is not, then the expression is wrapped
-    // with in an unary expression.
-    if (mutexPointerExpression instanceof CFieldReference) {
-      CType fieldMemberType = pMutexPointerMemoryLocation.fieldMember().orElseThrow().getType();
-      if (!(fieldMemberType instanceof CPointerType)) {
-        CPointerType unaryExpressionType =
-            new CPointerType(fieldMemberType.getQualifiers(), fieldMemberType);
-        return new CUnaryExpression(
-            FileLocation.DUMMY, unaryExpressionType, mutexPointerExpression, UnaryOperator.AMPER);
-      }
-    }
-
-    return mutexPointerExpression;
+    MutexLockedFlag mutexLockedFlag =
+        threadSyncFlags.getMutexLockedFlag(Iterables.getOnlyElement(pMutexMemoryLocations));
+    return buildMutexStatements(pStatementType, mutexLockedFlag);
   }
 
   private ImmutableList<CCompoundStatementElement> buildMutexStatements(
