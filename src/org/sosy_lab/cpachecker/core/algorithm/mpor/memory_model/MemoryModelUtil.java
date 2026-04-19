@@ -241,7 +241,12 @@ public class MemoryModelUtil {
 
     @Override
     public Void visit(CCompositeType pCompositeType) {
-      collectedCompositeTypeMemberDeclarations.addAll(pCompositeType.getMembers());
+      for (CCompositeTypeMemberDeclaration memberDeclaration : pCompositeType.getMembers()) {
+        // prevent overflow from circular references
+        if (collectedCompositeTypeMemberDeclarations.add(memberDeclaration)) {
+          memberDeclaration.getType().accept(this);
+        }
+      }
       return null;
     }
 
