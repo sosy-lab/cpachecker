@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -115,7 +114,6 @@ public class InputRejectionTest {
     testExpectedRejection(inputFilePath, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
-  @Ignore
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath =
