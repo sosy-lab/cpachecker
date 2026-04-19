@@ -136,6 +136,9 @@ int main() {
     }
     pthread_mutex_lock(ptr_to_struct->inner_mutex);
 
+    pthread_mutex_t *another_mutex_ptr;
+    another_mutex_ptr = &ptr_to_struct->inner_mutex;
+
     struct_with_mutex_ptr.inner_mutex_pointer = &mutexA;
     yet_another_struct_with_mutex_ptr.inner_mutex_pointer = &mutexB;
 

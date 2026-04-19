@@ -164,7 +164,7 @@ public class MPORSubstitutionTrackerUtil {
       CLeftHandSide pLeftHandSide, CExpression pRightHandSide, MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
-    InputRejection.checkFunctionPointerAssignment(pRightHandSide);
+    InputRejection.checkFunctionPointerRightHandSide(pRightHandSide);
     InputRejection.checkPointerWriteBinaryExpression(pLeftHandSide, pRightHandSide);
 
     CSimpleDeclaration leftHandSideDeclaration =
