@@ -322,21 +322,30 @@ public class MemoryModelUtil {
 
   // CExpression Visitors
 
-  public static final class CSimpleDeclarationCollector
+  public static ImmutableSet<CSimpleDeclaration> getNestedSimpleDeclarations(
+      CExpression pExpression) {
+
+    CSimpleDeclarationCollector simpleDeclarationCollector = new CSimpleDeclarationCollector();
+    pExpression.accept(simpleDeclarationCollector);
+    return simpleDeclarationCollector.getSimpleDeclarations();
+  }
+
+  private static final class CSimpleDeclarationCollector
       extends DefaultCExpressionVisitor<Void, NoException> {
 
     private final Set<CSimpleDeclaration> simpleDeclarations;
 
-    public CSimpleDeclarationCollector() {
+    private CSimpleDeclarationCollector() {
       simpleDeclarations = new HashSet<>();
     }
 
-    public ImmutableSet<CSimpleDeclaration> getSimpleDeclarations() {
+    private ImmutableSet<CSimpleDeclaration> getSimpleDeclarations() {
       return ImmutableSet.copyOf(simpleDeclarations);
     }
 
     @Override
     public Void visit(CArraySubscriptExpression pArraySubscriptExpression) {
+      pArraySubscriptExpression.getArrayExpression().accept(this);
       pArraySubscriptExpression.getSubscriptExpression().accept(this);
       return null;
     }

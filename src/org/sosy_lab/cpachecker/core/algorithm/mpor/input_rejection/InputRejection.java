@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -40,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CSimpleDeclarationCollector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -184,10 +184,9 @@ public class InputRejection {
   public static void checkFunctionPointerAssignment(CExpression pRightHandSide)
       throws UnsupportedCodeException {
 
-    CSimpleDeclarationCollector simpleDeclarationCollector = new CSimpleDeclarationCollector();
-    pRightHandSide.accept(simpleDeclarationCollector);
-    if (simpleDeclarationCollector.getSimpleDeclarations().stream()
-        .anyMatch(d -> d instanceof CFunctionDeclaration)) {
+    ImmutableSet<CSimpleDeclaration> declarations =
+        MemoryModelUtil.getNestedSimpleDeclarations(pRightHandSide);
+    if (declarations.stream().anyMatch(d -> d instanceof CFunctionDeclaration)) {
       throw new UnsupportedCodeException(
           InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
           null);
