@@ -21,6 +21,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -86,6 +87,7 @@ public class DssBlockAnalysis {
   private final Multimap<String, @NonNull StateAndPrecision> preconditions;
   private final Multimap<String, @NonNull StateAndPrecision> violationConditions;
   private final List<StateAndPrecision> relevant;
+  private final Set<String> fixedPointReached;
 
   private final ConfigurableProgramAnalysis cpa;
   private final BlockNode block;
@@ -141,6 +143,7 @@ public class DssBlockAnalysis {
     relevant = new ArrayList<>();
 
     containsViolationInsideBlock = false;
+    fixedPointReached = new LinkedHashSet<>();
   }
 
   /**
@@ -535,7 +538,10 @@ public class DssBlockAnalysis {
     }
     if (equal == deserializedStatesAndPrecisions.size()) {
       relevant.clear();
+      fixedPointReached.add(pReceived.getSenderId());
       processing = DssMessageProcessing.stop();
+    } else {
+      fixedPointReached.remove(pReceived.getSenderId());
     }
 
     return processing;
@@ -647,14 +653,7 @@ public class DssBlockAnalysis {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
 
-    boolean hasNonTrivialSummariesForEachPredecessor =
-        !preconditions.isEmpty()
-            && preconditions.keySet().stream()
-                .allMatch(
-                    k ->
-                        preconditions.get(k).stream()
-                            .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state())));
-
+    boolean skipTrivial = fixedPointReached.containsAll(preconditions.keySet());
     Optional<Precision> maybePrecision = combinePrecisionIfPossible();
 
     // unreachable block ends might be caused by underapproximating summaries
@@ -680,10 +679,7 @@ public class DssBlockAnalysis {
     boolean analyzedTrivial = false;
     for (StateAndPrecision stateAndPrecision : startStates.build()) {
       boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
-      if (isTrivial && analyzedTrivial) {
-        continue;
-      }
-      if (hasNonTrivialSummariesForEachPredecessor && isTrivial) {
+      if (isTrivial && (analyzedTrivial || skipTrivial)) {
         continue;
       }
       analyzedTrivial = analyzedTrivial || isTrivial;
