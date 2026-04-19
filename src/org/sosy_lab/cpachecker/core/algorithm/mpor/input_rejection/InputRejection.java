@@ -69,8 +69,7 @@ public class InputRejection {
         true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
-    PTHREAD_OBJECT_POINTER_ALIASING(
-        "MPOR does not aliasing for pthread object pointers: %s %s", false),
+    PTHREAD_OBJECT_POINTER_ALIASING("MPOR does not aliasing for pthread object pointers: ", false),
     PTHREAD_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
     RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
@@ -147,7 +146,7 @@ public class InputRejection {
     if (pMutexMemoryLocations.size() > 1) {
       throw new UnsupportedCodeException(
           String.format(
-              InputRejectionMessage.PTHREAD_OBJECT_POINTER_ALIASING.message,
+              InputRejectionMessage.PTHREAD_OBJECT_POINTER_ALIASING.message + "%s %s",
               Iterables.getOnlyElement(pMutexPointerMemoryLocations).getName(),
               pMutexMemoryLocations.stream()
                   .map(m -> m.getName())

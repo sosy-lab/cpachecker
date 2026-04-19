@@ -111,28 +111,19 @@ int main() {
     pthread_mutex_init(&struct_with_mutex.inner_mutex, (void *) 0);
     pthread_mutex_init(&another_struct_with_mutex.inner_mutex, (void *) 0);
 
-    // mutex aliasing must be handled
-    pthread_mutex_t *mutex_ptr;
-    mutex_ptr = &mutexA;
-    mutex_ptr = &mutexB;
-    mutex_ptr = &struct_with_mutex.inner_mutex;
-    pthread_mutex_lock(mutex_ptr);
-    x = 42;
-    pthread_mutex_unlock(mutex_ptr);
-
     // this is undefined behavior in the pthread standard (assign mutex and pass by value)
     /* pthread_mutex_t uninit_mutex;
     uninit_mutex = mutexA;
     pass_mutex(mutexA); */
 
     // passing a pointer to a mutex is fine and not undefined behavior
+    pthread_mutex_t *mutex_ptr;
+    mutex_ptr = &mutexA;
     pass_mutex_pointer(mutex_ptr);
 
     PQUEUE *ptr_to_struct;
     if (x == 123456789) {
         ptr_to_struct = &struct_with_mutex;
-    } else {
-        ptr_to_struct = &another_struct_with_mutex;
     }
     pthread_mutex_lock(ptr_to_struct->inner_mutex);
 
@@ -145,11 +136,6 @@ int main() {
     PQUEUE_PTR *ptr_to_struct_with_ptr;
     if (x == 987654321) {
         ptr_to_struct_with_ptr = &struct_with_mutex_ptr;
-    } else {
-        ptr_to_struct_with_ptr = &yet_another_struct_with_mutex_ptr;
-    }
-    if (x == 192837465) {
-        ptr_to_struct_with_ptr->inner_mutex_pointer = &mutexC;
     }
     pass_mutex_pointer(ptr_to_struct_with_ptr->inner_mutex_pointer);
 

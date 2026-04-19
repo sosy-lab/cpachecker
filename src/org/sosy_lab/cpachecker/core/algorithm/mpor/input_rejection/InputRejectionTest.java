@@ -122,6 +122,17 @@ public class InputRejectionTest {
   }
 
   @Test
+  public void testRejectPthreadObjectPointerAliasing() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/pthread-object-pointer-aliasing.c");
+    testExpectedRejectionWhenBuildingProgram(
+        MPOROptions.getDefaultTestInstance(),
+        TestDataTools.configurationForTest().build(),
+        inputFilePath,
+        InputRejectionMessage.PTHREAD_OBJECT_POINTER_ALIASING);
+  }
+
+  @Test
   public void testRejectPthreadCreateLoop() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread-create-loop.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_CREATE_LOOP);
