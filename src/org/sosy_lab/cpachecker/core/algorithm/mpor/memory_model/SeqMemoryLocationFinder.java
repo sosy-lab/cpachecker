@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CFieldReferenceCollector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -183,6 +184,13 @@ public class SeqMemoryLocationFinder {
     stack.push(pPointerDereference);
     visited.add(pPointerDereference); // Add initial location to visited immediately
 
+    final ImmutableSet<SeqMemoryLocation> pointerDereferenceRightHandSides =
+        MemoryModel.getPointerAssignmentRightHandSides(
+            pPointerDereference,
+            pPointerAssignments,
+            pStartRoutineArgAssignments,
+            pPointerParameterAssignments);
+
     while (!stack.isEmpty()) {
       SeqMemoryLocation currentMemoryLocation = stack.pop();
       // check if the current location is a pointer (an LHS in an assignment)
@@ -204,7 +212,8 @@ public class SeqMemoryLocationFinder {
         rightHandSides.stream().filter(visited::add).forEach(stack::push);
       } else {
         SeqMemoryLocation targetMemoryLocation =
-            getTargetMemoryLocation(pPointerDereference, currentMemoryLocation);
+            getTargetMemoryLocation(
+                pPointerDereference, pointerDereferenceRightHandSides, currentMemoryLocation);
         // if field member is a pointer then it must be dereferenced too, otherwise add to found
         if (targetMemoryLocation.isFieldMemberPointerType()) {
           stack.push(targetMemoryLocation);
@@ -217,7 +226,9 @@ public class SeqMemoryLocationFinder {
   }
 
   private static SeqMemoryLocation getTargetMemoryLocation(
-      final SeqMemoryLocation pPointerDereference, SeqMemoryLocation pCurrentMemoryLocation) {
+      final SeqMemoryLocation pPointerDereference,
+      final ImmutableSet<SeqMemoryLocation> pPointerDereferenceRightHandSides,
+      SeqMemoryLocation pCurrentMemoryLocation) {
 
     checkArgument(
         !pCurrentMemoryLocation.isFieldOwnerPointerType(),
@@ -245,6 +256,17 @@ public class SeqMemoryLocationFinder {
             currentType,
             pPointerDereference.fieldMember().orElseThrow().getName(),
             pCurrentMemoryLocation);
+      }
+      for (SeqMemoryLocation rightHandSide : pPointerDereferenceRightHandSides) {
+        CType rhsType = rightHandSide.declaration().getType();
+        if (rhsType.equals(currentType)
+            || (rhsType instanceof CPointerType pointerType
+                && pointerType.getType().equals(currentType))) {
+          return getTargetMemoryLocationWithFieldMember(
+              currentType,
+              rightHandSide.fieldMember().orElseThrow().getName(),
+              pCurrentMemoryLocation);
+        }
       }
     }
     return pCurrentMemoryLocation;
