@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -34,9 +35,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -53,7 +55,10 @@ public class InputRejection {
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
-    NO_PTHREAD_OBJECT_ARRAYS("MPOR does not support arrays of pthread objects in line ", true),
+    NO_PTHREAD_OBJECT_ARRAYS(
+        "MPOR does not support arrays of pthread objects or arrays of structs with inner pthread"
+            + " objects in line ",
+        true),
     POINTER_WRITE_BINARY_EXPRESSION(
         "MPOR does not support binary expressions as assignments to pointers in line ", true),
     POINTER_WRITE(
@@ -84,20 +89,7 @@ public class InputRejection {
     }
   }
 
-  /**
-   * Handles input program rejections and throws a {@link UnsupportedCodeException} if the input
-   * program...
-   *
-   * <ul>
-   *   <li>is not in C
-   *   <li>has no call to {@code pthread_create} i.e. is not concurrent
-   *   <li>uses arrays for {@code pthread_t} or {@code pthread_mutex_t} identifiers
-   *   <li>stores the return value of any pthread method call
-   *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFunctionType}
-   *   <li>contains a {@code pthread_create} call in a loop
-   *   <li>contains a recursive function call (both direct and indirect)
-   * </ul>
-   */
+  /** Handles input program rejections and throws a {@link UnsupportedCodeException} accordingly. */
   public static void handleRejections(CFA pInputCfa) throws UnsupportedCodeException {
     checkLanguageC(pInputCfa);
     checkIsParallelProgram(pInputCfa);
@@ -142,14 +134,14 @@ public class InputRejection {
   }
 
   private static void checkPthreadObjectArrays(CFA pInputCfa) throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      if (edge instanceof CDeclarationEdge decEdge) {
-        if (decEdge.getDeclaration() instanceof CVariableDeclaration varDec) {
-          if (varDec.getType() instanceof CArrayType arrayType) {
-            if (arrayType.getType() instanceof CTypedefType typedefType) {
-              if (PthreadUtil.isAnyPthreadObjectType(typedefType)) {
-                rejectCfaEdge(edge, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
-              }
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          if (variableDeclaration.getType() instanceof CArrayType arrayType) {
+            ImmutableSet<CType> nestedTypes = MemoryModelUtil.getNestedTypes(arrayType, stopNames);
+            if (nestedTypes.stream().anyMatch(t -> PthreadUtil.isAnyPthreadObjectType(t))) {
+              rejectCfaEdge(cfaEdge, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
             }
           }
         }
