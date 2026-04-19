@@ -10,12 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -24,40 +20,20 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 public record SeqMemoryLocation(
     Optional<CFAEdgeForThread> callContext,
     CVariableDeclaration declaration,
-    Optional<CCompositeTypeMemberDeclaration> fieldMember,
-    ImmutableList<CExpression> expressions) {
+    Optional<CCompositeTypeMemberDeclaration> fieldMember) {
 
-  public SeqMemoryLocation {
-    checkArgument(!expressions.isEmpty(), "The list of CExpressions cannot be empty.");
-    checkArgument(
-        fieldMember.isPresent() || expressions.size() == 1,
-        "If fieldMember is empty, then expressions must have a single element.");
-    checkArgument(
-        fieldMember.isPresent()
-            || !(Iterables.getOnlyElement(expressions) instanceof CFieldReference),
-        "If fieldMember is empty, then expressions cannot contain a CFieldReference.");
-    checkArgument(
-        fieldMember.isEmpty() || expressions.stream().allMatch(e -> e instanceof CFieldReference),
-        "If fieldMember is present, then all expressions must be a CFieldReference.");
+  public static SeqMemoryLocation of(
+      Optional<CFAEdgeForThread> pCallContext, CVariableDeclaration pDeclaration) {
+
+    return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty());
   }
 
   public static SeqMemoryLocation of(
       Optional<CFAEdgeForThread> pCallContext,
       CVariableDeclaration pDeclaration,
-      CExpression pExpression) {
+      CCompositeTypeMemberDeclaration pFieldMember) {
 
-    return new SeqMemoryLocation(
-        pCallContext, pDeclaration, Optional.empty(), ImmutableList.of(pExpression));
-  }
-
-  public static SeqMemoryLocation of(
-      Optional<CFAEdgeForThread> pCallContext,
-      CVariableDeclaration pDeclaration,
-      CCompositeTypeMemberDeclaration pFieldMember,
-      ImmutableList<CExpression> pExpressions) {
-
-    return new SeqMemoryLocation(
-        pCallContext, pDeclaration, Optional.of(pFieldMember), pExpressions);
+    return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.of(pFieldMember));
   }
 
   public String getName() {
@@ -99,8 +75,7 @@ public record SeqMemoryLocation(
         fieldMember.isPresent(),
         "Cannot get field owner MemoryLocation because field member is empty.");
     // just return the declaration of the field owner, without any field member
-    return SeqMemoryLocation.of(
-        callContext, declaration, ((CFieldReference) expressions.getFirst()).getFieldOwner());
+    return SeqMemoryLocation.of(callContext, declaration);
   }
 
   @Override
@@ -119,10 +94,7 @@ public record SeqMemoryLocation(
             SeqMemoryLocation(
                 Optional<CFAEdgeForThread> pCallContext,
                 CVariableDeclaration pDeclaration,
-                Optional<CCompositeTypeMemberDeclaration> pFieldMember,
-                // the expression is not used for equality because a memory location is defined by
-                // its declaration and its call context, but not the way it is expressed
-                ImmutableList<CExpression> ignored)
+                Optional<CCompositeTypeMemberDeclaration> pFieldMember)
         // consider call context only for non-global variables
         && (declaration.isGlobal() || callContext.equals(pCallContext))
         && fieldMember.equals(pFieldMember)

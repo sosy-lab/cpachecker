@@ -18,8 +18,6 @@ import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -187,106 +185,52 @@ public class MemoryModelStructParameterTest {
 
   private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
 
-  // CExpression
-
-  private final CIdExpression OUTER_STRUCT_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, OUTER_STRUCT_DECLARATION);
-
-  private final CFieldReference OUTER_STRUCT_MEMBER_EXPRESSION =
-      new CFieldReference(
-          FileLocation.DUMMY,
-          OUTER_STRUCT_DECLARATION.getType(),
-          OUTER_STRUCT_MEMBER_DECLARATION.getName(),
-          new CIdExpression(FileLocation.DUMMY, OUTER_STRUCT_DECLARATION),
-          OUTER_STRUCT_DECLARATION.getType() instanceof CPointerType);
-
-  private final CFieldReference OUTER_STRUCT_POINTER_MEMBER_EXPRESSION =
-      new CFieldReference(
-          FileLocation.DUMMY,
-          OUTER_STRUCT_DECLARATION.getType(),
-          OUTER_STRUCT_POINTER_MEMBER_DECLARATION.getName(),
-          new CIdExpression(FileLocation.DUMMY, OUTER_STRUCT_DECLARATION),
-          OUTER_STRUCT_DECLARATION.getType() instanceof CPointerType);
-
-  private final CIdExpression GLOBAL_G1_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, GLOBAL_G1_DECLARATION);
-
-  private final CIdExpression LOCAL_L1_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, LOCAL_L1_DECLARATION);
-
-  private final CIdExpression PARAMETER_POINTER_OUTER_STRUCT_EXPRESSION =
-      new CIdExpression(
-          FileLocation.DUMMY,
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_OUTER_STRUCT
-              .asVariableDeclaration());
-
-  private final CIdExpression PARAMETER_EXPRESSION_POINTER_P1 =
-      new CIdExpression(
-          FileLocation.DUMMY,
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P1.asVariableDeclaration());
-
-  private final CIdExpression PARAMETER_EXPRESSION_POINTER_P2 =
-      new CIdExpression(
-          FileLocation.DUMMY,
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration());
-
   // Memory Locations (structs)
 
   private final SeqMemoryLocation OUTER_STRUCT_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), OUTER_STRUCT_DECLARATION);
 
   private final SeqMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          OUTER_STRUCT_MEMBER_DECLARATION,
-          ImmutableList.of(OUTER_STRUCT_MEMBER_EXPRESSION));
+          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_MEMBER_DECLARATION);
 
   private final SeqMemoryLocation OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          OUTER_STRUCT_POINTER_MEMBER_DECLARATION,
-          ImmutableList.of(OUTER_STRUCT_POINTER_MEMBER_EXPRESSION));
+          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_POINTER_MEMBER_DECLARATION);
 
   private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION, null);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
 
   private final SeqMemoryLocation INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          INNER_STRUCT_POINTER_MEMBER_DECLARATION,
-          null);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_POINTER_MEMBER_DECLARATION);
 
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation GLOBAL_G1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), GLOBAL_G1_DECLARATION, GLOBAL_G1_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_G1_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION, LOCAL_L1_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION);
 
   // Memory Locations (parameters)
 
   private final SeqMemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_OUTER_STRUCT.asVariableDeclaration(),
-          PARAMETER_POINTER_OUTER_STRUCT_EXPRESSION);
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_OUTER_STRUCT
+              .asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P1.asVariableDeclaration(),
-          PARAMETER_EXPRESSION_POINTER_P1);
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P1.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration(),
-          PARAMETER_EXPRESSION_POINTER_P2);
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration());
 
   public MemoryModelStructParameterTest() {}
 

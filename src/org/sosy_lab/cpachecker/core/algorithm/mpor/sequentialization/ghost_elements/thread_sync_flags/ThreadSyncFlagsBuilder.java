@@ -15,12 +15,10 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -100,25 +98,16 @@ public record ThreadSyncFlagsBuilder(
             CType type = variableDeclaration.getType();
             if (!(type instanceof CPointerType)) {
               if (MemoryModelUtil.isAnyTypeTargetName(type, pObjectType.name, stopNames)) {
-                CIdExpression idExpression =
-                    new CIdExpression(FileLocation.DUMMY, variableDeclaration);
                 if (pObjectType.equalsType(type)) {
                   rMemoryLocations.add(
-                      SeqMemoryLocation.of(
-                          substituteEdge.getCallContext(), variableDeclaration, idExpression));
+                      SeqMemoryLocation.of(substituteEdge.getCallContext(), variableDeclaration));
                 }
                 for (CCompositeTypeMemberDeclaration declaration :
                     MemoryModelUtil.getCompositeTypeMemberDeclarationsByTypeName(
                         type, pObjectType.name)) {
-                  CFieldReference fieldReference =
-                      new CFieldReference(
-                          FileLocation.DUMMY, type, declaration.getName(), idExpression, false);
                   rMemoryLocations.add(
                       SeqMemoryLocation.of(
-                          substituteEdge.getCallContext(),
-                          variableDeclaration,
-                          declaration,
-                          ImmutableList.of(fieldReference)));
+                          substituteEdge.getCallContext(), variableDeclaration, declaration));
                 }
               }
             }

@@ -203,68 +203,34 @@ public class MemoryModelParameterTest {
 
   private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
 
-  // CExpression
-
-  private final CIdExpression GLOBAL_POINTER_A_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, GLOBAL_POINTER_A_DECLARATION);
-
-  private final CIdExpression GLOBAL_X_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, GLOBAL_X_DECLARATION);
-
-  private final CIdExpression LOCAL_POINTER_C_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, LOCAL_POINTER_C_DECLARATION);
-
-  private final CIdExpression LOCAL_Z_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, LOCAL_Z_DECLARATION);
-
-  private final CIdExpression PARAMETER_EXPRESSION_POINTER_P =
-      new CIdExpression(
-          FileLocation.DUMMY,
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration());
-
-  private final CIdExpression PARAMETER_EXPRESSION_Q =
-      new CIdExpression(
-          FileLocation.DUMMY,
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_Q.asVariableDeclaration());
-
-  private final CIdExpression PARAMETER_EXPRESSION_POINTER_R =
-      new CIdExpression(
-          FileLocation.DUMMY,
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_Q.asVariableDeclaration());
-
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.empty(), GLOBAL_POINTER_A_DECLARATION, GLOBAL_POINTER_A_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION, GLOBAL_X_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.empty(), LOCAL_POINTER_C_DECLARATION, LOCAL_POINTER_C_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION, LOCAL_Z_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
 
   private final SeqMemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration(),
-          PARAMETER_EXPRESSION_POINTER_P);
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_Q_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_Q.asVariableDeclaration(),
-          PARAMETER_EXPRESSION_Q);
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_Q.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration(),
-          PARAMETER_EXPRESSION_POINTER_R);
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration());
 
   public MemoryModelParameterTest() {}
 

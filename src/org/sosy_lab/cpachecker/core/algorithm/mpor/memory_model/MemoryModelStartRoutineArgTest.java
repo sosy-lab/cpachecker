@@ -17,7 +17,6 @@ import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -77,26 +76,15 @@ public class MemoryModelStartRoutineArgTest {
 
   private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
 
-  // CExpression
-
-  private final CIdExpression LOCAL_L1_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, LOCAL_L1_DECLARATION);
-
-  private final CIdExpression START_ROUTINE_ARG_EXPRESSION =
-      new CIdExpression(
-          FileLocation.DUMMY,
-          PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
-
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION, LOCAL_L1_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION);
 
   private final SeqMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration(),
-          START_ROUTINE_ARG_EXPRESSION);
+          PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
 
   public MemoryModelStartRoutineArgTest() {}
 

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -19,7 +18,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -279,19 +277,9 @@ public class SeqMemoryLocationFinder {
 
     CCompositeTypeMemberDeclaration fieldMemberDeclaration =
         MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(pFieldOwnerType, pFieldName);
-    // pass on the fieldMember, because currentMemoryLocation does not contain it
-    CFieldReference newFieldReference =
-        new CFieldReference(
-            FileLocation.DUMMY,
-            pCurrentMemoryLocation.declaration().getType(),
-            fieldMemberDeclaration.getName(),
-            Iterables.getOnlyElement(pCurrentMemoryLocation.expressions()),
-            // not a pointer dereference because currentMemoryLocation is not a pointer
-            false);
     return SeqMemoryLocation.of(
         pCurrentMemoryLocation.callContext(),
         pCurrentMemoryLocation.declaration(),
-        fieldMemberDeclaration,
-        ImmutableList.of(newFieldReference));
+        fieldMemberDeclaration);
   }
 }

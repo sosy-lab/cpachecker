@@ -91,10 +91,7 @@ public class SubstituteUtil {
     for (CVariableDeclarationTrackerResult pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
       rPointerDereferences.add(
-          SeqMemoryLocation.of(
-              pCallContext,
-              pointerDereference.variableDeclaration(),
-              pointerDereference.expression()));
+          SeqMemoryLocation.of(pCallContext, pointerDereference.variableDeclaration()));
     }
     for (CFieldReferenceTrackerResult fieldReferencePointerDereference :
         pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType)) {
@@ -102,8 +99,7 @@ public class SubstituteUtil {
           SeqMemoryLocation.of(
               pCallContext,
               fieldReferencePointerDereference.fieldOwner(),
-              fieldReferencePointerDereference.fieldMember(),
-              ImmutableList.of(fieldReferencePointerDereference.fieldReference())));
+              fieldReferencePointerDereference.fieldMember()));
     }
     return rPointerDereferences.build();
   }
@@ -117,19 +113,13 @@ public class SubstituteUtil {
     for (CVariableDeclarationTrackerResult variableDeclaration :
         pTracker.getDeclarationsByAccessType(pAccessType)) {
       rMemoryLocations.add(
-          SeqMemoryLocation.of(
-              pCallContext,
-              variableDeclaration.variableDeclaration(),
-              variableDeclaration.expression()));
+          SeqMemoryLocation.of(pCallContext, variableDeclaration.variableDeclaration()));
     }
     for (CFieldReferenceTrackerResult fieldMembers :
         pTracker.getFieldMembersByAccessType(pAccessType)) {
       rMemoryLocations.add(
           SeqMemoryLocation.of(
-              pCallContext,
-              fieldMembers.fieldOwner(),
-              fieldMembers.fieldMember(),
-              ImmutableList.of(fieldMembers.fieldReference())));
+              pCallContext, fieldMembers.fieldOwner(), fieldMembers.fieldMember()));
     }
     return rMemoryLocations.build();
   }
@@ -148,18 +138,10 @@ public class SubstituteUtil {
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
       CDeclarationTrackerResult key = entry.getKey();
       SeqMemoryLocation leftHandSide =
-          new SeqMemoryLocation(
-              pCallContext,
-              key.declaration(),
-              key.fieldMember(),
-              ImmutableList.of(key.expression()));
+          new SeqMemoryLocation(pCallContext, key.declaration(), key.fieldMember());
       CDeclarationTrackerResult value = entry.getValue();
       SeqMemoryLocation rightHandSide =
-          new SeqMemoryLocation(
-              pCallContext,
-              value.declaration(),
-              value.fieldMember(),
-              ImmutableList.of(value.expression()));
+          new SeqMemoryLocation(pCallContext, value.declaration(), value.fieldMember());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();

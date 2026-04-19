@@ -18,8 +18,6 @@ import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -150,44 +148,23 @@ public class MemoryModelStructTest {
           "outer_struct",
           EMPTY_INITIALIZER_LIST);
 
-  // CExpression
-
-  private final CIdExpression GLOBAL_POINTER_A_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, GLOBAL_POINTER_A_DECLARATION);
-
-  private final CIdExpression GLOBAL_POINTER_B_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, GLOBAL_POINTER_B_DECLARATION);
-
-  private final CFieldReference OUTER_STRUCT_MEMBER_EXPRESSION =
-      new CFieldReference(
-          FileLocation.DUMMY,
-          OUTER_STRUCT_DECLARATION.getType(),
-          OUTER_STRUCT_MEMBER_DECLARATION.getName(),
-          new CIdExpression(FileLocation.DUMMY, OUTER_STRUCT_DECLARATION),
-          OUTER_STRUCT_DECLARATION.getType() instanceof CPointerType);
-
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.empty(), GLOBAL_POINTER_A_DECLARATION, GLOBAL_POINTER_A_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.empty(), GLOBAL_POINTER_B_DECLARATION, GLOBAL_POINTER_B_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   // Memory Locations (structs)
 
   private final SeqMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          OUTER_STRUCT_MEMBER_DECLARATION,
-          ImmutableList.of(OUTER_STRUCT_MEMBER_EXPRESSION));
+          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_MEMBER_DECLARATION);
 
   private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION, null);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
 
   public MemoryModelStructTest() {}
 

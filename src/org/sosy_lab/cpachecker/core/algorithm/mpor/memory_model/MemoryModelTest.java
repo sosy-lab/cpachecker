@@ -17,7 +17,6 @@ import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -127,55 +126,28 @@ public class MemoryModelTest {
           "local_Z",
           INT_0_INITIALIZER);
 
-  // CExpression
-
-  private final CIdExpression GLOBAL_POINTER_A_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, GLOBAL_POINTER_A_DECLARATION);
-
-  private final CIdExpression GLOBAL_POINTER_B_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, GLOBAL_POINTER_B_DECLARATION);
-
-  private final CIdExpression LOCAL_POINTER_C_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, LOCAL_POINTER_C_DECLARATION);
-
-  private final CIdExpression LOCAL_POINTER_D_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, LOCAL_POINTER_D_DECLARATION);
-
-  private final CIdExpression GLOBAL_X_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, GLOBAL_X_DECLARATION);
-
-  private final CIdExpression GLOBAL_Y_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, GLOBAL_Y_DECLARATION);
-
-  private final CIdExpression LOCAL_Z_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, LOCAL_Z_DECLARATION);
-
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.empty(), GLOBAL_POINTER_A_DECLARATION, GLOBAL_POINTER_A_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.empty(), GLOBAL_POINTER_B_DECLARATION, GLOBAL_POINTER_B_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.empty(), LOCAL_POINTER_C_DECLARATION, LOCAL_POINTER_C_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_POINTER_D_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.empty(), LOCAL_POINTER_D_DECLARATION, LOCAL_POINTER_D_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_POINTER_D_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION, GLOBAL_X_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_Y_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), GLOBAL_Y_DECLARATION, GLOBAL_Y_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_Y_DECLARATION);
 
   private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION, LOCAL_Z_EXPRESSION);
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
 
   public MemoryModelTest() {}
 
@@ -183,8 +155,7 @@ public class MemoryModelTest {
   public void test_memory_location_equals() {
     // create new MemoryLocation with the same parameters
     SeqMemoryLocation int_pointer_a_memory_location_alt =
-        SeqMemoryLocation.of(
-            Optional.empty(), GLOBAL_POINTER_A_DECLARATION, GLOBAL_POINTER_A_EXPRESSION);
+        SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
     // test that .equals returns true
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION).isEqualTo(int_pointer_a_memory_location_alt);
     // test that .equals returns false
