@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
@@ -31,14 +33,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
  *     thread is at a location that synchronizes threads, e.g. {@code pthread_join}.
  */
 public record ThreadSyncFlags(
-    ImmutableMap<CIdExpression, CondSignaledFlag> condSignaledFlags,
+    ImmutableMap<SeqMemoryLocation, CondSignaledFlag> condSignaledFlags,
     ImmutableMap<SeqMemoryLocation, MutexLockedFlag> mutexLockedFlags,
-    ImmutableMap<CIdExpression, RwLockNumReadersWritersFlag> rwLockFlags,
+    ImmutableMap<SeqMemoryLocation, RwLockNumReadersWritersFlag> rwLockFlags,
     ImmutableMap<MPORThread, CIdExpression> syncFlags) {
 
   /** Returns all declarations of the thread synchronization variables. */
   public ImmutableList<CSimpleDeclaration> getDeclarations(MPOROptions pOptions) {
-    ImmutableList.Builder<CSimpleDeclaration> rDeclarations = ImmutableList.builder();
+    Builder<CSimpleDeclaration> rDeclarations = ImmutableList.builder();
     for (CondSignaledFlag condSignaledFlag : condSignaledFlags.values()) {
       rDeclarations.add(condSignaledFlag.idExpression().getDeclaration());
     }
@@ -59,16 +61,28 @@ public record ThreadSyncFlags(
 
   // Getters =======================================================================================
 
-  public CondSignaledFlag getCondSignaledFlag(CIdExpression pIdExpression) {
-    return Objects.requireNonNull(condSignaledFlags.get(pIdExpression));
+  public Record getFlagByPthreadObjectType(
+      SeqMemoryLocation pMemoryLocation, PthreadObjectType pObjectType) {
+
+    return switch (pObjectType) {
+      case PTHREAD_COND_T -> getCondSignaledFlag(pMemoryLocation);
+      case PTHREAD_MUTEX_T -> getMutexLockedFlag(pMemoryLocation);
+      case PTHREAD_RWLOCK_T -> getRwLockFlag(pMemoryLocation);
+      default ->
+          throw new IllegalArgumentException("Invalid PthreadObjectType: " + pObjectType.name);
+    };
+  }
+
+  public CondSignaledFlag getCondSignaledFlag(SeqMemoryLocation pMemoryLocation) {
+    return Objects.requireNonNull(condSignaledFlags.get(pMemoryLocation));
   }
 
   public MutexLockedFlag getMutexLockedFlag(SeqMemoryLocation pMemoryLocation) {
     return Objects.requireNonNull(mutexLockedFlags.get(pMemoryLocation));
   }
 
-  public RwLockNumReadersWritersFlag getRwLockFlag(CIdExpression pIdExpression) {
-    return Objects.requireNonNull(rwLockFlags.get(pIdExpression));
+  public RwLockNumReadersWritersFlag getRwLockFlag(SeqMemoryLocation pMemoryLocation) {
+    return Objects.requireNonNull(rwLockFlags.get(pMemoryLocation));
   }
 
   public CIdExpression getSyncFlag(MPORThread pThread) {

@@ -277,13 +277,7 @@ public record SeqThreadStatementClauseBuilder(
       if (PthreadUtil.isCallToPthreadFunction(
           functionCall, PthreadFunctionType.PTHREAD_COND_WAIT)) {
         return buildCondWaitClauses(
-            pThread,
-            pNextThreadLabel,
-            functionCall,
-            pSubstituteEdge,
-            pLabelPc,
-            pTargetPc,
-            pStatementBuilder);
+            pThread, pNextThreadLabel, pSubstituteEdge, pLabelPc, pTargetPc, pStatementBuilder);
       }
     }
     return ImmutableList.of();
@@ -298,7 +292,6 @@ public record SeqThreadStatementClauseBuilder(
   private ImmutableList<SeqThreadStatementClause> buildCondWaitClauses(
       MPORThread pThread,
       Optional<CLabelStatement> pNextThreadLabel,
-      CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
@@ -310,13 +303,21 @@ public record SeqThreadStatementClauseBuilder(
     // step 1: reuse pthread_mutex_unlock statements for pthread_cond_wait
     int nextFreePc = pThread.cfa().getNextFreePc();
     SeqThreadStatement mutexUnlockStatement =
-        pStatementBuilder.buildMutexUnlockStatement(pSubstituteEdge, nextFreePc);
+        pStatementBuilder.buildMutexStatement(
+            SeqThreadStatementType.MUTEX_UNLOCK,
+            PthreadFunctionType.PTHREAD_MUTEX_UNLOCK,
+            pSubstituteEdge,
+            nextFreePc);
     rClauses.add(
         buildClause(pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(mutexUnlockStatement)));
 
     // step 2: build pthread_cond_t handling statement
     SeqThreadStatement condWaitStatement =
-        pStatementBuilder.buildCondWaitStatement(pFunctionCall, pSubstituteEdge, pTargetPc);
+        pStatementBuilder.buildCondStatement(
+            SeqThreadStatementType.COND_WAIT,
+            PthreadFunctionType.PTHREAD_COND_WAIT,
+            pSubstituteEdge,
+            pTargetPc);
     rClauses.add(
         buildClause(pThread, pNextThreadLabel, nextFreePc, ImmutableList.of(condWaitStatement)));
 
