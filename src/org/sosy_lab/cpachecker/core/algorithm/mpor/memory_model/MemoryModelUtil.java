@@ -322,6 +322,74 @@ public class MemoryModelUtil {
 
   // CExpression Visitors
 
+  public static final class CSimpleDeclarationCollector
+      extends DefaultCExpressionVisitor<Void, NoException> {
+
+    private final Set<CSimpleDeclaration> simpleDeclarations;
+
+    public CSimpleDeclarationCollector() {
+      simpleDeclarations = new HashSet<>();
+    }
+
+    public ImmutableSet<CSimpleDeclaration> getSimpleDeclarations() {
+      return ImmutableSet.copyOf(simpleDeclarations);
+    }
+
+    @Override
+    public Void visit(CArraySubscriptExpression pArraySubscriptExpression) {
+      pArraySubscriptExpression.getSubscriptExpression().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CFieldReference pFieldReference) {
+      pFieldReference.getFieldOwner().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CPointerExpression pPointerExpression) {
+      pPointerExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CComplexCastExpression pComplexCastExpression) {
+      pComplexCastExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CBinaryExpression pBinaryExpression) {
+      pBinaryExpression.getOperand1().accept(this);
+      pBinaryExpression.getOperand2().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CCastExpression pCastExpression) {
+      pCastExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CUnaryExpression pUnaryExpression) {
+      pUnaryExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CIdExpression pIdExpression) {
+      simpleDeclarations.add(pIdExpression.getDeclaration());
+      return null;
+    }
+
+    @Override
+    protected Void visitDefault(CExpression pExpression) {
+      return null;
+    }
+  }
+
   public static final class CFieldReferenceCollector
       extends DefaultCExpressionVisitor<Void, NoException> {
 

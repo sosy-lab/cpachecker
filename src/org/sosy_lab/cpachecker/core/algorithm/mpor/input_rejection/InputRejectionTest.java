@@ -160,7 +160,7 @@ public class InputRejectionTest {
         MPOROptions.getDefaultTestInstance(),
         TestDataTools.configurationForTest().build(),
         inputFilePath,
-        InputRejectionMessage.FUNCTION_POINTER_PARAMETER);
+        InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
   }
 
   @Test

@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CSimpleDeclarationCollector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -50,7 +52,6 @@ public class InputRejection {
 
   enum InputRejectionMessage {
     FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
-    FUNCTION_POINTER_PARAMETER("MPOR does not support function pointers as parameters: ", false),
     INVALID_OPTIONS("Invalid MPOR options, see above errors.", false),
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
@@ -94,6 +95,7 @@ public class InputRejection {
     checkLanguageC(pInputCfa);
     checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
+    checkFunctionPointerInDeclaration(pInputCfa);
     checkPthreadObjectArrays(pInputCfa);
     checkPthreadFunctionReturnValues(pInputCfa);
     // these are recursive and can be expensive, so they are last
@@ -164,6 +166,47 @@ public class InputRejection {
     }
   }
 
+  private static void checkFunctionPointerInDeclaration(CFA pInputCfa)
+      throws UnsupportedCodeException {
+
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          if (variableDeclaration.getInitializer()
+              instanceof CInitializerExpression initializerExpression) {
+            checkFunctionPointerAssignment(initializerExpression.getExpression());
+          }
+        }
+      }
+    }
+  }
+
+  public static void checkFunctionPointerAssignment(CExpression pRightHandSide)
+      throws UnsupportedCodeException {
+
+    CSimpleDeclarationCollector simpleDeclarationCollector = new CSimpleDeclarationCollector();
+    pRightHandSide.accept(simpleDeclarationCollector);
+    if (simpleDeclarationCollector.getSimpleDeclarations().stream()
+        .anyMatch(d -> d instanceof CFunctionDeclaration)) {
+      throw new UnsupportedCodeException(
+          InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
+          null);
+    }
+  }
+
+  public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
+      throws UnsupportedCodeException {
+
+    // calls to pthread functions with start_routine pointers are allowed
+    if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
+        pFunctionCallExpression, PthreadObjectType.START_ROUTINE)) {
+      return;
+    }
+    for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
+      checkFunctionPointerAssignment(parameterExpression);
+    }
+  }
+
   private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
       throws UnsupportedCodeException {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
@@ -227,86 +270,6 @@ public class InputRejection {
               null);
         }
       }
-    }
-  }
-
-  public static void checkFunctionPointerAssignment(CExpression pRightHandSide)
-      throws UnsupportedCodeException {
-
-    if (pRightHandSide.accept(new FunctionDeclarationVisitor())) {
-      throw new UnsupportedCodeException(
-          InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
-          null);
-    }
-  }
-
-  public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
-      throws UnsupportedCodeException {
-
-    // calls to pthread functions with start_routine pointers are allowed
-    if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
-        pFunctionCallExpression, PthreadObjectType.START_ROUTINE)) {
-      return;
-    }
-    for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
-      if (parameterExpression.accept(new FunctionDeclarationVisitor())) {
-        throw new UnsupportedCodeException(
-            InputRejectionMessage.FUNCTION_POINTER_PARAMETER.message
-                + parameterExpression.toASTString(),
-            null);
-      }
-    }
-  }
-
-  private static final class FunctionDeclarationVisitor
-      extends DefaultCExpressionVisitor<Boolean, UnsupportedCodeException> {
-
-    @Override
-    public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression)
-        throws UnsupportedCodeException {
-      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CFieldReference pFieldReference) throws UnsupportedCodeException {
-      return pFieldReference.getFieldOwner().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CPointerExpression pPointerExpression) throws UnsupportedCodeException {
-      return pPointerExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CComplexCastExpression pComplexCastExpression)
-        throws UnsupportedCodeException {
-      return pComplexCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CBinaryExpression pBinaryExpression) throws UnsupportedCodeException {
-      return pBinaryExpression.getOperand1().accept(this)
-          || pBinaryExpression.getOperand2().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCastExpression pCastExpression) throws UnsupportedCodeException {
-      return pCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CUnaryExpression pUnaryExpression) throws UnsupportedCodeException {
-      return pUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CIdExpression pIdExpression) {
-      return pIdExpression.getDeclaration() instanceof CFunctionDeclaration;
-    }
-
-    @Override
-    protected Boolean visitDefault(CExpression pExpression) {
-      return false; // ignore
     }
   }
 
