@@ -59,26 +59,15 @@ public record MemoryModelBuilder(
   public MemoryModel buildMemoryModel() throws UnsupportedCodeException {
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
         mapStartRoutineArgAssignments();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-        mapParameterAssignments();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        getPointerParameterAssignments(parameterAssignments);
-    ImmutableList<SeqMemoryLocation> newMemoryLocations =
-        ImmutableList.<SeqMemoryLocation>builder()
-            .addAll(parameterAssignments.values())
-            .addAll(startRoutineArgAssignments.keySet())
-            .addAll(startRoutineArgAssignments.values())
-            .build();
-
-    // use distinct list so that sequentialization is deterministic
-    ImmutableList<SeqMemoryLocation> allMemoryLocations =
-        Stream.concat(initialMemoryLocations.stream(), newMemoryLocations.stream())
-            .distinct()
-            .collect(ImmutableList.toImmutableList());
     ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
         substituteEdges.stream()
             .flatMap(edge -> edge.pointerAssignments.asMultimap().entries().stream())
             .collect(ImmutableSetMultimap.toImmutableSetMultimap(Entry::getKey, Entry::getValue));
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
+        mapParameterAssignments();
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
+        getPointerParameterAssignments(parameterAssignments);
+
     ImmutableSet<SeqMemoryLocation> pointerDereferences =
         substituteEdges.stream()
             .flatMap(
@@ -87,7 +76,33 @@ public record MemoryModelBuilder(
                         .getPointerDereferencesByAccessType(MemoryAccessType.ACCESS)
                         .stream())
             .collect(ImmutableSet.toImmutableSet());
+    // Dereference all pointers once to find the memory locations the pointers point to. This is
+    // useful e.g. when a pointer points to a memory location that is a member of a struct. If the
+    // struct member is never accessed directly but e.g. only the struct owner, then the struct
+    // member is not part of initialMemoryLocations and can be found through the dereference.
+    ImmutableSet<SeqMemoryLocation> pointerDereferenceMemoryLocations =
+        pointerDereferences.stream()
+            .flatMap(
+                d ->
+                    SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
+                        d,
+                        pointerAssignments,
+                        startRoutineArgAssignments,
+                        pointerParameterAssignments)
+                        .stream())
+            .collect(ImmutableSet.toImmutableSet());
 
+    // use distinct list so that sequentialization is deterministic
+    ImmutableList<SeqMemoryLocation> allMemoryLocations =
+        Stream.of(
+                initialMemoryLocations.stream(),
+                parameterAssignments.values().stream(),
+                startRoutineArgAssignments.keySet().stream(),
+                startRoutineArgAssignments.values().stream(),
+                pointerDereferenceMemoryLocations.stream())
+            .flatMap(s -> s)
+            .distinct()
+            .collect(ImmutableList.toImmutableList());
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         getRelevantMemoryLocationsIds(
             allMemoryLocations,
@@ -95,6 +110,7 @@ public record MemoryModelBuilder(
             startRoutineArgAssignments,
             pointerParameterAssignments,
             pointerDereferences);
+
     return new MemoryModel(
         options,
         allMemoryLocations,
