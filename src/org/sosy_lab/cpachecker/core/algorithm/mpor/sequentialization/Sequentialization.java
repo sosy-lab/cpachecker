@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Optional;
 import java.util.StringJoiner;
-import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -56,10 +55,9 @@ public class Sequentialization {
       try {
         SeqValidator.validateProgramParsing(rFormattedProgram, pUtils);
       } catch (ParserException | InterruptedException | InvalidConfigurationException e) {
-        pUtils
-            .logger()
-            .logUserException(
-                Level.WARNING, e, "An exception occurred while parsing the sequentialization.");
+        throw new IllegalStateException(
+            String.format(
+                "An exception occurred while parsing the sequentialization: %s", e.getMessage()));
       }
     }
     return rFormattedProgram;
