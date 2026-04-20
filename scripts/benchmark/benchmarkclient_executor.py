@@ -11,7 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
-import xml.etree.ElementTree as ElementTree
+from defusedxml import ElementTree
 
 import benchexec.tooladapter
 import benchexec.util
@@ -372,13 +372,18 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
         output_handler.output_after_run_set(runSet, end_time=end_time)
 
     if runCollectionId:
-        desc = output_handler.xml_header.find("description")
         line = "vcloud-runCollectionId=" + runCollectionId
+
+        for runSet in benchmark.run_sets:
+            if not runSet.should_be_executed():
+                continue
+
+        desc = runSet.xml.find("description")
 
         if desc is None:
             desc = ElementTree.Element("description")
             desc.text = line
-            output_handler.xml_header.insert(0, desc)
+            runSet.xml.insert(0, desc)
         else:
             if desc.text:
                 desc.text = line + "\n" + desc.text
