@@ -508,6 +508,7 @@ public class DssBlockAnalysis {
 
     if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
       preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
+      relevant.addAll(deserializedStatesAndPrecisions);
       return processing;
     }
     int equal = 0;
