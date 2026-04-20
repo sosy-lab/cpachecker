@@ -371,11 +371,18 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
         output_handler.output_after_run_set(runSet, end_time=end_time)
 
     if runCollectionId:
-        if benchmark.description:
-            benchmark.description += "\n"
+        desc = output_handler.xml_header.find("description")
+        line = "vcloud-runCollectionId=" + runCollectionId
+
+        if desc is None:
+            desc = ElementTree.Element("description")
+            desc.text = line
+            output_handler.xml_header.insert(0, desc)
         else:
-            benchmark.description = ""
-        benchmark.description += "vcloud-runCollectionId=" + runCollectionId
+            if desc.text:
+                desc.text = line + "\n" + desc.text
+            else:
+                desc.text = line
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
