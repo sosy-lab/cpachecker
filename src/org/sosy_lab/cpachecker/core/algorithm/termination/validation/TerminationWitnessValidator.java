@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -199,7 +200,6 @@ public class TerminationWitnessValidator implements Algorithm {
                 + " sure the invariant does not contain variables with potential infinite"
                 + " domains.");
       }
-      int k = 1;
       // Check the proper well-foundedness of the formula and if it succeeds, check R => T
       if (wellFoundednessChecker.isWellFounded(
               invariant, supportingInvariants, loop, mapPrevVarsToCurrVars)
@@ -209,7 +209,7 @@ public class TerminationWitnessValidator implements Algorithm {
               supportingInvariants,
               loopsToSupportingInvariants,
               mapPrevVarsToCurrVars,
-              k)) {
+              1)) {
         continue;
       }
 
@@ -229,7 +229,7 @@ public class TerminationWitnessValidator implements Algorithm {
         return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
       // Do k-inductivity checks for k > 1
-      while (true) {
+      for (int k = 1; true; k++) {
         // Base case of the induction, i.e. R^k(s,s') => T(s,s')
         if (!isCandidateInvariantTransitionInvariant(
             loop,
@@ -251,7 +251,6 @@ public class TerminationWitnessValidator implements Algorithm {
             k)) {
           break;
         }
-        k++;
       }
     }
     pReachedSet.clear();
@@ -424,6 +423,7 @@ public class TerminationWitnessValidator implements Algorithm {
       throws InterruptedException, CPATransferException {
 
     // We first construct the loop formula, i.e. R^k, where k is at least 1
+    Preconditions.checkArgument(k >= 1);
     PathFormula loopFormula =
         constructStrengthenedLoopFormulaForK(
             pLoop,
