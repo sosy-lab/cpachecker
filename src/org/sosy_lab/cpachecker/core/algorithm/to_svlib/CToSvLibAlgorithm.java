@@ -10,16 +10,18 @@ package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -261,7 +263,9 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     SvLibProcedureDeclaration procedureDeclaration =
         scope.getProcedureDeclaration(pEntryNode.getFunctionName());
     String procedureName = procedureDeclaration.getProcedureName();
-    ListMultimap<CFANode, SvLibStatement> createdStatements = LinkedListMultimap.create();
+    ImmutableListMultimap.Builder<CFANode, SvLibStatement> statementCollector =
+        ImmutableListMultimap.builder();
+    Set<CFANode> labelsCreated = new HashSet<>();
 
     scope.enterProcedure(
         FluentIterable.from(procedureDeclaration.getParameters())
@@ -308,7 +312,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
                 + assignmentTerm);
       }
 
-      createdStatements.put(
+      statementCollector.put(
           pEntryNode,
           new SvLibAssignmentStatement(
               ImmutableMap.of(procedureDeclaration.getReturnValues().getFirst(), returnValue),
@@ -327,7 +331,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
                   new SvLibCheckTrueTag(
                       new SvLibBooleanConstantTerm(false, FileLocation.DUMMY), FileLocation.DUMMY)),
               ImmutableList.of());
-      createdStatements.put(pEntryNode, errorStatement);
+      statementCollector.put(pEntryNode, errorStatement);
     }
 
     // assign the dummy variables created for the input parameters to assignable variables that
@@ -351,20 +355,20 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
               FileLocation.DUMMY,
               ImmutableList.of(),
               ImmutableList.of());
-      createdStatements.put(pEntryNode, assginDummyInput);
+      statementCollector.put(pEntryNode, assginDummyInput);
     }
 
     ImmutableList<CFAEdge> relevantEdges = getAllRelevantEdges(pEntryNode);
-    addLabelStatement(pEntryNode, createdStatements);
+    addLabelStatement(pEntryNode, statementCollector, labelsCreated);
 
     // transform each edge to SV-LIB statement(s)
     for (CFAEdge currentEdge : relevantEdges) {
-      handleEdge(currentEdge, createdStatements);
-      addLabelStatement(currentEdge.getSuccessor(), createdStatements);
+      handleEdge(currentEdge, statementCollector);
+      addLabelStatement(currentEdge.getSuccessor(), statementCollector, labelsCreated);
     }
 
     SvLibStatement procedureBodySequence =
-        createSequenceStatement(createdStatements, procedureName);
+        createSequenceStatement(statementCollector.build(), procedureName);
 
     scope.leaveProcedure();
     return procedureBodySequence;
@@ -439,7 +443,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     }
   }
 
-  private void handleEdge(CFAEdge pEdge, ListMultimap<CFANode, SvLibStatement> pCreatedStatements)
+  private void handleEdge(
+      CFAEdge pEdge, ImmutableListMultimap.Builder<CFANode, SvLibStatement> pCreatedStatements)
       throws CPATransferException, InterruptedException {
     switch (pEdge.getEdgeType()) {
       case BlankEdge ->
@@ -784,11 +789,14 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   private void addLabelStatement(
-      CFANode pNode, ListMultimap<CFANode, SvLibStatement> pCreatedStatements) {
-    if (!pCreatedStatements.containsKey(pNode)) {
+      CFANode pNode,
+      ImmutableListMultimap.Builder<CFANode, SvLibStatement> pStatementsCollector,
+      Set<CFANode> pLabelCreated) {
+    if (!pLabelCreated.contains(pNode)) {
       String label = pNode.toString();
+      pStatementsCollector.put(pNode, createLabelStatement(label));
+      pLabelCreated.add(pNode);
       transformationStatistics.numberOfLabelsCreated++;
-      pCreatedStatements.put(pNode, createLabelStatement(label));
     }
   }
 
