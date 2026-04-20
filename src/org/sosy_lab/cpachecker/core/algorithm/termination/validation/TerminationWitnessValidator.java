@@ -209,6 +209,7 @@ public class TerminationWitnessValidator implements Algorithm {
               supportingInvariants,
               loopsToSupportingInvariants,
               mapPrevVarsToCurrVars,
+              // k = 1, for R^1 => T check
               1)) {
         continue;
       }
@@ -502,6 +503,7 @@ public class TerminationWitnessValidator implements Algorithm {
       throws InterruptedException, CPATransferException {
 
     // We first construct the loop formula, i.e. R^k, where k is at least 1
+    Preconditions.checkArgument(k >= 1);
     PathFormula loopFormula =
         constructStrengthenedLoopFormulaForK(
             pLoop,
