@@ -513,7 +513,6 @@ public class DssBlockAnalysis {
       preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
       return processing;
     }
-    int equal = 0;
     for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
       boolean isRelevant = true;
       for (StateAndPrecision stateAndPrecision :
@@ -526,7 +525,6 @@ public class DssBlockAnalysis {
               .isSubsumed(
                   stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
             isRelevant = false;
-            equal += 1;
             break;
           }
         }
@@ -536,12 +534,35 @@ public class DssBlockAnalysis {
       }
       preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
     }
-    if (equal == deserializedStatesAndPrecisions.size()) {
-      relevant.clear();
-      fixedPointReached.add(pReceived.getSenderId());
+    fixedPointReached.remove(pReceived.getSenderId());
+    for (String predecessor : preconditions.keySet()) {
+      if (predecessor.equals(pReceived.getSenderId())) {
+        continue;
+      }
+      boolean allCovered = true;
+      for (StateAndPrecision sap : deserializedStatesAndPrecisions) {
+        if (dcpa.isMostGeneralBlockEntryState(sap.state())) {
+          continue;
+        }
+        boolean covered = false;
+        for (StateAndPrecision other : preconditions.get(predecessor)) {
+          if (dcpa.getCoverageOperator().areStatesEqual(sap.state(), other.state())) {
+            covered = true;
+            break;
+          }
+        }
+        allCovered = covered;
+        if (!covered) {
+          break;
+        }
+      }
+      if (allCovered) {
+        fixedPointReached.add(pReceived.getSenderId());
+        break;
+      }
+    }
+    if (relevant.isEmpty()) {
       processing = DssMessageProcessing.stop();
-    } else {
-      fixedPointReached.remove(pReceived.getSenderId());
     }
 
     return processing;
@@ -653,7 +674,6 @@ public class DssBlockAnalysis {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
 
-    boolean skipTrivial = fixedPointReached.containsAll(preconditions.keySet());
     Optional<Precision> maybePrecision = combinePrecisionIfPossible();
 
     // unreachable block ends might be caused by underapproximating summaries
@@ -666,7 +686,13 @@ public class DssBlockAnalysis {
       if (checkOnlyRelevant) {
         startStates.addAll(important);
       } else {
-        startStates.addAll(preconditions.values());
+        for (Entry<String, @NonNull StateAndPrecision> entry : preconditions.entries()) {
+          if (fixedPointReached.contains(entry.getKey())
+              && dcpa.isMostGeneralBlockEntryState(entry.getValue().state())) {
+            continue;
+          }
+          startStates.add(entry.getValue());
+        }
       }
     }
     if (block.isRoot()) {
@@ -679,7 +705,7 @@ public class DssBlockAnalysis {
     boolean analyzedTrivial = false;
     for (StateAndPrecision stateAndPrecision : startStates.build()) {
       boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
-      if (isTrivial && (analyzedTrivial || skipTrivial)) {
+      if (isTrivial && analyzedTrivial) {
         continue;
       }
       analyzedTrivial = analyzedTrivial || isTrivial;
