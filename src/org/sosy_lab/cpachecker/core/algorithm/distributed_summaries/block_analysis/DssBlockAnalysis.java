@@ -21,7 +21,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -88,7 +86,6 @@ public class DssBlockAnalysis {
   private final Multimap<String, @NonNull StateAndPrecision> preconditions;
   private final Multimap<String, @NonNull StateAndPrecision> violationConditions;
   private final List<StateAndPrecision> relevant;
-  private final Set<String> fixedPointReached;
 
   private final ConfigurableProgramAnalysis cpa;
   private final BlockNode block;
@@ -144,7 +141,6 @@ public class DssBlockAnalysis {
     relevant = new ArrayList<>();
 
     containsViolationInsideBlock = false;
-    fixedPointReached = new LinkedHashSet<>();
   }
 
   /**
@@ -514,6 +510,7 @@ public class DssBlockAnalysis {
       preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
       return processing;
     }
+    int equal = 0;
     for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
       boolean isRelevant = true;
       for (StateAndPrecision stateAndPrecision :
@@ -526,6 +523,7 @@ public class DssBlockAnalysis {
               .isSubsumed(
                   stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
             isRelevant = false;
+            equal += 1;
             break;
           }
         }
@@ -535,36 +533,18 @@ public class DssBlockAnalysis {
       }
       preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
     }
-    fixedPointReached.remove(pReceived.getSenderId());
-    for (String predecessor : preconditions.keySet()) {
-      if (predecessor.equals(pReceived.getSenderId())) {
-        continue;
-      }
-      boolean allCovered = true;
-      for (StateAndPrecision sap : deserializedStatesAndPrecisions) {
-        if (dcpa.isMostGeneralBlockEntryState(sap.state())) {
-          continue;
-        }
-        boolean covered = false;
-        for (StateAndPrecision other : preconditions.get(predecessor)) {
-          if (dcpa.getCoverageOperator().isSubsumed(sap.state(), other.state())
-              && !dcpa.isMostGeneralBlockEntryState(other.state())) {
-            covered = true;
-            break;
-          }
-        }
-        allCovered = covered;
-        if (!covered) {
-          break;
-        }
-      }
-      if (allCovered) {
-        fixedPointReached.add(pReceived.getSenderId());
-        break;
-      }
+    if (equal == deserializedStatesAndPrecisions.size()) {
+      relevant.clear();
+      return DssMessageProcessing.stop();
     }
-    if (relevant.isEmpty()) {
-      processing = DssMessageProcessing.stop();
+
+    if (preconditions.keySet().stream()
+        .filter(k -> !k.equals(pReceived.getSenderId()))
+        .anyMatch(
+            k ->
+                preconditions.get(k).stream()
+                    .anyMatch(s -> dcpa.isMostGeneralBlockEntryState(s.state())))) {
+      relevant.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     }
 
     return processing;
@@ -676,6 +656,14 @@ public class DssBlockAnalysis {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
 
+    boolean hasNonTrivialSummariesForEachPredecessor =
+        !preconditions.isEmpty()
+            && preconditions.keySet().stream()
+                .allMatch(
+                    k ->
+                        preconditions.get(k).stream()
+                            .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state())));
+
     Optional<Precision> maybePrecision = combinePrecisionIfPossible();
 
     // unreachable block ends might be caused by underapproximating summaries
@@ -688,14 +676,7 @@ public class DssBlockAnalysis {
       if (checkOnlyRelevant) {
         startStates.addAll(important);
       } else {
-        for (Entry<String, @NonNull StateAndPrecision> entry : preconditions.entries()) {
-          if (fixedPointReached.contains(entry.getKey())
-              && dcpa.isMostGeneralBlockEntryState(entry.getValue().state())
-              && preconditions.get(entry.getKey()).size() > 1) {
-            continue;
-          }
-          startStates.add(entry.getValue());
-        }
+        startStates.addAll(preconditions.values());
       }
     }
     if (block.isRoot()) {
@@ -709,6 +690,9 @@ public class DssBlockAnalysis {
     for (StateAndPrecision stateAndPrecision : startStates.build()) {
       boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
       if (isTrivial && analyzedTrivial) {
+        continue;
+      }
+      if (hasNonTrivialSummariesForEachPredecessor && isTrivial && !checkOnlyRelevant) {
         continue;
       }
       analyzedTrivial = analyzedTrivial || isTrivial;
