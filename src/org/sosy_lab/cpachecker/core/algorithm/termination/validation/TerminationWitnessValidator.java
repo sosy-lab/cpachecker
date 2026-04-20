@@ -559,6 +559,7 @@ public class TerminationWitnessValidator implements Algorithm {
             pLoop.getInnerLoopEdges(),
             pLoop.getLoopHeads(),
             SSAMap.emptySSAMap(),
+            PointerTargetSet.emptyPointerTargetSet(),
             pLoopsToSupportingInvariants);
 
     // The one that is used with the supporting invariants
@@ -588,6 +589,7 @@ public class TerminationWitnessValidator implements Algorithm {
                       pLoop.getInnerLoopEdges(),
                       pLoop.getLoopHeads(),
                       loopFormula.getSsa(),
+                      loopFormula.getPointerTargetSet(),
                       pLoopsToSupportingInvariants)));
 
       // Strengthening the loop formula with the supporting invariants
@@ -605,27 +607,29 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableSet<CFAEdge> pEdges,
       ImmutableSet<CFANode> pLoopHeads,
       SSAMap pContextSSAMap,
+      PointerTargetSet pContextPointerSet,
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants)
       throws CPATransferException, InterruptedException {
     List<List<CFAEdge>> listOfAllPaths = collectAllThePaths(pEdges, pLoopHeads);
-    return constructFormulaForPaths(pContextSSAMap, pLoopsToSupportingInvariants, listOfAllPaths);
+    return constructFormulaForPaths(pContextSSAMap, pContextPointerSet, pLoopsToSupportingInvariants, listOfAllPaths);
   }
 
   private PathFormula constructFormulaForPaths(
       SSAMap pContextSSAMap,
+      PointerTargetSet pContextPointerTargetSet,
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
       List<List<CFAEdge>> listOfAllPaths)
       throws CPATransferException, InterruptedException {
     PathFormula formulaForLoop = pfmgr.makeEmptyPathFormula();
     formulaForLoop =
-        formulaForLoop.withContext(pContextSSAMap, PointerTargetSet.emptyPointerTargetSet());
+        formulaForLoop.withContext(pContextSSAMap, pContextPointerTargetSet);
 
     ImmutableSet<LoopStructure.Loop> AllLoops = pLoopsToSupportingInvariants.keySet();
     boolean initialized = false;
     for (List<CFAEdge> path : listOfAllPaths) {
       PathFormula anotherPath = pfmgr.makeEmptyPathFormula();
       anotherPath =
-          anotherPath.withContext(pContextSSAMap, PointerTargetSet.emptyPointerTargetSet());
+          anotherPath.withContext(pContextSSAMap, pContextPointerTargetSet);
       boolean followingDifferentLoop = false;
       for (CFAEdge edge : path) {
         ImmutableSet<LoopStructure.Loop> loopsForEdge =
