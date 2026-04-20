@@ -840,14 +840,15 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     @Override
     BitvectorFormula visit(Texpr0CstNode pNode) {
       if (pNode.isScalar()) {
-        double value;
         Scalar scalar = pNode.getConstant().inf();
-        switch (scalar) {
-          case DoubleScalar doubleScalar -> value = doubleScalar.get();
-          case MpqScalar mpqScalar -> value = mpqScalar.get().doubleValue();
-          case MpfrScalar mpfrScalar -> value = mpfrScalar.get().doubleValue(Mpfr.RNDN);
-          default -> throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
-        }
+        final double value =
+            switch (scalar) {
+              case DoubleScalar doubleScalar -> doubleScalar.get();
+              case MpqScalar mpqScalar -> mpqScalar.get().doubleValue();
+              case MpfrScalar mpfrScalar -> mpfrScalar.get().doubleValue(Mpfr.RNDN);
+              default ->
+                  throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
+            };
         if (DoubleMath.isMathematicalInteger(value)) {
           // TODO fix size, machineModel needed?
           return bitFmgr.makeBitvector(32, (int) value);

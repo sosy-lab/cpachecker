@@ -275,7 +275,7 @@ public class SequentializationBuilder {
     rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
 
     // thread simulation functions, only enabled when loop is unrolled
-    if (pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationUnrolling()) {
       pFields
           .threadSimulationFunctions
           .orElseThrow()
@@ -300,7 +300,7 @@ public class SequentializationBuilder {
         SeqAssumeFunctionBuilder.buildFunctionDefinition(pUtils.binaryExpressionBuilder())
             .toASTString());
     // create separate thread simulation function definitions, if enabled
-    if (pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationUnrolling()) {
       for (CExportFunctionDefinition functionDefinition :
           pFields.threadSimulationFunctions.orElseThrow().values()) {
         rDefinitions.add(functionDefinition.toASTString());
@@ -324,27 +324,28 @@ public class SequentializationBuilder {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
 
-    // if the loop is finite, i.e., loopIterations is not 0, and loopUnrolling is disabled,
+    // if the loop is finite, i.e., threadSimulationIterations is not 0, and
+    // threadSimulationUnrolling is disabled,
     // then add the variable that is incremented with each iteration
-    if (pOptions.loopIterations() != 0 && !pOptions.loopUnrolling()) {
+    if (pOptions.threadSimulationIterations() != 0 && !pOptions.threadSimulationUnrolling()) {
       rDeclarations.add(SeqVariableDeclarations.ITERATION.toASTString());
     }
 
-    if (pOptions.reduceLastThreadOrder()) {
-      // LAST_THREAD ghost variable
+    if (pOptions.isPrevThreadVariableRequired()) {
+      // prev_thread ghost variable
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
-      // the initializer of LAST_THREAD is dependent on the number of threads
-      CInitializer lastThreadInitializer =
+      // the initializer of prev_thread is dependent on the number of threads
+      CInitializer prevThreadInitializer =
           new CInitializerExpression(FileLocation.DUMMY, numThreadsExpression);
-      CVariableDeclaration lastThreadDeclaration =
+      CVariableDeclaration prevThreadDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
-              // LAST_THREAD is always unsigned, NUM_THREADS is assigned if a thread terminates
+              // prev_thread is always unsigned, NUM_THREADS is assigned if a thread terminates
               CNumericTypes.UNSIGNED_INT,
-              SeqIdExpressions.LAST_THREAD.getName(),
-              lastThreadInitializer);
-      rDeclarations.add(lastThreadDeclaration.toASTString());
+              SeqIdExpressions.PREV_THREAD.getName(),
+              prevThreadInitializer);
+      rDeclarations.add(prevThreadDeclaration.toASTString());
     }
 
     // next_thread
@@ -372,9 +373,7 @@ public class SequentializationBuilder {
     if (pOptions.isAnyBitVectorReductionEnabled()) {
       SeqBitVectorDeclarationBuilder bitVectorDeclarationBuilder =
           new SeqBitVectorDeclarationBuilder(
-              pOptions.bitVectorEncoding(),
-              pOptions.reduceIgnoreSleep(),
-              pOptions.reductionMode(),
+              pOptions,
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
               pFields.machineModel,
@@ -387,7 +386,9 @@ public class SequentializationBuilder {
     }
 
     // track active thread number via thread_count
-    rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
+    if (pOptions.executeSingleActiveThreadFirst()) {
+      rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
+    }
 
     // if enabled: round_max and round
     if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {

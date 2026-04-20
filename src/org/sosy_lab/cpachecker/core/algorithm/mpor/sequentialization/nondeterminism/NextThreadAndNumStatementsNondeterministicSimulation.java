@@ -12,10 +12,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -30,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 class NextThreadAndNumStatementsNondeterministicSimulation
@@ -50,10 +49,13 @@ class NextThreadAndNumStatementsNondeterministicSimulation
   public CCompoundStatement buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-        tryBuildPcUnequalExitAssumption(pThread);
-    Optional<ImmutableList<CStatement>> nextThreadStatements =
-        tryBuildNextThreadStatements(pThread);
+    Optional<CExportStatement> pcStatement = tryBuildPcPrecedingStatement(pThread);
+    Optional<ImmutableList<CExportStatement>> nextThreadStatements =
+        tryBuildNextThreadPrecedingStatements(pThread);
+
+    ImmutableList<CCompoundStatementElement> numStatementsNondeterministicStatements =
+        NondeterministicSimulationBuilder.buildNumStatementsNondeterministicPrecedingStatements(
+            options, pThread, utils.binaryExpressionBuilder());
 
     CFunctionCallAssignmentStatement roundMaxNondetAssignment =
         VerifierNondetFunctionType.buildNondetIntegerAssignment(
@@ -66,14 +68,13 @@ class NextThreadAndNumStatementsNondeterministicSimulation
                     SeqIdExpressions.ROUND_MAX,
                     SeqIntegerLiteralExpressions.INT_0,
                     BinaryOperator.GREATER_THAN));
-    CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
 
     ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();
-    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(new CStatementWrapper(s)));
-    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(new CStatementWrapper(s))));
+    nextThreadStatements.ifPresent(l -> rStatements.addAll(l));
+    pcStatement.ifPresent(s -> rStatements.add(s));
+    rStatements.addAll(numStatementsNondeterministicStatements);
     rStatements.add(new CStatementWrapper(roundMaxNondetAssignment));
     rStatements.add(new CStatementWrapper(roundMaxGreaterZeroAssumption));
-    rStatements.add(new CStatementWrapper(roundReset));
     return new CCompoundStatement(rStatements.build());
   }
 }
