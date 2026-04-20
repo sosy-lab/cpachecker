@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -793,10 +794,16 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       ImmutableListMultimap.Builder<CFANode, SvLibStatement> pStatementsCollector,
       Set<CFANode> pLabelCreated) {
     if (!pLabelCreated.contains(pNode)) {
-      String label = pNode.toString();
-      pStatementsCollector.put(pNode, createLabelStatement(label));
+      String labelNodeNumber = pNode.toString();
+      pStatementsCollector.put(pNode, createLabelStatement(labelNodeNumber));
       pLabelCreated.add(pNode);
       transformationStatistics.numberOfLabelsCreated++;
+
+      if (pNode instanceof CFALabelNode labelNode) {
+        String originalLabel = labelNode.getLabel() + "__" + labelNodeNumber;
+        pStatementsCollector.put(pNode, createLabelStatement(originalLabel));
+        transformationStatistics.numberOfLabelsCreated++;
+      }
     }
   }
 
