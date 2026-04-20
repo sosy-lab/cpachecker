@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -32,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  */
 public class MemoryModel {
 
-  private final ImmutableList<SeqMemoryLocation> allMemoryLocations;
+  private final ImmutableSet<SeqMemoryLocation> allMemoryLocations;
 
   private final int relevantMemoryLocationAmount;
 
@@ -65,7 +64,7 @@ public class MemoryModel {
 
   MemoryModel(
       MPOROptions pOptions,
-      ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
@@ -240,7 +239,7 @@ public class MemoryModel {
     return relevantMemoryLocationAmount;
   }
 
-  public ImmutableList<SeqMemoryLocation> getAllMemoryLocations() {
+  public ImmutableSet<SeqMemoryLocation> getAllMemoryLocations() {
     return allMemoryLocations;
   }
 

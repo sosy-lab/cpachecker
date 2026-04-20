@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -92,17 +91,14 @@ public record MemoryModelBuilder(
                         .stream())
             .collect(ImmutableSet.toImmutableSet());
 
-    // use distinct list so that sequentialization is deterministic
-    ImmutableList<SeqMemoryLocation> allMemoryLocations =
-        Stream.of(
-                initialMemoryLocations.stream(),
-                parameterAssignments.values().stream(),
-                startRoutineArgAssignments.keySet().stream(),
-                startRoutineArgAssignments.values().stream(),
-                pointerDereferenceMemoryLocations.stream())
-            .flatMap(s -> s)
-            .distinct()
-            .collect(ImmutableList.toImmutableList());
+    ImmutableSet<SeqMemoryLocation> allMemoryLocations =
+        ImmutableSet.<SeqMemoryLocation>builder()
+            .addAll(initialMemoryLocations)
+            .addAll(parameterAssignments.values())
+            .addAll(startRoutineArgAssignments.keySet())
+            .addAll(startRoutineArgAssignments.values())
+            .addAll(pointerDereferenceMemoryLocations)
+            .build();
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         getRelevantMemoryLocationsIds(
             allMemoryLocations,
@@ -126,7 +122,7 @@ public record MemoryModelBuilder(
   // Collection helpers ============================================================================
 
   private ImmutableMap<SeqMemoryLocation, Integer> getRelevantMemoryLocationsIds(
-      ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
