@@ -11,7 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
-from defusedxml import ElementTree
+import xml.etree.ElementTree as ElementTree
 
 import benchexec.tooladapter
 import benchexec.util
@@ -378,17 +378,17 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             if not runSet.should_be_executed():
                 continue
 
-        desc = runSet.xml.find("description")
+            desc = runSet.xml.find("description")
 
-        if desc is None:
-            desc = ElementTree.Element("description")
-            desc.text = line
-            runSet.xml.insert(0, desc)
-        else:
-            if desc.text:
-                desc.text = line + "\n" + desc.text
-            else:
+            if desc is None:
+                desc = ElementTree.Element("description")
                 desc.text = line
+                runSet.xml.insert(0, desc)
+            else:
+                if desc.text:
+                    desc.text = line + "\n" + desc.text
+                else:
+                    desc.text = line
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
