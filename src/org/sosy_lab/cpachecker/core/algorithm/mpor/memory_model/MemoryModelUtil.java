@@ -360,10 +360,7 @@ public class MemoryModelUtil {
   private abstract static class CExpressionTraversalVisitor
       extends DefaultCExpressionVisitor<Void, NoException> {
 
-    /**
-     * Called when {@code pExpression} is visited. This function is called before {@link
-     * CExpressionTraversalVisitor#shouldStop(CExpression)}.
-     */
+    /** Called when {@code pExpression} is visited. */
     abstract void onVisit(CExpression pExpression);
 
     @Override
