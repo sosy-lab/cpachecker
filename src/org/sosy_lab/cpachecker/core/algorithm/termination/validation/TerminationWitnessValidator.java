@@ -220,7 +220,11 @@ public class TerminationWitnessValidator implements Algorithm {
           wellFoundednessChecker.isDisjunctivelyWellFounded(
               invariant, supportingInvariants, loop, mapPrevVarsToCurrVars);
       // Our termination analysis might be unsound because of a different possible division to
-      // disjunctions
+      // disjunctions. We divide the candidate transition invariant into a disjunction using
+      // transformation to flat DNF. It might be, there exists another different division
+      // that could be well-founded, and we just did not find it. For example, assume a DNF form
+      // of the formula (x <= x') || (y < y'),
+      // it can also be divided into (x = x') || (x < x') || (y < y'), which we do not check.
       if (!isWellFounded) {
         return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
