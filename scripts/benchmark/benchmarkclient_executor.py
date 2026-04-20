@@ -369,15 +369,8 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             ):
                 shutil.move(vcloudFilesDirectory, benchexecFilesDirectory)
 
-        output_handler.output_after_run_set(runSet, end_time=end_time)
-
-    if runCollectionId:
-        line = "vcloud-runCollectionId=" + runCollectionId
-
-        for runSet in benchmark.run_sets:
-            if not runSet.should_be_executed():
-                continue
-
+        if runCollectionId:
+            line = "vcloud-runCollectionId=" + runCollectionId
             desc = runSet.xml.find("description")
 
             if desc is None:
@@ -389,6 +382,8 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                     desc.text = line + "\n" + desc.text
                 else:
                     desc.text = line
+
+        output_handler.output_after_run_set(runSet, end_time=end_time)
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
