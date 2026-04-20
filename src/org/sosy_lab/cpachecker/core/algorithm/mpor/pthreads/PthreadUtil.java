@@ -116,55 +116,52 @@ public class PthreadUtil {
   public static ImmutableSet<SeqMemoryLocation> getNonPointerMemoryLocationsByPthreadObject(
       ImmutableSet<SeqMemoryLocation> pMemoryLocations, PthreadObjectType pObjectType) {
 
-    return pMemoryLocations.stream()
-        .filter(
-            m -> {
-              if (!(m.declaration().getType() instanceof CPointerType)) {
-                if (pObjectType.equalsType(m.declaration().getType())) {
-                  return true;
-                }
-                // when searching for non-ptr, the field member is only considered if the field
-                // owner is not a pointer itself.
-                if (m.fieldMember().isPresent()) {
-                  if (pObjectType.equalsType(m.fieldMember().orElseThrow().getType())) {
-                    return true;
-                  }
-                }
-              }
-              return false;
-            })
-        .collect(ImmutableSet.toImmutableSet());
+    ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
+    for (SeqMemoryLocation memoryLocation : pMemoryLocations) {
+      if (!(memoryLocation.declaration().getType() instanceof CPointerType)) {
+        if (pObjectType.equalsType(memoryLocation.declaration().getType())) {
+          rMemoryLocations.add(memoryLocation);
+        }
+        // when searching for non-ptr, the field member is only considered if the field
+        // owner is not a pointer itself.
+        if (memoryLocation.fieldMember().isPresent()) {
+          if (pObjectType.equalsType(memoryLocation.fieldMember().orElseThrow().getType())) {
+            rMemoryLocations.add(memoryLocation);
+          }
+        }
+      }
+    }
+    return rMemoryLocations.build();
   }
 
   public static ImmutableSet<SeqMemoryLocation> getPointerMemoryLocationsByPthreadObjectType(
       ImmutableSet<SeqMemoryLocation> pMemoryLocations, PthreadObjectType pObjectType) {
 
-    return pMemoryLocations.stream()
-        .filter(
-            m -> {
-              if (m.declaration().getType() instanceof CPointerType pointerType) {
-                if (pObjectType.equalsType(pointerType.getType())) {
-                  return true;
-                }
-                // with a field owner ptr, the field member itself does not have to be a ptr
-                if (m.fieldMember().isPresent()) {
-                  if (pObjectType.equalsType(m.fieldMember().orElseThrow().getType())) {
-                    return true;
-                  }
-                }
-              }
-              // when searching for ptr, the field member is considered even if the field owner is
-              // not a pointer itself, because the field member can be a pointer
-              if (m.fieldMember().isPresent()) {
-                if (m.fieldMember().orElseThrow().getType() instanceof CPointerType pointerType) {
-                  if (pObjectType.equalsType(pointerType.getType())) {
-                    return true;
-                  }
-                }
-              }
-              return false;
-            })
-        .collect(ImmutableSet.toImmutableSet());
+    ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
+    for (SeqMemoryLocation memoryLocation : pMemoryLocations) {
+      if (memoryLocation.declaration().getType() instanceof CPointerType pointerType) {
+        if (pObjectType.equalsType(pointerType.getType())) {
+          rMemoryLocations.add(memoryLocation);
+        }
+        // with a field owner ptr, the field member itself does not have to be a ptr
+        if (memoryLocation.fieldMember().isPresent()) {
+          if (pObjectType.equalsType(memoryLocation.fieldMember().orElseThrow().getType())) {
+            rMemoryLocations.add(memoryLocation);
+          }
+        }
+      }
+      // when searching for ptr, the field member is considered even if the field owner is
+      // not a pointer itself, because the field member can be a pointer
+      if (memoryLocation.fieldMember().isPresent()) {
+        if (memoryLocation.fieldMember().orElseThrow().getType()
+            instanceof CPointerType pointerType) {
+          if (pObjectType.equalsType(pointerType.getType())) {
+            rMemoryLocations.add(memoryLocation);
+          }
+        }
+      }
+    }
+    return rMemoryLocations.build();
   }
 
   // START_ROUTINE =================================================================================
