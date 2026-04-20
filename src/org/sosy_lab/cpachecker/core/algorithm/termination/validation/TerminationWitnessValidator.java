@@ -611,7 +611,8 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants)
       throws CPATransferException, InterruptedException {
     List<List<CFAEdge>> listOfAllPaths = collectAllThePaths(pEdges, pLoopHeads);
-    return constructFormulaForPaths(pContextSSAMap, pContextPointerSet, pLoopsToSupportingInvariants, listOfAllPaths);
+    return constructFormulaForPaths(
+        pContextSSAMap, pContextPointerSet, pLoopsToSupportingInvariants, listOfAllPaths);
   }
 
   private PathFormula constructFormulaForPaths(
@@ -621,15 +622,13 @@ public class TerminationWitnessValidator implements Algorithm {
       List<List<CFAEdge>> listOfAllPaths)
       throws CPATransferException, InterruptedException {
     PathFormula formulaForLoop = pfmgr.makeEmptyPathFormula();
-    formulaForLoop =
-        formulaForLoop.withContext(pContextSSAMap, pContextPointerTargetSet);
+    formulaForLoop = formulaForLoop.withContext(pContextSSAMap, pContextPointerTargetSet);
 
     ImmutableSet<LoopStructure.Loop> AllLoops = pLoopsToSupportingInvariants.keySet();
     boolean initialized = false;
     for (List<CFAEdge> path : listOfAllPaths) {
       PathFormula anotherPath = pfmgr.makeEmptyPathFormula();
-      anotherPath =
-          anotherPath.withContext(pContextSSAMap, pContextPointerTargetSet);
+      anotherPath = anotherPath.withContext(pContextSSAMap, pContextPointerTargetSet);
       boolean followingDifferentLoop = false;
       for (CFAEdge edge : path) {
         ImmutableSet<LoopStructure.Loop> loopsForEdge =
