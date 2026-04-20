@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -546,7 +547,8 @@ public class DssBlockAnalysis {
         }
         boolean covered = false;
         for (StateAndPrecision other : preconditions.get(predecessor)) {
-          if (dcpa.getCoverageOperator().areStatesEqual(sap.state(), other.state())) {
+          if (dcpa.getCoverageOperator().isSubsumed(sap.state(), other.state())
+              && !dcpa.isMostGeneralBlockEntryState(other.state())) {
             covered = true;
             break;
           }
@@ -688,7 +690,8 @@ public class DssBlockAnalysis {
       } else {
         for (Entry<String, @NonNull StateAndPrecision> entry : preconditions.entries()) {
           if (fixedPointReached.contains(entry.getKey())
-              && dcpa.isMostGeneralBlockEntryState(entry.getValue().state())) {
+              && dcpa.isMostGeneralBlockEntryState(entry.getValue().state())
+              && preconditions.get(entry.getKey()).size() > 1) {
             continue;
           }
           startStates.add(entry.getValue());
