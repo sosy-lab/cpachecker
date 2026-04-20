@@ -12,12 +12,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Optional;
 import java.util.StringJoiner;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Sequentialization {
@@ -50,16 +48,9 @@ public class Sequentialization {
             ? pUtils.clangFormatter().tryFormat(initProgram, pOptions.clangFormatStyle())
             : initProgram;
 
-    // if enabled, check that program can be parsed by CPAchecker
-    if (pOptions.validateParse()) {
-      try {
-        SeqValidator.validateProgramParsing(rFormattedProgram, pUtils);
-      } catch (ParserException | InterruptedException | InvalidConfigurationException e) {
-        throw new IllegalStateException(
-            String.format(
-                "An exception occurred while parsing the sequentialization: %s", e.getMessage()));
-      }
-    }
+    // if enabled, check that the program can be parsed by CPAchecker
+    SeqValidator.tryValidateProgramParsing(pOptions, rFormattedProgram, pUtils);
+
     return rFormattedProgram;
   }
 
