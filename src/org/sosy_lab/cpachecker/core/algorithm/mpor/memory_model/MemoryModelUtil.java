@@ -251,7 +251,7 @@ public class MemoryModelUtil {
 
     @Override
     public Void visit(CCompositeType pCompositeType) {
-      // prevent overflow from circular references
+      // prevent call stack overflow from circular references
       if (visitedCompositeTypes.add(pCompositeType)) {
         if (!stopNames.contains(pCompositeType.getName())) {
           collectedCompositeTypeMemberDeclarations.addAll(pCompositeType.getMembers());
