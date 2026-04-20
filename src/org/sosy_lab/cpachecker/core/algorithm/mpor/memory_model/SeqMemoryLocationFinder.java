@@ -240,9 +240,9 @@ public class SeqMemoryLocationFinder {
       if (initializer instanceof CInitializerExpression initializerExpression) {
         CFieldReferenceCollector fieldReferenceCollector = new CFieldReferenceCollector();
         initializerExpression.getExpression().accept(fieldReferenceCollector);
-        if (!fieldReferenceCollector.getFieldReferences().isEmpty()) {
+        if (!fieldReferenceCollector.getCollectedFieldReferences().isEmpty()) {
           CFieldReference fieldReference =
-              Iterables.getOnlyElement(fieldReferenceCollector.getFieldReferences());
+              Iterables.getOnlyElement(fieldReferenceCollector.getCollectedFieldReferences());
           return getTargetMemoryLocationWithFieldMember(
               fieldReference.getFieldOwner().getExpressionType(),
               fieldReference.getFieldName(),

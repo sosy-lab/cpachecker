@@ -83,30 +83,6 @@ public class MemoryModelUtil {
     return collector.getCollectedTypes();
   }
 
-  private static class CCompositeTypeMemberDeclarationCollectorWithStopNames
-      extends CTypeCollectorWithStopNames {
-
-    private final List<CCompositeTypeMemberDeclaration> collected = new ArrayList<>();
-
-    private final Set<CCompositeType> visitedCompositeTypes = new HashSet<>();
-
-    CCompositeTypeMemberDeclarationCollectorWithStopNames(ImmutableSet<String> pStopNames) {
-      super(pStopNames);
-    }
-
-    ImmutableList<CCompositeTypeMemberDeclaration> getCollectedCompositeTypeMemberDeclarations() {
-      return ImmutableList.copyOf(collected);
-    }
-
-    @Override
-    void onVisit(CType pType) {
-      if (pType instanceof CCompositeType compositeType
-          && visitedCompositeTypes.add(compositeType)) {
-        collected.addAll(compositeType.getMembers());
-      }
-    }
-  }
-
   private static class CTypeCollectorWithStopNames extends CTypeCollectorWithStop {
 
     private final ImmutableSet<String> stopNames;
@@ -274,6 +250,30 @@ public class MemoryModelUtil {
     return collector.getCollectedCompositeTypeMemberDeclarations();
   }
 
+  private static class CCompositeTypeMemberDeclarationCollectorWithStopNames
+      extends CTypeCollectorWithStopNames {
+
+    private final List<CCompositeTypeMemberDeclaration> collected = new ArrayList<>();
+
+    private final Set<CCompositeType> visitedCompositeTypes = new HashSet<>();
+
+    CCompositeTypeMemberDeclarationCollectorWithStopNames(ImmutableSet<String> pStopNames) {
+      super(pStopNames);
+    }
+
+    ImmutableList<CCompositeTypeMemberDeclaration> getCollectedCompositeTypeMemberDeclarations() {
+      return ImmutableList.copyOf(collected);
+    }
+
+    @Override
+    void onVisit(CType pType) {
+      if (pType instanceof CCompositeType compositeType
+          && visitedCompositeTypes.add(compositeType)) {
+        collected.addAll(compositeType.getMembers());
+      }
+    }
+  }
+
   // CLeftHandSide Visitors
 
   public static final class CLeftHandSideSimpleDeclarationVisitor
@@ -321,24 +321,54 @@ public class MemoryModelUtil {
 
     CSimpleDeclarationCollector simpleDeclarationCollector = new CSimpleDeclarationCollector();
     pExpression.accept(simpleDeclarationCollector);
-    return simpleDeclarationCollector.getSimpleDeclarations();
+    return simpleDeclarationCollector.getCollectedSimpleDeclarations();
   }
 
-  private static final class CSimpleDeclarationCollector
-      extends DefaultCExpressionVisitor<Void, NoException> {
+  private static class CSimpleDeclarationCollector extends CExpressionTraversalVisitor {
 
-    private final Set<CSimpleDeclaration> simpleDeclarations;
+    private final ImmutableSet.Builder<CSimpleDeclaration> simpleDeclarations =
+        ImmutableSet.builder();
 
-    private CSimpleDeclarationCollector() {
-      simpleDeclarations = new HashSet<>();
-    }
-
-    private ImmutableSet<CSimpleDeclaration> getSimpleDeclarations() {
-      return ImmutableSet.copyOf(simpleDeclarations);
+    private ImmutableSet<CSimpleDeclaration> getCollectedSimpleDeclarations() {
+      return simpleDeclarations.build();
     }
 
     @Override
+    void onVisit(CExpression pExpression) {
+      if (pExpression instanceof CIdExpression idExpression) {
+        simpleDeclarations.add(idExpression.getDeclaration());
+      }
+    }
+  }
+
+  public static class CFieldReferenceCollector extends CExpressionTraversalVisitor {
+
+    private final ImmutableSet.Builder<CFieldReference> fieldReferences = ImmutableSet.builder();
+
+    public ImmutableSet<CFieldReference> getCollectedFieldReferences() {
+      return fieldReferences.build();
+    }
+
+    @Override
+    void onVisit(CExpression pExpression) {
+      if (pExpression instanceof CFieldReference fieldReference) {
+        fieldReferences.add(fieldReference);
+      }
+    }
+  }
+
+  private abstract static class CExpressionTraversalVisitor
+      extends DefaultCExpressionVisitor<Void, NoException> {
+
+    /**
+     * Called when {@code pExpression} is visited. This function is called before {@link
+     * CExpressionTraversalVisitor#shouldStop(CExpression)}.
+     */
+    abstract void onVisit(CExpression pExpression);
+
+    @Override
     public Void visit(CArraySubscriptExpression pArraySubscriptExpression) {
+      onVisit(pArraySubscriptExpression);
       pArraySubscriptExpression.getArrayExpression().accept(this);
       pArraySubscriptExpression.getSubscriptExpression().accept(this);
       return null;
@@ -346,24 +376,28 @@ public class MemoryModelUtil {
 
     @Override
     public Void visit(CFieldReference pFieldReference) {
+      onVisit(pFieldReference);
       pFieldReference.getFieldOwner().accept(this);
       return null;
     }
 
     @Override
     public Void visit(CPointerExpression pPointerExpression) {
+      onVisit(pPointerExpression);
       pPointerExpression.getOperand().accept(this);
       return null;
     }
 
     @Override
     public Void visit(CComplexCastExpression pComplexCastExpression) {
+      onVisit(pComplexCastExpression);
       pComplexCastExpression.getOperand().accept(this);
       return null;
     }
 
     @Override
     public Void visit(CBinaryExpression pBinaryExpression) {
+      onVisit(pBinaryExpression);
       pBinaryExpression.getOperand1().accept(this);
       pBinaryExpression.getOperand2().accept(this);
       return null;
@@ -371,87 +405,21 @@ public class MemoryModelUtil {
 
     @Override
     public Void visit(CCastExpression pCastExpression) {
+      onVisit(pCastExpression);
       pCastExpression.getOperand().accept(this);
       return null;
     }
 
     @Override
     public Void visit(CUnaryExpression pUnaryExpression) {
+      onVisit(pUnaryExpression);
       pUnaryExpression.getOperand().accept(this);
       return null;
     }
 
     @Override
     public Void visit(CIdExpression pIdExpression) {
-      simpleDeclarations.add(pIdExpression.getDeclaration());
-      return null;
-    }
-
-    @Override
-    protected Void visitDefault(CExpression pExpression) {
-      return null;
-    }
-  }
-
-  public static final class CFieldReferenceCollector
-      extends DefaultCExpressionVisitor<Void, NoException> {
-
-    private final Set<CFieldReference> fieldReferences;
-
-    public CFieldReferenceCollector() {
-      fieldReferences = new HashSet<>();
-    }
-
-    ImmutableSet<CFieldReference> getFieldReferences() {
-      return ImmutableSet.copyOf(fieldReferences);
-    }
-
-    @Override
-    public Void visit(CArraySubscriptExpression pArraySubscriptExpression) {
-      pArraySubscriptExpression.getSubscriptExpression().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CFieldReference pFieldReference) {
-      fieldReferences.add(pFieldReference);
-      pFieldReference.getFieldOwner().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CPointerExpression pPointerExpression) {
-      pPointerExpression.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CComplexCastExpression pComplexCastExpression) {
-      pComplexCastExpression.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CBinaryExpression pBinaryExpression) {
-      pBinaryExpression.getOperand1().accept(this);
-      pBinaryExpression.getOperand2().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CCastExpression pCastExpression) {
-      pCastExpression.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CUnaryExpression pUnaryExpression) {
-      pUnaryExpression.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CIdExpression pIdExpression) {
+      onVisit(pIdExpression);
       return null;
     }
 
