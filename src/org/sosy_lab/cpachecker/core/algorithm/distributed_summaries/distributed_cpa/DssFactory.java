@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -148,7 +147,6 @@ public class DssFactory {
           pathFormula = pfm.makeAnd(pathFormula, edge);
         } catch (UnsupportedCodeException e) {
           // this code might never be executed, so we continue.
-          continue;
         }
       }
 
