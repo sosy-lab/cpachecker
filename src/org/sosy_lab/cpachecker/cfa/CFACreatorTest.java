@@ -240,8 +240,8 @@ public class CFACreatorTest {
 
   @Test
   public void testFileLocationsInCfa() throws IOException, InterruptedException, ParserException {
-    Path program_path = Path.of("test/programs/cfa-creation/cfa-creation-test.c");
-    CFA createdCFA = TestDataTools.makeCFA(Files.readString(program_path, StandardCharsets.UTF_8));
+    Path programPath = Path.of("test/programs/cfa-creation/cfa-creation-test.c");
+    CFA createdCFA = TestDataTools.makeCFA(Files.readString(programPath, StandardCharsets.UTF_8));
 
     Path testFilepath = Path.of("./test");
     assertThat(TestDataTools.getEdge("x = 0", createdCFA).getFileLocation())
