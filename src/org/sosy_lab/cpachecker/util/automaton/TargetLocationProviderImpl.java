@@ -58,15 +58,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     try {
       // Create new configuration with default set of CPAs
       ConfigurationBuilder configurationBuilder = Configuration.builder();
-      configurationBuilder.loadFromResource(
-          getClass(),
-          switch (cfa.getLanguage()) {
-            case C, LLVM -> "find-target-locations.properties";
-            case SVLIB -> "find-target-locations-svlib.properties";
-            case JAVA ->
-                throw new UnsupportedOperationException(
-                    "Currently we do not know how to find target locations for Java programs.");
-          });
+      configurationBuilder.loadFromResource(getClass(), "find-target-locations.properties");
       Configuration configuration = configurationBuilder.build();
 
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logManager);
