@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,7 +43,8 @@ public class BlockGraphTest {
     CFA shiftedCFA = generateCfa(tempFolderPath);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
-    assumeTrue(!originalCFA.nodes().equals(shiftedCFA.nodes()));
+    assertThat(originalCFA.nodes()).isNotEmpty();
+    assertThat(originalCFA.nodes()).containsNoneIn(shiftedCFA.nodes());
 
     BlockGraph blockGraphFromOriginalCfa = generateBlockGraph(originalCFA, tempFolderPath);
     BlockGraph blockGraphFromShiftedCfa = generateBlockGraph(shiftedCFA, tempFolderPath);

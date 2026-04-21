@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.google.common.collect.BiMap;
 import java.nio.file.Path;
@@ -36,7 +35,8 @@ public class DssFactoryTest {
     CFA shiftedCFA = generateCfa(tempFolderPath);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
-    assumeTrue(!originalCFA.nodes().equals(shiftedCFA.nodes()));
+    assertThat(originalCFA.nodes()).isNotEmpty();
+    assertThat(originalCFA.nodes()).containsNoneIn(shiftedCFA.nodes());
 
     BiMap<Integer, CFANode> cfaNodeIdMapWithOriginalCFA =
         DssFactory.createCfaNodeIdMap(originalCFA);
