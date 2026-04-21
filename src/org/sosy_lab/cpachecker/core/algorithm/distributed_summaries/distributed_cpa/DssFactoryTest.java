@@ -11,28 +11,22 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.BiMap;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class DssFactoryTest {
-  private static final String CONFIGURATION_FILE_GENERATE_CFA = "config/generateCFA.properties";
   private static final String PROGRAM = "doc/examples/example.c";
-
-  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
   public void testCanResetCfaNodeIdMap() throws Exception {
-    Path tempFolderPath = tempFolder.getRoot().toPath();
-    CFA originalCFA = generateCfa(tempFolderPath);
-    CFA shiftedCFA = generateCfa(tempFolderPath);
+    String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
+    CFA originalCFA = TestDataTools.makeCFA(programText);
+    CFA shiftedCFA = TestDataTools.makeCFA(programText);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();
@@ -43,12 +37,5 @@ public class DssFactoryTest {
     BiMap<Integer, CFANode> cfaNodeIdMapWithShiftedCFA = DssFactory.createCfaNodeIdMap(shiftedCFA);
 
     assertThat(cfaNodeIdMapWithOriginalCFA.keySet()).isEqualTo(cfaNodeIdMapWithShiftedCFA.keySet());
-  }
-
-  private CFA generateCfa(Path tempFolderPath) throws Exception {
-    Configuration configToGenerateCfa =
-        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
-    TestResults result = CPATestRunner.run(configToGenerateCfa, PROGRAM);
-    return result.getCheckerResult().getCfa();
   }
 }

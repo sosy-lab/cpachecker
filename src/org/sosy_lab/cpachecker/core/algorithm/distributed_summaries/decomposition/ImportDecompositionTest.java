@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assume.assumeTrue;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
@@ -20,13 +22,13 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class ImportDecompositionTest {
 
   private static final String CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH =
       "config/generateBlockGraph.properties";
-  private static final String CONFIGURATION_FILE_GENERATE_CFA = "config/generateCFA.properties";
   private static final String PROGRAM = "doc/examples/example.c";
   private static final String BLOCKS_JSON_PATH = "block_analysis/blocks.json";
 
@@ -38,6 +40,7 @@ public class ImportDecompositionTest {
    */
   @Test
   public void testCanDecomposeCfaWithNodeIdThatStartsAtNonZero() throws Exception {
+    String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
     Path tempFolderPath = tempFolder.getRoot().toPath();
     Configuration configToGenerateBlockGraph =
         TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
@@ -48,10 +51,7 @@ public class ImportDecompositionTest {
     Path expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH);
     assumeTrue(expectedBlocksJson.toFile().exists());
 
-    Configuration configToGenerateCfa =
-        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
-    TestResults runWithShiftedCfa = CPATestRunner.run(configToGenerateCfa, PROGRAM);
-    CFA shiftedCFA = runWithShiftedCfa.getCheckerResult().getCfa();
+    CFA shiftedCFA = TestDataTools.makeCFA(programText);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();

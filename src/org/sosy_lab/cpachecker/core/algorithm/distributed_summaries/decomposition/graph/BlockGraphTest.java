@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Rule;
@@ -20,11 +21,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class BlockGraphTest {
-  private static final String CONFIGURATION_FILE_GENERATE_CFA = "config/generateCFA.properties";
   private static final String CONFIGURATION_FILE_MERGE_DECOMPOSITION = "config/dss.properties";
   private static final String PROGRAM = "doc/examples/example.c";
   private static final String EXPORT_BLOCKS_JSON_PATH_1 = "block_analysis/blocks1.json";
@@ -39,8 +38,9 @@ public class BlockGraphTest {
   @Test
   public void testCanExportWithNodeIdThatStartsAtNonZero() throws Exception {
     Path tempFolderPath = tempFolder.getRoot().toPath();
-    CFA originalCFA = generateCfa(tempFolderPath);
-    CFA shiftedCFA = generateCfa(tempFolderPath);
+    String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
+    CFA originalCFA = TestDataTools.makeCFA(programText);
+    CFA shiftedCFA = TestDataTools.makeCFA(programText);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();
@@ -68,12 +68,5 @@ public class BlockGraphTest {
     DssDecompositionOptions options = new DssDecompositionOptions(configForMergeDecomposition, cfa);
     DssBlockDecomposition decomposer = options.getConfiguredDecomposition();
     return decomposer.decompose(cfa);
-  }
-
-  private CFA generateCfa(Path tempFolderPath) throws Exception {
-    Configuration configToGenerateCfa =
-        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_CFA, tempFolderPath);
-    TestResults result = CPATestRunner.run(configToGenerateCfa, PROGRAM);
-    return result.getCheckerResult().getCfa();
   }
 }
