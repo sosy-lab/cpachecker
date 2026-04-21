@@ -13,12 +13,9 @@ import static com.google.common.truth.Truth.assertThat;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -26,10 +23,6 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class BlockGraphTest {
   private static final String CONFIGURATION_FILE_MERGE_DECOMPOSITION = "config/dss.properties";
   private static final String PROGRAM = "doc/examples/example.c";
-  private static final String EXPORT_BLOCKS_JSON_PATH_1 = "block_analysis/blocks1.json";
-  private static final String EXPORT_BLOCKS_JSON_PATH_2 = "block_analysis/blocks2.json";
-
-  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   /**
    * Tests that {@link BlockGraph}s created from the same {@link CFA} with different starting node
@@ -37,7 +30,6 @@ public class BlockGraphTest {
    */
   @Test
   public void testCanExportWithNodeIdThatStartsAtNonZero() throws Exception {
-    Path tempFolderPath = tempFolder.getRoot().toPath();
     String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
     CFA originalCFA = TestDataTools.makeCFA(programText);
     CFA shiftedCFA = TestDataTools.makeCFA(programText);
@@ -46,25 +38,20 @@ public class BlockGraphTest {
     assertThat(originalCFA.nodes()).isNotEmpty();
     assertThat(originalCFA.nodes()).containsNoneIn(shiftedCFA.nodes());
 
-    BlockGraph blockGraphFromOriginalCfa = generateBlockGraph(originalCFA, tempFolderPath);
-    BlockGraph blockGraphFromShiftedCfa = generateBlockGraph(shiftedCFA, tempFolderPath);
+    BlockGraph blockGraphFromOriginalCfa = generateBlockGraph(originalCFA);
+    BlockGraph blockGraphFromShiftedCfa = generateBlockGraph(shiftedCFA);
 
-    Path exportPathForOriginalCfa = tempFolderPath.resolve(EXPORT_BLOCKS_JSON_PATH_1);
-    Path exportPathForShiftedCfa = tempFolderPath.resolve(EXPORT_BLOCKS_JSON_PATH_2);
+    var exportedBlockGraphFromOriginalCfa = blockGraphFromOriginalCfa.getExportData(originalCFA);
+    var exportedBlockGraphFromShiftedCfa = blockGraphFromShiftedCfa.getExportData(shiftedCFA);
 
-    blockGraphFromOriginalCfa.export(exportPathForOriginalCfa, originalCFA);
-    blockGraphFromShiftedCfa.export(exportPathForShiftedCfa, shiftedCFA);
-
-    assertThat(Files.exists(exportPathForOriginalCfa)).isTrue();
-    assertThat(Files.exists(exportPathForShiftedCfa)).isTrue();
-
-    assertThat(Files.readString(exportPathForOriginalCfa))
-        .isEqualTo(Files.readString(exportPathForShiftedCfa));
+    assertThat(exportedBlockGraphFromOriginalCfa).isEqualTo(exportedBlockGraphFromShiftedCfa);
   }
 
-  private BlockGraph generateBlockGraph(CFA cfa, Path tempFolderPath) throws Exception {
+  private BlockGraph generateBlockGraph(CFA cfa) throws Exception {
     Configuration configForMergeDecomposition =
-        TestUtil.generateConfig(CONFIGURATION_FILE_MERGE_DECOMPOSITION, tempFolderPath);
+        TestDataTools.configurationForTest()
+            .loadFromFile(CONFIGURATION_FILE_MERGE_DECOMPOSITION)
+            .build();
     DssDecompositionOptions options = new DssDecompositionOptions(configForMergeDecomposition, cfa);
     DssBlockDecomposition decomposer = options.getConfiguredDecomposition();
     return decomposer.decompose(cfa);
