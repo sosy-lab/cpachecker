@@ -511,7 +511,6 @@ public class DssBlockAnalysis {
       relevant.addAll(deserializedStatesAndPrecisions);
       return processing;
     }
-    int equal = 0;
     for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
       boolean isRelevant = true;
       for (StateAndPrecision stateAndPrecision :
@@ -524,7 +523,6 @@ public class DssBlockAnalysis {
               .isSubsumed(
                   stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
             isRelevant = false;
-            equal += 1;
             break;
           }
         }
@@ -534,8 +532,7 @@ public class DssBlockAnalysis {
       }
       preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
     }
-    if (equal == deserializedStatesAndPrecisions.size()) {
-      relevant.clear();
+    if (relevant.isEmpty()) {
       return DssMessageProcessing.stop();
     }
 
@@ -545,6 +542,7 @@ public class DssBlockAnalysis {
             k ->
                 preconditions.get(k).stream()
                     .anyMatch(s -> dcpa.isMostGeneralBlockEntryState(s.state())))) {
+      // calculate for all new states but do not underapproximate
       relevant.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     }
 
