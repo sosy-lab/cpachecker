@@ -400,11 +400,11 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportFirstViolationConditions(Set<@NonNull ARGState> violations)
       throws CPAException, InterruptedException, SolverException {
     containsViolationInsideBlock = true;
-    return reportViolationConditions(computeViolationConditionStatesFromOrigin(violations), true);
+    return reportViolationConditions(computeViolationConditionStatesFromOrigin(violations));
   }
 
   private Collection<DssMessage> reportViolationConditions(
-      Collection<ArgPathAndCondition> relevantViolations, boolean first)
+      Collection<ArgPathAndCondition> relevantViolations)
       throws InterruptedException, CPATransferException, SolverException {
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
     for (ArgPathAndCondition pathAndCondition : relevantViolations) {
@@ -422,7 +422,7 @@ public class DssBlockAnalysis {
     }
     ImmutableMap<String, String> serialized = serialize(allVcs);
     return ImmutableSet.of(
-        messageFactory.createViolationConditionMessage(block.getId(), status, first, serialized));
+        messageFactory.createViolationConditionMessage(block.getId(), status, serialized));
   }
 
   /**
@@ -594,7 +594,7 @@ public class DssBlockAnalysis {
             transformedImmutableListCopy(violationConditions.values(), v -> (ARGState) v.state()),
             true);
     if (!result.violationConditions().isEmpty()) {
-      messages.addAll(reportViolationConditions(result.violationConditions(), false));
+      messages.addAll(reportViolationConditions(result.violationConditions()));
     }
     if (!result.summaries().isEmpty()) {
       messages.addAll(reportPostconditions(result.summaries()));
@@ -625,7 +625,7 @@ public class DssBlockAnalysis {
       messages.addAll(reportPostconditions(result.summaries()));
     }
     if (!result.violationConditions().isEmpty()) {
-      messages.addAll(reportViolationConditions(result.violationConditions(), false));
+      messages.addAll(reportViolationConditions(result.violationConditions()));
     }
     if (result.summaries().isEmpty()
         && result.violationConditions().isEmpty()
