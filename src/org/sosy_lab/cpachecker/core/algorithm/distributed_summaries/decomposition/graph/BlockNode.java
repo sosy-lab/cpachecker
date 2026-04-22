@@ -9,9 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+<<<<<<< HEAD
 import com.google.common.collect.Sets;
 import org.sosy_lab.common.collect.Collections3;
+=======
+>>>>>>> ee0fea11c5 (Inlining works on small scale)
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -90,18 +94,45 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
 
     public BlockNode withMappedIds(
       Function<String, String> idMapper,
+      Predicate<String> predecessorFilter,
       Function<String, String> predecessorMapper,
+      Predicate<String> successorFilter,
       Function<String, String> successorMapper) {
+
+    ImmutableSet<String> mappedPredecessors =
+        predecessorIds.stream()
+            .filter(predecessorFilter)
+            .map(predecessorMapper)
+            .collect(ImmutableSet.toImmutableSet());
+
+    ImmutableSet<String> mappedLoopPredecessors =
+        loopPredecessorIds.stream()
+            .filter(predecessorFilter)
+            .map(predecessorMapper)
+            .collect(ImmutableSet.toImmutableSet());
+
+    ImmutableSet<String> mappedSuccessors =
+        successorIds.stream()
+            .filter(successorFilter)
+            .map(successorMapper)
+            .collect(ImmutableSet.toImmutableSet());
+
+    ImmutableSet<String> mappedLoopSuccessors =
+        loopSuccessorIds.stream()
+            .filter(successorFilter)
+            .map(successorMapper)
+            .collect(ImmutableSet.toImmutableSet());
+
     return new BlockNode(
         idMapper.apply(getId()),
         getInitialLocation(),
         getFinalLocation(),
         getNodes(),
         getEdges(),
-        Collections3.transformedImmutableSetCopy(predecessorIds, predecessorMapper),
-        Collections3.transformedImmutableSetCopy(loopPredecessorIds, idMapper),
-        Collections3.transformedImmutableSetCopy(successorIds, successorMapper),
-        Collections3.transformedImmutableSetCopy(loopSuccessorIds, successorMapper));
+        mappedPredecessors,
+        mappedLoopPredecessors,
+        mappedSuccessors,
+        mappedLoopSuccessors);
   }
 
   @Override

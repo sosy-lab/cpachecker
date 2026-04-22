@@ -21,6 +21,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.InliningDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -32,6 +33,7 @@ public class DssDecompositionOptions {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
     BRIDGE_DECOMPOSITION,
+    INLINING_DECOMPOSITION,
     NO_DECOMPOSITION
   }
 
@@ -102,6 +104,8 @@ public class DssDecompositionOptions {
       case BRIDGE_DECOMPOSITION ->
           new VerticalMergeDecomposition(
               new BridgeDecomposition(), 1, Comparator.comparingInt(b -> b.getEdges().size()));
+      case INLINING_DECOMPOSITION ->
+          new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd));
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }

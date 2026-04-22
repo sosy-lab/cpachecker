@@ -36,14 +36,14 @@ public record CallStack(ImmutableList<CallSite> calls) {
   public CallStack pop() {
     if (calls.isEmpty()) {
       return this;
-      }
-      ImmutableList.Builder<CallSite> builder = ImmutableList.builder();
-      // copy all except the last (top) element
-      for (int i = 0; i < calls.size() - 1; i++) {
+    }
+    ImmutableList.Builder<CallSite> builder = ImmutableList.builder();
+    // copy all except the last (top) element
+    for (int i = 0; i < calls.size() - 1; i++) {
       builder.add(calls.get(i));
-      }
-      ImmutableList<CallSite> newCalls = builder.build();
-      return newCalls.isEmpty() ? EMPTY : new CallStack(newCalls);
+    }
+    ImmutableList<CallSite> newCalls = builder.build();
+    return newCalls.isEmpty() ? EMPTY : new CallStack(newCalls);
   }
 
   public static CallStack empty() {
@@ -63,5 +63,27 @@ public record CallStack(ImmutableList<CallSite> calls) {
     }
 
     return builder.toString();
+  }
+
+  public String toStringWithBlockId(String nodeId) {
+    if (equals(empty())) {
+      return nodeId;
+    } else {
+      return nodeId + "@" + toString();
+    }
+  }
+
+  public BlockNode getLastCallBlock() {
+    if (calls.isEmpty()) {
+      return null;
+    }
+    return calls.getLast().block;
+  }
+
+  public FunctionSCC getLastCallScc() {
+    if (calls.isEmpty()) {
+      return null;
+    }
+    return calls.getLast().scc;
   }
 }

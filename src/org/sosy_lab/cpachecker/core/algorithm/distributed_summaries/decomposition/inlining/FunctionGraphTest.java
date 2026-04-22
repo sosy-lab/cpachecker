@@ -112,7 +112,8 @@ public class FunctionGraphTest {
         Truth.assertThat(FluentIterable.from(funcGraph.getSuccessors(fun)).transform(f -> f.name()))
             .containsExactly("g");
       } else if (fun.name().equals("g")) {
-        BlockFunction h = Iterables.getOnlyElement(FluentIterable.from(funcGraph.getSuccessors(fun)));
+        BlockFunction h =
+            Iterables.getOnlyElement(FluentIterable.from(funcGraph.getSuccessors(fun)));
 
         Truth.assertThat(h.name()).isEqualTo("h");
         Truth.assertThat(funcGraph.getSuccessors(h)).isEmpty();

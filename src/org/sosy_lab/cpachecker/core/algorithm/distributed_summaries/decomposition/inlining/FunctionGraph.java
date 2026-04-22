@@ -142,7 +142,8 @@ public class FunctionGraph {
    *
    * @param graph the whole block graph
    * @param pEntryNode the first block inside this function
-   * @return the information for the {@link BlockFunction} record as well all calls to different function
+   * @return the information for the {@link BlockFunction} record as well all calls to different
+   *     function
    */
   private static FunctionInfo exploreFunction(BlockGraph graph, BlockNode pEntryNode) {
 
