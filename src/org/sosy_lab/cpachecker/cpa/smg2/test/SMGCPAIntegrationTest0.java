@@ -149,7 +149,7 @@ public abstract class SMGCPAIntegrationTest0 {
 
   @Before
   public void setUp() throws IOException {
-    if (!ExpensiveTestUtils.runExpensiveTests()) {
+    if (!ExpensiveTestUtils.isRunExpensiveTests()) {
       onlyTestDefaultSpecification();
     }
   }
@@ -196,7 +196,7 @@ public abstract class SMGCPAIntegrationTest0 {
   protected void flagAsExpensiveTest() {
     assume()
         .withMessage("Test not executed due to being flagged as expensive test")
-        .that(ExpensiveTestUtils.runExpensiveTests())
+        .that(ExpensiveTestUtils.isRunExpensiveTests())
         .isTrue();
   }
 

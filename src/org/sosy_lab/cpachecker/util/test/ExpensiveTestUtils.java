@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.test;
 public class ExpensiveTestUtils {
 
   /**
-   * Enables running more exhaustive tests.
+   * True if running more exhaustive tests is allowed.
    *
    * <p>Use <code>ant tests -DenableExpensiveTests=true</code> to set this flag. The test suite will
    * then generate a much more exhaustive set of input values for the tested methods using this.
@@ -20,13 +20,12 @@ public class ExpensiveTestUtils {
       Boolean.parseBoolean(System.getProperty("enableExpensiveTests"));
 
   /**
-   * Returns true if running more exhaustive tests is enabled. Should be used to reduce the
+   * Returns true if running more exhaustive tests is allowed. Should be used to reduce the
    * test-load for expensive tests that do not need to run all the time.
    *
-   * <p>Use <code>ant tests -DenableExpensiveTests=true</code> to set this flag. The test suite will
-   * then generate a much more exhaustive set of input values for the tested methods using this.
+   * <p>Use <code>ant tests -DenableExpensiveTests=true</code> to set this flag.
    */
-  public static boolean runExpensiveTests() {
+  public static boolean isRunExpensiveTests() {
     return enableExpensiveTests;
   }
 }
