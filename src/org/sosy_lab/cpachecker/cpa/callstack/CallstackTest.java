@@ -12,7 +12,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.util.List;
 import org.junit.Test;
@@ -34,29 +33,30 @@ public class CallstackTest {
    */
   @Test
   public void testCallstackPreventsUndesiredCoverage() throws Exception {
-    List<String> program =
-        ImmutableList.of(
-            "extern int __VERIFIER_nondet_int();",
-            "int global;",
-            "",
-            "void init() {",
-            // create two ARG paths
-            "  global = __VERIFIER_nondet_int() ? 1 : 2;",
-            "}",
-            "",
-            "void f() {",
-            // Set global variable to constant value such that one path can now cover the other.
-            // CallstackCPA should prevent coverage inside f because we entered f on two paths.
-            "  global = 3;",
-            "}",
-            "",
-            "void main() {",
-            "  init();",
-            "  f();",
-            "}");
+    String program =
+        """
+        extern int __VERIFIER_nondet_int();
+        int global;
+
+        void init() {
+          // create two ARG paths
+          global = __VERIFIER_nondet_int() ? 1 : 2;
+        }
+
+        void f() {
+          // Set global variable to constant value such that one path can now cover the other.
+          // CallstackCPA should prevent coverage inside f because we entered f on two paths.
+          global = 3;
+        }
+
+        void main() {
+          init();
+          f();
+        }
+        """;
     try (DeleteOnCloseFile programFile =
         TempFile.builder().prefix("test").suffix(".c").createDeleteOnClose()) {
-      Files.write(programFile.toPath(), program);
+      Files.writeString(programFile.toPath(), program);
 
       Configuration config =
           TestDataTools.configurationForTest()
