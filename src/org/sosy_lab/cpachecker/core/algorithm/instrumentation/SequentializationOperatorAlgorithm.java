@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
@@ -101,6 +102,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         || instrumentationProperty == InstrumentationProperty.ONESTEPREACHABILITY) {
       int index = 0;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
+      // TODO: Fix the recursion instrumentation
+      if (!LoopStructure.getRecursions(cfa).isEmpty()) {
+        throw new CPAException("Instrumentation of this type does not support recursion for now.");
+      }
       // We have to track what variables have already been defined
       Map<String, String> alreadyDefinedVariables = new HashMap<>();
       for (NormalLoopInfo info :
