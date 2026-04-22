@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 
 @Options(prefix = "dss.cpa.value")
 public class DistributedValueAnalysisCPA
@@ -149,7 +151,12 @@ public class DistributedValueAnalysisCPA
 
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
-    return ((ValueAnalysisState) pAbstractState).isTop();
+    return ((ValueAnalysisState) pAbstractState)
+        .getConstants().stream()
+            .allMatch(
+                constant ->
+                    constant.getValue().getValue() instanceof ConstantSymbolicExpression symExp
+                        && symExp.getValue() instanceof SymbolicIdentifier);
   }
 
   @Override
