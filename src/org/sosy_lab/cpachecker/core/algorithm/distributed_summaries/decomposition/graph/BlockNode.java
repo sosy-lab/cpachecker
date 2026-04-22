@@ -11,11 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-<<<<<<< HEAD
 import com.google.common.collect.Sets;
-import org.sosy_lab.common.collect.Collections3;
-=======
->>>>>>> ee0fea11c5 (Inlining works on small scale)
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -92,7 +88,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
     return successorIds.equals(loopSuccessorIds);
   }
 
-    public BlockNode withMappedIds(
+  public BlockNode withMappedIds(
       Function<String, String> idMapper,
       Predicate<String> predecessorFilter,
       Function<String, String> predecessorMapper,
@@ -122,6 +118,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
             .filter(successorFilter)
             .map(successorMapper)
             .collect(ImmutableSet.toImmutableSet());
+
 
     return new BlockNode(
         idMapper.apply(getId()),
