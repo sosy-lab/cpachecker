@@ -47,6 +47,7 @@ import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
+import org.sosy_lab.cpachecker.util.test.ExpensiveTestUtils;
 
 /**
  * Abstract test class for the {@link CFloat} interface.
@@ -150,15 +151,6 @@ public class FloatValueTest {
     }
   }
 
-  /**
-   * Enables running more exhaustive tests
-   *
-   * <p>Use <code>ant tests -DenableExpensiveTests=true</code> to set this flag. The test suite will
-   * then generate a much more exhaustive set of input values for the tested methods.
-   */
-  private static final boolean enableExpensiveTests =
-      Boolean.parseBoolean(System.getProperty("enableExpensiveTests"));
-
   @Parameters(name = "{0}")
   public static FloatTestOptions[] getFloatTestOptions() {
     ImmutableList.Builder<FloatTestOptions> builder = ImmutableList.builder();
@@ -169,10 +161,12 @@ public class FloatValueTest {
             || precision.equals(Format.Float32)
             || precision.equals(Format.Float64)
             || (reference.equals(ReferenceImpl.NATIVE) && precision.equals(Format.Float80))) {
-          if (precision.equals(Format.Float32) || enableExpensiveTests) {
+          if (precision.equals(Format.Float32) || ExpensiveTestUtils.runExpensiveTests()) {
             builder.add(
                 new FloatTestOptions(
-                    precision, reference, enableExpensiveTests ? entry.getValue() : 100));
+                    precision,
+                    reference,
+                    ExpensiveTestUtils.runExpensiveTests() ? entry.getValue() : 100));
           }
         }
       }
@@ -395,7 +389,8 @@ public class FloatValueTest {
   /** The set of test inputs that should be used for unary operations in the CFloat interface. */
   private Iterable<BigFloat> unaryTestValues() {
     Format format = floatTestOptions.format;
-    if (enableExpensiveTests && (format.equals(Format.Float8) || format.equals(Format.Float16))) {
+    if (ExpensiveTestUtils.runExpensiveTests()
+        && (format.equals(Format.Float8) || format.equals(Format.Float16))) {
       return allFloats(format);
     } else {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
@@ -414,7 +409,7 @@ public class FloatValueTest {
    */
   private Iterable<BigFloat> binaryTestValues() {
     Format format = floatTestOptions.format;
-    if (enableExpensiveTests && format.equals(Format.Float8)) {
+    if (ExpensiveTestUtils.runExpensiveTests() && format.equals(Format.Float8)) {
       return allFloats(format);
     } else {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
