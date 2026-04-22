@@ -36,7 +36,9 @@ public class FunctionSCCGraph {
   private final ImmutableMap<BlockFunction, FunctionSCC> functionToSCC;
 
   private FunctionSCCGraph(
-      FunctionSCC pRoot, FunctionGraph pGraph, ImmutableMap<BlockFunction, FunctionSCC> pFunctionToSCC) {
+      FunctionSCC pRoot,
+      FunctionGraph pGraph,
+      ImmutableMap<BlockFunction, FunctionSCC> pFunctionToSCC) {
     root = pRoot;
     originalGraph = pGraph;
     functionToSCC = pFunctionToSCC;

@@ -4550,7 +4550,7 @@ distributedSummaries.decomposition.blockCFAFile = "block_analysis/blocks.json"
 # the program. NO_DECOMPOSITION creates one block around the CFA.
 distributedSummaries.decomposition.decompositionType = MERGE_DECOMPOSITION
   enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
-             NO_DECOMPOSITION]
+             INLINING_DECOMPOSITION, NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
 distributedSummaries.decomposition.generateBlockGraphOnly = false
