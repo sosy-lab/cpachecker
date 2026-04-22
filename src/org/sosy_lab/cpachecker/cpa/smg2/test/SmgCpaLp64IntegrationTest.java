@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.test;
 
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -21,17 +20,11 @@ import org.junit.Test;
 @Ignore
 public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
 
-  @Before
-  public void reduceCILoad() {
-    // TODO: remove this method once we have a solution for CI/Test load
-    onlyTestDefaultSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
-  }
-
   @Ignore // Arrays have a problem in SMG2 currently
   @Test
   public void arrayUsageWithPointerComplex64Proof() throws Exception {
     doNotTestOverflowSpecification();
+
     String testProgram = "simple/arrays/array_usage_modified_pointers_in_methods_64_true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
@@ -40,10 +33,6 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   public void pointerArithmeticsAndComparisonsIntPtrViaMallocProof() throws Exception {
     doNotTestOverflowSpecification();
 
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
-
     String testProgram = "simple/pointer_arithmetics/pointer_arithmetics_int_malloc_64_safe.c";
     assertThatLP64Program(testProgram).isSafe();
   }
@@ -51,10 +40,6 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrCastNumericViaMallocProof() throws Exception {
     doNotTestOverflowSpecification();
-
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram =
         "simple/pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_64_safe.c";
@@ -67,6 +52,8 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void nondetIntegerTypeBoundsProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/type_tests/nondet_generator_integer_types_64_true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
@@ -76,6 +63,8 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void nondetFloatingPointTypeBoundsProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/type_tests/nondet_generator_float_types_64_true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
@@ -85,6 +74,8 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_64_true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
@@ -94,6 +85,8 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageViolation() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_64_false.c";
     assertThatLP64Program(testProgram).isUnsafe();
   }
@@ -103,6 +96,8 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_methods_64_true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
@@ -112,6 +107,8 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsViolation() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_methods_64_false.c";
     assertThatLP64Program(testProgram).isUnsafe();
   }
@@ -121,6 +118,8 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsAsPointersProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_pointers_in_methods_64_true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
@@ -130,6 +129,8 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsAsPointersViolation() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_pointers_in_methods_64_false.c";
     assertThatLP64Program(testProgram).isUnsafe();
   }
@@ -138,10 +139,6 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void functionPointerSimpleUsageViolation() throws Exception {
     doNotTestOverflowSpecification();
-
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram = "simple/function_pointers/function_pointers_simple_concrete-false.c";
     assertThatLP64Program(testProgram).isUnsafe();
@@ -152,10 +149,6 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   public void functionPointerSimpleUsageProof() throws Exception {
     doNotTestOverflowSpecification();
 
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
-
     String testProgram = "simple/function_pointers/function_pointers_simple_concrete-true.c";
     assertThatLP64Program(testProgram).isSafe();
   }
@@ -164,10 +157,6 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void functionPointerSimpleUsageInFunctionsAndReturnsViolation() throws Exception {
     doNotTestOverflowSpecification();
-
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram =
         "simple/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
@@ -179,10 +168,6 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   public void functionPointerSimpleUsageInFunctionsAndReturnsProof() throws Exception {
     doNotTestOverflowSpecification();
 
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
-
     String testProgram =
         "simple/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
     assertThatLP64Program(testProgram).isSafe();
@@ -191,8 +176,8 @@ public class SmgCpaLp64IntegrationTest extends SMGCPAIntegrationTest0 {
   @Ignore
   @Test
   public void violationWitnessV1LongOutputTest() throws Exception {
-    onlyTestDefaultSpecification();
     onlyTestSMGSymbolicExecutionConfiguration();
+
     String testProgram = "simple/witness_output/simple_assignment_long_64_false.c";
     // TODO: extend returnsViolationWitnessV1Containing() with expected line/location
     // TODO: extend with "containingAssignment" that automatically resolves assumptions (w

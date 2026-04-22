@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.ExpensiveTestUtils;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 /**
@@ -145,6 +147,13 @@ public abstract class SMGCPAIntegrationTest0 {
         configurationFile, inputLanguage, specificationFile, configForFiles, machineModel);
   }
 
+  @Before
+  public void setUp() throws IOException {
+    if (!ExpensiveTestUtils.runExpensiveTests()) {
+      onlyTestDefaultSpecification();
+    }
+  }
+
   /**
    * Skips all overflow specifications for a test, starting from the position this method is used.
    */
@@ -178,6 +187,17 @@ public abstract class SMGCPAIntegrationTest0 {
   /** Skips SMG-ValueAnalysis configurations, starting from the position this method is used. */
   protected void doNotTestSMGValueAnalysisConfigurations() {
     assume().that(configToUse).isNotEqualTo(SMG_VALUE_ANALYSIS);
+  }
+
+  /**
+   * Skips the test, starting from the position this method is used, if expensive testing is
+   * disabled.
+   */
+  protected void flagAsExpensiveTest() {
+    assume()
+        .withMessage("Test not executed due to being flagged as expensive test")
+        .that(ExpensiveTestUtils.runExpensiveTests())
+        .isTrue();
   }
 
   /**

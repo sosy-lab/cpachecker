@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.test;
 
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -20,17 +19,11 @@ import org.junit.Test;
  */
 public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
 
-  @Before
-  public void reduceCILoad() {
-    // TODO: remove this method once we have a solution for CI/Test load
-    onlyTestDefaultSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
-  }
-
   @Ignore // Arrays have a problem in SMG2 currently
   @Test
   public void arrayUsageWithPointerComplex32Proof() throws Exception {
     doNotTestOverflowSpecification();
+
     String testProgram = "simple/arrays/array_usage_modified_pointers_in_methods_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
@@ -38,10 +31,6 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrViaMallocProof() throws Exception {
     doNotTestOverflowSpecification();
-
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram = "simple/pointer_arithmetics/pointer_arithmetics_int_malloc_32_safe.c";
     assertThatILP32Program(testProgram).isSafe();
@@ -52,10 +41,6 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void pointerArithmeticsAndComparisonsIntPtrCastNumericViaMallocProof() throws Exception {
     doNotTestOverflowSpecification();
-
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram =
         "simple/pointer_arithmetics/pointer_arithmetics_numeric_cast_int_malloc_32_safe.c";
@@ -68,6 +53,8 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void nondetIntegerTypeBoundsProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/type_tests/nondet_generator_integer_types_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
@@ -77,6 +64,8 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void nondetFloatingPointTypeBoundsProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/type_tests/nondet_generator_float_types_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
@@ -86,6 +75,8 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
@@ -95,6 +86,8 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageViolation() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_32_false.c";
     assertThatILP32Program(testProgram).isUnsafe();
   }
@@ -104,6 +97,8 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_methods_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
@@ -113,6 +108,8 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsViolation() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_methods_32_false.c";
     assertThatILP32Program(testProgram).isUnsafe();
   }
@@ -122,6 +119,8 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void arrayUsageInMethodsAsPointersProof() throws Exception {
     doNotTestOverflowSpecification();
+    flagAsExpensiveTest();
+
     String testProgram = "simple/arrays/array_usage_pointers_in_methods_32_true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
@@ -130,10 +129,6 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void functionPointerSimpleUsageViolation() throws Exception {
     doNotTestOverflowSpecification();
-
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram = "simple/function_pointers/function_pointers_simple_concrete-false.c";
     assertThatILP32Program(testProgram).isUnsafe();
@@ -144,10 +139,6 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   public void functionPointerSimpleUsageProof() throws Exception {
     doNotTestOverflowSpecification();
 
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
-
     String testProgram = "simple/function_pointers/function_pointers_simple_concrete-true.c";
     assertThatILP32Program(testProgram).isSafe();
   }
@@ -156,10 +147,6 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void functionPointerSimpleUsageInFunctionsAndReturnsViolation() throws Exception {
     doNotTestOverflowSpecification();
-
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram =
         "simple/function_pointers/function_pointers_in_functions_simple_concrete-false.c";
@@ -170,10 +157,6 @@ public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
   @Test
   public void functionPointerSimpleUsageInFunctionsAndReturnsProof() throws Exception {
     doNotTestOverflowSpecification();
-
-    // TODO: added to reduce CI load, find a better solution!
-    doNotTestMemCleanupSpecification();
-    doNotTestSMGValueAnalysisConfigurations();
 
     String testProgram =
         "simple/function_pointers/function_pointers_in_functions_simple_concrete-true.c";
