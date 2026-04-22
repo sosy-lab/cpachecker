@@ -39,41 +39,43 @@ public class AssumptionToEdgeAllocatorTest {
   public void setUp() throws Exception {
     cfa =
         TestDataTools.makeCFA(
-            "typedef struct dataNode {",
-            "  int h;",
-            "  int h2[3];",
-            "  int *h3;",
-            "} data;", // sizeof 20
-            "",
-            "typedef struct node {",
-            "  int h;",
-            "  struct node *n;",
-            "  data d;",
-            "} List;", // sizeof 28
-            "",
-            "typedef List *ListP;",
-            "",
-            "int x;",
-            "",
-            "int main() {",
-            "  int a;",
-            "  int* b;",
-            "  int** c;",
-            "  int  d[6];",
-            "  int  e[2][3];",
-            "  List list;",
-            "  a = a;",
-            "  *b = *b;",
-            "  **c = **c;",
-            "  d[1] = d[1];",
-            "  *(d + 1) = *(d + 1);",
-            "  e[1][2] = e[1][2];",
-            "  list.h = list.h;",
-            "  list.n = list.n;",
-            "  list.d.h = list.d.h;",
-            "  list.n->d.h2[0] = list.n->d.h2[0];",
-            "  list.n->d.h3 = list.n->d.h3;",
-            "}");
+            """
+            typedef struct dataNode {
+              int h;
+              int h2[3];
+              int *h3;
+            } data; // sizeof 20
+
+            typedef struct node {
+              int h;
+              struct node *n;
+              data d;
+            } List; // sizeof 28
+
+            typedef List *ListP;
+
+            int x;
+
+            int main() {
+              int a;
+              int* b;
+              int** c;
+              int  d[6];
+              int  e[2][3];
+              List list;
+              a = a;
+              *b = *b;
+              **c = **c;
+              d[1] = d[1];
+              *(d + 1) = *(d + 1);
+              e[1][2] = e[1][2];
+              list.h = list.h;
+              list.n = list.n;
+              list.d.h = list.d.h;
+              list.n->d.h2[0] = list.n->d.h2[0];
+              list.n->d.h3 = list.n->d.h3;
+            }
+            """);
 
     machineModel = cfa.getMachineModel();
     logger = LogManager.createTestLogManager();

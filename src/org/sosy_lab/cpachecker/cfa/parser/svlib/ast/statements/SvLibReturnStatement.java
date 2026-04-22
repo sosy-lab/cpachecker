@@ -37,7 +37,7 @@ public final class SvLibReturnStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(return)";
   }
 

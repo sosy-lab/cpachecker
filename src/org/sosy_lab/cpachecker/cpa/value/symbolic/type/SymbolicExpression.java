@@ -131,4 +131,12 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
     return pObj instanceof SymbolicExpression symbolicExpression
         && Objects.equals(representedLocation, symbolicExpression.representedLocation);
   }
+
+  protected static Type getCanonicalType(Type pType) {
+    if (pType instanceof CType cType) {
+      return cType.getCanonicalType();
+    } else {
+      return pType;
+    }
+  }
 }

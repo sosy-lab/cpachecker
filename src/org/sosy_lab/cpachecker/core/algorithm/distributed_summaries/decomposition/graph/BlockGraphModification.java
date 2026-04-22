@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph.GHOST_EDGE_DESCRIPTION;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -52,7 +53,7 @@ public class BlockGraphModification {
   public record Modification(CFA cfa, BlockGraph blockGraph, ModificationMetadata metadata) {}
 
   /**
-   * Metadata about a modification of a CFA and its block graph.
+   * DssMetadata about a modification of a CFA and its block graph.
    *
    * @param originalCfa CFA that was modified
    * @param originalBlockGraph block graph that was used as reference for modification
@@ -88,10 +89,7 @@ public class BlockGraphModification {
     // Adjust the block graph to the modified CFA
     BlockGraph adjustedBlockGraph =
         adaptBlockGraph(
-            pBlockGraph,
-            mutableCfa.getMainFunction(),
-            modificationMetadata.mappingInfo(),
-            modificationMetadata.abstractions());
+            pBlockGraph, modificationMetadata.mappingInfo(), modificationMetadata.abstractions());
 
     // Adjust metadata to the modified CFA
     setReversePostorderForInstrumentedNodes(originalInstrumentedMapping);
@@ -245,7 +243,6 @@ public class BlockGraphModification {
 
   private static BlockGraph adaptBlockGraph(
       BlockGraph pBlockGraph,
-      CFANode pNewMainFunctionNode,
       MappingInformation pMappingInformation,
       Map<CFANode, CFAEdge> blockAbstractionEnds) {
     Map<CFANode, CFANode> originalInstrumentedNodes =
@@ -288,17 +285,7 @@ public class BlockGraphModification {
               block.getSuccessorIds(),
               abstraction));
     }
-    BlockNode root =
-        new BlockNode(
-            BlockGraph.ROOT_ID,
-            pNewMainFunctionNode,
-            pNewMainFunctionNode,
-            ImmutableSet.of(pNewMainFunctionNode),
-            ImmutableSet.of(),
-            ImmutableSet.of(),
-            pBlockGraph.getRoot().getLoopPredecessorIds(),
-            pBlockGraph.getRoot().getSuccessorIds());
-    return new BlockGraph(root, instrumentedBlocks.build());
+    return new BlockGraph(instrumentedBlocks.build());
   }
 
   private static MappingInformation createMappingBetweenOriginalAndInstrumentedCFA(
@@ -325,8 +312,10 @@ public class BlockGraphModification {
       SequencedSet<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
       for (CFAEdge cfaEdge : originalOutgoing) {
         CFAEdge corresponding = findCorrespondingEdge(cfaEdge, instrumentedOutgoing);
-        assertOrFail(
-            !foundCorrespondingEdges.contains(corresponding), "Corresponding edge already covered");
+        Preconditions.checkState(
+            !foundCorrespondingEdges.contains(corresponding),
+            "Corresponding edge already found: %s",
+            corresponding);
         originalToInstrumentedNodes.put(cfaEdge.getSuccessor(), corresponding.getSuccessor());
         originalToInstrumentedEdges.put(cfaEdge, corresponding);
         waitlist.add(new NodePair(cfaEdge.getSuccessor(), corresponding.getSuccessor()));
@@ -344,12 +333,6 @@ public class BlockGraphModification {
       }
     }
     throw new AssertionError("No matching edge found");
-  }
-
-  private static void assertOrFail(boolean condition, String message) {
-    if (!condition) {
-      throw new AssertionError(message);
-    }
   }
 
   private static boolean virtuallyEqual(CFAEdge pCFAEdge, CFAEdge pCFAEdge2) {

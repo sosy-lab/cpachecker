@@ -66,8 +66,15 @@ public class MemoryModelStartRoutineArgTest {
           "local_L1",
           INT_0_INITIALIZER);
 
-  private final CParameterDeclaration START_ROUTINE_ARG_DECLARATION =
-      new CParameterDeclaration(FileLocation.DUMMY, VOID_POINTER_TYPE, "start_routine_arg");
+  private final class CParameterDeclarations {
+    private final CParameterDeclaration START_ROUTINE_ARG_DECLARATION =
+        new CParameterDeclaration(FileLocation.DUMMY, VOID_POINTER_TYPE, "start_routine_arg");
+
+    CParameterDeclarations() {
+      // qualified names are required, otherwise .asVariableDeclaration throws
+      START_ROUTINE_ARG_DECLARATION.setQualifiedName("dummy");
+    }
+  }
 
   // Memory Locations (primitives)
 
@@ -75,9 +82,13 @@ public class MemoryModelStartRoutineArgTest {
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
 
+  private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
+
   private final SeqMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), START_ROUTINE_ARG_DECLARATION);
+          MPOROptions.getDefaultTestInstance(),
+          Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
+          PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
 
   public MemoryModelStartRoutineArgTest() throws InvalidConfigurationException {}
 
@@ -95,7 +106,7 @@ public class MemoryModelStartRoutineArgTest {
     assertThat(pointerParameterAssignments).hasSize(1);
 
     // local_L1 is now an implicit global memory location, due to start_routine_arg assignment
-    assertThat(LOCAL_L1_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(LOCAL_L1_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_L1_MEMORY_LOCATION,
@@ -105,7 +116,7 @@ public class MemoryModelStartRoutineArgTest {
                 ImmutableSet.of()))
         .isTrue();
     // start_routine_arg is not explicit or implicit global
-    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 START_ROUTINE_ARG_MEMORY_LOCATION,

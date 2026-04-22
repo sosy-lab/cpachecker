@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -182,22 +181,22 @@ public record ThreadSyncFlagsBuilder(
   // Name Utility ==================================================================================
 
   private static String buildCondSignaledName(String pCondName) {
-    return pCondName + SeqSyntax.UNDERSCORE + "SIGNALED";
+    return pCondName + "_SIGNALED";
   }
 
   private static String buildMutexLockedName(String pMutexName) {
-    return pMutexName + SeqSyntax.UNDERSCORE + "LOCKED";
+    return pMutexName + "_LOCKED";
   }
 
   private static String buildRwLockReadersName(String pRwLockName) {
-    return pRwLockName + SeqSyntax.UNDERSCORE + "NUM_READERS";
+    return pRwLockName + "_NUM_READERS";
   }
 
   private static String buildRwLockWritersName(String pRwLockName) {
-    return pRwLockName + SeqSyntax.UNDERSCORE + "NUM_WRITERS";
+    return pRwLockName + "_NUM_WRITERS";
   }
 
   private String buildSyncVariableName(int pThreadId) {
-    return SeqNameUtil.buildThreadPrefix(options, pThreadId) + SeqSyntax.UNDERSCORE + "SYNC";
+    return SeqNameUtil.buildThreadPrefix(options, pThreadId) + "_SYNC";
   }
 }

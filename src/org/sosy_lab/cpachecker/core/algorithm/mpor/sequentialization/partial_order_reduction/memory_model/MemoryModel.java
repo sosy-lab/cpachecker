@@ -15,10 +15,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -69,7 +69,8 @@ public class MemoryModel {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences,
+      MachineModel pMachineModel)
       throws UnsupportedCodeException {
 
     checkArguments(
@@ -77,7 +78,9 @@ public class MemoryModel {
         pRelevantMemoryLocationIds,
         pPointerAssignments,
         pParameterAssignments,
-        pPointerParameterAssignments);
+        pPointerParameterAssignments,
+        pMachineModel);
+
     allMemoryLocations = pAllMemoryLocations;
     relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
     relevantMemoryLocations = pRelevantMemoryLocationIds;
@@ -93,26 +96,29 @@ public class MemoryModel {
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments)
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      MachineModel pMachineModel)
       throws UnsupportedCodeException {
 
     if (pOptions.bitVectorEncoding().isDense) {
-      if (pRelevantMemoryLocationIds.size() > BitVectorUtil.MAX_BINARY_LENGTH) {
+      final int maximumBitVectorLength =
+          pMachineModel.getSizeofLongLongInt() * pMachineModel.getSizeofCharInBits();
+      if (pRelevantMemoryLocationIds.size() > maximumBitVectorLength) {
         throw new UnsupportedCodeException(
             String.format(
                 "The input program contains too many relevant memory locations (> %s). Try setting"
                     + " bitVectorEncoding=SPARSE.",
-                BitVectorUtil.MAX_BINARY_LENGTH),
+                maximumBitVectorLength),
             null);
       }
     }
 
     // check that all left hand sides in pointer assignments are CPointerType
     for (SeqMemoryLocation memoryLocation : pPointerAssignments.keySet()) {
-      if (memoryLocation.fieldMember.isPresent()) {
+      if (memoryLocation.fieldMember().isPresent()) {
         // for field owner / members: only the member must be CPointerType
         CCompositeTypeMemberDeclaration memberDeclaration =
-            memoryLocation.fieldMember.orElseThrow();
+            memoryLocation.fieldMember().orElseThrow();
         checkArgument(
             memberDeclaration.getType() instanceof CPointerType,
             "memberDeclaration must be CPointerType, got %s",
@@ -120,9 +126,9 @@ public class MemoryModel {
       } else {
         // for all else: the variable itself must be CPointerType
         checkArgument(
-            memoryLocation.declaration.getType() instanceof CPointerType,
+            memoryLocation.declaration().getType() instanceof CPointerType,
             "variableDeclaration must be CPointerType, got %s",
-            memoryLocation.declaration.getType());
+            memoryLocation.declaration().getType());
       }
     }
 

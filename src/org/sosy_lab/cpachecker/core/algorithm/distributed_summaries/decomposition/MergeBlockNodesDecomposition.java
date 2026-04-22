@@ -57,7 +57,7 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
         break;
       }
     }
-    return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, nodes);
+    return BlockGraph.fromBlockNodesWithoutGraphInformation(nodes);
   }
 
   private Collection<BlockNodeWithoutGraphInformation> sorted(

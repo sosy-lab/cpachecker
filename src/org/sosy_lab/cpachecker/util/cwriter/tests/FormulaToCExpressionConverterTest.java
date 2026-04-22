@@ -169,6 +169,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case Z3 -> "((y || (!x)) && (x || (!y)))";
+            case Z3_WITH_INTERPOLATION -> "(((!x) || y) && (x || (!y)))";
             case BITWUZLA -> "(x == y)";
             default -> "((x && y) || ((!x) && (!y)))";
           };
@@ -181,7 +182,7 @@ public class FormulaToCExpressionConverterTest {
           bmgrv.not(bmgrv.equivalence(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
       String expected =
           switch (solverToUse()) {
-            case Z3 -> "((x || y) && ((!x) || (!y)))";
+            case Z3, Z3_WITH_INTERPOLATION -> "((x || y) && ((!x) || (!y)))";
             case BITWUZLA -> "((!((!x) && (!y))) && (!(x && y)))";
             default -> "(((!x) || (!y)) && (x || y))";
           };
@@ -194,7 +195,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case MATHSAT5, PRINCESS -> "(((!x) || (!y)) && (x || y))";
-            case Z3 -> "((x || y) && ((!x) || (!y)))";
+            case Z3, Z3_WITH_INTERPOLATION -> "((x || y) && ((!x) || (!y)))";
             case BITWUZLA -> "((!x) == y)";
             default -> "((x && (!y)) || ((!x) && y))";
           };
@@ -233,7 +234,7 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula = imgrv.lessThan(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
       String expected =
           switch (solverToUse()) {
-            case MATHSAT5, Z3 -> "(!(y <= x))";
+            case MATHSAT5, Z3, Z3_WITH_INTERPOLATION -> "(!(y <= x))";
             case PRINCESS -> "(((y + (-1 * x)) + -1) >= 0)";
             case OPENSMT -> "(!(0 <= (x + (-1 * y))))";
             default -> "(x < y)";
@@ -247,7 +248,7 @@ public class FormulaToCExpressionConverterTest {
           bmgrv.not(imgrv.lessThan(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
       String expected =
           switch (solverToUse()) {
-            case MATHSAT5, Z3 -> "(y <= x)";
+            case MATHSAT5, Z3, Z3_WITH_INTERPOLATION -> "(y <= x)";
             case PRINCESS -> "(!(((y + (-1 * x)) + -1) >= 0))";
             case OPENSMT -> "(0 <= (x + (-1 * y)))";
             default -> "(!(x < y))";
@@ -287,7 +288,7 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula = imgrv.greaterThan(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
       String expected =
           switch (solverToUse()) {
-            case MATHSAT5, Z3 -> "(!(x <= y))";
+            case MATHSAT5, Z3, Z3_WITH_INTERPOLATION -> "(!(x <= y))";
             case PRINCESS -> "(((x + (-1 * y)) + -1) >= 0)";
             case OPENSMT -> "(!(0 <= ((-1 * x) + y)))";
             case BITWUZLA -> "(y < x)";
@@ -302,7 +303,7 @@ public class FormulaToCExpressionConverterTest {
           bmgrv.not(imgrv.greaterThan(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
       String expected =
           switch (solverToUse()) {
-            case MATHSAT5, Z3 -> "(x <= y)";
+            case MATHSAT5, Z3, Z3_WITH_INTERPOLATION -> "(x <= y)";
             case PRINCESS -> "(!(((x + (-1 * y)) + -1) >= 0))";
             case OPENSMT -> "(0 <= ((-1 * x) + y))";
             case BITWUZLA -> "(!(y < x))";
@@ -362,7 +363,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case MATHSAT5 -> "((x + ((-1 * y) + (-1 * z))) == 0)";
-            case Z3, PRINCESS, OPENSMT -> "((x + (-1 * y)) == z)";
+            case Z3, Z3_WITH_INTERPOLATION, PRINCESS, OPENSMT -> "((x + (-1 * y)) == z)";
             case BITWUZLA -> "((y + z) == x)";
             default -> "((x - y) == z)";
           };
@@ -411,7 +412,7 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.lessThan(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false);
       String expected =
           switch (solverToUse()) {
-            case Z3 -> "(!(y <= x))";
+            case Z3, Z3_WITH_INTERPOLATION -> "(!(y <= x))";
             case PRINCESS -> "(((y + (-1 * x)) + -1) >= 0)";
             case OPENSMT -> "(!(0 <= (x + (-1 * y))))";
             default -> "(x < y)";
@@ -448,7 +449,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case BITWUZLA, MATHSAT5 -> "(y < x)";
-            case Z3 -> "(!(x <= y))";
+            case Z3, Z3_WITH_INTERPOLATION -> "(!(x <= y))";
             case PRINCESS -> "(((x + (-1 * y)) + -1) >= 0)";
             case OPENSMT -> "(!(0 <= ((-1 * x) + y)))";
             default -> "(x > y)";
@@ -467,7 +468,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case BITWUZLA, MATHSAT5 -> "(!(x < y))";
-            case Z3 -> "(y <= x)";
+            case Z3, Z3_WITH_INTERPOLATION -> "(y <= x)";
             case PRINCESS -> "((x + (-1 * y)) >= 0)";
             case OPENSMT -> "(0 <= (x + (-1 * y)))";
             default -> "(x >= y)";
@@ -497,7 +498,7 @@ public class FormulaToCExpressionConverterTest {
               bvmgrv.and(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
       String expected = "((x & y) == z)";
-      if (solverToUse() == Solvers.Z3) {
+      if (solverToUse() == Solvers.Z3 || solverToUse() == Solvers.Z3_WITH_INTERPOLATION) {
         expected = "((~((~x) | (~y))) == z)"; // DeMorgan on bit-level
       }
       assertThat(converter.formulaToCExpression(formula)).isEqualTo(expected);
@@ -548,7 +549,8 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case MATHSAT5 -> "((x + (-y)) == z)";
-            case Z3 -> "((x + (31 * y)) == z)"; // 31 is equal -1 with bitsize=5
+            case Z3, Z3_WITH_INTERPOLATION ->
+                "((x + (31 * y)) == z)"; // 31 is equal -1 with bitsize=5
             case PRINCESS, OPENSMT -> "((x + (-1 * y)) == z)";
             case BITWUZLA -> "((y + z) == x)";
             default -> "((x - y) == z)";
@@ -564,7 +566,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case SMTINTERPOL, PRINCESS, OPENSMT -> "((-1 * x) == y)";
-            case Z3 -> "((31 * x) == y)";
+            case Z3, Z3_WITH_INTERPOLATION -> "((31 * x) == y)";
             case BITWUZLA -> "(((~x) + 1) == y)";
             default -> "((-x) == y)";
           };
@@ -633,7 +635,7 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVSHL() throws InterruptedException, SolverException {
-      skipTestForSolvers(Solvers.BITWUZLA, Solvers.Z3);
+      skipTestForSolvers(Solvers.BITWUZLA, Solvers.Z3, Solvers.Z3_WITH_INTERPOLATION);
       // TODO How to transform EXTRACT to C expression (without too much overhead?
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
@@ -699,7 +701,7 @@ public class FormulaToCExpressionConverterTest {
               fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
       String expected =
           switch (solverToUse()) {
-            case BITWUZLA, MATHSAT5, Z3 -> "(y < x)";
+            case BITWUZLA, MATHSAT5, Z3, Z3_WITH_INTERPOLATION -> "(y < x)";
             case PRINCESS -> "(((x + (-1 * y)) + -1) >= 0)";
             case OPENSMT -> "(!(0 <= ((-1 * x) + y)))";
             default -> "(x > y)";
@@ -716,7 +718,7 @@ public class FormulaToCExpressionConverterTest {
               fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
       String expected =
           switch (solverToUse()) {
-            case BITWUZLA, MATHSAT5, Z3 -> "(y <= x)";
+            case BITWUZLA, MATHSAT5, Z3, Z3_WITH_INTERPOLATION -> "(y <= x)";
             case PRINCESS -> "((x + (-1 * y)) >= 0)";
             case OPENSMT -> "(0 <= (x + (-1 * y)))";
             default -> "(x >= y)";
@@ -753,7 +755,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case PRINCESS -> "((x + (-1 * y)) == z)";
-            case Z3 -> "((x + (-y)) == z)";
+            case Z3, Z3_WITH_INTERPOLATION -> "((x + (-y)) == z)";
             case OPENSMT -> "((x + (-1 * y)) == z)";
             case BITWUZLA -> getFpEqualityForBitwuzla("(x + (-y))", "z", "(x + (-y)) == z");
             default -> "((x - y) == z)";

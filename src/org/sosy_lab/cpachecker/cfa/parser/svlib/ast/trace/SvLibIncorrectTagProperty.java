@@ -60,7 +60,7 @@ public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
   @Override
   public String toASTString() {
     return "(incorrect-annotation "
-        + (svLibTagReference.isPresent() ? svLibTagReference.orElseThrow().toASTString() : "")
+        + (svLibTagReference.isPresent() ? svLibTagReference.orElseThrow().getTagName() : "")
         + " "
         + Joiner.on(" ").join(violatedProperties.stream().map(SvLibAstNode::toASTString).toList())
         + ")";

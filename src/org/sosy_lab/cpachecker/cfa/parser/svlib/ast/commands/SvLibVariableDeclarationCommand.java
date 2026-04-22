@@ -54,7 +54,11 @@ public final class SvLibVariableDeclarationCommand implements SvLibCommand {
 
   @Override
   public String toASTString() {
-    return "(declare-var " + variableDeclaration.toASTString() + ")";
+    return "(declare-var "
+        + variableDeclaration.toASTString()
+        + " "
+        + variableDeclaration.getType().toASTString()
+        + ")";
   }
 
   @Override
