@@ -34,10 +34,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.ExpectedVerdict;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class WitnessExporterTest {
 
@@ -212,9 +212,9 @@ public class WitnessExporterTest {
     Configuration generationConfig =
         getProperties(pGenerationConfig.fileName, overrideOptions, pSpecification);
 
-    TestResults results = CPATestRunner.run(generationConfig, pFilePath);
+    IntegrationTestResult results = IntegrationTestRunner.run(generationConfig, pFilePath);
     // Trigger statistics so that the witness is written to the file
-    results.getCheckerResult().writeOutputFiles();
+    results.cpaCheckerResult().writeOutputFiles();
 
     return switch (pExpected) {
       case TRUE -> {
@@ -283,7 +283,7 @@ public class WitnessExporterTest {
     Configuration validationConfig =
         getProperties(validationConfigFile, overrideOptions, specification);
 
-    TestResults results = CPATestRunner.run(validationConfig, pFilePath);
+    IntegrationTestResult results = IntegrationTestRunner.run(validationConfig, pFilePath);
 
     switch (pExpected) {
       case TRUE -> results.assertIsSafe();

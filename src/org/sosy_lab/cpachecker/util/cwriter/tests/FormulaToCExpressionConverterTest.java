@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
@@ -897,7 +897,8 @@ public class FormulaToCExpressionConverterTest {
 
     @Override
     protected void createProgram(Path pTargetPath) throws Exception {
-      CPAcheckerResult result = CPATestRunner.run(config, program.toString()).getCheckerResult();
+      CPAcheckerResult result =
+          IntegrationTestRunner.run(config, program.toString()).cpaCheckerResult();
       CFA cfa = result.getCfa();
       UnmodifiableReachedSet reached = result.getReached();
       assertThat(cfa).isNotNull();

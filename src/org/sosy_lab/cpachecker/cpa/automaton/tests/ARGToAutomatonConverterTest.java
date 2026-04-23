@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
 
 @RunWith(Parameterized.class)
 public class ARGToAutomatonConverterTest {
@@ -103,8 +103,8 @@ public class ARGToAutomatonConverterTest {
 
     // generate ARG:
     resetCFANodeCounter();
-    TestResults firstResult = CPATestRunner.run(config, fullPath.toString());
-    ARGState root = (ARGState) firstResult.getCheckerResult().getReached().getFirstState();
+    IntegrationTestResult firstResult = IntegrationTestRunner.run(config, fullPath.toString());
+    ARGState root = (ARGState) firstResult.cpaCheckerResult().getReached().getFirstState();
 
     // generate joint automaton
     Automaton aut = converter.getAutomaton(root, true);
@@ -122,7 +122,7 @@ public class ARGToAutomatonConverterTest {
               .setOption("specification", automatonPath.toString())
               .build();
       resetCFANodeCounter();
-      TestResults results = CPATestRunner.run(reConfig, fullPath.toString());
+      IntegrationTestResult results = IntegrationTestRunner.run(reConfig, fullPath.toString());
 
       assertThat(results).isNotNull();
       if (verdict) {
@@ -144,7 +144,7 @@ public class ARGToAutomatonConverterTest {
                 .setOption("specification", newAutomatonPath.toString())
                 .build();
         CPAcheckerResult.Result partialVerdict =
-            CPATestRunner.run(reConfig, fullPath.toString()).getCheckerResult().getResult();
+            IntegrationTestRunner.run(reConfig, fullPath.toString()).cpaCheckerResult().getResult();
         assertThat(partialVerdict).isAnyOf(Result.TRUE, Result.FALSE);
         fullVerdict = fullVerdict && partialVerdict.equals(Result.TRUE);
       }
@@ -157,7 +157,8 @@ public class ARGToAutomatonConverterTest {
               .loadFromResource(ARGToAutomatonConverterTest.class, "split--overflow.properties")
               .build();
       resetCFANodeCounter();
-      TestResults results = CPATestRunner.run(overflowConfig, fullPath.toString());
+      IntegrationTestResult results =
+          IntegrationTestRunner.run(overflowConfig, fullPath.toString());
 
       assertThat(results).isNotNull();
       if (verdict) {

@@ -27,10 +27,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WeakingingStrategy;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.ExpectedVerdict;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
 
 @RunWith(Parameterized.class)
 public class FormulaSlicingTest {
@@ -133,7 +133,7 @@ public class FormulaSlicingTest {
       throw e;
     }
 
-    TestResults results = CPATestRunner.run(config, fullPath);
+    IntegrationTestResult results = IntegrationTestRunner.run(config, fullPath);
     if (pExpected == ExpectedVerdict.TRUE) {
       results.assertIsSafe();
     } else if (pExpected == ExpectedVerdict.FALSE) {

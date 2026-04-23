@@ -27,9 +27,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
 
 /** Integration testing for Slicing Abstractions. */
 @RunWith(Parameterized.class)
@@ -205,7 +205,7 @@ public class SlicingAbstractionsTest {
   private void check(String pFilename, Configuration config) throws Exception {
     String fullPath = Path.of(TEST_DIR_PATH, filename).toString();
 
-    TestResults results = CPATestRunner.run(config, fullPath);
+    IntegrationTestResult results = IntegrationTestRunner.run(config, fullPath);
     if (!configname.contains("overflow")) {
       if (pFilename.contains("_true-assert") || pFilename.contains("_true-unreach")) {
         results.assertIsSafe();

@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
 /**
  * Base class to execute common configurations of the SMG2-CPA with test programs for multiple
@@ -264,7 +264,7 @@ public abstract class SMGCPAIntegrationTest0 {
       verifyUnsafeResult(runAnalysis());
     }
 
-    private void verifyUnsafeResult(TestResults verificationResult) throws Exception {
+    private void verifyUnsafeResult(IntegrationTestResult verificationResult) throws Exception {
       isExpectedResult(
           verificationResult,
           Result.FALSE,
@@ -291,11 +291,11 @@ public abstract class SMGCPAIntegrationTest0 {
 
     private void returnsWitnessContaining(String stringContainedInWitness, WitnessType witnessType)
         throws Exception {
-      TestResults res = runAnalysisWithOutputFiles();
+      IntegrationTestResult res = runAnalysisWithOutputFiles();
       verifyUnsafeResult(res);
       // TODO: do we need statistics?
       // res.getCheckerResult().printStatistics(statisticsStream);
-      res.getCheckerResult().writeOutputFiles();
+      res.cpaCheckerResult().writeOutputFiles();
       String witness =
           getWitnessContentCheckingOutputCorrectness(
               res, getDefaultWitnessOutputPathFor(witnessType));
@@ -344,10 +344,10 @@ public abstract class SMGCPAIntegrationTest0 {
     }
 
     private String getWitnessContentCheckingOutputCorrectness(
-        TestResults pResult, Path pWitnessOutputPath) throws IOException {
+        IntegrationTestResult pResult, Path pWitnessOutputPath) throws IOException {
 
       // No CFA -> no witness
-      CFA cfa = pResult.getCheckerResult().getCfa();
+      CFA cfa = pResult.cpaCheckerResult().getCfa();
       if (cfa == null) {
         failWithoutActual(
             Fact.fact("CFA should be present in the result when witnesses are requested", cfa));
@@ -362,7 +362,7 @@ public abstract class SMGCPAIntegrationTest0 {
       return checkNotNull(Files.readString(pWitnessOutputPath));
     }
 
-    private TestResults runAnalysis() throws Exception {
+    private IntegrationTestResult runAnalysis() throws Exception {
       return runAnalysis(config);
     }
 
@@ -370,7 +370,7 @@ public abstract class SMGCPAIntegrationTest0 {
      * Runs the analysis and sets the "output.path" option to the absolute path of this subjects
      * current tempFolder
      */
-    private TestResults runAnalysisWithOutputFiles() throws Exception {
+    private IntegrationTestResult runAnalysisWithOutputFiles() throws Exception {
       Configuration configWithOutputFiles =
           Configuration.builder()
               .copyFrom(config)
@@ -379,28 +379,28 @@ public abstract class SMGCPAIntegrationTest0 {
       return runAnalysis(configWithOutputFiles);
     }
 
-    private TestResults runAnalysis(Configuration configToRun) throws Exception {
+    private IntegrationTestResult runAnalysis(Configuration configToRun) throws Exception {
       // Check that the file exists and is a C file before running
       checkArgument(
           programPath.endsWith(".i") || programPath.endsWith(".c"),
           "Test program file ending does not match allowed C files endings '.c' or '.i'");
       checkArgument(
           new File(programPath).isFile(), "Test program could not be found: %s", programPath);
-      return CPATestRunner.run(configToRun, programPath);
+      return IntegrationTestRunner.run(configToRun, programPath);
     }
 
     /**
      * Check that the subject is a certain result, returning an error with the String when failing.
      */
     public void isExpectedResult(
-        TestResults actualResult, Result expectedResult, String expectedResultString) {
-      Result verdict = actualResult.getCheckerResult().getResult();
+        IntegrationTestResult actualResult, Result expectedResult, String expectedResultString) {
+      Result verdict = actualResult.cpaCheckerResult().getResult();
 
       if (verdict == expectedResult) {
         return;
       }
 
-      String log = checkNotNull(actualResult.getLog()).trim();
+      String log = checkNotNull(actualResult.log()).trim();
       if (verdict == Result.NOT_YET_STARTED) {
         failWithoutActual(
             Fact.fact("analysis result expected to be", expectedResultString),
@@ -411,7 +411,7 @@ public abstract class SMGCPAIntegrationTest0 {
       failWithActual(
           Fact.fact("analysis result expected to be", expectedResultString),
           Fact.fact("but was", verdict),
-          Fact.fact("due to", actualResult.getCheckerResult().getTargetDescription()),
+          Fact.fact("due to", actualResult.cpaCheckerResult().getTargetDescription()),
           Fact.fact("which has log", log));
     }
 
