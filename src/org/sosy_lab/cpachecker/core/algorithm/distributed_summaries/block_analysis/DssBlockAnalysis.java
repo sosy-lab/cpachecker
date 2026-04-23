@@ -538,12 +538,13 @@ public class DssBlockAnalysis {
             .isSubsumed(
                 dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
           preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
-        }
-        if (dcpa.getCoverageOperator()
-            .isSubsumed(
-                stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
-          isRelevant = false;
-          break;
+
+          if (dcpa.getCoverageOperator()
+              .isSubsumed(
+                  stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
+            isRelevant = false;
+            break;
+          }
         }
       }
       if (isRelevant) {
