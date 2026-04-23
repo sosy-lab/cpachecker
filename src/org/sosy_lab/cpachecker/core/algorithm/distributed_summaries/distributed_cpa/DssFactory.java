@@ -30,19 +30,24 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.DistributedConstraintsCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DistributedValueAnalysisCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -195,10 +200,17 @@ public class DssFactory {
               pMessageFactory,
               pLogManager,
               pShutdownNotifier);
+      case ConstraintsCPA constraintsCPA -> distribute(constraintsCPA, pBlockNode);
       case LocationCPA locationCPA ->
           distribute(
               locationCPA, pBlockNode, TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
-      case null /*TODO check if null is necessary*/, default -> null;
+      case ValueAnalysisCPA valueAnalysisCPA ->
+          distribute(
+              valueAnalysisCPA, pCFA, pConfiguration, pLogManager, pShutdownNotifier, pBlockNode);
+      case ControlAutomatonCPA ignored -> null;
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported CPA type for distribution: " + pCPA.getClass().getCanonicalName());
     };
   }
 
@@ -233,6 +245,24 @@ public class DssFactory {
         pShutdownNotifier,
         pCfaNodeIdMap,
         pVariableAndFunctionToTypeMap);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
+    return new DistributedConstraintsCPA(
+        pConstraintsCPA, pBlockNode.getInitialLocation().getFunctionName());
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      ValueAnalysisCPA pValueCPA,
+      CFA pCFA,
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      BlockNode pBlockNode)
+      throws InvalidConfigurationException {
+    return new DistributedValueAnalysisCPA(
+        pValueCPA, pCFA, pConfiguration, pLogManager, pShutdownNotifier, pBlockNode);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

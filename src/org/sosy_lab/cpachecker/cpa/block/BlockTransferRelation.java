@@ -43,6 +43,12 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of();
     }
 
+    if (blockState.getType() == BlockStateType.FINAL
+        && cfaEdge.getSuccessor().equals(blockState.getBlockNode().getViolationConditionLocation())
+        && blockState.getViolationConditions().isEmpty()) {
+      return ImmutableList.of();
+    }
+
     if (blockState.getType() == BlockStateType.ABSTRACTION) {
       return ImmutableList.of();
     }
