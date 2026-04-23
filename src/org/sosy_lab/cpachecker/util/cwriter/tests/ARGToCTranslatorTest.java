@@ -63,7 +63,6 @@ public final class ARGToCTranslatorTest {
               .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
               .build());
 
-      filePrefix = "residual";
       program = Path.of(TEST_DIR_PATH, pProgram);
       hasGotoDecProblem = pHasGotoDecProblem;
       generationPropfile = "inline-errorlabel.properties";
