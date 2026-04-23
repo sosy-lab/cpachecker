@@ -188,6 +188,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
         for (DssMessage message : preparedBatches.oldMessages()) {
           actor.storeMessage(message);
         }
+        actor.clearRelevant();
         for (DssMessage message : preparedBatches.newMessages()) {
           response.addAll(actor.processMessage(message));
         }

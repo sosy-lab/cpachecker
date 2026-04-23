@@ -489,6 +489,10 @@ public class DssBlockAnalysis {
     }
   }
 
+  public void clearRelevant() {
+    relevant.clear();
+  }
+
   /**
    * Adds a new precondition to the known preconditions. The method checks whether the new
    * precondition is already covered by an existing one. If this is the case, the new precondition
