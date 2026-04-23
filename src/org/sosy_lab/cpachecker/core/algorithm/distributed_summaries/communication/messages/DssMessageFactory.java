@@ -59,16 +59,12 @@ public class DssMessageFactory {
   }
 
   public DssViolationConditionMessage createViolationConditionMessage(
-      String pSenderId,
-      AlgorithmStatus pStatus,
-      boolean isFirst,
-      ImmutableMap<String, String> pStateContent) {
+      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
     return new DssViolationConditionMessage(
         pSenderId,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
             .putAll(pStateContent)
-            .put(DssViolationConditionMessage.DSS_MESSAGE_FIRST_KEY, Boolean.toString(isFirst))
             .buildOrThrow());
   }
 

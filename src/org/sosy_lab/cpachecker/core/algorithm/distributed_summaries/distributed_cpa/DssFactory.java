@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -20,6 +19,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -148,7 +149,15 @@ public class DssFactory {
               pShutdownNotifier,
               pCfa,
               AnalysisDirection.FORWARD);
-      PathFormula pathFormula = pfm.makeFormulaForPath(ImmutableList.copyOf(pCfa.edges()));
+      PathFormula pathFormula = pfm.makeEmptyPathFormula();
+      for (CFAEdge edge : pCfa.edges()) {
+        try {
+          pathFormula = pfm.makeAnd(pathFormula, edge);
+        } catch (UnsupportedCodeException e) {
+          // this code might never be executed, so we continue.
+        }
+      }
+
       return Maps.toMap(pathFormula.getSsa().allVariables(), pathFormula.getSsa()::getType);
     }
   }
