@@ -16,7 +16,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -122,12 +121,11 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   }
 
   @Override
-  public CCompoundStatement buildPrecedingStatements(MPORThread pThread) {
-    // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'
-    CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
+  public CCompoundStatement buildPrecedingStatements(MPORThread pThread)
+      throws UnrecognizedCodeException {
+
     return new CCompoundStatement(
-        ImmutableList.<CCompoundStatementElement>builder()
-            .add(new CStatementWrapper(roundReset))
-            .build());
+        NondeterministicSimulationBuilder.buildNumStatementsNondeterministicPrecedingStatements(
+            options, pThread, utils.binaryExpressionBuilder()));
   }
 }

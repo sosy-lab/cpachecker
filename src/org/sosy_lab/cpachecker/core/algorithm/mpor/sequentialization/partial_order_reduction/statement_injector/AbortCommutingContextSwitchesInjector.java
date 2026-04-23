@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -52,12 +51,10 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 public record AbortCommutingContextSwitchesInjector(
     MPOROptions options,
-    int numThreads,
     MPORThread activeThread,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
     SeqBitVectorVariables bitVectorVariables,
-    MachineModel machineModel,
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 
@@ -128,53 +125,16 @@ public record AbortCommutingContextSwitchesInjector(
 
   // Prev Updates ==================================================================================
 
-  SeqThreadStatement injectPrevUpdatesIntoStatement(
-      SeqThreadStatement pStatement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
-
+  SeqThreadStatement injectPrevBitVectorUpdatesIntoStatement(SeqThreadStatement pStatement) {
     if (pStatement.targetPc().isPresent()) {
       ImmutableList<CExpressionAssignmentStatement> prevBitVectorUpdates =
           buildPrevAccessBitVectorUpdatesByEncoding();
-      int targetPc = pStatement.targetPc().orElseThrow();
-
-      // if a thread exits, set prev_thread to NUM_THREADS - 1.
-      if (targetPc == ProgramCounterVariables.EXIT_PC) {
-        return injectPrevThreadUpdateIntoStatement(pStatement, numThreads, prevBitVectorUpdates);
-      }
-      // if targetPc != EXIT_PC, then pLabelClause contains targetPc, otherwise NPE
-      SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-
-      // for sync locations, set prev_thread to NUM_THREADS - 1. this is necessary, otherwise
-      // the analysis is unsound.
-      // simple example: prev_thread is at a sync location that uses assume. the current thread
-      // has a abortCommutingContextSwitches instrumentation and because it is not in conflict with
-      // prev_thread, current thread aborts. but prev_thread may e.g. call pthread_join on the
-      // current thread -> both abort, and no thread makes any progress
-      if (SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
-        return injectPrevThreadUpdateIntoStatement(pStatement, numThreads, prevBitVectorUpdates);
-      }
-
-      // for all other target pc, set prev_thread to current thread id and update prev bitvectors
-      return injectPrevThreadUpdateIntoStatement(
-          pStatement, activeThread.id(), prevBitVectorUpdates);
+      return SeqThreadStatementUtil.appendedInstrumentationStatement(
+          pStatement,
+          SeqInstrumentationBuilder.buildPrevBitVectorUpdateStatement(prevBitVectorUpdates));
     }
     // no valid target pc -> no conflict order required
     return pStatement;
-  }
-
-  private SeqThreadStatement injectPrevThreadUpdateIntoStatement(
-      SeqThreadStatement pStatement,
-      int pPrevThreadValue,
-      ImmutableList<CExpressionAssignmentStatement> pPrevBitVectorUpdates) {
-
-    CExpressionAssignmentStatement prevThreadExit =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            SeqIdExpressions.PREV_THREAD,
-            SeqExpressionBuilder.buildIntegerLiteralExpression(pPrevThreadValue));
-    return SeqThreadStatementUtil.appendedInstrumentationStatement(
-        pStatement,
-        SeqInstrumentationBuilder.buildPrevThreadUpdateStatement(prevThreadExit),
-        SeqInstrumentationBuilder.buildPrevBitVectorUpdateStatement(pPrevBitVectorUpdates));
   }
 
   // Prev Access Bit Vectors =======================================================================

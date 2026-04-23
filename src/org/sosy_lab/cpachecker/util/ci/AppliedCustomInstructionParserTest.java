@@ -50,43 +50,45 @@ public class AppliedCustomInstructionParserTest {
   public void init() throws ParserException, InterruptedException {
     cfa =
         TestDataTools.makeCFA(
-            "extern int test3(int);",
-            "int test(int p) {",
-            "  return p+1;",
-            "}",
-            "int test2(int p) {",
-            "  start_ci: return p+2;",
-            "}",
-            "void ci(int var) {",
-            "  var = var + 39;",
-            "  int globalVar;",
-            "  int u;",
-            "  int x = globalVar + 5;",
-            "  int y;",
-            "  int z;",
-            "  start_ci:",
-            "  if (z>0) {",
-            "    y = y + 1;",
-            "  } else {",
-            "    var = var + 1;",
-            "  }",
-            "  test(u);",
-            "  z = test(globalVar);",
-            "  end_ci_1: x = x + 1;",
-            "}",
-            "void main() {",
-            "  int m;",
-            "  int n;",
-            "  int o;",
-            "  start_ci:",
-            "  if (m>o) {",
-            "    ci(m);",
-            "  }",
-            "  test3(n);",
-            "  n = test3(o);",
-            "  end_ci_2:",
-            "  test2(4);",
-            "}");
+            """
+            extern int test3(int);
+            int test(int p) {
+              return p+1;
+            }
+            int test2(int p) {
+              start_ci: return p+2;
+            }
+            void ci(int var) {
+              var = var + 39;
+              int globalVar;
+              int u;
+              int x = globalVar + 5;
+              int y;
+              int z;
+              start_ci:
+              if (z>0) {
+                y = y + 1;
+              } else {
+                var = var + 1;
+              }
+              test(u);
+              z = test(globalVar);
+              end_ci_1: x = x + 1;
+            }
+            void main() {
+              int m;
+              int n;
+              int o;
+              start_ci:
+              if (m>o) {
+                ci(m);
+              }
+              test3(n);
+              n = test3(o);
+              end_ci_2:
+              test2(4);
+            }
+            """);
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(), LogManager.createTestLogManager(), cfa);
@@ -197,15 +199,17 @@ public class AppliedCustomInstructionParserTest {
   public void testParse() throws Exception {
     cfa =
         TestDataTools.makeCFA(
-            "void main() {",
-            "  int x;",
-            "  int y;",
-            "  start_ci: x = x + y;",
-            "  end_ci_1:",
-            "  x = x + x;",
-            "  y = y + y;",
-            "  y = y + x;",
-            "}");
+            """
+            void main() {
+              int x;
+              int y;
+              start_ci: x = x + y;
+              end_ci_1:
+              x = x + x;
+              y = y + y;
+              y = y + x;
+            }
+            """);
 
     aciParser =
         new AppliedCustomInstructionParser(

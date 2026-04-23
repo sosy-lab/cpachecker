@@ -26,7 +26,10 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
   private final Type type;
 
   /**
-   * Create a new <code>ConstantSymbolicExpression</code> object with the given value and type.
+   * Create a new <code>ConstantSymbolicExpression</code> object with the given value and type. This
+   * transforms {@link SymbolicIdentifier}s into concrete constants of the given type. Numeric
+   * values can also be transformed to constant expressions, while unknowns are not supposed to be
+   * used. Instead of unknown values, a symbolic identifier should be used.
    *
    * @param pValue the value of the new object
    * @param pType the type of the value of the new object
@@ -38,7 +41,10 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
 
   /**
    * Create a new <code>ConstantSymbolicExpression</code> object with the given value and type
-   * representing the given memory location.
+   * representing the given memory location. This transforms {@link SymbolicIdentifier}s into
+   * concrete constants of the given type. Numeric values can also be transformed to constant
+   * expressions, while unknowns are not supposed to be used. Instead of unknown values, a symbolic
+   * identifier should be used.
    *
    * @param pValue the value of the new object
    * @param pType the type of the value of the new object
@@ -51,6 +57,12 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
     type = pType;
   }
 
+  /**
+   * Transforms the given value to a constant expression with the given type (as the canonical
+   * type). This transforms {@link SymbolicIdentifier}s into concrete constants of the given type.
+   * Numeric values can also be transformed to constant expressions, while unknowns are not supposed
+   * to be used. Instead of unknown values, a symbolic identifier should be used.
+   */
   public ConstantSymbolicExpression(
       final Value pValue, final Type pType, final AbstractState pCurrentState) {
     super(pCurrentState);
@@ -58,6 +70,12 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
     type = pType;
   }
 
+  /**
+   * Transforms the given value to a constant expression with the given type (as the canonical
+   * type). This transforms {@link SymbolicIdentifier}s into concrete constants of the given type.
+   * Numeric values can also be transformed to constant expressions, while unknowns are not supposed
+   * to be used. Instead of unknown values, a symbolic identifier should be used.
+   */
   public static SymbolicExpression of(Value pValue, Type pType) {
     checkNotNull(pValue);
     assert !pValue.isUnknown();
