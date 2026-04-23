@@ -331,7 +331,7 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqVariableDeclarations.ITERATION.toASTString());
     }
 
-    if (pOptions.abortCommutingContextSwitches()) {
+    if (pOptions.isPrevThreadVariableRequired()) {
       // prev_thread ghost variable
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
