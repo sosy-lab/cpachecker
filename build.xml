@@ -127,7 +127,7 @@ SPDX-License-Identifier: Apache-2.0
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
-    <target name="tests" depends="unit-tests, configuration-checks, python-unit-tests" description="Run all tests"/>
+    <target name="tests" depends="unit-tests, configuration-checks" description="Run all tests"/>
 
     <target name="all-checks" description="Run all tests and checks">
         <!-- We have to use antcall here to run clean twice. -->
@@ -165,13 +165,4 @@ SPDX-License-Identifier: Apache-2.0
     </target>
 
     <target name="standard-checks" depends="tests, spotbugs, checkstyle, forbiddenapis"/>
-
-    <target name="python-unit-tests" depends="build" description="Run unit tests of python scripts">
-        <!-- Tests are only executed if python is available, ignored otherwise. -->
-        <exec executable="python3"
-            failonerror="true"
-            failifexecutionfails="false">
-            <arg line="-m unittest discover scripts"/>
-        </exec>
-    </target>
 </project>

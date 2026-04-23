@@ -96,7 +96,8 @@ check-code-patterns:
 
 python-unit-tests:
   <<: *binary_check
-  script: "ant $ANT_PROPS_CHECKS python-unit-tests"
+  script: "python3 -m unittest discover scripts"
+  # The tests run CPAchecker, so they need the respective image and dependencies.
   dependencies:
     - build-dependencies
     - build:jdk-21
