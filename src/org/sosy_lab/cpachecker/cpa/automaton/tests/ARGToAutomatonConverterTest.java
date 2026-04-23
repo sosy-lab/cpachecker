@@ -27,6 +27,7 @@ import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -70,7 +71,9 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
             .setOption("cpa.arg.export.code.header", "false");
     config = configBuilder.build();
 
-    converter = new ARGToAutomatonConverter(config, MachineModel.LINUX32, logger);
+    converter =
+        new ARGToAutomatonConverter(
+            config, MachineModel.LINUX32, LogManager.createTestLogManager());
   }
 
   @Parameters(name = "{0}")

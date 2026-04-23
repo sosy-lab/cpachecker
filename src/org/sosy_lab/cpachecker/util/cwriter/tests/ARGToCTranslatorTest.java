@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
@@ -78,7 +79,8 @@ public final class ARGToCTranslatorTest {
 
     protected ARGToCTranslator getTranslator() throws InvalidConfigurationException {
       final Configuration generationConfig = getGenerationConfig(generationPropfile).build();
-      return new ARGToCTranslator(logger, generationConfig, MachineModel.LINUX32);
+      return new ARGToCTranslator(
+          LogManager.createTestLogManager(), generationConfig, MachineModel.LINUX32);
     }
 
     @Override

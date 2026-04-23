@@ -16,7 +16,6 @@ import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.logging.Level;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,10 +24,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.TempFile;
-import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -50,14 +46,6 @@ public abstract class AbstractTranslationTest {
   private static final String PARAM_NO_LINKING = "-c";
 
   protected String filePrefix = "tmp";
-  protected final LogManager logger;
-
-  protected AbstractTranslationTest() {
-    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
-    stringLogHandler.setLevel(Level.ALL);
-    stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
-    logger = BasicLogManager.createWithHandler(stringLogHandler);
-  }
 
   protected Path newTempFile() throws IOException {
     return TempFile.builder().prefix(filePrefix).suffix(".spc").create().toAbsolutePath();
