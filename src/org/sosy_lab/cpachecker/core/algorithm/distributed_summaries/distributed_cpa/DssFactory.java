@@ -50,6 +50,66 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class DssFactory {
 
+  private static final class VariableAndFunctionToTypeMapCache {
+
+    private static ImmutableMap<String, Type> cachedVariableAndFunctionToTypeMap;
+
+    private VariableAndFunctionToTypeMapCache() {}
+
+    private static synchronized ImmutableMap<String, Type> getOrCreate(
+        CFA pCFA,
+        Configuration pConfiguration,
+        LogManager pLogManager,
+        ShutdownNotifier pShutdownNotifier)
+        throws InvalidConfigurationException, CPATransferException, InterruptedException {
+      if (cachedVariableAndFunctionToTypeMap == null) {
+        cachedVariableAndFunctionToTypeMap =
+            ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier));
+      }
+      return cachedVariableAndFunctionToTypeMap;
+    }
+
+    /**
+     * Get a mapping from variable and function names to their types.
+     *
+     * @param pCfa CFA to get the mapping for
+     * @param pConfiguration configuration to create the solver for the path formula manager
+     * @param pLogManager log manager to create the solver for the path formula manager
+     * @param pShutdownNotifier shutdown notifier to create the solver for the path formula manager
+     * @return a mapping from variable and function names to their types
+     * @throws InvalidConfigurationException if the configuration is invalid for the solver
+     * @throws CPATransferException if the path formula manager cannot create a path formula for the
+     *     given CFA
+     * @throws InterruptedException if the thread is interrupted while creating the path formula
+     */
+    private static Map<String, Type> getTypeMap(
+        CFA pCfa,
+        Configuration pConfiguration,
+        LogManager pLogManager,
+        ShutdownNotifier pShutdownNotifier)
+        throws InvalidConfigurationException, CPATransferException, InterruptedException {
+      try (Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier)) {
+        PathFormulaManagerImpl pfm =
+            new PathFormulaManagerImpl(
+                solver.getFormulaManager(),
+                pConfiguration,
+                pLogManager,
+                pShutdownNotifier,
+                pCfa,
+                AnalysisDirection.FORWARD);
+        PathFormula pathFormula = pfm.makeEmptyPathFormula();
+        for (CFAEdge edge : pCfa.edges()) {
+          try {
+            pathFormula = pfm.makeAnd(pathFormula, edge);
+          } catch (UnsupportedCodeException e) {
+            // this code might never be executed, so we continue.
+          }
+        }
+        return Maps.toMap(pathFormula.getSsa().allVariables(), pathFormula.getSsa()::getType);
+      }
+    }
+  }
+
   private DssFactory() {}
 
   /**
@@ -70,9 +130,9 @@ public class DssFactory {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     BiMap<Integer, CFANode> cfaNodeIdMap = createCfaNodeIdMap(pCFA);
-
     ImmutableMap<String, Type> variableAndFunctionToTypeMap =
-        ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier));
+        VariableAndFunctionToTypeMapCache.getOrCreate(
+            pCFA, pConfiguration, pLogManager, pShutdownNotifier);
     return switch (pCPA) {
       case PredicateCPA predicateCPA ->
           distribute(
@@ -111,47 +171,6 @@ public class DssFactory {
       case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, cfaNodeIdMap);
       case null /*TODO check if null is necessary*/, default -> null;
     };
-  }
-
-  /**
-   * Get a mapping from variable and function names to their types.
-   *
-   * @param pCfa CFA to get the mapping for
-   * @param pConfiguration configuration to create the solver for the path formula manager
-   * @param pLogManager log manager to create the solver for the path formula manager
-   * @param pShutdownNotifier shutdown notifier to create the solver for the path formula manager
-   * @return a mapping from variable and function names to their types
-   * @throws InvalidConfigurationException if the configuration is invalid for the solver
-   * @throws CPATransferException if the path formula manager cannot create a path formula for the
-   *     given CFA
-   * @throws InterruptedException if the thread is interrupted while creating the path formula
-   */
-  private static Map<String, Type> getTypeMap(
-      CFA pCfa,
-      Configuration pConfiguration,
-      LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException, CPATransferException, InterruptedException {
-    try (Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier)) {
-      PathFormulaManagerImpl pfm =
-          new PathFormulaManagerImpl(
-              solver.getFormulaManager(),
-              pConfiguration,
-              pLogManager,
-              pShutdownNotifier,
-              pCfa,
-              AnalysisDirection.FORWARD);
-      PathFormula pathFormula = pfm.makeEmptyPathFormula();
-      for (CFAEdge edge : pCfa.edges()) {
-        try {
-          pathFormula = pfm.makeAnd(pathFormula, edge);
-        } catch (UnsupportedCodeException e) {
-          // this code might never be executed, so we continue.
-        }
-      }
-
-      return Maps.toMap(pathFormula.getSsa().allVariables(), pathFormula.getSsa()::getType);
-    }
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
