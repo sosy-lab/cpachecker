@@ -75,8 +75,6 @@ public class DssFactory {
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     BiMap<Integer, CFANode> cfaNodeIdMap = createCfaNodeIdMap(pCFA);
 
-    ImmutableMap<String, Type> variableAndFunctionToTypeMap =
-        ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier));
     return switch (pCPA) {
       case PredicateCPA predicateCPA ->
           distribute(
@@ -88,7 +86,8 @@ public class DssFactory {
               pLogManager,
               pShutdownNotifier,
               cfaNodeIdMap,
-              variableAndFunctionToTypeMap);
+              ImmutableMap.copyOf(
+                  getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier)));
       case CallstackCPA callstackCPA -> distribute(callstackCPA, pBlockNode, pCFA, cfaNodeIdMap);
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
