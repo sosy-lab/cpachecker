@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -532,19 +533,23 @@ public class DssBlockAnalysis {
     }
     for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
       boolean isRelevant = true;
+      boolean isNewTop = dcpa.isMostGeneralBlockEntryState(deserializedStateAndPrecision.state());
       for (StateAndPrecision stateAndPrecision :
           ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
-        if (dcpa.getCoverageOperator()
-            .isSubsumed(
-                dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
+        boolean newLessEqualExisting =
+            dcpa.getCoverageOperator()
+                .isSubsumed(
+                    dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state());
+        boolean existingLessEqualNew =
+            dcpa.getCoverageOperator()
+                .isSubsumed(
+                    stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()));
+        if ((existingLessEqualNew || newLessEqualExisting) && !isNewTop) {
           preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
-
-          if (dcpa.getCoverageOperator()
-              .isSubsumed(
-                  stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
-            isRelevant = false;
-            break;
-          }
+        }
+        if (newLessEqualExisting && existingLessEqualNew) {
+          isRelevant = false;
+          break;
         }
       }
       if (isRelevant) {
