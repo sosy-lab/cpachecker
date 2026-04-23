@@ -9,40 +9,50 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import com.google.common.collect.ImmutableMap;
-import de.uni_freiburg.informatik.ultimate.util.datastructures.ImmutableSet;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.transformation.SubCFA;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
-import java.util.Comparator;
 
 public class LocationPrecision implements AdjustablePrecision {
 
   private ImmutableSet<SubCFA> allowedProgramTransformations;
-  private final ImmutableMap<CFANode, SubCFA> nodesToSubCFA;
-  private boolean hasProgramTransformations;
+  private final ImmutableMultimap<CFANode, SubCFA> nodesToSubCFA;
+  private final boolean hasProgramTransformations;
   //private Comparator<SubCFA> precisionOrder = (a,b) -> 1;
 
   public LocationPrecision(Set<SubCFA> pPrecisions) {
     hasProgramTransformations = !pPrecisions.isEmpty();
-    allowedProgramTransformations = ImmutableSet.of(pPrecisions);
-    HashMap<CFANode, SubCFA> nodeSubCFAHashMap = new HashMap<>();
+    allowedProgramTransformations = ImmutableSet.copyOf(pPrecisions);
+    ImmutableMultimap.Builder<CFANode,SubCFA> nodesToStrategiesBuilder = new Builder<>();
     for (SubCFA subCFA : allowedProgramTransformations) {
-      for (CFANode node : subCFA.allNodes()) {
-        nodeSubCFAHashMap.put(node, subCFA);
-      }
+      nodesToStrategiesBuilder.put(subCFA.originalCFAEntryNode(), subCFA);
     }
-    nodesToSubCFA = ImmutableMap.copyOf(nodeSubCFAHashMap);
+    nodesToSubCFA = nodesToStrategiesBuilder.build();
   }
 
-  public Optional<SubCFA> isPartOfProgramTransformation(CFANode pNode){
-    if(nodesToSubCFA.containsKey(pNode)){
-      return Optional.of(nodesToSubCFA.get(pNode));
-    }else{
+  public ImmutableSet<SubCFA> getStrategiesForNode(CFANode pNode){
+    return ImmutableSet.copyOf(nodesToSubCFA.get(pNode));
+  }
+
+  /**
+   * @param strategies the given set of allowed strategies
+   *
+   * @return The most abstract strategy in the precision set or empty for the basic strategy.
+   */
+  public static Optional<SubCFA> select(ImmutableSet<SubCFA> strategies) {
+    if (strategies.isEmpty()) {
       return Optional.empty();
     }
+    // TODO For now returns any strategy
+    Iterator<SubCFA> strategyIterator = strategies.iterator();
+    return Optional.of(strategyIterator.next());
   }
 
   public ImmutableSet<SubCFA> getAllowedProgramTransformations() {

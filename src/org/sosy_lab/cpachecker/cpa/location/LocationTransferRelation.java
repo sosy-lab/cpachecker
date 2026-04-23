@@ -11,12 +11,14 @@ package org.sosy_lab.cpachecker.cpa.location;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.transformation.SubCFA;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -34,20 +36,32 @@ public class LocationTransferRelation implements TransferRelation {
   @Override
   public Collection<LocationState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
-
     CFANode node = ((LocationState) element).getLocationNode();
+
+    // TMP-Bugfix ThreadingTransferRelation calls this with SingletonPrecision
+    if (prec instanceof SingletonPrecision){
+      if (node.getAllLeavingEdges().contains(cfaEdge)) {
+        return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+      }
+      return ImmutableSet.of();
+    }
 
     if (node.getAllLeavingEdges().contains(cfaEdge)) {
       CFANode successor = cfaEdge.getSuccessor();
-      if (prec instanceof LocationPrecision locPrec) {
-        Optional<SubCFA> successorProgramTransformation = locPrec.isPartOfProgramTransformation(successor);
-        if (successorProgramTransformation.isPresent()){
-          if (!locPrec.getAllowedProgramTransformations().contains(successorProgramTransformation.get())){
-            return ImmutableSet.of();
-          }
+      LocationPrecision locPrec = (LocationPrecision) prec;
+      ImmutableSet<SubCFA> allowedStrategiesForNode = locPrec.getStrategiesForNode(node);
+      Optional<SubCFA> currentStrategy = LocationPrecision.select(allowedStrategiesForNode);
+      if (currentStrategy.isEmpty()){
+        // follow base strategy
+        if (cfaEdge.getRawStatement().startsWith("enter program transformation: ")){
+          return ImmutableSet.of();
+        }
+        return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+      } else {
+        if (successor == currentStrategy.get().subCFAEntryNode()){
+          return Collections.singleton(factory.getState(successor));
         }
       }
-      return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
     }
     return ImmutableSet.of();
   }
@@ -55,29 +69,11 @@ public class LocationTransferRelation implements TransferRelation {
   @Override
   public Collection<LocationState> getAbstractSuccessors(AbstractState element, Precision prec)
       throws CPATransferException {
-
+    // TODO find out if this needs to be implemented for LocationCPA
     CFANode node = ((LocationState) element).getLocationNode();
     ImmutableList<LocationState>
         successors = CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
-    if (prec instanceof LocationPrecision locPrec) {
-      if (locPrec.hasProgramTransformations()) {
-        // when program transformations are present use the precision to select abstract successors
-        Builder<LocationState> successorBuilder = ImmutableList.builder();
-        for (LocationState successor : successors) {
-          Optional<SubCFA> successorProgramTransformation = locPrec.isPartOfProgramTransformation(successor.getLocationNode());
-          if (successorProgramTransformation.isPresent()) {
-            // only add program transformation successor nodes if they are in the allowed precision set
-            if(locPrec.getAllowedProgramTransformations().contains(successorProgramTransformation.get()))
-              successorBuilder.add(successor);
-          } else {
-            // always add successor nodes of the original CFA
-            successorBuilder.add(successor);
-          }
-        }
-        return successorBuilder.build();
-      }
-      // when no program transformations are present return all successors
-    }
-      return successors;
+    LocationPrecision locPrec = (LocationPrecision) prec;
+    return successors;
   }
 }
