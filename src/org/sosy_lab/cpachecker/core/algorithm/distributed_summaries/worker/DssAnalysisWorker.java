@@ -110,10 +110,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     return dssBlockAnalysis.runInitialAnalysis();
   }
 
-  public void clearRelevant() {
-    dssBlockAnalysis.clearRelevant();
-  }
-
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
     return switch (message.getType()) {
