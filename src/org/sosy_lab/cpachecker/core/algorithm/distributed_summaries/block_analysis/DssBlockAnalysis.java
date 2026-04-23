@@ -695,7 +695,8 @@ public class DssBlockAnalysis {
     for (StateAndPrecision stateAndPrecision : startStates.build()) {
       boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
       if (isTrivial
-          && (analyzedTrivial || hasNonTrivialSummariesForEachPredecessor && !checkOnlyRelevant)) {
+          && (analyzedTrivial
+              || (hasNonTrivialSummariesForEachPredecessor && !checkOnlyRelevant))) {
         continue;
       }
       analyzedTrivial = analyzedTrivial || isTrivial;
