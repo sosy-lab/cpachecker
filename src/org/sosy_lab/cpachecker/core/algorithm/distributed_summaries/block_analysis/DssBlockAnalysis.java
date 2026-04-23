@@ -503,6 +503,7 @@ public class DssBlockAnalysis {
    */
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
+    relevant.clear();
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     if (!pReceived.isReachable()) {
       preconditions.removeAll(pReceived.getSenderId());
@@ -621,6 +622,7 @@ public class DssBlockAnalysis {
    */
   public Collection<DssMessage> analyzeViolationCondition(String pSenderId)
       throws SolverException, InterruptedException, CPAException {
+    relevant.clear();
     Collection<@NonNull StateAndPrecision> violations = violationConditions.get(pSenderId);
     if (violations.isEmpty()) {
       throw new IllegalArgumentException(
@@ -658,8 +660,6 @@ public class DssBlockAnalysis {
   private AnalysisResult analyzeViolationCondition(
       List<ARGState> violations, boolean checkOnlyRelevant)
       throws CPAException, InterruptedException {
-    Collection<@NonNull StateAndPrecision> important = ImmutableSet.copyOf(relevant);
-    relevant.clear();
     if (preconditions.isEmpty() && !block.isRoot()) {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
@@ -679,7 +679,7 @@ public class DssBlockAnalysis {
     // create start states for the forward analysis.
     ImmutableSet.Builder<StateAndPrecision> startStates = ImmutableSet.builder();
     if (checkOnlyRelevant) {
-      startStates.addAll(important);
+      startStates.addAll(relevant);
     } else {
       if (!preconditions.values().isEmpty()) {
         startStates.addAll(preconditions.values());
