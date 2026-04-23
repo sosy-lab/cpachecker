@@ -107,6 +107,14 @@ check-code-patterns:
   image: ubuntu:22.04
 
 
+check-task-definitions:
+  stage: checks
+  script: "./test/util/check_task_definitions.py"
+  dependencies: []
+  needs: []
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+
+
 .python-unit-tests: &python-unit-tests
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS python-unit-tests"

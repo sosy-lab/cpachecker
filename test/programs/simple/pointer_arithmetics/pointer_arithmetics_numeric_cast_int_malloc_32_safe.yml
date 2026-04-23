@@ -20,4 +20,4 @@ properties:
 
 options:
   language: C
-  data_model: LP32
+  data_model: ILP32
