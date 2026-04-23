@@ -20,6 +20,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory.TypeAndLocationCache;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
@@ -39,8 +40,9 @@ public class DssFactoryTest {
     assumeTrue(!originalCFA.nodes().equals(shiftedCFA.nodes()));
 
     BiMap<Integer, CFANode> cfaNodeIdMapWithOriginalCFA =
-        DssFactory.createCfaNodeIdMap(originalCFA);
-    BiMap<Integer, CFANode> cfaNodeIdMapWithShiftedCFA = DssFactory.createCfaNodeIdMap(shiftedCFA);
+        TypeAndLocationCache.getOrCreateLocationMapping(originalCFA);
+    BiMap<Integer, CFANode> cfaNodeIdMapWithShiftedCFA =
+        TypeAndLocationCache.getOrCreateLocationMapping(shiftedCFA);
 
     assertThat(cfaNodeIdMapWithOriginalCFA.keySet()).isEqualTo(cfaNodeIdMapWithShiftedCFA.keySet());
   }

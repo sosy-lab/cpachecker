@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,24 +52,27 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class DssFactory {
 
-  private static final class TypeAndLocationCache {
+  static final class TypeAndLocationCache {
 
-    private static ImmutableMap<String, Type> cachedVariableAndFunctionToTypeMap;
-    private static ImmutableBiMap<Integer, CFANode> integerToNodeMap;
+    private static final Map<CFA, ImmutableMap<String, Type>> cachedVariableAndFunctionToTypeMap =
+        new LinkedHashMap<>();
+    private static final Map<CFA, ImmutableBiMap<Integer, CFANode>> integerToNodeMap =
+        new LinkedHashMap<>();
 
     private TypeAndLocationCache() {}
 
-    private static synchronized ImmutableMap<String, Type> getOrCreate(
+    static synchronized ImmutableMap<String, Type> getOrCreateTypeMap(
         CFA pCFA,
         Configuration pConfiguration,
         LogManager pLogManager,
         ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException, CPATransferException, InterruptedException {
-      if (cachedVariableAndFunctionToTypeMap == null) {
-        cachedVariableAndFunctionToTypeMap =
-            ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier));
+      if (!cachedVariableAndFunctionToTypeMap.containsKey(pCFA)) {
+        cachedVariableAndFunctionToTypeMap.put(
+            pCFA,
+            ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier)));
       }
-      return cachedVariableAndFunctionToTypeMap;
+      return cachedVariableAndFunctionToTypeMap.get(pCFA);
     }
 
     /**
@@ -111,24 +115,23 @@ public class DssFactory {
       }
     }
 
-    private static BiMap<Integer, CFANode> createOrGetCfaNodeIdMap(CFA pCFA) {
-      if (integerToNodeMap != null) {
-        return integerToNodeMap;
+    static BiMap<Integer, CFANode> getOrCreateLocationMapping(CFA pCFA) {
+      if (!integerToNodeMap.containsKey(pCFA)) {
+        ImmutableMap<Integer, CFANode> nodeMap =
+            ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
+
+        int minCfaNodeNumber = nodeMap.keySet().stream().min(Integer::compareTo).orElseThrow();
+
+        // All node IDs are shifted such that they start from 0
+        BiMap<Integer, CFANode> cfaNodeIdMap = HashBiMap.create();
+
+        for (Map.Entry<Integer, CFANode> entry : nodeMap.entrySet()) {
+          int index = entry.getKey() - minCfaNodeNumber;
+          cfaNodeIdMap.put(index, entry.getValue());
+        }
+        integerToNodeMap.put(pCFA, ImmutableBiMap.copyOf(cfaNodeIdMap));
       }
-      ImmutableMap<Integer, CFANode> nodeMap =
-          ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
-
-      int minCfaNodeNumber = nodeMap.keySet().stream().min(Integer::compareTo).orElseThrow();
-
-      // All node IDs are shifted such that they start from 0
-      BiMap<Integer, CFANode> cfaNodeIdMap = HashBiMap.create();
-
-      for (Map.Entry<Integer, CFANode> entry : nodeMap.entrySet()) {
-        int index = entry.getKey() - minCfaNodeNumber;
-        cfaNodeIdMap.put(index, entry.getValue());
-      }
-      integerToNodeMap = ImmutableBiMap.copyOf(cfaNodeIdMap);
-      return integerToNodeMap;
+      return integerToNodeMap.get(pCFA);
     }
   }
 
@@ -161,12 +164,15 @@ public class DssFactory {
               pOptions,
               pLogManager,
               pShutdownNotifier,
-              TypeAndLocationCache.createOrGetCfaNodeIdMap(pCFA),
-              TypeAndLocationCache.getOrCreate(
+              TypeAndLocationCache.getOrCreateLocationMapping(pCFA),
+              TypeAndLocationCache.getOrCreateTypeMap(
                   pCFA, pConfiguration, pLogManager, pShutdownNotifier));
       case CallstackCPA callstackCPA ->
           distribute(
-              callstackCPA, pBlockNode, pCFA, TypeAndLocationCache.createOrGetCfaNodeIdMap(pCFA));
+              callstackCPA,
+              pBlockNode,
+              pCFA,
+              TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
       case ARGCPA argCPA ->
@@ -190,7 +196,8 @@ public class DssFactory {
               pLogManager,
               pShutdownNotifier);
       case LocationCPA locationCPA ->
-          distribute(locationCPA, pBlockNode, TypeAndLocationCache.createOrGetCfaNodeIdMap(pCFA));
+          distribute(
+              locationCPA, pBlockNode, TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
       case null /*TODO check if null is necessary*/, default -> null;
     };
   }
