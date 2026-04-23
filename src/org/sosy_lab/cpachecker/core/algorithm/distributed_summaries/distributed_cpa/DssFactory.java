@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -50,11 +51,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class DssFactory {
 
-  private static final class VariableAndFunctionToTypeMapCache {
+  private static final class TypeAndLocationCache {
 
     private static ImmutableMap<String, Type> cachedVariableAndFunctionToTypeMap;
+    private static ImmutableBiMap<Integer, CFANode> integerToNodeMap;
 
-    private VariableAndFunctionToTypeMapCache() {}
+    private TypeAndLocationCache() {}
 
     private static synchronized ImmutableMap<String, Type> getOrCreate(
         CFA pCFA,
@@ -108,6 +110,26 @@ public class DssFactory {
         return Maps.toMap(pathFormula.getSsa().allVariables(), pathFormula.getSsa()::getType);
       }
     }
+
+    private static BiMap<Integer, CFANode> createOrGetCfaNodeIdMap(CFA pCFA) {
+      if (integerToNodeMap != null) {
+        return integerToNodeMap;
+      }
+      ImmutableMap<Integer, CFANode> nodeMap =
+          ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
+
+      int minCfaNodeNumber = nodeMap.keySet().stream().min(Integer::compareTo).orElseThrow();
+
+      // All node IDs are shifted such that they start from 0
+      BiMap<Integer, CFANode> cfaNodeIdMap = HashBiMap.create();
+
+      for (Map.Entry<Integer, CFANode> entry : nodeMap.entrySet()) {
+        int index = entry.getKey() - minCfaNodeNumber;
+        cfaNodeIdMap.put(index, entry.getValue());
+      }
+      integerToNodeMap = ImmutableBiMap.copyOf(cfaNodeIdMap);
+      return integerToNodeMap;
+    }
   }
 
   private DssFactory() {}
@@ -129,10 +151,6 @@ public class DssFactory {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
-    BiMap<Integer, CFANode> cfaNodeIdMap = createCfaNodeIdMap(pCFA);
-    ImmutableMap<String, Type> variableAndFunctionToTypeMap =
-        VariableAndFunctionToTypeMapCache.getOrCreate(
-            pCFA, pConfiguration, pLogManager, pShutdownNotifier);
     return switch (pCPA) {
       case PredicateCPA predicateCPA ->
           distribute(
@@ -143,9 +161,12 @@ public class DssFactory {
               pOptions,
               pLogManager,
               pShutdownNotifier,
-              cfaNodeIdMap,
-              variableAndFunctionToTypeMap);
-      case CallstackCPA callstackCPA -> distribute(callstackCPA, pBlockNode, pCFA, cfaNodeIdMap);
+              TypeAndLocationCache.createOrGetCfaNodeIdMap(pCFA),
+              TypeAndLocationCache.getOrCreate(
+                  pCFA, pConfiguration, pLogManager, pShutdownNotifier));
+      case CallstackCPA callstackCPA ->
+          distribute(
+              callstackCPA, pBlockNode, pCFA, TypeAndLocationCache.createOrGetCfaNodeIdMap(pCFA));
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
       case ARGCPA argCPA ->
@@ -168,7 +189,8 @@ public class DssFactory {
               pMessageFactory,
               pLogManager,
               pShutdownNotifier);
-      case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, cfaNodeIdMap);
+      case LocationCPA locationCPA ->
+          distribute(locationCPA, pBlockNode, TypeAndLocationCache.createOrGetCfaNodeIdMap(pCFA));
       case null /*TODO check if null is necessary*/, default -> null;
     };
   }
@@ -273,21 +295,5 @@ public class DssFactory {
             pMessageFactory,
             pLogManager,
             pShutdownNotifier));
-  }
-
-  static BiMap<Integer, CFANode> createCfaNodeIdMap(CFA pCFA) {
-    ImmutableMap<Integer, CFANode> integerToNodeMap =
-        ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
-
-    int minCfaNodeNumber = integerToNodeMap.keySet().stream().min(Integer::compareTo).orElseThrow();
-
-    // All node IDs are shifted such that they start from 0
-    BiMap<Integer, CFANode> cfaNodeIdMap = HashBiMap.create();
-
-    for (Map.Entry<Integer, CFANode> entry : integerToNodeMap.entrySet()) {
-      int index = entry.getKey() - minCfaNodeNumber;
-      cfaNodeIdMap.put(index, entry.getValue());
-    }
-    return cfaNodeIdMap;
   }
 }
