@@ -28,7 +28,7 @@ variables:
 .binary_check: &binary_check
   stage: checks
 
-.configuration-checks: &configuration-checks
+configuration-checks:
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS configuration-checks"
   artifacts:
@@ -38,9 +38,6 @@ variables:
     when: always
     reports:
       junit: "output/configuration-checks/TESTS-TestSuites.xml"
-
-configuration-checks:jdk-21:
-  <<: *configuration-checks
   dependencies:
     - build-dependencies
     - build:jdk-21
@@ -48,16 +45,6 @@ configuration-checks:jdk-21:
     - build-dependencies
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
-
-configuration-checks:jdk-24:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-24
-  needs:
-    - build-dependencies
-    - build:jdk-24
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 configuration-documentation:
@@ -107,12 +94,9 @@ check-code-patterns:
   image: ubuntu:22.04
 
 
-.python-unit-tests: &python-unit-tests
+python-unit-tests:
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS python-unit-tests"
-
-python-unit-tests:jdk-21:
-  <<: *python-unit-tests
   dependencies:
     - build-dependencies
     - build:jdk-21
@@ -120,16 +104,6 @@ python-unit-tests:jdk-21:
     - build-dependencies
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
-
-python-unit-tests:jdk-24:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-24
-  needs:
-    - build-dependencies
-    - build:jdk-24
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 javascript-build:
@@ -325,12 +299,6 @@ unit-tests:jdk-21:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-24:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-  artifacts:
-    reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
-
 
 # Override Java version for some jobs
 image: ${CI_REGISTRY_IMAGE}/test:jdk-21
@@ -374,6 +342,12 @@ build-project-ecj:jdk-17:
     - when: never
 
 unit-tests:jdk-17:
+  rules:
+    - when: never
+
+# Disable tests on newer Java versions.
+# Running the tests on on Java version is enough in our experience.
+unit-tests:jdk-24:
   rules:
     - when: never
 
