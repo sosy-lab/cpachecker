@@ -123,7 +123,11 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
         contentReader.get(SerializePredicatePrecisionOperator.DSS_MESSAGE_GLOBAL_KEY);
     return transformedImmutableSetCopy(
         Splitter.on(" , ").splitToList(serializedPredicates),
-        predicate -> abstractionManager.makePredicate(solver.getFormulaManager().parse(predicate)));
+        predicate ->
+            predicate.isBlank()
+                ? abstractionManager.makePredicate(
+                    solver.getFormulaManager().getBooleanFormulaManager().makeTrue())
+                : abstractionManager.makePredicate(solver.getFormulaManager().parse(predicate)));
   }
 
   @Override
