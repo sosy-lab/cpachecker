@@ -369,7 +369,7 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private boolean isEmptyMap() {
-    for (Block b : activeBlocksMap.descendingMap().values()) {
+    for (Block b : activeBlocksMap.reversed().values()) {
       if (!b.isEmpty()) {
         return false;
       }
