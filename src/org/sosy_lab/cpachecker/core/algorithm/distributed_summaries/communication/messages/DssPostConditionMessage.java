@@ -17,17 +17,10 @@ public class DssPostConditionMessage extends DssMessage {
   public static final String DSS_MESSAGE_REACHABLE_KEY = "reachable";
 
   private final boolean reachable;
-  private final List<String> receivers;
 
-  DssPostConditionMessage(
-      String pSenderId, List<String> pReceivers, ImmutableMap<String, String> pContent) {
+  DssPostConditionMessage(String pSenderId, ImmutableMap<String, String> pContent) {
     super(pSenderId, DssMessageType.POST_CONDITION, pContent);
     reachable = Boolean.parseBoolean(pContent.get(DSS_MESSAGE_REACHABLE_KEY));
-    receivers = pReceivers;
-  }
-
-  public List<String> getReceivers() {
-    return receivers;
   }
 
   @Override

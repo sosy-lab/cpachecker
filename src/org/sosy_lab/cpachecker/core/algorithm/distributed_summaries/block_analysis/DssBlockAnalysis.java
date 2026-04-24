@@ -333,11 +333,7 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportUnreachableBlockEnd() {
     return ImmutableSet.of(
         messageFactory.createDssPostConditionMessage(
-            block.getId(),
-            false,
-            status,
-            ImmutableList.copyOf(block.getSuccessorIds()),
-            ImmutableMap.of()));
+            block.getId(), false, status, ImmutableMap.of()));
   }
 
   private ImmutableList<@NonNull StateAndPrecision> deduplicateStates(
@@ -388,12 +384,7 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableMap<String, String> serialized = serialize(uniqueSummaries);
     messages.add(
-        messageFactory.createDssPostConditionMessage(
-            block.getId(),
-            true,
-            status,
-            ImmutableList.copyOf(block.getSuccessorIds()),
-            serialized));
+        messageFactory.createDssPostConditionMessage(block.getId(), true, status, serialized));
     return messages.build();
   }
 
@@ -465,7 +456,6 @@ public class DssBlockAnalysis {
               block.getId(),
               true,
               status,
-              ImmutableList.copyOf(block.getSuccessorIds()),
               serialize(ImmutableList.of(new StateAndPrecision(startState, startPrecision)))));
     }
     return messages.addAll(reportFirstViolationConditions(result.getAllViolations())).build();

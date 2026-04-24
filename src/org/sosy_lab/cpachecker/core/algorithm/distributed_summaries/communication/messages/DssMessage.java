@@ -270,7 +270,7 @@ public abstract class DssMessage {
     DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));
 
     return switch (type) {
-      case POST_CONDITION -> new DssPostConditionMessage(senderId, ImmutableList.of(), content);
+      case POST_CONDITION -> new DssPostConditionMessage(senderId, content);
       case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);

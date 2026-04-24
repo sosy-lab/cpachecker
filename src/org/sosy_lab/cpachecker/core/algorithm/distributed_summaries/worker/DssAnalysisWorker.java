@@ -180,8 +180,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       switch (message.getType()) {
         case POST_CONDITION -> {
           broadcaster.broadcastToObserver(message);
-          broadcaster.broadcastToIds(
-              message, ImmutableSet.copyOf(((DssPostConditionMessage) message).getReceivers()));
+          broadcaster.broadcastToIds(message, block.getSuccessorIds());
         }
         case VIOLATION_CONDITION -> {
           if (block.getPredecessorIds().isEmpty()) {
