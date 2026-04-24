@@ -21,6 +21,7 @@ import sys
 import webbrowser
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
 
@@ -150,12 +151,11 @@ def filter_content_by_keys(
     if not export_keys:
         return content
 
-    filtered = {}
+    filtered = defaultdict(list)
     for key, value in content.items():
         for export_key in export_keys:
             if export_key in key:
-                filtered[key.replace(export_key, "")] = value
-                break
+                filtered[key.replace(export_key, "")].append(value)
     return filtered
 
 
