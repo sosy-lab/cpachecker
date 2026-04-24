@@ -381,9 +381,9 @@ public class MemoryModelUtil {
     /**
      * Whether the search should stop after visiting {@code pType}.
      *
-     * @return {@code true} by default
+     * @return {@code false} by default
      */
-    boolean shouldStop(CExpression pExpression) {
+    boolean shouldStop(@SuppressWarnings("unused") CExpression pExpression) {
       return false;
     }
 
