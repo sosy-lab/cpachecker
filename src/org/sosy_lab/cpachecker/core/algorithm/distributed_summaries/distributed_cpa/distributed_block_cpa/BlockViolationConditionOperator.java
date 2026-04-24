@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,6 +21,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockViolationConditionOperator implements ViolationConditionOperator {
@@ -35,8 +38,32 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     BlockState topMost =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pARGPath.getFirstState(), BlockState.class));
+    List<String> previousWitness =
+        pPreviousCondition
+            .map(
+                state ->
+                    Objects.requireNonNull(
+                            AbstractStates.extractStateByType(state, BlockState.class))
+                        .getWitness())
+            .orElse(ImmutableList.of());
+    List<String> currentWitness =
+        ImmutableList.<String>builder()
+            .addAll(previousWitness)
+            .addAll(
+                Lists.reverse(
+                    FluentIterable.from(pARGPath.getFullPath())
+                        .transform(BlockTransferRelation::edgeToString)
+                        .toList()))
+            .build();
     if (!trackHistory) {
-      return Optional.of(topMost);
+      return Optional.of(
+          new BlockState(
+              topMost.getLocationNode(),
+              topMost.getBlockNode(),
+              topMost.getType(),
+              topMost.getViolationConditions(),
+              topMost.getHistory(),
+              currentWitness));
     }
     List<String> previousHistory =
         pPreviousCondition
@@ -52,7 +79,8 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             topMost.getBlockNode(),
             topMost.getType(),
             topMost.getViolationConditions(),
-            listAndElement(previousHistory, topMost.getBlockNode().getId()));
+            listAndElement(previousHistory, topMost.getBlockNode().getId()),
+            currentWitness);
     return Optional.of(withHistory);
   }
 }

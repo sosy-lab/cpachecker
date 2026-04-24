@@ -528,13 +528,12 @@ public class DssBlockAnalysis {
             .isSubsumed(
                 dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
           preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
-
-          if (dcpa.getCoverageOperator()
-              .isSubsumed(
-                  stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
-            isRelevant = false;
-            break;
-          }
+        }
+        if (isRelevant
+            && dcpa.getCoverageOperator()
+                .isSubsumed(
+                    stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
+          isRelevant = false;
         }
       }
       if (isRelevant) {
@@ -566,6 +565,32 @@ public class DssBlockAnalysis {
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
     violationConditions.removeAll(pNewViolationCondition.getSenderId());
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
+      String newWitness =
+          Joiner.on("")
+              .join(
+                  Objects.requireNonNull(
+                          AbstractStates.extractStateByType(
+                              stateAndPrecision.state(), BlockState.class))
+                      .getWitness());
+      boolean skip = false;
+      for (StateAndPrecision vc :
+          ImmutableList.copyOf(violationConditions.get(pNewViolationCondition.getSenderId()))) {
+        String oldWitness =
+            Joiner.on("")
+                .join(
+                    Objects.requireNonNull(
+                            AbstractStates.extractStateByType(vc.state(), BlockState.class))
+                        .getWitness());
+        if (newWitness.startsWith(oldWitness)) {
+          violationConditions.remove(pNewViolationCondition.getSenderId(), vc);
+        } else if (oldWitness.startsWith(newWitness)) {
+          skip = true;
+          break;
+        }
+      }
+      if (skip) {
+        continue;
+      }
       DssMessageProcessing current =
           dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
       if (current.shouldProceed()) {
@@ -695,18 +720,16 @@ public class DssBlockAnalysis {
       reachedSet.clear();
       reachedSet.add(
           stateAndPrecision.state(), maybePrecision.orElse(stateAndPrecision.precision()));
-      reachedSet.forEach(
-          abstractState ->
-              Objects.requireNonNull(
-                      AbstractStates.extractStateByType(abstractState, BlockState.class))
-                  .setViolationConditions(violations));
+      Objects.requireNonNull(
+              AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class))
+          .setViolationConditions(violations);
 
       DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
 
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        if (!result.getSummaries().isEmpty() && result.getAllViolations().isEmpty()) {
+        if (!result.getSummaries().isEmpty()) {
           // pack all summaries
           ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           for (AbstractState summary : result.getSummaries()) {
