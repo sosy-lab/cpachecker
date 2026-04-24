@@ -113,7 +113,7 @@ public class MemoryModelUtil {
       collected.add(pType);
     }
 
-    /** Returns the non-empty list of {@link CType} collected during the search. */
+    /** Returns the non-empty set of {@link CType} collected during the search. */
     ImmutableSet<CType> getCollectedTypes() {
       ImmutableSet<CType> collectedTypes = collected.build();
       checkState(!collectedTypes.isEmpty(), "The set of collected types is empty.");
@@ -261,6 +261,10 @@ public class MemoryModelUtil {
       super(pStopNames);
     }
 
+    /**
+     * Returns the possibly empty list of {@link CCompositeTypeMemberDeclaration} collected during
+     * the search.
+     */
     ImmutableList<CCompositeTypeMemberDeclaration> getCollectedCompositeTypeMemberDeclarations() {
       return ImmutableList.copyOf(collected);
     }
@@ -329,6 +333,7 @@ public class MemoryModelUtil {
     private final ImmutableSet.Builder<CSimpleDeclaration> simpleDeclarations =
         ImmutableSet.builder();
 
+    /** Returns the possibly empty set of {@link CSimpleDeclaration} collected during the search. */
     private ImmutableSet<CSimpleDeclaration> getCollectedSimpleDeclarations() {
       return simpleDeclarations.build();
     }
@@ -352,6 +357,7 @@ public class MemoryModelUtil {
       expressionToCollect = pExpressionToCollect;
     }
 
+    /** Returns the possibly empty set of {@link T} collected during the search. */
     public ImmutableSet<T> getCollected() {
       return collected.build();
     }
