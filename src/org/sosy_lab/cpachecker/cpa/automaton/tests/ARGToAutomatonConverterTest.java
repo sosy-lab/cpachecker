@@ -122,13 +122,9 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
               .loadFromResource(ARGToAutomatonConverterTest.class, analysis)
               .setOption("specification", automatonPath.toString())
               .build();
-      TestResults results = null;
-      try {
-        resetCFANodeCounter();
-        results = CPATestRunner.run(reConfig, fullPath.toString());
-      } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
-        throw new AssertionError(e);
-      }
+      resetCFANodeCounter();
+      TestResults results = CPATestRunner.run(reConfig, fullPath.toString());
+
       assertThat(results).isNotNull();
       if (verdict) {
         results.assertIsSafe();
@@ -161,13 +157,9 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
           TestDataTools.configurationForTest()
               .loadFromResource(ARGToAutomatonConverterTest.class, "split--overflow.properties")
               .build();
-      TestResults results = null;
-      try {
-        resetCFANodeCounter();
-        results = CPATestRunner.run(overflowConfig, fullPath.toString());
-      } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
-        throw new AssertionError(e);
-      }
+      resetCFANodeCounter();
+      TestResults results = CPATestRunner.run(overflowConfig, fullPath.toString());
+
       assertThat(results).isNotNull();
       if (verdict) {
         results.assertIsSafe();

@@ -51,18 +51,8 @@ public abstract class AbstractTranslationTest {
     return TempFile.builder().prefix(filePrefix).suffix(".spc").create().toAbsolutePath();
   }
 
-  protected static TestResults run0(Configuration config, Path program) throws Exception {
-    TestResults results;
-    try {
-      results = CPATestRunner.run(config, program.toString());
-    } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
-      throw new AssertionError(e);
-    }
-    return results;
-  }
-
   protected static ARGState run(Configuration config, Path program) throws Exception {
-    TestResults results = run0(config, program);
+    TestResults results = CPATestRunner.run(config, program.toString());
     UnmodifiableReachedSet reached = results.getCheckerResult().getReached();
     assert_()
         .withMessage(
@@ -82,7 +72,7 @@ public abstract class AbstractTranslationTest {
    */
   protected static void check(Configuration config, Path program, boolean expectedVerdict)
       throws Exception {
-    TestResults results = run0(config, program);
+    TestResults results = CPATestRunner.run(config, program.toString());
     if (expectedVerdict) {
       results.assertIsSafe();
     } else {
