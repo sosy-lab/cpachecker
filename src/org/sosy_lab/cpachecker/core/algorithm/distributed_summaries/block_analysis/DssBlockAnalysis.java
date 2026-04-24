@@ -573,8 +573,34 @@ public class DssBlockAnalysis {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
-    violationConditions.removeAll(pNewViolationCondition.getSenderId());
+
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
+      String newWitness =
+          Joiner.on("")
+              .join(
+                  Objects.requireNonNull(
+                          AbstractStates.extractStateByType(
+                              stateAndPrecision.state(), BlockState.class))
+                      .getWitness());
+      boolean skip = false;
+      for (StateAndPrecision vc :
+          ImmutableList.copyOf(violationConditions.get(pNewViolationCondition.getSenderId()))) {
+        String oldWitness =
+            Joiner.on("")
+                .join(
+                    Objects.requireNonNull(
+                            AbstractStates.extractStateByType(vc.state(), BlockState.class))
+                        .getWitness());
+        if (newWitness.startsWith(oldWitness)) {
+          violationConditions.remove(pNewViolationCondition.getSenderId(), vc);
+        } else if (oldWitness.startsWith(newWitness)) {
+          skip = true;
+          break;
+        }
+      }
+      if (skip) {
+        continue;
+      }
       DssMessageProcessing current =
           dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
       if (current.shouldProceed()) {
@@ -704,11 +730,9 @@ public class DssBlockAnalysis {
       reachedSet.clear();
       reachedSet.add(
           stateAndPrecision.state(), maybePrecision.orElse(stateAndPrecision.precision()));
-      reachedSet.forEach(
-          abstractState ->
-              Objects.requireNonNull(
-                      AbstractStates.extractStateByType(abstractState, BlockState.class))
-                  .setViolationConditions(violations));
+      Objects.requireNonNull(
+              AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class))
+          .setViolationConditions(violations);
 
       DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
 

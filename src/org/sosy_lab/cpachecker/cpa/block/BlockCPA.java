@@ -40,7 +40,12 @@ public class BlockCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new BlockState(
-        node, blockNode, BlockStateType.INITIAL, ImmutableList.of(), ImmutableList.of());
+        node,
+        blockNode,
+        BlockStateType.INITIAL,
+        ImmutableList.of(),
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   public static BlockCPA create() {

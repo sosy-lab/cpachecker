@@ -30,11 +30,15 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
-    List<String> idAndHistory = Splitter.on(", ").limit(2).splitToList(content);
-    String serializedBlockState = idAndHistory.getFirst();
+    List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
+    Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
+    String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
+    List<String> witnessAndMaybeHistory =
+        Splitter.on(" H:").limit(2).splitToList(idAndWitnessAndMaybeHistory.getLast());
+    List<String> witness = Splitter.on(",").splitToList(witnessAndMaybeHistory.getFirst());
     List<String> history =
-        idAndHistory.size() == 2
-            ? Splitter.on(", ").splitToList(idAndHistory.get(1))
+        witnessAndMaybeHistory.size() == 2
+            ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
             : ImmutableList.of();
     Preconditions.checkNotNull(serializedBlockState);
     Preconditions.checkArgument(
@@ -45,6 +49,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         blockNode,
         BlockStateType.INITIAL,
         ImmutableList.of(),
-        history);
+        history,
+        witness);
   }
 }
