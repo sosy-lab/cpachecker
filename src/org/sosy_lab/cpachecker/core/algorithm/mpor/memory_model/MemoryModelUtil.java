@@ -137,7 +137,7 @@ public class MemoryModelUtil {
 
     private boolean shouldSearch(CType pType) {
       onVisit(pType);
-      // Prevent any circular searches of types. This should be handled here, otherwise all
+      // Prevent any circular searches. This should be handled here, otherwise all
       // subclasses have to implement it because circular searches should never be desired.
       return visitedTypes.add(pType) && !shouldStop(pType);
     }
@@ -341,82 +341,121 @@ public class MemoryModelUtil {
     }
   }
 
-  public static class CFieldReferenceCollector extends CExpressionTraversalVisitor {
+  public static class CExpressionCollector<T extends CExpression>
+      extends CExpressionTraversalVisitor {
 
-    private final ImmutableSet.Builder<CFieldReference> fieldReferences = ImmutableSet.builder();
+    private final Class<T> expressionToCollect;
 
-    public ImmutableSet<CFieldReference> getCollectedFieldReferences() {
-      return fieldReferences.build();
+    private final ImmutableSet.Builder<T> collected = ImmutableSet.builder();
+
+    public CExpressionCollector(Class<T> pExpressionToCollect) {
+      expressionToCollect = pExpressionToCollect;
+    }
+
+    public ImmutableSet<T> getCollected() {
+      return collected.build();
     }
 
     @Override
     void onVisit(CExpression pExpression) {
-      if (pExpression instanceof CFieldReference fieldReference) {
-        fieldReferences.add(fieldReference);
+      if (expressionToCollect.isInstance(pExpression)) {
+        collected.add(expressionToCollect.cast(pExpression));
       }
+    }
+
+    @Override
+    boolean shouldStop(CExpression pExpression) {
+      return expressionToCollect.isInstance(pExpression);
     }
   }
 
   private abstract static class CExpressionTraversalVisitor
       extends DefaultCExpressionVisitor<Void, NoException> {
 
-    /** Called when {@code pExpression} is visited. */
+    /**
+     * Called when {@code pExpression} is visited. This function is called before {@link
+     * CExpressionTraversalVisitor#shouldStop(CExpression)}.
+     */
     abstract void onVisit(CExpression pExpression);
+
+    /**
+     * Whether the search should stop after visiting {@code pType}.
+     *
+     * @return {@code false} by default
+     */
+    boolean shouldStop(CExpression pExpression) {
+      return false;
+    }
+
+    private boolean shouldSearch(CExpression pExpression) {
+      onVisit(pExpression);
+      // Expressions in C are not circular, so there is no check for already visited expressions.
+      return !shouldStop(pExpression);
+    }
 
     @Override
     public Void visit(CArraySubscriptExpression pArraySubscriptExpression) {
-      onVisit(pArraySubscriptExpression);
-      pArraySubscriptExpression.getArrayExpression().accept(this);
-      pArraySubscriptExpression.getSubscriptExpression().accept(this);
+      if (shouldSearch(pArraySubscriptExpression)) {
+        pArraySubscriptExpression.getArrayExpression().accept(this);
+        pArraySubscriptExpression.getSubscriptExpression().accept(this);
+      }
       return null;
     }
 
     @Override
     public Void visit(CFieldReference pFieldReference) {
-      onVisit(pFieldReference);
-      pFieldReference.getFieldOwner().accept(this);
+      if (shouldSearch(pFieldReference)) {
+        pFieldReference.getFieldOwner().accept(this);
+      }
       return null;
     }
 
     @Override
     public Void visit(CPointerExpression pPointerExpression) {
-      onVisit(pPointerExpression);
-      pPointerExpression.getOperand().accept(this);
+      if (shouldSearch(pPointerExpression)) {
+        pPointerExpression.getOperand().accept(this);
+      }
       return null;
     }
 
     @Override
     public Void visit(CComplexCastExpression pComplexCastExpression) {
-      onVisit(pComplexCastExpression);
-      pComplexCastExpression.getOperand().accept(this);
+      if (shouldSearch(pComplexCastExpression)) {
+        pComplexCastExpression.getOperand().accept(this);
+      }
       return null;
     }
 
     @Override
     public Void visit(CBinaryExpression pBinaryExpression) {
-      onVisit(pBinaryExpression);
-      pBinaryExpression.getOperand1().accept(this);
-      pBinaryExpression.getOperand2().accept(this);
+      if (shouldSearch(pBinaryExpression)) {
+        pBinaryExpression.getOperand1().accept(this);
+        pBinaryExpression.getOperand2().accept(this);
+      }
       return null;
     }
 
     @Override
     public Void visit(CCastExpression pCastExpression) {
-      onVisit(pCastExpression);
-      pCastExpression.getOperand().accept(this);
+      if (shouldSearch(pCastExpression)) {
+        pCastExpression.getOperand().accept(this);
+      }
       return null;
     }
 
     @Override
     public Void visit(CUnaryExpression pUnaryExpression) {
-      onVisit(pUnaryExpression);
-      pUnaryExpression.getOperand().accept(this);
+      if (shouldSearch(pUnaryExpression)) {
+        pUnaryExpression.getOperand().accept(this);
+      }
       return null;
     }
 
     @Override
     public Void visit(CIdExpression pIdExpression) {
-      onVisit(pIdExpression);
+      if (shouldSearch(pIdExpression)) {
+        pIdExpression.accept(this);
+      }
       return null;
     }
 
