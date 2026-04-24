@@ -65,7 +65,7 @@ public class InliningDecomposition implements DssBlockDecomposition {
   /**
    * Copy all nodes in this SCC, with the IDs adjusted to the call stack.
    *
-   * <p>Besides the own ID, the successors and predecessors are also mapped and filtered.
+   * <p>Besides the own ID, the successors and predecessors are also adjusted correctly.
    */
   private Iterable<BlockNode> mapBlocksWithCallStack(FunctionSCC scc, CallStack stack) {
 
@@ -89,43 +89,18 @@ public class InliningDecomposition implements DssBlockDecomposition {
         .transformAndConcat(f -> f.blockNodes())
         .transform(
             node -> {
-              FunctionSCC callingSCC = stack.getLastCallScc();
-              var blocksInCallingSCC =
-                  callingSCC == null
-                      ? FluentIterable.of()
-                      : FluentIterable.from(callingSCC.functions())
-                          .transformAndConcat(f -> f.blockNodes())
-                          .transform(n -> n.getId());
+              Predicate<String> successorFilter = successorFilter(idsInScc, returnBlockId, node);
 
-              boolean isReturn = node.getFinalLocation() instanceof FunctionExitNode;
+              Function<String, String> succMapper = successorMapper(scc, node, idsInScc, stack);
 
-              // if this is the block that returns to after the call into
-              // this scc, we need to only keep the correct return block
-              Predicate<String> successorFilter =
-                  s ->
-                      idsInScc.contains(s) // keep blocks inside SCC
-                          || !isReturn
-                          || (isReturn && s.equals(returnBlockId));
-
-              Function<String, String> succMapper =
-                  successorMapper(scc, node, idsInScc, stack, blocksInCallingSCC);
-
-              boolean isSccEntry = node.getInitialLocation() instanceof FunctionEntryNode;
-              boolean isCorrectSccEntry = node.getPredecessorIds().contains(callingBlockId);
-
-              // filter out blocks that originate from a different call into this SCC
               Predicate<String> predecessorFilter =
-                  s ->
-                      idsInScc.contains(s) // keep blocks inside SCC
-                          || (isCorrectSccEntry
-                              && s.equals(callingBlockId)) // the current call into this SCC
-                          || !isSccEntry; // not a function entry point -> a return from a
-              // function call to outside this SCC
+                  predecessorFilter(node, idsInScc, callingBlockId);
 
               Function<String, String> predMapper =
                   predecessorMapper(scc, node, idsInScc, callingBlockId, stack, previousStack);
 
-              return node.withMappedIds(
+              return copyWithMappedBlockIds(
+                  node,
                   stack::toStringWithBlockId,
                   predecessorFilter,
                   predMapper,
@@ -134,12 +109,59 @@ public class InliningDecomposition implements DssBlockDecomposition {
             });
   }
 
+  /**
+   * filters out every successor that contains a return out of this SCC that does not belong to the
+   * call that entered it
+   */
+  private Predicate<String> successorFilter(
+      Set<String> idsInScc, String returnBlockId, BlockNode node) {
+    boolean isReturn = node.getFinalLocation() instanceof FunctionExitNode;
+
+    Predicate<String> successorFilter =
+        s -> idsInScc.contains(s) || !isReturn || (isReturn && s.equals(returnBlockId));
+    return successorFilter;
+  }
+
+  /**
+   * filters out every predecessor that would be a call into this SCC but does not fit the call
+   * stack
+   */
+  private Predicate<String> predecessorFilter(
+      BlockNode currNode, Set<String> idsInScc, String callingBlockId) {
+
+    boolean isSccEntry = currNode.getInitialLocation() instanceof FunctionEntryNode;
+    boolean isCorrectSccEntry = currNode.getPredecessorIds().contains(callingBlockId);
+
+    Predicate<String> predecessorFilter =
+        s ->
+            // keep blocks inside SCC
+            idsInScc.contains(s)
+                // the current call into this SCC
+                || (isCorrectSccEntry && s.equals(callingBlockId))
+                // not a function entry point -> a return from a
+                // function call to outside this SCC
+                || !isSccEntry;
+    return predecessorFilter;
+  }
+
+  /**
+   * @param scc the current scc
+   * @param node the current node
+   * @param idsInScc the ids of all nodes in the current scc
+   * @param stack the current callstack
+   * @return a function that adds the correct stack suffix to the successor ids
+   */
   private Function<String, String> successorMapper(
-      FunctionSCC scc,
-      BlockNode node,
-      Set<String> idsInScc,
-      CallStack stack,
-      FluentIterable<?> blocksInCallingSCC) {
+      FunctionSCC scc, BlockNode node, Set<String> idsInScc, CallStack stack) {
+
+    FunctionSCC callingSCC = stack.getLastCallScc();
+    var blocksInCallingSCC =
+        callingSCC == null
+            ? FluentIterable.of()
+            : FluentIterable.from(callingSCC.functions())
+                .transformAndConcat(f -> f.blockNodes())
+                .transform(n -> n.getId());
+
     return s -> {
       if (idsInScc.contains(s)) {
         return stack.toStringWithBlockId(s);
@@ -155,6 +177,14 @@ public class InliningDecomposition implements DssBlockDecomposition {
     };
   }
 
+  /**
+   * @param scc the current scc
+   * @param node the current node
+   * @param idsInScc the ids of all nodes in the current scc
+   * @param stack the current callstack
+   * @param previousStack the current callstack with one call popped
+   * @return a function that adds the correct stack suffix to the predecessor ids
+   */
   private Function<String, String> predecessorMapper(
       FunctionSCC scc,
       BlockNode node,
@@ -224,5 +254,49 @@ public class InliningDecomposition implements DssBlockDecomposition {
                 n ->
                     n.getNodes().contains(returnNode)
                         && !n.getInitialLocation().equals(returnNode)));
+  }
+
+  private BlockNode copyWithMappedBlockIds(
+      BlockNode original,
+      Function<String, String> idMapper,
+      Predicate<String> predecessorFilter,
+      Function<String, String> predecessorMapper,
+      Predicate<String> successorFilter,
+      Function<String, String> successorMapper) {
+
+    ImmutableSet<String> mappedPredecessors =
+        original.getPredecessorIds().stream()
+            .filter(predecessorFilter)
+            .map(predecessorMapper)
+            .collect(ImmutableSet.toImmutableSet());
+
+    ImmutableSet<String> mappedLoopPredecessors =
+        original.getLoopPredecessorIds().stream()
+            .filter(predecessorFilter)
+            .map(predecessorMapper)
+            .collect(ImmutableSet.toImmutableSet());
+
+    ImmutableSet<String> mappedSuccessors =
+        original.getSuccessorIds().stream()
+            .filter(successorFilter)
+            .map(successorMapper)
+            .collect(ImmutableSet.toImmutableSet());
+
+    ImmutableSet<String> mappedLoopSuccessors =
+        original.getLoopSuccessorIds().stream()
+            .filter(successorFilter)
+            .map(successorMapper)
+            .collect(ImmutableSet.toImmutableSet());
+
+    return new BlockNode(
+        idMapper.apply(original.getId()),
+        original.getInitialLocation(),
+        original.getFinalLocation(),
+        original.getNodes(),
+        original.getEdges(),
+        mappedPredecessors,
+        mappedLoopPredecessors,
+        mappedSuccessors,
+        mappedLoopSuccessors);
   }
 }

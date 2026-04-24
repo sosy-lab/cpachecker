@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.FunctionSCCGraph.FunctionSCC;
 
+// TODO is this too inefficient? Using a linked List like structure would save a lot of copies
 public record CallStack(ImmutableList<CallSite> calls) {
 
   private static final CallStack EMPTY = new CallStack(ImmutableList.of());
@@ -69,7 +70,7 @@ public record CallStack(ImmutableList<CallSite> calls) {
     if (equals(empty())) {
       return nodeId;
     } else {
-      return nodeId + "@" + toString();
+      return nodeId + "@" + this;
     }
   }
 
