@@ -381,16 +381,19 @@ public class MemoryModelUtil {
     /**
      * Whether the search should stop after visiting {@code pType}.
      *
-     * @return {@code false} by default
+     * @return {@code true} by default
      */
     boolean shouldStop(CExpression pExpression) {
       return false;
     }
 
+    private final Set<CExpression> visitedExpressions = new HashSet<>();
+
     private boolean shouldSearch(CExpression pExpression) {
       onVisit(pExpression);
-      // Expressions in C are not circular, so there is no check for already visited expressions.
-      return !shouldStop(pExpression);
+      // Prevent any circular searches. This should be handled here, otherwise all
+      // subclasses have to implement it because circular searches should never be desired.
+      return visitedExpressions.add(pExpression) && !shouldStop(pExpression);
     }
 
     @Override
