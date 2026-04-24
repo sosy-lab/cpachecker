@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -539,11 +540,11 @@ public class DssBlockAnalysis {
                 dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
           preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
         }
-        if (dcpa.getCoverageOperator()
-            .isSubsumed(
-                stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
+        if (isRelevant
+            && dcpa.getCoverageOperator()
+                .isSubsumed(
+                    stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
           isRelevant = false;
-          break;
         }
       }
       if (isRelevant) {
@@ -739,7 +740,7 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        if (!result.getSummaries().isEmpty() && result.getAllViolations().isEmpty()) {
+        if (!result.getSummaries().isEmpty()) {
           // pack all summaries
           ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           for (AbstractState summary : result.getSummaries()) {
