@@ -42,6 +42,8 @@ public class LocationPrecision implements AdjustablePrecision {
   }
 
   /**
+   * Function for selecting the most abstract strategy from a set of strategies.
+   *
    * @param strategies the given set of allowed strategies
    *
    * @return The most abstract strategy in the precision set or empty for the basic strategy.

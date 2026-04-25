@@ -204,25 +204,35 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     boolean isTailRecursive = false;
     FluentIterable<CFAEdge> enteringEdges = exitNode.getEnteringEdges();
     for(CFAEdge edge : enteringEdges) {
-      CReturnStatement returnStatement = ((CReturnStatementEdge) edge).getReturnStatement();
-      if (returnStatement.getReturnValue().isPresent()) {
-        CExpression returnExpression = returnStatement.getReturnValue().get();
-        if (returnExpression instanceof CLeftHandSide returnLeftHandSide) {
-          if (returnLeftHandSide instanceof CIdExpression returnIdExpression) {
-            FluentIterable<CFAEdge> predecessorEdges = edge.getPredecessor().getEnteringEdges();
-            if (predecessorEdges.size() == 1) {
-              CFAEdge predecessorEdge = predecessorEdges.first().get();
-              if (predecessorEdge instanceof CStatementEdge predecessorStatementEdge) {
-                if (predecessorStatementEdge.getStatement() instanceof CFunctionCallAssignmentStatement predecessorFunctionCallAssignmentStatement) {
-                  if(predecessorFunctionCallAssignmentStatement.getFunctionCallExpression().getDeclaration().getQualifiedName().equals(functionName)){
-                    if (predecessorEdge.getPredecessor().getEnteringEdges().size() == 1) {
-                      if (predecessorEdge.getPredecessor().getEnteringEdges().first().get() instanceof CDeclarationEdge) {
-                        tmpVarName = returnIdExpression.getName();
-                        tmpVarDeclarationEdge = predecessorEdge.getPredecessor().getEnteringEdges().first().get();
-                        tmpVarAssignmentEdge = predecessorEdge;
-                        tmpVarReturnEdge = edge;
-                        isTailRecursive = true;
-                        break;
+      if (edge instanceof CReturnStatementEdge returnEdge) {
+        CReturnStatement returnStatement = returnEdge.getReturnStatement();
+        if (returnStatement.getReturnValue().isPresent()) {
+          CExpression returnExpression = returnStatement.getReturnValue().get();
+          if (returnExpression instanceof CLeftHandSide returnLeftHandSide) {
+            if (returnLeftHandSide instanceof CIdExpression returnIdExpression) {
+              FluentIterable<CFAEdge> predecessorEdges = edge.getPredecessor().getEnteringEdges();
+              if (predecessorEdges.size() == 1) {
+                CFAEdge predecessorEdge = predecessorEdges.first().get();
+                if (predecessorEdge instanceof CStatementEdge predecessorStatementEdge) {
+                  if (predecessorStatementEdge.getStatement()
+                      instanceof
+                      CFunctionCallAssignmentStatement predecessorFunctionCallAssignmentStatement) {
+                    if (predecessorFunctionCallAssignmentStatement
+                        .getFunctionCallExpression()
+                        .getDeclaration()
+                        .getQualifiedName()
+                        .equals(functionName)) {
+                      if (predecessorEdge.getPredecessor().getEnteringEdges().size() == 1) {
+                        if (predecessorEdge.getPredecessor().getEnteringEdges().first().get()
+                            instanceof CDeclarationEdge) {
+                          tmpVarName = returnIdExpression.getName();
+                          tmpVarDeclarationEdge =
+                              predecessorEdge.getPredecessor().getEnteringEdges().first().get();
+                          tmpVarAssignmentEdge = predecessorEdge;
+                          tmpVarReturnEdge = edge;
+                          isTailRecursive = true;
+                          break;
+                        }
                       }
                     }
                   }

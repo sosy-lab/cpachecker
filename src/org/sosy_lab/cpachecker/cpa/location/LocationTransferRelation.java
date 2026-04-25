@@ -73,7 +73,7 @@ public class LocationTransferRelation implements TransferRelation {
     CFANode node = ((LocationState) element).getLocationNode();
     ImmutableList<LocationState>
         successors = CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
-    LocationPrecision locPrec = (LocationPrecision) prec;
+    //LocationPrecision locPrec = (LocationPrecision) prec;
     return successors;
   }
 }
