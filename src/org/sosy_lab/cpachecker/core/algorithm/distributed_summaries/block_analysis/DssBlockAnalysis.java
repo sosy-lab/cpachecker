@@ -563,7 +563,9 @@ public class DssBlockAnalysis {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
-    violationConditions.removeAll(pNewViolationCondition.getSenderId());
+    Collection<@NonNull StateAndPrecision> oldVcs =
+        violationConditions.removeAll(pNewViolationCondition.getSenderId());
+    int equal = 0;
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
       String newWitness =
           Joiner.on("")
@@ -573,8 +575,8 @@ public class DssBlockAnalysis {
                               stateAndPrecision.state(), BlockState.class))
                       .getWitness());
       boolean skip = false;
-      for (StateAndPrecision vc :
-          ImmutableList.copyOf(violationConditions.get(pNewViolationCondition.getSenderId()))) {
+      boolean isEqual = false;
+      for (StateAndPrecision vc : oldVcs) {
         String oldWitness =
             Joiner.on("")
                 .join(
@@ -582,12 +584,15 @@ public class DssBlockAnalysis {
                             AbstractStates.extractStateByType(vc.state(), BlockState.class))
                         .getWitness());
         if (newWitness.startsWith(oldWitness)) {
-          violationConditions.remove(pNewViolationCondition.getSenderId(), vc);
+          if (oldWitness.startsWith(newWitness)) {
+            isEqual = true;
+          }
         } else if (oldWitness.startsWith(newWitness)) {
           skip = true;
           break;
         }
       }
+      equal += isEqual ? 1 : 0;
       if (skip) {
         continue;
       }
@@ -597,7 +602,8 @@ public class DssBlockAnalysis {
         violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
       }
     }
-    if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()) {
+    if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
+        || equal == deserializedStates.size()) {
       return DssMessageProcessing.stop();
     }
     return DssMessageProcessing.proceed();
