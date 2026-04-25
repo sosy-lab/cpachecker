@@ -12,47 +12,20 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-final class Variable {
-  private final String name;
-  private final CType type;
+record Variable(String name, CType type) {
 
-  private Variable(String pName, CType pType) {
-    name = pName;
-    type = pType;
-  }
-
-  String getName() {
-    return name;
+  Variable {
+    checkNotNull(name);
+    checkNotNull(type);
+    CTypeUtils.checkIsSimplified(type);
   }
 
   PointerBase asPointerBase() {
     return new PointerBase(name);
   }
 
-  CType getType() {
-    return type;
-  }
-
-  @Override
-  public int hashCode() {
-    return name.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    return obj instanceof Variable other && name.equals(other.name);
-  }
-
   @Override
   public String toString() {
     return type.toASTString(name);
-  }
-
-  static Variable create(String pName, CType pT) {
-    CTypeUtils.checkIsSimplified(pT);
-    return new Variable(checkNotNull(pName), checkNotNull(pT));
   }
 }

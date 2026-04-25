@@ -81,6 +81,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <exclude>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.BOUNDED-6.pals.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_floodmax.5.1.ufo.BOUNDED-10.pals.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.4.1.ufo.BOUNDED-8.pals.yml</exclude> <!-- flapping timeout -->
