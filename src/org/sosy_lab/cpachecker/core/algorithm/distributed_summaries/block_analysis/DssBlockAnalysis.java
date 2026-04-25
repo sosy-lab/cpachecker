@@ -21,6 +21,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -575,6 +576,7 @@ public class DssBlockAnalysis {
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
     Collection<@NonNull StateAndPrecision> oldVcs =
         violationConditions.removeAll(pNewViolationCondition.getSenderId());
+    Set<StateAndPrecision> doNotInclude = new LinkedHashSet<>();
     int equal = 0;
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
       String newWitness =
@@ -596,6 +598,9 @@ public class DssBlockAnalysis {
         if (newWitness.startsWith(oldWitness)) {
           if (oldWitness.startsWith(newWitness)) {
             isEqual = true;
+            skip = true;
+          } else {
+            doNotInclude.add(vc);
           }
         } else if (oldWitness.startsWith(newWitness)) {
           skip = true;
@@ -611,6 +616,12 @@ public class DssBlockAnalysis {
       if (current.shouldProceed()) {
         violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
       }
+    }
+    for (StateAndPrecision oldVc : oldVcs) {
+      if (doNotInclude.contains(oldVc)) {
+        continue;
+      }
+      violationConditions.put(pNewViolationCondition.getSenderId(), oldVc);
     }
     if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
         || equal == deserializedStates.size()) {
