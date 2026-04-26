@@ -560,6 +560,13 @@ public class DssBlockAnalysis {
     return processing;
   }
 
+  private String extractWitnessFromState(AbstractState state) {
+    return Joiner.on("")
+        .join(
+            Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
+                .getWitness());
+  }
+
   /**
    * Adds a new abstract state to the known violation conditions.
    *
@@ -579,49 +586,29 @@ public class DssBlockAnalysis {
     Set<StateAndPrecision> doNotInclude = new LinkedHashSet<>();
     int equal = 0;
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
-      String newWitness =
-          Joiner.on("")
-              .join(
-                  Objects.requireNonNull(
-                          AbstractStates.extractStateByType(
-                              stateAndPrecision.state(), BlockState.class))
-                      .getWitness());
-      boolean skip = false;
+      String newWitness = extractWitnessFromState(stateAndPrecision.state());
       boolean isEqual = false;
       for (StateAndPrecision vc : oldVcs) {
-        String oldWitness =
-            Joiner.on("")
-                .join(
-                    Objects.requireNonNull(
-                            AbstractStates.extractStateByType(vc.state(), BlockState.class))
-                        .getWitness());
-        if (newWitness.startsWith(oldWitness)) {
-          if (oldWitness.startsWith(newWitness)) {
-            isEqual = true;
-            skip = true;
-          } else {
-            doNotInclude.add(vc);
-          }
+        String oldWitness = extractWitnessFromState(vc.state());
+        if (oldWitness.equals(newWitness)) {
+          isEqual = true;
+          doNotInclude.add(vc);
+        } else if (newWitness.startsWith(oldWitness)) {
+          doNotInclude.add(vc);
         } else if (oldWitness.startsWith(newWitness)) {
-          skip = true;
-          break;
+          doNotInclude.add(stateAndPrecision);
         }
       }
       equal += isEqual ? 1 : 0;
-      if (skip) {
-        continue;
-      }
       DssMessageProcessing current =
           dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
       if (current.shouldProceed()) {
         violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
       }
     }
-    for (StateAndPrecision oldVc : oldVcs) {
-      if (doNotInclude.contains(oldVc)) {
-        continue;
-      }
-      violationConditions.put(pNewViolationCondition.getSenderId(), oldVc);
+    violationConditions.putAll(pNewViolationCondition.getSenderId(), oldVcs);
+    for (StateAndPrecision remove : doNotInclude) {
+      violationConditions.remove(pNewViolationCondition.getSenderId(), remove);
     }
     if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
         || equal == deserializedStates.size()) {
