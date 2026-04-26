@@ -11,7 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
-from xml.etree.ElementTree import Element
+from defusedxml.ElementTree import Element as SafeElement
 
 import benchexec.tooladapter
 import benchexec.util
@@ -374,7 +374,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             desc = runSet.xml.find("description")
 
             if desc is None:
-                desc = Element("description")
+                desc = SafeElement("description")
                 desc.text = line
                 runSet.xml.insert(0, desc)
             else:
