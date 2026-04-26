@@ -11,7 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
-import xml.etree.ElementTree as ElementTree  # nosec B405: safe here, XML is locally generated (not user input)
+from defusedxml import ElementTree
 
 import benchexec.tooladapter
 import benchexec.util
