@@ -11,7 +11,6 @@ import os
 import shutil
 import subprocess
 import sys
-from defusedxml import ElementTree as ET
 from xml.etree.ElementTree import Element
 
 import benchexec.tooladapter
