@@ -11,7 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
-import xml.etree.ElementTree as ElementTree
+import xml.etree.ElementTree as ElementTree  # nosec B405: safe here, XML is locally generated (not user input)
 
 import benchexec.tooladapter
 import benchexec.util
@@ -332,8 +332,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             if os.path.exists(dataFile) and os.path.exists(run.log_file):
                 try:
                     values = parseCloudRunResultFile(dataFile)
-                    print("[DEBUG] reading data file:", dataFile)
-                    print("[DEBUG] parsed values:", values)
                     if runCollectionId is None and "vcloud-runCollectionId" in values:
                         runCollectionId = values["vcloud-runCollectionId"]
                     if not benchmark.config.debug:
@@ -373,8 +371,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
 
         if runCollectionId:
             line = "vcloud-runCollectionId=" + runCollectionId
-            print("[DEBUG] Inject into XML:", line)
-
             desc = runSet.xml.find("description")
 
             if desc is None:
@@ -386,7 +382,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                     desc.text = line + "\n" + desc.text
                 else:
                     desc.text = line
-        print("[DEBUG] XML output directory:", benchmark.log_folder)
 
         output_handler.output_after_run_set(runSet, end_time=end_time)
 
