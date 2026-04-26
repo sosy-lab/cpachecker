@@ -332,6 +332,8 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             if os.path.exists(dataFile) and os.path.exists(run.log_file):
                 try:
                     values = parseCloudRunResultFile(dataFile)
+                    print("[DEBUG] reading data file:", dataFile)
+                    print("[DEBUG] parsed values:", values)
                     if runCollectionId is None and "vcloud-runCollectionId" in values:
                         runCollectionId = values["vcloud-runCollectionId"]
                     if not benchmark.config.debug:
