@@ -21,7 +21,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -583,32 +582,21 @@ public class DssBlockAnalysis {
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
     Collection<@NonNull StateAndPrecision> oldVcs =
         violationConditions.removeAll(pNewViolationCondition.getSenderId());
-    Set<StateAndPrecision> doNotInclude = new LinkedHashSet<>();
     int equal = 0;
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
       String newWitness = extractWitnessFromState(stateAndPrecision.state());
-      boolean isEqual = false;
       for (StateAndPrecision vc : oldVcs) {
         String oldWitness = extractWitnessFromState(vc.state());
         if (oldWitness.equals(newWitness)) {
-          isEqual = true;
-          doNotInclude.add(vc);
-        } else if (newWitness.startsWith(oldWitness)) {
-          doNotInclude.add(vc);
-        } else if (oldWitness.startsWith(newWitness)) {
-          doNotInclude.add(stateAndPrecision);
+          equal++;
+          break;
         }
       }
-      equal += isEqual ? 1 : 0;
       DssMessageProcessing current =
           dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
       if (current.shouldProceed()) {
         violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
       }
-    }
-    violationConditions.putAll(pNewViolationCondition.getSenderId(), oldVcs);
-    for (StateAndPrecision remove : doNotInclude) {
-      violationConditions.remove(pNewViolationCondition.getSenderId(), remove);
     }
     if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
         || equal == deserializedStates.size()) {

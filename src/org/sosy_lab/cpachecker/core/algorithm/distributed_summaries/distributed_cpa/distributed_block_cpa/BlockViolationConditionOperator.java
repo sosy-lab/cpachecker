@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -51,9 +52,7 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             .addAll(previousWitness)
             .addAll(
                 Lists.reverse(
-                    FluentIterable.from(pARGPath.getFullPath())
-                        .transform(BlockTransferRelation::edgeToString)
-                        .toList()))
+                    transformedImmutableListCopy(pARGPath.getFullPath(), BlockTransferRelation::edgeToString)))
             .build();
     if (!trackHistory) {
       return Optional.of(
