@@ -144,14 +144,14 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     submission_futures = {}
     submissonCounter = 1
     limits = benchmark.rlimits
+    if limits.cpu_cores and limits.cpu_cores != benchmark.requirements.cpu_cores:
+        logging.warning("CPU core requirement is not supported by the WebInterface.")
+    if limits.memory and limits.memory != benchmark.requirements.memory:
+        logging.warning("Memory requirement is not supported by the WebInterface.")
     limits = benchexec.tooladapter.convert_resource_limits_to_dict(limits)
-    requirements = {
-        "cpu_model": benchmark.requirements.cpu_model or "",
-        "core_requirement": benchmark.requirements.cpu_cores,
-        "memory_requirement": benchmark.requirements.memory,
-    }
 
     global_required_files = set(benchmark._required_files)
+    cpu_model = benchmark.requirements.cpu_model
     priority = benchmark.config.cloudPriority
     result_files_patterns = benchmark.result_files_patterns
     if not result_files_patterns:
@@ -165,7 +165,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
             _webclient.submit,
             run=run,
             limits=limits,
-            requirements=requirements,
+            cpu_model=cpu_model,
             required_files=required_files,
             meta_information=meta_information,
             priority=priority,
@@ -252,8 +252,8 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
         log_present = True
         log_file = open(run.log_file, "wb")
         log_header = (
-            " ".join(run.cmdline())
-            + "\n\n\n--------------------------------------------------------------------------------\n"
+                " ".join(run.cmdline())
+                + "\n\n\n--------------------------------------------------------------------------------\n"
         )
         log_file.write(log_header.encode("utf-8"))
         return log_file
@@ -283,7 +283,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             host,
             runSet=run.runSet,
             cpu_turboboost=turboboost_enabled if turboboost_supported else None,
-        )
+            )
 
         for key, value in values.items():
             result_values["vcloud-" + key] = value

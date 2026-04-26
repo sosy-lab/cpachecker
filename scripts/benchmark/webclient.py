@@ -56,9 +56,6 @@ __all__ = [
     "TIMELIMIT",
     "SOFTTIMELIMIT",
     "CORELIMIT",
-    "COREREQUIREMENT",
-    "MEMORYREQUIREMENT",
-    "CPUMODEL",
     "RESULT_FILE_LOG",
     "RESULT_FILE_STDERR",
     "RESULT_FILE_RUN_INFO",
@@ -71,9 +68,6 @@ MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
 SOFTTIMELIMIT = "softtimelimit"
 CORELIMIT = "cpuCores"
-COREREQUIREMENT = "core_requirement"
-MEMORYREQUIREMENT = "memory_requirement"
-CPUMODEL = "cpu_model"
 
 RESULT_FILE_LOG = "output.log"
 RESULT_FILE_STDERR = "stderr"
@@ -180,13 +174,13 @@ if HAS_SSECLIENT:
 
     class ShouldReconnectSeeClient(sseclient.SSEClient):
         def __init__(
-            self,
-            url,
-            should_reconnect,
-            last_id=None,
-            retry=3000,
-            session=None,
-            **kwargs,
+                self,
+                url,
+                should_reconnect,
+                last_id=None,
+                retry=3000,
+                session=None,
+                **kwargs,
         ):
             super().__init__(url, last_id, retry, session, **kwargs)
             self._should_reconnect = should_reconnect
@@ -215,9 +209,9 @@ if HAS_SSECLIENT:
             e = result.exception()
             if e is not None:
                 if (
-                    self._shutdown
-                    and isinstance(e, AttributeError)
-                    and str(e) == "'NoneType' object has no attribute 'read'"
+                        self._shutdown
+                        and isinstance(e, AttributeError)
+                        and str(e) == "'NoneType' object has no attribute 'read'"
                 ):
                     # This is harmless, it occurs because SSEClient reads on closed connection.
                     logging.debug("Error during result processing:", exc_info=True)
@@ -231,10 +225,10 @@ if HAS_SSECLIENT:
             if self._new_runs:
                 return False
             elif (
-                type(error) == HTTPError
-                and error.response is not None
-                and error.response.status >= 400
-                and error.response.status < 500
+                    type(error) == HTTPError
+                    and error.response is not None
+                    and error.response.status >= 400
+                    and error.response.status < 500
             ):
                 logging.debug("Exception in SSE connection: %s", error)
                 return False
@@ -357,14 +351,14 @@ class WebInterface:
     """
 
     def __init__(
-        self,
-        web_interface_url,
-        user_pwd,
-        revision="main:HEAD",
-        thread_count=1,
-        result_poll_interval=2,
-        user_agent=None,
-        version=None,
+            self,
+            web_interface_url,
+            user_pwd,
+            revision="main:HEAD",
+            thread_count=1,
+            result_poll_interval=2,
+            user_agent=None,
+            version=None,
     ):
         """
         Creates a new WebInterface object.
@@ -438,6 +432,7 @@ class WebInterface:
         self._read_hash_code_cache()
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
+        self._print_banner()
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -488,7 +483,7 @@ class WebInterface:
             os.makedirs(directory, exist_ok=True)
             try:
                 with tempfile.NamedTemporaryFile(
-                    dir=directory, delete=False
+                        dir=directory, delete=False
                 ) as tmpFile:
                     for (path, mTime), hashValue in hash_code_cache.items():
                         line = path + "\t" + mTime + "\t" + hashValue + "\n"
@@ -524,6 +519,21 @@ class WebInterface:
     def tool_name(self):
         return self._tool_name
 
+    def _print_banner(self):
+        try:
+            (banner, _) = self._request(
+                "GET", "master/banner", headers={"Accept": "text/plain"}
+            )
+            banner_text = banner.decode("UTF-8").strip()
+            if banner_text:
+                print("\n=== BenchCloud Maintenance Info ===")
+                print(banner_text)
+                print("===================================\n")
+                sleep(10)
+
+        except Exception as e:
+            logging.debug("Could not fetch banner: %s", e)
+
     def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
         mTime = str(os.path.getmtime(path))
@@ -543,7 +553,7 @@ class WebInterface:
         return result
 
     def submit_witness_validation(
-        self, witness_path, program_path, configuration=None, user_pwd=None
+            self, witness_path, program_path, configuration=None, user_pwd=None
     ):
         """
         Submits a single witness validation run to the VerifierCloud.
@@ -595,17 +605,17 @@ class WebInterface:
         return self._create_and_add_run_future(run_id)
 
     def submit(
-        self,
-        run,
-        limits,
-        requirements,
-        result_files_pattern=None,
-        meta_information=None,
-        priority="IDLE",
-        user_pwd=None,
-        revision=None,
-        result_files_patterns=(),
-        required_files=(),
+            self,
+            run,
+            limits,
+            cpu_model,
+            result_files_pattern=None,
+            meta_information=None,
+            priority="IDLE",
+            user_pwd=None,
+            revision=None,
+            result_files_patterns=(),
+            required_files=(),
     ):
         """
         Submits a single run to the VerifierCloud.
@@ -615,7 +625,7 @@ class WebInterface:
                                             property file (run.propertyfile),
                                             identifier for error messages (run.identifier)
         @param limits: dict of limitations for the run (memlimit, timelimit, corelimit, softtimelimit)
-        @param requirements: dict of requirements for the run (core_requirement, memory_requirement, cpu_model)
+        @param cpu_model: substring of CPU model to use or 'None' for no restriction
         @param result_files_pattern: the result is filtered with the given glob pattern, '**' is no restriction and None or the empty string do not match any file.
         @param meta_information: meta information about the submitted run as JSON string
         @param priority: the priority of the submitted run, defaults to 'IDLE'
@@ -643,7 +653,7 @@ class WebInterface:
         return self._submit(
             run,
             limits,
-            requirements,
+            cpu_model,
             required_files,
             result_files_patterns,
             meta_information,
@@ -653,17 +663,17 @@ class WebInterface:
         )
 
     def _submit(
-        self,
-        run,
-        limits,
-        requirements,
-        required_files,
-        result_files_patterns,
-        meta_information,
-        priority,
-        user_pwd,
-        revision,
-        counter=0,
+            self,
+            run,
+            limits,
+            cpu_model,
+            required_files,
+            result_files_patterns,
+            meta_information,
+            priority,
+            user_pwd,
+            revision,
+            counter=0,
     ):
         params = []
         opened_files = []  # open file handles are passed to the request library
@@ -696,12 +706,9 @@ class WebInterface:
             params.append(("softTimeLimitation", str(limits[SOFTTIMELIMIT])))
         if CORELIMIT in limits:
             params.append(("coreLimitation", str(limits[CORELIMIT])))
-        if CPUMODEL in requirements:
-            params.append(("cpuModel", str(requirements[CPUMODEL])))
-        if COREREQUIREMENT in requirements:
-            params.append(("coreRequirement", str(requirements[COREREQUIREMENT])))
-        if MEMORYREQUIREMENT in requirements:
-            params.append(("memoryRequirement", str(requirements[MEMORYREQUIREMENT])))
+        if cpu_model:
+            params.append(("cpuModel", cpu_model))
+
         if result_files_patterns:
             for pattern in result_files_patterns:
                 params.append(("resultFilesPattern", pattern))
@@ -783,7 +790,7 @@ class WebInterface:
             return self._submit(
                 run,
                 limits,
-                requirements,
+                cpu_model,
                 required_files,
                 result_files_patterns,
                 meta_information,
@@ -791,7 +798,7 @@ class WebInterface:
                 user_pwd,
                 revision,
                 counter + 1,
-            )
+                )
 
         else:
             try:
@@ -1030,7 +1037,7 @@ class WebInterface:
                 run_id,
                 getattr(e, "reason", ""),
                 e.response.content or "",
-            )
+                )
             return False
 
     def _download_result(self, run_id):
@@ -1139,17 +1146,17 @@ class WebInterface:
                 e,
                 reason,
                 content or "",
-            )
+                )
 
     def _request(
-        self,
-        method,
-        path,
-        data=None,
-        headers=None,
-        files=None,
-        expectedStatusCodes=(200,),
-        user_pwd=None,
+            self,
+            method,
+            path,
+            data=None,
+            headers=None,
+            files=None,
+            expectedStatusCodes=(200,),
+            user_pwd=None,
     ):
         url = self._web_interface_url + path
         if user_pwd:
@@ -1249,15 +1256,15 @@ def _handle_special_files(result_zip_file, files, output_path):
 
 
 def handle_result(
-    zip_content,
-    output_path,
-    run_identifier,
-    result_files_pattern=None,
-    open_output_log=_open_output_log,
-    handle_run_info=_handle_run_info,
-    handle_host_info=_handle_host_info,
-    handle_special_files=_handle_special_files,
-    result_files_patterns=("*"),
+        zip_content,
+        output_path,
+        run_identifier,
+        result_files_pattern=None,
+        open_output_log=_open_output_log,
+        handle_run_info=_handle_run_info,
+        handle_host_info=_handle_host_info,
+        handle_special_files=_handle_special_files,
+        result_files_patterns=("*"),
 ):
     """
     Parses the given result ZIP archive: Extract meta information
@@ -1305,14 +1312,14 @@ def handle_result(
 
 
 def _handle_result(
-    resultZipFile,
-    output_path,
-    open_output_log,
-    handle_run_info,
-    handle_host_info,
-    handle_special_files,
-    result_files_patterns,
-    run_identifier,
+        resultZipFile,
+        output_path,
+        open_output_log,
+        handle_run_info,
+        handle_host_info,
+        handle_special_files,
+        result_files_patterns,
+        run_identifier,
 ):
     files = set(resultZipFile.namelist())
 
