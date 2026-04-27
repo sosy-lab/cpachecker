@@ -13,6 +13,7 @@ and/or their features on a common analyses.
 The included test-sets are also commonly used to benchmark which SMT solver
 is best suited for a chosen analysis.
 
-Benchmark definitions that include the suffix 'solver-test' define targeted SMT solver tests.
-They use options that change analysis soundness, encodings etc. 
-and should not be used to benchmark analyses or solver performance.
+Benchmark definitions that include the suffix 'solver-test' define tests for
+the integration of SMT solvers. They use options that change analysis
+soundness, encodings etc. and should not be used to benchmark analyses
+or solver performance.
