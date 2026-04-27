@@ -42,7 +42,16 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
-  <!-- Add Bitwuzla w native interpolation once JavaSMT 6.0.0 is available. -->
+  <rundefinition name="bitwuzla">
+    <!-- Integer as BV is not impacting soundness -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="z3_with_interpolation">
+    <!-- This is a distinct (old) Z3 version compared to solver.solver=Z3 that supports interpolation -->
+    <option name="--option">solver.solver=Z3_WITH_INTERPOLATION</option>
+  </rundefinition>
 
   <!-- Add Yices2 w native interpolation and SMTInterpol w bitvector support once JavaSMT 6.0.0+ is available. -->
 
@@ -119,6 +128,54 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">solver.solver=yices2</option>
     <option name="--option">solver.interpolationSolver=mathsat5</option>
+  </rundefinition>
+
+
+  <rundefinition name="mathsat5-interpolate_with_bitwuzla">
+    <!-- Integer as BV is not impacting soundness and is needed for Bitwuzla -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">solver.interpolationSolver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="z3-interpolate_with_bitwuzla">
+    <!-- Integer as BV is not impacting soundness and is needed for Bitwuzla -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=z3</option>
+    <option name="--option">solver.interpolationSolver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="cvc4-interpolate_with_bitwuzla">
+    <!-- Integer as BV is not impacting soundness and is needed for Bitwuzla -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=cvc4</option>
+    <option name="--option">solver.interpolationSolver=bitwuzla</option>
+    <!-- CVC4 needs a larger stack -->
+    <option name="--stack">50M</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5-interpolate_with_bitwuzla">
+    <!-- Integer as BV is not impacting soundness and is needed for Bitwuzla -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">solver.interpolationSolver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="princess-interpolate_with_bitwuzla">
+    <!-- Integer as BV is not impacting soundness and is needed for Bitwuzla -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">solver.solver=princess</option>
+    <option name="--option">solver.interpolationSolver=bitwuzla</option>
+  </rundefinition>
+
+  <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licensed parts of JavaSMT. -->
+  <rundefinition name="yices2-interpolate_with_bitwuzla">
+    <!-- Integer as BV is not impacting soundness and is needed for Bitwuzla -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">solver.solver=yices2</option>
+    <option name="--option">solver.interpolationSolver=bitwuzla</option>
   </rundefinition>
   
 
