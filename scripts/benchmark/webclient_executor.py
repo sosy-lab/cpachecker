@@ -221,6 +221,7 @@ def _inject_collection_id_into_description(output_handler, cid):
         return
 
     desc = header.find("description")
+    print("[DEBUG] description exists:", desc is not None)
 
     if desc is None:
         desc = header.makeelement("description", {})
