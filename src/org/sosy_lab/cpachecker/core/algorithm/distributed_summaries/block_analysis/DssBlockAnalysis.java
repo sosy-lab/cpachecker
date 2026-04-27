@@ -598,6 +598,7 @@ public class DssBlockAnalysis {
         violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
       }
     }
+    violationConditions.putAll(pNewViolationCondition.getSenderId(), oldVcs);
     if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
         || equal == deserializedStates.size()) {
       return DssMessageProcessing.stop();
