@@ -214,19 +214,20 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     return result_futures
 
 
-def _inject_collection_id_into_description(output_handler, cid):
-    header = getattr(output_handler, "xml_header", None)
-    print("[DEBUG] header exists:", header is not None)
-    if header is None:
+def _inject_collection_id_into_description(xml_header, cid):
+    print("[DEBUG] injecting cid:", cid)
+    print("[DEBUG] xml header exists:", xml_header is not None)
+
+    if xml_header is None:
         return
 
-    desc = header.find("description")
+    desc = xml_header.find("description")
     print("[DEBUG] description exists:", desc is not None)
 
     if desc is None:
-        desc = header.makeelement("description", {})
+        desc = xml_header.makeelement("description", {})
         desc.text = cid
-        header.insert(0, desc)
+        xml_header.insert(0, desc)
     else:
         original = desc.text or ""
         if not original.startswith(cid + "\n"):
@@ -240,8 +241,11 @@ def _log_future_exception(result):
 
 def _handle_results(result_futures, output_handler, benchmark, run_set):
     cid = getattr(benchmark, "_run_collection_id", None)
+    print("[DEBUG] cid in handle_results:", cid)
+
     if cid:
-        _inject_collection_id_into_description(output_handler, cid)
+        _inject_collection_id_into_description(output_handler.xml_header, cid)
+        _inject_collection_id_into_description(run_set.xml, cid)
     if not _webclient:
         raise UserAbortError("User interrupt detected during _handle_results")
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
