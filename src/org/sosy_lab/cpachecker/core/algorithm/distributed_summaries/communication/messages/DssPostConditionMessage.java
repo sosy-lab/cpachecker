@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
 import java.util.Map;
 
 public class DssPostConditionMessage extends DssMessage {
