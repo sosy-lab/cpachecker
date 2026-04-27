@@ -13,16 +13,23 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.function.Function;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 public class DssDebugUtils {
 
@@ -73,5 +80,31 @@ public class DssDebugUtils {
             AbstractStates.extractStateByType(a, PredicateAbstractState.class)
                 .getPathFormula()
                 .toString());
+  }
+
+  public static String prettyPrintSymbolicExecution(
+      BlockNode block,
+      Multimap<String, StateAndPrecision> preconditions,
+      Multimap<String, StateAndPrecision> violationConditions,
+      ConfigurableProgramAnalysis pCpa) {
+    return DssDebugUtils.prettyPrintBlock(
+        block.getId(),
+        preconditions,
+        violationConditions,
+        s ->
+            Objects.requireNonNull(AbstractStates.extractStateByType(s, BlockState.class))
+                    .getWitness()
+                + "\n"
+                + Objects.requireNonNull(
+                        AbstractStates.extractStateByType(s, ConstraintsState.class))
+                    .toDOTLabel()
+                + "\n"
+                + Objects.requireNonNull(
+                        AbstractStates.extractStateByType(s, ValueAnalysisState.class))
+                    .getFormulaApproximation(
+                        Objects.requireNonNull(CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class))
+                            .getBlockStrengtheningOperator()
+                            .getSolver()
+                            .getFormulaManager()));
   }
 }

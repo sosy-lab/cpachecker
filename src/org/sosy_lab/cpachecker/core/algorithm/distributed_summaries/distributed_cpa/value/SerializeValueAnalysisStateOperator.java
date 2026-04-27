@@ -64,7 +64,7 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
     return ContentBuilder.builder()
         .pushLevel(ValueAnalysisState.class.getName())
         .put(STATE_KEY, serializedState)
-        .put(READABLE_KEY, state.getConstants().toString())
+        .put(READABLE_KEY, state.getFormulaApproximation(formulaManager).toString())
         .put(SSA_KEY, ssa)
         .put(PTS_KEY, pts)
         .put(FORMULA_KEY, formula)
