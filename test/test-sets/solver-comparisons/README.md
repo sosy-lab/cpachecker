@@ -13,9 +13,6 @@ and/or their features on a common analyses.
 The included test-sets are also commonly used to benchmark which SMT solver
 is best suited for a chosen analysis.
 
-Please note that some run-definitions in this folder use options that change the soundness,
-analysis encoding etc. This is acceptable for solver/analysis integration-tests, but benchmarking
-solvers for analyses or solver performance should be based on equal and/or sensible settings!
-Integration-Test-Sets include the `integration` suffix.
-Further, the default hardware resources for integration-tests are often not suitable for 
-performance comparisons!
+Benchmark definitions that include the suffix 'solver-test' define targeted SMT solver tests.
+They use options that change analysis soundness, encodings etc. 
+and should not be used to benchmark analyses or solver performance.
