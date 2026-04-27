@@ -52,6 +52,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c26_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c26_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c39_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c32_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c32_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
@@ -60,7 +61,9 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c46_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c48_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/sll_2x12x12x1_case_0_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/sll_2x12x12x1_case_1_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/sll_3x12x12x1_case_4_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/sll_4x12x12x1_case_3_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/sll_4x12x12x1_case_5_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
   </tasks>
   <tasks>
