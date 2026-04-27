@@ -205,7 +205,6 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     threadlocal_webclient = _webclient
     if threadlocal_webclient:
         run_collections = threadlocal_webclient.flush_runs()
-        print("DEBUG run_collections:", run_collections)
         if run_collections:
             cid = run_collections[0]
             benchmark._run_collection_id = cid
@@ -215,14 +214,10 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
 
 
 def _inject_collection_id_into_description(xml_header, cid):
-    print("[DEBUG] injecting cid:", cid)
-    print("[DEBUG] xml header exists:", xml_header is not None)
-
     if xml_header is None:
         return
 
     desc = xml_header.find("description")
-    print("[DEBUG] description exists:", desc is not None)
 
     if desc is None:
         desc = xml_header.makeelement("description", {})
@@ -241,8 +236,6 @@ def _log_future_exception(result):
 
 def _handle_results(result_futures, output_handler, benchmark, run_set):
     cid = getattr(benchmark, "_run_collection_id", None)
-    print("[DEBUG] cid in handle_results:", cid)
-
     if cid:
         _inject_collection_id_into_description(output_handler.xml_header, cid)
         _inject_collection_id_into_description(run_set.xml, cid)
