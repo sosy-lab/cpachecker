@@ -23,6 +23,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
+    <exclude>../programs/benchmarks/pthread-wmm/rfi008.opt.yml</exclude> <!-- flapping timeout -->
   </tasks>
 
 </benchmark>

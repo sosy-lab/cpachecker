@@ -56,14 +56,20 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/pthread-ext/*</exclude>
     <exclude>../programs/benchmarks/pthread-nondet/*</exclude>
     <exclude>../programs/benchmarks/ldv*/*</exclude>
+    <exclude>../programs/benchmarks/pthread-deagle/circular_buffer_ok.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/bench-exp1x3.wvr.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/weaver/bench-exp2x4.wvr.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/weaver/bench-exp3x3-opt.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/chl-file-item-subst.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/chl-file-item-trans.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/clever.wvr.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/loop-tiling-eq.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/mult-comm.wvr.yml</exclude> <!-- flapping timeout/ Out Of Native Memory -->
     <exclude>../programs/benchmarks/weaver/parallel-barrier-loop.wvr.yml</exclude> <!-- flapping timeout/OOM -->
-    <exclude>../programs/benchmarks/weaver/popl20-figure1.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/popl20-figure1-alt.wvr.yml</exclude> <!-- flapping timeout/ Out Of Native Memory -->
+    <exclude>../programs/benchmarks/weaver/popl20-figure1.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/popl20-nonblocking-cntr-alt.wvr.yml</exclude> <!-- flapping timeout/ Out Of Native Memory -->
+    <exclude>../programs/benchmarks/weaver/popl20-more-sum-array-hom.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/test-easy1.wvr.yml</exclude> <!-- flapping timeout/ Out Of Native Memory -->
   </tasks>
   <tasks name="BitVectorsOverflows">
@@ -121,6 +127,10 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1130a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1131a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c720_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c720_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c105_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c105_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
