@@ -209,12 +209,14 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
         if run_collections:
             cid = run_collections[0]
             benchmark._run_collection_id = cid
-            _inject_collection_id_into_description(output_handler, cid)
+
     logging.info("Run submission finished.")
     return result_futures
 
+
 def _inject_collection_id_into_description(output_handler, cid):
     header = getattr(output_handler, "xml_header", None)
+    print("[DEBUG] header exists:", header is not None)
     if header is None:
         return
 
@@ -229,12 +231,16 @@ def _inject_collection_id_into_description(output_handler, cid):
         if not original.startswith(cid + "\n"):
             desc.text = f"{cid}\n{original}"
 
+
 def _log_future_exception(result):
     if result.exception() is not None:
         logging.warning("Error during result processing.", exc_info=True)
 
 
 def _handle_results(result_futures, output_handler, benchmark, run_set):
+    cid = getattr(benchmark, "_run_collection_id", None)
+    if cid:
+        _inject_collection_id_into_description(output_handler, cid)
     if not _webclient:
         raise UserAbortError("User interrupt detected during _handle_results")
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
