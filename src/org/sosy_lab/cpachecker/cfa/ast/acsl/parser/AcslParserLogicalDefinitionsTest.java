@@ -567,12 +567,13 @@ public class AcslParserLogicalDefinitionsTest {
     // Logic definitions that take boolean parameters are not supported.
     String definition1 = "predicate is_false(boolean p) = (!p) == \\true;";
     String definition2 = "predicate is_false(boolean p) = !p;";
+    AcslScope acslScope = getAcslScope();
     assertThrows(
         NullPointerException.class,
-        () -> AcslParser.parseLogicalDefinition(definition1, getAcslScope(), FileLocation.DUMMY));
+        () -> AcslParser.parseLogicalDefinition(definition1, acslScope, FileLocation.DUMMY));
     assertThrows(
         NullPointerException.class,
-        () -> AcslParser.parseLogicalDefinition(definition2, getAcslScope(), FileLocation.DUMMY));
+        () -> AcslParser.parseLogicalDefinition(definition2, acslScope, FileLocation.DUMMY));
   }
 
   @Test

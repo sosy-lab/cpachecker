@@ -259,14 +259,14 @@ ensures x <= 10;
     AcslLogicDefinition predDef =
         AcslParser.parseLogicalDefinition(predicate, aScope, FileLocation.DUMMY);
     aScope.registerDeclaration(predDef.getDeclaration());
+    CProgramScope cProgramScope = getCProgramScope();
 
     String assertion = "assert is_positive(x, y);";
     java.lang.RuntimeException exception =
         assertThrows(
             RuntimeException.class,
             () ->
-                AcslParser.parseAcslComment(
-                    assertion, FileLocation.DUMMY, getCProgramScope(), aScope));
+                AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, cProgramScope, aScope));
     assertThat(exception.getMessage()).isEqualTo("Expected 1 parameters but got 2.");
   }
 

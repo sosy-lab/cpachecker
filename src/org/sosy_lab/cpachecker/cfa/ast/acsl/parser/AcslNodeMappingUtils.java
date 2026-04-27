@@ -34,22 +34,22 @@ public class AcslNodeMappingUtils {
       throws AcslParseException, AcslMetadataException.AcslNodeMappingException {
 
     AcslCommentType commentType = AcslParser.acslCommentToCommentType(pComment.getComment());
-    CFANode n;
-    switch (commentType) {
-      case ASSERTION -> n = nodeForAssertion(pComment, pCFA.getAstCfaRelation());
-      case LOOP_ANNOTATION -> n = nodeForLoopAnnotation(pComment, pCFA.getAstCfaRelation());
-      case FUNCTION_CONTRACT ->
-          n = nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation());
-      case null ->
-          throw new AcslMetadataException.AcslNodeMappingException(
-              "Annotation " + pComment + " has no Antlr context.");
-      default ->
-          throw new AcslMetadataException.AcslNodeMappingException(
-              "Unexpected annotation: "
-                  + pComment
-                  + ". Parsing is currently supported for assertions, loop annotations,"
-                  + " function contracts.");
-    }
+    CFANode n =
+        switch (commentType) {
+          case ASSERTION -> nodeForAssertion(pComment, pCFA.getAstCfaRelation());
+          case LOOP_ANNOTATION -> nodeForLoopAnnotation(pComment, pCFA.getAstCfaRelation());
+          case FUNCTION_CONTRACT ->
+              nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation());
+          case null ->
+              throw new AcslMetadataException.AcslNodeMappingException(
+                  "Annotation " + pComment + " has no Antlr context.");
+          default ->
+              throw new AcslMetadataException.AcslNodeMappingException(
+                  "Unexpected annotation: "
+                      + pComment
+                      + ". Parsing is currently supported for assertions, loop annotations,"
+                      + " function contracts.");
+        };
     return Optional.of(n);
   }
 
