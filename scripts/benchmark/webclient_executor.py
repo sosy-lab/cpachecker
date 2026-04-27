@@ -204,10 +204,30 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
 
     threadlocal_webclient = _webclient
     if threadlocal_webclient:
-        threadlocal_webclient.flush_runs()
+        run_collections = threadlocal_webclient.flush_runs()
+        print("DEBUG run_collections:", run_collections)
+        if run_collections:
+            cid = run_collections[0]
+            benchmark._run_collection_id = cid
+            _inject_collection_id_into_description(output_handler, cid)
     logging.info("Run submission finished.")
     return result_futures
 
+def _inject_collection_id_into_description(output_handler, cid):
+    header = getattr(output_handler, "xml_header", None)
+    if header is None:
+        return
+
+    desc = header.find("description")
+
+    if desc is None:
+        desc = header.makeelement("description", {})
+        desc.text = cid
+        header.insert(0, desc)
+    else:
+        original = desc.text or ""
+        if not original.startswith(cid + "\n"):
+            desc.text = f"{cid}\n{original}"
 
 def _log_future_exception(result):
     if result.exception() is not None:
