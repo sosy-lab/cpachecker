@@ -29,20 +29,8 @@ record PointerTarget(
     return containerOffset + properOffset;
   }
 
-  @Override
-  public long properOffset() {
-    assert containerType != null : "The target's offset is ill-defined";
-    return properOffset;
-  }
-
   boolean isBase() {
     return containerType == null;
-  }
-
-  @Override
-  public long containerOffset() {
-    assert containerType != null : "The target's container offset is ill-defined";
-    return containerOffset;
   }
 
   @Override
