@@ -31,7 +31,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -39,8 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
@@ -56,13 +53,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibCurrentScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
@@ -70,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProceduresRecDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatement;
@@ -82,11 +76,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCal
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -108,9 +97,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
 
@@ -209,10 +195,11 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
     // 1. Step: Initialize CurrentScope with declarations of procedures and global variables,
     // global variables are added to scope +  declaration commands are added to commandsCollector
-
     transformationStatistics.initializationTime.start();
     try {
-      initializeScope(commandsCollector);
+      Initializer initializer =
+          new Initializer(cfa, scope, formulaManager, converter, INPUT_DUMMY_VAR_PREFIX);
+      initializer.initialize(commandsCollector);
     } finally {
       transformationStatistics.initializationTime.stop();
     }
@@ -368,75 +355,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
     scope.leaveProcedure();
     return procedureBodySequence;
-  }
-
-  private void initializeScope(ImmutableList.Builder<SvLibCommand> pCommandsCollector)
-      throws UnsupportedOperationException {
-    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
-      CFunctionEntryNode cEntryNode = (CFunctionEntryNode) entryNode;
-      String procedureName = entryNode.getFunctionName();
-
-      ImmutableList<SvLibParsingParameterDeclaration> inputParameters =
-          collectInputParameters(cEntryNode.getFunctionParameters(), procedureName);
-      ImmutableList<SvLibParsingParameterDeclaration> returnParameter =
-          collectReturnParameter(cEntryNode.getReturnVariable(), procedureName);
-      ImmutableList.Builder<SvLibParsingParameterDeclaration> localParametersCollector =
-          ImmutableList.builder();
-
-      // add dummy variable for inputParameters
-      for (SvLibParsingParameterDeclaration inputParameter : inputParameters) {
-        SvLibParsingParameterDeclaration dummyForInput =
-            new SvLibParsingParameterDeclaration(
-                FileLocation.DUMMY,
-                inputParameter.getType(),
-                getOriginalNameOfInputParameterDummy(inputParameter.getName()),
-                inputParameter.getProcedureName());
-        localParametersCollector.add(dummyForInput);
-      }
-
-      ImmutableList.Builder<CDeclaration> declarationsCollector = ImmutableList.builder();
-      for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
-        if (edge instanceof CDeclarationEdge declarationEdge) {
-          declarationsCollector.add(declarationEdge.getDeclaration());
-        }
-      }
-      ImmutableList<CDeclaration> declarations = declarationsCollector.build();
-
-      // collect declarations of local parameters and global variables
-      for (CDeclaration declaration : declarations) {
-        if (declaration instanceof CVariableDeclaration variableDeclaration) {
-          SvLibType type = convertToSvLibType(variableDeclaration.getType());
-
-          if (variableDeclaration.isGlobal()) {
-            SvLibParsingVariableDeclaration globalVariable =
-                new SvLibParsingVariableDeclaration(
-                    FileLocation.DUMMY,
-                    variableDeclaration.isGlobal(),
-                    variableDeclaration.getType().isConst(),
-                    type,
-                    variableDeclaration.getName(),
-                    variableDeclaration.getOrigName(),
-                    null);
-            scope.addVariable(globalVariable);
-            pCommandsCollector.add(
-                new SvLibVariableDeclarationCommand(globalVariable, FileLocation.DUMMY));
-          } else {
-            SvLibParsingParameterDeclaration parameter =
-                new SvLibParsingParameterDeclaration(
-                    FileLocation.DUMMY, type, declaration.getName(), procedureName);
-            localParametersCollector.add(parameter);
-          }
-        }
-      }
-      SvLibProcedureDeclaration procedureDeclaration =
-          new SvLibProcedureDeclaration(
-              FileLocation.DUMMY,
-              procedureName,
-              inputParameters,
-              returnParameter,
-              localParametersCollector.build());
-      scope.addProcedureDeclaration(procedureDeclaration);
-    }
   }
 
   private void handleEdge(
@@ -709,63 +627,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         ImmutableList.of());
   }
 
-  private ImmutableList<SvLibParsingParameterDeclaration> collectReturnParameter(
-      Optional<CVariableDeclaration> pReturnVariable, String pProcedureName)
-      throws UnsupportedOperationException {
-    if (pReturnVariable.isEmpty()) {
-      return ImmutableList.of();
-    }
-    if (pReturnVariable.orElseThrow().getType() instanceof CSimpleType asSimpleType) {
-      return ImmutableList.of(
-          new SvLibParsingParameterDeclaration(
-              FileLocation.DUMMY,
-              convertToSvLibType(asSimpleType),
-              pReturnVariable.orElseThrow().getName(),
-              pProcedureName));
-    }
-    return ImmutableList.of();
-  }
-
-  private ImmutableList<SvLibParsingParameterDeclaration> collectInputParameters(
-      ImmutableList<CParameterDeclaration> pParameterDeclarations, String pProcedureName)
-      throws UnsupportedOperationException {
-    ImmutableList.Builder<SvLibParsingParameterDeclaration> parameterCollector =
-        ImmutableList.builder();
-
-    for (CParameterDeclaration parameter : pParameterDeclarations) {
-      if (parameter.asVariableDeclaration().getType() instanceof CSimpleType asSimpleType) {
-        parameterCollector.add(
-            new SvLibParsingParameterDeclaration(
-                FileLocation.DUMMY,
-                convertToSvLibType(asSimpleType),
-                getNameForInputParameterDummy(parameter.getName()),
-                pProcedureName));
-      }
-    }
-    return parameterCollector.build();
-  }
-
-  private SvLibType convertToSvLibType(CType pCType) {
-    FormulaType<?> formulaType = converter.getFormulaTypeFromType(pCType);
-    FormulaType<Formula> encodedFormulaType = formulaManager.getEncodedFormulaType(formulaType);
-
-    if (encodedFormulaType.isBooleanType()) {
-      return SvLibSmtLibPredefinedType.BOOL;
-    } else if (encodedFormulaType.isIntegerType()) {
-      return SvLibSmtLibPredefinedType.INT;
-    } else if (encodedFormulaType.isStringType()) {
-      return SvLibSmtLibPredefinedType.STRING;
-    } else if (encodedFormulaType.isFloatingPointType() || encodedFormulaType.isRationalType()) {
-      return SvLibSmtLibPredefinedType.REAL;
-    } else if (encodedFormulaType.isBitvectorType()) {
-      BitvectorType bitvectorType = (BitvectorType) formulaType;
-      return new SvLibSmtLibBitVectorType(bitvectorType.getSize());
-    }
-
-    throw new UnsupportedOperationException(
-        "Transformation to a SvLibType failed for CType " + pCType);
-  }
-
   private ImmutableList<CFAEdge> getAllRelevantEdges(FunctionEntryNode pEntryNode) {
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pEntryNode, edgeCollector);
@@ -812,10 +673,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         FileLocation.DUMMY,
         ImmutableList.of(),
         ImmutableList.of(new SvLibTagReference(pProcedureName, FileLocation.DUMMY)));
-  }
-
-  private String getNameForInputParameterDummy(String pOriginalName) {
-    return INPUT_DUMMY_VAR_PREFIX + pOriginalName;
   }
 
   private String getOriginalNameOfInputParameterDummy(String pDummyName) {
