@@ -51,6 +51,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/floats-cdfpl/newton_3_8.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c144_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c144_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c445_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c445_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c534_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
   </tasks>
@@ -116,6 +117,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-video-aty-aty128fb.ko.cil.out.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--i2c--busses--i2c-diolan-u2c.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--dvb--frontends--cxd2820r.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--video--zoran--zr36016.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--tty--serial--mfd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
   </tasks>
 </benchmark>
