@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
@@ -52,7 +51,7 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
   }
 
   @Override
-  public @Nullable String getProcedureName() {
+  public @NonNull String getProcedureName() {
     return name;
   }
 
