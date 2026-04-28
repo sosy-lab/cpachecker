@@ -13,8 +13,11 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -23,10 +26,16 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibCurrentScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -39,6 +48,10 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
 public class Initializer {
+
+  // TODO change to option! Dont forget prefix!
+  // @Option(secure = true, description = "Use SV-COMP semantics for some extern functions.")
+  private boolean useSvCompSemanticsForExternFunctions = true;
 
   private final CFA cfa;
   private final SvLibCurrentScope scope;
@@ -109,6 +122,20 @@ public class Initializer {
                 new SvLibParsingParameterDeclaration(
                     FileLocation.DUMMY, type, declaration.getName(), procedureName);
             localParametersCollector.add(parameter);
+          }
+        } else if (declaration instanceof CFunctionDeclaration functionDeclaration) {
+          boolean isExtern = !cfa.getAllFunctionNames().contains(functionDeclaration.getName());
+          if (isExtern) {
+            SvLibProcedureDeclaration externProcedureDeclaration =
+                createProcedureDeclarationForExternFunction(functionDeclaration);
+            SvLibStatement externProcedureBody =
+                createBodyForExternProcedure(externProcedureDeclaration);
+
+            scope.addProcedureDeclaration(externProcedureDeclaration);
+            SvLibProcedureDefinitionCommand externProcedureDefinition =
+                new SvLibProcedureDefinitionCommand(
+                    FileLocation.DUMMY, externProcedureDeclaration, externProcedureBody);
+            pCommandsCollector.add(externProcedureDefinition);
           }
         }
       }
@@ -207,5 +234,118 @@ public class Initializer {
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pEntryNode, edgeCollector);
     return ImmutableList.copyOf(edgeCollector.getVisitedEdges());
+  }
+
+  private SvLibProcedureDeclaration createProcedureDeclarationForExternFunction(
+      CFunctionDeclaration pCFunctionDeclaration) {
+    String functionName = pCFunctionDeclaration.getName();
+
+    ImmutableList.Builder<SvLibParsingParameterDeclaration> returnParameterCollector =
+        ImmutableList.builder();
+    CType originalCReturnType = pCFunctionDeclaration.getType().getReturnType();
+    if (!(originalCReturnType instanceof CVoidType)) {
+      SvLibType convertedReturnType = convertToSvLibType(originalCReturnType);
+      SvLibParsingParameterDeclaration returnParameterDeclaration =
+          new SvLibParsingParameterDeclaration(
+              FileLocation.DUMMY, convertedReturnType, "_retval_", functionName);
+      returnParameterCollector.add(returnParameterDeclaration);
+    }
+
+    ImmutableList<CParameterDeclaration> inputParameters = pCFunctionDeclaration.getParameters();
+    // TODO Ask: is there a reason to prefer one over the other?
+    //  ImmutableList<CType> parameters_as_CType = pCFunctionDeclaration.getType().getParameters();
+    ImmutableList.Builder<SvLibParsingParameterDeclaration> convertedInputParametersCollector =
+        ImmutableList.builder();
+    for (CParameterDeclaration inputParameter : inputParameters) {
+      SvLibParsingParameterDeclaration convertedInputParameter =
+          new SvLibParsingParameterDeclaration(
+              FileLocation.DUMMY,
+              convertToSvLibType(inputParameter.getType()),
+              inputParameter.getName(),
+              functionName);
+      convertedInputParametersCollector.add(convertedInputParameter);
+    }
+
+    return new SvLibProcedureDeclaration(
+        FileLocation.DUMMY,
+        functionName,
+        convertedInputParametersCollector.build(),
+        returnParameterCollector.build(),
+        ImmutableList.of());
+  }
+
+  private SvLibStatement createBodyForExternProcedure(
+      SvLibProcedureDeclaration pProcedureDeclaration) {
+    String procedureName = pProcedureDeclaration.getProcedureName();
+
+    if (procedureName.contains("abort")) {
+      return new SvLibAssumeStatement(
+          FileLocation.DUMMY,
+          new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+          ImmutableList.of(),
+          ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)));
+    }
+
+    if (useSvCompSemanticsForExternFunctions) {
+      if (procedureName.contains("__VERIFIER_nondet_memory")) {
+        // implement when a memory model exists
+        throw new UnsupportedOperationException(
+            "Transformation of programs that include extern function __VERIFIER_nondet_memory() is"
+                + " not supported.");
+      } else if (procedureName.contains("__VERIFIER_nondet")) {
+        if (!pProcedureDeclaration.getReturnValues().isEmpty()) {
+          // TODO assume statement to conform to C type
+          return new SvLibHavocStatement(
+              FileLocation.DUMMY,
+              ImmutableList.of(),
+              ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)),
+              castListToSimpleParsingDeclaration(pProcedureDeclaration.getReturnValues()));
+        } /*else {
+            throw new UnsupportedOperationException(
+                "Failed to create procedure for "
+                    + procedureName
+                    + " because the return parameter is empty.");
+          }*/
+
+      } else if (procedureName.contains("assert_fail")
+          || procedureName.contains("__VERIFIER_error")) {
+        // FIXME probably better to just leave empty and encode later depending on property
+        return new SvLibAssumeStatement(
+            FileLocation.DUMMY,
+            new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+            ImmutableList.of(),
+            ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)));
+      }
+      // TODO implement verifier_assume?
+    }
+
+    // havoc return value for extern, non-void functions
+    if (!pProcedureDeclaration.getReturnValues().isEmpty()) {
+      return new SvLibHavocStatement(
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)),
+          castListToSimpleParsingDeclaration(pProcedureDeclaration.getReturnValues()));
+    }
+
+    // skip for extern, void functions
+    return new SvLibAssumeStatement(
+        FileLocation.DUMMY,
+        new SvLibBooleanConstantTerm(true, FileLocation.DUMMY),
+        ImmutableList.of(),
+        ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)));
+  }
+
+  private ImmutableList<SvLibSimpleParsingDeclaration> castListToSimpleParsingDeclaration(
+      ImmutableList<SvLibParsingParameterDeclaration> pParameters) {
+
+    ImmutableList.Builder<SvLibSimpleParsingDeclaration> simpleDeclarations =
+        ImmutableList.builder();
+    if (!pParameters.isEmpty()) {
+      for (SvLibParsingParameterDeclaration parameterDeclaration : pParameters) {
+        simpleDeclarations.add(parameterDeclaration);
+      }
+    }
+    return simpleDeclarations.build();
   }
 }

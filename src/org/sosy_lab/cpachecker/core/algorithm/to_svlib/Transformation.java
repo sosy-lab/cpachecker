@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaratio
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibGotoStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibIfStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibLabelStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
@@ -284,67 +283,46 @@ public class Transformation {
     return formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor);
   }
 
-  private SvLibStatement handleExternFunctionCall(CStatementEdge pStatementEdge) {
-    // TODO handle calls to other extern functions
+  private SvLibStatement handleExternFunctionCall(CStatementEdge pStatementEdge)
+      throws CPATransferException, InterruptedException {
+    // handle calls to other extern functions,
     //  i.e. every function call which does not have corresponding a functionEntryNode
     if (pStatementEdge.getStatement()
         instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement) {
-
-      /*if (functionCallAssignmentStatement
-          .getRightHandSide()
-          .getFunctionNameExpression()
-          .toASTString()
-          .contains("VERIFIER_nondet_memory")) {
-        // TODO implement this when a  memory model is ready
-      } else*/
-      if (functionCallAssignmentStatement
-              .getRightHandSide()
-              .getFunctionNameExpression()
-              .toASTString()
-              .contains("VERIFIER_nondet")
-          && functionCallAssignmentStatement.getLeftHandSide()
-              instanceof CIdExpression lhsIdExpression) {
-        // TODO also consider the other possibilities  for lhs (CArraySubscriptExpression,
-        //        CComplexCastExpression, CFieldReference, CPointerExpression)
-        SvLibSimpleParsingDeclaration assignedTo =
-            scope.getVariableForQualifiedName(lhsIdExpression.getDeclaration().getQualifiedName());
-        return new SvLibHavocStatement(
-            FileLocation.DUMMY,
-            ImmutableList.of(),
-            ImmutableList.of(),
-            ImmutableList.of(assignedTo));
-      }
+      CIdExpression leftHandSide =
+          (CIdExpression) functionCallAssignmentStatement.getLeftHandSide();
+      return new SvLibProcedureCallStatement(
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of(),
+          scope.getProcedureDeclaration(
+              functionCallAssignmentStatement
+                  .getRightHandSide()
+                  .getFunctionNameExpression()
+                  .toASTString()),
+          transformInputParameters(
+              functionCallAssignmentStatement.getRightHandSide().getParameterExpressions(),
+              pStatementEdge),
+          ImmutableList.of(
+              scope.getVariableForQualifiedName(leftHandSide.getDeclaration().getQualifiedName())));
     } else if (pStatementEdge.getStatement()
         instanceof CFunctionCallStatement functionCallStatement) {
-      if (functionCallStatement
-          .getFunctionCallExpression()
-          .getFunctionNameExpression()
-          .toASTString()
-          .contains("__VERIFIER_nondet")) {
-        // use 'skip' for __VERIFIER_nondet without assignment
-        return new SvLibAssumeStatement(
-            FileLocation.DUMMY,
-            new SvLibBooleanConstantTerm(true, FileLocation.DUMMY),
-            ImmutableList.of(),
-            ImmutableList.of());
-      } else if (functionCallStatement
-          .getFunctionCallExpression()
-          .getFunctionNameExpression()
-          .toASTString()
-          .contains("abort")) {
-        return new SvLibAssumeStatement(
-            FileLocation.DUMMY,
-            new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
-            ImmutableList.of(),
-            ImmutableList.of(new SvLibTagReference("abort", FileLocation.DUMMY)));
-      }
+      return new SvLibProcedureCallStatement(
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of(),
+          scope.getProcedureDeclaration(
+              functionCallStatement
+                  .getFunctionCallExpression()
+                  .getFunctionNameExpression()
+                  .toASTString()),
+          transformInputParameters(
+              functionCallStatement.getFunctionCallExpression().getParameterExpressions(),
+              pStatementEdge),
+          ImmutableList.of());
     }
-    // FIXME throw instead of returning SKIP
-    return new SvLibAssumeStatement(
-        FileLocation.DUMMY,
-        new SvLibBooleanConstantTerm(true, FileLocation.DUMMY),
-        ImmutableList.of(),
-        ImmutableList.of());
+    throw new UnsupportedOperationException(
+        "Failed to transform call to extern C function to SvLib based on Edge " + pStatementEdge);
   }
 
   private SvLibProcedureCallStatement handleFunctionCall(CFunctionSummaryEdge pCallEdge)
@@ -383,7 +361,7 @@ public class Transformation {
   }
 
   private ImmutableList<SvLibTerm> transformInputParameters(
-      ImmutableList<CExpression> pCParameters, CFunctionSummaryEdge pCallEdge)
+      ImmutableList<CExpression> pCParameters, CFAEdge pCallEdge)
       throws CPATransferException, InterruptedException {
     ImmutableList.Builder<SvLibTerm> callInputParameterCollector = ImmutableList.builder();
     for (CExpression inputParameter : pCParameters) {
