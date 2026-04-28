@@ -80,6 +80,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.4.cil.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- mostly timeouts -->

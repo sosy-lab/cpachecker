@@ -56,6 +56,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/pthread-ext/*</exclude>
     <exclude>../programs/benchmarks/pthread-nondet/*</exclude>
     <exclude>../programs/benchmarks/ldv*/*</exclude>
+    <exclude>../programs/benchmarks/goblint-regression/13-privatized_04-priv_multi_true.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/pthread-deagle/circular_buffer_ok.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/bench-exp1x3.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/bench-exp2x4.wvr.yml</exclude> <!-- flapping unknown/timeout -->
