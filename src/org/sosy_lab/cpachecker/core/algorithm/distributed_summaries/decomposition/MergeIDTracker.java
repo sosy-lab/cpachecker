@@ -50,7 +50,7 @@ public class MergeIDTracker {
     assert map.put(newID, newID) == null;
   }
 
-  ImmutableSet<BlockNode> mapBlockNodes(Iterable<BlockNode> nodes) {
+  ImmutableSet<BlockNode> mapBlockNodeEdges(Iterable<BlockNode> nodes) {
     return FluentIterable.from(nodes)
         .transform(
             node ->

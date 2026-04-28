@@ -78,7 +78,7 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
         break;
       }
     }
-    return idTracker.mapBlockNodes(blockScopes.values());
+    return idTracker.mapBlockNodeEdges(blockScopes.values());
   }
 
   private BlockNode mergeBlocksHorizontally(Collection<BlockNode> pCollection, BlockScope pScope) {

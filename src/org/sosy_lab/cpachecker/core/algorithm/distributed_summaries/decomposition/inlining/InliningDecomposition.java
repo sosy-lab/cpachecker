@@ -79,7 +79,7 @@ public class InliningDecomposition implements DssBlockDecomposition {
 
     BlockNode callingBlock = stack.getLastCallBlock();
 
-    String callingBlockId = callingBlock != null ? stack.getLastCallBlock().getId() : null;
+    String callingBlockId = callingBlock != null ? callingBlock.getId() : null;
     String returnBlockId =
         callingBlock != null
             ? getReturnBlockIdForEntryNode(stack.getLastCallScc(), callingBlock)
@@ -273,28 +273,28 @@ public class InliningDecomposition implements DssBlockDecomposition {
       Function<String, String> successorMapper) {
 
     ImmutableSet<String> mappedPredecessors =
-        original.getPredecessorIds().stream()
+        FluentIterable.from(original.getPredecessorIds())
             .filter(predecessorFilter)
-            .map(predecessorMapper)
-            .collect(ImmutableSet.toImmutableSet());
+            .transform(predecessorMapper)
+            .toSet();
 
     ImmutableSet<String> mappedLoopPredecessors =
-        original.getLoopPredecessorIds().stream()
+        FluentIterable.from(original.getLoopPredecessorIds())
             .filter(predecessorFilter)
-            .map(predecessorMapper)
-            .collect(ImmutableSet.toImmutableSet());
+            .transform(predecessorMapper)
+            .toSet();
 
     ImmutableSet<String> mappedSuccessors =
-        original.getSuccessorIds().stream()
+        FluentIterable.from(original.getSuccessorIds())
             .filter(successorFilter)
-            .map(successorMapper)
-            .collect(ImmutableSet.toImmutableSet());
+            .transform(successorMapper)
+            .toSet();
 
     ImmutableSet<String> mappedLoopSuccessors =
-        original.getLoopSuccessorIds().stream()
+        FluentIterable.from(original.getLoopSuccessorIds())
             .filter(successorFilter)
-            .map(successorMapper)
-            .collect(ImmutableSet.toImmutableSet());
+            .transform(successorMapper)
+            .toSet();
 
     return new BlockNode(
         idMapper.apply(original.getId()),

@@ -8,83 +8,87 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining;
 
-import com.google.common.collect.ImmutableList;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.FunctionSCCGraph.FunctionSCC;
 
-// TODO is this too inefficient? Using a linked List like structure would save a lot of copies
-public record CallStack(ImmutableList<CallSite> calls) {
+public class CallStack {
 
-  private static final CallStack EMPTY = new CallStack(ImmutableList.of());
+  private final Optional<CallFrame> topFrame;
 
-  private record CallSite(FunctionSCC scc, BlockNode block) {
-    @Override
-    public String toString() {
-      return scc + ":" + block.getId();
+  private record CallFrame(Optional<CallFrame> parent, FunctionSCC scc, BlockNode callBlock) {
+    void appendAsString(StringBuilder builder) {
+      builder.append(scc);
+      builder.append(':');
+      builder.append(callBlock.getId());
+      if (parent.isPresent()) {
+        builder.append('@');
+        parent.get().appendAsString(builder);
+      }
     }
   }
+
+  private CallStack(CallFrame topFrame) {
+    this.topFrame = Optional.of(topFrame);
+  }
+
+  private CallStack(Optional<CallFrame> topFrame) {
+    this.topFrame = topFrame;
+  }
+
+  private CallStack() {
+    topFrame = Optional.empty();
+  }
+
+  private static final CallStack EMPTY = new CallStack();
 
   /** Returns a new CallStack that has the given call site added at the top */
   public CallStack addCall(FunctionSCC scc, BlockNode block) {
-
-    ImmutableList.Builder<CallSite> builder = ImmutableList.builder();
-    builder.addAll(calls);
-    builder.add(new CallSite(scc, block));
-
-    return new CallStack(builder.build());
+    return new CallStack(new CallFrame(topFrame, scc, block));
   }
 
   public CallStack pop() {
-    if (calls.isEmpty()) {
-      return this;
+    if (topFrame.isEmpty()) {
+      return EMPTY;
     }
-    ImmutableList.Builder<CallSite> builder = ImmutableList.builder();
-    // copy all except the last (top) element
-    for (int i = 0; i < calls.size() - 1; i++) {
-      builder.add(calls.get(i));
-    }
-    ImmutableList<CallSite> newCalls = builder.build();
-    return newCalls.isEmpty() ? EMPTY : new CallStack(newCalls);
+    return new CallStack(topFrame.get().parent);
   }
 
   public static CallStack empty() {
     return EMPTY;
   }
 
+  public String asString() {
+    if (topFrame.isPresent()) {
+      StringBuilder builder = new StringBuilder();
+      topFrame.get().appendAsString(builder);
+      return builder.toString();
+    }
+    return "";
+  }
+
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-
-    // We want to read it in reverse order
-    for (int i = calls.size() - 1; i >= 0; i--) {
-      builder.append(calls.get(i));
-      if (i != 0) {
-        builder.append('@');
-      }
-    }
-
-    return builder.toString();
+    return asString();
   }
 
   public String toStringWithBlockId(String nodeId) {
-    if (equals(empty())) {
+    if (topFrame.isEmpty()) {
       return nodeId;
-    } else {
-      return nodeId + "@" + this;
     }
-  }
 
-  public BlockNode getLastCallBlock() {
-    if (calls.isEmpty()) {
-      return null;
-    }
-    return calls.getLast().block;
+    StringBuilder builder = new StringBuilder();
+    builder.append(nodeId);
+    builder.append('@');
+    topFrame.get().appendAsString(builder);
+    return builder.toString();
   }
 
   public FunctionSCC getLastCallScc() {
-    if (calls.isEmpty()) {
-      return null;
-    }
-    return calls.getLast().scc;
+    return topFrame.map(f -> f.scc()).orElse(null);
+  }
+
+  public BlockNode getLastCallBlock() {
+    return topFrame.map(f -> f.callBlock()).orElse(null);
   }
 }

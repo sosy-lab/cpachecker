@@ -105,7 +105,11 @@ public class DssDecompositionOptions {
           new VerticalMergeDecomposition(
               new BridgeDecomposition(), 1, Comparator.comparingInt(b -> b.getEdges().size()));
       case INLINING_DECOMPOSITION ->
-          new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd));
+          new MergeBlockNodesDecomposition(
+              new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd)),
+              2,
+              Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+              allowSingleBlockDecompositionWhenMerging);
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }

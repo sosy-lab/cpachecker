@@ -98,7 +98,7 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
       }
     }
 
-    return idTracker.mapBlockNodes(blocks.values());
+    return idTracker.mapBlockNodeEdges(blocks.values());
   }
 
   private BlockNode mergeBlocksVertically(BlockNode pBlockNode1, BlockNode pBlockNode2) {
