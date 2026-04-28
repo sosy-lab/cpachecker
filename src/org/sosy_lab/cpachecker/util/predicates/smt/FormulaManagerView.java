@@ -450,7 +450,7 @@ public class FormulaManagerView {
     return wrappingHandler.wrap(targetType, toWrap);
   }
 
-  public <T extends Formula> Formula unwrap(T f) {
+  private <T extends Formula> Formula unwrap(T f) {
     return wrappingHandler.unwrap(f);
   }
 
@@ -1115,6 +1115,12 @@ public class FormulaManagerView {
 
   private <T extends Formula> FormulaType<T> getRawFormulaType(T pFormula) {
     return manager.getFormulaType(pFormula);
+  }
+
+  public <T extends Formula> FormulaType<Formula> getEncodedFormulaType(
+      FormulaType<T> formulaType) {
+    Formula dummyFormula = unwrap(makeVariable(formulaType, "DUMMY_NAME"));
+    return getFormulaType(dummyFormula);
   }
 
   public <T extends Formula> BooleanFormula assignment(T left, T right) {

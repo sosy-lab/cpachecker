@@ -108,14 +108,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
-import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
 
@@ -752,28 +747,21 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   private SvLibType convertToSvLibType(CType pCType) {
     FormulaType<?> formulaType = converter.getFormulaTypeFromType(pCType);
-    Formula dummyFormula = formulaManager.makeVariable(formulaType, "dummy");
-    Formula unwrapedDummyFormula = formulaManager.unwrap(dummyFormula);
+    FormulaType<Formula> encodedFormulaType = formulaManager.getEncodedFormulaType(formulaType);
 
-    switch (unwrapedDummyFormula) {
-      case BooleanFormula ignored -> {
-        return SvLibSmtLibPredefinedType.BOOL;
-      }
-      case IntegerFormula ignored -> {
-        return SvLibSmtLibPredefinedType.INT;
-      }
-      case RationalFormula ignored -> {
-        return SvLibSmtLibPredefinedType.REAL;
-      }
-      case FloatingPointFormula ignored -> {
-        return SvLibSmtLibPredefinedType.REAL;
-      }
-      case BitvectorFormula ignored when formulaType.isBitvectorType() -> {
-        BitvectorType bitvectorType = (BitvectorType) formulaType;
-        return new SvLibSmtLibBitVectorType(bitvectorType.getSize());
-      }
-      default -> {}
+    if (encodedFormulaType.isBooleanType()) {
+      return SvLibSmtLibPredefinedType.BOOL;
+    } else if (encodedFormulaType.isIntegerType()) {
+      return SvLibSmtLibPredefinedType.INT;
+    } else if (encodedFormulaType.isStringType()) {
+      return SvLibSmtLibPredefinedType.STRING;
+    } else if (encodedFormulaType.isFloatingPointType() || encodedFormulaType.isRationalType()) {
+      return SvLibSmtLibPredefinedType.REAL;
+    } else if (encodedFormulaType.isBitvectorType()) {
+      BitvectorType bitvectorType = (BitvectorType) formulaType;
+      return new SvLibSmtLibBitVectorType(bitvectorType.getSize());
     }
+
     throw new UnsupportedOperationException(
         "Transformation to a SvLibType failed for CType " + pCType);
   }
