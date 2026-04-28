@@ -215,8 +215,8 @@ public class Initializer {
       // return the name without the prefix
       return pDummyName.substring(INPUT_DUMMY_VAR_PREFIX.length());
     }
-    // FIXME This case should never occur, so throw instead?
-    return pDummyName;
+    throw new IllegalArgumentException(
+        "Cannot remove prefix " + INPUT_DUMMY_VAR_PREFIX + " from name " + pDummyName);
   }
 
   private ImmutableList<CFAEdge> getAllRelevantEdges(FunctionEntryNode pEntryNode) {
