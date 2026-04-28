@@ -64,7 +64,7 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
         new MergeIDTracker(FluentIterable.from(pNodes).transform(n -> n.getId()));
 
     for (BlockScope blockScope : ImmutableSet.copyOf(blockScopes.keySet())) {
-      if (blockScopes.get(blockScope).size() <= 1) {
+      if (blockScopes.get(blockScope).size() <= 1 || blockScope.successors.isEmpty()) {
         continue;
       }
 
