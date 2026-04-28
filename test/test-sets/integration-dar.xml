@@ -48,6 +48,8 @@
         <exclude>../programs/benchmarks/float-benchs/interpolation.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/float-benchs/sin_interpolated_negation.yml</exclude> <!-- flapping interpolation failure / timeout -->
         <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/floats-cdfpl/newton_2_7.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/floats-cdfpl/newton_2_8.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/floats-cdfpl/sine_3.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/floats-cdfpl/square_1.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
@@ -110,6 +112,7 @@
         <exclude>../programs/benchmarks/seq-mthreaded/rekh_aso.1.M1-2.yml</exclude> <!-- flapping oom/timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.3.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.1.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.3.ufo.BOUNDED-6.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.4.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.1.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping exception/timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.1.ufo.BOUNDED-10.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->

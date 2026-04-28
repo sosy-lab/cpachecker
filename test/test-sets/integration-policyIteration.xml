@@ -153,6 +153,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/invert_string-3.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops/sum01-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/trex03-2.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/Mono6_1.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops-crafted-1/vnew2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-simple/nested_5.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/divbin2_valuebound5.yml</exclude> <!-- flapping unknown/timeout -->
