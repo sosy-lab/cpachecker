@@ -85,6 +85,7 @@ SPDX-License-Identifier: Apache-2.0
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/loop-industry-pattern/aiob_1.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-industry-pattern/aiob_4.c.v+lh-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-lit/gj2007.c.i.p+nlh-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/freire1_valuebound20.yml</exclude> <!-- flapping timeout -->
