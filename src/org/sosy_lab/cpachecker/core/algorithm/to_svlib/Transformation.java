@@ -167,13 +167,13 @@ public class Transformation {
             new SvLibIdTerm(inputParameter.toSimpleDeclaration(), FileLocation.DUMMY));
       }
 
-      SvLibAssignmentStatement assginDummyInput =
+      SvLibAssignmentStatement assignDummyInput =
           new SvLibAssignmentStatement(
               inputAssignmentsCollector.buildOrThrow(),
               FileLocation.DUMMY,
               ImmutableList.of(),
               ImmutableList.of());
-      statementCollector.put(pEntryNode, assginDummyInput);
+      statementCollector.put(pEntryNode, assignDummyInput);
     }
 
     ImmutableList<CFAEdge> relevantEdges = getAllRelevantEdges(pEntryNode);
