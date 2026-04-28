@@ -45,7 +45,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
         pLast);
   }
 
-  BlockNode(
+  public BlockNode(
       String pId,
       CFANode pFirst,
       CFANode pLast,

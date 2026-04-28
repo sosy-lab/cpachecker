@@ -82,7 +82,7 @@ public class InliningDecomposition implements DssBlockDecomposition {
     String callingBlockId = callingBlock != null ? stack.getLastCallBlock().getId() : null;
     String returnBlockId =
         callingBlock != null
-            ? getReturnBlockForEntryNode(stack.getLastCallScc(), callingBlock).getId()
+            ? getReturnBlockIdForEntryNode(stack.getLastCallScc(), callingBlock)
             : null;
 
     return FluentIterable.from(scc.functions())
@@ -228,10 +228,11 @@ public class InliningDecomposition implements DssBlockDecomposition {
     return Iterables.getOnlyElement(
         FluentIterable.from(scc.functions())
             .transformAndConcat(f -> f.blockNodes())
-            .filter(n -> n.getNodes().contains(callNode)));
+            .filter(
+                n -> n.getNodes().contains(callNode) && !n.getFinalLocation().equals(callNode)));
   }
 
-  private BlockNode getReturnBlockForEntryNode(FunctionSCC callingScc, BlockNode callingBlock) {
+  private String getReturnBlockIdForEntryNode(FunctionSCC callingScc, BlockNode callingBlock) {
 
     assert callingBlock.getFinalLocation() instanceof FunctionEntryNode;
 
@@ -247,13 +248,20 @@ public class InliningDecomposition implements DssBlockDecomposition {
                 .filter(e -> e instanceof CFunctionSummaryEdge)
                 .transform(e -> e.getSuccessor()));
 
-    return Iterables.getOnlyElement(
+    FluentIterable<BlockNode> callBlock =
         FluentIterable.from(callingScc.functions())
             .transformAndConcat(f -> f.blockNodes())
             .filter(
                 n ->
                     n.getNodes().contains(returnNode)
-                        && !n.getInitialLocation().equals(returnNode)));
+                        && !n.getInitialLocation().equals(returnNode));
+
+    assert callBlock.size() <= 1;
+    if (callBlock.isEmpty()) {
+      return null;
+    }
+
+    return callBlock.get(0).getId();
   }
 
   private BlockNode copyWithMappedBlockIds(

@@ -181,12 +181,11 @@ public class FunctionGraph {
                 .filter(e -> current.getEdges().contains(e)) // all call edges in this block
                 .transformAndConcat(e -> e.getPredecessor().getAllLeavingEdges())
                 .filter(e -> e instanceof CFunctionSummaryEdge) // the corresponding summary edges
-                .transform(
+                .transformAndConcat(
                     se ->
-                        Iterables.getOnlyElement(
-                            se.getSuccessor()
-                                .getAllEnteringEdges()
-                                .filter(re -> !(re instanceof CFunctionSummaryEdge))))
+                        se.getSuccessor()
+                            .getAllEnteringEdges()
+                            .filter(re -> !(re instanceof CFunctionSummaryEdge)))
                 .toSet(); // the corresponding return edge
 
         // visit all the blocks that contain such an edge
