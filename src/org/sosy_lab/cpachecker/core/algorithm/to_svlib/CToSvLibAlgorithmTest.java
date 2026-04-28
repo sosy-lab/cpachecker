@@ -97,7 +97,7 @@ public class CToSvLibAlgorithmTest {
 
   // *********************************** CfaToCExport ***********************************
 
-  // This test acutally only takes about 600 ms, but when running it in isolation within an IDE,
+  // This test actually only takes about 600 ms, but when running it in isolation within an IDE,
   // one needs to factor in a startup time of around 1 second.
   @Test(timeout = 3000)
   public void testAllCfaToC() throws Exception {
