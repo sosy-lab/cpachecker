@@ -127,7 +127,7 @@ SPDX-License-Identifier: Apache-2.0
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
-    <target name="tests" depends="unit-tests, configuration-checks" description="Run all tests"/>
+    <target name="tests" depends="unit-tests, configuration-checks" description="Run tests"/>
 
     <target name="all-checks" description="Run all tests and checks">
         <!-- We have to use antcall here to run clean twice. -->
@@ -164,5 +164,5 @@ SPDX-License-Identifier: Apache-2.0
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target name="standard-checks" depends="tests, spotbugs, checkstyle, forbiddenapis"/>
+    <target name="standard-checks" depends="tests, spotbugs, checkstyle, forbiddenapis" description="Run standard tests and checks"/>
 </project>
