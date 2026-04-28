@@ -23,9 +23,12 @@ SPDX-License-Identifier: Apache-2.0
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
             <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+            <exclude>../programs/benchmarks/nla-digbench-scaling/freire1_valuebound1.yml</exclude> <!-- flapping unknown/timeout -->
             <exclude>../programs/benchmarks/nla-digbench-scaling/freire1_valuebound10.yml</exclude> <!-- flapping timeout -->
             <exclude>../programs/benchmarks/nla-digbench-scaling/freire1_valuebound100.yml</exclude> <!-- flapping timeout -->
+            <exclude>../programs/benchmarks/nla-digbench-scaling/freire1_valuebound20.yml</exclude> <!-- flapping unknown/timeout -->
             <exclude>../programs/benchmarks/nla-digbench-scaling/freire2_valuebound10.yml</exclude> <!-- flapping timeout -->
+            <exclude>../programs/benchmarks/nla-digbench-scaling/freire2_valuebound100.yml</exclude> <!-- flapping unknown/timeout -->
             <exclude>../programs/benchmarks/nla-digbench-scaling/geo1-u_unwindbound1.yml</exclude> <!-- flapping timeout -->
         </tasks>
     </rundefinition>

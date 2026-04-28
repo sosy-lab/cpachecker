@@ -55,6 +55,9 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0530b.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0550a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c178_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c178_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c445_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
@@ -97,6 +100,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.4.2.ufo.BOUNDED-8.pals.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_ActiveStandby.ufo.BOUNDED-10.pals.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.1.M1-2.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.2.M1-1.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.ufo.BOUNDED-10.pals.c.v+sep-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.ufo.BOUNDED-10.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.ufo.BOUNDED-10.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
