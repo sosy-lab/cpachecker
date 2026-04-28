@@ -25,14 +25,21 @@ Be aware that the integration tests expect that the directory `c`
 of the [sv-benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks)
 is linked/copied to `../test/programs/benchmarks`.
 
+Tests that automatically run each CPAchecker configuration on a trivial program
+are executed with `ant configuration-checks` and in [GitLab CI](https://gitlab.com/sosy-lab/software/cpachecker/pipelines).
+
 Unit Tests
 ----------
 
-Run `ant tests` from the project root directory.
+Run `ant unit-tests` from the project root directory.
 An HTML report with the results will be generated as `JUnit.html`.
 Of course the unit tests can also be executed from within your IDE.
 
 These tests are also executed by [GitLab CI](https://gitlab.com/sosy-lab/software/cpachecker/pipelines).
+
+Some particularly expensive tests (which take several minutes)
+are disabled by default and can be enabled with
+`-Djunit.enableExpensiveTests=true` on the command line.
 
 Structure of Tests
 ------------------
