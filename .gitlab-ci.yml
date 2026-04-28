@@ -22,10 +22,16 @@ spec:
       description: "Run expensive tests as part of unit tests"
       type: boolean
       default: false
+    tests_per_java_version:
+      description: "Run tests on several Java versions instead of just one"
+      type: boolean
+      default: false
 ---
 
 include:
   - local: build/gitlab-ci.local.yml
+    inputs:
+      tests_per_java_version: $[[ inputs.tests_per_java_version ]]
     rules:
       - if: $[[ inputs.auto_update_dependencies ]] != true
 
