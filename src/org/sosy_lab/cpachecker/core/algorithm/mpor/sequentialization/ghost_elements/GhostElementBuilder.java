@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariablesBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatementBuilder;
@@ -35,13 +35,14 @@ public record GhostElementBuilder(
     ImmutableList<MPORThread> threads,
     ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
-    MemoryModel memoryModel,
+    SeqPointerAliasingMap pointerAliasingMap,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   public GhostElements buildGhostElements() throws UnrecognizedCodeException {
     Optional<SeqBitVectorVariables> bitVectorVariables =
         options.isAnyBitVectorReductionEnabled()
-            ? new SeqBitVectorVariablesBuilder(options, threads, substituteEdges, memoryModel)
+            ? new SeqBitVectorVariablesBuilder(
+                    options, threads, substituteEdges, pointerAliasingMap)
                 .buildBitVectorVariables()
             : Optional.empty();
 

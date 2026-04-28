@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
-public class MemoryModelStructTest {
+public class SeqPointerAliasingStructTest {
 
   // Simple Types
 
@@ -166,7 +166,7 @@ public class MemoryModelStructTest {
       SeqMemoryLocation.of(
           Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
 
-  public MemoryModelStructTest() {}
+  public SeqPointerAliasingStructTest() {}
 
   @Test
   public void test_field_owner_field_member() {

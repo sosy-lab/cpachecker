@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
-public class MemoryModelTest {
+public class SeqPointerAliasingTest {
 
   // Simple Types
 
@@ -149,7 +149,7 @@ public class MemoryModelTest {
   private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
       SeqMemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
 
-  public MemoryModelTest() {}
+  public SeqPointerAliasingTest() {}
 
   @Test
   public void test_memory_location_equals() {
@@ -243,7 +243,7 @@ public class MemoryModelTest {
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();
     assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
-            MemoryModelBuilder.isImplicitGlobal(
+            SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
                 pointerAssignments,
                 ImmutableMap.of(),
@@ -270,7 +270,7 @@ public class MemoryModelTest {
     assertThat(LOCAL_POINTER_D_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
-            MemoryModelBuilder.isImplicitGlobal(
+            SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
                 pointerAssignments,
                 ImmutableMap.of(),

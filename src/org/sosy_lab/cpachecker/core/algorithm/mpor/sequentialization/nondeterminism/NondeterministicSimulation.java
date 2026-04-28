@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.MultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
@@ -88,7 +88,7 @@ public abstract class NondeterministicSimulation {
 
   final MachineModel machineModel;
 
-  final MemoryModel memoryModel;
+  final SeqPointerAliasingMap pointerAliasingMap;
 
   final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
@@ -99,7 +99,7 @@ public abstract class NondeterministicSimulation {
   NondeterministicSimulation(
       MPOROptions pOptions,
       MachineModel pMachineModel,
-      MemoryModel pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
@@ -113,7 +113,7 @@ public abstract class NondeterministicSimulation {
     }
     options = pOptions;
     machineModel = pMachineModel;
-    memoryModel = pMemoryModel;
+    pointerAliasingMap = pPointerAliasingMap;
     ghostElements = pGhostElements;
     clauses = pClauses;
     utils = pUtils;
@@ -201,7 +201,7 @@ public abstract class NondeterministicSimulation {
                     labelClauseMap,
                     labelBlockMap,
                     ghostElements.bitVectorVariables().orElseThrow(),
-                    memoryModel,
+                    pointerAliasingMap,
                     utils)
                 .buildAbortCommutingContextSwitchesStatement(pThread);
         rStatements.add(abortCommutingContextSwitchesStatement);

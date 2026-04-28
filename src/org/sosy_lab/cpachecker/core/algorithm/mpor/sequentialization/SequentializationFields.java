@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMapBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
@@ -58,7 +58,7 @@ public class SequentializationFields {
 
   public final MachineModel machineModel;
 
-  public final MemoryModel memoryModel;
+  public final SeqPointerAliasingMap pointerAliasingMap;
 
   public final GhostElements ghostElements;
 
@@ -86,13 +86,13 @@ public class SequentializationFields {
 
     machineModel = pInputCfa.getMachineModel();
 
-    MemoryModelBuilder memoryModelBuilder =
-        new MemoryModelBuilder(
+    SeqPointerAliasingMapBuilder pointerAliasingMapBuilder =
+        new SeqPointerAliasingMapBuilder(
             pOptions,
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values(),
             machineModel);
-    memoryModel = memoryModelBuilder.buildMemoryModel();
+    pointerAliasingMap = pointerAliasingMapBuilder.buildPointerAliasingMap();
 
     GhostElementBuilder ghostElementBuilder =
         new GhostElementBuilder(
@@ -100,7 +100,7 @@ public class SequentializationFields {
             threads,
             substitutions,
             substituteEdges,
-            memoryModel,
+            pointerAliasingMap,
             pUtils.binaryExpressionBuilder());
     ghostElements = ghostElementBuilder.buildGhostElements();
 
@@ -111,7 +111,7 @@ public class SequentializationFields {
             substitutions,
             substituteEdges,
             machineModel,
-            memoryModel,
+            pointerAliasingMap,
             ghostElements,
             pUtils);
     clauses = clauseBuilder.buildClauses();
@@ -120,7 +120,7 @@ public class SequentializationFields {
         pOptions.threadSimulationUnrolling()
             ? Optional.of(
                 NondeterministicSimulationBuilder.buildThreadSimulationFunctions(
-                    pOptions, machineModel, memoryModel, ghostElements, clauses, pUtils))
+                    pOptions, machineModel, pointerAliasingMap, ghostElements, clauses, pUtils))
             : Optional.empty();
   }
 

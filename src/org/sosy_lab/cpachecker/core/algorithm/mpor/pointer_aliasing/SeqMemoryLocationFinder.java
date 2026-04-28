@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CExpressionCollector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CExpressionCollector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
@@ -43,12 +43,12 @@ public class SeqMemoryLocationFinder {
   public static boolean containsRelevantMemoryLocation(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
-      MemoryModel pMemoryModel) {
+      SeqPointerAliasingMap pPointerAliasingMap) {
 
     ImmutableSet<SeqMemoryLocation> foundMemoryLocations =
         findDirectMemoryLocationsByAccessType(
-            pLabelBlockMap, pBlock, pMemoryModel, MemoryAccessType.ACCESS);
-    return pMemoryModel.getRelevantMemoryLocations().keySet().stream()
+            pLabelBlockMap, pBlock, pPointerAliasingMap, SeqMemoryAccessType.ACCESS);
+    return pPointerAliasingMap.getRelevantMemoryLocations().keySet().stream()
         .anyMatch(relevantMemoryLocation -> foundMemoryLocations.contains(relevantMemoryLocation));
   }
 
@@ -56,16 +56,17 @@ public class SeqMemoryLocationFinder {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
-      MemoryModel pMemoryModel,
-      MemoryAccessType pAccessType,
-      ReachType pReachType) {
+      SeqPointerAliasingMap pPointerAliasingMap,
+      SeqMemoryAccessType pAccessType,
+      SeqMemoryReachType pReachType) {
 
     return switch (pReachType) {
       case DIRECT ->
-          findDirectMemoryLocationsByAccessType(pLabelBlockMap, pBlock, pMemoryModel, pAccessType);
+          findDirectMemoryLocationsByAccessType(
+              pLabelBlockMap, pBlock, pPointerAliasingMap, pAccessType);
       case REACHABLE ->
           findReachableMemoryLocationsByAccessType(
-              pLabelClauseMap, pLabelBlockMap, pBlock, pMemoryModel, pAccessType);
+              pLabelClauseMap, pLabelBlockMap, pBlock, pPointerAliasingMap, pAccessType);
     };
   }
 
@@ -76,8 +77,8 @@ public class SeqMemoryLocationFinder {
   public static ImmutableSet<SeqMemoryLocation> findDirectMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
-      MemoryModel pMemoryModel,
-      MemoryAccessType pAccessType) {
+      SeqPointerAliasingMap pPointerAliasingMap,
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
@@ -85,7 +86,8 @@ public class SeqMemoryLocationFinder {
       found.add(statement);
       SeqThreadStatementUtil.recursivelyFindTargetGotoStatements(found, statement, pLabelBlockMap);
       ImmutableSet<SeqMemoryLocation> foundMemoryLocations =
-          findMemoryLocationsByStatements(ImmutableSet.copyOf(found), pMemoryModel, pAccessType);
+          findMemoryLocationsByStatements(
+              ImmutableSet.copyOf(found), pPointerAliasingMap, pAccessType);
       rMemLocations.addAll(foundMemoryLocations);
     }
     return rMemLocations.build();
@@ -99,8 +101,8 @@ public class SeqMemoryLocationFinder {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
-      MemoryModel pMemoryModel,
-      MemoryAccessType pAccessType) {
+      SeqPointerAliasingMap pPointerAliasingMap,
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
@@ -109,7 +111,8 @@ public class SeqMemoryLocationFinder {
       SeqThreadStatementUtil.recursivelyFindTargetStatements(
           found, statement, pLabelClauseMap, pLabelBlockMap);
       ImmutableSet<SeqMemoryLocation> foundMemoryLocations =
-          findMemoryLocationsByStatements(ImmutableSet.copyOf(found), pMemoryModel, pAccessType);
+          findMemoryLocationsByStatements(
+              ImmutableSet.copyOf(found), pPointerAliasingMap, pAccessType);
       rMemLocations.addAll(foundMemoryLocations);
     }
     return rMemLocations.build();
@@ -119,41 +122,45 @@ public class SeqMemoryLocationFinder {
 
   private static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
-      MemoryModel pMemoryModel,
-      MemoryAccessType pAccessType) {
+      SeqPointerAliasingMap pPointerAliasingMap,
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pStatements) {
       for (SubstituteEdge substituteEdge : statement.data().getSubstituteEdges()) {
         rMemLocations.addAll(
-            findMemoryLocationsBySubstituteEdge(substituteEdge, pMemoryModel, pAccessType));
+            findMemoryLocationsBySubstituteEdge(substituteEdge, pPointerAliasingMap, pAccessType));
       }
     }
     return rMemLocations.build();
   }
 
   public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsBySubstituteEdge(
-      SubstituteEdge pSubstituteEdge, MemoryModel pMemoryModel, MemoryAccessType pAccessType) {
+      SubstituteEdge pSubstituteEdge,
+      SeqPointerAliasingMap pPointerAliasingMap,
+      SeqMemoryAccessType pAccessType) {
 
     return ImmutableSet.<SeqMemoryLocation>builder()
         .addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType))
         .addAll(
             findMemoryLocationsByPointerDereferences(
-                pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType), pMemoryModel))
+                pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType),
+                pPointerAliasingMap))
         .build();
   }
 
   public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereferences(
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences, MemoryModel pMemoryModel) {
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences,
+      SeqPointerAliasingMap pPointerAliasingMap) {
 
     return pPointerDereferences.stream()
         .flatMap(
             pointerDereference ->
                 findMemoryLocationsByPointerDereference(
                     pointerDereference,
-                    pMemoryModel.pointerAssignments,
-                    pMemoryModel.startRoutineArgAssignments,
-                    pMemoryModel.pointerParameterAssignments)
+                    pPointerAliasingMap.pointerAssignments,
+                    pPointerAliasingMap.startRoutineArgAssignments,
+                    pPointerAliasingMap.pointerParameterAssignments)
                     .stream())
         .collect(ImmutableSet.toImmutableSet());
   }
@@ -183,7 +190,7 @@ public class SeqMemoryLocationFinder {
     visited.add(pPointerDereference); // Add initial location to visited immediately
 
     final ImmutableSet<SeqMemoryLocation> pointerDereferenceRightHandSides =
-        MemoryModel.getPointerAssignmentRightHandSides(
+        SeqPointerAliasingMap.getPointerAssignmentRightHandSides(
             pPointerDereference,
             pPointerAssignments,
             pStartRoutineArgAssignments,
@@ -192,7 +199,7 @@ public class SeqMemoryLocationFinder {
     while (!stack.isEmpty()) {
       SeqMemoryLocation currentMemoryLocation = stack.pop();
       // check if the current location is a pointer (an LHS in an assignment)
-      if (MemoryModel.isLeftHandSideInPointerAssignment(
+      if (SeqPointerAliasingMap.isLeftHandSideInPointerAssignment(
           currentMemoryLocation,
           pPointerAssignments,
           pStartRoutineArgAssignments,
@@ -200,7 +207,7 @@ public class SeqMemoryLocationFinder {
 
         // if it is a pointer, find what it points to (the RHS in the assignment)
         ImmutableSet<SeqMemoryLocation> rightHandSides =
-            MemoryModel.getPointerAssignmentRightHandSides(
+            SeqPointerAliasingMap.getPointerAssignmentRightHandSides(
                 currentMemoryLocation,
                 pPointerAssignments,
                 pStartRoutineArgAssignments,
@@ -235,7 +242,7 @@ public class SeqMemoryLocationFinder {
     CType currentType = pCurrentMemoryLocation.declaration().getType();
     ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
 
-    if (MemoryModelUtil.isAnyTypeTargetType(currentType, CCompositeType.class, stopNames)) {
+    if (SeqPointerAliasingUtil.isAnyTypeTargetType(currentType, CCompositeType.class, stopNames)) {
       CInitializer initializer = pPointerDereference.declaration().getInitializer();
       if (initializer instanceof CInitializerExpression initializerExpression) {
         CExpressionCollector<CFieldReference> fieldReferenceCollector =
@@ -277,7 +284,8 @@ public class SeqMemoryLocationFinder {
       CType pFieldOwnerType, String pFieldName, SeqMemoryLocation pCurrentMemoryLocation) {
 
     CCompositeTypeMemberDeclaration fieldMemberDeclaration =
-        MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(pFieldOwnerType, pFieldName);
+        SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
+            pFieldOwnerType, pFieldName);
     return SeqMemoryLocation.of(
         pCurrentMemoryLocation.callContext(),
         pCurrentMemoryLocation.declaration(),

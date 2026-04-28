@@ -24,9 +24,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.ReachType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -60,14 +60,16 @@ public class BitVectorEvaluationUtil {
       mapMemoryLocationsToSparseBitVectorsByAccessType(
           ImmutableSet<MPORThread> pThreads,
           SeqBitVectorVariables pBitVectorVariables,
-          MemoryAccessType pAccessType) {
+          SeqMemoryAccessType pAccessType) {
 
     ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =
         ImmutableListMultimap.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
       for (MPORThread thread : pThreads) {
         Optional<CIdExpression> reachableVariable =
-            entry.getValue().tryGetVariableByReachTypeAndThread(ReachType.REACHABLE, thread);
+            entry
+                .getValue()
+                .tryGetVariableByReachTypeAndThread(SeqMemoryReachType.REACHABLE, thread);
         if (reachableVariable.isPresent()) {
           rMap.put(entry.getKey(), reachableVariable.orElseThrow());
         }
@@ -80,7 +82,7 @@ public class BitVectorEvaluationUtil {
 
   static ImmutableMap<SeqMemoryLocation, CExpression> buildSparseLeftHandSidesByAccessType(
       ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
-      MemoryAccessType pAccessType,
+      SeqMemoryAccessType pAccessType,
       SeqBitVectorVariables pBitVectorVariables) {
 
     return pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).keySet().stream()
@@ -94,7 +96,7 @@ public class BitVectorEvaluationUtil {
   }
 
   static ImmutableMap<SeqMemoryLocation, CExpression> buildPrevSparseLeftHandSidesByAccessType(
-      MemoryAccessType pAccessType, SeqBitVectorVariables pBitVectorVariables) {
+      SeqMemoryAccessType pAccessType, SeqBitVectorVariables pBitVectorVariables) {
 
     return pBitVectorVariables.getPrevSparseBitVectorByAccessType(pAccessType).entrySet().stream()
         .collect(
@@ -107,7 +109,7 @@ public class BitVectorEvaluationUtil {
       ImmutableMap<SeqMemoryLocation, CExpression> pLeftHandSides,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
       ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
-      MemoryAccessType pAccessType,
+      SeqMemoryAccessType pAccessType,
       SeqBitVectorVariables pBitVectorVariables) {
 
     if (!pBitVectorVariables.areSparseBitVectorsPresentByAccessType(pAccessType)) {
@@ -156,7 +158,7 @@ public class BitVectorEvaluationUtil {
   static Optional<CExportExpression> buildFullSparseEvaluationByAccessType(
       ImmutableMap<SeqMemoryLocation, CExpression> pLeftHandSides,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pRightHandSides,
-      MemoryAccessType pAccessType,
+      SeqMemoryAccessType pAccessType,
       SeqBitVectorVariables pBitVectorVariables) {
 
     if (!pBitVectorVariables.areSparseBitVectorsPresentByAccessType(pAccessType)) {
@@ -181,14 +183,16 @@ public class BitVectorEvaluationUtil {
    */
   static Optional<CExportExpression> buildFullSparseVariableOnlyEvaluationByAccessType(
       MPORThread pActiveThread,
-      MemoryAccessType pAccessType,
+      SeqMemoryAccessType pAccessType,
       ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectors,
       SeqBitVectorVariables pBitVectorVariables) {
 
     ImmutableList.Builder<CExportExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
       Optional<CIdExpression> directVariable =
-          entry.getValue().tryGetVariableByReachTypeAndThread(ReachType.DIRECT, pActiveThread);
+          entry
+              .getValue()
+              .tryGetVariableByReachTypeAndThread(SeqMemoryReachType.DIRECT, pActiveThread);
       // if there is no direct variable for pActiveThread, then the thread does not access the
       // memory location at all, and it can be pruned from the evaluation
       if (directVariable.isPresent()) {

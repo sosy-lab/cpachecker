@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -51,7 +51,7 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
     MachineModel machineModel,
-    MemoryModel memoryModel,
+    SeqPointerAliasingMap pointerAliasingMap,
     GhostElements ghostElements,
     SequentializationUtils utils) {
 
@@ -73,7 +73,7 @@ public record SeqThreadStatementClauseBuilder(
         options.mergeAtomicBlocks() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
 
     // if enabled, link statements that are guaranteed to commute via gotos
-    StatementLinker statementLinker = new StatementLinker(options, memoryModel);
+    StatementLinker statementLinker = new StatementLinker(options, pointerAliasingMap);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
         options.mergeCommutingStatements()
             ? statementLinker.linkClauses(atomicBlocks)
@@ -98,7 +98,7 @@ public record SeqThreadStatementClauseBuilder(
     // if enabled, apply partial order reduction and reduce number of clauses
     PartialOrderReducer partialOrderReducer =
         new PartialOrderReducer(
-            options, consecutiveLabels, ghostElements, machineModel, memoryModel, utils);
+            options, consecutiveLabels, ghostElements, machineModel, pointerAliasingMap, utils);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
         partialOrderReducer.reduceClauses();
 
@@ -168,7 +168,7 @@ public record SeqThreadStatementClauseBuilder(
             pThread,
             allThreads,
             substituteEdges,
-            memoryModel,
+            pointerAliasingMap,
             ghostElements.getFunctionStatementsByThread(pThread),
             ghostElements.threadSyncFlags(),
             ghostElements.getPcVariables().getPcLeftHandSide(pThread.id()),

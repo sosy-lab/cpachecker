@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
@@ -29,7 +29,7 @@ public record PartialOrderReducer(
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
     GhostElements ghostElements,
     MachineModel machineModel,
-    MemoryModel memoryModel,
+    SeqPointerAliasingMap pointerAliasingMap,
     SequentializationUtils utils) {
 
   /**
@@ -59,7 +59,7 @@ public record PartialOrderReducer(
               labelBlockMap,
               ghostElements,
               machineModel,
-              memoryModel,
+              pointerAliasingMap,
               utils);
       rInjected.putAll(activeThread, statementInjector.injectStatementsIntoClauses());
     }

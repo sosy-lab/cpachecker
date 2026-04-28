@@ -144,7 +144,7 @@ public final class SeqMainFunctionBuilder {
           NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
                   pOptions,
                   pFields.machineModel,
-                  pFields.memoryModel,
+                  pFields.pointerAliasingMap,
                   pFields.ghostElements,
                   pFields.clauses,
                   pUtils)

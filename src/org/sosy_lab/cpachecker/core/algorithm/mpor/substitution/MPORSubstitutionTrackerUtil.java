@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CLeftHandSideSimpleDeclarationVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
@@ -172,14 +172,15 @@ public class MPORSubstitutionTrackerUtil {
     CType leftHandSideType = leftHandSideDeclaration.getType();
     ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
 
-    if (MemoryModelUtil.isAnyTypeTargetType(leftHandSideType, CPointerType.class, stopNames)) {
+    if (SeqPointerAliasingUtil.isAnyTypeTargetType(
+        leftHandSideType, CPointerType.class, stopNames)) {
       CPointerAssignmentVisitResult leftHandSideVisitResult =
           pLeftHandSide.accept(new CPointerAssignmentVisitor());
       if (leftHandSideVisitResult != null) {
         // if LHS has a field member that is not CPointerType, then it is not a pointer assignment
         if (leftHandSideVisitResult.fieldMember().isPresent()) {
           CType fieldMemberType = leftHandSideVisitResult.fieldMember().orElseThrow().getType();
-          if (!MemoryModelUtil.isAnyTypeTargetType(
+          if (!SeqPointerAliasingUtil.isAnyTypeTargetType(
               fieldMemberType, CPointerType.class, stopNames)) {
             return;
           }
@@ -233,7 +234,7 @@ public class MPORSubstitutionTrackerUtil {
     public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference) {
       CPointerAssignmentVisitResult fieldOwnerResult = pFieldReference.getFieldOwner().accept(this);
       CCompositeTypeMemberDeclaration fieldMember =
-          MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(
+          SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
               pFieldReference.getFieldOwner().getExpressionType(), pFieldReference.getFieldName());
       return new CPointerAssignmentVisitResult(
           fieldOwnerResult.declaration, Optional.of(fieldMember), pFieldReference);
@@ -305,7 +306,7 @@ public class MPORSubstitutionTrackerUtil {
     CSimpleDeclaration fieldOwner =
         pFieldReference.accept(new CLeftHandSideSimpleDeclarationVisitor());
     CCompositeTypeMemberDeclaration fieldMember =
-        MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(
+        SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
             pFieldReference.getFieldOwner().getExpressionType(), pFieldReference.getFieldName());
     if (pIsWrite) {
       pTracker.addWrittenFieldMember(fieldOwner, fieldMember, pFieldReference);
@@ -326,7 +327,7 @@ public class MPORSubstitutionTrackerUtil {
     CSimpleDeclaration fieldOwner =
         pFieldReference.accept(new CLeftHandSideSimpleDeclarationVisitor());
     CCompositeTypeMemberDeclaration fieldMember =
-        MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(
+        SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
             pointerType.getType(), pFieldReference.getFieldName());
     if (pIsWrite) {
       pTracker.addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember, pFieldReference);

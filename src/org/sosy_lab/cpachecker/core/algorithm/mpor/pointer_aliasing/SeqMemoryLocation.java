@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

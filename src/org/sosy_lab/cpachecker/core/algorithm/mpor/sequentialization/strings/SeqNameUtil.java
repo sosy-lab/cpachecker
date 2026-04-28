@@ -15,9 +15,9 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.ReachType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorDirection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -125,8 +125,8 @@ public class SeqNameUtil {
       MPOROptions pOptions,
       Optional<MPORThread> pThread,
       Optional<SeqMemoryLocation> pMemoryLocation,
-      MemoryAccessType pAccessType,
-      ReachType pReachType,
+      SeqMemoryAccessType pAccessType,
+      SeqMemoryReachType pReachType,
       SeqBitVectorDirection pDirection) {
 
     return switch (pDirection) {
@@ -141,8 +141,8 @@ public class SeqNameUtil {
       MPOROptions pOptions,
       int pThreadId,
       Optional<SeqMemoryLocation> pMemoryLocation,
-      MemoryAccessType pAccessType,
-      ReachType pReachType) {
+      SeqMemoryAccessType pAccessType,
+      SeqMemoryReachType pReachType) {
 
     checkArgument(pOptions.bitVectorEncoding().isEnabled(), "bitVectorEncoding must be enabled.");
 
@@ -168,12 +168,12 @@ public class SeqNameUtil {
   private static String buildPrevBitVectorName(
       MPOROptions pOptions,
       Optional<SeqMemoryLocation> pMemoryLocation,
-      MemoryAccessType pAccessType,
-      ReachType pReachType) {
+      SeqMemoryAccessType pAccessType,
+      SeqMemoryReachType pReachType) {
 
     checkArgument(pOptions.bitVectorEncoding().isEnabled(), "bitVectorEncoding must be enabled.");
     checkArgument(
-        pReachType.equals(ReachType.DIRECT),
+        pReachType.equals(SeqMemoryReachType.DIRECT),
         "For PREVIOUS bit vectors, the ReachType must be DIRECT.");
 
     String memoryLocationSuffix =

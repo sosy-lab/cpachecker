@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
@@ -37,12 +37,12 @@ class NextThreadAndNumStatementsNondeterministicSimulation
   NextThreadAndNumStatementsNondeterministicSimulation(
       MPOROptions pOptions,
       MachineModel pMachineModel,
-      MemoryModel pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
-    super(pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+    super(pOptions, pMachineModel, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
   }
 
   @Override

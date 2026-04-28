@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
-public class MemoryModelStructParameterTest {
+public class SeqPointerAliasingStructParameterTest {
 
   // Simple Types
 
@@ -218,21 +218,21 @@ public class MemoryModelStructParameterTest {
 
   private final SeqMemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
+          Optional.of(SeqPointerAliasingParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_OUTER_STRUCT
               .asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
+          Optional.of(SeqPointerAliasingParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P1.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
+          Optional.of(SeqPointerAliasingParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration());
 
-  public MemoryModelStructParameterTest() {}
+  public SeqPointerAliasingStructParameterTest() {}
 
   @Test
   public void test_outer_struct_pointer_parameter_dereference() {
@@ -242,7 +242,7 @@ public class MemoryModelStructParameterTest {
             .put(PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION, OUTER_STRUCT_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // find the mem locations associated with deref of 'param_ptr_outer'
     ImmutableSet<SeqMemoryLocation> memoryLocations =
@@ -267,7 +267,7 @@ public class MemoryModelStructParameterTest {
             .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_MEMBER_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // find the mem locations associated with deref of 'param_ptr_P1'
     ImmutableSet<SeqMemoryLocation> memoryLocationsP1 =
@@ -309,7 +309,7 @@ public class MemoryModelStructParameterTest {
             .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
 
     ImmutableSet<SeqMemoryLocation> memoryLocationsP1 =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(

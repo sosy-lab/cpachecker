@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
@@ -85,7 +85,7 @@ public class SubstituteUtil {
   static ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
       Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker,
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rPointerDereferences = ImmutableSet.builder();
     for (CVariableDeclarationTrackerResult pointerDereference :
@@ -107,7 +107,7 @@ public class SubstituteUtil {
   static ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(
       Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker,
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (CVariableDeclarationTrackerResult variableDeclaration :

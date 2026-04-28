@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -26,10 +26,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
- * A class to keep track of all memory locations in the concurrent input program, including pointers
- * associated with a memory location.
+ * A class to keep track of all memory locations in the concurrent input program and pointers and
+ * the memory locations they point to.
  */
-public class MemoryModel {
+public class SeqPointerAliasingMap {
 
   private final ImmutableSet<SeqMemoryLocation> allMemoryLocations;
 
@@ -62,7 +62,7 @@ public class MemoryModel {
 
   public final ImmutableSet<SeqMemoryLocation> pointerDereferences;
 
-  MemoryModel(
+  SeqPointerAliasingMap(
       MPOROptions pOptions,
       ImmutableSet<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
@@ -189,7 +189,7 @@ public class MemoryModel {
       SeqMemoryLocation pMemoryLocation,
       MPORThread pThread,
       ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));

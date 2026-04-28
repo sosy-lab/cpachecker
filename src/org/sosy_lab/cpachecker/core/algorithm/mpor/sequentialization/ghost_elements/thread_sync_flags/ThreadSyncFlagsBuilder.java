@@ -25,8 +25,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -71,13 +71,13 @@ public record ThreadSyncFlagsBuilder(
               instanceof CVariableDeclaration variableDeclaration) {
             CType type = variableDeclaration.getType();
             if (!(type instanceof CPointerType)) {
-              if (MemoryModelUtil.isAnyTypeTargetName(type, pObjectType.name, stopNames)) {
+              if (SeqPointerAliasingUtil.isAnyTypeTargetName(type, pObjectType.name, stopNames)) {
                 if (pObjectType.equalsType(type)) {
                   rMemoryLocations.add(
                       SeqMemoryLocation.of(substituteEdge.getCallContext(), variableDeclaration));
                 }
                 for (CCompositeTypeMemberDeclaration declaration :
-                    MemoryModelUtil.getCompositeTypeMemberDeclarationsByTypeName(
+                    SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationsByTypeName(
                         type, pObjectType.name)) {
                   rMemoryLocations.add(
                       SeqMemoryLocation.of(

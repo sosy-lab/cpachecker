@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
@@ -38,7 +38,7 @@ record ExecuteUntilConflictInjector(
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
     SeqBitVectorVariables bitVectorVariables,
     MachineModel machineModel,
-    MemoryModel memoryModel,
+    SeqPointerAliasingMap pointerAliasingMap,
     SequentializationUtils utils) {
 
   SeqThreadStatement injectUntilConflictReductionIntoStatement(SeqThreadStatement pStatement)
@@ -77,7 +77,7 @@ record ExecuteUntilConflictInjector(
             pTargetBlock,
             bitVectorVariables,
             machineModel,
-            memoryModel,
+            pointerAliasingMap,
             utils);
     return SeqInstrumentationBuilder.buildUntilConflictReductionStatement(
         options.nondeterminismSource(), evaluationExpression, pTargetBlock.buildLabelStatement());

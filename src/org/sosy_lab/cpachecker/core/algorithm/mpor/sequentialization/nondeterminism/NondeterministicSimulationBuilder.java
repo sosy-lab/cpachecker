@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -57,7 +57,7 @@ public class NondeterministicSimulationBuilder {
   public static NondeterministicSimulation buildNondeterministicSimulationBySource(
       MPOROptions pOptions,
       MachineModel pMachineModel,
-      MemoryModel pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
@@ -65,13 +65,13 @@ public class NondeterministicSimulationBuilder {
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
           new NextThreadNondeterministicSimulation(
-              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+              pOptions, pMachineModel, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           new NextThreadAndNumStatementsNondeterministicSimulation(
-              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+              pOptions, pMachineModel, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
       case NUM_STATEMENTS ->
           new NumStatementsNondeterministicSimulation(
-              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+              pOptions, pMachineModel, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
     };
   }
 
@@ -80,7 +80,7 @@ public class NondeterministicSimulationBuilder {
   public static ImmutableMap<MPORThread, CExportFunctionDefinition> buildThreadSimulationFunctions(
       MPOROptions pOptions,
       MachineModel pMachineModel,
-      MemoryModel pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils)
@@ -90,7 +90,7 @@ public class NondeterministicSimulationBuilder {
     for (MPORThread thread : pClauses.keySet()) {
       CCompoundStatement threadSimulation =
           buildNondeterministicSimulationBySource(
-                  pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils)
+                  pOptions, pMachineModel, pPointerAliasingMap, pGhostElements, pClauses, pUtils)
               .buildSingleThreadSimulation(thread);
       rFunctions.put(
           thread,

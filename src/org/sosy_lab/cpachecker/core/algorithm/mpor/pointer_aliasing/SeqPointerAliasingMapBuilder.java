@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil.CLeftHandSideSimpleDeclarationVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-public record MemoryModelBuilder(
+public record SeqPointerAliasingMapBuilder(
     MPOROptions options,
     ImmutableList<SeqMemoryLocation> initialMemoryLocations,
     ImmutableCollection<SubstituteEdge> substituteEdges,
@@ -55,7 +55,7 @@ public record MemoryModelBuilder(
 
   private static final int INITIAL_MEMORY_LOCATION_ID = 0;
 
-  public MemoryModel buildMemoryModel() throws UnsupportedCodeException {
+  public SeqPointerAliasingMap buildPointerAliasingMap() throws UnsupportedCodeException {
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
         mapStartRoutineArgAssignments();
     ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
@@ -72,7 +72,7 @@ public record MemoryModelBuilder(
             .flatMap(
                 substituteEdge ->
                     substituteEdge
-                        .getPointerDereferencesByAccessType(MemoryAccessType.ACCESS)
+                        .getPointerDereferencesByAccessType(SeqMemoryAccessType.ACCESS)
                         .stream())
             .collect(ImmutableSet.toImmutableSet());
     // Dereference all pointers once to find the memory locations the pointers point to. This is
@@ -107,7 +107,7 @@ public record MemoryModelBuilder(
             pointerParameterAssignments,
             pointerDereferences);
 
-    return new MemoryModel(
+    return new SeqPointerAliasingMap(
         options,
         allMemoryLocations,
         relevantMemoryLocationIds,
@@ -340,7 +340,7 @@ public record MemoryModelBuilder(
       Set<SeqMemoryLocation> pFound,
       Set<SeqMemoryLocation> pVisited) {
 
-    if (MemoryModel.isLeftHandSideInPointerAssignment(
+    if (SeqPointerAliasingMap.isLeftHandSideInPointerAssignment(
         pCurrentMemoryLocation,
         pPointerAssignments,
         pStartRoutineArgAssignments,
@@ -506,7 +506,7 @@ public record MemoryModelBuilder(
     CSimpleDeclaration fieldOwner =
         pFieldReference.accept(new CLeftHandSideSimpleDeclarationVisitor());
     CCompositeTypeMemberDeclaration fieldMember =
-        MemoryModelUtil.getCompositeTypeMemberDeclarationByFieldName(
+        SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
             pFieldReference.getFieldOwner().getExpressionType(), pFieldReference.getFieldName());
     return getMemoryLocationByFieldReference(
         pCallContext, MPORUtil.convertToVariableDeclaration(fieldOwner), fieldMember);

@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
@@ -31,7 +31,7 @@ public record StatementInjector(
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
     GhostElements ghostElements,
     MachineModel machineModel,
-    MemoryModel memoryModel,
+    SeqPointerAliasingMap pointerAliasingMap,
     SequentializationUtils utils) {
 
   public ImmutableList<SeqThreadStatementClause> injectStatementsIntoClauses()
@@ -74,7 +74,7 @@ public record StatementInjector(
               labelBlockMap,
               ghostElements.bitVectorVariables().orElseThrow(),
               machineModel,
-              memoryModel,
+              pointerAliasingMap,
               utils);
       pStatement =
           executeUntilConflictInjector.injectUntilConflictReductionIntoStatement(pStatement);
@@ -99,7 +99,7 @@ public record StatementInjector(
               labelClauseMap,
               labelBlockMap,
               ghostElements.bitVectorVariables().orElseThrow(),
-              memoryModel,
+              pointerAliasingMap,
               utils);
       pStatement =
           abortCommutingContextSwitches.injectPrevBitVectorUpdatesIntoStatement(pStatement);
@@ -114,7 +114,7 @@ public record StatementInjector(
               labelBlockMap,
               ghostElements.bitVectorVariables().orElseThrow(),
               machineModel,
-              memoryModel);
+              pointerAliasingMap);
       pStatement = bitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(pStatement);
     }
     return pStatement;

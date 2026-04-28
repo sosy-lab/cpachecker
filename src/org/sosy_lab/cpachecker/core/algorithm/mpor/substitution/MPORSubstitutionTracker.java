@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
 
 /**
  * A class to track certain expressions, statements, ... (such as pointer dereferences and variable
@@ -224,7 +224,7 @@ public class MPORSubstitutionTracker {
   // pointer dereferences
 
   ImmutableSet<CVariableDeclarationTrackerResult> getPointerDereferencesByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
@@ -243,7 +243,7 @@ public class MPORSubstitutionTracker {
   }
 
   ImmutableSet<CFieldReferenceTrackerResult> getFieldReferencePointerDereferencesByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
@@ -264,7 +264,7 @@ public class MPORSubstitutionTracker {
   // variables
 
   ImmutableSet<CVariableDeclarationTrackerResult> getDeclarationsByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
       case ACCESS -> getAccessedDeclarations();
@@ -284,7 +284,7 @@ public class MPORSubstitutionTracker {
   // field members
 
   ImmutableSet<CFieldReferenceTrackerResult> getFieldMembersByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type field members");

@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
@@ -142,17 +142,17 @@ public class SubstituteEdge {
         parameterSubstitutes,
         SubstituteUtil.mapPointerAssignments(pThreadEdge.callContext, pTracker),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
+            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.ACCESS),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE),
+            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.WRITE),
         SubstituteUtil.getMemoryLocationsByAccessType(
-            pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
+            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.ACCESS),
         SubstituteUtil.getMemoryLocationsByAccessType(
-            pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE));
+            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.WRITE));
   }
 
   public ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> accessedMemoryLocations;
@@ -162,7 +162,7 @@ public class SubstituteEdge {
   }
 
   public ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();

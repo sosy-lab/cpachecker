@@ -55,10 +55,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocationFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocationFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -92,7 +92,7 @@ public record SeqThreadStatementBuilder(
     MPORThread thread,
     ImmutableList<MPORThread> allThreads,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
-    MemoryModel memoryModel,
+    SeqPointerAliasingMap pointerAliasingMap,
     FunctionStatements functionStatements,
     ThreadSyncFlags threadSyncFlags,
     CLeftHandSide pcLeftHandSide,
@@ -805,7 +805,7 @@ public record SeqThreadStatementBuilder(
 
     // all memory locations (potentially) accessed in pSubstituteEdge including aliased pointers
     ImmutableSet<SeqMemoryLocation> accessedMemoryLocations =
-        pSubstituteEdge.getMemoryLocationsByAccessType(MemoryAccessType.ACCESS);
+        pSubstituteEdge.getMemoryLocationsByAccessType(SeqMemoryAccessType.ACCESS);
 
     // First check the non-pointer memory locations which is the usual case for pthread objects.
     // Example: pthread_mutex_lock(&m);
@@ -841,7 +841,7 @@ public record SeqThreadStatementBuilder(
 
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereferences(
-            pointerMemoryLocations, memoryModel);
+            pointerMemoryLocations, pointerAliasingMap);
     checkState(!memoryLocations.isEmpty(), "pMemoryLocations is empty");
 
     InputRejection.checkPthreadObjectPointerAliasing(pointerMemoryLocations, memoryLocations);

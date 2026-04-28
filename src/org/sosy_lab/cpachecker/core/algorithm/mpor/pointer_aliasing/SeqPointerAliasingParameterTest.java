@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
-public class MemoryModelParameterTest {
+public class SeqPointerAliasingParameterTest {
 
   // Simple Types
 
@@ -232,7 +232,7 @@ public class MemoryModelParameterTest {
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration());
 
-  public MemoryModelParameterTest() {}
+  public SeqPointerAliasingParameterTest() {}
 
   @Test
   public void test_pointer_parameter_dereference() {
@@ -242,7 +242,7 @@ public class MemoryModelParameterTest {
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =
@@ -265,7 +265,7 @@ public class MemoryModelParameterTest {
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, LOCAL_POINTER_C_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // local_ptr_C = &global_X; i.e. pointer assignment
     ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
@@ -294,7 +294,7 @@ public class MemoryModelParameterTest {
             .put(PARAMETER_Q_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // global_ptr_A = &param_Q; i.e. pointer assignment
     ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
@@ -307,7 +307,7 @@ public class MemoryModelParameterTest {
     assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();
     assertThat(
-            MemoryModelBuilder.isImplicitGlobal(
+            SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
                 pointerAssignments,
                 ImmutableMap.of(),
@@ -315,7 +315,7 @@ public class MemoryModelParameterTest {
                 ImmutableSet.of()))
         .isFalse();
     assertThat(
-            MemoryModelBuilder.isImplicitGlobal(
+            SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 PARAMETER_Q_MEMORY_LOCATION,
                 pointerAssignments,
                 ImmutableMap.of(),
@@ -334,7 +334,7 @@ public class MemoryModelParameterTest {
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, PARAMETER_POINTER_R_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // all are not explicit global memory locations
     assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.declaration().isGlobal()).isFalse();

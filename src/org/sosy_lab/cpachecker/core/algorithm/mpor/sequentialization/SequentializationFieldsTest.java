@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
@@ -47,11 +47,11 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(4);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
-    assertThat(memoryModel.pointerDereferences).isEmpty();
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(4);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -71,16 +71,16 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(2);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     // mutex1, mutex2, i (implicit global with pthread_create) and __global_lock (from racemacros.h)
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(4);
     // we want to identify int * p = (int *) arg; as a pointer assignment, even on declaration
-    assertThat(memoryModel.pointerAssignments).hasSize(1);
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(1);
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
     // access(*p); is a deref of p
-    assertThat(memoryModel.pointerDereferences).hasSize(1);
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(1);
     // check that we (only) identify the passing of &i to pthread_create as start_routine arg
-    assertThat(memoryModel.startRoutineArgAssignments).hasSize(1);
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).hasSize(1);
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -100,13 +100,13 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(2);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     // only local variables
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(0);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
-    assertThat(memoryModel.pointerDereferences).isEmpty();
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(0);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -124,12 +124,12 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(8);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
-    assertThat(memoryModel.pointerDereferences).isEmpty();
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(8);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -165,12 +165,12 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(8);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
-    assertThat(memoryModel.pointerDereferences).isEmpty();
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(8);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -188,13 +188,13 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(4);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     // mutex and data
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(2);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
-    assertThat(memoryModel.pointerDereferences).isEmpty();
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(2);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -213,13 +213,13 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(45);
-    assertThat(memoryModel.parameterAssignments).hasSize(2);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
-    assertThat(memoryModel.pointerDereferences).isEmpty();
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(45);
+    assertThat(pointerAliasingMap.parameterAssignments).hasSize(2);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -241,12 +241,12 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(30);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
-    assertThat(memoryModel.pointerDereferences).isEmpty();
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(30);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -267,16 +267,16 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     // check that each member of queue struct is identified as relevant individually
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(10);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(10);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
     // 2 in main, 3 in t1, 1 in t2
     // (pthread_mutex_lock(&m) does not count as pointer parameter assignment)
-    assertThat(memoryModel.pointerParameterAssignments).hasSize(6);
-    assertThat(memoryModel.pointerDereferences).hasSize(20);
+    assertThat(pointerAliasingMap.pointerParameterAssignments).hasSize(6);
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(20);
     // both pthread_create calls take &queue as arguments
-    assertThat(memoryModel.startRoutineArgAssignments).hasSize(2);
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).hasSize(2);
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -297,12 +297,12 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(5);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
-    assertThat(memoryModel.pointerDereferences).isEmpty();
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(4);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
@@ -324,12 +324,12 @@ public class SequentializationFieldsTest {
     // reachable due to a while (1) loop that never terminates.
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(16);
-    assertThat(memoryModel.pointerAssignments).hasSize(9);
-    assertThat(memoryModel.pointerParameterAssignments).hasSize(5);
-    assertThat(memoryModel.pointerDereferences).hasSize(4);
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(16);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(9);
+    assertThat(pointerAliasingMap.pointerParameterAssignments).hasSize(5);
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(4);
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -349,13 +349,13 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(7);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(1);
-    assertThat(memoryModel.pointerAssignments).isEmpty();
-    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(1);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
     // v[0] counts as pointer dereference, but only once (same declaration)
-    assertThat(memoryModel.pointerDereferences).hasSize(1);
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(1);
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
@@ -377,15 +377,15 @@ public class SequentializationFieldsTest {
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    MemoryModel memoryModel = fields.memoryModel;
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(3);
-    assertThat(memoryModel.pointerAssignments).hasSize(1);
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(3);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(1);
     // unsigned int * stack = static unsigned int arr[SIZE]
     // counts as pointer parameter assignments
-    assertThat(memoryModel.pointerParameterAssignments).hasSize(2);
+    assertThat(pointerAliasingMap.pointerParameterAssignments).hasSize(2);
     // stack[get_top()] count as pointer dereferences
-    assertThat(memoryModel.pointerDereferences).hasSize(2);
-    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(2);
+    assertThat(pointerAliasingMap.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.getThread().id())
         .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);

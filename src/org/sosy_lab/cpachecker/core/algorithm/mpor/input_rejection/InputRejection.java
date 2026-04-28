@@ -48,8 +48,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.MemoryModelUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -156,7 +156,7 @@ public class InputRejection {
       if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
         if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           ImmutableList<CCompositeTypeMemberDeclaration> memberDeclarations =
-              MemoryModelUtil.getNestedCompositeTypeMemberDeclarations(
+              SeqPointerAliasingUtil.getNestedCompositeTypeMemberDeclarations(
                   variableDeclaration.getType(), stopNames);
           Set<String> memberNames = new HashSet<>();
           for (CCompositeTypeMemberDeclaration memberDeclaration : memberDeclarations) {
@@ -193,7 +193,8 @@ public class InputRejection {
       if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
         if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.getType() instanceof CArrayType arrayType) {
-            ImmutableSet<CType> nestedTypes = MemoryModelUtil.getNestedTypes(arrayType, stopNames);
+            ImmutableSet<CType> nestedTypes =
+                SeqPointerAliasingUtil.getNestedTypes(arrayType, stopNames);
             if (nestedTypes.stream().anyMatch(t -> PthreadUtil.isAnyPthreadObjectType(t))) {
               rejectCfaEdge(cfaEdge, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
             }
@@ -237,7 +238,7 @@ public class InputRejection {
       throws UnsupportedCodeException {
 
     ImmutableSet<CSimpleDeclaration> declarations =
-        MemoryModelUtil.getNestedSimpleDeclarations(pRightHandSide);
+        SeqPointerAliasingUtil.getNestedSimpleDeclarations(pRightHandSide);
     if (declarations.stream().anyMatch(d -> d instanceof CFunctionDeclaration)) {
       throw new UnsupportedCodeException(
           InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
