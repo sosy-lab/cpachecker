@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
@@ -151,19 +150,6 @@ public class Transformation {
               FileLocation.DUMMY,
               ImmutableList.of(),
               ImmutableList.of()));
-    }
-
-    if (pEntryNode.getFunctionName().contains("reach_error")) {
-      // FIXME not correct, error should depend on the property checked
-      SvLibSequenceStatement errorStatement =
-          new SvLibSequenceStatement(
-              ImmutableList.of(),
-              FileLocation.DUMMY,
-              ImmutableList.of(
-                  new SvLibCheckTrueTag(
-                      new SvLibBooleanConstantTerm(false, FileLocation.DUMMY), FileLocation.DUMMY)),
-              ImmutableList.of());
-      statementCollector.put(pEntryNode, errorStatement);
     }
 
     // assign the dummy variables created for the input parameters to assignable variables that
