@@ -17,15 +17,21 @@ spec:
       default: false
     git_push_remote:
       description: 'Whether and where to push if a job wants to commit changes (e.g., "origin", leave empty for no push)'
-      default:
+      rules:
+        - if: $[[ inputs.auto_update_dependencies ]] == true
+          default:
     expensive_tests:
       description: "Run expensive tests as part of unit tests"
       type: boolean
-      default: false
+      rules:
+        - if: $[[ inputs.auto_update_dependencies ]] != true
+          default: false
     tests_per_java_version:
       description: "Run tests on several Java versions instead of just one"
       type: boolean
-      default: false
+      rules:
+        - if: $[[ inputs.auto_update_dependencies ]] != true
+          default: false
 ---
 
 include:
