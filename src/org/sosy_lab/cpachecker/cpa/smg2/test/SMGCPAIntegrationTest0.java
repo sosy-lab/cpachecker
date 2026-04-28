@@ -14,7 +14,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
-import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
+import static org.sosy_lab.cpachecker.core.CPAcheckerIntegrationTest.setUpConfiguration;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.ProgramSubject.assertUsing;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.WitnessType.GRAPHML_VIOLATION;
 

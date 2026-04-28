@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-public class ModificationsPropTest {
+public class ModificationsPropIntegrationTest {
 
   private static final String CONFIG_FILE = "config/differencePropPredicateAnalysis.properties";
   private static final String OLD_SEC =

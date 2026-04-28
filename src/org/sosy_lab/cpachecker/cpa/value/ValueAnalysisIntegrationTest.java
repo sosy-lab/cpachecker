@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
-public class ValueAnalysisTest {
+public class ValueAnalysisIntegrationTest {
   // Specification Tests
   @Test
   public void ignoreVariablesTest1() throws Exception {

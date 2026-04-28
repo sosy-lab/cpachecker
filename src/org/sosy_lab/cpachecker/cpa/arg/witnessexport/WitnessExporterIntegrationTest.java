@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-public class WitnessExporterTest {
+public class WitnessExporterIntegrationTest {
 
   private static final Pattern PROOF_WITNESS_OPTION_PATTERN =
       Pattern.compile("(cpa.arg.proofWitness\\s*=\\s*)(.+)");
@@ -296,7 +296,8 @@ public class WitnessExporterTest {
       String pConfigFile, Map<String, String> pOverrideOptions, String pSpecification)
       throws InvalidConfigurationException {
     ConfigurationBuilder configBuilder =
-        TestUtils.configurationForTest().loadFromResource(WitnessExporterTest.class, pConfigFile);
+        TestUtils.configurationForTest()
+            .loadFromResource(WitnessExporterIntegrationTest.class, pConfigFile);
     if (!Strings.isNullOrEmpty(pSpecification)) {
       pOverrideOptions.put(SPECIFICATION_OPTION, pSpecification);
     }
@@ -379,7 +380,7 @@ public class WitnessExporterTest {
     }
 
     void performTest() throws Exception {
-      WitnessExporterTest.performTest(
+      WitnessExporterIntegrationTest.performTest(
           programFile,
           specificationFile,
           expected,

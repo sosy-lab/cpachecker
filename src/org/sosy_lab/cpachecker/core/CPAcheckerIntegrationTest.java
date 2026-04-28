@@ -34,8 +34,11 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
-/** Integration tests for CPAchecker. */
-public class CPAcheckerTest {
+/**
+ * Integration tests for CPAchecker. Most integration tests are written as BenchExec tests for the
+ * BuildBot (cf. doc/Test.md), but here we want to have a very small set of smoke tests.
+ */
+public class CPAcheckerIntegrationTest {
 
   /** The configuration file to use for running CPAchecker. */
   private static final String CONFIGURATION_FILE_C = "config/valueAnalysis-NoCegar.properties";

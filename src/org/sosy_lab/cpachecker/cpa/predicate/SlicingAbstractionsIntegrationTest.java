@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Integration testing for Slicing Abstractions. */
 @RunWith(Parameterized.class)
-public class SlicingAbstractionsTest {
+public class SlicingAbstractionsIntegrationTest {
 
   private static final String TEST_DIR_PATH = "test/programs/slicingabstractions/";
   private static final String CONFIG_DIR_PATH = "config/";
@@ -87,17 +87,19 @@ public class SlicingAbstractionsTest {
 
     File configfolder = new File(CONFIG_DIR_PATH);
     List<Object> configs =
-        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isConfig))
+        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsIntegrationTest::isConfig))
             .<Object>transform(File::getName)
             .toList();
 
     List<Object> slabConfigs =
-        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isSlabConfig))
+        FluentIterable.from(
+                configfolder.listFiles(SlicingAbstractionsIntegrationTest::isSlabConfig))
             .<Object>transform(File::getName)
             .toList();
 
     List<Object> overflowConfigs =
-        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isOverflowConfig))
+        FluentIterable.from(
+                configfolder.listFiles(SlicingAbstractionsIntegrationTest::isOverflowConfig))
             .<Object>transform(File::getName)
             .toList();
 
@@ -110,8 +112,8 @@ public class SlicingAbstractionsTest {
     FluentIterable<Object[]> firstIterable =
         FluentIterable.from(
                 Lists.cartesianProduct(files, configs, solverModes, optimizeModes, minimalModes))
-            .transform(SlicingAbstractionsTest::repack)
-            .filter(SlicingAbstractionsTest::filter);
+            .transform(SlicingAbstractionsIntegrationTest::repack)
+            .filter(SlicingAbstractionsIntegrationTest::filter);
 
     FluentIterable<Object[]> secondIterable =
         FluentIterable.from(Lists.cartesianProduct(files, slabConfigs))
@@ -183,7 +185,7 @@ public class SlicingAbstractionsTest {
     return true;
   }
 
-  public SlicingAbstractionsTest(
+  public SlicingAbstractionsIntegrationTest(
       String filename,
       String configname,
       Map<String, String> extraOptions,
