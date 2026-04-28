@@ -99,7 +99,8 @@ public class Initializer {
       }
       ImmutableList<CDeclaration> declarations = declarationsCollector.build();
 
-      // collect declarations of local parameters and global variables
+      // collect declarations of local parameters and global variables + create procedures for
+      // external functions
       for (CDeclaration declaration : declarations) {
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
           SvLibType type = convertToSvLibType(variableDeclaration.getType());
