@@ -6,6 +6,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+spec:
+  inputs:
+    tests_per_java_version:
+      description: "Run tests on several Java versions instead of just one"
+      type: boolean
+      default: false
+---
+
 include: build/gitlab-ci.yml
 
 variables:
@@ -28,7 +36,7 @@ variables:
 .binary_check: &binary_check
   stage: checks
 
-configuration-checks:
+.configuration-checks: &configuration-checks
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS configuration-checks"
   artifacts:
@@ -38,6 +46,9 @@ configuration-checks:
     when: always
     reports:
       junit: "output/configuration-checks/TESTS-TestSuites.xml"
+
+configuration-checks:jdk-21:
+  <<: *configuration-checks
   dependencies:
     - build-dependencies
     - build:jdk-21
@@ -45,6 +56,19 @@ configuration-checks:
     - build-dependencies
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+
+configuration-checks:jdk-24:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-24
+  needs:
+    - build-dependencies
+    - build:jdk-24
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
 
 
 configuration-documentation:
@@ -300,6 +324,15 @@ unit-tests:jdk-21:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
+unit-tests:jdk-24:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
+
 
 # Override Java version for some jobs
 image: ${CI_REGISTRY_IMAGE}/test:jdk-21
@@ -343,12 +376,6 @@ build-project-ecj:jdk-17:
     - when: never
 
 unit-tests:jdk-17:
-  rules:
-    - when: never
-
-# Disable tests on newer Java versions.
-# Running the tests on on Java version is enough in our experience.
-unit-tests:jdk-24:
   rules:
     - when: never
 
