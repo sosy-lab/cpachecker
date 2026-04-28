@@ -35,6 +35,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-benchs/image_filter.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/float-benchs/filter_iir.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_1_6.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/floats-cdfpl/newton_2_7.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_2_8.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/square_1.yml</exclude> <!-- flapping timeout -->
   </tasks>

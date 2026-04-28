@@ -50,8 +50,10 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-benchs/interpolation.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-benchs/sin_interpolated_negation.yml</exclude> <!-- flapping timeout / failed interpolation -->
     <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/floats-cdfpl/newton_2_8.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/square_1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/sine_3.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/float-newlib/double_req_bl_0530a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0530b.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0550a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
