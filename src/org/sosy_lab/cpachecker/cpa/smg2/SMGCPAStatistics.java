@@ -52,6 +52,8 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
 
   private final StatCounter listAbstractions = new StatCounter("Number of list abstractions");
   private final StatTimer totalAbstractionTime = new StatTimer("Time spend on list abstraction");
+  private final StatCounter exceptionsIgnoredDuringListAbstractions =
+      new StatCounter("Number of exceptions during list abstractions that have been ignored");
 
   private final StatTimer totalListSearchTime =
       new StatTimer("Time spend on searching for lists to abstract");
@@ -114,6 +116,9 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
     writer.put(
         "Max time spent on 0+ materialization: ", totalZeroPlusMaterializationTime.getMaxTime());
     writer.put("Number of lists abstracted in total: ", listAbstractions.getValue());
+    writer.put(
+        "Number of exceptions ignored during list abstraction in total: ",
+        exceptionsIgnoredDuringListAbstractions.getValue());
     writer.put("Total time spent on list abstraction: ", totalAbstractionTime.getConsumedTime());
     writer.put("Max time spent on list abstraction: ", totalAbstractionTime.getMaxTime());
     writer.put(
@@ -181,6 +186,10 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
 
   public void incrementListAbstractions() {
     listAbstractions.inc();
+  }
+
+  public void incrementExceptionsIgnoredDuringListAbstractions() {
+    exceptionsIgnoredDuringListAbstractions.inc();
   }
 
   public void incrementConcreteErrorPathsAllocated() {

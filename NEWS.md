@@ -8,6 +8,14 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 4.2.2
+-------------------------------------------------
+* Due to system requirements from common SMT solvers,
+  most configurations of CPAchecker
+  will start requiring Ubuntu 24.04 / Debian 13 or newer
+  after the next CPAchecker release.
+
+
 Changes from CPAchecker 4.2.1 to CPAchecker 4.2.2
 -------------------------------------------------
 * Fix unintended export of witnesses in v2 format in SV-COMP'26 config
