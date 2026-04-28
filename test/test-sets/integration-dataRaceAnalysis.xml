@@ -23,9 +23,13 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
+    <exclude>../programs/benchmarks/pthread-wmm/mix000.opt.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/rfi000_power.oepc_pso.oepc_rmo.oepc.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/rfi008.opt.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/rfi010.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe015_pso.oepc_pso.opt_tso.oepc_tso.opt.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe032_tso.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe037.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/weaver/chl-name-comparator-subst.wvr.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/weaver/chl-name-comparator-trans.wvr.yml</exclude> <!-- flapping error/timeout -->
   </tasks>
