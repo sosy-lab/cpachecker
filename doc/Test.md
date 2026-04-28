@@ -8,6 +8,10 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+This file describes the tests for the Java code base of CPAchecker.
+Tests for other languages are described in the respective documentation
+([JavaScript](JavascriptTesting.md), [Python](PythonStyleGuide.md)).
+
 Integration Tests
 -----------------
 
