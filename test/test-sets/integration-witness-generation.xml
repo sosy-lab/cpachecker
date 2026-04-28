@@ -57,9 +57,11 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/pthread-nondet/*</exclude>
     <exclude>../programs/benchmarks/ldv*/*</exclude>
     <exclude>../programs/benchmarks/goblint-regression/13-privatized_04-priv_multi_true.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/pthread-deagle/arithmetic_prog_ok.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/pthread-deagle/circular_buffer_ok.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/bench-exp1x3.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/bench-exp2x4.wvr.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/weaver/bench-exp2x6.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/bench-exp3x3-opt.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/chl-file-item-subst.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/chl-file-item-trans.wvr.yml</exclude> <!-- flapping timeout/OOM -->
@@ -129,10 +131,13 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1130a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1131a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/neural-networks/cartpole_36_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c720_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c720_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c864_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c105_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c105_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v34_c34_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>

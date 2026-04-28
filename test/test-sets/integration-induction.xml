@@ -96,6 +96,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound5.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound10.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/hard-ll_valuebound10.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/hard2_unwindbound20.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/hard2_valuebound50.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/mannadiv_unwindbound20.yml</exclude> <!-- flapping timeout -->

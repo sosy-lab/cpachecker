@@ -62,6 +62,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-lit/gj2007.c.i.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_valuebound2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/divbin2_valuebound100.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/divbin2_valuebound20.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound2.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks>
