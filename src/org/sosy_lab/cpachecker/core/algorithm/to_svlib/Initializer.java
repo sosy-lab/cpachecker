@@ -106,14 +106,7 @@ public class Initializer {
 
           if (variableDeclaration.isGlobal()) {
             SvLibParsingVariableDeclaration globalVariable =
-                new SvLibParsingVariableDeclaration(
-                    FileLocation.DUMMY,
-                    variableDeclaration.isGlobal(),
-                    variableDeclaration.getType().isConst(),
-                    type,
-                    variableDeclaration.getName(),
-                    variableDeclaration.getOrigName(),
-                    null);
+                createGlobalVariableDeclaration(variableDeclaration, type);
             scope.addVariable(globalVariable);
             pCommandsCollector.add(
                 new SvLibVariableDeclarationCommand(globalVariable, FileLocation.DUMMY));
@@ -123,6 +116,7 @@ public class Initializer {
                     FileLocation.DUMMY, type, declaration.getName(), procedureName);
             localParametersCollector.add(parameter);
           }
+
         } else if (declaration instanceof CFunctionDeclaration functionDeclaration) {
           boolean isExtern = !cfa.getAllFunctionNames().contains(functionDeclaration.getName());
           if (isExtern) {
@@ -228,6 +222,18 @@ public class Initializer {
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pEntryNode, edgeCollector);
     return ImmutableList.copyOf(edgeCollector.getVisitedEdges());
+  }
+
+  private SvLibParsingVariableDeclaration createGlobalVariableDeclaration(
+      CVariableDeclaration pVariableDeclaration, SvLibType pType) {
+    return new SvLibParsingVariableDeclaration(
+        FileLocation.DUMMY,
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getType().isConst(),
+        pType,
+        pVariableDeclaration.getName(),
+        pVariableDeclaration.getOrigName(),
+        null);
   }
 
   private SvLibProcedureDefinitionCommand createExternProcedureDefinition(
