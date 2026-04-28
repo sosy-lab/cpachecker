@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
+import java.util.AbstractSet;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Optional;
@@ -67,11 +69,21 @@ public class LocationPrecision implements AdjustablePrecision {
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
+    if(otherPrecision instanceof LocationPrecision locPrec){
+      ArrayList<SubCFA> intersection = new ArrayList<>(allowedProgramTransformations);
+      intersection.retainAll(locPrec.getAllowedProgramTransformations());
+      return new LocationPrecision(ImmutableSet.copyOf(intersection));
+    }
     return null;
   }
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision otherPrecision) {
+    if(otherPrecision instanceof LocationPrecision locPrec){
+      ArrayList<SubCFA> intersection = new ArrayList<>(allowedProgramTransformations);
+      intersection.addAll(locPrec.getAllowedProgramTransformations());
+      return new LocationPrecision(ImmutableSet.copyOf(intersection));
+    }
     return null;
   }
 
