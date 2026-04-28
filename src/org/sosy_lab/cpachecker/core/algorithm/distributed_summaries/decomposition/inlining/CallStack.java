@@ -23,7 +23,7 @@ public class CallStack {
       builder.append(callBlock.getId());
       if (parent.isPresent()) {
         builder.append('@');
-        parent.get().appendAsString(builder);
+        parent.orElseThrow().appendAsString(builder);
       }
     }
   }
@@ -51,7 +51,7 @@ public class CallStack {
     if (topFrame.isEmpty()) {
       return EMPTY;
     }
-    return new CallStack(topFrame.get().parent);
+    return new CallStack(topFrame.orElseThrow().parent);
   }
 
   public static CallStack empty() {
@@ -61,7 +61,7 @@ public class CallStack {
   public String asString() {
     if (topFrame.isPresent()) {
       StringBuilder builder = new StringBuilder();
-      topFrame.get().appendAsString(builder);
+      topFrame.orElseThrow().appendAsString(builder);
       return builder.toString();
     }
     return "";
@@ -80,7 +80,7 @@ public class CallStack {
     StringBuilder builder = new StringBuilder();
     builder.append(nodeId);
     builder.append('@');
-    topFrame.get().appendAsString(builder);
+    topFrame.orElseThrow().appendAsString(builder);
     return builder.toString();
   }
 

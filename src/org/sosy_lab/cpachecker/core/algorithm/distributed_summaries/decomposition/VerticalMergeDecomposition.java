@@ -14,7 +14,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -89,7 +88,7 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
           removed.add(node);
           removed.add(successor);
 
-          idTracker.merge(List.of(uniquePredecessorID, uniqueSuccessorID), result.getId());
+          idTracker.merge(ImmutableList.of(uniquePredecessorID, uniqueSuccessorID), result.getId());
 
           if (blocks.size() <= targetNumber) {
             break;
