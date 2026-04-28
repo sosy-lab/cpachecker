@@ -126,15 +126,9 @@ public class Initializer {
         } else if (declaration instanceof CFunctionDeclaration functionDeclaration) {
           boolean isExtern = !cfa.getAllFunctionNames().contains(functionDeclaration.getName());
           if (isExtern) {
-            SvLibProcedureDeclaration externProcedureDeclaration =
-                createProcedureDeclarationForExternFunction(functionDeclaration);
-            SvLibStatement externProcedureBody =
-                createBodyForExternProcedure(externProcedureDeclaration);
-
-            scope.addProcedureDeclaration(externProcedureDeclaration);
             SvLibProcedureDefinitionCommand externProcedureDefinition =
-                new SvLibProcedureDefinitionCommand(
-                    FileLocation.DUMMY, externProcedureDeclaration, externProcedureBody);
+                createExternProcedureDefinition(functionDeclaration);
+            scope.addProcedureDeclaration(externProcedureDefinition.getProcedureDeclaration());
             pCommandsCollector.add(externProcedureDefinition);
           }
         }
@@ -234,6 +228,15 @@ public class Initializer {
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pEntryNode, edgeCollector);
     return ImmutableList.copyOf(edgeCollector.getVisitedEdges());
+  }
+
+  private SvLibProcedureDefinitionCommand createExternProcedureDefinition(
+      CFunctionDeclaration pFunctionDeclaration) {
+    SvLibProcedureDeclaration externProcedureDeclaration =
+        createProcedureDeclarationForExternFunction(pFunctionDeclaration);
+    SvLibStatement externProcedureBody = createBodyForExternProcedure(externProcedureDeclaration);
+    return new SvLibProcedureDefinitionCommand(
+        FileLocation.DUMMY, externProcedureDeclaration, externProcedureBody);
   }
 
   private SvLibProcedureDeclaration createProcedureDeclarationForExternFunction(
