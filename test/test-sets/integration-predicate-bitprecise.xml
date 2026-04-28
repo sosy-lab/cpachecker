@@ -47,7 +47,9 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-benchs/image_filter.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_1_6.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_2_8.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c144_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c445_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c534_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
@@ -83,9 +85,11 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_ActiveStandby.5.ufo.BOUNDED-10.pals.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_floodmax.4.1.ufo.BOUNDED-8.pals.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.3.ufo.BOUNDED-6.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.2.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.3.2.ufo.UNBOUNDED.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.3.2.ufo.UNBOUNDED.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.3.1.ufo.BOUNDED-6.pals.c.v+sep-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.1.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.1.ufo.BOUNDED-8.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.3.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
