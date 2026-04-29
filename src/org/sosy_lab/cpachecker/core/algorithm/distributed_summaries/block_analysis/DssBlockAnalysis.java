@@ -588,7 +588,6 @@ public class DssBlockAnalysis {
         violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
       }
     }
-    violationConditions.putAll(pNewViolationCondition.getSenderId(), oldVcs);
     if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
         || equal == deserializedStates.size()) {
       return DssMessageProcessing.stop();
@@ -722,10 +721,10 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        if (!result.getSummaries().isEmpty()) {
+        if (!result.getFinalLocationStates().isEmpty()) {
           // pack all summaries
           ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
-          for (AbstractState summary : result.getSummaries()) {
+          for (AbstractState summary : result.getFinalLocationStates()) {
             summaryWithPrecision.add(
                 new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
           }
@@ -745,13 +744,7 @@ public class DssBlockAnalysis {
                 result.getFinalLocationStates(), violations));
       }
     }
-    ImmutableSet<ArgPathAndCondition> uniqueViolations = vcs.build();
-    if (!uniqueViolations.isEmpty()) {
-      // we do not want to underapproximate the state space
-      summaries.add(
-          new StateAndPrecision(makeTopState(block.getFinalLocation()), makeStartPrecision()));
-    }
-    return new AnalysisResult(summaries.build(), uniqueViolations);
+    return new AnalysisResult(summaries.build(), vcs.build());
   }
 
   private AbstractState makeTopState(CFANode pLocation) throws InterruptedException {

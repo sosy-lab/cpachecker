@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,9 +49,9 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
         ImmutableList.<String>builder()
             .addAll(previousWitness)
             .addAll(
-                Lists.reverse(
-                    transformedImmutableListCopy(
-                        pARGPath.getFullPath(), BlockTransferRelation::edgeToString)))
+                transformedImmutableListCopy(
+                        pARGPath.getFullPath(), BlockTransferRelation::edgeToString)
+                    .reverse())
             .build();
     if (!trackHistory) {
       return Optional.of(
