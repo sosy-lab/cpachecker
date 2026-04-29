@@ -278,8 +278,6 @@ public class InliningDecomposition implements DssBlockDecomposition {
             .transform(predecessorMapper)
             .toSet();
 
-
-
     ImmutableSet<String> mappedSuccessors =
         FluentIterable.from(original.getSuccessorIds())
             .filter(successorFilter)

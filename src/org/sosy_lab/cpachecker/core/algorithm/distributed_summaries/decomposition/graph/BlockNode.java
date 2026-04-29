@@ -25,15 +25,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
       ImmutableSet<CFAEdge> pEdges,
       ImmutableSet<String> pPredecessorIds,
       ImmutableSet<String> pSuccessorIds) {
-    this(
-        pId,
-        pFirst,
-        pLast,
-        pNodes,
-        pEdges,
-        pPredecessorIds,
-        pSuccessorIds,
-        pLast);
+    this(pId, pFirst, pLast, pNodes, pEdges, pPredecessorIds, pSuccessorIds, pLast);
   }
 
   public BlockNode(

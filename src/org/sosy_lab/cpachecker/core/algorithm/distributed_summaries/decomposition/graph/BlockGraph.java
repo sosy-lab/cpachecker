@@ -93,7 +93,6 @@ public class BlockGraph {
             "BlockNodes require to have exactly one exit node (%s).",
             blockNode);
       }
-
     }
   }
 
