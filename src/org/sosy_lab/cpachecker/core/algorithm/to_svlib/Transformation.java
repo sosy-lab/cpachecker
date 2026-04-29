@@ -107,47 +107,8 @@ public class Transformation {
     // in the main() function if no return value has been explicitly defined.
     if (pEntryNode.getFunctionName().contains("main")
         && !procedureDeclaration.getReturnValues().isEmpty()) {
-      // TODO: Refactor into own function or class
-      CStatementEdge statementEdge =
-          new CStatementEdge(
-              "return = 0;",
-              new CExpressionAssignmentStatement(
-                  FileLocation.DUMMY,
-                  new CIdExpression(
-                      FileLocation.DUMMY, pEntryNode.getReturnVariable().orElseThrow()),
-                  new CIntegerLiteralExpression(
-                      FileLocation.DUMMY,
-                      pEntryNode.getReturnVariable().orElseThrow().getType(),
-                      BigInteger.ZERO)),
-              FileLocation.DUMMY,
-              pEntryNode,
-              pEntryNode);
-      SvLibTerm assignmentTerm = transformToSvLibTerm(statementEdge);
-      // Obtain the only constant term inside the previous term
-      // could be done with a visitor but is easier like this
-      // and works for most cases
-      SvLibConstantTerm returnValue;
-      if (assignmentTerm instanceof SvLibConstantTerm pConstantTerm) {
-        returnValue = pConstantTerm;
-      } else if (assignmentTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm) {
-        List<SvLibConstantTerm> constantTerms =
-            FluentIterable.from(symbolApplicationTerm.getTerms())
-                .filter(SvLibConstantTerm.class)
-                .toList();
-        returnValue = Iterables.getOnlyElement(constantTerms);
-      } else {
-        throw new UnsupportedOperationException(
-            "Unexpected term generated for return value initialization in main function: "
-                + assignmentTerm);
-      }
-
       statementCollector.put(
-          pEntryNode,
-          new SvLibAssignmentStatement(
-              ImmutableMap.of(procedureDeclaration.getReturnValues().getFirst(), returnValue),
-              FileLocation.DUMMY,
-              ImmutableList.of(),
-              ImmutableList.of()));
+          pEntryNode, createDefaultReturnForMain(pEntryNode, procedureDeclaration));
     }
 
     // assign the dummy variables created for the input parameters to assignable variables that
@@ -194,6 +155,48 @@ public class Transformation {
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pEntryNode, edgeCollector);
     return ImmutableList.copyOf(edgeCollector.getVisitedEdges());
+  }
+
+  private SvLibAssignmentStatement createDefaultReturnForMain(
+      CFunctionEntryNode pEntryNode, SvLibProcedureDeclaration pProcedureDeclaration)
+      throws CPATransferException, InterruptedException {
+    CStatementEdge statementEdge =
+        new CStatementEdge(
+            "retval = 0;",
+            new CExpressionAssignmentStatement(
+                FileLocation.DUMMY,
+                new CIdExpression(FileLocation.DUMMY, pEntryNode.getReturnVariable().orElseThrow()),
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY,
+                    pEntryNode.getReturnVariable().orElseThrow().getType(),
+                    BigInteger.ZERO)),
+            FileLocation.DUMMY,
+            pEntryNode,
+            pEntryNode);
+    SvLibTerm assignmentTerm = transformToSvLibTerm(statementEdge);
+    // Obtain the only constant term inside the previous term
+    // could be done with a visitor but is easier like this
+    // and works for most cases
+    SvLibConstantTerm returnValue;
+    if (assignmentTerm instanceof SvLibConstantTerm pConstantTerm) {
+      returnValue = pConstantTerm;
+    } else if (assignmentTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm) {
+      List<SvLibConstantTerm> constantTerms =
+          FluentIterable.from(symbolApplicationTerm.getTerms())
+              .filter(SvLibConstantTerm.class)
+              .toList();
+      returnValue = Iterables.getOnlyElement(constantTerms);
+    } else {
+      throw new UnsupportedOperationException(
+          "Unexpected term generated for return value initialization in main function: "
+              + assignmentTerm);
+    }
+
+    return new SvLibAssignmentStatement(
+        ImmutableMap.of(pProcedureDeclaration.getReturnValues().getFirst(), returnValue),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   private void handleEdge(
