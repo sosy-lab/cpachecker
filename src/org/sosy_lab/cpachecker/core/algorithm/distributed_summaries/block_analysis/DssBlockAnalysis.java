@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -662,8 +661,6 @@ public class DssBlockAnalysis {
                         preconditions.get(k).stream()
                             .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state())));
 
-    Optional<Precision> maybePrecision = combinePrecisionIfPossible();
-
     // unreachable block ends might be caused by underapproximating summaries
     // therefore, a new violation condition cannot ignore them.
     // create start states for the forward analysis.
@@ -692,8 +689,7 @@ public class DssBlockAnalysis {
       analyzedTrivial = analyzedTrivial || isTrivial;
       resetStates();
       reachedSet.clear();
-      reachedSet.add(
-          stateAndPrecision.state(), maybePrecision.orElse(stateAndPrecision.precision()));
+      reachedSet.add(stateAndPrecision.state(), stateAndPrecision.precision());
       Objects.requireNonNull(
               AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class))
           .setViolationConditions(violations);
@@ -754,24 +750,6 @@ public class DssBlockAnalysis {
           new StateAndPrecision(
               dcpa.reset(entry.getValue().state()), entry.getValue().precision()));
     }
-  }
-
-  /**
-   * Combines all preconditions into single precision if all precisions are from type
-   * AdjustablePrecision.
-   *
-   * @return combined precision if all preconditions are of type {@link AdjustablePrecision}, empty
-   *     otherwise
-   */
-  private Optional<Precision> combinePrecisionIfPossible() throws InterruptedException {
-    if (preconditions.isEmpty()) {
-      return Optional.empty();
-    }
-    return Optional.of(
-        dcpa.getCombinePrecisionOperator()
-            .combine(
-                transformedImmutableListCopy(
-                    preconditions.values(), StateAndPrecision::precision)));
   }
 
   public DistributedConfigurableProgramAnalysis getDcpa() {

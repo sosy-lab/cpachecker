@@ -14,8 +14,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -43,7 +41,6 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   private final CombineOperator combineOperator;
   private final ProceedOperator proceedOperator;
   private final ViolationConditionOperator violationConditionOperator;
-  private final CombinePrecisionOperator combinePrecisionOperator;
 
   private final LocationCPA locationCPA;
   private final BlockNode node;
@@ -61,7 +58,6 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
     violationConditionOperator =
         new BackwardTransferViolationConditionOperator(
             new LocationTransferRelationBackwards(locationCPA.getStateFactory()), locationCPA);
-    combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     node = pNode;
   }
 
@@ -83,11 +79,6 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
     return deserializePrecisionOperator;
-  }
-
-  @Override
-  public CombinePrecisionOperator getCombinePrecisionOperator() {
-    return combinePrecisionOperator;
   }
 
   @Override

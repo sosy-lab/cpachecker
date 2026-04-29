@@ -18,8 +18,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -52,7 +50,6 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final ConfigurableProgramAnalysis blockCpa;
   private final BlockNode node;
   private final Function<CFANode, BlockState> blockStateSupplier;
-  private final CombinePrecisionOperator combinePrecisionOperator;
 
   public DistributedBlockCPA(
       ConfigurableProgramAnalysis pBlockCpa, BlockNode pNode, DssAnalysisOptions pOptions) {
@@ -79,7 +76,6 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
     combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
-    combinePrecisionOperator = new CombineSingletonPrecisionOperator();
   }
 
   @Override
@@ -100,11 +96,6 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
     return deserializePrecisionOperator;
-  }
-
-  @Override
-  public CombinePrecisionOperator getCombinePrecisionOperator() {
-    return combinePrecisionOperator;
   }
 
   @Override
