@@ -481,7 +481,7 @@ public class Transformation {
       ImmutableListMultimap<CFANode, SvLibStatement> pSequenceBody, String pProcedureName) {
     ImmutableList.Builder<SvLibStatement> statementList = ImmutableList.builder();
     for (CFANode key : pSequenceBody.keySet()) {
-      pSequenceBody.get(key).stream().forEach(statementList::add);
+      pSequenceBody.get(key).forEach(statementList::add);
     }
     return new SvLibSequenceStatement(
         statementList.build(),
