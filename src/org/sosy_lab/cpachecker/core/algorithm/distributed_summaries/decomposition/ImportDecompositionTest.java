@@ -14,9 +14,14 @@ import static org.junit.Assume.assumeTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
@@ -25,12 +30,21 @@ import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
+@RunWith(Parameterized.class)
 public class ImportDecompositionTest {
 
   private static final String CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH =
       "config/generateBlockGraph.properties";
   private static final String PROGRAM = "doc/examples/example.c";
   private static final String BLOCKS_JSON_PATH = "block_analysis/blocks.json";
+
+  @Parameters(name = "{0}")
+  public static List<Object[]> getParameters() {
+    return DecompositionTestBase.getFiles();
+  }
+
+  // TODO either make first test run only once or with also with these files
+  @Parameter public String path;
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -62,5 +76,23 @@ public class ImportDecompositionTest {
     BlockGraph blockGraphWithShiftedCFA = decomposition.decompose(shiftedCFA);
 
     assertThat(blockGraphWithShiftedCFA).isEqualTo(blockGraphWithOriginalCFA);
+  }
+
+  @Test
+  public void testValidImportDecomposition() throws Exception {
+    Path tempFolderPath = tempFolder.getRoot().toPath();
+    Configuration configToGenerateBlockGraph =
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
+    TestResults runWithBlockGraph = CPATestRunner.run(configToGenerateBlockGraph, path);
+    CFA originalCFA = runWithBlockGraph.getCheckerResult().getCfa();
+
+    // runWithBlockGraph should have generated the blocks json
+    Path expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH);
+    assumeTrue(expectedBlocksJson.toFile().exists());
+
+    ImportDecomposition decomposition = new ImportDecomposition(expectedBlocksJson);
+    BlockGraph graph = decomposition.decompose(originalCFA);
+
+    DecompositionTestBase.checkBlockGraph(graph, originalCFA);
   }
 }

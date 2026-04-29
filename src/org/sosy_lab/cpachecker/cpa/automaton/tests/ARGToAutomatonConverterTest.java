@@ -25,8 +25,9 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -34,15 +35,14 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.util.test.AbstractTranslationTest;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 @RunWith(Parameterized.class)
-public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
+public class ARGToAutomatonConverterTest {
 
-  public static final String AUTOMATA_FILE_TEMPLATE = "ARG.%06d.spc";
+  private static final String TEST_DIR_PATH = "test/programs/programtranslation/";
 
   private final String program;
   private final Configuration config;
@@ -57,20 +57,21 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
       boolean pVerdict,
       boolean pForOverflow)
       throws IOException, InvalidConfigurationException {
-    filePrefix = "automaton";
     program = pProgram;
     verdict = pVerdict;
     forOverflow = pForOverflow;
     automatonPath = newTempFile();
     String propfile = forOverflow ? "split--overflow.properties" : "split-callstack.properties";
-    ConfigurationBuilder configBuilder =
+    config =
         TestDataTools.configurationForTest()
             .loadFromResource(ARGToAutomatonConverterTest.class, propfile)
             .setOption("cpa.arg.export.code.handleTargetStates", "VERIFIERERROR")
-            .setOption("cpa.arg.export.code.header", "false");
-    config = configBuilder.build();
+            .setOption("cpa.arg.export.code.header", "false")
+            .build();
 
-    converter = new ARGToAutomatonConverter(config, MachineModel.LINUX32, logger);
+    converter =
+        new ARGToAutomatonConverter(
+            config, MachineModel.LINUX32, LogManager.createTestLogManager());
   }
 
   @Parameters(name = "{0}")
@@ -102,7 +103,8 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
 
     // generate ARG:
     resetCFANodeCounter();
-    ARGState root = run(config, fullPath);
+    TestResults firstResult = CPATestRunner.run(config, fullPath.toString());
+    ARGState root = (ARGState) firstResult.getCheckerResult().getReached().getFirstState();
 
     // generate joint automaton
     Automaton aut = converter.getAutomaton(root, true);
@@ -119,13 +121,9 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
               .loadFromResource(ARGToAutomatonConverterTest.class, analysis)
               .setOption("specification", automatonPath.toString())
               .build();
-      TestResults results = null;
-      try {
-        resetCFANodeCounter();
-        results = CPATestRunner.run(reConfig, fullPath.toString());
-      } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
-        throw new AssertionError(e);
-      }
+      resetCFANodeCounter();
+      TestResults results = CPATestRunner.run(reConfig, fullPath.toString());
+
       assertThat(results).isNotNull();
       if (verdict) {
         results.assertIsSafe();
@@ -158,13 +156,9 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
           TestDataTools.configurationForTest()
               .loadFromResource(ARGToAutomatonConverterTest.class, "split--overflow.properties")
               .build();
-      TestResults results = null;
-      try {
-        resetCFANodeCounter();
-        results = CPATestRunner.run(overflowConfig, fullPath.toString());
-      } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
-        throw new AssertionError(e);
-      }
+      resetCFANodeCounter();
+      TestResults results = CPATestRunner.run(overflowConfig, fullPath.toString());
+
       assertThat(results).isNotNull();
       if (verdict) {
         results.assertIsSafe();
@@ -192,5 +186,9 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
     i.set(0);
     nextId.setAccessible(false);
     idGenerator.setAccessible(false);
+  }
+
+  private static Path newTempFile() throws IOException {
+    return TempFile.builder().prefix("automaton").suffix(".spc").create().toAbsolutePath();
   }
 }
