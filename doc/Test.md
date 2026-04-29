@@ -39,7 +39,7 @@ These tests are also executed by [GitLab CI](https://gitlab.com/sosy-lab/softwar
 
 Some particularly expensive tests (which take several minutes)
 are disabled by default and can be enabled with
-`-Djunit.enableExpensiveTests=true` on the command line.
+`-DenableExpensiveTests=true` on the command line.
 
 Structure of Tests
 ------------------
