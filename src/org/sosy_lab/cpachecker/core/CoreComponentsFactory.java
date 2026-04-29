@@ -586,7 +586,7 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (useTransformationToSvLib) {
-      algorithm = new CToSvLibAlgorithm(config, logger, shutdownNotifier, cfa);
+      algorithm = new CToSvLibAlgorithm(config, specification, logger, shutdownNotifier, cfa);
     } else if (analysisSequentializesCfa()) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere

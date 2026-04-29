@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -57,6 +57,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
+  private final Specification specification;
   private final Solver solver;
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
@@ -77,6 +78,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
    */
   public CToSvLibAlgorithm(
       Configuration pConfiguration,
+      Specification pSpecification,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa)
@@ -84,6 +86,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     config = pConfiguration;
+    specification = pSpecification;
 
     cfa = pCfa;
     if (cfa.getLanguage() != Language.C) {
@@ -118,28 +121,11 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   /**
-   * Transforms the input {@link CFA} of a C program to a {@link SvLibScript}.
+   * Transforms the {@link CFA} of a C program to a {@link SvLibScript}.
    *
    * @return The SvLibScript generated from the CFA
    */
-  public SvLibScript transformToSvLib()
-      throws UnsupportedOperationException, CPATransferException, InterruptedException {
-    SvLibScript outputScript;
-
-    logger.log(Level.INFO, "Starting transformation of the input C program to SV-LIB.");
-    transformationStatistics.totalTransformationTime.start();
-    try {
-      outputScript = transformCfaToSvLibScript();
-    } finally {
-      transformationStatistics.totalTransformationTime.stop();
-    }
-    logger.log(Level.INFO, "Finished transformation of the input C program to SV-LIB.");
-
-    return outputScript;
-  }
-
-  private SvLibScript transformCfaToSvLibScript()
-      throws CPATransferException, InterruptedException {
+  SvLibScript transformCfaToSvLibScript() throws CPATransferException, InterruptedException {
     ImmutableList.Builder<SvLibCommand> commandsCollector = ImmutableList.builder();
     commandsCollector.add(
         new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
@@ -189,6 +175,10 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             procedureDeclarationCollector.build(),
             procedureBodiesCollector.build());
     commandsCollector.add(proceduresRecDefinitionCommand);
+
+    // 3. Step: encode property
+    PropertyEncoder propertyEncoder = new PropertyEncoder(specification);
+    propertyEncoder.encodeProperty(commandsCollector);
 
     commandsCollector.add(
         new SvLibVerifyCallCommand(
