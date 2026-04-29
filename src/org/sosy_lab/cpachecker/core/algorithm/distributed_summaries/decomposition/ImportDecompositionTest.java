@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,6 +22,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -34,6 +36,27 @@ public class ImportDecompositionTest {
   private static final String PROGRAM = "doc/examples/example.c";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+
+  private Map<String, ImportedBlock> getExportDataFrom(CFA pCfa)
+      throws IOException, InvalidConfigurationException, InterruptedException {
+
+    // create the block graph
+    Path tempFolderPath = tempFolder.getRoot().toPath();
+    Configuration configToGenerateBlockGraph =
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
+    DssBlockDecomposition configuredDecomposition =
+        new DssDecompositionOptions(configToGenerateBlockGraph, pCfa).getConfiguredDecomposition();
+
+    // serialize and deserialize the block graph
+    Map<String, Map<String, Object>> exportData =
+        configuredDecomposition.decompose(pCfa).getExportData(pCfa);
+
+    StringBuilder appender = new StringBuilder();
+    JSON.writeJSONString(exportData, appender);
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    return objectMapper.readValue(appender.toString(), new TypeReference<>() {});
+  }
 
   /**
    * Tests that {@link ImportDecomposition} can decompose a {@link CFA} to a {@link BlockGraph} when
@@ -51,28 +74,22 @@ public class ImportDecompositionTest {
     assertThat(originalCFA.nodes()).isNotEmpty();
     assertThat(originalCFA.nodes()).containsNoneIn(shiftedCFA.nodes());
 
-    // create the block graph
-    Path tempFolderPath = tempFolder.getRoot().toPath();
-    Configuration configToGenerateBlockGraph =
-        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
-    DssBlockDecomposition configuredDecomposition =
-        new DssDecompositionOptions(configToGenerateBlockGraph, originalCFA)
-            .getConfiguredDecomposition();
-
-    // serialize and deserialize the block graph
-    Map<String, Map<String, Object>> exportData =
-        configuredDecomposition.decompose(originalCFA).getExportData(originalCFA);
-    StringBuilder appender = new StringBuilder();
-    JSON.writeJSONString(exportData, appender);
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, ImportedBlock> importData =
-        objectMapper.readValue(appender.toString(), new TypeReference<>() {});
-
     // check whether the imported and the original block graph are the same.
-    ImportDecomposition decomposition = new ImportDecomposition(importData);
+    ImportDecomposition decomposition = new ImportDecomposition(getExportDataFrom(originalCFA));
     BlockGraph blockGraphWithOriginalCFA = decomposition.decompose(originalCFA);
     BlockGraph blockGraphWithShiftedCFA = decomposition.decompose(shiftedCFA);
 
     assertThat(blockGraphWithShiftedCFA).isEqualTo(blockGraphWithOriginalCFA);
+  }
+
+  @Test
+  public void testValidImportDecomposition() throws Exception {
+    String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
+    CFA originalCFA = TestDataTools.makeCFA(programText);
+
+    ImportDecomposition decomposition = new ImportDecomposition(getExportDataFrom(originalCFA));
+    BlockGraph graph = decomposition.decompose(originalCFA);
+
+    DecompositionTestBase.checkBlockGraph(graph, originalCFA);
   }
 }

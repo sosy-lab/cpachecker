@@ -35,7 +35,6 @@ public class DssDecompositionOptions {
   public enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
-    BRIDGE_DECOMPOSITION,
     NO_DECOMPOSITION
   }
 
@@ -55,6 +54,13 @@ public class DssDecompositionOptions {
               + "A tolerance of 1 means, that we subtract 1 of the total number of functions.",
       secure = true)
   private boolean allowSingleBlockDecompositionWhenMerging = false;
+
+  @Option(
+      description =
+          "Limits the horizontal merge so that blocks with more Nodes than this are not merged,"
+              + "allowing for more parallelism in the analysis. Negative value allows all merges",
+      secure = true)
+  private int largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT;
 
   @Option(
       description =
@@ -104,11 +110,9 @@ public class DssDecompositionOptions {
           new MergeBlockNodesDecomposition(
               new LinearBlockNodeDecomposition(isBlockEnd),
               2,
+              largestHorizontalMerge,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
               allowSingleBlockDecompositionWhenMerging);
-      case BRIDGE_DECOMPOSITION ->
-          new VerticalMergeDecomposition(
-              new BridgeDecomposition(), 1, Comparator.comparingInt(b -> b.getEdges().size()));
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }

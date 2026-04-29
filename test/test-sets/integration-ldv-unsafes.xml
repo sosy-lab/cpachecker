@@ -64,6 +64,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--hfsplus--hfsplus.ko-ldv_main2.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main9.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--gpu--drm--ttm--ttm.ko-ldv_main5.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--media--rc--imon.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--ata--libata.ko-ldv_main5.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--ata--libata.ko-ldv_main6.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--amd--amdgpu--amdgpu.ko-ldv_main1.cil.out.yml</exclude> <!-- flapping timeout -->

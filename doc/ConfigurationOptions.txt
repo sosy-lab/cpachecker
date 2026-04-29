@@ -4639,14 +4639,18 @@ distributedSummaries.decomposition.blockCFAFile = "block_analysis/blocks.json"
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
 distributedSummaries.decomposition.decompositionType = MERGE_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
-             NO_DECOMPOSITION]
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
 distributedSummaries.decomposition.generateBlockGraphOnly = false
 
 # Import an existing decomposition from a file
 distributedSummaries.decomposition.importDecomposition = no default value
+
+# Limits the horizontal merge so that blocks with more Nodes than this are
+# not merged,allowing for more parallelism in the analysis. Negative value
+# allows all merges
+distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT
 
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
