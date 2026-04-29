@@ -20,11 +20,13 @@ import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -34,7 +36,6 @@ public class ImportDecompositionTest {
   private static final String CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH =
       "config/generateBlockGraph.properties";
   private static final String PROGRAM = "doc/examples/example.c";
-  private static final String BLOCKS_JSON_PATH = "block_analysis/blocks.json";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -45,26 +46,33 @@ public class ImportDecompositionTest {
   @Test
   public void testCanDecomposeCfaWithNodeIdThatStartsAtNonZero() throws Exception {
     String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
-    Path tempFolderPath = tempFolder.getRoot().toPath();
-    Configuration configToGenerateBlockGraph =
-        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
-    TestResults runWithBlockGraph = CPATestRunner.run(configToGenerateBlockGraph, PROGRAM);
-    CFA originalCFA = runWithBlockGraph.getCheckerResult().getCfa();
 
-    // runWithBlockGraph should have generated the blocks json
-    Path expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH);
-    assumeTrue(expectedBlocksJson.toFile().exists());
-
+    // read the same CFA twice (with different ids)
+    CFA originalCFA = TestDataTools.makeCFA(programText);
     CFA shiftedCFA = TestDataTools.makeCFA(programText);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();
     assertThat(originalCFA.nodes()).containsNoneIn(shiftedCFA.nodes());
 
+    // create the block graph
+    Path tempFolderPath = tempFolder.getRoot().toPath();
+    Configuration configToGenerateBlockGraph =
+        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
+    DssBlockDecomposition configuredDecomposition =
+        new DssDecompositionOptions(configToGenerateBlockGraph, originalCFA)
+            .getConfiguredDecomposition();
+
+    // serialize and deserialize the block graph
+    Map<String, Map<String, Object>> exportData =
+        configuredDecomposition.decompose(originalCFA).getExportData(originalCFA);
+    StringBuilder appender = new StringBuilder();
+    JSON.writeJSONString(exportData, appender);
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, ImportedBlock> importData =
-        objectMapper.readValue(expectedBlocksJson.toFile(), new TypeReference<>() {});
+        objectMapper.readValue(appender.toString(), new TypeReference<>() {});
 
+    // check whether the imported and the original block graph are the same.
     ImportDecomposition decomposition = new ImportDecomposition(importData);
     BlockGraph blockGraphWithOriginalCFA = decomposition.decompose(originalCFA);
     BlockGraph blockGraphWithShiftedCFA = decomposition.decompose(shiftedCFA);
