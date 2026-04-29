@@ -4696,6 +4696,10 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
+# Whether to run symbolic execution to compute the violation condition for
+# value analysis.
+dss.cpa.value.runSymExec = no default value
+
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
