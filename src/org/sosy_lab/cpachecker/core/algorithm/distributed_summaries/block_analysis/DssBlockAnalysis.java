@@ -754,8 +754,7 @@ public class DssBlockAnalysis {
                 result.getFinalLocationStates(), violations));
       }
     }
-    ImmutableSet<ArgPathAndCondition> uniqueViolations = vcs.build();
-    return new AnalysisResult(summaries.build(), uniqueViolations);
+    return new AnalysisResult(summaries.build(), vcs.build());
   }
 
   private AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
