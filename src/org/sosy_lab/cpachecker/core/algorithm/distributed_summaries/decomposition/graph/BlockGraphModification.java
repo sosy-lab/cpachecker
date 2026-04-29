@@ -281,9 +281,7 @@ public class BlockGraphModification {
               nodeBuilder.build(),
               edgeBuilder.build(),
               block.getPredecessorIds(),
-              block.getLoopPredecessorIds(),
               block.getSuccessorIds(),
-              block.getLoopSuccessorIds(),
               abstraction));
     }
     return new BlockGraph(instrumentedBlocks.build());

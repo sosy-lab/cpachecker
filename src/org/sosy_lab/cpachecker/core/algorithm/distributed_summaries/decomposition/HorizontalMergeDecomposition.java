@@ -104,8 +104,6 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
         FluentIterable.from(pCollection).transformAndConcat(BlockNode::getNodes).toSet(),
         FluentIterable.from(pCollection).transformAndConcat(BlockNode::getEdges).toSet(),
         first.getPredecessorIds(),
-        first.getLoopPredecessorIds(),
-        first.getSuccessorIds(),
-        first.getLoopSuccessorIds());
+        first.getSuccessorIds());
   }
 }

@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.List;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.StronglyConnectedComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.FunctionGraph.Call;
 
 public class FunctionSCCGraph {

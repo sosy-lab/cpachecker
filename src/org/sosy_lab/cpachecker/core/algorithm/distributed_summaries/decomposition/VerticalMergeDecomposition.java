@@ -108,8 +108,6 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
         ImmutableSet.copyOf(Iterables.concat(pBlockNode1.getNodes(), pBlockNode2.getNodes())),
         ImmutableSet.copyOf(Iterables.concat(pBlockNode1.getEdges(), pBlockNode2.getEdges())),
         pBlockNode1.getPredecessorIds(),
-        pBlockNode1.getLoopPredecessorIds(),
-        pBlockNode2.getSuccessorIds(),
-        pBlockNode2.getLoopSuccessorIds());
+        pBlockNode2.getSuccessorIds());
   }
 }

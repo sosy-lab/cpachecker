@@ -278,20 +278,10 @@ public class InliningDecomposition implements DssBlockDecomposition {
             .transform(predecessorMapper)
             .toSet();
 
-    ImmutableSet<String> mappedLoopPredecessors =
-        FluentIterable.from(original.getLoopPredecessorIds())
-            .filter(predecessorFilter)
-            .transform(predecessorMapper)
-            .toSet();
+
 
     ImmutableSet<String> mappedSuccessors =
         FluentIterable.from(original.getSuccessorIds())
-            .filter(successorFilter)
-            .transform(successorMapper)
-            .toSet();
-
-    ImmutableSet<String> mappedLoopSuccessors =
-        FluentIterable.from(original.getLoopSuccessorIds())
             .filter(successorFilter)
             .transform(successorMapper)
             .toSet();
@@ -303,8 +293,6 @@ public class InliningDecomposition implements DssBlockDecomposition {
         original.getNodes(),
         original.getEdges(),
         mappedPredecessors,
-        mappedLoopPredecessors,
-        mappedSuccessors,
-        mappedLoopSuccessors);
+        mappedSuccessors);
   }
 }

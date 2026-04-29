@@ -61,9 +61,7 @@ public class MergeIDTracker {
                     node.getNodes(),
                     node.getEdges(),
                     transformedImmutableSetCopy(node.getPredecessorIds(), this::resolve),
-                    transformedImmutableSetCopy(node.getLoopPredecessorIds(), this::resolve),
-                    transformedImmutableSetCopy(node.getSuccessorIds(), this::resolve),
-                    transformedImmutableSetCopy(node.getLoopSuccessorIds(), this::resolve)))
+                    transformedImmutableSetCopy(node.getSuccessorIds(), this::resolve)))
         .toSet();
   }
 }
