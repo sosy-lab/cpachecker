@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -17,9 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
 
 /** Helper class for Distributed Summary Synthesis tests. */
 public class TestUtil {
@@ -46,17 +46,8 @@ public class TestUtil {
 
   public static CFA buildTestCFA(String path) throws Exception {
 
-    Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(CFA_CONFIGURATION_FILE).build();
+    String programText = Files.readString(Path.of(path), StandardCharsets.UTF_8);
 
-    TestResults result = CPATestRunner.run(config, path);
-
-    CFA cfa = result.getCheckerResult().getCfa();
-
-    if (cfa == null) {
-      throw new IllegalArgumentException("Could not create a CFA out of the file '" + path + "'");
-    }
-
-    return result.getCheckerResult().getCfa();
+    return TestDataTools.makeCFA(programText);
   }
 }
