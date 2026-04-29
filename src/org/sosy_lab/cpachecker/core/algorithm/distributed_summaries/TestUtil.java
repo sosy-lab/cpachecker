@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class TestUtil {
   private static final Language language = Language.C;
 
-  private static final String CFA_CONFIGURATION_FILE = "config/generateCFA.properties";
   // public so that this can be accessed for the LinearDecomposition test
   public static final String DSS_CONFIGURATION_FILE = "config/dss.properties";
 
