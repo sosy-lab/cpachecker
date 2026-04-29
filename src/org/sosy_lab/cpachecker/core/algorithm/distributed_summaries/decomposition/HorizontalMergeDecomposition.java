@@ -16,6 +16,7 @@ import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Comparator;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
@@ -26,7 +27,8 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
   private final Comparator<BlockNode> sort;
   private int id;
 
-  private record BlockScope(ImmutableSet<String> predecessors, ImmutableSet<String> successors) {}
+  private record BlockScope(
+      ImmutableSet<String> predecessors, ImmutableSet<String> successors, CFANode finalLocation) {}
 
   public HorizontalMergeDecomposition(
       DssBlockDecomposition pDecomposition, long pTargetNumber, Comparator<BlockNode> pSort) {
@@ -58,13 +60,16 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
   Collection<BlockNode> mergeHorizontally(Collection<BlockNode> pNodes) {
     Multimap<BlockScope, BlockNode> blockScopes = ArrayListMultimap.create();
     pNodes.forEach(
-        n -> blockScopes.put(new BlockScope(n.getPredecessorIds(), n.getSuccessorIds()), n));
+        n ->
+            blockScopes.put(
+                new BlockScope(n.getPredecessorIds(), n.getSuccessorIds(), n.getFinalLocation()),
+                n));
 
     MergeIDTracker idTracker =
         new MergeIDTracker(FluentIterable.from(pNodes).transform(n -> n.getId()));
 
     for (BlockScope blockScope : ImmutableSet.copyOf(blockScopes.keySet())) {
-      if (blockScopes.get(blockScope).size() <= 1 || blockScope.successors.isEmpty()) {
+      if (blockScopes.get(blockScope).size() <= 1) {
         continue;
       }
 
