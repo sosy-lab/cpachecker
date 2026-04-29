@@ -9,13 +9,21 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
+import java.io.Serial;
+import java.nio.file.Path;
 import java.util.Collection;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
@@ -32,14 +40,18 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallComm
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
@@ -50,7 +62,17 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 
+@Options(prefix = "analysis.algorithm.toSvLib")
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
+
+  @Option(
+      secure = true,
+      description =
+          "If the transformation to SV-LIB should be performed as a preprocessing step"
+              + " before the main analysis of the generated SV-LIB script begins, set to true."
+              + "If the transformed SV-LIB script should just be exported and analyzed externally,"
+              + " set to false.")
+  private boolean runAnalysis = false;
 
   private final CFA cfa;
 
@@ -193,9 +215,76 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
-    return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    SvLibScript transformationResultScript;
+
+    logger.log(Level.INFO, "Starting transformation of the input C program to SV-LIB.");
+    transformationStatistics.totalTransformationTime.start();
+    try {
+      transformationResultScript = transformCfaToSvLibScript();
+    } finally {
+      transformationStatistics.totalTransformationTime.stop();
+    }
+    logger.log(Level.INFO, "Finished transformation of the input C program to SV-LIB.");
+
+    if (!runAnalysis) {
+      // handleExport(transformationResultScript.toASTString());
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+
+    ImmutableCFA newSvLibCfa;
+    final CoreComponentsFactory coreComponents;
+    final ConfigurableProgramAnalysis cpa;
+    Algorithm innerAlgorithm;
+    try {
+      // update config, set transformToSvLib to false and language to svlib
+      Configuration newConfig =
+          Configuration.builder()
+              .copyFrom(config)
+              .setOptions(
+                  ImmutableMap.of(
+                      "analysis.algorithm.transformToSvLib", "false", "language", "svlib"))
+              .build();
+
+      CFACreator cfaCreator = new CFACreator(newConfig, logger, shutdownNotifier);
+      newSvLibCfa = cfaCreator.parseSourceAndCreateCFA(transformationResultScript.toASTString());
+
+      coreComponents =
+          new CoreComponentsFactory(
+              newConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), newSvLibCfa);
+
+      Specification svLibSpecification =
+          Specification.fromFiles(
+              ImmutableList.of(
+                  Path.of("config", "specification", "correct-tags.spc").toAbsolutePath()),
+              newSvLibCfa,
+              newConfig,
+              logger,
+              shutdownNotifier);
+
+      cpa = coreComponents.createCPA(svLibSpecification);
+      /* if (cpa instanceof StatisticsProvider statisticsProvider) {
+        // statisticsProvider.collectStatistics(inner stats);
+      }*/
+
+      innerAlgorithm = coreComponents.createAlgorithm(cpa, svLibSpecification);
+      /* if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+        // statisticsProvider.collectStatistics(inner stats);
+      }*/
+    } catch (InvalidConfigurationException e) {
+      throw new UnsupportedTransformationException(
+          "Building the algorithm which should be run on the transformed SV-LIB script failed.", e);
+    } catch (ParserException e) {
+      throw new UnsupportedOperationException(
+          "Failed to create a CFA for the transformed SV-LIB script.", e);
+    }
+
+    // Prepare new reached set
+    pReachedSet.clear();
+    coreComponents.initializeReachedSet(pReachedSet, newSvLibCfa.getMainFunction(), cpa);
+
+    return innerAlgorithm.run(pReachedSet);
   }
 
   @Override
@@ -231,6 +320,14 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     @Override
     public String getName() {
       return "C to SV-LIB Transformation Statistics";
+    }
+  }
+
+  private static class UnsupportedTransformationException extends CPAException {
+    @Serial private static final long serialVersionUID = 7983804183988784111L;
+
+    UnsupportedTransformationException(String msg, Throwable cause) {
+      super(msg, cause);
     }
   }
 }

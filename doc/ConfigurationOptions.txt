@@ -226,6 +226,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -493,6 +494,12 @@ analysis.algorithm.terminationToSafety = false
 # use termination witness validator to check a correctness witness for
 # termination
 analysis.algorithm.terminationWitnessCheck = false
+
+# If the transformation to SV-LIB should be performed as a preprocessing step
+# before the main analysis of the generated SV-LIB script begins, set to
+# true.If the transformed SV-LIB script should just be exported and analyzed
+# externally, set to false.
+analysis.algorithm.toSvLib.runAnalysis = false
 
 # This algorithm transforms a C program to a SV-LIB script. 
 analysis.algorithm.transformToSvLib = false
