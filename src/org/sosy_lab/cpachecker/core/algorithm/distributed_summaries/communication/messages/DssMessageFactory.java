@@ -44,7 +44,6 @@ public class DssMessageFactory {
 
   public DssPostConditionMessage createDssPostConditionMessage(
       String pSenderId,
-      boolean pReachable,
       AlgorithmStatus pStatus,
       List<String> pReceivers,
       ImmutableMap<String, String> pStateContent) {
@@ -53,7 +52,6 @@ public class DssMessageFactory {
         pReceivers,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
-            .put(DssPostConditionMessage.DSS_MESSAGE_REACHABLE_KEY, Boolean.toString(pReachable))
             .putAll(pStateContent)
             .buildOrThrow());
   }

@@ -14,15 +14,11 @@ import java.util.Map;
 
 public class DssPostConditionMessage extends DssMessage {
 
-  public static final String DSS_MESSAGE_REACHABLE_KEY = "reachable";
-
-  private final boolean reachable;
   private final List<String> receivers;
 
   DssPostConditionMessage(
       String pSenderId, List<String> pReceivers, ImmutableMap<String, String> pContent) {
     super(pSenderId, DssMessageType.POST_CONDITION, pContent);
-    reachable = Boolean.parseBoolean(pContent.get(DSS_MESSAGE_REACHABLE_KEY));
     receivers = pReceivers;
   }
 
@@ -32,20 +28,6 @@ public class DssPostConditionMessage extends DssMessage {
 
   @Override
   boolean isValid(Map<String, String> pContent) {
-    return !pContent.isEmpty()
-        && pContent.containsKey(DSS_MESSAGE_REACHABLE_KEY)
-        && pContent.get(DSS_MESSAGE_REACHABLE_KEY) != null
-        && (pContent.get(DSS_MESSAGE_REACHABLE_KEY).equalsIgnoreCase("true")
-            || pContent.get(DSS_MESSAGE_REACHABLE_KEY).equalsIgnoreCase("false"));
-  }
-
-  /**
-   * Indicates whether the post-condition represents an actual reachable state or if the block
-   * analysis of the predecessor was unable to reach its block end.
-   *
-   * @return true if the post-condition is reachable, false otherwise.
-   */
-  public boolean isReachable() {
-    return reachable;
+    return !pContent.isEmpty();
   }
 }

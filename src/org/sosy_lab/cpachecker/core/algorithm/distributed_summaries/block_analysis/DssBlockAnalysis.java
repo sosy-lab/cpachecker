@@ -330,16 +330,6 @@ public class DssBlockAnalysis {
     return relevantViolations.build();
   }
 
-  private Collection<DssMessage> reportUnreachableBlockEnd() {
-    return ImmutableSet.of(
-        messageFactory.createDssPostConditionMessage(
-            block.getId(),
-            false,
-            status,
-            ImmutableList.copyOf(block.getSuccessorIds()),
-            ImmutableMap.of()));
-  }
-
   private ImmutableList<@NonNull StateAndPrecision> deduplicateStates(
       Collection<@NonNull StateAndPrecision> summaries) throws InterruptedException, CPAException {
     // reset all summaries and run cpa algorithm on them to remove redundant ones
@@ -389,11 +379,7 @@ public class DssBlockAnalysis {
     ImmutableMap<String, String> serialized = serialize(uniqueSummaries);
     messages.add(
         messageFactory.createDssPostConditionMessage(
-            block.getId(),
-            true,
-            status,
-            ImmutableList.copyOf(block.getSuccessorIds()),
-            serialized));
+            block.getId(), status, ImmutableList.copyOf(block.getSuccessorIds()), serialized));
     return messages.build();
   }
 
@@ -444,7 +430,7 @@ public class DssBlockAnalysis {
 
     if (result.getAllViolations().isEmpty()) {
       if (result.getFinalLocationStates().isEmpty()) {
-        return reportUnreachableBlockEnd();
+        return DssMessageProcessing.stop();
       }
       ImmutableList.Builder<StateAndPrecision> summariesWithPrecision = ImmutableList.builder();
       for (AbstractState finalState : result.getFinalLocationStates()) {
@@ -455,15 +441,12 @@ public class DssBlockAnalysis {
     }
 
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
-    if (result.getFinalLocationStates().isEmpty()) {
-      messages.addAll(reportUnreachableBlockEnd());
-    } else {
+    if (!result.getFinalLocationStates().isEmpty()) {
       AbstractState startState = makeTopState(block.getFinalLocation());
       Precision startPrecision = makeStartPrecision();
       messages.add(
           messageFactory.createDssPostConditionMessage(
               block.getId(),
-              true,
               status,
               ImmutableList.copyOf(block.getSuccessorIds()),
               serialize(ImmutableList.of(new StateAndPrecision(startState, startPrecision)))));
@@ -505,12 +488,6 @@ public class DssBlockAnalysis {
       throws InterruptedException, SolverException, CPAException {
     relevant.clear();
     logger.log(Level.INFO, "Running forward analysis with new precondition");
-    if (!pReceived.isReachable()) {
-      preconditions.removeAll(pReceived.getSenderId());
-      preconditions.put(
-          pReceived.getSenderId(), new StateAndPrecision(makeStartState(), makeStartPrecision()));
-      return DssMessageProcessing.stop();
-    }
     resetStates();
     ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
         deserialize(pReceived);
@@ -655,11 +632,6 @@ public class DssBlockAnalysis {
     }
     if (!result.violationConditions().isEmpty()) {
       messages.addAll(reportViolationConditions(result.violationConditions()));
-    }
-    if (result.summaries().isEmpty()
-        && result.violationConditions().isEmpty()
-        && preconditions.isEmpty()) {
-      messages.addAll(reportUnreachableBlockEnd());
     }
     return messages.build();
   }
