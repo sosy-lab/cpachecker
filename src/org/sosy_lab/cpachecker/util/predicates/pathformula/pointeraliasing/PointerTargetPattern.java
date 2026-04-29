@@ -69,18 +69,18 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   }
 
   boolean matches(final PointerTarget target) {
-    if (properOffset != null && properOffset != target.properOffset) {
+    if (properOffset != null && properOffset != target.properOffset()) {
       return false;
     }
-    if (containerOffset != null && containerOffset != target.containerOffset) {
+    if (containerOffset != null && containerOffset != target.containerOffset()) {
       return false;
     }
-    if (base != null && !base.equals(target.base)) {
+    if (base != null && !base.equals(target.base())) {
       return false;
     }
-    if (containerType != null && !containerType.equals(target.containerType)) {
+    if (containerType != null && !containerType.equals(target.containerType())) {
       if (!(containerType instanceof CArrayType containerArrayType)
-          || !(target.containerType instanceof CArrayType targetArrayType)) {
+          || !(target.containerType() instanceof CArrayType targetArrayType)) {
         return false;
       } else {
         return containerArrayType.getType().equals(targetArrayType.getType());
@@ -130,11 +130,11 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
     @Override
     public boolean apply(final PointerTarget target) {
-      final long offset = target.containerOffset + target.properOffset;
+      final long offset = target.containerOffset() + target.properOffset();
       if (offset < startOffset || offset >= endOffset) {
         return false;
       }
-      if (base != null && !base.equals(target.base)) {
+      if (base != null && !base.equals(target.base())) {
         return false;
       }
       return true;

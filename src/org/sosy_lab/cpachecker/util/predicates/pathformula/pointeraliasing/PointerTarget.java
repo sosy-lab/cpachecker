@@ -8,48 +8,29 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-@javax.annotation.concurrent.Immutable // cannot prove deep immutability
-public final class PointerTarget implements Serializable {
+record PointerTarget(
+    PointerBase base, @Nullable CType containerType, long properOffset, long containerOffset)
+    implements Serializable {
 
   /** This constructor is for fields of nested structures and arrays */
-  PointerTarget(
-      PointerBase base, @Nullable CType containerType, long properOffset, long containerOffset) {
-    this.base = base;
-    this.containerType = containerType;
-    this.properOffset = properOffset;
-    this.containerOffset = containerOffset;
+  PointerTarget {
+    checkNotNull(base);
   }
 
-  PointerBase getBase() {
-    return base;
-  }
-
-  public long getOffset() {
+  long offset() {
     return containerOffset + properOffset;
-  }
-
-  long getProperOffset() {
-    assert containerType != null : "The target's offset is ill-defined";
-    return properOffset;
   }
 
   boolean isBase() {
     return containerType == null;
-  }
-
-  @Nullable CType getContainerType() {
-    return containerType;
-  }
-
-  long getContainerOffset() {
-    assert containerType != null : "The target's container offset is ill-defined";
-    return containerOffset;
   }
 
   @Override
@@ -78,11 +59,6 @@ public final class PointerTarget implements Serializable {
         "(Base: %s, type: %s, prop. offset: %d, cont. offset: %d)",
         base, containerType, properOffset, containerOffset);
   }
-
-  final PointerBase base;
-  final @Nullable CType containerType;
-  final long properOffset;
-  final long containerOffset;
 
   @Serial private static final long serialVersionUID = -1258065871533686442L;
 }

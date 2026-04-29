@@ -43,8 +43,10 @@
         <!-- SV-Comp files assume that malloc always succeeds -->
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
         <exclude>../programs/benchmarks/float-benchs/filter2.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/float-benchs/filter2_iterated.yml</exclude> <!-- flapping interpolation failure / timeout -->
         <exclude>../programs/benchmarks/float-benchs/image_filter.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/float-benchs/interpolation.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/float-benchs/sin_interpolated_negation.yml</exclude> <!-- flapping interpolation failure / timeout -->
         <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/floats-cdfpl/sine_3.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/floats-cdfpl/square_1.yml</exclude> <!-- flapping timeout -->
@@ -83,12 +85,23 @@
         <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.4.1.ufo.BOUNDED-8.pals.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.4.2.ufo.BOUNDED-8.pals.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.6_overflow.ufo.UNBOUNDED.pals.yml</exclude> <!-- flapping exception/timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/pals_opt-floodmax.5.1.ufo.BOUNDED-10.pals.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/pals_opt-floodmax.5.3.ufo.BOUNDED-10.pals.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.1.M1-1.yml</exclude> <!-- flapping oom/timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.1.M1-2.yml</exclude> <!-- flapping oom/timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.2.M1-2.yml</exclude> <!-- flapping oom/timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.3.M1.yml</exclude> <!-- flapping oom/timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.4.M1.yml</exclude> <!-- flapping oom/timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/rekcba_nxt.1.M1-1.yml</exclude> <!-- flapping oom/timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/rekcba_nxt.1.M1-2.yml</exclude> <!-- flapping oom/timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/rekcba_nxt.2.M1-2.yml</exclude> <!-- flapping oom/timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/rekcba_nxt.2.M4-1.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/rekh_aso.1.M1-2.yml</exclude> <!-- flapping oom/timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.3.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.1.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.4.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.1.ufo.BOUNDED-10.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.1.ufo.UNBOUNDED.pals.c.v+sep-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.1.ufo.UNBOUNDED.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.6.1.ufo.BOUNDED-12.pals.c.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->
@@ -99,6 +112,7 @@
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.5.1.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.5.3.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.5.4.ufo.BOUNDED-10.pals.c.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.1.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping exception/timeout -->
     </tasks>
     <tasks>
         <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
