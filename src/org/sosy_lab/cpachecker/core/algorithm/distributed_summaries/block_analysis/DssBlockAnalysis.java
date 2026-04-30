@@ -74,6 +74,31 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class DssBlockAnalysis {
 
+  private record ArgPathAndCondition(ARGPath path, @Nullable ARGState condition) {
+
+    private String getIdFromPath() {
+      return FluentIterable.from(path.getFullPath())
+          .transform(edge -> edge.getPredecessor() + "->" + edge.getSuccessor())
+          .join(Joiner.on(", "));
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(
+          getIdFromPath(), condition == null ? null : Objects.toIdentityString(condition));
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      return obj instanceof ArgPathAndCondition other
+          && Objects.equals(getIdFromPath(), other.getIdFromPath())
+          && Objects.equals(condition, other.condition());
+    }
+  }
+
   private record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
@@ -195,6 +220,53 @@ public class DssBlockAnalysis {
     return new AnalysisComponents(algorithm, cpa, reached);
   }
 
+  private Collection<DssMessage> reportPostconditions(
+      Collection<@NonNull StateAndPrecision> summaries) throws CPAException, InterruptedException {
+
+    // reset all summaries and run cpa algorithm on them to remove redundant ones
+    ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
+
+    if (uniqueSummaries.isEmpty()) {
+      throw new AssertionError("No unique summaries found after CPA run");
+    }
+
+    // pack the message
+    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
+    ImmutableMap<String, String> serialized = serialize(uniqueSummaries);
+    messages.add(
+        messageFactory.createDssPostConditionMessage(
+            block.getId(), status, ImmutableList.copyOf(block.getSuccessorIds()), serialized));
+    return messages.build();
+  }
+
+  private Collection<DssMessage> reportFirstViolationConditions(Set<@NonNull ARGState> violations)
+      throws CPAException, InterruptedException, SolverException {
+    containsViolationInsideBlock = true;
+    return reportViolationConditions(computeViolationConditionStatesFromOrigin(violations));
+  }
+
+  private Collection<DssMessage> reportViolationConditions(
+      Collection<ArgPathAndCondition> relevantViolations)
+      throws InterruptedException, CPATransferException, SolverException {
+    ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
+    for (ArgPathAndCondition pathAndCondition : relevantViolations) {
+      Optional<AbstractState> violationCondition =
+          dcpa.getViolationConditionOperator()
+              .computeViolationCondition(
+                  pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition));
+      if (violationCondition.isPresent()) {
+        vcs.add(new StateAndPrecision(violationCondition.orElseThrow(), makeStartPrecision()));
+      }
+    }
+    ImmutableList<StateAndPrecision> allVcs = vcs.build();
+    if (allVcs.isEmpty()) {
+      return ImmutableSet.of();
+    }
+    ImmutableMap<String, String> serialized = serialize(allVcs);
+    return ImmutableSet.of(
+        messageFactory.createViolationConditionMessage(block.getId(), status, serialized));
+  }
+
   /**
    * Serialize a list of states and precisions into a map of strings. Every entry in the list will
    * be serialized under its own key (prefixed by state#num. The {@link #deserialize(DssMessage)}
@@ -262,31 +334,6 @@ public class DssBlockAnalysis {
       paths.addAll(ARGUtils.getAllPaths(reachedSet, state));
     }
     return paths.build();
-  }
-
-  private record ArgPathAndCondition(ARGPath path, @Nullable ARGState condition) {
-
-    private String getIdFromPath() {
-      return FluentIterable.from(path.getFullPath())
-          .transform(edge -> edge.getPredecessor() + "->" + edge.getSuccessor())
-          .join(Joiner.on(", "));
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(
-          getIdFromPath(), condition == null ? null : Objects.toIdentityString(condition));
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      return obj instanceof ArgPathAndCondition other
-          && Objects.equals(getIdFromPath(), other.getIdFromPath())
-          && Objects.equals(condition, other.condition());
-    }
   }
 
   private Set<ArgPathAndCondition> computeViolationConditionStatesFromOrigin(
@@ -358,53 +405,6 @@ public class DssBlockAnalysis {
       throw new AssertionError("No unique summaries found after CPA run");
     }
     return uniqueSummaries;
-  }
-
-  private Collection<DssMessage> reportPostconditions(
-      Collection<@NonNull StateAndPrecision> summaries) throws CPAException, InterruptedException {
-
-    // reset all summaries and run cpa algorithm on them to remove redundant ones
-    ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
-
-    if (uniqueSummaries.isEmpty()) {
-      throw new AssertionError("No unique summaries found after CPA run");
-    }
-
-    // pack the message
-    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    ImmutableMap<String, String> serialized = serialize(uniqueSummaries);
-    messages.add(
-        messageFactory.createDssPostConditionMessage(
-            block.getId(), status, ImmutableList.copyOf(block.getSuccessorIds()), serialized));
-    return messages.build();
-  }
-
-  private Collection<DssMessage> reportFirstViolationConditions(Set<@NonNull ARGState> violations)
-      throws CPAException, InterruptedException, SolverException {
-    containsViolationInsideBlock = true;
-    return reportViolationConditions(computeViolationConditionStatesFromOrigin(violations));
-  }
-
-  private Collection<DssMessage> reportViolationConditions(
-      Collection<ArgPathAndCondition> relevantViolations)
-      throws InterruptedException, CPATransferException, SolverException {
-    ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
-    for (ArgPathAndCondition pathAndCondition : relevantViolations) {
-      Optional<AbstractState> violationCondition =
-          dcpa.getViolationConditionOperator()
-              .computeViolationCondition(
-                  pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition));
-      if (violationCondition.isPresent()) {
-        vcs.add(new StateAndPrecision(violationCondition.orElseThrow(), makeStartPrecision()));
-      }
-    }
-    ImmutableList<StateAndPrecision> allVcs = vcs.build();
-    if (allVcs.isEmpty()) {
-      return ImmutableSet.of();
-    }
-    ImmutableMap<String, String> serialized = serialize(allVcs);
-    return ImmutableSet.of(
-        messageFactory.createViolationConditionMessage(block.getId(), status, serialized));
   }
 
   /**

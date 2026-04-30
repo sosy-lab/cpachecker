@@ -60,16 +60,13 @@ public class DssAnalysisOptions {
   @Option(
       description =
           "Whether to reset the precision for each run of the analysis or to keep the transmitted"
-              + " one.The latter has disadvantages as unnecessary variables might be tracked due to"
+              + " one. The latter has disadvantages as unnecessary variables might be tracked due to"
               + " a too precise precision.",
       secure = true)
   private boolean resetPrecisionForEveryRun = false;
 
-  private final Configuration parentConfig;
-
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
-    parentConfig = pConfig;
   }
 
   public Path getBlockCFAFile() {
@@ -90,10 +87,6 @@ public class DssAnalysisOptions {
 
   public Path getForwardConfiguration() {
     return forwardConfiguration;
-  }
-
-  public Configuration getParentConfig() {
-    return parentConfig;
   }
 
   public Path getLogDirectory() {
