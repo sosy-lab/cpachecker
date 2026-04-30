@@ -267,6 +267,17 @@ public class DssBlockAnalysis {
         messageFactory.createViolationConditionMessage(block.getId(), status, serialized));
   }
 
+  private Optional<Precision> combinePrecisionIfPossible() throws InterruptedException {
+    if (preconditions.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        dcpa.getCombinePrecisionOperator()
+            .combine(
+                transformedImmutableListCopy(
+                    preconditions.values(), StateAndPrecision::precision)));
+  }
+
   /**
    * Serialize a list of states and precisions into a map of strings. Every entry in the list will
    * be serialized under its own key (prefixed by state#num. The {@link #deserialize(DssMessage)}
@@ -688,7 +699,9 @@ public class DssBlockAnalysis {
       reachedSet.clear();
       reachedSet.add(
           stateAndPrecision.state(),
-          resetPrecisionsForEveryRun ? makeStartPrecision() : stateAndPrecision.precision());
+          resetPrecisionsForEveryRun
+              ? makeStartPrecision()
+              : combinePrecisionIfPossible().orElse(stateAndPrecision.precision()));
       Objects.requireNonNull(
               AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class))
           .setViolationConditions(violations);

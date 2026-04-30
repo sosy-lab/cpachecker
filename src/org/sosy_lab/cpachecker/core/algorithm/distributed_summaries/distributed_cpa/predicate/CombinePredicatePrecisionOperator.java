@@ -20,6 +20,6 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
     Preconditions.checkArgument(precisions.stream().allMatch(PredicatePrecision.class::isInstance));
     Preconditions.checkArgument(
         !precisions.isEmpty(), "Cannot combine an empty collection of precisions");
-    return PredicatePrecision.unionOf(precisions);
+    return PredicatePrecision.intersectionOf(precisions);
   }
 }

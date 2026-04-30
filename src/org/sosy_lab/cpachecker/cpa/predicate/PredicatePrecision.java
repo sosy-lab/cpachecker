@@ -21,9 +21,12 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -192,6 +195,25 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return EMPTY;
   }
 
+  /**
+   * Create a new precision that is the intersection of the predicate precisions of all given
+   * precisions. This method can be called even with a lot of duplicate precisions in the input (for
+   * example, all precisions occurring in the reached set) and will handle the union computation
+   * efficiently.
+   */
+  public static PredicatePrecision unionOf(Iterable<Precision> precisions) {
+    return unionOf(orderPrecisions(precisions));
+  }
+
+  /**
+   * Create a new precision that is the union of the predicate precisions of all given precisions.
+   * This method can be called even with a lot of duplicate precisions in the input (for example,
+   * all precisions occurring in the reached set) and will handle the union computation efficiently.
+   */
+  public static PredicatePrecision intersectionOf(Iterable<Precision> precisions) {
+    return intersectionOf(orderPrecisions(precisions));
+  }
+
   /** Create a new precision that is the union of all given precisions. */
   private static PredicatePrecision unionOf(Collection<PredicatePrecision> precisions) {
     if (precisions.isEmpty()) {
@@ -208,12 +230,114 @@ public final class PredicatePrecision implements AdjustablePrecision {
         from(precisions).transformAndConcat(PredicatePrecision::getGlobalPredicates));
   }
 
-  /**
-   * Create a new precision that is the union of the predicate precisions of all given precisions.
-   * This method can be called even with a lot of duplicate precisions in the input (for example,
-   * all precisions occurring in the reached set) and will handle the union computation efficiently.
-   */
-  public static PredicatePrecision unionOf(Iterable<Precision> precisions) {
+  /** Create a new precision that is the union of all given precisions. */
+  private static PredicatePrecision intersectionOf(Collection<PredicatePrecision> precisions) {
+    if (precisions.isEmpty()) {
+      return empty();
+    }
+    if (precisions.size() == 1) {
+      return Iterables.getOnlyElement(precisions);
+    }
+
+    Map<LocationInstance, Collection<AbstractionPredicate>> locationInstancePredicates =
+        new LinkedHashMap<>();
+
+    for (PredicatePrecision precision : precisions) {
+      if (precision.getLocationInstancePredicates().isEmpty()) {
+        continue;
+      }
+      for (LocationInstance loc : precision.getLocationInstancePredicates().keys()) {
+        if (precision.getLocationInstancePredicates().get(loc).isEmpty()) {
+          continue;
+        }
+        if (locationInstancePredicates.containsKey(loc)) {
+          locationInstancePredicates
+              .get(loc)
+              .retainAll(precision.getLocationInstancePredicates().get(loc));
+        } else {
+          Set<AbstractionPredicate> first =
+              new LinkedHashSet<>(precision.getLocationInstancePredicates().get(loc));
+          locationInstancePredicates.put(loc, first);
+        }
+      }
+    }
+
+    Map<CFANode, Collection<AbstractionPredicate>> localPredicates = new LinkedHashMap<>();
+
+    for (PredicatePrecision precision : precisions) {
+      if (precision.getLocalPredicates().isEmpty()) {
+        continue;
+      }
+      for (CFANode loc : precision.getLocalPredicates().keys()) {
+        if (precision.getLocalPredicates().get(loc).isEmpty()) {
+          continue;
+        }
+        if (localPredicates.containsKey(loc)) {
+          localPredicates.get(loc).retainAll(precision.getLocalPredicates().get(loc));
+        } else {
+          Set<AbstractionPredicate> first =
+              new LinkedHashSet<>(precision.getLocalPredicates().get(loc));
+          localPredicates.put(loc, first);
+        }
+      }
+    }
+
+    Map<String, Collection<AbstractionPredicate>> functionPredicates = new LinkedHashMap<>();
+
+    for (PredicatePrecision precision : precisions) {
+      if (precision.getFunctionPredicates().isEmpty()) {
+        continue;
+      }
+      for (String function : precision.getFunctionPredicates().keys()) {
+        if (precision.getFunctionPredicates().get(function).isEmpty()) {
+          continue;
+        }
+        if (functionPredicates.containsKey(function)) {
+          functionPredicates
+              .get(function)
+              .retainAll(precision.getFunctionPredicates().get(function));
+        } else {
+          Set<AbstractionPredicate> first =
+              new LinkedHashSet<>(precision.getFunctionPredicates().get(function));
+          functionPredicates.put(function, first);
+        }
+      }
+    }
+
+    Set<AbstractionPredicate> globals = new LinkedHashSet<>();
+
+    for (PredicatePrecision precision : precisions) {
+      if (precision.getGlobalPredicates().isEmpty()) {
+        continue;
+      }
+      if (globals.isEmpty()) {
+        globals.addAll(precision.getGlobalPredicates());
+      } else {
+        globals.retainAll(precision.getGlobalPredicates());
+      }
+    }
+
+    PredicatePrecision union = unionOf(precisions);
+    int s =
+        union.getGlobalPredicates().size()
+            + union.getFunctionPredicates().size()
+            + union.getLocalPredicates().size()
+            + union.getLocationInstancePredicates().size();
+    int intersection_size =
+        localPredicates.values().stream().mapToInt(a -> a.size()).sum()
+            + locationInstancePredicates.values().stream().mapToInt(a -> a.size()).sum()
+            + globals.size()
+            + functionPredicates.values().stream().mapToInt(a -> a.size()).sum();
+    System.out.println(s + " " + intersection_size);
+
+    return new PredicatePrecision(
+        Multimaps.newSetMultimap(locationInstancePredicates, () -> new LinkedHashSet<>()),
+        Multimaps.newSetMultimap(localPredicates, () -> new LinkedHashSet<>()),
+        Multimaps.newSetMultimap(functionPredicates, () -> new LinkedHashSet<>()),
+        ImmutableSet.copyOf(globals));
+  }
+
+  private static List<PredicatePrecision> orderPrecisions(Iterable<Precision> precisions) {
     // We want to do a fast deduplication of precisions in order to speed up the actual union
     // computation, which would use a lot of memory if it is passed a lot of precisions with lots of
     // predicates. Use case is large iterables of precisions with only a few distinct elements
@@ -232,7 +356,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
       }
     }
     assert distinctPrecisions.size() == orderedPrecisions.size();
-    return unionOf(orderedPrecisions);
+    return orderedPrecisions;
   }
 
   /**

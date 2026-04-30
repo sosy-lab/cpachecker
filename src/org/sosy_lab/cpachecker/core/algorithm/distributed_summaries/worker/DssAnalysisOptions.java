@@ -60,8 +60,8 @@ public class DssAnalysisOptions {
   @Option(
       description =
           "Whether to reset the precision for each run of the analysis or to keep the transmitted"
-              + " one. The latter has disadvantages as unnecessary variables might be tracked due to"
-              + " a too precise precision.",
+              + " one. The latter has disadvantages as unnecessary variables might be tracked due"
+              + " to a too precise precision.",
       secure = true)
   private boolean resetPrecisionForEveryRun = false;
 
