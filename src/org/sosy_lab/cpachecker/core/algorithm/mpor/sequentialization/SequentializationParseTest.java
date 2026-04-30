@@ -395,7 +395,7 @@ public class SequentializationParseTest {
     testParse(programA, logger, shutdownNotifier);
   }
 
-  private static final String ANON_TYPE_KEYWORD = "__anon_type_";
+  public static final String ANON_TYPE_KEYWORD = "__anon_type_";
 
   private static final int FIRST_LINE = 1;
 

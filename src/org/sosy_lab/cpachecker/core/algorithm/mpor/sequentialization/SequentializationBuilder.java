@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -24,10 +25,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
@@ -54,7 +58,7 @@ public class SequentializationBuilder {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.UNCHANGED_DECLARATIONS.toASTString());
+      rDeclarations.add(SeqComment.INPUT_PROGRAM_DECLARATIONS.toASTString());
     }
     // add all original program declarations that are not substituted
     for (MPORThread thread : pThreads) {
@@ -65,7 +69,20 @@ public class SequentializationBuilder {
         if (!(declaration instanceof CFunctionDeclaration)
             || pOptions.inputFunctionDeclarations()) {
           if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations()) {
-            rDeclarations.add(declaration.toASTString());
+            if (declaration instanceof CComplexTypeDeclaration complexTypeDeclaration
+                && !(complexTypeDeclaration.getType() instanceof CElaboratedType)) {
+              CType typeSubstitute =
+                  PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                      complexTypeDeclaration.getType());
+              CComplexTypeDeclaration newComplexTypeDeclaration =
+                  new CComplexTypeDeclaration(
+                      complexTypeDeclaration.getFileLocation(),
+                      complexTypeDeclaration.isGlobal(),
+                      (CComplexType) typeSubstitute);
+              rDeclarations.add(newComplexTypeDeclaration.toASTString());
+            } else {
+              rDeclarations.add(declaration.toASTString());
+            }
           }
         }
       }

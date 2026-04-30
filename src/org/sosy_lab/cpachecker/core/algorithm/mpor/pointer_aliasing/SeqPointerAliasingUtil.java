@@ -357,7 +357,7 @@ public class SeqPointerAliasingUtil {
       expressionToCollect = pExpressionToCollect;
     }
 
-    /** Returns the possibly empty set of {@link T} collected during the search. */
+    /** Returns the possibly empty set collected expressions during the search. */
     public ImmutableSet<T> getCollected() {
       return collected.build();
     }
