@@ -12,40 +12,40 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class ImportDecompositionTest {
 
-  private static final String CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH =
-      "config/generateBlockGraph.properties";
   private static final String PROGRAM = "doc/examples/example.c";
-
-  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   private Map<String, ImportedBlock> getExportDataFrom(CFA pCfa)
       throws IOException, InvalidConfigurationException, InterruptedException {
 
-    // create the block graph
-    Path tempFolderPath = tempFolder.getRoot().toPath();
-    Configuration configToGenerateBlockGraph =
-        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
+    ConfigurationBuilder decompositionOptions =
+        TestDataTools.configurationForTest()
+            .setOption(
+                "distributedSummaries.decomposition.decompositionType", "MERGE_DECOMPOSITION");
+
+    for (String enable : ImmutableList.of("alwaysAtJoin", "alwaysAtBranch")) {
+      decompositionOptions.setOption("cpa.predicate.blk" + "." + enable, "true");
+    }
+
     DssBlockDecomposition configuredDecomposition =
-        new DssDecompositionOptions(configToGenerateBlockGraph, pCfa).getConfiguredDecomposition();
+        new DssDecompositionOptions(decompositionOptions.build(), pCfa)
+            .getConfiguredDecomposition();
 
     // serialize and deserialize the block graph
     Map<String, Map<String, Object>> exportData =
