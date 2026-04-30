@@ -43,6 +43,10 @@ public class LocationPrecision implements AdjustablePrecision {
     return ImmutableSet.copyOf(nodesToSubCFA.get(pNode));
   }
 
+  public ImmutableMultimap<CFANode, SubCFA> getNodesToSubCFA() {
+    return nodesToSubCFA;
+  }
+
   /**
    * Function for selecting the most abstract strategy from a set of strategies.
    *

@@ -13,6 +13,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMultimap;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
@@ -29,6 +30,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.transformation.ProgramTransformationInformation;
 import org.sosy_lab.cpachecker.cfa.transformation.ProgramTransformationRefiner;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -153,15 +157,18 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
     private final AlgorithmFactory algorithmFactory;
     private final LogManager logger;
     private final Refiner refiner;
+    private final ImmutableMultimap<CFANode, ProgramTransformationInformation> nodesToProgramTransformations;
+    private final ConfigurableProgramAnalysis cpa;
 
     public ProgramTransformationCEGARAlgorithmFactory(
         Algorithm pAlgorithm,
         ConfigurableProgramAnalysis pCpa,
         LogManager pLogger,
         Configuration pConfig,
-        ShutdownNotifier pShutdownNotifier)
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCFA)
         throws InvalidConfigurationException {
-      this(() -> pAlgorithm, pCpa, pLogger, pConfig, pShutdownNotifier);
+      this(() -> pAlgorithm, pCpa, pLogger, pConfig, pShutdownNotifier, pCFA);
     }
 
     public ProgramTransformationCEGARAlgorithmFactory(
@@ -169,19 +176,22 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
         ConfigurableProgramAnalysis pCpa,
         LogManager pLogger,
         Configuration pConfig,
-        ShutdownNotifier pShutdownNotifier)
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCFA)
         throws InvalidConfigurationException {
       pConfig.inject(this);
       algorithmFactory = pAlgorithmFactory;
       logger = pLogger;
       verifyNotNull(refinerFactory);
       refiner = refinerFactory.create(pCpa, pLogger, pShutdownNotifier);
+      nodesToProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().orElse(ImmutableMultimap.of());
+      cpa = pCpa;
     }
 
     @Override
     public ProgramTransformationCEGARAlgorithm newInstance() {
       return new ProgramTransformationCEGARAlgorithm(
-          algorithmFactory.newInstance(), refiner, logger, globalRefinement, maxRefinementNum);
+          algorithmFactory.newInstance(), refiner, logger, globalRefinement, maxRefinementNum, cpa, nodesToProgramTransformations);
     }
   }
 
@@ -202,10 +212,16 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
       Refiner pRefiner,
       LogManager pLogger,
       boolean pGlobalRefinement,
-      int pMaxRefinementNum){
+      int pMaxRefinementNum,
+      ConfigurableProgramAnalysis pCPA,
+      ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToSubCFA) {
     algorithm = pAlgorithm;
     mRefiner = Preconditions.checkNotNull(pRefiner);
-    ptRefiner = new ProgramTransformationRefiner();
+    try {
+      ptRefiner = ProgramTransformationRefiner.create(pCPA, pNodesToSubCFA);
+    } catch (InvalidConfigurationException | InterruptedException pE) {
+      throw new RuntimeException(pE);
+    }
     logger = pLogger;
     globalRefinement = pGlobalRefinement;
     maxRefinementNum = pMaxRefinementNum;

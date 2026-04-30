@@ -69,6 +69,8 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorit
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.programtransformation.ProgramTransformationCEGARAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.programtransformation.ProgramTransformationCEGARAlgorithm.ProgramTransformationCEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
@@ -463,6 +465,13 @@ public class CoreComponentsFactory {
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
+  @Option(
+      secure = true,
+      name = "algorithm.useProgramTransformationCGAR",
+      description =
+          "Use the CEGAR algorithm with program transformations.")
+  private boolean useProgramTransformationCEGAR = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -687,6 +696,13 @@ public class CoreComponentsFactory {
       if (useCEGAR) {
         algorithm =
             new CEGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
+                .newInstance();
+      }
+
+      if (useProgramTransformationCEGAR) {
+        algorithm =
+            new ProgramTransformationCEGARAlgorithmFactory(
+                    algorithm, cpa, logger, config, shutdownNotifier, cfa)
                 .newInstance();
       }
 

@@ -8,13 +8,124 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.Optional;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.location.LocationPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 public class ProgramTransformationRefiner implements Refiner {
-  @Override
-  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    return false;
+
+  private final LogManager logger;
+  private int refinementNumber;
+  protected final ARGCPA argCpa;
+  private final ImmutableMultimap<CFANode, ProgramTransformationInformation> nodesToProgramTransformations;
+
+
+  private ProgramTransformationRefiner(LogManager pLogger, final ConfigurableProgramAnalysis pCpa, ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformations) throws
+                                                                                                             InvalidConfigurationException {
+    logger = pLogger;
+    argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
+    nodesToProgramTransformations = pNodesToProgramTransformations;
   }
+
+  public static ProgramTransformationRefiner create(ConfigurableProgramAnalysis pCpa, ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformation)
+      throws InvalidConfigurationException, InterruptedException {
+    ARGCPA argCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ProgramTransformationRefiner.class);
+    LogManager logger = argCpa.getLogger();
+
+    return new ProgramTransformationRefiner(logger, pCpa, pNodesToProgramTransformation);
+  }
+
+
+    @Override
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    logger.log(Level.FINE, "Refining allowed program transformations");
+    assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
+
+    final ARGState lastElement = (ARGState) pReached.getLastState();
+    assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
+    ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
+
+    Collection<ARGState> waitlist = new ArrayList<>();
+    Collection<ARGState> seen = new ArrayList<>();
+    waitlist.add(lastElement);
+    Optional<ARGState> optionalRefinementState = Optional.empty();
+    Optional<SubCFA> optionalStrategy = Optional.empty();
+    while (!waitlist.isEmpty()) {
+      Iterator<ARGState> iter = waitlist.iterator();
+      Collection<ARGState> newWaitlist = new ArrayList<>();
+      while (iter.hasNext()) {
+        ARGState currentElement = iter.next();
+        LocationPrecision locationPrecision =
+            ((WrapperPrecision) pReached.getPrecision(currentElement))
+                .retrieveWrappedPrecision(LocationPrecision.class);
+        assert locationPrecision != null
+            : "No LocationPrecision present";
+        ImmutableSet<SubCFA> viableStrategies = locationPrecision.getStrategiesForNode(AbstractStates.extractLocation(currentElement));
+        // TODO handle over/underapproximations
+        if (!viableStrategies.isEmpty()) {
+          optionalRefinementState = Optional.of(currentElement);
+          optionalStrategy = LocationPrecision.select(viableStrategies);
+          waitlist.clear();
+          newWaitlist.clear();
+          break;
+        } else {
+          if (!seen.contains(currentElement)) {
+            newWaitlist.addAll(currentElement.getParents());
+            seen.add(currentElement);
+          }
+        }
+      }
+      waitlist = newWaitlist;
+    }
+
+    if (optionalRefinementState.isEmpty() || optionalStrategy.isEmpty()) {
+      return false;
+    } else {
+      ARGState refinementState = optionalRefinementState.orElseThrow();
+      LocationPrecision locationPrecision =
+          ((WrapperPrecision) pReached.getPrecision(refinementState))
+              .retrieveWrappedPrecision(LocationPrecision.class);
+      locationPrecision = (LocationPrecision) locationPrecision.add(new LocationPrecision(ImmutableSet.of(optionalStrategy.get())));
+      Precision newPrecision = ((WrapperPrecision) pReached.getPrecision(refinementState)).replaceWrappedPrecision(locationPrecision,
+          Predicates.instanceOf(LocationPrecision.class));
+      // set new precision
+      assert newPrecision != null : "Failed to update precision";
+      pReached.updatePrecision(refinementState, newPrecision);
+
+      // Using reached.removeSubtree does not remove only the children elements, but also the
+      // element itself. Which in turn also removes the updated precision
+      List<ARGState> children = Lists.newArrayList(refinementState.getChildren());
+
+      for (int i = 0; i < children.size(); i++) {
+        reached.removeSubtree(children.get(i));
+      }
+
+      return true;
+    }
+  }
+
 }
