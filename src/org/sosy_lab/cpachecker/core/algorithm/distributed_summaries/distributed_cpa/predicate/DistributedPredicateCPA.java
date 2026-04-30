@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -51,6 +52,7 @@ public class DistributedPredicateCPA
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator stateCoverageOperator;
   private final CombineOperator combineOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -88,6 +90,7 @@ public class DistributedPredicateCPA
             predicateCPA,
             pNode.getPredecessorIds().isEmpty());
     combineOperator = new CombinePredicateStateOperator(predicateCPA);
+    combinePrecisionOperator = new CombinePredicatePrecisionOperator();
   }
 
   @Override
@@ -98,6 +101,11 @@ public class DistributedPredicateCPA
   @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
     return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
   }
 
   @Override

@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -54,6 +55,7 @@ public class DistributedCompositeCPA
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
   private final CombineOperator combineOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
 
   private final ImmutableList<ConfigurableProgramAnalysis> wrappedCpas;
 
@@ -85,6 +87,7 @@ public class DistributedCompositeCPA
     verificationConditionOperator = new CompositeViolationConditionOperator(wrappedCpas);
     coverageOperator = new CompositeStateCoverageOperator(wrappedCpas);
     combineOperator = new CombineCompositeStateOperator(wrappedCpas, pNode.getInitialLocation());
+    combinePrecisionOperator = new CombineCompositePrecisionOperator(wrappedCpas);
   }
 
   @Override
@@ -164,6 +167,11 @@ public class DistributedCompositeCPA
   @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
     return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
   }
 
   @Override

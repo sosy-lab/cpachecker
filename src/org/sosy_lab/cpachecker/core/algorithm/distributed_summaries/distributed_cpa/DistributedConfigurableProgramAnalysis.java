@@ -55,6 +55,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   DeserializePrecisionOperator getDeserializePrecisionOperator();
 
+  CombinePrecisionOperator getCombinePrecisionOperator();
+
   /**
    * Operator that decides whether to proceed with an analysis based on the given message.
    *
