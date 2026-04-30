@@ -8,34 +8,48 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-This file describes the tests for the Java code base of CPAchecker.
-Tests for other languages are described in the respective documentation
-([JavaScript](JavascriptTesting.md), [Python](PythonStyleGuide.md)).
+Test Overview
+-------------
+
+| What | Where | When |
+| ------ | ------ | ------ |
+| Standard unit tests for Java code                             | [GitLab CI][] | all pipelines |
+| Expensive unit tests for Java code                            | [GitLab CI][] | merge trains + weekly for `main` |
+| Configuration checks (smoke test for each config file)        | [GitLab CI][] | all pipelines |
+| [Unit tests for JavaScript code](JavascriptTesting.md)        | [GitLab CI][] | all pipelines |
+| [Integration tests for JavaScript code](JavascriptTesting.md) | [GitLab CI][] | all pipelines |
+| [Integration tests for Python code](PythonStyleGuide.md)      | [GitLab CI][] | all pipelines |
+| Large-scale integration tests for many configs (one with witness validation) | [BuildBot][] | on every push/merge to `main` |
+| Largest-scale integration tests on whole [SV-Benchmarks][] for few configs (with witness validation) | [BuildBot][] | every few days for `main` |
+
+Tests for other languages are described in the respective linked documentation, other tests are described below.
 
 Integration Tests
 -----------------
 
-Integration tests that are executed automatically by the [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
+Integration tests that are executed automatically by the [BuildBot][]
 for the main branch are defined by the files `../test/test-sets/integration-*.xml`.
-You can also execute these tests directly with BenchExec.
+You can also execute these tests directly with [BenchExec],
+which is bundled with CPAchecker, e.g.,
+`scripts/benchmark.py test/test-sets/integration-simpleTests.xml`.
+CPAchecker developers can also request access to the SoSy-Lab cluster for faster execution.
+
 All major projects and configurations within CPAchecker should be part of this test suite.
 To add tests for your project or configuration,
 please contact the maintainers on the developer mailing list.
 Be aware that the integration tests expect that the directory `c`
-of the [sv-benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks)
+of the [SV-Benchmarks][] repository
 is linked/copied to `../test/programs/benchmarks`.
 
-Tests that automatically run each CPAchecker configuration on a trivial program
-are executed with `ant configuration-checks` and in [GitLab CI](https://gitlab.com/sosy-lab/software/cpachecker/pipelines).
+Smoke tests that automatically run each CPAchecker configuration on a trivial program
+are executed with `ant configuration-checks` and in [GitLab CI][].
 
 Unit Tests
 ----------
 
 Run `ant unit-tests` from the project root directory.
 An HTML report with the results will be generated as `JUnit.html`.
-Of course the unit tests can also be executed from within your IDE.
-
-These tests are also executed by [GitLab CI](https://gitlab.com/sosy-lab/software/cpachecker/pipelines).
+Of course the unit tests can also be executed from within your IDE and are executed by [GitLab CI][].
 
 Some particularly expensive tests (which take several minutes)
 are disabled by default and can be enabled with
@@ -102,3 +116,8 @@ Other utilities may be found in the package `util.test`.
   provide a public static method annotated with `@Parameters` that returns a `List<Object[]>`
   and add fields that are annotated with `@Parameter`.
   An example for this can be seen in the class `ExpressionValueVisitorTest`.
+
+[BenchExec]: https://github.com/sosy-lab/benchexec
+[BuildBot]: https://buildbot.sosy-lab.org/cpachecker/
+[GitLab CI]: https://gitlab.com/sosy-lab/software/cpachecker/-/pipelines
+[SV-benchmarks]: https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks
