@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
@@ -24,10 +26,19 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
 @SuppressWarnings("unused")
 public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoException> {
+
+  private final FormulaManagerView fmgr;
+
+  public AcslTermToFormulaVisitor(FormulaManagerView pFmgr) {
+    checkNotNull(pFmgr);
+    this.fmgr = pFmgr;
+  }
+
   @Override
   public Formula visit(AcslUnaryTerm pAcslUnaryTerm) throws NoException {
     return null;
@@ -40,7 +51,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslRealLiteralTerm pAcslRealLiteralTerm) throws NoException {
-    return null;
+    return fmgr.getRationalFormulaManager().makeNumber(pAcslRealLiteralTerm.getValue());
   }
 
   @Override
@@ -50,12 +61,12 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm) throws NoException {
-    return null;
+    return fmgr.getIntegerFormulaManager().makeNumber(pAcslIntegerLiteralTerm.getValue());
   }
 
   @Override
   public Formula visit(AcslBooleanLiteralTerm pAcslBooleanLiteralTerm) {
-    return null;
+    return fmgr.getBooleanFormulaManager().makeBoolean(pAcslBooleanLiteralTerm.getValue());
   }
 
   @Override
