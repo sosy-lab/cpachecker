@@ -59,12 +59,11 @@ public class DssAnalysisOptions {
 
   @Option(
       description =
-          "If this option is set to true, the analysis will try to cover all violation conditions"
-              + " in the block, even if no valid ARG path exists. In some cases,"
-              + " ARGUtils#getAllPaths does not compute all paths as promised. However, setting"
-              + " this option to true may lead to a significant increase in analysis time.",
+          "Whether to reset the precision for each run of the analysis or to keep the transmitted"
+              + " one.The latter has disadvantages as unnecessary variables might be tracked due to"
+              + " a too precise precision.",
       secure = true)
-  private boolean forcefullyCollectAllViolationConditions = false;
+  private boolean resetPrecisionForEveryRun = false;
 
   private final Configuration parentConfig;
 
@@ -85,8 +84,8 @@ public class DssAnalysisOptions {
     return debug;
   }
 
-  public boolean forcefullyCollectAllViolationConditions() {
-    return forcefullyCollectAllViolationConditions;
+  public boolean resetPrecisionsForEveryRun() {
+    return resetPrecisionForEveryRun;
   }
 
   public Path getForwardConfiguration() {

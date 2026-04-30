@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -97,7 +96,7 @@ public class DssBlockAnalysis {
   private AlgorithmStatus status;
   private boolean containsViolationInsideBlock;
 
-  private final boolean forcefullyCollectAllArgPaths;
+  private final boolean resetPrecisionsForEveryRun;
 
   public DssBlockAnalysis(
       LogManager pLogger,
@@ -137,7 +136,7 @@ public class DssBlockAnalysis {
 
     preconditions = ArrayListMultimap.create();
     violationConditions = ArrayListMultimap.create();
-    forcefullyCollectAllArgPaths = pOptions.forcefullyCollectAllViolationConditions();
+    resetPrecisionsForEveryRun = pOptions.resetPrecisionsForEveryRun();
     relevant = new ArrayList<>();
 
     containsViolationInsideBlock = false;
@@ -258,9 +257,6 @@ public class DssBlockAnalysis {
   }
 
   private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> states) {
-    if (forcefullyCollectAllArgPaths) {
-      return ARGUtils.collectAllArgPaths(states);
-    }
     ImmutableList.Builder<ARGPath> paths = ImmutableList.builder();
     for (ARGState state : states) {
       paths.addAll(ARGUtils.getAllPaths(reachedSet, state));
@@ -690,7 +686,9 @@ public class DssBlockAnalysis {
       analyzedTrivial = analyzedTrivial || isTrivial;
       resetStates();
       reachedSet.clear();
-      reachedSet.add(stateAndPrecision.state(), makeStartPrecision());
+      reachedSet.add(
+          stateAndPrecision.state(),
+          resetPrecisionsForEveryRun ? makeStartPrecision() : stateAndPrecision.precision());
       Objects.requireNonNull(
               AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class))
           .setViolationConditions(violations);
