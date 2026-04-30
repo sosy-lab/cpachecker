@@ -246,7 +246,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
       if (precision.getLocationInstancePredicates().isEmpty()) {
         continue;
       }
-      for (LocationInstance loc : precision.getLocationInstancePredicates().keys()) {
+      for (LocationInstance loc : precision.getLocationInstancePredicates().keySet()) {
         if (precision.getLocationInstancePredicates().get(loc).isEmpty()) {
           continue;
         }
@@ -268,7 +268,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
       if (precision.getLocalPredicates().isEmpty()) {
         continue;
       }
-      for (CFANode loc : precision.getLocalPredicates().keys()) {
+      for (CFANode loc : precision.getLocalPredicates().keySet()) {
         if (precision.getLocalPredicates().get(loc).isEmpty()) {
           continue;
         }
@@ -288,7 +288,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
       if (precision.getFunctionPredicates().isEmpty()) {
         continue;
       }
-      for (String function : precision.getFunctionPredicates().keys()) {
+      for (String function : precision.getFunctionPredicates().keySet()) {
         if (precision.getFunctionPredicates().get(function).isEmpty()) {
           continue;
         }
@@ -328,7 +328,6 @@ public final class PredicatePrecision implements AdjustablePrecision {
             + locationInstancePredicates.values().stream().mapToInt(a -> a.size()).sum()
             + globals.size()
             + functionPredicates.values().stream().mapToInt(a -> a.size()).sum();
-    System.out.println(s + " " + intersection_size);
 
     return new PredicatePrecision(
         Multimaps.newSetMultimap(locationInstancePredicates, () -> new LinkedHashSet<>()),
