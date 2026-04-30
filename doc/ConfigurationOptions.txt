@@ -4663,8 +4663,8 @@ distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
 distributedSummaries.logging.reportFiles = "block_analysis/messages"
 
 # Whether to reset the precision for each run of the analysis or to keep the
-# transmitted one.The latter has disadvantages as unnecessary variables might
-# be tracked due to a too precise precision.
+# transmitted one. The latter has disadvantages as unnecessary variables
+# might be tracked due to a too precise precision.
 distributedSummaries.resetPrecisionForEveryRun = false
 
 # List of input files that contain preconditions and verification conditions
