@@ -172,7 +172,7 @@ public class MPORSubstitutionTrackerUtil {
     CType leftHandSideType = leftHandSideDeclaration.getType();
     ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
 
-    if (SeqPointerAliasingUtil.isAnyTypeTargetType(
+    if (SeqPointerAliasingUtil.isAnyTypeTargetClass(
         leftHandSideType, CPointerType.class, stopNames)) {
       CPointerAssignmentVisitResult leftHandSideVisitResult =
           pLeftHandSide.accept(new CPointerAssignmentVisitor());
@@ -180,7 +180,7 @@ public class MPORSubstitutionTrackerUtil {
         // if LHS has a field member that is not CPointerType, then it is not a pointer assignment
         if (leftHandSideVisitResult.fieldMember().isPresent()) {
           CType fieldMemberType = leftHandSideVisitResult.fieldMember().orElseThrow().getType();
-          if (!SeqPointerAliasingUtil.isAnyTypeTargetType(
+          if (!SeqPointerAliasingUtil.isAnyTypeTargetClass(
               fieldMemberType, CPointerType.class, stopNames)) {
             return;
           }

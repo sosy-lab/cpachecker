@@ -242,7 +242,7 @@ public class SeqMemoryLocationFinder {
     CType currentType = pCurrentMemoryLocation.declaration().getType();
     ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
 
-    if (SeqPointerAliasingUtil.isAnyTypeTargetType(currentType, CCompositeType.class, stopNames)) {
+    if (SeqPointerAliasingUtil.isAnyTypeTargetClass(currentType, CCompositeType.class, stopNames)) {
       CInitializer initializer = pPointerDereference.declaration().getInitializer();
       if (initializer instanceof CInitializerExpression initializerExpression) {
         CExpressionCollector<CFieldReference> fieldReferenceCollector =

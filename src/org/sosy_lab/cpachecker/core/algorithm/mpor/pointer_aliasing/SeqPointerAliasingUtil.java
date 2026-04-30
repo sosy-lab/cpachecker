@@ -47,13 +47,13 @@ public class SeqPointerAliasingUtil {
   // CType Collection
 
   /**
-   * Checks if {@code pType} or any nested type is an instance of {@code pTargetType}. The search
+   * Checks if {@code pType} or any nested type is an instance of {@code pTargetClass}. The search
    * for nested types stops when encountering any name in {@code pStopNames}.
    */
-  public static boolean isAnyTypeTargetType(
-      CType pType, Class<? extends CType> pTargetType, ImmutableSet<String> pStopNames) {
+  public static boolean isAnyTypeTargetClass(
+      CType pType, Class<? extends CType> pTargetClass, ImmutableSet<String> pStopNames) {
 
-    return getNestedTypes(pType, pStopNames).stream().anyMatch(t -> pTargetType.isInstance(t));
+    return getNestedTypes(pType, pStopNames).stream().anyMatch(t -> pTargetClass.isInstance(t));
   }
 
   /**
