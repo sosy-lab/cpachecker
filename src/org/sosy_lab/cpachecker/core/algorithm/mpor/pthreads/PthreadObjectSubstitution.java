@@ -10,11 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -59,6 +62,8 @@ public class PthreadObjectSubstitution {
 
   private static class CTypeSubstitutionVisitor extends DefaultCTypeVisitor<CType, NoException> {
 
+    private final Set<CCompositeType> visitedCompositeTypes = new HashSet<>();
+
     /** The names of {@link CType} to substitute. */
     private final ImmutableSet<String> substitutedNames;
 
@@ -101,9 +106,23 @@ public class PthreadObjectSubstitution {
           && substitutedNames.contains(pCompositeType.getName())) {
         return substitution;
       }
-      // for pthread objects, the members of the CCompositeType should not be substituted since
-      // the CTypedefDeclarations can be reused without any changes
-      return pCompositeType;
+      // prevent circular searches
+      if (!visitedCompositeTypes.add(pCompositeType)) {
+        return pCompositeType;
+      }
+      ImmutableList.Builder<CCompositeTypeMemberDeclaration> memberDeclarations =
+          ImmutableList.builder();
+      for (CCompositeTypeMemberDeclaration memberDeclaration : pCompositeType.getMembers()) {
+        CType memberTypeSubstitute = memberDeclaration.getType().accept(this);
+        memberDeclarations.add(
+            new CCompositeTypeMemberDeclaration(memberTypeSubstitute, memberDeclaration.getName()));
+      }
+      return new CCompositeType(
+          pCompositeType.getQualifiers(),
+          pCompositeType.getKind(),
+          memberDeclarations.build(),
+          pCompositeType.getName(),
+          pCompositeType.getOrigName());
     }
 
     @Override
