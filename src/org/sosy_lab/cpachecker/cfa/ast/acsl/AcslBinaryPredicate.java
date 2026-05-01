@@ -44,13 +44,7 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     IMPLICATION("==>"),
     EQUIVALENT("<==>"),
     AND("&&"),
-    OR("||"),
-    EQUALS("=="),
-    NOT_EQUALS("!="),
-    LESS_EQUAL("<="),
-    GREATER_EQUAL(">="),
-    LESS_THAN("<"),
-    GREATER_THAN(">"),
+    OR("||")
     ;
 
     @Serial private static final long serialVersionUID = 701123361956900L;
