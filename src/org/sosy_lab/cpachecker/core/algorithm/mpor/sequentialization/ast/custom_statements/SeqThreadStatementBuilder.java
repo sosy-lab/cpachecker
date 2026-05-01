@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static org.sosy_lab.common.collect.Collections3.elementsAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -54,11 +52,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -68,9 +63,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -80,11 +72,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CComment;
-import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
@@ -634,16 +624,12 @@ public record SeqThreadStatementBuilder(
       SeqThreadStatementType pStatementType,
       PthreadFunctionType pFunctionType,
       SubstituteEdge pSubstituteEdge,
-      int pTargetPc)
-      throws UnrecognizedCodeException {
+      int pTargetPc) {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data,
-        pTargetPc,
-        buildThreadSyncStatements(
-            pStatementType, pFunctionType, PthreadObjectType.PTHREAD_COND_T, pSubstituteEdge));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pFunctionType, pSubstituteEdge));
   }
 
   private SeqThreadStatement buildThreadCreationStatement(
@@ -761,37 +747,30 @@ public record SeqThreadStatementBuilder(
       SeqThreadStatementType pStatementType,
       PthreadFunctionType pFunctionType,
       SubstituteEdge pSubstituteEdge,
-      int pTargetPc)
-      throws UnrecognizedCodeException {
+      int pTargetPc) {
 
     checkArgument(
         pStatementType.equals(SeqThreadStatementType.MUTEX_LOCK)
-            || pStatementType.equals(SeqThreadStatementType.MUTEX_UNLOCK),
-        "pStatementType must be MUTEX_LOCK or MUTEX_UNLOCK");
+            || pStatementType.equals(SeqThreadStatementType.MUTEX_UNLOCK)
+            || pStatementType.equals(SeqThreadStatementType.COND_WAIT),
+        "pStatementType must be MUTEX_LOCK or MUTEX_UNLOCK or COND_WAIT");
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data,
-        pTargetPc,
-        buildThreadSyncStatements(
-            pStatementType, pFunctionType, PthreadObjectType.PTHREAD_MUTEX_T, pSubstituteEdge));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pFunctionType, pSubstituteEdge));
   }
 
   private SeqThreadStatement buildRwLockStatement(
       SeqThreadStatementType pStatementType,
       PthreadFunctionType pFunctionType,
       SubstituteEdge pSubstituteEdge,
-      int pTargetPc)
-      throws UnrecognizedCodeException {
+      int pTargetPc) {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data,
-        pTargetPc,
-        buildThreadSyncStatements(
-            pStatementType, pFunctionType, PthreadObjectType.PTHREAD_RWLOCK_T, pSubstituteEdge));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pFunctionType, pSubstituteEdge));
   }
 
   // Thread Sync Statements
@@ -799,204 +778,34 @@ public record SeqThreadStatementBuilder(
   private ImmutableList<CCompoundStatementElement> buildThreadSyncStatements(
       SeqThreadStatementType pStatementType,
       PthreadFunctionType pFunctionType,
-      PthreadObjectType pObjectType,
-      SubstituteEdge pSubstituteEdge)
-      throws UnrecognizedCodeException {
+      SubstituteEdge pSubstituteEdge) {
 
-    // all memory locations (potentially) accessed in pSubstituteEdge including aliased pointers
-    ImmutableSet<SeqMemoryLocation> accessedMemoryLocations =
-        pSubstituteEdge.getMemoryLocationsByAccessType(SeqMemoryAccessType.ACCESS);
+    CFunctionCall functionCall =
+        PthreadUtil.tryGetFunctionCallFromCfaEdge(pSubstituteEdge.cfaEdge).orElseThrow();
 
-    // First check the non-pointer memory locations which is the usual case for pthread objects.
-    // Example: pthread_mutex_lock(&m);
-    ImmutableSet<SeqMemoryLocation> nonPointerMemoryLocations =
-        PthreadUtil.getNonPointerMemoryLocationsByPthreadObject(
-            accessedMemoryLocations, pObjectType);
-    if (!nonPointerMemoryLocations.isEmpty()) {
-      checkState(
-          nonPointerMemoryLocations.size() == 1,
-          "nonPointerMemoryLocations must have exactly one element.");
-      return buildThreadSyncStatementsByObjectType(
-          pStatementType,
-          pFunctionType,
-          pObjectType,
-          pSubstituteEdge,
-          Iterables.getOnlyElement(nonPointerMemoryLocations));
+    ImmutableList<CExpression> parameterExpressions;
+    if (pStatementType.equals(SeqThreadStatementType.COND_WAIT)
+        && pFunctionType.equals(PthreadFunctionType.PTHREAD_MUTEX_UNLOCK)) {
+      // when calling pthread_mutex_unlock in a COND_WAIT statement, extract the mutex parameter
+      int mutexIndex =
+          PthreadFunctionType.PTHREAD_COND_WAIT.getParameterIndex(
+              PthreadObjectType.PTHREAD_MUTEX_T);
+      parameterExpressions =
+          functionCall
+              .getFunctionCallExpression()
+              .getParameterExpressions()
+              .subList(mutexIndex, mutexIndex + 1);
+    } else {
+      parameterExpressions = functionCall.getFunctionCallExpression().getParameterExpressions();
     }
 
-    // Accesses to pthread object pointers are treated as dereferences, even if they are not
-    // dereferences in the input program because the pthread function dereferences the pointer.
-    //
-    // Example: pthread_mutex_t *m_ptr; m_ptr = &m; pthread_mutex_lock(m_ptr);
-    //
-    // 'm_ptr' in the call to 'pthread_mutex_lock' is not dereferenced, but it should be treated as
-    // dereferenced to find the associated memory locations of 'm_ptr'.
-    ImmutableSet<SeqMemoryLocation> pointerMemoryLocations =
-        PthreadUtil.getPointerMemoryLocationsByPthreadObjectType(
-            accessedMemoryLocations, pObjectType);
-    // the pointer can target multiple memory locations, but there is only a single pointer
-    checkState(
-        pointerMemoryLocations.size() == 1,
-        "pPointerMemoryLocations must have exactly one element.");
+    CFunctionCallExpression substituteFunctionCallExpression =
+        PthreadFunctionSubstitution.buildFunctionCallExpression(
+            parameterExpressions, pFunctionType);
+    CFunctionCallStatement substituteFunctionCallStatement =
+        new CFunctionCallStatement(FileLocation.DUMMY, substituteFunctionCallExpression);
 
-    ImmutableSet<SeqMemoryLocation> memoryLocations =
-        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereferences(
-            pointerMemoryLocations, pointerAliasingMap);
-    checkState(!memoryLocations.isEmpty(), "pMemoryLocations is empty");
-
-    InputRejection.checkPthreadObjectPointerAliasing(pointerMemoryLocations, memoryLocations);
-
-    return buildThreadSyncStatementsByObjectType(
-        pStatementType,
-        pFunctionType,
-        pObjectType,
-        pSubstituteEdge,
-        Iterables.getOnlyElement(memoryLocations));
-  }
-
-  private ImmutableList<CCompoundStatementElement> buildThreadSyncStatementsByObjectType(
-      SeqThreadStatementType pStatementType,
-      PthreadFunctionType pFunctionType,
-      PthreadObjectType pObjectType,
-      SubstituteEdge pSubstituteEdge,
-      SeqMemoryLocation pMemoryLocation)
-      throws UnrecognizedCodeException {
-
-    return switch (pObjectType) {
-      case PthreadObjectType.PTHREAD_COND_T -> {
-        CondSignaledFlag condSignaledFlag = threadSyncFlags.getCondSignaledFlag(pMemoryLocation);
-        yield buildCondStatements(pStatementType, pSubstituteEdge, condSignaledFlag);
-      }
-      case PthreadObjectType.PTHREAD_MUTEX_T -> {
-        MutexLockedFlag mutexLockedFlag = threadSyncFlags.getMutexLockedFlag(pMemoryLocation);
-        yield buildMutexStatements(pStatementType, mutexLockedFlag);
-      }
-      case PthreadObjectType.PTHREAD_RWLOCK_T -> {
-        RwLockNumReadersWritersFlag rwLockFlag = threadSyncFlags.getRwLockFlag(pMemoryLocation);
-        yield buildRwLockStatements(pFunctionType, rwLockFlag);
-      }
-      default -> throw new IllegalArgumentException("Invalid pthread object: " + pObjectType.name);
-    };
-  }
-
-  private ImmutableList<CCompoundStatementElement> buildCondStatements(
-      SeqThreadStatementType pStatementType,
-      SubstituteEdge pSubstituteEdge,
-      CondSignaledFlag pCondSignaledFlag)
-      throws UnrecognizedCodeException {
-
-    return switch (pStatementType) {
-      case COND_SIGNAL -> {
-        CExpressionAssignmentStatement setCondSignaledTrue =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                pCondSignaledFlag.idExpression(), CIntegerLiteralExpression.ONE);
-        yield ImmutableList.of(new CStatementWrapper(setCondSignaledTrue));
-      }
-      case COND_WAIT -> {
-        // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
-        // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
-        CFunctionCallStatement assumeSignaled =
-            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-                pCondSignaledFlag.isSignaledExpression());
-        CExpressionAssignmentStatement setSignaledFalse =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                pCondSignaledFlag.idExpression(), CIntegerLiteralExpression.ZERO);
-
-        // step 2: on return, the mutex is locked and owned by the calling thread
-        ImmutableList<CCompoundStatementElement> mutexStatements =
-            buildThreadSyncStatements(
-                SeqThreadStatementType.MUTEX_LOCK,
-                PthreadFunctionType.PTHREAD_MUTEX_LOCK,
-                PthreadObjectType.PTHREAD_MUTEX_T,
-                pSubstituteEdge);
-        yield elementsAndList(
-            new CStatementWrapper(assumeSignaled),
-            new CStatementWrapper(setSignaledFalse),
-            mutexStatements);
-      }
-      default ->
-          throw new IllegalArgumentException(
-              String.format(
-                  "pStatementType is not a pthread_cond_t statement: %s", pStatementType));
-    };
-  }
-
-  private ImmutableList<CCompoundStatementElement> buildMutexStatements(
-      SeqThreadStatementType pStatementType, MutexLockedFlag pMutexLockedFlag) {
-
-    return switch (pStatementType) {
-      case COND_WAIT -> {
-        CExpressionAssignmentStatement setMutexLockedTrue =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                pMutexLockedFlag.idExpression(), CIntegerLiteralExpression.ONE);
-        yield ImmutableList.of(new CStatementWrapper(setMutexLockedTrue));
-      }
-      case MUTEX_LOCK -> {
-        CFunctionCallStatement assumeCall =
-            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-                pMutexLockedFlag.notLockedExpression());
-        CExpressionAssignmentStatement setMutexLockedTrue =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                pMutexLockedFlag.idExpression(), CIntegerLiteralExpression.ONE);
-        yield ImmutableList.of(
-            new CStatementWrapper(assumeCall), new CStatementWrapper(setMutexLockedTrue));
-      }
-      case MUTEX_UNLOCK -> {
-        CExpressionAssignmentStatement lockedFalseAssignment =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                pMutexLockedFlag.idExpression(), CIntegerLiteralExpression.ZERO);
-        yield ImmutableList.of(new CStatementWrapper(lockedFalseAssignment));
-      }
-      default ->
-          throw new IllegalArgumentException(
-              String.format(
-                  "pStatementType is not a pthread_mutex_t statement: %s", pStatementType));
-    };
-  }
-
-  private ImmutableList<CCompoundStatementElement> buildRwLockStatements(
-      PthreadFunctionType pFunctionType, RwLockNumReadersWritersFlag pRwLockFlag) {
-
-    return switch (pFunctionType) {
-      case PTHREAD_RWLOCK_RDLOCK -> {
-        CStatementWrapper assumption =
-            new CStatementWrapper(
-                SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-                    pRwLockFlag.writerEqualsZero()));
-        CStatementWrapper rwLockReadersIncrement =
-            new CStatementWrapper(pRwLockFlag.readersIncrement());
-        yield ImmutableList.of(assumption, rwLockReadersIncrement);
-      }
-      case PTHREAD_RWLOCK_UNLOCK -> {
-        CExpressionAssignmentStatement setNumWritersToZero =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                pRwLockFlag.writersIdExpression(), CIntegerLiteralExpression.ZERO);
-        CIfStatement ifStatement =
-            new CIfStatement(
-                new CExpressionWrapper(pRwLockFlag.writerEqualsZero()),
-                new CCompoundStatement(new CStatementWrapper(pRwLockFlag.readersDecrement())),
-                new CCompoundStatement(new CStatementWrapper(setNumWritersToZero)));
-        yield ImmutableList.of(new CStatementWrapper(setNumWritersToZero), ifStatement);
-      }
-      case PTHREAD_RWLOCK_WRLOCK -> {
-        CExpressionAssignmentStatement setWritersToOne =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                pRwLockFlag.writersIdExpression(), CIntegerLiteralExpression.ONE);
-        CFunctionCallStatement assumptionWriters =
-            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-                pRwLockFlag.writerEqualsZero());
-        CFunctionCallStatement assumptionReaders =
-            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-                pRwLockFlag.readersEqualsZero());
-        yield ImmutableList.of(
-            new CStatementWrapper(assumptionWriters),
-            new CStatementWrapper(assumptionReaders),
-            new CStatementWrapper(setWritersToOne));
-      }
-      default ->
-          throw new IllegalArgumentException(
-              String.format("pFunctionType is not a pthread_rwlock_t function: %s", pFunctionType));
-    };
+    return ImmutableList.of(new CStatementWrapper(substituteFunctionCallStatement));
   }
 
   // Helpers

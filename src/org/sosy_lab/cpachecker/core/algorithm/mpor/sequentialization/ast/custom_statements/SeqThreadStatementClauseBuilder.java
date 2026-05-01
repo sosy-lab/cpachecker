@@ -267,8 +267,7 @@ public record SeqThreadStatementClauseBuilder(
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
-      SeqThreadStatementBuilder pStatementBuilder)
-      throws UnrecognizedCodeException {
+      SeqThreadStatementBuilder pStatementBuilder) {
 
     Optional<CFunctionCall> optionalFunctionCall =
         PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge);
@@ -295,8 +294,7 @@ public record SeqThreadStatementClauseBuilder(
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
-      SeqThreadStatementBuilder pStatementBuilder)
-      throws UnrecognizedCodeException {
+      SeqThreadStatementBuilder pStatementBuilder) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
 
@@ -304,7 +302,7 @@ public record SeqThreadStatementClauseBuilder(
     int nextFreePc = pThread.cfa().getNextFreePc();
     SeqThreadStatement mutexUnlockStatement =
         pStatementBuilder.buildMutexStatement(
-            SeqThreadStatementType.MUTEX_UNLOCK,
+            SeqThreadStatementType.COND_WAIT,
             PthreadFunctionType.PTHREAD_MUTEX_UNLOCK,
             pSubstituteEdge,
             nextFreePc);
