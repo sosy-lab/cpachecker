@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -70,16 +71,35 @@ public class SequentializationBuilder {
         if (!(declaration instanceof CFunctionDeclaration)
             || pOptions.inputFunctionDeclarations()) {
           if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations()) {
-            if (declaration instanceof CComplexTypeDeclaration complexTypeDeclaration) {
-              CType typeSubstitute =
-                  PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                      complexTypeDeclaration.getType(), CCompositeType.class);
-              CComplexTypeDeclaration newComplexTypeDeclaration =
-                  new CComplexTypeDeclaration(
-                      complexTypeDeclaration.getFileLocation(),
-                      complexTypeDeclaration.isGlobal(),
-                      (CComplexType) typeSubstitute);
-              rDeclarations.add(newComplexTypeDeclaration.toASTString());
+            if (declaration instanceof CTypeDeclaration typeDeclaration) {
+              switch (typeDeclaration) {
+                case CComplexTypeDeclaration complexTypeDeclaration -> {
+                  CType typeSubstitute =
+                      PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                          complexTypeDeclaration.getType(), CCompositeType.class);
+                  CComplexTypeDeclaration newComplexTypeDeclaration =
+                      new CComplexTypeDeclaration(
+                          complexTypeDeclaration.getFileLocation(),
+                          complexTypeDeclaration.isGlobal(),
+                          (CComplexType) typeSubstitute);
+                  rDeclarations.add(newComplexTypeDeclaration.toASTString());
+                }
+                case CTypeDefDeclaration typeDefDeclaration -> {
+                  CType typeSubstitute =
+                      PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                          typeDefDeclaration.getType(), CElaboratedType.class);
+                  CTypeDefDeclaration newTypeDefDeclaration =
+                      new CTypeDefDeclaration(
+                          typeDefDeclaration.getFileLocation(),
+                          typeDefDeclaration.isGlobal(),
+                          typeSubstitute,
+                          typeDefDeclaration.getName(),
+                          typeDefDeclaration.getOrigName());
+                  rDeclarations.add(newTypeDefDeclaration.toASTString());
+                }
+                default ->
+                    throw new AssertionError("Unhandled CTypeDeclaration: " + typeDeclaration);
+              }
             } else {
               rDeclarations.add(declaration.toASTString());
             }
@@ -103,9 +123,7 @@ public class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalVariableDeclarationSubstitutes();
     for (CVariableDeclaration globalDeclaration : globalDeclarations) {
-      CVariableDeclaration variableDeclarationSubstitute =
-          buildVariableDeclaration(globalDeclaration);
-      rDeclarations.add(variableDeclarationSubstitute.toASTString());
+      rDeclarations.add(globalDeclaration.toASTString());
     }
     return rDeclarations.toString();
   }
@@ -122,10 +140,7 @@ public class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> localDeclarations =
           substitution.getLocalVariableDeclarationSubstitutes();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        CVariableDeclaration variableDeclarationSubstitute =
-            buildVariableDeclaration(localDeclaration);
-        Optional<String> line =
-            tryBuildInputLocalVariableDeclaration(variableDeclarationSubstitute);
+        Optional<String> line = tryBuildInputLocalVariableDeclaration(localDeclaration);
         if (line.isPresent()) {
           rDeclarations.add(line.orElseThrow());
         }
@@ -192,11 +207,9 @@ public class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarationSubstitutes();
       for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
-        CVariableDeclaration variableDeclarationSubstitute =
-            buildVariableDeclaration(parameterDeclaration);
         rDeclarations.add(
             SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-                variableDeclarationSubstitute, AAstNodeRepresentation.DEFAULT));
+                parameterDeclaration, AAstNodeRepresentation.DEFAULT));
       }
     }
     return rDeclarations.toString();
@@ -215,9 +228,7 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES.toASTString());
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
-      CVariableDeclaration variableDeclarationSubstitute =
-          buildVariableDeclaration((CVariableDeclaration) mainArg.getDeclaration());
-      rDeclarations.add(variableDeclarationSubstitute.toASTString());
+      rDeclarations.add(mainArg.getDeclaration().toASTString());
     }
     return rDeclarations.toString();
   }
@@ -233,11 +244,9 @@ public class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
     for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
-      CVariableDeclaration variableDeclarationSubstitute =
-          buildVariableDeclaration(startRoutineArgDeclaration);
       rDeclarations.add(
           SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-              variableDeclarationSubstitute, AAstNodeRepresentation.DEFAULT));
+              startRoutineArgDeclaration, AAstNodeRepresentation.DEFAULT));
     }
     return rDeclarations.toString();
   }
@@ -252,30 +261,10 @@ public class SequentializationBuilder {
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable();
       if (exitVariable.isPresent()) {
-        CVariableDeclaration variableDeclarationSubstitute =
-            buildVariableDeclaration(
-                (CVariableDeclaration) exitVariable.orElseThrow().getDeclaration());
-        rDeclarations.add(variableDeclarationSubstitute.toASTString());
+        rDeclarations.add(exitVariable.orElseThrow().getDeclaration().toASTString());
       }
     }
     return rDeclarations.toString();
-  }
-
-  private static CVariableDeclaration buildVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration) {
-
-    CType typeSubstitute =
-        PthreadObjectSubstitution.substitutePthreadObjectTypes(
-            pVariableDeclaration.getType(), CElaboratedType.class);
-    return new CVariableDeclaration(
-        pVariableDeclaration.getFileLocation(),
-        pVariableDeclaration.isGlobal(),
-        pVariableDeclaration.getCStorageClass(),
-        typeSubstitute,
-        pVariableDeclaration.getName(),
-        pVariableDeclaration.getOrigName(),
-        pVariableDeclaration.getQualifiedName(),
-        pVariableDeclaration.getInitializer());
   }
 
   // Function Declarations and Definitions =========================================================
