@@ -37,11 +37,13 @@ public class AcslPredicateToFormulaVisitor
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
+  private final AcslTermToFormulaVisitor termVisitor;
 
   public AcslPredicateToFormulaVisitor(FormulaManagerView pFmgr) {
     checkNotNull(pFmgr);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
+    this.termVisitor = new AcslTermToFormulaVisitor(fmgr);
   }
 
   @Override
@@ -73,7 +75,6 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
-    AcslTermToFormulaVisitor termVisitor = new AcslTermToFormulaVisitor(fmgr);
     Formula operand1Formula = pAcslBinaryTermPredicate.getOperand1().accept(termVisitor);
     Formula operand2Formula = pAcslBinaryTermPredicate.getOperand2().accept(termVisitor);
 
