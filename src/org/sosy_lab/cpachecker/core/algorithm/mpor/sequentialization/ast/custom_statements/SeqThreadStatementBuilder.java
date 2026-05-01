@@ -626,6 +626,10 @@ public record SeqThreadStatementBuilder(
       SubstituteEdge pSubstituteEdge,
       int pTargetPc) {
 
+    checkArgument(
+        pStatementType.in(SeqThreadStatementType.COND_SIGNAL, SeqThreadStatementType.COND_WAIT),
+        "pStatementType is not allowed.");
+
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
@@ -750,10 +754,11 @@ public record SeqThreadStatementBuilder(
       int pTargetPc) {
 
     checkArgument(
-        pStatementType.equals(SeqThreadStatementType.MUTEX_LOCK)
-            || pStatementType.equals(SeqThreadStatementType.MUTEX_UNLOCK)
-            || pStatementType.equals(SeqThreadStatementType.COND_WAIT),
-        "pStatementType must be MUTEX_LOCK or MUTEX_UNLOCK or COND_WAIT");
+        pStatementType.in(
+            SeqThreadStatementType.MUTEX_LOCK,
+            SeqThreadStatementType.MUTEX_UNLOCK,
+            SeqThreadStatementType.COND_WAIT),
+        "pStatementType is not allowed.");
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
@@ -766,6 +771,13 @@ public record SeqThreadStatementBuilder(
       PthreadFunctionType pFunctionType,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc) {
+
+    checkArgument(
+        pStatementType.in(
+            SeqThreadStatementType.RW_LOCK_RD_LOCK,
+            SeqThreadStatementType.RW_LOCK_UNLOCK,
+            SeqThreadStatementType.RW_LOCK_WR_LOCK),
+        "pStatementType is not allowed.");
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
