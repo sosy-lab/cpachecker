@@ -128,8 +128,9 @@ public enum PthreadObjectType {
     private static final String RWLOCK_SUBSTITUTION_NAME =
         Sequentialization.MPOR_PREFIX + "pthread_rwlock_t";
 
+    // NUM_READERS is an unsigned int because it can be incremented to any number
     static final CCompositeTypeMemberDeclaration RWLOCK_NUM_READERS_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "NUM_READERS");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_INT, "NUM_READERS");
 
     static final CCompositeTypeMemberDeclaration RWLOCK_NUM_WRITERS_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "NUM_WRITERS");
