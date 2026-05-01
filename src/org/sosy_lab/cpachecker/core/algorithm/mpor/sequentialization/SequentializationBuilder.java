@@ -121,7 +121,9 @@ public class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalVariableDeclarationSubstitutes();
     for (CVariableDeclaration globalDeclaration : globalDeclarations) {
-      rDeclarations.add(globalDeclaration.toASTString());
+      CVariableDeclaration variableDeclarationSubstitute =
+          buildVariableDeclarationWithSubstituteType(globalDeclaration);
+      rDeclarations.add(variableDeclarationSubstitute.toASTString());
     }
     return rDeclarations.toString();
   }
@@ -138,16 +140,19 @@ public class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> localDeclarations =
           substitution.getLocalVariableDeclarationSubstitutes();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        Optional<String> line = tryBuildInputLocalVariableDeclaration(localDeclaration);
-        if (line.isPresent()) {
-          rDeclarations.add(line.orElseThrow());
+        CVariableDeclaration variableDeclarationSubstitute =
+            buildVariableDeclarationWithSubstituteType(localDeclaration);
+        Optional<CVariableDeclaration> variableDeclaration =
+            tryBuildInputLocalVariableDeclaration(variableDeclarationSubstitute);
+        if (variableDeclaration.isPresent()) {
+          rDeclarations.add(variableDeclaration.orElseThrow().toASTString());
         }
       }
     }
     return rDeclarations.toString();
   }
 
-  private static Optional<String> tryBuildInputLocalVariableDeclaration(
+  private static Optional<CVariableDeclaration> tryBuildInputLocalVariableDeclaration(
       CVariableDeclaration pVariableDeclaration) {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
@@ -179,15 +184,14 @@ public class SequentializationBuilder {
     CInitializer initializer = pVariableDeclaration.getInitializer();
     if (initializer == null) {
       // no initializer -> add declaration as is
-      return Optional.of(pVariableDeclaration.toASTString());
+      return Optional.of(pVariableDeclaration);
     }
     if (MPORUtil.isFunctionPointer(pVariableDeclaration.getInitializer())) {
       // function pointer initializer -> add declaration as is
-      return Optional.of(pVariableDeclaration.toASTString());
+      return Optional.of(pVariableDeclaration);
     }
     // everything else: add declaration without initializer (and assign later in statements)
-    return Optional.of(
-        removeInitializerFromVariableDeclaration(pVariableDeclaration).toASTString());
+    return Optional.of(removeInitializerFromVariableDeclaration(pVariableDeclaration));
   }
 
   // Input Parameter Declarations ==================================================================
@@ -204,8 +208,10 @@ public class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarationSubstitutes();
       for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
+        CVariableDeclaration variableDeclarationSubstitute =
+            buildVariableDeclarationWithSubstituteType(parameterDeclaration);
         rDeclarations.add(
-            removeInitializerFromVariableDeclaration(parameterDeclaration).toASTString());
+            removeInitializerFromVariableDeclaration(variableDeclarationSubstitute).toASTString());
       }
     }
     return rDeclarations.toString();
@@ -224,7 +230,10 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES.toASTString());
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
-      rDeclarations.add(mainArg.getDeclaration().toASTString());
+      CVariableDeclaration variableDeclarationSubstitute =
+          buildVariableDeclarationWithSubstituteType(
+              (CVariableDeclaration) mainArg.getDeclaration());
+      rDeclarations.add(variableDeclarationSubstitute.toASTString());
     }
     return rDeclarations.toString();
   }
@@ -240,8 +249,10 @@ public class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
     for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
+      CVariableDeclaration variableDeclarationSubstitute =
+          buildVariableDeclarationWithSubstituteType(startRoutineArgDeclaration);
       rDeclarations.add(
-          removeInitializerFromVariableDeclaration(startRoutineArgDeclaration).toASTString());
+          removeInitializerFromVariableDeclaration(variableDeclarationSubstitute).toASTString());
     }
     return rDeclarations.toString();
   }
@@ -256,10 +267,36 @@ public class SequentializationBuilder {
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable();
       if (exitVariable.isPresent()) {
-        rDeclarations.add(exitVariable.orElseThrow().getDeclaration().toASTString());
+        CVariableDeclaration variableDeclarationSubstitute =
+            buildVariableDeclarationWithSubstituteType(
+                (CVariableDeclaration) exitVariable.orElseThrow().getDeclaration());
+        rDeclarations.add(variableDeclarationSubstitute.toASTString());
       }
     }
     return rDeclarations.toString();
+  }
+
+  // CVariableDeclaration helper
+
+  private static CVariableDeclaration buildVariableDeclarationWithSubstituteType(
+      CVariableDeclaration pVariableDeclaration) {
+
+    CType typeSubstitute =
+        PthreadObjectSubstitution.substitutePthreadObjectTypes(
+            pVariableDeclaration.getType(), CElaboratedType.class);
+    return new CVariableDeclaration(
+        pVariableDeclaration.getFileLocation(),
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getCStorageClass(),
+        typeSubstitute,
+        pVariableDeclaration.getName(),
+        pVariableDeclaration.getOrigName(),
+        pVariableDeclaration.getQualifiedName(),
+        // if the type was substituted (= there is a pthread_object), then remove the initializer.
+        // after substitution the initializer may not match the type and can result in parse errors.
+        typeSubstitute.equals(pVariableDeclaration.getType())
+            ? pVariableDeclaration.getInitializer()
+            : null);
   }
 
   private static CVariableDeclaration removeInitializerFromVariableDeclaration(
