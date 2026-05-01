@@ -37,13 +37,16 @@ public class AcslPredicateToFormulaVisitor
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final AcslTermToFormulaVisitor termVisitor;
+  private AcslTermToFormulaVisitor termVisitor;
 
   public AcslPredicateToFormulaVisitor(FormulaManagerView pFmgr) {
     checkNotNull(pFmgr);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.termVisitor = new AcslTermToFormulaVisitor(fmgr);
+  }
+
+  public void setTermVisitor(AcslTermToFormulaVisitor pTermVisitor) {
+    this.termVisitor = pTermVisitor;
   }
 
   @Override
