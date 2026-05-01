@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -19,28 +18,36 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public enum PthreadObjectType {
-  PTHREAD_BARRIER_T("pthread_barrier_t", Optional.empty()),
-  PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER", Optional.empty()),
-  PTHREAD_COND_T("pthread_cond_t", Optional.of(Substitutions.COND_ELABORATED_TYPE)),
-  PTHREAD_KEY_T("pthread_key_t", Optional.empty()),
-  PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER", Optional.empty()),
-  PTHREAD_MUTEX_T("pthread_mutex_t", Optional.of(Substitutions.MUTEX_ELABORATED_TYPE)),
-  PTHREAD_ONCE_T("pthread_once_t", Optional.empty()),
-  PTHREAD_RWLOCK_T("pthread_rwlock_t", Optional.of(Substitutions.RWLOCK_ELABORATED_TYPE)),
-  PTHREAD_T("pthread_t", Optional.empty()),
-  RETURN_VALUE("", Optional.empty()),
-  START_ROUTINE("", Optional.empty()),
-  START_ROUTINE_ARGUMENT("", Optional.empty());
+  PTHREAD_BARRIER_T("pthread_barrier_t", ImmutableSet.of()),
+  PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER", ImmutableSet.of()),
+  PTHREAD_COND_T(
+      "pthread_cond_t",
+      ImmutableSet.of(Substitutions.COND_COMPOSITE_TYPE, Substitutions.COND_ELABORATED_TYPE)),
+  PTHREAD_KEY_T("pthread_key_t", ImmutableSet.of()),
+  PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER", ImmutableSet.of()),
+  PTHREAD_MUTEX_T(
+      "pthread_mutex_t",
+      ImmutableSet.of(Substitutions.MUTEX_COMPOSITE_TYPE, Substitutions.MUTEX_ELABORATED_TYPE)),
+  PTHREAD_ONCE_T("pthread_once_t", ImmutableSet.of()),
+  PTHREAD_RWLOCK_T(
+      "pthread_rwlock_t",
+      ImmutableSet.of(Substitutions.RWLOCK_COMPOSITE_TYPE, Substitutions.RWLOCK_ELABORATED_TYPE)),
+  PTHREAD_T("pthread_t", ImmutableSet.of()),
+  RETURN_VALUE("", ImmutableSet.of()),
+  START_ROUTINE("", ImmutableSet.of()),
+  START_ROUTINE_ARGUMENT("", ImmutableSet.of());
 
   public final String name;
 
-  public final Optional<CElaboratedType> substituteType;
+  @SuppressWarnings("Immutable")
+  public final ImmutableSet<CType> substituteTypes;
 
-  PthreadObjectType(String pName, Optional<CElaboratedType> pSubstituteType) {
+  PthreadObjectType(String pName, ImmutableSet<CType> pSubstituteTypes) {
     name = pName;
-    substituteType = pSubstituteType;
+    substituteTypes = pSubstituteTypes;
   }
 
   public boolean equalsType(CType pType) {
@@ -61,11 +68,11 @@ public enum PthreadObjectType {
 
   /** A private class to define final variables that can be used as attributes in the enum. */
   private static final class Substitutions {
-    private static final String SUBSTITUTION_PREFIX = "__substitution__";
 
     // pthread_mutex_t
 
-    private static final String MUTEX_SUBSTITUTION_NAME = SUBSTITUTION_PREFIX + "pthread_mutex_t";
+    private static final String MUTEX_SUBSTITUTION_NAME =
+        Sequentialization.MPOR_PREFIX + "pthread_mutex_t";
 
     private static final CCompositeTypeMemberDeclaration MUTEX_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "LOCKED");
@@ -88,7 +95,8 @@ public enum PthreadObjectType {
 
     // pthread_cond_t
 
-    private static final String COND_SUBSTITUTION_NAME = SUBSTITUTION_PREFIX + "pthread_cond_t";
+    private static final String COND_SUBSTITUTION_NAME =
+        Sequentialization.MPOR_PREFIX + "pthread_cond_t";
 
     private static final CCompositeTypeMemberDeclaration COND_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "SIGNALED");
@@ -111,7 +119,8 @@ public enum PthreadObjectType {
 
     // pthread_rwlock_t
 
-    private static final String RWLOCK_SUBSTITUTION_NAME = SUBSTITUTION_PREFIX + "pthread_rwlock_t";
+    private static final String RWLOCK_SUBSTITUTION_NAME =
+        Sequentialization.MPOR_PREFIX + "pthread_rwlock_t";
 
     private static final CCompositeTypeMemberDeclaration RWLOCK_NUM_READERS_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "NUM_READERS");

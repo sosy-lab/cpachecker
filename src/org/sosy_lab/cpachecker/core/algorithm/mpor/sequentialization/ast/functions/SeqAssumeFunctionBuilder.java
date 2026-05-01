@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -62,7 +63,7 @@ public final class SeqAssumeFunctionBuilder {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           ASSUME_FUNCTION_TYPE,
-          "__MPOR__assume",
+          Sequentialization.MPOR_PREFIX + "assume",
           ImmutableList.of(COND_PARAMETER_ASSUME),
           ImmutableSet.of());
 

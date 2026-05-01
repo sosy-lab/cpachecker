@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -32,18 +32,29 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class PthreadObjectSubstitution {
 
-  public static CType substitutePthreadObjectTypes(CType pType) {
+  /**
+   * Substitutes all pthread object types in {@code pType}.
+   *
+   * <p>Specific classes to substitute can be specified via {@code pClass}. This can be useful when
+   * substituting the types of {@link CVariableDeclaration}, where it should be desired to
+   * substitute {@link CCompositeType} but only {@link CElaboratedType} so that the {@link
+   * CCompositeType} is not redeclared.
+   */
+  public static CType substitutePthreadObjectTypes(CType pType, Class<? extends CType> pClass) {
     CType substituted = pType;
+    // replace all pthread object types, which is necessary for structs that contain multiple
+    // pthread object types
     for (PthreadObjectType pObjectType : PthreadObjectType.values()) {
-      if (pObjectType.substituteType.isPresent()) {
-        CElaboratedType substitutionType = pObjectType.substituteType.orElseThrow();
-        CTypeSubstitutionVisitor substitutionVisitor =
-            new CTypeSubstitutionVisitor(
-                ImmutableSet.of(
-                    pObjectType.name,
-                    SequentializationParseTest.ANON_TYPE_KEYWORD + pObjectType.name),
-                substitutionType);
-        substituted = substitutionVisitor.visitDefault(substituted);
+      for (CType substituteType : pObjectType.substituteTypes) {
+        if (pClass.isInstance(substituteType)) {
+          CTypeSubstitutionVisitor substitutionVisitor =
+              new CTypeSubstitutionVisitor(
+                  ImmutableSet.of(
+                      pObjectType.name,
+                      SequentializationParseTest.ANON_TYPE_KEYWORD + pObjectType.name),
+                  substituteType);
+          substituted = substitutionVisitor.visitDefault(substituted);
+        }
       }
     }
     return substituted;
@@ -94,6 +105,7 @@ public class PthreadObjectSubstitution {
       if (substitutedNames.contains(pCompositeType.getName())) {
         return substitution;
       }
+      // prevent infinite recursion, if a CCompositeType contains itself somewhere as a member
       if (!visitedCompositeTypes.add(pCompositeType)) {
         return pCompositeType;
       }
@@ -126,7 +138,7 @@ public class PthreadObjectSubstitution {
           pElaboratedType.getKind(),
           pElaboratedType.getName(),
           pElaboratedType.getOrigName(),
-          (CComplexType) Objects.requireNonNull(pElaboratedType.getCanonicalType()).accept(this));
+          (CComplexType) pElaboratedType.getRealType().accept(this));
     }
 
     @Override
@@ -143,10 +155,10 @@ public class PthreadObjectSubstitution {
       if (pFunctionType.getName() != null && substitutedNames.contains(pFunctionType.getName())) {
         return substitution;
       }
-      CType returnTypeSubstitute = pFunctionType.getReturnType().getCanonicalType().accept(this);
+      CType returnTypeSubstitute = pFunctionType.getReturnType().accept(this);
       ImmutableList.Builder<CType> parameterSubstitutes = ImmutableList.builder();
       for (CType parameter : pFunctionType.getParameters()) {
-        parameterSubstitutes.add(parameter.getCanonicalType().accept(this));
+        parameterSubstitutes.add(parameter.accept(this));
       }
       return new CFunctionType(
           returnTypeSubstitute, parameterSubstitutes.build(), pFunctionType.takesVarArgs());
@@ -166,13 +178,13 @@ public class PthreadObjectSubstitution {
       return new CTypedefType(
           pTypedefType.getQualifiers(),
           pTypedefType.getName(),
-          pTypedefType.getRealType().getCanonicalType().accept(this));
+          pTypedefType.getRealType().accept(this));
     }
 
     @Override
     public CType visit(CBitFieldType pBitFieldType) {
       return new CBitFieldType(
-          pBitFieldType.getCanonicalType().accept(this), pBitFieldType.getBitFieldSize());
+          pBitFieldType.getType().accept(this), pBitFieldType.getBitFieldSize());
     }
   }
 }

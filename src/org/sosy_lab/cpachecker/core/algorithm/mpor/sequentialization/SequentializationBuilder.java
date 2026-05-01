@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -69,11 +70,13 @@ public class SequentializationBuilder {
         if (!(declaration instanceof CFunctionDeclaration)
             || pOptions.inputFunctionDeclarations()) {
           if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations()) {
-            if (declaration instanceof CComplexTypeDeclaration complexTypeDeclaration
-                && !(complexTypeDeclaration.getType() instanceof CElaboratedType)) {
+            if (declaration instanceof CComplexTypeDeclaration complexTypeDeclaration) {
+              if (complexTypeDeclaration.getType().getName().contains("pthread_mutex_t")) {
+                System.out.println();
+              }
               CType typeSubstitute =
                   PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                      complexTypeDeclaration.getType());
+                      complexTypeDeclaration.getType(), CCompositeType.class);
               CComplexTypeDeclaration newComplexTypeDeclaration =
                   new CComplexTypeDeclaration(
                       complexTypeDeclaration.getFileLocation(),
@@ -265,7 +268,8 @@ public class SequentializationBuilder {
       CVariableDeclaration pVariableDeclaration) {
 
     CType typeSubstitute =
-        PthreadObjectSubstitution.substitutePthreadObjectTypes(pVariableDeclaration.getType());
+        PthreadObjectSubstitution.substitutePthreadObjectTypes(
+            pVariableDeclaration.getType(), CElaboratedType.class);
     return new CVariableDeclaration(
         pVariableDeclaration.getFileLocation(),
         pVariableDeclaration.isGlobal(),
