@@ -27,16 +27,19 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 @SuppressWarnings("unused")
 public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoException> {
 
   private final FormulaManagerView fmgr;
+  private final AcslPredicateToFormulaVisitor predicateVisitor;
 
   public AcslTermToFormulaVisitor(FormulaManagerView pFmgr) {
     checkNotNull(pFmgr);
     this.fmgr = pFmgr;
+    this.predicateVisitor = new AcslPredicateToFormulaVisitor(pFmgr);
   }
 
   @Override
@@ -46,6 +49,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslStringLiteralTerm pAcslStringLiteralTerm) throws NoException {
+    //return ctoFormulaConverter.makeString but this is not a public method?
     return null;
   }
 
@@ -96,7 +100,20 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
-    return null;
+    BooleanFormula conditionFormula = (pAcslTernaryTerm.getCondition()).accept(predicateVisitor);
+    Formula ifTrueFormula = (pAcslTernaryTerm.getResultIfTrue()).accept(this);
+    Formula ifFalseFormula = (pAcslTernaryTerm.getResultIfFalse()).accept(this);
+
+    if (fmgr.getBooleanFormulaManager().isTrue(conditionFormula)) {
+      return ifTrueFormula;
+    }
+    if (fmgr.getBooleanFormulaManager().isFalse(conditionFormula)) {
+      return ifFalseFormula;
+    }
+
+    // TODO this seems wrong but how do I make if then else?
+    return fmgr.makeOr(fmgr.makeAnd(conditionFormula, ifTrueFormula),
+        fmgr.makeAnd(fmgr.getBooleanFormulaManager().not(conditionFormula), ifFalseFormula));
   }
 
   @Override
