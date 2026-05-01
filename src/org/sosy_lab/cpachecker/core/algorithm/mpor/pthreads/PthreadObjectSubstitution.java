@@ -10,14 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -62,8 +59,6 @@ public class PthreadObjectSubstitution {
 
   private static class CTypeSubstitutionVisitor extends DefaultCTypeVisitor<CType, NoException> {
 
-    private final Set<CCompositeType> visitedCompositeTypes = new HashSet<>();
-
     /** The names of {@link CType} to substitute. */
     private final ImmutableSet<String> substitutedNames;
 
@@ -83,13 +78,13 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CVoidType pVoidType) {
-      // nothing to visit in CVoidType
+      // nothing to substitute in CVoidType
       return pVoidType;
     }
 
     @Override
     public CType visit(CSimpleType pSimpleType) {
-      // nothing to visit in CSimpleType
+      // nothing to substitute in CVoidType
       return pSimpleType;
     }
 
@@ -102,32 +97,19 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CCompositeType pCompositeType) {
-      if (substitutedNames.contains(pCompositeType.getName())) {
+      if (substitution instanceof CCompositeType
+          && substitutedNames.contains(pCompositeType.getName())) {
         return substitution;
       }
-      // prevent infinite recursion, if a CCompositeType contains itself somewhere as a member
-      if (!visitedCompositeTypes.add(pCompositeType)) {
-        return pCompositeType;
-      }
-      ImmutableList.Builder<CCompositeTypeMemberDeclaration> memberTypeSubstitutes =
-          ImmutableList.builder();
-      for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
-        CType memberTypeSubstitute = member.getType().accept(this);
-        CCompositeTypeMemberDeclaration memberDeclarationSubstitute =
-            new CCompositeTypeMemberDeclaration(memberTypeSubstitute, member.getName());
-        memberTypeSubstitutes.add(memberDeclarationSubstitute);
-      }
-      return new CCompositeType(
-          pCompositeType.getQualifiers(),
-          pCompositeType.getKind(),
-          memberTypeSubstitutes.build(),
-          pCompositeType.getName(),
-          pCompositeType.getOrigName());
+      // for pthread objects, the members of the CCompositeType should not be substituted since
+      // the CTypedefDeclarations can be reused without any changes
+      return pCompositeType;
     }
 
     @Override
     public CType visit(CElaboratedType pElaboratedType) {
-      if (substitutedNames.contains(pElaboratedType.getName())) {
+      if (substitution instanceof CElaboratedType
+          && substitutedNames.contains(pElaboratedType.getName())) {
         return substitution;
       }
       if (pElaboratedType.getRealType() == null) {
@@ -143,7 +125,7 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CEnumType pEnumType) {
-      if (substitutedNames.contains(pEnumType.getName())) {
+      if (substitution instanceof CEnumType && substitutedNames.contains(pEnumType.getName())) {
         return substitution;
       }
       // nothing to visit in CEnumType
@@ -152,7 +134,9 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CFunctionType pFunctionType) {
-      if (pFunctionType.getName() != null && substitutedNames.contains(pFunctionType.getName())) {
+      if (substitution instanceof CFunctionType
+          && pFunctionType.getName() != null
+          && substitutedNames.contains(pFunctionType.getName())) {
         return substitution;
       }
       CType returnTypeSubstitute = pFunctionType.getReturnType().accept(this);
@@ -172,7 +156,8 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CTypedefType pTypedefType) {
-      if (substitutedNames.contains(pTypedefType.getName())) {
+      if (substitution instanceof CTypedefType
+          && substitutedNames.contains(pTypedefType.getName())) {
         return substitution;
       }
       return new CTypedefType(
