@@ -13,11 +13,14 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.java_smt.api.Formula;
 
 @SuppressWarnings("unused")
 public class AcslTermToFormulaTest {
@@ -34,8 +37,10 @@ public class AcslTermToFormulaTest {
   public void testAcslXYZTerm() throws InvalidConfigurationException {
     Solver smtSolver = createSolver();
     FormulaManagerView fmgr = smtSolver.getFormulaManager();
+    AcslTermToFormulaVisitor visitor = new AcslTermToFormulaVisitor(fmgr);
 
-    AcslTerm term = null;  // create an AcslTerm to test here
+    AcslTerm term = new AcslCharLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, 'a');
+    Formula f = term.accept(visitor);
 
     // Formula f = AcslTermToFormulaConverter.convertAcslTerm(term, fmgr);
     // TODO: How do I work with a solver here?
