@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
@@ -28,9 +29,11 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 @SuppressWarnings("unused")
-public class AcslPredicateToFormulaVisitor implements AcslPredicateVisitor<BooleanFormula, NoException> {
+public class AcslPredicateToFormulaVisitor
+    implements AcslPredicateVisitor<BooleanFormula, NoException> {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -43,7 +46,15 @@ public class AcslPredicateToFormulaVisitor implements AcslPredicateVisitor<Boole
 
   @Override
   public BooleanFormula visit(AcslBinaryPredicate pBinaryExpression) throws NoException {
-    return null;
+    BooleanFormula operand1Formula = ((AcslPredicate) pBinaryExpression.getOperand1()).accept(this);
+    BooleanFormula operand2Formula = ((AcslPredicate) pBinaryExpression.getOperand2()).accept(this);
+
+    return switch ((AcslBinaryPredicateOperator) pBinaryExpression.getOperator()) {
+      case IMPLICATION -> bfmgr.implication(operand1Formula, operand2Formula);
+      case EQUIVALENT -> bfmgr.equivalence(operand1Formula, operand2Formula);
+      case AND -> bfmgr.and(operand1Formula, operand2Formula);
+      case OR -> bfmgr.or(operand1Formula, operand2Formula);
+    };
   }
 
   @Override
@@ -62,7 +73,20 @@ public class AcslPredicateToFormulaVisitor implements AcslPredicateVisitor<Boole
 
   @Override
   public BooleanFormula visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
-    return null;
+    AcslTermToFormulaVisitor termVisitor = new AcslTermToFormulaVisitor(fmgr);
+    Formula operand1Formula = pAcslBinaryTermPredicate.getOperand1().accept(termVisitor);
+    Formula operand2Formula = pAcslBinaryTermPredicate.getOperand2().accept(termVisitor);
+
+    // TODO revisit if signed=true is safe or if we could have a case where we get something
+    // unsigned in the bitvector case
+    return switch (pAcslBinaryTermPredicate.getOperator()) {
+      case EQUALS -> fmgr.makeEqual(operand1Formula, operand2Formula);
+      case NOT_EQUALS -> bfmgr.not(fmgr.makeEqual(operand1Formula, operand2Formula));
+      case LESS_EQUAL -> fmgr.makeLessOrEqual(operand1Formula, operand2Formula, true);
+      case GREATER_EQUAL -> fmgr.makeGreaterOrEqual(operand1Formula, operand2Formula, true);
+      case LESS_THAN -> fmgr.makeLessThan(operand1Formula, operand2Formula, true);
+      case GREATER_THAN -> fmgr.makeGreaterThan(operand1Formula, operand2Formula, true);
+    };
   }
 
   @Override
@@ -78,7 +102,21 @@ public class AcslPredicateToFormulaVisitor implements AcslPredicateVisitor<Boole
 
   @Override
   public BooleanFormula visit(AcslTernaryPredicate pAcslTernaryPredicate) throws NoException {
-    return null;
+    BooleanFormula conditionFormula = (pAcslTernaryPredicate.getCondition()).accept(this);
+    BooleanFormula ifTrueFormula = (pAcslTernaryPredicate.getResultIfTrue()).accept(this);
+    BooleanFormula ifFalseFormula = (pAcslTernaryPredicate.getResultIfFalse()).accept(this);
+
+    if (bfmgr.isTrue(conditionFormula)) {
+      return ifTrueFormula;
+    }
+    if (bfmgr.isFalse(conditionFormula)) {
+      return ifFalseFormula;
+    }
+
+    // (condition AND trueFormula) OR ((NOT condition) AND falseFormula)
+    return bfmgr.or(
+        bfmgr.and(conditionFormula, ifTrueFormula),
+        bfmgr.and(bfmgr.not(conditionFormula), ifFalseFormula));
   }
 
   @Override
