@@ -25,16 +25,22 @@ public enum PthreadObjectType {
   PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER", ImmutableSet.of()),
   PTHREAD_COND_T(
       "pthread_cond_t",
-      ImmutableSet.of(Substitutions.COND_COMPOSITE_TYPE, Substitutions.COND_ELABORATED_TYPE)),
+      ImmutableSet.of(
+          PthreadObjectSubstitutions.COND_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.COND_ELABORATED_TYPE)),
   PTHREAD_KEY_T("pthread_key_t", ImmutableSet.of()),
   PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER", ImmutableSet.of()),
   PTHREAD_MUTEX_T(
       "pthread_mutex_t",
-      ImmutableSet.of(Substitutions.MUTEX_COMPOSITE_TYPE, Substitutions.MUTEX_ELABORATED_TYPE)),
+      ImmutableSet.of(
+          PthreadObjectSubstitutions.MUTEX_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE)),
   PTHREAD_ONCE_T("pthread_once_t", ImmutableSet.of()),
   PTHREAD_RWLOCK_T(
       "pthread_rwlock_t",
-      ImmutableSet.of(Substitutions.RWLOCK_COMPOSITE_TYPE, Substitutions.RWLOCK_ELABORATED_TYPE)),
+      ImmutableSet.of(
+          PthreadObjectSubstitutions.RWLOCK_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE)),
   PTHREAD_T("pthread_t", ImmutableSet.of()),
   RETURN_VALUE("", ImmutableSet.of()),
   START_ROUTINE("", ImmutableSet.of()),
@@ -67,25 +73,25 @@ public enum PthreadObjectType {
   }
 
   /** A private class to define final variables that can be used as attributes in the enum. */
-  private static final class Substitutions {
+  static final class PthreadObjectSubstitutions {
 
     // pthread_mutex_t
 
     private static final String MUTEX_SUBSTITUTION_NAME =
         Sequentialization.MPOR_PREFIX + "pthread_mutex_t";
 
-    private static final CCompositeTypeMemberDeclaration MUTEX_MEMBER_DECLARATION =
+    static final CCompositeTypeMemberDeclaration MUTEX_LOCKED_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "LOCKED");
 
     private static final CCompositeType MUTEX_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
-            ImmutableList.of(MUTEX_MEMBER_DECLARATION),
+            ImmutableList.of(MUTEX_LOCKED_MEMBER_DECLARATION),
             MUTEX_SUBSTITUTION_NAME,
             MUTEX_SUBSTITUTION_NAME);
 
-    private static final CElaboratedType MUTEX_ELABORATED_TYPE =
+    static final CElaboratedType MUTEX_ELABORATED_TYPE =
         new CElaboratedType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
@@ -98,7 +104,7 @@ public enum PthreadObjectType {
     private static final String COND_SUBSTITUTION_NAME =
         Sequentialization.MPOR_PREFIX + "pthread_cond_t";
 
-    private static final CCompositeTypeMemberDeclaration COND_MEMBER_DECLARATION =
+    static final CCompositeTypeMemberDeclaration COND_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "SIGNALED");
 
     private static final CCompositeType COND_COMPOSITE_TYPE =
@@ -109,7 +115,7 @@ public enum PthreadObjectType {
             COND_SUBSTITUTION_NAME,
             COND_SUBSTITUTION_NAME);
 
-    private static final CElaboratedType COND_ELABORATED_TYPE =
+    static final CElaboratedType COND_ELABORATED_TYPE =
         new CElaboratedType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
@@ -122,10 +128,10 @@ public enum PthreadObjectType {
     private static final String RWLOCK_SUBSTITUTION_NAME =
         Sequentialization.MPOR_PREFIX + "pthread_rwlock_t";
 
-    private static final CCompositeTypeMemberDeclaration RWLOCK_NUM_READERS_MEMBER_DECLARATION =
+    static final CCompositeTypeMemberDeclaration RWLOCK_NUM_READERS_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "NUM_READERS");
 
-    private static final CCompositeTypeMemberDeclaration RWLOCK_NUM_WRITERS_MEMBER_DECLARATION =
+    static final CCompositeTypeMemberDeclaration RWLOCK_NUM_WRITERS_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "NUM_WRITERS");
 
     private static final CCompositeType RWLOCK_COMPOSITE_TYPE =
@@ -137,7 +143,7 @@ public enum PthreadObjectType {
             RWLOCK_SUBSTITUTION_NAME,
             RWLOCK_SUBSTITUTION_NAME);
 
-    private static final CElaboratedType RWLOCK_ELABORATED_TYPE =
+    static final CElaboratedType RWLOCK_ELABORATED_TYPE =
         new CElaboratedType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,

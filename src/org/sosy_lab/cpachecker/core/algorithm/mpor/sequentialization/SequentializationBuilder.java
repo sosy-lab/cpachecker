@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -367,6 +368,10 @@ public class SequentializationBuilder {
           pFields.threadSimulationFunctions.orElseThrow().values()) {
         rDefinitions.add(functionDefinition.toASTString());
       }
+    }
+    for (CExportFunctionDefinition definition :
+        PthreadFunctionSubstitution.getAllFunctionDefinitions(pUtils.binaryExpressionBuilder())) {
+      rDefinitions.add(definition.toASTString());
     }
     // create clauses in main method
     rDefinitions.add(
