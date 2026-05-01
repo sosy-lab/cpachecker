@@ -57,18 +57,6 @@ public class SeqPointerAliasingUtil {
   }
 
   /**
-   * Checks if {@code pType} or any nested type has the name {@code pTargetName}. The search for
-   * nested types stops when encountering any name in {@code pStopNames}.
-   */
-  public static boolean isAnyTypeTargetName(
-      CType pType, String pTargetName, ImmutableSet<String> pStopNames) {
-
-    // strip the name, it may contain trailing whitespaces
-    return getNestedTypes(pType, pStopNames).stream()
-        .anyMatch(t -> t.toASTString("").strip().equals(pTargetName));
-  }
-
-  /**
    * Returns all {@link CType} nested within {@code pType}, including {@code pType}. The search for
    * nested types stops when encountering any name in {@code pStopNames}.
    *
@@ -226,18 +214,6 @@ public class SeqPointerAliasingUtil {
     throw new IllegalArgumentException(
         String.format(
             "No CCompositeTypeMemberDeclaration with name %s found in pTypeToSearch.", pFieldName));
-  }
-
-  public static ImmutableSet<CCompositeTypeMemberDeclaration>
-      getCompositeTypeMemberDeclarationsByTypeName(CType pTypeToSearch, String pTypeName) {
-    ImmutableSet.Builder<CCompositeTypeMemberDeclaration> rDeclarations = ImmutableSet.builder();
-    for (CCompositeTypeMemberDeclaration declaration :
-        getNestedCompositeTypeMemberDeclarations(pTypeToSearch, ImmutableSet.of())) {
-      if (declaration.getType().toASTString("").strip().equals(pTypeName)) {
-        rDeclarations.add(declaration);
-      }
-    }
-    return rDeclarations.build();
   }
 
   public static ImmutableList<CCompositeTypeMemberDeclaration>

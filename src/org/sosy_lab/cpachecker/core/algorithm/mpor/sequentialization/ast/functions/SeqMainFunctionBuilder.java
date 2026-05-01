@@ -143,7 +143,6 @@ public final class SeqMainFunctionBuilder {
       loopBlock.add(
           NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
                   pOptions,
-                  pFields.machineModel,
                   pFields.pointerAliasingMap,
                   pFields.ghostElements,
                   pFields.clauses,

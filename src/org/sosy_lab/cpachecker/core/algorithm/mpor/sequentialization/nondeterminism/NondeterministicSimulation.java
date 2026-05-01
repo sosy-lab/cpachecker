@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -86,8 +85,6 @@ public abstract class NondeterministicSimulation {
 
   final MPOROptions options;
 
-  final MachineModel machineModel;
-
   final SeqPointerAliasingMap pointerAliasingMap;
 
   final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
@@ -98,7 +95,6 @@ public abstract class NondeterministicSimulation {
 
   NondeterministicSimulation(
       MPOROptions pOptions,
-      MachineModel pMachineModel,
       SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
@@ -112,7 +108,6 @@ public abstract class NondeterministicSimulation {
       case NUM_STATEMENTS -> checkArgument(this instanceof NumStatementsNondeterministicSimulation);
     }
     options = pOptions;
-    machineModel = pMachineModel;
     pointerAliasingMap = pPointerAliasingMap;
     ghostElements = pGhostElements;
     clauses = pClauses;

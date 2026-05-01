@@ -120,7 +120,7 @@ public class SequentializationFields {
         pOptions.threadSimulationUnrolling()
             ? Optional.of(
                 NondeterministicSimulationBuilder.buildThreadSimulationFunctions(
-                    pOptions, machineModel, pointerAliasingMap, ghostElements, clauses, pUtils))
+                    pOptions, pointerAliasingMap, ghostElements, clauses, pUtils))
             : Optional.empty();
   }
 

@@ -8,14 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -48,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -166,24 +162,6 @@ public class InputRejection {
           }
         }
       }
-    }
-  }
-
-  public static void checkPthreadObjectPointerAliasing(
-      ImmutableSet<SeqMemoryLocation> pPointerMemoryLocations,
-      ImmutableSet<SeqMemoryLocation> pMemoryLocations)
-      throws UnsupportedCodeException {
-
-    if (pMemoryLocations.size() > 1) {
-      throw new UnsupportedCodeException(
-          String.join(
-              " ",
-              InputRejectionMessage.PTHREAD_OBJECT_POINTER_ALIASING.message,
-              Iterables.getOnlyElement(pPointerMemoryLocations).getName(),
-              transformedImmutableSetCopy(
-                      pMemoryLocations, m -> Objects.requireNonNull(m).getName())
-                  .toString()),
-          null);
     }
   }
 

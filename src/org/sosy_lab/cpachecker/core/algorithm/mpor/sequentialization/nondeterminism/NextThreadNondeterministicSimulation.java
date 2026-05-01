@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -45,13 +44,12 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
 
   NextThreadNondeterministicSimulation(
       MPOROptions pOptions,
-      MachineModel pMachineModel,
       SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
-    super(pOptions, pMachineModel, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
+    super(pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
   }
 
   @Override
