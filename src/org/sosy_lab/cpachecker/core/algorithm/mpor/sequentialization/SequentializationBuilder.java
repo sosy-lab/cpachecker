@@ -71,9 +71,6 @@ public class SequentializationBuilder {
             || pOptions.inputFunctionDeclarations()) {
           if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations()) {
             if (declaration instanceof CComplexTypeDeclaration complexTypeDeclaration) {
-              if (complexTypeDeclaration.getType().getName().contains("pthread_mutex_t")) {
-                System.out.println();
-              }
               CType typeSubstitute =
                   PthreadObjectSubstitution.substitutePthreadObjectTypes(
                       complexTypeDeclaration.getType(), CCompositeType.class);
