@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -167,6 +168,22 @@ public final class MPORUtil {
       }
     }
     return false;
+  }
+
+  // CVariableDeclaration
+
+  public static CVariableDeclaration withInitializer(
+      CVariableDeclaration pVariableDeclaration, @Nullable CInitializer pInitializer) {
+
+    return new CVariableDeclaration(
+        pVariableDeclaration.getFileLocation(),
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getCStorageClass(),
+        pVariableDeclaration.getType(),
+        pVariableDeclaration.getName(),
+        pVariableDeclaration.getOrigName(),
+        pVariableDeclaration.getQualifiedName(),
+        pInitializer);
   }
 
   // Pointers ======================================================================================

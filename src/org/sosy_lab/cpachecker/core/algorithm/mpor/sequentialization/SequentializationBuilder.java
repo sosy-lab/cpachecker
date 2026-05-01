@@ -192,7 +192,7 @@ public class SequentializationBuilder {
       return Optional.of(pVariableDeclaration);
     }
     // everything else: add declaration without initializer (and assign later in statements)
-    return Optional.of(removeInitializerFromVariableDeclaration(pVariableDeclaration));
+    return Optional.of(MPORUtil.withInitializer(pVariableDeclaration, null));
   }
 
   // Input Parameter Declarations ==================================================================
@@ -212,7 +212,7 @@ public class SequentializationBuilder {
         CVariableDeclaration variableDeclarationSubstitute =
             buildVariableDeclarationWithSubstituteType(parameterDeclaration);
         rDeclarations.add(
-            removeInitializerFromVariableDeclaration(variableDeclarationSubstitute).toASTString());
+            MPORUtil.withInitializer(variableDeclarationSubstitute, null).toASTString());
       }
     }
     return rDeclarations.toString();
@@ -253,7 +253,7 @@ public class SequentializationBuilder {
       CVariableDeclaration variableDeclarationSubstitute =
           buildVariableDeclarationWithSubstituteType(startRoutineArgDeclaration);
       rDeclarations.add(
-          removeInitializerFromVariableDeclaration(variableDeclarationSubstitute).toASTString());
+          MPORUtil.withInitializer(variableDeclarationSubstitute, null).toASTString());
     }
     return rDeclarations.toString();
   }
@@ -298,20 +298,6 @@ public class SequentializationBuilder {
         typeSubstitute.equals(pVariableDeclaration.getType())
             ? pVariableDeclaration.getInitializer()
             : null);
-  }
-
-  private static CVariableDeclaration removeInitializerFromVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration) {
-
-    return new CVariableDeclaration(
-        pVariableDeclaration.getFileLocation(),
-        pVariableDeclaration.isGlobal(),
-        pVariableDeclaration.getCStorageClass(),
-        pVariableDeclaration.getType(),
-        pVariableDeclaration.getName(),
-        pVariableDeclaration.getOrigName(),
-        pVariableDeclaration.getQualifiedName(),
-        null);
   }
 
   // Function Declarations and Definitions =========================================================
