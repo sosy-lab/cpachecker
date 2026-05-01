@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -46,7 +45,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqComment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
@@ -189,8 +187,7 @@ public class SequentializationBuilder {
     }
     // everything else: add declaration without initializer (and assign later in statements)
     return Optional.of(
-        SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-            pVariableDeclaration, AAstNodeRepresentation.DEFAULT));
+        removeInitializerFromVariableDeclaration(pVariableDeclaration).toASTString());
   }
 
   // Input Parameter Declarations ==================================================================
@@ -208,8 +205,7 @@ public class SequentializationBuilder {
           substitution.getParameterDeclarationSubstitutes();
       for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
         rDeclarations.add(
-            SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-                parameterDeclaration, AAstNodeRepresentation.DEFAULT));
+            removeInitializerFromVariableDeclaration(parameterDeclaration).toASTString());
       }
     }
     return rDeclarations.toString();
@@ -245,8 +241,7 @@ public class SequentializationBuilder {
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
     for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
       rDeclarations.add(
-          SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-              startRoutineArgDeclaration, AAstNodeRepresentation.DEFAULT));
+          removeInitializerFromVariableDeclaration(startRoutineArgDeclaration).toASTString());
     }
     return rDeclarations.toString();
   }
@@ -265,6 +260,20 @@ public class SequentializationBuilder {
       }
     }
     return rDeclarations.toString();
+  }
+
+  private static CVariableDeclaration removeInitializerFromVariableDeclaration(
+      CVariableDeclaration pVariableDeclaration) {
+
+    return new CVariableDeclaration(
+        pVariableDeclaration.getFileLocation(),
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getCStorageClass(),
+        pVariableDeclaration.getType(),
+        pVariableDeclaration.getName(),
+        pVariableDeclaration.getOrigName(),
+        pVariableDeclaration.getQualifiedName(),
+        null);
   }
 
   // Function Declarations and Definitions =========================================================
