@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -38,7 +39,10 @@ public class PthreadObjectSubstitution {
         CElaboratedType substitutionType = pObjectType.substituteType.orElseThrow();
         CTypeSubstitutionVisitor substitutionVisitor =
             new CTypeSubstitutionVisitor(
-                SequentializationParseTest.ANON_TYPE_KEYWORD + pObjectType.name, substitutionType);
+                ImmutableSet.of(
+                    pObjectType.name,
+                    SequentializationParseTest.ANON_TYPE_KEYWORD + pObjectType.name),
+                substitutionType);
         substituted = substitutionVisitor.visitDefault(substituted);
       }
     }
@@ -49,18 +53,21 @@ public class PthreadObjectSubstitution {
 
     private final Set<CCompositeType> visitedCompositeTypes = new HashSet<>();
 
-    private final String toSubstituteName;
+    /** The names of {@link CType} to substitute. */
+    private final ImmutableSet<String> substitutedNames;
 
     private final CType substitution;
 
-    private CTypeSubstitutionVisitor(String pToSubstituteName, CType pSubstitution) {
-      toSubstituteName = pToSubstituteName;
+    private CTypeSubstitutionVisitor(ImmutableSet<String> pSubstitutedNames, CType pSubstitution) {
+      substitutedNames = pSubstitutedNames;
       substitution = pSubstitution;
     }
 
     @Override
     public CType visitDefault(CType pType) {
-      return pType.getCanonicalType().accept(this);
+      // using getCanonicalType results in CElaboratedType being replaced with CCompositeType which
+      // leads to duplicate declarations of types and parse errors
+      return pType.accept(this);
     }
 
     @Override
@@ -84,7 +91,7 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CCompositeType pCompositeType) {
-      if (pCompositeType.getName().equals(toSubstituteName)) {
+      if (substitutedNames.contains(pCompositeType.getName())) {
         return substitution;
       }
       if (!visitedCompositeTypes.add(pCompositeType)) {
@@ -108,7 +115,7 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CElaboratedType pElaboratedType) {
-      if (pElaboratedType.getName().equals(toSubstituteName)) {
+      if (substitutedNames.contains(pElaboratedType.getName())) {
         return substitution;
       }
       if (pElaboratedType.getRealType() == null) {
@@ -124,7 +131,7 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CEnumType pEnumType) {
-      if (pEnumType.getName().equals(toSubstituteName)) {
+      if (substitutedNames.contains(pEnumType.getName())) {
         return substitution;
       }
       // nothing to visit in CEnumType
@@ -133,7 +140,7 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CFunctionType pFunctionType) {
-      if (pFunctionType.getName() != null && pFunctionType.getName().equals(toSubstituteName)) {
+      if (pFunctionType.getName() != null && substitutedNames.contains(pFunctionType.getName())) {
         return substitution;
       }
       CType returnTypeSubstitute = pFunctionType.getReturnType().getCanonicalType().accept(this);
@@ -153,7 +160,7 @@ public class PthreadObjectSubstitution {
 
     @Override
     public CType visit(CTypedefType pTypedefType) {
-      if (pTypedefType.getName().equals(toSubstituteName)) {
+      if (substitutedNames.contains(pTypedefType.getName())) {
         return substitution;
       }
       return new CTypedefType(
