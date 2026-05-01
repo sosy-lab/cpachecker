@@ -9,10 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -22,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibCurrentScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
@@ -92,9 +97,17 @@ public class Initializer {
       }
 
       ImmutableList.Builder<CDeclaration> declarationsCollector = ImmutableList.builder();
+      ImmutableList.Builder<CFunctionCallExpression> undeclaredFunctionsCollector =
+          ImmutableList.builder();
       for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
         if (edge instanceof CDeclarationEdge declarationEdge) {
           declarationsCollector.add(declarationEdge.getDeclaration());
+        } else if (edge instanceof CStatementEdge cStatementEdge
+            && cStatementEdge.getStatement()
+                instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement
+            && cFunctionCallAssignmentStatement.getRightHandSide().getDeclaration() == null) {
+          undeclaredFunctionsCollector.add(
+              cFunctionCallAssignmentStatement.getFunctionCallExpression());
         }
       }
       ImmutableList<CDeclaration> declarations = declarationsCollector.build();
@@ -126,6 +139,24 @@ public class Initializer {
             scope.addProcedureDeclaration(externProcedureDefinition.getProcedureDeclaration());
             pCommandsCollector.add(externProcedureDefinition);
           }
+        }
+      }
+
+      Set<SvLibProcedureDeclaration> proceduresCreatedForUndeclaredFunctions = new HashSet<>();
+      for (CFunctionCallExpression functionCallExpression : undeclaredFunctionsCollector.build()) {
+        String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
+        CType expressionType = functionCallExpression.getExpressionType();
+
+        SvLibProcedureDefinitionCommand procedureDefinitionCommand =
+            createProcedureDefinitionForUndeclaredFunction(functionName, expressionType);
+
+        // check to avoid duplicate procedures if undeclared function is called multiple times
+        if (!proceduresCreatedForUndeclaredFunctions.contains(
+            procedureDefinitionCommand.getProcedureDeclaration())) {
+          scope.addProcedureDeclaration(procedureDefinitionCommand.getProcedureDeclaration());
+          pCommandsCollector.add(procedureDefinitionCommand);
+          proceduresCreatedForUndeclaredFunctions.add(
+              procedureDefinitionCommand.getProcedureDeclaration());
         }
       }
 
@@ -244,6 +275,27 @@ public class Initializer {
     SvLibStatement externProcedureBody = createBodyForExternProcedure(externProcedureDeclaration);
     return new SvLibProcedureDefinitionCommand(
         FileLocation.DUMMY, externProcedureDeclaration, externProcedureBody);
+  }
+
+  private SvLibProcedureDefinitionCommand createProcedureDefinitionForUndeclaredFunction(
+      String pFunctionName, CType pReturnType) {
+    ImmutableList.Builder<SvLibParsingParameterDeclaration> returnParameterCollector =
+        ImmutableList.builder();
+    if (!(pReturnType instanceof CVoidType)) {
+      returnParameterCollector.add(
+          new SvLibParsingParameterDeclaration(
+              FileLocation.DUMMY, convertToSvLibType(pReturnType), "__retval__", pFunctionName));
+    }
+    SvLibProcedureDeclaration procedureDeclarationForUndeclaredFunction =
+        new SvLibProcedureDeclaration(
+            FileLocation.DUMMY,
+            pFunctionName,
+            ImmutableList.of(),
+            returnParameterCollector.build(),
+            ImmutableList.of());
+    SvLibStatement body = createBodyForExternProcedure(procedureDeclarationForUndeclaredFunction);
+    return new SvLibProcedureDefinitionCommand(
+        FileLocation.DUMMY, procedureDeclarationForUndeclaredFunction, body);
   }
 
   private SvLibProcedureDeclaration createProcedureDeclarationForExternFunction(
