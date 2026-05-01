@@ -103,9 +103,9 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslTernaryPredicate pAcslTernaryPredicate) throws NoException {
-    BooleanFormula conditionFormula = (pAcslTernaryPredicate.getCondition()).accept(this);
-    BooleanFormula ifTrueFormula = (pAcslTernaryPredicate.getResultIfTrue()).accept(this);
-    BooleanFormula ifFalseFormula = (pAcslTernaryPredicate.getResultIfFalse()).accept(this);
+    BooleanFormula conditionFormula = pAcslTernaryPredicate.getCondition().accept(this);
+    BooleanFormula ifTrueFormula = pAcslTernaryPredicate.getResultIfTrue().accept(this);
+    BooleanFormula ifFalseFormula = pAcslTernaryPredicate.getResultIfFalse().accept(this);
 
     if (bfmgr.isTrue(conditionFormula)) {
       return ifTrueFormula;

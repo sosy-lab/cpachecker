@@ -49,7 +49,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslStringLiteralTerm pAcslStringLiteralTerm) throws NoException {
-    //return ctoFormulaConverter.makeString but this is not a public method?
+    // return ctoFormulaConverter.makeString but this is not a public method?
     return null;
   }
 
@@ -100,9 +100,9 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
-    BooleanFormula conditionFormula = (pAcslTernaryTerm.getCondition()).accept(predicateVisitor);
-    Formula ifTrueFormula = (pAcslTernaryTerm.getResultIfTrue()).accept(this);
-    Formula ifFalseFormula = (pAcslTernaryTerm.getResultIfFalse()).accept(this);
+    BooleanFormula conditionFormula = pAcslTernaryTerm.getCondition().accept(predicateVisitor);
+    Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
+    Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
 
     if (fmgr.getBooleanFormulaManager().isTrue(conditionFormula)) {
       return ifTrueFormula;
@@ -112,7 +112,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     }
 
     // TODO this seems wrong but how do I make if then else?
-    return fmgr.makeOr(fmgr.makeAnd(conditionFormula, ifTrueFormula),
+    return fmgr.makeOr(
+        fmgr.makeAnd(conditionFormula, ifTrueFormula),
         fmgr.makeAnd(fmgr.getBooleanFormulaManager().not(conditionFormula), ifFalseFormula));
   }
 
