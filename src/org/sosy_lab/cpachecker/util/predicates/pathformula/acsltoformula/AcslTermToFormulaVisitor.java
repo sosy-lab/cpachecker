@@ -34,12 +34,16 @@ import org.sosy_lab.java_smt.api.Formula;
 public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoException> {
 
   private final FormulaManagerView fmgr;
-  private final AcslPredicateToFormulaVisitor predicateVisitor;
+  private AcslPredicateToFormulaVisitor predicateVisitor;
 
   public AcslTermToFormulaVisitor(FormulaManagerView pFmgr) {
     checkNotNull(pFmgr);
     this.fmgr = pFmgr;
     this.predicateVisitor = new AcslPredicateToFormulaVisitor(pFmgr);
+  }
+
+  public void setPredicateVisitor(AcslPredicateToFormulaVisitor pPredicateVisitor) {
+    this.predicateVisitor = pPredicateVisitor;
   }
 
   @Override
