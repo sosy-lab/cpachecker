@@ -81,8 +81,10 @@ public enum PthreadObjectType {
 
     // pthread_mutex_t
 
+    private static final String MUTEX_NAME = "pthread_mutex_t";
+
     private static final String MUTEX_SUBSTITUTION_NAME =
-        Sequentialization.MPOR_PREFIX + "pthread_mutex_t";
+        Sequentialization.MPOR_PREFIX + MUTEX_NAME;
 
     static final CCompositeTypeMemberDeclaration MUTEX_LOCKED_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "LOCKED");
@@ -104,12 +106,13 @@ public enum PthreadObjectType {
             MUTEX_COMPOSITE_TYPE);
 
     static final CTypedefType MUTEX_TYPEDEF_TYPE =
-        new CTypedefType(CTypeQualifiers.NONE, MUTEX_SUBSTITUTION_NAME, MUTEX_ELABORATED_TYPE);
+        new CTypedefType(CTypeQualifiers.NONE, MUTEX_NAME, MUTEX_ELABORATED_TYPE);
 
     // pthread_cond_t
 
-    private static final String COND_SUBSTITUTION_NAME =
-        Sequentialization.MPOR_PREFIX + "pthread_cond_t";
+    private static final String COND_NAME = "pthread_cond_t";
+
+    private static final String COND_SUBSTITUTION_NAME = Sequentialization.MPOR_PREFIX + COND_NAME;
 
     static final CCompositeTypeMemberDeclaration COND_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "SIGNALED");
@@ -131,12 +134,14 @@ public enum PthreadObjectType {
             COND_COMPOSITE_TYPE);
 
     static final CTypedefType COND_TYPEDEF_TYPE =
-        new CTypedefType(CTypeQualifiers.NONE, COND_SUBSTITUTION_NAME, COND_ELABORATED_TYPE);
+        new CTypedefType(CTypeQualifiers.NONE, COND_NAME, COND_ELABORATED_TYPE);
 
     // pthread_rwlock_t
 
+    private static final String RWLOCK_NAME = "pthread_rwlock_t";
+
     private static final String RWLOCK_SUBSTITUTION_NAME =
-        Sequentialization.MPOR_PREFIX + "pthread_rwlock_t";
+        Sequentialization.MPOR_PREFIX + RWLOCK_NAME;
 
     // NUM_READERS is an unsigned int because it can be incremented to any number
     static final CCompositeTypeMemberDeclaration RWLOCK_NUM_READERS_MEMBER_DECLARATION =
@@ -163,6 +168,6 @@ public enum PthreadObjectType {
             RWLOCK_COMPOSITE_TYPE);
 
     static final CTypedefType RWLOCK_TYPEDEF_TYPE =
-        new CTypedefType(CTypeQualifiers.NONE, RWLOCK_SUBSTITUTION_NAME, RWLOCK_ELABORATED_TYPE);
+        new CTypedefType(CTypeQualifiers.NONE, RWLOCK_NAME, RWLOCK_ELABORATED_TYPE);
   }
 }
