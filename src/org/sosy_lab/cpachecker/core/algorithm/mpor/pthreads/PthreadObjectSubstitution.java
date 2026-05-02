@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationParseTest;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
@@ -58,6 +60,29 @@ public class PthreadObjectSubstitution {
       }
     }
     return substituted;
+  }
+
+  /**
+   * Replaces the {@link CInitializer} in the given {@link CVariableDeclaration} if its {@link
+   * CType} was substituted due to pthread objects.
+   *
+   * <p>This is necessary because the {@link CInitializer} may not match the {@link CType} anymore
+   * after substitution, which can result in parse errors.
+   */
+  public static CVariableDeclaration substitutePthreadObjectInitializers(
+      CVariableDeclaration pVariableDeclaration) {
+
+    // case 1: the outer type is a substituted type, then remove the initializer completely
+    for (PthreadObjectType pObjectType : PthreadObjectType.values()) {
+      if (pObjectType.substituteTypes.stream()
+          .anyMatch(t -> t.equals(pVariableDeclaration.getType()))) {
+        return MPORUtil.withInitializer(pVariableDeclaration, null);
+      }
+    }
+
+    // TODO
+    // case 2: there is an inner substituted type, then remove only the specific initializer
+    return pVariableDeclaration;
   }
 
   private static class CTypeSubstitutionVisitor extends DefaultCTypeVisitor<CType, NoException> {
