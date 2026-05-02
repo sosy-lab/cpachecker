@@ -83,7 +83,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   }
 
   @Override
-  public Formula visit(AcslIdTerm pAcslBinaryTerm) throws NoException {
+  public Formula visit(AcslIdTerm pAcslIdTerm) throws NoException {
     return null;
   }
 

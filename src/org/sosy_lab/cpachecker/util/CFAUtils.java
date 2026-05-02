@@ -1261,7 +1261,7 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslIdTerm pAcslBinaryTerm) {
+    public Iterable<? extends AAstNode> visit(AcslIdTerm pAcslIdTerm) {
       return ImmutableList.of();
     }
 
