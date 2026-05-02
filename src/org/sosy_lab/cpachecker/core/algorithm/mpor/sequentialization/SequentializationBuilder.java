@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
@@ -282,22 +283,21 @@ public class SequentializationBuilder {
   private static CVariableDeclaration buildVariableDeclarationWithSubstituteType(
       CVariableDeclaration pVariableDeclaration) {
 
-    CType typeSubstitute =
+    CType elaboratedtypeSubstitute =
         PthreadObjectSubstitution.substitutePthreadObjectTypes(
             pVariableDeclaration.getType(), CElaboratedType.class);
+    CType typedefTypeSubstitute =
+        PthreadObjectSubstitution.substitutePthreadObjectTypes(
+            elaboratedtypeSubstitute, CTypedefType.class);
     return new CVariableDeclaration(
         pVariableDeclaration.getFileLocation(),
         pVariableDeclaration.isGlobal(),
         pVariableDeclaration.getCStorageClass(),
-        typeSubstitute,
+        typedefTypeSubstitute,
         pVariableDeclaration.getName(),
         pVariableDeclaration.getOrigName(),
         pVariableDeclaration.getQualifiedName(),
-        // if the type was substituted (= there is a pthread_object), then remove the initializer.
-        // after substitution the initializer may not match the type and can result in parse errors.
-        typeSubstitute.equals(pVariableDeclaration.getType())
-            ? pVariableDeclaration.getInitializer()
-            : null);
+        pVariableDeclaration.getInitializer());
   }
 
   // Function Declarations and Definitions =========================================================

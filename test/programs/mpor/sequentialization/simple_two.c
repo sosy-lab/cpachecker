@@ -24,6 +24,7 @@ struct __anonstruct_PQUEUE_64 {
 typedef struct __anonstruct_PQUEUE_64 PQUEUE_PTR;
 PQUEUE struct_with_mutex;
 PQUEUE another_struct_with_mutex;
+PQUEUE struct_with_mutex_2 = { .inner_mutex = PTHREAD_MUTEX_INITIALIZER };
 PQUEUE_PTR struct_with_mutex_ptr;
 PQUEUE_PTR yet_another_struct_with_mutex_ptr;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);

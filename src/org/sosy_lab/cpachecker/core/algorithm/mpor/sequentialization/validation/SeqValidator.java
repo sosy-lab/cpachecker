@@ -47,7 +47,7 @@ public class SeqValidator {
 
     if (pOptions.validateParse()) {
       try {
-        // validate that seq can be parsed and cfa created
+        // validate that the program can be parsed and a cfa can be created
         CFACreator cfaCreator =
             MPORUtil.buildTestCfaCreator(pUtils.logger(), pUtils.shutdownNotifier());
         Verify.verify(cfaCreator.parseSourceAndCreateCFA(pSequentialization) != null);

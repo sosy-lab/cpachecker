@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public enum PthreadObjectType {
@@ -27,20 +28,23 @@ public enum PthreadObjectType {
       "pthread_cond_t",
       ImmutableSet.of(
           PthreadObjectSubstitutions.COND_COMPOSITE_TYPE,
-          PthreadObjectSubstitutions.COND_ELABORATED_TYPE)),
+          PthreadObjectSubstitutions.COND_ELABORATED_TYPE,
+          PthreadObjectSubstitutions.COND_TYPEDEF_TYPE)),
   PTHREAD_KEY_T("pthread_key_t", ImmutableSet.of()),
   PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER", ImmutableSet.of()),
   PTHREAD_MUTEX_T(
       "pthread_mutex_t",
       ImmutableSet.of(
           PthreadObjectSubstitutions.MUTEX_COMPOSITE_TYPE,
-          PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE)),
+          PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE,
+          PthreadObjectSubstitutions.MUTEX_TYPEDEF_TYPE)),
   PTHREAD_ONCE_T("pthread_once_t", ImmutableSet.of()),
   PTHREAD_RWLOCK_T(
       "pthread_rwlock_t",
       ImmutableSet.of(
           PthreadObjectSubstitutions.RWLOCK_COMPOSITE_TYPE,
-          PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE)),
+          PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE,
+          PthreadObjectSubstitutions.RWLOCK_TYPEDEF_TYPE)),
   PTHREAD_T("pthread_t", ImmutableSet.of()),
   RETURN_VALUE("", ImmutableSet.of()),
   START_ROUTINE("", ImmutableSet.of()),
@@ -99,6 +103,9 @@ public enum PthreadObjectType {
             MUTEX_SUBSTITUTION_NAME,
             MUTEX_COMPOSITE_TYPE);
 
+    static final CTypedefType MUTEX_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, MUTEX_SUBSTITUTION_NAME, MUTEX_ELABORATED_TYPE);
+
     // pthread_cond_t
 
     private static final String COND_SUBSTITUTION_NAME =
@@ -122,6 +129,9 @@ public enum PthreadObjectType {
             COND_SUBSTITUTION_NAME,
             COND_SUBSTITUTION_NAME,
             COND_COMPOSITE_TYPE);
+
+    static final CTypedefType COND_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, COND_SUBSTITUTION_NAME, COND_ELABORATED_TYPE);
 
     // pthread_rwlock_t
 
@@ -151,5 +161,8 @@ public enum PthreadObjectType {
             RWLOCK_SUBSTITUTION_NAME,
             RWLOCK_SUBSTITUTION_NAME,
             RWLOCK_COMPOSITE_TYPE);
+
+    static final CTypedefType RWLOCK_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, RWLOCK_SUBSTITUTION_NAME, RWLOCK_ELABORATED_TYPE);
   }
 }
