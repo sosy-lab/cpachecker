@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -125,12 +124,15 @@ public class PthreadFunctionSubstitution {
         new CExportFunctionDefinition(
             RWLOCK_RDLOCK_FUNCTION_DECLARATION,
             new CCompoundStatement(
-                elementAndList(
-                    RWLOCK_NUM_WRITERS_ASSUMPTION,
-                    buildIncrementOrDecrementFromFieldReference(
-                        RWLOCK_NUM_READERS_FIELD_REFERENCE,
-                        pBinaryExpressionBuilder,
-                        BinaryOperator.PLUS))));
+                ImmutableList.<CCompoundStatementElement>builder()
+                    .add(new CVariableDeclarationWrapper(RWlOCK_INNER_LIST_POINTER_DECLARATION))
+                    .add(RWLOCK_NUM_WRITERS_ASSUMPTION)
+                    .addAll(
+                        buildIncrementOrDecrementFromFieldReference(
+                            RWLOCK_NUM_READERS_FIELD_REFERENCE,
+                            pBinaryExpressionBuilder,
+                            BinaryOperator.PLUS))
+                    .build()));
 
     // if NUM_WRITERS is 1, then set NUM_WRITERS to 0 (= unlock the write lock)
     // if NUM_WRITERS is 0, then decrement NUM_READERS (= unlock the read lock)
@@ -145,7 +147,10 @@ public class PthreadFunctionSubstitution {
                     BinaryOperator.MINUS)));
     CExportFunctionDefinition rwlockUnlockFunctionDefinition =
         new CExportFunctionDefinition(
-            RWLOCK_UNLOCK_FUNCTION_DECLARATION, new CCompoundStatement(ifStatement));
+            RWLOCK_UNLOCK_FUNCTION_DECLARATION,
+            new CCompoundStatement(
+                new CVariableDeclarationWrapper(RWlOCK_INNER_LIST_POINTER_DECLARATION),
+                ifStatement));
 
     rDefinitions.add(rwlockRdlockFunctionDefinition);
     rDefinitions.add(rwlockUnlockFunctionDefinition);
@@ -426,20 +431,52 @@ public class PthreadFunctionSubstitution {
   private static final CIdExpression RWLOCK_WRLOCK_ID_EXPRESSION =
       new CIdExpression(FileLocation.DUMMY, RWLOCK_WRLOCK_FUNCTION_DECLARATION);
 
-  private static final CFieldReference RWLOCK_NUM_READERS_FIELD_REFERENCE =
+  private static final CFieldReference RWLOCK_FIELD_REFERENCE =
       new CFieldReference(
           FileLocation.DUMMY,
           PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.RWLOCK_NUM_READERS_MEMBER_DECLARATION.getName(),
+          PthreadObjectSubstitutions.RWLOCK_INNER_LIST_MEMBER_DECLARATION.getName(),
           RWLOCK_ID_EXPRESSION,
+          true);
+
+  private static final CPointerType RWLOCK_INNER_POINTER_COMPOSITE_TYPE =
+      new CPointerType(
+          CTypeQualifiers.NONE, PthreadObjectSubstitutions.RWLOCK_INNER_LIST_ELABORATED_TYPE);
+
+  private static final CVariableDeclaration RWlOCK_INNER_LIST_POINTER_DECLARATION =
+      new CVariableDeclaration(
+          FileLocation.DUMMY,
+          false,
+          CStorageClass.AUTO,
+          RWLOCK_INNER_POINTER_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
+          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
+          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
+          new CInitializerExpression(
+              FileLocation.DUMMY,
+              new CUnaryExpression(
+                  FileLocation.DUMMY,
+                  RWLOCK_INNER_POINTER_COMPOSITE_TYPE,
+                  RWLOCK_FIELD_REFERENCE,
+                  UnaryOperator.AMPER)));
+
+  private static final CIdExpression RWLOCK_INNER_LIST_POINTER_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, RWlOCK_INNER_LIST_POINTER_DECLARATION);
+
+  private static final CFieldReference RWLOCK_NUM_READERS_FIELD_REFERENCE =
+      new CFieldReference(
+          FileLocation.DUMMY,
+          RWLOCK_INNER_POINTER_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.RWLOCK_NUM_READERS_MEMBER_DECLARATION.getName(),
+          RWLOCK_INNER_LIST_POINTER_ID_EXPRESSION,
           true);
 
   private static final CFieldReference RWLOCK_NUM_WRITERS_FIELD_REFERENCE =
       new CFieldReference(
           FileLocation.DUMMY,
-          PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.RWLOCK_NUM_WRITERS_MEMBER_DECLARATION.getName(),
-          RWLOCK_ID_EXPRESSION,
+          RWLOCK_INNER_POINTER_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.RWLOCK_NUM_READERS_MEMBER_DECLARATION.getName(),
+          RWLOCK_INNER_LIST_POINTER_ID_EXPRESSION,
           true);
 
   private static final CExportStatement RWLOCK_NUM_WRITERS_ASSUMPTION =
@@ -464,6 +501,7 @@ public class PthreadFunctionSubstitution {
       new CExportFunctionDefinition(
           RWLOCK_WRLOCK_FUNCTION_DECLARATION,
           new CCompoundStatement(
+              new CVariableDeclarationWrapper(RWlOCK_INNER_LIST_POINTER_DECLARATION),
               SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
                   new CLogicalNotExpression(
                       new CExpressionWrapper(RWLOCK_NUM_WRITERS_FIELD_REFERENCE))),

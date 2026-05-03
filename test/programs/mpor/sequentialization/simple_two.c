@@ -12,6 +12,8 @@ int x = 1;
 pthread_mutex_t mutexA;
 pthread_mutex_t mutexB;
 pthread_mutex_t mutexC;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 struct __anonstruct_PQUEUE_63 {
     int occupied ;
     pthread_mutex_t inner_mutex ;
