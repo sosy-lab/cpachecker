@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -197,6 +199,8 @@ public class PthreadFunctionSubstitution {
         new CStatementWrapper(assignmentStatement));
   }
 
+  private static final String POINTER_SUFFIX = "_pointer";
+
   // pthread_mutex_t
 
   private static final CParameterDeclaration MUTEX_PARAMETER =
@@ -239,31 +243,64 @@ public class PthreadFunctionSubstitution {
       new CFieldReference(
           FileLocation.DUMMY,
           PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.MUTEX_LOCKED_MEMBER_DECLARATION.getName(),
+          PthreadObjectSubstitutions.MUTEX_INNER_LIST_MEMBER_DECLARATION.getName(),
           MUTEX_ID_EXPRESSION,
+          true);
+
+  private static final CPointerType MUTEX_INNER_POINTER_COMPOSITE_TYPE =
+      new CPointerType(
+          CTypeQualifiers.NONE, PthreadObjectSubstitutions.MUTEX_INNER_LIST_ELABORATED_TYPE);
+
+  private static final CVariableDeclaration MUTEX_INNER_LIST_POINTER_DECLARATION =
+      new CVariableDeclaration(
+          FileLocation.DUMMY,
+          false,
+          CStorageClass.AUTO,
+          MUTEX_INNER_POINTER_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
+          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
+          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
+          new CInitializerExpression(
+              FileLocation.DUMMY,
+              new CUnaryExpression(
+                  FileLocation.DUMMY,
+                  MUTEX_INNER_POINTER_COMPOSITE_TYPE,
+                  MUTEX_FIELD_REFERENCE,
+                  UnaryOperator.AMPER)));
+
+  private static final CFieldReference MUTEX_LOCKED_FIELD_REFERENCE =
+      new CFieldReference(
+          FileLocation.DUMMY,
+          MUTEX_INNER_POINTER_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.MUTEX_LOCKED_MEMBER_DECLARATION.getName(),
+          new CIdExpression(FileLocation.DUMMY, MUTEX_INNER_LIST_POINTER_DECLARATION),
           true);
 
   private static final CCompoundStatementElement MUTEX_LOCK_ASSIGNMENT =
       new CStatementWrapper(
           new CExpressionAssignmentStatement(
-              FileLocation.DUMMY, MUTEX_FIELD_REFERENCE, CIntegerLiteralExpression.ONE));
+              FileLocation.DUMMY, MUTEX_LOCKED_FIELD_REFERENCE, CIntegerLiteralExpression.ONE));
 
   private static final CCompoundStatementElement MUTEX_UNLOCK_ASSIGNMENT =
       new CStatementWrapper(
           new CExpressionAssignmentStatement(
-              FileLocation.DUMMY, MUTEX_FIELD_REFERENCE, CIntegerLiteralExpression.ZERO));
+              FileLocation.DUMMY, MUTEX_LOCKED_FIELD_REFERENCE, CIntegerLiteralExpression.ZERO));
 
   public static final CExportFunctionDefinition MUTEX_LOCK_FUNCTION_DEFINITION =
       new CExportFunctionDefinition(
           MUTEX_LOCK_FUNCTION_DECLARATION,
           new CCompoundStatement(
+              new CVariableDeclarationWrapper(MUTEX_INNER_LIST_POINTER_DECLARATION),
               SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-                  new CLogicalNotExpression(new CExpressionWrapper(MUTEX_FIELD_REFERENCE))),
+                  new CLogicalNotExpression(new CExpressionWrapper(MUTEX_LOCKED_FIELD_REFERENCE))),
               MUTEX_LOCK_ASSIGNMENT));
 
   public static final CExportFunctionDefinition MUTEX_UNLOCK_FUNCTION_DEFINITION =
       new CExportFunctionDefinition(
-          MUTEX_UNLOCK_FUNCTION_DECLARATION, new CCompoundStatement(MUTEX_UNLOCK_ASSIGNMENT));
+          MUTEX_UNLOCK_FUNCTION_DECLARATION,
+          new CCompoundStatement(
+              new CVariableDeclarationWrapper(MUTEX_INNER_LIST_POINTER_DECLARATION),
+              MUTEX_UNLOCK_ASSIGNMENT));
 
   // pthread_cond_t
 
@@ -336,6 +373,7 @@ public class PthreadFunctionSubstitution {
               new CStatementWrapper(
                   SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(COND_FIELD_REFERENCE)),
               COND_WAIT_ASSIGNMENT,
+              new CVariableDeclarationWrapper(MUTEX_INNER_LIST_POINTER_DECLARATION),
               // on return, the mutex is locked and owned by the calling thread
               MUTEX_LOCK_ASSIGNMENT));
 

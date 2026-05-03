@@ -290,18 +290,15 @@ public class SequentializationBuilder {
         PthreadObjectSubstitution.substitutePthreadObjectTypes(
             elaboratedTypeSubstitute, CTypedefType.class);
 
-    CVariableDeclaration variableDeclarationWithTypeSubstitute =
-        new CVariableDeclaration(
-            pVariableDeclaration.getFileLocation(),
-            pVariableDeclaration.isGlobal(),
-            pVariableDeclaration.getCStorageClass(),
-            typedefTypeSubstitute,
-            pVariableDeclaration.getName(),
-            pVariableDeclaration.getOrigName(),
-            pVariableDeclaration.getQualifiedName(),
-            pVariableDeclaration.getInitializer());
-    return PthreadObjectSubstitution.substitutePthreadObjectInitializers(
-        variableDeclarationWithTypeSubstitute);
+    return new CVariableDeclaration(
+        pVariableDeclaration.getFileLocation(),
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getCStorageClass(),
+        typedefTypeSubstitute,
+        pVariableDeclaration.getName(),
+        pVariableDeclaration.getOrigName(),
+        pVariableDeclaration.getQualifiedName(),
+        pVariableDeclaration.getInitializer());
   }
 
   // Function Declarations and Definitions =========================================================
