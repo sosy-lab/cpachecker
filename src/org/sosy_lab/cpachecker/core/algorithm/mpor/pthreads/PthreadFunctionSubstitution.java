@@ -204,7 +204,22 @@ public class PthreadFunctionSubstitution {
         new CStatementWrapper(assignmentStatement));
   }
 
+  private static final String MUTEX_PARAMETER_NAME = "mutex";
+
+  private static final String COND_PARAMETER_NAME = "cond";
+
+  private static final String RWLOCK_PARAMETER_NAME = "rwlock";
+
   private static final String POINTER_SUFFIX = "_pointer";
+
+  private static final String MUTEX_INNER_LIST_POINTER_NAME =
+      MUTEX_PARAMETER_NAME + "_" + PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX;
+
+  private static final String COND_INNER_LIST_POINTER_NAME =
+      COND_PARAMETER_NAME + "_" + PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX;
+
+  private static final String RWLOCK_INNER_LIST_POINTER_NAME =
+      RWLOCK_PARAMETER_NAME + "_" + PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX;
 
   // pthread_mutex_t
 
@@ -212,7 +227,7 @@ public class PthreadFunctionSubstitution {
       new CParameterDeclaration(
           FileLocation.DUMMY,
           new CPointerType(CTypeQualifiers.NONE, PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE),
-          "mutex");
+          MUTEX_PARAMETER_NAME);
 
   // the same function type can be used for both lock and unlock, because the only parameter is a
   // pointer to the mutex object
@@ -262,9 +277,9 @@ public class PthreadFunctionSubstitution {
           false,
           CStorageClass.AUTO,
           MUTEX_INNER_POINTER_COMPOSITE_TYPE,
-          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
-          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
-          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
+          MUTEX_INNER_LIST_POINTER_NAME,
+          MUTEX_INNER_LIST_POINTER_NAME,
+          MUTEX_INNER_LIST_POINTER_NAME,
           new CInitializerExpression(
               FileLocation.DUMMY,
               new CUnaryExpression(
@@ -313,7 +328,7 @@ public class PthreadFunctionSubstitution {
       new CParameterDeclaration(
           FileLocation.DUMMY,
           new CPointerType(CTypeQualifiers.NONE, PthreadObjectSubstitutions.COND_ELABORATED_TYPE),
-          "cond");
+          COND_PARAMETER_NAME);
 
   private static final CFunctionTypeWithNames COND_SIGNAL_FUNCTION_TYPE =
       new CFunctionTypeWithNames(CVoidType.VOID, ImmutableList.of(COND_PARAMETER), false);
@@ -351,32 +366,69 @@ public class PthreadFunctionSubstitution {
       new CFieldReference(
           FileLocation.DUMMY,
           PthreadObjectSubstitutions.COND_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.COND_MEMBER_DECLARATION.getName(),
+          PthreadObjectSubstitutions.COND_INNER_LIST_MEMBER_DECLARATION.getName(),
           COND_ID_EXPRESSION,
+          true);
+
+  private static final CPointerType COND_INNER_POINTER_COMPOSITE_TYPE =
+      new CPointerType(
+          CTypeQualifiers.NONE, PthreadObjectSubstitutions.COND_INNER_LIST_ELABORATED_TYPE);
+
+  private static final CVariableDeclaration COND_INNER_LIST_POINTER_DECLARATION =
+      new CVariableDeclaration(
+          FileLocation.DUMMY,
+          false,
+          CStorageClass.AUTO,
+          COND_INNER_POINTER_COMPOSITE_TYPE,
+          COND_INNER_LIST_POINTER_NAME,
+          COND_INNER_LIST_POINTER_NAME,
+          COND_INNER_LIST_POINTER_NAME,
+          new CInitializerExpression(
+              FileLocation.DUMMY,
+              new CUnaryExpression(
+                  FileLocation.DUMMY,
+                  COND_INNER_POINTER_COMPOSITE_TYPE,
+                  COND_FIELD_REFERENCE,
+                  UnaryOperator.AMPER)));
+
+  private static final CIdExpression COND_INNER_LIST_POINTER_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, COND_INNER_LIST_POINTER_DECLARATION);
+
+  private static final CFieldReference COND_SIGNALED_FIELD_REFERENCE =
+      new CFieldReference(
+          FileLocation.DUMMY,
+          COND_INNER_POINTER_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.COND_SIGNALED_MEMBER_DECLARATION.getName(),
+          COND_INNER_LIST_POINTER_ID_EXPRESSION,
           true);
 
   private static final CCompoundStatementElement COND_SIGNAL_ASSIGNMENT =
       new CStatementWrapper(
           new CExpressionAssignmentStatement(
-              FileLocation.DUMMY, COND_FIELD_REFERENCE, CIntegerLiteralExpression.ONE));
+              FileLocation.DUMMY, COND_SIGNALED_FIELD_REFERENCE, CIntegerLiteralExpression.ONE));
 
   private static final CCompoundStatementElement COND_WAIT_ASSIGNMENT =
       new CStatementWrapper(
           new CExpressionAssignmentStatement(
-              FileLocation.DUMMY, COND_FIELD_REFERENCE, CIntegerLiteralExpression.ZERO));
+              FileLocation.DUMMY, COND_SIGNALED_FIELD_REFERENCE, CIntegerLiteralExpression.ZERO));
 
   public static final CExportFunctionDefinition COND_SIGNAL_FUNCTION_DEFINITION =
       new CExportFunctionDefinition(
-          COND_SIGNAL_FUNCTION_DECLARATION, new CCompoundStatement(COND_SIGNAL_ASSIGNMENT));
+          COND_SIGNAL_FUNCTION_DECLARATION,
+          new CCompoundStatement(
+              new CVariableDeclarationWrapper(COND_INNER_LIST_POINTER_DECLARATION),
+              COND_SIGNAL_ASSIGNMENT));
 
   // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
   public static final CExportFunctionDefinition COND_WAIT_FUNCTION_DEFINITION =
       new CExportFunctionDefinition(
           COND_WAIT_FUNCTION_DECLARATION,
           new CCompoundStatement(
+              new CVariableDeclarationWrapper(COND_INNER_LIST_POINTER_DECLARATION),
               // the calling thread blocks on the condition variable -> assume(signaled == 1)
               new CStatementWrapper(
-                  SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(COND_FIELD_REFERENCE)),
+                  SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+                      COND_SIGNALED_FIELD_REFERENCE)),
               COND_WAIT_ASSIGNMENT,
               new CVariableDeclarationWrapper(MUTEX_INNER_LIST_POINTER_DECLARATION),
               // on return, the mutex is locked and owned by the calling thread
@@ -388,7 +440,7 @@ public class PthreadFunctionSubstitution {
       new CParameterDeclaration(
           FileLocation.DUMMY,
           new CPointerType(CTypeQualifiers.NONE, PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE),
-          "rwlock");
+          RWLOCK_PARAMETER_NAME);
 
   // the same function type can be used for rdlock, unlock and wrlock, because the only parameter is
   // a pointer to the rwlock object
@@ -449,9 +501,9 @@ public class PthreadFunctionSubstitution {
           false,
           CStorageClass.AUTO,
           RWLOCK_INNER_POINTER_COMPOSITE_TYPE,
-          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
-          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
-          PthreadObjectSubstitutions.INNER_LIST_NAME + POINTER_SUFFIX,
+          RWLOCK_INNER_LIST_POINTER_NAME,
+          RWLOCK_INNER_LIST_POINTER_NAME,
+          RWLOCK_INNER_LIST_POINTER_NAME,
           new CInitializerExpression(
               FileLocation.DUMMY,
               new CUnaryExpression(
