@@ -91,6 +91,8 @@ public enum PthreadObjectType {
 
     private static final String INNER_INNER_LIST_D_NAME = "inner_inner_list_d";
 
+    private static final String INNER_INNER_LIST_E_NAME = "inner_inner_list_e";
+
     private static final String INNER_INNER_INNER_LIST_NAME = "inner_inner_inner_list";
 
     // dummies that can be reused
@@ -231,6 +233,9 @@ public enum PthreadObjectType {
     private static final String COND_INNER_INNER_LIST_D_SUBSTITUTION_NAME =
         COND_SUBSTITUTION_NAME + "_" + INNER_INNER_LIST_D_NAME;
 
+    private static final String COND_INNER_INNER_LIST_E_SUBSTITUTION_NAME =
+        COND_SUBSTITUTION_NAME + "_" + INNER_INNER_LIST_E_NAME;
+
     private static final CCompositeType COND_INNER_INNER_LIST_COMPOSITE_TYPE_A =
         new CCompositeType(
             CTypeQualifiers.NONE,
@@ -270,9 +275,6 @@ public enum PthreadObjectType {
             new CCompositeTypeMemberDeclaration(
                 COND_INNER_INNER_LIST_COMPOSITE_TYPE_C, INNER_INNER_LIST_C_NAME);
 
-    static final CCompositeTypeMemberDeclaration COND_SIGNALED_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "SIGNALED");
-
     private static final CCompositeType COND_INNER_INNER_LIST_COMPOSITE_TYPE_D =
         new CCompositeType(
             CTypeQualifiers.NONE,
@@ -286,6 +288,22 @@ public enum PthreadObjectType {
             new CCompositeTypeMemberDeclaration(
                 COND_INNER_INNER_LIST_COMPOSITE_TYPE_D, INNER_INNER_LIST_D_NAME);
 
+    static final CCompositeTypeMemberDeclaration COND_SIGNALED_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "SIGNALED");
+
+    private static final CCompositeType COND_INNER_INNER_LIST_COMPOSITE_TYPE_E =
+        new CCompositeType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION, DUMMY_B_MEMBER_DECLARATION),
+            COND_INNER_INNER_LIST_E_SUBSTITUTION_NAME,
+            COND_INNER_INNER_LIST_E_SUBSTITUTION_NAME);
+
+    private static final CCompositeTypeMemberDeclaration
+        COND_INNER_INNER_LIST_E_MEMBER_DECLARATION =
+            new CCompositeTypeMemberDeclaration(
+                COND_INNER_INNER_LIST_COMPOSITE_TYPE_E, INNER_INNER_LIST_E_NAME);
+
     private static final CCompositeType COND_INNER_LIST_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
@@ -294,11 +312,10 @@ public enum PthreadObjectType {
                 COND_INNER_INNER_LIST_A_MEMBER_DECLARATION,
                 COND_INNER_INNER_LIST_B_MEMBER_DECLARATION,
                 COND_INNER_INNER_LIST_C_MEMBER_DECLARATION,
+                COND_INNER_INNER_LIST_D_MEMBER_DECLARATION,
                 COND_SIGNALED_MEMBER_DECLARATION,
                 DUMMY_A_MEMBER_DECLARATION,
-                COND_INNER_INNER_LIST_D_MEMBER_DECLARATION,
-                DUMMY_B_MEMBER_DECLARATION,
-                DUMMY_C_MEMBER_DECLARATION),
+                COND_INNER_INNER_LIST_E_MEMBER_DECLARATION),
             COND_INNER_LIST_SUBSTITUTION_NAME,
             COND_INNER_LIST_SUBSTITUTION_NAME);
 
