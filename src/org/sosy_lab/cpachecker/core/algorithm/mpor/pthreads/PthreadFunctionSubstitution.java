@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.elementsAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -124,15 +125,13 @@ public class PthreadFunctionSubstitution {
         new CExportFunctionDefinition(
             RWLOCK_RDLOCK_FUNCTION_DECLARATION,
             new CCompoundStatement(
-                ImmutableList.<CCompoundStatementElement>builder()
-                    .add(new CVariableDeclarationWrapper(RWlOCK_INNER_LIST_POINTER_DECLARATION))
-                    .add(RWLOCK_NUM_WRITERS_ASSUMPTION)
-                    .addAll(
-                        buildIncrementOrDecrementFromFieldReference(
-                            RWLOCK_NUM_READERS_FIELD_REFERENCE,
-                            pBinaryExpressionBuilder,
-                            BinaryOperator.PLUS))
-                    .build()));
+                elementsAndList(
+                    new CVariableDeclarationWrapper(RWlOCK_INNER_LIST_POINTER_DECLARATION),
+                    RWLOCK_NUM_WRITERS_ASSUMPTION,
+                    buildIncrementOrDecrementFromFieldReference(
+                        RWLOCK_NUM_READERS_FIELD_REFERENCE,
+                        pBinaryExpressionBuilder,
+                        BinaryOperator.PLUS))));
 
     // if NUM_WRITERS is 1, then set NUM_WRITERS to 0 (= unlock the write lock)
     // if NUM_WRITERS is 0, then decrement NUM_READERS (= unlock the read lock)
