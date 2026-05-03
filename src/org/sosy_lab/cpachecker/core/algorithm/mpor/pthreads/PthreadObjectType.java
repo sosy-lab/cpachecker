@@ -81,42 +81,52 @@ public enum PthreadObjectType {
 
     static final String INNER_LIST_NAME = "inner_list";
 
-    // general CCompositeTypeMemberDeclaration
+    // dummies that can be reused
 
     private static final CCompositeTypeMemberDeclaration DUMMY_A_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummyA");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_a");
 
     private static final CCompositeTypeMemberDeclaration DUMMY_B_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummyB");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_b");
 
     private static final CCompositeTypeMemberDeclaration DUMMY_C_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummyC");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_c");
 
     private static final CCompositeTypeMemberDeclaration DUMMY_D_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummyD");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_d");
 
     private static final CCompositeTypeMemberDeclaration DUMMY_E_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummyE");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_e");
 
     private static final CCompositeTypeMemberDeclaration DUMMY_F_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummyF");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_f");
 
     private static final CCompositeTypeMemberDeclaration DUMMY_G_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummyG");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_g");
 
     private static final CCompositeTypeMemberDeclaration DUMMY_H_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummyH");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_h");
 
     private static final CCompositeTypeMemberDeclaration DUMMY_I_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummyI");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_i");
+
+    private static final CCompositeType DUMMY_A_B_COMPOSITE_TYPE =
+        new CCompositeType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION, DUMMY_B_MEMBER_DECLARATION),
+            "dummy_a_b_composite_type",
+            "dummy_a_b_composite_type");
+
+    private static final CCompositeTypeMemberDeclaration
+        DUMMY_A_B_COMPOSITE_TYPE_MEMBER_DECLARATION =
+            new CCompositeTypeMemberDeclaration(DUMMY_A_B_COMPOSITE_TYPE, "dummy_a_b_list");
 
     // pthread_mutex_t
 
     private static final String MUTEX_NAME = "pthread_mutex_t";
 
     private static final String INNER_INNER_LIST_NAME = "inner_inner_list";
-
-    private static final String INNER_INNER_INNER_LIST_NAME = "inner_inner_inner_list";
 
     private static final String MUTEX_SUBSTITUTION_NAME =
         Sequentialization.MPOR_PREFIX + MUTEX_NAME;
@@ -127,27 +137,14 @@ public enum PthreadObjectType {
     private static final String MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME =
         MUTEX_SUBSTITUTION_NAME + "_" + INNER_INNER_LIST_NAME;
 
-    private static final String MUTEX_INNER_INNER_INNER_LIST_SUBSTITUTION_NAME =
-        MUTEX_SUBSTITUTION_NAME + "_" + INNER_INNER_INNER_LIST_NAME;
-
     static final CCompositeTypeMemberDeclaration MUTEX_LOCKED_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "LOCKED");
-
-    private static final CCompositeType MUTEX_INNER_INNER_INNER_LIST_COMPOSITE_TYPE =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION, DUMMY_B_MEMBER_DECLARATION),
-            MUTEX_INNER_INNER_INNER_LIST_SUBSTITUTION_NAME,
-            MUTEX_INNER_INNER_INNER_LIST_SUBSTITUTION_NAME);
 
     private static final CCompositeType MUTEX_INNER_INNER_LIST_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
-            ImmutableList.of(
-                new CCompositeTypeMemberDeclaration(
-                    MUTEX_INNER_INNER_INNER_LIST_COMPOSITE_TYPE, INNER_INNER_INNER_LIST_NAME)),
+            ImmutableList.of(DUMMY_A_B_COMPOSITE_TYPE_MEMBER_DECLARATION),
             MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME,
             MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME);
 
