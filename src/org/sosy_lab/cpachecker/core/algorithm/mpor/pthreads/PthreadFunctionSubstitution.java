@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.elementsAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType.PthreadObjectSubstitutions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -110,52 +112,49 @@ public class PthreadFunctionSubstitution {
     };
   }
 
-  public static ImmutableList<CExportFunctionDefinition> getAllFunctionDefinitions(
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) throws UnrecognizedCodeException {
+  public static Optional<CExportFunctionDefinition> tryGetFunctionDefinitionByStatementType(
+      SeqThreadStatementType pType, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CExportFunctionDefinition> rDefinitions = ImmutableList.builder();
-
-    rDefinitions.add(COND_SIGNAL_FUNCTION_DEFINITION);
-    rDefinitions.add(COND_WAIT_FUNCTION_DEFINITION);
-
-    rDefinitions.add(MUTEX_LOCK_FUNCTION_DEFINITION);
-    rDefinitions.add(MUTEX_UNLOCK_FUNCTION_DEFINITION);
-
-    CExportFunctionDefinition rwlockRdlockFunctionDefinition =
-        new CExportFunctionDefinition(
-            RWLOCK_RDLOCK_FUNCTION_DECLARATION,
-            new CCompoundStatement(
-                elementsAndList(
-                    new CVariableDeclarationWrapper(RWlOCK_INNER_LIST_POINTER_DECLARATION),
-                    RWLOCK_NUM_WRITERS_ASSUMPTION,
+    return switch (pType) {
+      case COND_SIGNAL -> Optional.of(COND_SIGNAL_FUNCTION_DEFINITION);
+      case COND_WAIT -> Optional.of(COND_WAIT_FUNCTION_DEFINITION);
+      case MUTEX_LOCK -> Optional.of(MUTEX_LOCK_FUNCTION_DEFINITION);
+      case MUTEX_UNLOCK -> Optional.of(MUTEX_UNLOCK_FUNCTION_DEFINITION);
+      case RW_LOCK_RD_LOCK ->
+          Optional.of(
+              new CExportFunctionDefinition(
+                  RWLOCK_RDLOCK_FUNCTION_DECLARATION,
+                  new CCompoundStatement(
+                      elementsAndList(
+                          new CVariableDeclarationWrapper(RWlOCK_INNER_LIST_POINTER_DECLARATION),
+                          RWLOCK_NUM_WRITERS_ASSUMPTION,
+                          buildIncrementOrDecrementFromFieldReference(
+                              RWLOCK_NUM_READERS_FIELD_REFERENCE,
+                              pBinaryExpressionBuilder,
+                              BinaryOperator.PLUS)))));
+      case RW_LOCK_UNLOCK -> {
+        // if NUM_WRITERS is 1, then set NUM_WRITERS to 0 (= unlock the write lock)
+        // if NUM_WRITERS is 0, then decrement NUM_READERS (= unlock the read lock)
+        CIfStatement ifStatement =
+            new CIfStatement(
+                new CExpressionWrapper(RWLOCK_NUM_WRITERS_FIELD_REFERENCE),
+                new CCompoundStatement(RWLOCK_UNLOCK_ASSIGNMENT),
+                new CCompoundStatement(
                     buildIncrementOrDecrementFromFieldReference(
                         RWLOCK_NUM_READERS_FIELD_REFERENCE,
                         pBinaryExpressionBuilder,
-                        BinaryOperator.PLUS))));
-
-    // if NUM_WRITERS is 1, then set NUM_WRITERS to 0 (= unlock the write lock)
-    // if NUM_WRITERS is 0, then decrement NUM_READERS (= unlock the read lock)
-    CIfStatement ifStatement =
-        new CIfStatement(
-            new CExpressionWrapper(RWLOCK_NUM_WRITERS_FIELD_REFERENCE),
-            new CCompoundStatement(RWLOCK_UNLOCK_ASSIGNMENT),
-            new CCompoundStatement(
-                buildIncrementOrDecrementFromFieldReference(
-                    RWLOCK_NUM_READERS_FIELD_REFERENCE,
-                    pBinaryExpressionBuilder,
-                    BinaryOperator.MINUS)));
-    CExportFunctionDefinition rwlockUnlockFunctionDefinition =
-        new CExportFunctionDefinition(
-            RWLOCK_UNLOCK_FUNCTION_DECLARATION,
-            new CCompoundStatement(
-                new CVariableDeclarationWrapper(RWlOCK_INNER_LIST_POINTER_DECLARATION),
-                ifStatement));
-
-    rDefinitions.add(rwlockRdlockFunctionDefinition);
-    rDefinitions.add(rwlockUnlockFunctionDefinition);
-    rDefinitions.add(RWLOCK_WRLOCK_FUNCTION_DEFINITION);
-
-    return rDefinitions.build();
+                        BinaryOperator.MINUS)));
+        yield Optional.of(
+            new CExportFunctionDefinition(
+                RWLOCK_UNLOCK_FUNCTION_DECLARATION,
+                new CCompoundStatement(
+                    new CVariableDeclarationWrapper(RWlOCK_INNER_LIST_POINTER_DECLARATION),
+                    ifStatement)));
+      }
+      case RW_LOCK_WR_LOCK -> Optional.of(RWLOCK_WRLOCK_FUNCTION_DEFINITION);
+      default -> Optional.empty();
+    };
   }
 
   private static ImmutableList<CCompoundStatementElement>

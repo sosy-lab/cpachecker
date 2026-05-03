@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -41,7 +43,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
@@ -356,9 +361,18 @@ public class SequentializationBuilder {
         rDefinitions.add(functionDefinition.toASTString());
       }
     }
-    for (CExportFunctionDefinition definition :
-        PthreadFunctionSubstitution.getAllFunctionDefinitions(pUtils.binaryExpressionBuilder())) {
-      rDefinitions.add(definition.toASTString());
+    Set<SeqThreadStatementType> visitedTypes = new HashSet<>();
+    for (SeqThreadStatementClause clause : pFields.clauses.values()) {
+      for (SeqThreadStatement statement : clause.getAllStatements()) {
+        if (visitedTypes.add(statement.data().getType())) {
+          Optional<CExportFunctionDefinition> functionDefinition =
+              PthreadFunctionSubstitution.tryGetFunctionDefinitionByStatementType(
+                  statement.data().getType(), pUtils.binaryExpressionBuilder());
+          if (functionDefinition.isPresent()) {
+            rDefinitions.add(functionDefinition.orElseThrow().toASTString());
+          }
+        }
+      }
     }
     // create clauses in main method
     rDefinitions.add(
