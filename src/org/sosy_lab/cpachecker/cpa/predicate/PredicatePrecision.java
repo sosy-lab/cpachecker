@@ -16,12 +16,12 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -317,23 +318,19 @@ public final class PredicatePrecision implements AdjustablePrecision {
       }
     }
 
-    PredicatePrecision union = unionOf(precisions);
-    int s =
-        union.getGlobalPredicates().size()
-            + union.getFunctionPredicates().size()
-            + union.getLocalPredicates().size()
-            + union.getLocationInstancePredicates().size();
-    int intersection_size =
-        localPredicates.values().stream().mapToInt(a -> a.size()).sum()
-            + locationInstancePredicates.values().stream().mapToInt(a -> a.size()).sum()
-            + globals.size()
-            + functionPredicates.values().stream().mapToInt(a -> a.size()).sum();
-
     return new PredicatePrecision(
-        Multimaps.newSetMultimap(locationInstancePredicates, () -> new LinkedHashSet<>()),
-        Multimaps.newSetMultimap(localPredicates, () -> new LinkedHashSet<>()),
-        Multimaps.newSetMultimap(functionPredicates, () -> new LinkedHashSet<>()),
+        mapToMultimap(locationInstancePredicates),
+        mapToMultimap(localPredicates),
+        mapToMultimap(functionPredicates),
         ImmutableSet.copyOf(globals));
+  }
+
+  private static <K, V> ImmutableMultimap<K, V> mapToMultimap(Map<K, Collection<V>> map) {
+    ImmutableMultimap.Builder<K, V> builder = ImmutableMultimap.builder();
+    for (Entry<K, Collection<V>> keyValues : map.entrySet()) {
+      builder.putAll(keyValues.getKey(), keyValues.getValue());
+    }
+    return builder.build();
   }
 
   private static List<PredicatePrecision> orderPrecisions(Iterable<Precision> precisions) {
