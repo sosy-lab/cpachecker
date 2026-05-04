@@ -6,6 +6,18 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+spec:
+  inputs:
+    expensive_tests:
+      description: "Run expensive tests as part of unit tests"
+      type: boolean
+      default: false
+    tests_per_java_version:
+      description: "Run tests on several Java versions instead of just one"
+      type: boolean
+      default: false
+---
+
 include: build/gitlab-ci.yml
 
 variables:
@@ -58,6 +70,9 @@ configuration-checks:jdk-24:
     - build-dependencies
     - build:jdk-24
   image: ${CI_REGISTRY_IMAGE}/test:jdk-24
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
 
 
 configuration-documentation:
@@ -107,12 +122,10 @@ check-code-patterns:
   image: ubuntu:22.04
 
 
-.python-unit-tests: &python-unit-tests
+python-unit-tests:
   <<: *binary_check
-  script: "ant $ANT_PROPS_CHECKS python-unit-tests"
-
-python-unit-tests:jdk-21:
-  <<: *python-unit-tests
+  script: "python3 -m unittest discover scripts"
+  # The tests run CPAchecker, so they need the respective image and dependencies.
   dependencies:
     - build-dependencies
     - build:jdk-21
@@ -120,16 +133,6 @@ python-unit-tests:jdk-21:
     - build-dependencies
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
-
-python-unit-tests:jdk-24:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-24
-  needs:
-    - build-dependencies
-    - build:jdk-24
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 javascript-build:
@@ -324,12 +327,28 @@ unit-tests:jdk-21:
   artifacts:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+      when: never
+    - if: $[[ inputs.expensive_tests ]] == true
+      when: never
+    - when: on_success
+
+unit-tests-extended:jdk-21:
+  extends: unit-tests:jdk-21
+  script: "ant $ANT_PROPS_CHECKS unit-tests -DenableExpensiveTests=true"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.expensive_tests ]] == true
 
 unit-tests:jdk-24:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
 
 
 # Override Java version for some jobs
