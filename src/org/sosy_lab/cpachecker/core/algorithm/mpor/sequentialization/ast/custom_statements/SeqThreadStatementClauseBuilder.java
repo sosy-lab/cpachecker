@@ -267,7 +267,8 @@ public record SeqThreadStatementClauseBuilder(
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
-      SeqThreadStatementBuilder pStatementBuilder) {
+      SeqThreadStatementBuilder pStatementBuilder)
+      throws UnrecognizedCodeException {
 
     Optional<CFunctionCall> optionalFunctionCall =
         PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge);
@@ -294,7 +295,8 @@ public record SeqThreadStatementClauseBuilder(
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
-      SeqThreadStatementBuilder pStatementBuilder) {
+      SeqThreadStatementBuilder pStatementBuilder)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
 
