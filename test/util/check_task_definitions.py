@@ -115,9 +115,13 @@ def _check_referenced_files(path, base_dir, key, values, reporter):
     for reference in _normalize_to_list(values):
         resolved = _resolve_reference(base_dir, reference)
         if resolved is None:
-            reporter.error(path, "{} contains non-string entry {!r}".format(key, reference))
+            reporter.error(
+                path, "{} contains non-string entry {!r}".format(key, reference)
+            )
         elif not resolved.exists():
-            reporter.error(path, "{} references missing file '{}'".format(key, reference))
+            reporter.error(
+                path, "{} references missing file '{}'".format(key, reference)
+            )
 
 
 def _check_language(path, input_files, language, reporter):
@@ -166,11 +170,15 @@ def _check_data_model(path, language, data_model, reporter):
     elif data_model not in supported_models:
         reporter.error(
             path,
-            "unsupported data_model '{}' for language '{}'".format(data_model, language),
+            "unsupported data_model '{}' for language '{}'".format(
+                data_model, language
+            ),
         )
 
 
-def _check_properties(path, content, reporter, require_properties, check_property_files):
+def _check_properties(
+    path, content, reporter, require_properties, check_property_files
+):
     properties = content.get("properties")
     if not properties:
         if require_properties:
@@ -182,7 +190,9 @@ def _check_properties(path, content, reporter, require_properties, check_propert
 
     for property_definition in properties:
         if not isinstance(property_definition, dict):
-            reporter.error(path, "invalid property definition {!r}".format(property_definition))
+            reporter.error(
+                path, "invalid property definition {!r}".format(property_definition)
+            )
             continue
         property_file = property_definition.get("property_file")
         if not property_file:
@@ -209,7 +219,11 @@ def _check_task_definition(path, content, reporter, args):
 
     for additional_file_key in ADDITIONAL_FILE_KEYS:
         _check_referenced_files(
-            path, path.parent, additional_file_key, content.get(additional_file_key), reporter
+            path,
+            path.parent,
+            additional_file_key,
+            content.get(additional_file_key),
+            reporter,
         )
 
     options = content.get("options")
@@ -310,7 +324,9 @@ def _parse_args(argv):
 
 def main(argv=None):
     if yaml is None:
-        print("ERROR: PyYAML is required for checking task definitions.", file=sys.stderr)
+        print(
+            "ERROR: PyYAML is required for checking task definitions.", file=sys.stderr
+        )
         return 2
 
     args = _parse_args(argv)
