@@ -10,13 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -40,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
@@ -141,9 +138,6 @@ public class MPORSubstitution {
       MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
-    FileLocation fileLocation = pExpression.getFileLocation();
-    CType type = pExpression.getExpressionType();
-
     switch (pExpression) {
       // shortcut for optimization: never substitute pure int or strings
       case CIntegerLiteralExpression ignored -> {
@@ -208,7 +202,11 @@ public class MPORSubstitution {
         if (arraySubstitute != arrayExpression || subscriptSubstitute != subscriptExpression) {
           CArraySubscriptExpression arraySubscriptSubstitute =
               new CArraySubscriptExpression(
-                  fileLocation, type, arraySubstitute, subscriptSubstitute);
+                  arraySubscript.getFileLocation(),
+                  PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                      arraySubscript.getExpressionType(), ImmutableSet.of()),
+                  arraySubstitute,
+                  subscriptSubstitute);
           MPORSubstitutionTrackerUtil.trackPointerDereferenceByLeftHandSide(
               arraySubscriptSubstitute, pIsWrite, pTracker);
           return arraySubscriptSubstitute;
@@ -230,8 +228,9 @@ public class MPORSubstitution {
         if (fieldOwnerSubstitute != fieldReference.getFieldOwner()) {
           CFieldReference fieldReferenceSubstitute =
               new CFieldReference(
-                  fileLocation,
-                  fieldReference.getExpressionType(),
+                  fieldReference.getFileLocation(),
+                  PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                      fieldReference.getExpressionType(), ImmutableSet.of()),
                   fieldReference.getFieldName(),
                   fieldOwnerSubstitute,
                   fieldReference.isPointerDereference());
@@ -243,7 +242,8 @@ public class MPORSubstitution {
       case CUnaryExpression unary -> {
         return new CUnaryExpression(
             unary.getFileLocation(),
-            unary.getExpressionType(),
+            PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                unary.getExpressionType(), ImmutableSet.of()),
             substitute(
                 unary.getOperand(),
                 pCallContext,
@@ -259,7 +259,8 @@ public class MPORSubstitution {
         CPointerExpression pointerSubstitute =
             new CPointerExpression(
                 pointer.getFileLocation(),
-                pointer.getExpressionType(),
+                PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                    pointer.getExpressionType(), ImmutableSet.of()),
                 substitute(
                     pointer.getOperand(),
                     pCallContext,
@@ -275,7 +276,8 @@ public class MPORSubstitution {
       case CCastExpression cast -> {
         return new CCastExpression(
             cast.getFileLocation(),
-            cast.getCastType(),
+            PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                cast.getExpressionType(), ImmutableSet.of()),
             substitute(
                 cast.getOperand(),
                 pCallContext,
@@ -297,8 +299,6 @@ public class MPORSubstitution {
       MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
-    FileLocation fileLocation = pStatement.getFileLocation();
-
     switch (pStatement) {
       // e.g. n = fib(42); or arr[n] = fib(42);
       case CFunctionCallAssignmentStatement functionCallAssignment -> {
@@ -306,7 +306,7 @@ public class MPORSubstitution {
         CExpression leftHandSideSubstitute =
             substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
         return new CFunctionCallAssignmentStatement(
-            fileLocation,
+            functionCallAssignment.getFileLocation(),
             (CLeftHandSide) leftHandSideSubstitute,
             substitute(functionCallAssignment.getRightHandSide(), pCallContext, pTracker));
       }
@@ -314,7 +314,7 @@ public class MPORSubstitution {
       case CFunctionCallStatement functionCall -> {
         InputRejection.checkFunctionPointerParameter(functionCall.getFunctionCallExpression());
         return new CFunctionCallStatement(
-            fileLocation,
+            functionCall.getFileLocation(),
             substitute(functionCall.getFunctionCallExpression(), pCallContext, pTracker));
       }
       // e.g. int x = 42;
@@ -325,7 +325,7 @@ public class MPORSubstitution {
             substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
         CExpressionAssignmentStatement assignmentSubstitute =
             new CExpressionAssignmentStatement(
-                fileLocation,
+                assignment.getFileLocation(),
                 (CLeftHandSide) leftHandSideSubstitute,
                 // for the RHS, it's not a left hand side of an assignment
                 substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
@@ -337,7 +337,7 @@ public class MPORSubstitution {
       }
       case CExpressionStatement expression -> {
         return new CExpressionStatement(
-            fileLocation,
+            expression.getFileLocation(),
             substitute(
                 expression.getExpression(), pCallContext, false, false, false, false, pTracker));
       }
@@ -353,7 +353,7 @@ public class MPORSubstitution {
       throws UnrecognizedCodeException {
 
     // substitute all parameters in the function call expression
-    List<CExpression> parameters = new ArrayList<>();
+    ImmutableList.Builder<CExpression> parameters = ImmutableList.builder();
     for (CExpression expression : pFunctionCallExpression.getParameterExpressions()) {
       parameters.add(substitute(expression, pCallContext, false, false, false, false, pTracker));
     }
@@ -373,7 +373,7 @@ public class MPORSubstitution {
         pFunctionCallExpression.getFileLocation(),
         pFunctionCallExpression.getExpressionType(),
         functionSubstitute,
-        parameters,
+        parameters.build(),
         pFunctionCallExpression.getDeclaration());
   }
 
