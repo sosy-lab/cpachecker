@@ -17,7 +17,6 @@ so that future extensions are easy to review and adapt.
 
 import argparse
 import glob
-import os
 from pathlib import Path
 import sys
 
