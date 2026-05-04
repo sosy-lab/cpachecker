@@ -50,11 +50,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -817,37 +815,8 @@ public record SeqThreadStatementBuilder(
       parameterExpressions = functionCall.getFunctionCallExpression().getParameterExpressions();
     }
 
-    // if at least one parameter is a pointer, call the function with pointers
-    if (isAnyPointer(parameterExpressions)) {
-      CFunctionCallExpression substituteFunctionCallExpression =
-          PthreadFunctionSubstitution.buildFunctionCallExpression(
-              parameterExpressions, pFunctionType);
-      CFunctionCallStatement substituteFunctionCallStatement =
-          new CFunctionCallStatement(FileLocation.DUMMY, substituteFunctionCallExpression);
-      return ImmutableList.of(new CStatementWrapper(substituteFunctionCallStatement));
-
-    } else {
-      // if all parameters are non-pointers, inline the function and work on non-pointers
-      return PthreadFunctionSubstitution.buildInlinedFunctionCallStatements(
-          parameterExpressions, pFunctionType, binaryExpressionBuilder);
-    }
-  }
-
-  private static boolean isAnyPointer(ImmutableList<CExpression> pExpressions) {
-    for (CExpression expression : pExpressions) {
-      ImmutableSet<CSimpleDeclaration> declarations =
-          SeqPointerAliasingUtil.getNestedSimpleDeclarations(expression);
-      checkState(!declarations.isEmpty());
-      // if there are multiple declarations, such as pthread_mutex_array[i], then use the pointer
-      if (declarations.size() > 1) {
-        return true;
-      }
-      CSimpleDeclaration declaration = Iterables.getOnlyElement(declarations);
-      if (declaration.getType().getCanonicalType() instanceof CPointerType) {
-        return true;
-      }
-    }
-    return false;
+    return PthreadFunctionSubstitution.buildInlinedFunctionStatements(
+        parameterExpressions, pFunctionType, binaryExpressionBuilder);
   }
 
   // Helpers

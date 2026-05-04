@@ -9,43 +9,34 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType.PthreadObjectSubstitutions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
@@ -55,90 +46,32 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 public class PthreadFunctionSubstitution {
 
-  public static CFunctionCallExpression buildFunctionCallExpression(
-      ImmutableList<CExpression> pParameterExpressions, PthreadFunctionType pFunctionType) {
-
-    return switch (pFunctionType) {
-      case PTHREAD_COND_SIGNAL ->
-          new CFunctionCallExpression(
-              FileLocation.DUMMY,
-              COND_SIGNAL_FUNCTION_TYPE,
-              COND_SIGNAL_ID_EXPRESSION,
-              pParameterExpressions,
-              COND_SIGNAL_FUNCTION_DECLARATION);
-      case PTHREAD_COND_WAIT ->
-          new CFunctionCallExpression(
-              FileLocation.DUMMY,
-              COND_WAIT_FUNCTION_TYPE,
-              COND_WAIT_ID_EXPRESSION,
-              pParameterExpressions,
-              COND_WAIT_FUNCTION_DECLARATION);
-      case PTHREAD_MUTEX_LOCK ->
-          new CFunctionCallExpression(
-              FileLocation.DUMMY,
-              MUTEX_FUNCTION_TYPE,
-              MUTEX_LOCK_ID_EXPRESSION,
-              pParameterExpressions,
-              MUTEX_LOCK_FUNCTION_DECLARATION);
-      case PTHREAD_MUTEX_UNLOCK ->
-          new CFunctionCallExpression(
-              FileLocation.DUMMY,
-              MUTEX_FUNCTION_TYPE,
-              MUTEX_UNLOCK_ID_EXPRESSION,
-              pParameterExpressions,
-              MUTEX_UNLOCK_FUNCTION_DECLARATION);
-      case PTHREAD_RWLOCK_RDLOCK ->
-          new CFunctionCallExpression(
-              FileLocation.DUMMY,
-              RWLOCK_FUNCTION_TYPE,
-              RWLOCK_RDLOCK_ID_EXPRESSION,
-              pParameterExpressions,
-              RWLOCK_RDLOCK_FUNCTION_DECLARATION);
-      case PTHREAD_RWLOCK_UNLOCK ->
-          new CFunctionCallExpression(
-              FileLocation.DUMMY,
-              RWLOCK_FUNCTION_TYPE,
-              RWLOCK_UNLOCK_ID_EXPRESSION,
-              pParameterExpressions,
-              RWLOCK_UNLOCK_FUNCTION_DECLARATION);
-      case PTHREAD_RWLOCK_WRLOCK ->
-          new CFunctionCallExpression(
-              FileLocation.DUMMY,
-              RWLOCK_FUNCTION_TYPE,
-              RWLOCK_WRLOCK_ID_EXPRESSION,
-              pParameterExpressions,
-              RWLOCK_WRLOCK_FUNCTION_DECLARATION);
-      default ->
-          throw new IllegalArgumentException(
-              "Cannot build CFunctionCallExpression for the following pFunctionType: "
-                  + pFunctionType);
-    };
-  }
-
-  public static ImmutableList<CCompoundStatementElement> buildInlinedFunctionCallStatements(
+  public static ImmutableList<CCompoundStatementElement> buildInlinedFunctionStatements(
       ImmutableList<CExpression> pParameterExpressions,
       PthreadFunctionType pFunctionType,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList<CIdExpression> idExpressions =
-        getIdExpressionsFromExpressions(pParameterExpressions);
+    ImmutableList<CExpression> expressions =
+        isAnyPointer(pParameterExpressions)
+            ? pParameterExpressions
+            : getIdExpressionsFromExpressions(pParameterExpressions);
 
     return switch (pFunctionType) {
       case PTHREAD_COND_SIGNAL ->
-          buildCondSignalFunctionStatements(Iterables.getOnlyElement(idExpressions));
-      case PTHREAD_COND_WAIT -> buildCondWaitFunctionStatements(idExpressions);
-      case PTHREAD_MUTEX_LOCK -> buildMutexLockAssignment(Iterables.getOnlyElement(idExpressions));
+          buildCondSignalFunctionStatements(Iterables.getOnlyElement(expressions));
+      case PTHREAD_COND_WAIT -> buildCondWaitFunctionStatements(expressions);
+      case PTHREAD_MUTEX_LOCK -> buildMutexLockAssignment(Iterables.getOnlyElement(expressions));
       case PTHREAD_MUTEX_UNLOCK ->
-          ImmutableList.of(buildMutexUnlockAssignment(Iterables.getOnlyElement(idExpressions)));
+          ImmutableList.of(buildMutexUnlockAssignment(Iterables.getOnlyElement(expressions)));
       case PTHREAD_RWLOCK_RDLOCK ->
           buildRwLockRdLockFunctionStatements(
-              Iterables.getOnlyElement(idExpressions), pBinaryExpressionBuilder);
+              Iterables.getOnlyElement(expressions), pBinaryExpressionBuilder);
       case PTHREAD_RWLOCK_UNLOCK ->
           buildRwLockUnlockFunctionStatements(
-              Iterables.getOnlyElement(idExpressions), pBinaryExpressionBuilder);
+              Iterables.getOnlyElement(expressions), pBinaryExpressionBuilder);
       case PTHREAD_RWLOCK_WRLOCK ->
-          buildRwLockWrLockFunctionStatements(Iterables.getOnlyElement(idExpressions));
+          buildRwLockWrLockFunctionStatements(Iterables.getOnlyElement(expressions));
       default ->
           throw new IllegalArgumentException(
               "Cannot build inlined function call statements for the following pFunctionType: "
@@ -146,10 +79,27 @@ public class PthreadFunctionSubstitution {
     };
   }
 
-  private static ImmutableList<CIdExpression> getIdExpressionsFromExpressions(
+  private static boolean isAnyPointer(ImmutableList<CExpression> pExpressions) {
+    for (CExpression expression : pExpressions) {
+      ImmutableSet<CSimpleDeclaration> declarations =
+          SeqPointerAliasingUtil.getNestedSimpleDeclarations(expression);
+      checkState(!declarations.isEmpty());
+      // if there are multiple declarations, such as pthread_mutex_array[i], then use the pointer
+      if (declarations.size() > 1) {
+        return true;
+      }
+      CSimpleDeclaration declaration = Iterables.getOnlyElement(declarations);
+      if (declaration.getType().getCanonicalType() instanceof CPointerType) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static ImmutableList<CExpression> getIdExpressionsFromExpressions(
       ImmutableList<CExpression> pExpressions) {
 
-    ImmutableList.Builder<CIdExpression> rIdExpressions = ImmutableList.builder();
+    ImmutableList.Builder<CExpression> rIdExpressions = ImmutableList.builder();
     for (CExpression expression : pExpressions) {
       CSimpleDeclaration declaration =
           Iterables.getOnlyElement(SeqPointerAliasingUtil.getNestedSimpleDeclarations(expression));
@@ -157,34 +107,6 @@ public class PthreadFunctionSubstitution {
       rIdExpressions.add(new CIdExpression(FileLocation.DUMMY, variableDeclaration));
     }
     return rIdExpressions.build();
-  }
-
-  public static Optional<CExportFunctionDefinition> tryGetFunctionDefinitionByStatementType(
-      SeqThreadStatementType pType, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    return switch (pType) {
-      case COND_SIGNAL -> Optional.of(COND_SIGNAL_FUNCTION_DEFINITION);
-      case COND_WAIT -> Optional.of(COND_WAIT_FUNCTION_DEFINITION);
-      case MUTEX_LOCK -> Optional.of(MUTEX_LOCK_FUNCTION_DEFINITION);
-      case MUTEX_UNLOCK -> Optional.of(MUTEX_UNLOCK_FUNCTION_DEFINITION);
-      case RW_LOCK_RD_LOCK ->
-          Optional.of(
-              new CExportFunctionDefinition(
-                  RWLOCK_RDLOCK_FUNCTION_DECLARATION,
-                  new CCompoundStatement(
-                      buildRwLockRdLockFunctionStatements(
-                          RWLOCK_ID_EXPRESSION, pBinaryExpressionBuilder))));
-      case RW_LOCK_UNLOCK ->
-          Optional.of(
-              new CExportFunctionDefinition(
-                  RWLOCK_UNLOCK_FUNCTION_DECLARATION,
-                  new CCompoundStatement(
-                      buildRwLockUnlockFunctionStatements(
-                          RWLOCK_ID_EXPRESSION, pBinaryExpressionBuilder))));
-      case RW_LOCK_WR_LOCK -> Optional.of(RWLOCK_WRLOCK_FUNCTION_DEFINITION);
-      default -> Optional.empty();
-    };
   }
 
   private static ImmutableList<CCompoundStatementElement>
@@ -230,54 +152,7 @@ public class PthreadFunctionSubstitution {
 
   // pthread_mutex_t
 
-  private static final CParameterDeclaration MUTEX_PARAMETER =
-      new CParameterDeclaration(
-          FileLocation.DUMMY,
-          new CPointerType(CTypeQualifiers.NONE, PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE),
-          "mutex");
-
-  // the same function type can be used for both lock and unlock, because the only parameter is a
-  // pointer to the mutex object
-  private static final CFunctionTypeWithNames MUTEX_FUNCTION_TYPE =
-      new CFunctionTypeWithNames(CVoidType.VOID, ImmutableList.of(MUTEX_PARAMETER), false);
-
-  private static final CFunctionDeclaration MUTEX_LOCK_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          MUTEX_FUNCTION_TYPE,
-          Sequentialization.MPOR_PREFIX + PthreadFunctionType.PTHREAD_MUTEX_LOCK.name,
-          ImmutableList.of(MUTEX_PARAMETER),
-          ImmutableSet.of());
-
-  private static final CFunctionDeclaration MUTEX_UNLOCK_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          MUTEX_FUNCTION_TYPE,
-          Sequentialization.MPOR_PREFIX + PthreadFunctionType.PTHREAD_MUTEX_UNLOCK.name,
-          ImmutableList.of(MUTEX_PARAMETER),
-          ImmutableSet.of());
-
-  private static final CIdExpression MUTEX_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, MUTEX_PARAMETER);
-
-  private static final CIdExpression MUTEX_LOCK_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, MUTEX_LOCK_FUNCTION_DECLARATION);
-
-  private static final CIdExpression MUTEX_UNLOCK_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, MUTEX_UNLOCK_FUNCTION_DECLARATION);
-
-  public static final CExportFunctionDefinition MUTEX_LOCK_FUNCTION_DEFINITION =
-      new CExportFunctionDefinition(
-          MUTEX_LOCK_FUNCTION_DECLARATION,
-          new CCompoundStatement(buildMutexLockAssignment(MUTEX_ID_EXPRESSION)));
-
-  public static final CExportFunctionDefinition MUTEX_UNLOCK_FUNCTION_DEFINITION =
-      new CExportFunctionDefinition(
-          MUTEX_UNLOCK_FUNCTION_DECLARATION,
-          new CCompoundStatement(buildMutexUnlockAssignment(MUTEX_ID_EXPRESSION)));
-
-  private static CFieldReference buildMutexFieldReference(CIdExpression pMutexExpression) {
-
+  private static CFieldReference buildMutexFieldReference(CExpression pMutexExpression) {
     CFieldReference mutexFieldReference =
         new CFieldReference(
             FileLocation.DUMMY,
@@ -294,7 +169,7 @@ public class PthreadFunctionSubstitution {
   }
 
   private static ImmutableList<CCompoundStatementElement> buildMutexLockAssignment(
-      CIdExpression pMutexExpression) {
+      CExpression pMutexExpression) {
 
     CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
     CCompoundStatementElement mutexLockAssignment =
@@ -308,7 +183,7 @@ public class PthreadFunctionSubstitution {
   }
 
   private static CCompoundStatementElement buildMutexUnlockAssignment(
-      CIdExpression pMutexExpression) {
+      CExpression pMutexExpression) {
 
     CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
     return new CStatementWrapper(
@@ -318,59 +193,8 @@ public class PthreadFunctionSubstitution {
 
   // pthread_cond_t
 
-  private static final CParameterDeclaration COND_PARAMETER =
-      new CParameterDeclaration(
-          FileLocation.DUMMY,
-          new CPointerType(CTypeQualifiers.NONE, PthreadObjectSubstitutions.COND_ELABORATED_TYPE),
-          "cond");
-
-  private static final CFunctionTypeWithNames COND_SIGNAL_FUNCTION_TYPE =
-      new CFunctionTypeWithNames(CVoidType.VOID, ImmutableList.of(COND_PARAMETER), false);
-
-  private static final CFunctionTypeWithNames COND_WAIT_FUNCTION_TYPE =
-      new CFunctionTypeWithNames(
-          CVoidType.VOID, ImmutableList.of(COND_PARAMETER, MUTEX_PARAMETER), false);
-
-  private static final CFunctionDeclaration COND_SIGNAL_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          COND_SIGNAL_FUNCTION_TYPE,
-          Sequentialization.MPOR_PREFIX + PthreadFunctionType.PTHREAD_COND_SIGNAL.name,
-          ImmutableList.of(COND_PARAMETER),
-          ImmutableSet.of());
-
-  private static final CFunctionDeclaration COND_WAIT_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          COND_WAIT_FUNCTION_TYPE,
-          Sequentialization.MPOR_PREFIX + PthreadFunctionType.PTHREAD_COND_WAIT.name,
-          ImmutableList.of(COND_PARAMETER, MUTEX_PARAMETER),
-          ImmutableSet.of());
-
-  private static final CIdExpression COND_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, COND_PARAMETER);
-
-  private static final CIdExpression COND_SIGNAL_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, COND_SIGNAL_FUNCTION_DECLARATION);
-
-  private static final CIdExpression COND_WAIT_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, COND_WAIT_FUNCTION_DECLARATION);
-
-  public static final CExportFunctionDefinition COND_SIGNAL_FUNCTION_DEFINITION =
-      new CExportFunctionDefinition(
-          COND_SIGNAL_FUNCTION_DECLARATION,
-          new CCompoundStatement(buildCondSignalFunctionStatements(COND_ID_EXPRESSION)));
-
-  // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
-  public static final CExportFunctionDefinition COND_WAIT_FUNCTION_DEFINITION =
-      new CExportFunctionDefinition(
-          COND_WAIT_FUNCTION_DECLARATION,
-          new CCompoundStatement(
-              buildCondWaitFunctionStatements(
-                  ImmutableList.of(COND_ID_EXPRESSION, MUTEX_ID_EXPRESSION))));
-
   private static ImmutableList<CCompoundStatementElement> buildCondSignalFunctionStatements(
-      CIdExpression pCondExpression) {
+      CExpression pCondExpression) {
 
     CFieldReference condFieldReference = buildCondFieldReference(pCondExpression);
     CExportStatement condAssignment =
@@ -381,15 +205,15 @@ public class PthreadFunctionSubstitution {
   }
 
   private static ImmutableList<CCompoundStatementElement> buildCondWaitFunctionStatements(
-      ImmutableList<CIdExpression> pExpressions) {
+      ImmutableList<CExpression> pExpressions) {
 
     checkArgument(pExpressions.size() == 2);
 
-    CIdExpression condExpression =
+    CExpression condExpression =
         pExpressions.get(
             PthreadFunctionType.PTHREAD_COND_WAIT.getParameterIndex(
                 PthreadObjectType.PTHREAD_COND_T));
-    CIdExpression mutexExpression =
+    CExpression mutexExpression =
         pExpressions.get(
             PthreadFunctionType.PTHREAD_COND_WAIT.getParameterIndex(
                 PthreadObjectType.PTHREAD_MUTEX_T));
@@ -409,7 +233,7 @@ public class PthreadFunctionSubstitution {
         buildMutexUnlockAssignment(mutexExpression));
   }
 
-  private static CFieldReference buildCondFieldReference(CIdExpression pCondExpression) {
+  private static CFieldReference buildCondFieldReference(CExpression pCondExpression) {
     CFieldReference condFieldReference =
         new CFieldReference(
             FileLocation.DUMMY,
@@ -427,60 +251,8 @@ public class PthreadFunctionSubstitution {
 
   // pthread_rwlock_t
 
-  private static final CParameterDeclaration RWLOCK_PARAMETER =
-      new CParameterDeclaration(
-          FileLocation.DUMMY,
-          new CPointerType(CTypeQualifiers.NONE, PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE),
-          "rwlock");
-
-  // the same function type can be used for rdlock, unlock and wrlock, because the only parameter is
-  // a pointer to the rwlock object
-  private static final CFunctionTypeWithNames RWLOCK_FUNCTION_TYPE =
-      new CFunctionTypeWithNames(CVoidType.VOID, ImmutableList.of(RWLOCK_PARAMETER), false);
-
-  private static final CFunctionDeclaration RWLOCK_RDLOCK_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          RWLOCK_FUNCTION_TYPE,
-          Sequentialization.MPOR_PREFIX + PthreadFunctionType.PTHREAD_RWLOCK_RDLOCK.name,
-          ImmutableList.of(RWLOCK_PARAMETER),
-          ImmutableSet.of());
-
-  private static final CFunctionDeclaration RWLOCK_UNLOCK_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          RWLOCK_FUNCTION_TYPE,
-          Sequentialization.MPOR_PREFIX + PthreadFunctionType.PTHREAD_RWLOCK_UNLOCK.name,
-          ImmutableList.of(RWLOCK_PARAMETER),
-          ImmutableSet.of());
-
-  private static final CFunctionDeclaration RWLOCK_WRLOCK_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          RWLOCK_FUNCTION_TYPE,
-          Sequentialization.MPOR_PREFIX + PthreadFunctionType.PTHREAD_RWLOCK_WRLOCK.name,
-          ImmutableList.of(RWLOCK_PARAMETER),
-          ImmutableSet.of());
-
-  private static final CIdExpression RWLOCK_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, RWLOCK_PARAMETER);
-
-  private static final CIdExpression RWLOCK_RDLOCK_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, RWLOCK_RDLOCK_FUNCTION_DECLARATION);
-
-  private static final CIdExpression RWLOCK_UNLOCK_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, RWLOCK_UNLOCK_FUNCTION_DECLARATION);
-
-  private static final CIdExpression RWLOCK_WRLOCK_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, RWLOCK_WRLOCK_FUNCTION_DECLARATION);
-
-  private static final CExportFunctionDefinition RWLOCK_WRLOCK_FUNCTION_DEFINITION =
-      new CExportFunctionDefinition(
-          RWLOCK_WRLOCK_FUNCTION_DECLARATION,
-          new CCompoundStatement(buildRwLockWrLockFunctionStatements(RWLOCK_ID_EXPRESSION)));
-
   private static ImmutableList<CCompoundStatementElement> buildRwLockRdLockFunctionStatements(
-      CIdExpression pRwLockExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      CExpression pRwLockExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     CFieldReference numWritersFieldReference =
@@ -497,7 +269,7 @@ public class PthreadFunctionSubstitution {
   }
 
   private static ImmutableList<CCompoundStatementElement> buildRwLockUnlockFunctionStatements(
-      CIdExpression pRwLockExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      CExpression pRwLockExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     CFieldReference numReadersFieldReference =
@@ -524,7 +296,7 @@ public class PthreadFunctionSubstitution {
   }
 
   private static ImmutableList<CCompoundStatementElement> buildRwLockWrLockFunctionStatements(
-      CIdExpression pRwLockExpression) {
+      CExpression pRwLockExpression) {
 
     CFieldReference numReadersFieldReference =
         buildRwLockFieldReference(
@@ -547,7 +319,7 @@ public class PthreadFunctionSubstitution {
   }
 
   private static CFieldReference buildRwLockFieldReference(
-      CIdExpression pRwLockExpression, CCompositeTypeMemberDeclaration pMemberDeclaration) {
+      CExpression pRwLockExpression, CCompositeTypeMemberDeclaration pMemberDeclaration) {
 
     CFieldReference rwLockFieldReference =
         new CFieldReference(
