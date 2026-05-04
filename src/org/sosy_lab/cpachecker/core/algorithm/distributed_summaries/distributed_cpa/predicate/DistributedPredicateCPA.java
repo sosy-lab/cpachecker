@@ -90,7 +90,8 @@ public class DistributedPredicateCPA
             predicateCPA,
             pNode.getPredecessorIds().isEmpty());
     combineOperator = new CombinePredicateStateOperator(predicateCPA);
-    combinePrecisionOperator = new CombinePredicatePrecisionOperator();
+    combinePrecisionOperator =
+        new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
   }
 
   @Override

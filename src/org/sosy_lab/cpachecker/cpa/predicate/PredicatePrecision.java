@@ -15,6 +15,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -32,11 +33,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 /**
  * This class represents the precision of the PredicateCPA. It is basically a map which assigns to
@@ -203,7 +206,18 @@ public final class PredicatePrecision implements AdjustablePrecision {
    * efficiently.
    */
   public static PredicatePrecision unionOf(Iterable<Precision> precisions) {
-    return unionOf(orderPrecisions(precisions));
+    return unionOf(orderPrecisions(precisions), ImmutableSet.of());
+  }
+
+  /**
+   * Create a new precision that is the intersection of the predicate precisions of all given
+   * precisions. This method can be called even with a lot of duplicate precisions in the input (for
+   * example, all precisions occurring in the reached set) and will handle the union computation
+   * efficiently.
+   */
+  public static PredicatePrecision unionOf(
+      Iterable<Precision> precisions, Set<String> removeOthers) {
+    return unionOf(orderPrecisions(precisions), removeOthers);
   }
 
   /**
@@ -216,7 +230,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
   }
 
   /** Create a new precision that is the union of all given precisions. */
-  private static PredicatePrecision unionOf(Collection<PredicatePrecision> precisions) {
+  private static PredicatePrecision unionOf(
+      Collection<PredicatePrecision> precisions, Set<String> removeOthers) {
     if (precisions.isEmpty()) {
       return empty();
     }
@@ -224,11 +239,32 @@ public final class PredicatePrecision implements AdjustablePrecision {
       return Iterables.getOnlyElement(precisions);
     }
 
+    PredicatePrecision union =
+        new PredicatePrecision(
+            from(precisions)
+                .transformAndConcat(prec -> prec.getLocationInstancePredicates().entries()),
+            from(precisions).transformAndConcat(prec -> prec.getLocalPredicates().entries()),
+            from(precisions).transformAndConcat(prec -> prec.getFunctionPredicates().entries()),
+            from(precisions).transformAndConcat(PredicatePrecision::getGlobalPredicates));
+    if (removeOthers.isEmpty()) {
+      return union;
+    }
     return new PredicatePrecision(
-        from(precisions).transformAndConcat(prec -> prec.getLocationInstancePredicates().entries()),
-        from(precisions).transformAndConcat(prec -> prec.getLocalPredicates().entries()),
-        from(precisions).transformAndConcat(prec -> prec.getFunctionPredicates().entries()),
-        from(precisions).transformAndConcat(PredicatePrecision::getGlobalPredicates));
+        from(union.getLocationInstancePredicates().entries())
+            .filter(entry -> removeOthers.stream().anyMatch(r -> isRequired(entry.getValue(), r))),
+        from(union.getLocalPredicates().entries())
+            .filter(entry -> removeOthers.stream().anyMatch(r -> isRequired(entry.getValue(), r))),
+        from(union.getFunctionPredicates().entries())
+            .filter(entry -> removeOthers.stream().anyMatch(r -> isRequired(entry.getValue(), r))),
+        from(union.getGlobalPredicates())
+            .filter(pred -> removeOthers.stream().anyMatch(r -> isRequired(pred, r))));
+  }
+
+  private static boolean isRequired(AbstractionPredicate p, String relevant) {
+    if (p.toString().contains("true") || p.toString().contains("false")) {
+      return true;
+    }
+    return p.toString().contains(relevant);
   }
 
   /** Create a new precision that is the union of all given precisions. */
@@ -330,6 +366,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     for (Entry<K, Collection<V>> keyValues : map.entrySet()) {
       builder.putAll(keyValues.getKey(), keyValues.getValue());
     }
+    System.out.println(builder.build());
     return builder.build();
   }
 
@@ -353,6 +390,17 @@ public final class PredicatePrecision implements AdjustablePrecision {
     }
     assert distinctPrecisions.size() == orderedPrecisions.size();
     return orderedPrecisions;
+  }
+
+  public Set<String> getVariables(FormulaManagerView mgr) {
+    return FluentIterable.<@NonNull AbstractionPredicate>from(
+            Iterables.concat(
+                mFunctionPredicates.values(),
+                mLocalPredicates.values(),
+                mLocationInstancePredicates.values(),
+                mGlobalPredicates))
+        .transformAndConcat(a -> mgr.extractVariables(a.getSymbolicAtom()).keySet())
+        .toSet();
   }
 
   /**
