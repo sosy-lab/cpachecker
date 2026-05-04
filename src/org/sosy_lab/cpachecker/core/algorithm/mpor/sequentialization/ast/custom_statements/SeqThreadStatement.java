@@ -65,11 +65,17 @@ public record SeqThreadStatement(
           exportStatements.stream().anyMatch(n -> n instanceof CVariableDeclarationWrapper),
           "If the statement type is CONST_CPACHECKER_TMP, then exportStatements must contain"
               + " a CVariableDeclarationWrapper.");
-    } else {
+    }
+    if (!data.getType()
+        .in(
+            SeqThreadStatementType.CONST_CPACHECKER_TMP,
+            SeqThreadStatementType.RW_LOCK_RD_LOCK,
+            SeqThreadStatementType.RW_LOCK_UNLOCK)) {
       checkArgument(
           exportStatements.stream().noneMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type is not CONST_CPACHECKER_TMP, then exportStatements cannot contain"
-              + " a CVariableDeclarationWrapper.");
+          "If the statement type is %s, then exportStatements cannot contain"
+              + " a CVariableDeclarationWrapper.",
+          data.getType());
     }
   }
 
