@@ -13,7 +13,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

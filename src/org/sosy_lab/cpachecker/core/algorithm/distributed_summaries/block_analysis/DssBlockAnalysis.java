@@ -461,6 +461,24 @@ public class DssBlockAnalysis {
     return messages.addAll(reportFirstViolationConditions(result.getAllViolations())).build();
   }
 
+  private void appendTopToRelevantIfNecessary(String id) throws InterruptedException {
+    // calculate for all new states but do not underapproximate
+    if (preconditions.keySet().size() != block.getPredecessorIds().size()) {
+      relevant.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
+      return;
+    }
+    for (String k : preconditions.keySet()) {
+      if (k.equals(id)) {
+        continue;
+      }
+      if (preconditions.get(k).stream()
+          .anyMatch(s -> dcpa.isMostGeneralBlockEntryState(s.state()))) {
+        relevant.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
+        return;
+      }
+    }
+  }
+
   /**
    * Adds a new precondition to the known preconditions. The method checks whether the new
    * precondition is already covered by an existing one. If this is the case, the new precondition
@@ -493,6 +511,7 @@ public class DssBlockAnalysis {
     if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
       preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
       relevant.addAll(deserializedStatesAndPrecisions);
+      appendTopToRelevantIfNecessary(pReceived.getSenderId());
       return processing;
     }
     for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
@@ -519,6 +538,8 @@ public class DssBlockAnalysis {
     if (relevant.isEmpty()) {
       return DssMessageProcessing.stop();
     }
+
+    appendTopToRelevantIfNecessary(pReceived.getSenderId());
     return processing;
   }
 
@@ -678,7 +699,9 @@ public class DssBlockAnalysis {
       reachedSet.clear();
       reachedSet.add(
           stateAndPrecision.state(),
-          resetPrecisionsForEveryRun ? makeStartPrecision() : stateAndPrecision.precision());
+          resetPrecisionsForEveryRun
+              ? makeStartPrecision()
+              : combinePrecisionIfPossible().orElse(stateAndPrecision.precision()));
       Objects.requireNonNull(
               AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class))
           .setViolationConditions(violations);
