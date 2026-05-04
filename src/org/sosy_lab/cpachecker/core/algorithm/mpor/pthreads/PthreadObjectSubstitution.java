@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -32,13 +34,37 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class PthreadObjectSubstitution {
 
+  public static CIdExpression substitutePthreadObjectType(CIdExpression pIdExpression) {
+    CType typeSubstitute =
+        substitutePthreadObjectTypes(pIdExpression.getExpressionType(), ImmutableSet.of());
+
+    CVariableDeclaration variableDeclaration =
+        (CVariableDeclaration) pIdExpression.getDeclaration();
+    CVariableDeclaration variableDeclarationWithTypeSubstitute =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            variableDeclaration.isGlobal(),
+            variableDeclaration.getCStorageClass(),
+            typeSubstitute,
+            variableDeclaration.getName(),
+            variableDeclaration.getOrigName(),
+            variableDeclaration.getQualifiedName(),
+            variableDeclaration.getInitializer());
+
+    return new CIdExpression(
+        FileLocation.DUMMY,
+        typeSubstitute,
+        pIdExpression.getName(),
+        variableDeclarationWithTypeSubstitute);
+  }
+
   /**
    * Substitutes all pthread object types in {@code pType}.
    *
-   * <p>Specific classes to substitute can be specified via {@code pClasses}. This can be useful
-   * when substituting the types of {@link CVariableDeclaration}, where it should be desired to
-   * substitute {@link CCompositeType} but only {@link CElaboratedType} so that the {@link
-   * CCompositeType} is not redeclared.
+   * <p>Specific classes to substitute can be specified via {@code pClasses}. If {@code pClasses} is
+   * empty, then all types will be substituted. This can be useful when substituting the types of
+   * {@link CVariableDeclaration}, where it should be desired to substitute {@link CCompositeType}
+   * but only {@link CElaboratedType} so that the {@link CCompositeType} is not redeclared.
    */
   public static CType substitutePthreadObjectTypes(
       CType pType, ImmutableSet<Class<? extends CType>> pClasses) {
@@ -48,7 +74,7 @@ public class PthreadObjectSubstitution {
     // pthread object types
     for (PthreadObjectType pObjectType : PthreadObjectType.values()) {
       for (CType substituteType : pObjectType.substituteTypes) {
-        if (pClasses.stream().anyMatch(c -> c.isInstance(substituteType))) {
+        if (pClasses.isEmpty() || pClasses.stream().anyMatch(c -> c.isInstance(substituteType))) {
           CTypeSubstitutionVisitor substitutionVisitor =
               new CTypeSubstitutionVisitor(
                   ImmutableSet.of(

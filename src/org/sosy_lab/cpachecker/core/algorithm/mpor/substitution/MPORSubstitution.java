@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -406,47 +407,58 @@ public class MPORSubstitution {
       Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker) {
 
-    if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
-      if (localVariableSubstitutes.contains(pCallContext, variableDeclaration)) {
-        LocalVariableDeclarationSubstitute localSubstitute =
-            Objects.requireNonNull(localVariableSubstitutes.get(pCallContext, variableDeclaration));
-        MPORSubstitutionTrackerUtil.trackContentFromLocalVariableDeclaration(
-            pIsDeclaration, localSubstitute, pTracker);
-        return localSubstitute.expression();
-      } else {
-        // for substitution, it is fine to use the first entry that matches the declaration
-        for (Entry<CVariableDeclaration, CIdExpression> entry : globalVariableSubstitutes) {
-          if (entry.getKey().equals(variableDeclaration)) {
-            return entry.getValue();
+    CIdExpression idExpressionSubstitute =
+        switch (pSimpleDeclaration) {
+          case CVariableDeclaration variableDeclaration -> {
+            if (localVariableSubstitutes.contains(pCallContext, variableDeclaration)) {
+              LocalVariableDeclarationSubstitute localSubstitute =
+                  Objects.requireNonNull(
+                      localVariableSubstitutes.get(pCallContext, variableDeclaration));
+              MPORSubstitutionTrackerUtil.trackContentFromLocalVariableDeclaration(
+                  pIsDeclaration, localSubstitute, pTracker);
+              yield localSubstitute.expression();
+            } else {
+              // for substitution, it is fine to use the first entry that matches the declaration
+              for (Entry<CVariableDeclaration, CIdExpression> entry : globalVariableSubstitutes) {
+                if (entry.getKey().equals(variableDeclaration)) {
+                  yield entry.getValue();
+                }
+              }
+            }
+            throw new IllegalArgumentException(
+                "CVariableDeclaration could not be substituted: "
+                    + variableDeclaration.toASTString());
           }
-        }
-      }
+          case CParameterDeclaration parameterDeclaration -> {
+            if (pCallContext.isEmpty()) {
+              // no call context -> main function argument
+              pTracker.addAccessedMainFunctionArg(parameterDeclaration.asVariableDeclaration());
+              yield Objects.requireNonNull(mainFunctionArgSubstitutes.get(parameterDeclaration));
+            }
+            // normal function called within thread, including start_routines, always have call
+            // context
+            CFAEdgeForThread callContext = pCallContext.orElseThrow();
+            if (parameterSubstitutes.containsRow(callContext)) {
+              ImmutableList<CIdExpression> parameterDeclarationSubstitutes =
+                  getParameterDeclarationSubstitute(callContext, parameterDeclaration);
+              // this means we only support substituting parameters that are not variadic.
+              // i.e. a variadic function can be called, but its body not handled (at the moment)
+              yield Objects.requireNonNull(parameterDeclarationSubstitutes).getFirst();
 
-    } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
-      if (pCallContext.isEmpty()) {
-        // no call context -> main function argument
-        pTracker.addAccessedMainFunctionArg(parameterDeclaration.asVariableDeclaration());
-        return Objects.requireNonNull(mainFunctionArgSubstitutes.get(parameterDeclaration));
-      }
-      // normal function called within thread, including start_routines, always have call context
-      CFAEdgeForThread callContext = pCallContext.orElseThrow();
-      if (parameterSubstitutes.containsRow(callContext)) {
-        ImmutableList<CIdExpression> parameterDeclarationSubstitutes =
-            getParameterDeclarationSubstitute(callContext, parameterDeclaration);
-        // this means we only support substituting parameters that are not variadic.
-        // i.e. a variadic function can be called, but its body not handled (at the moment)
-        return Objects.requireNonNull(parameterDeclarationSubstitutes).getFirst();
-
-      } else if (startRoutineArgSubstitutes.containsRow(callContext)) {
-        return Objects.requireNonNull(
-            startRoutineArgSubstitutes.get(callContext, parameterDeclaration));
-      }
-      throw new IllegalArgumentException(
-          "parameter declaration could not be substituted: " + parameterDeclaration.toASTString());
-    }
-    throw new IllegalArgumentException(
-        "pSimpleDeclaration must be variable or parameter declaration, got: "
-            + pSimpleDeclaration.toASTString());
+            } else if (startRoutineArgSubstitutes.containsRow(callContext)) {
+              yield Objects.requireNonNull(
+                  startRoutineArgSubstitutes.get(callContext, parameterDeclaration));
+            }
+            throw new IllegalArgumentException(
+                "CParameterDeclaration could not be substituted: "
+                    + parameterDeclaration.toASTString());
+          }
+          default ->
+              throw new IllegalArgumentException(
+                  "pSimpleDeclaration must be variable or parameter declaration, got: "
+                      + pSimpleDeclaration.toASTString());
+        };
+    return PthreadObjectSubstitution.substitutePthreadObjectType(idExpressionSubstitute);
   }
 
   // CParameterDeclaration substitutes =============================================================
