@@ -183,17 +183,13 @@ public class PthreadFunctionSubstitution {
     CExpressionAssignmentStatement incrementOrDecrementStatement =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY,
-            idExpression,
+            pFieldReference,
             pBinaryExpressionBuilder.buildBinaryExpression(
                 idExpression, CIntegerLiteralExpression.ONE, pBinaryOperator));
 
-    CExpressionAssignmentStatement assignmentStatement =
-        new CExpressionAssignmentStatement(FileLocation.DUMMY, pFieldReference, idExpression);
-
     return ImmutableList.of(
         new CVariableDeclarationWrapper(variableDeclaration),
-        new CStatementWrapper(incrementOrDecrementStatement),
-        new CStatementWrapper(assignmentStatement));
+        new CStatementWrapper(incrementOrDecrementStatement));
   }
 
   // pthread_mutex_t
