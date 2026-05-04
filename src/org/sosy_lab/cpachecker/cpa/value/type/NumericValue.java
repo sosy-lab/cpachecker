@@ -89,7 +89,9 @@ public record NumericValue(Number number) implements Value {
     } else if (number instanceof Rational rationalValue) {
       return FloatValue.fromRational(format, rationalValue);
     } else {
-      throw new UnsupportedOperationException("Should be unreachable.");
+      throw new AssertionError(
+          "NumericValue with unexpected value '%s' of type '%s'"
+              .formatted(number, number.getClass()));
     }
   }
 
@@ -131,7 +133,9 @@ public record NumericValue(Number number) implements Value {
     } else if (number instanceof FloatValue floatValue) {
       return floatValue.integerValue();
     } else {
-      throw new IllegalArgumentException("Should be unreachable.");
+      throw new AssertionError(
+          "NumericValue with unexpected value '%s' of type '%s'"
+              .formatted(number, number.getClass()));
     }
   }
 
@@ -195,7 +199,9 @@ public record NumericValue(Number number) implements Value {
           // FIXME: This might be broken for -MAX_VALUE if the type is not BigInteger
           yield new NumericValue(bigIntegerValue().negate());
         } else {
-          throw new UnsupportedOperationException("Should be unreachable.");
+          throw new AssertionError(
+              "NumericValue with unexpected value '%s' of type '%s'"
+                  .formatted(number, number.getClass()));
         }
       }
     };
