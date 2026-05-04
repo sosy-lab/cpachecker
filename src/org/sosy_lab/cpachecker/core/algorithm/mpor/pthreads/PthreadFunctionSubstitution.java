@@ -127,10 +127,7 @@ public class PthreadFunctionSubstitution {
     return switch (pFunctionType) {
       case PTHREAD_COND_SIGNAL ->
           buildCondSignalFunctionStatements(Iterables.getOnlyElement(idExpressions));
-      case PTHREAD_COND_WAIT -> {
-        checkArgument(idExpressions.size() == 2);
-        yield buildCondWaitFunctionStatements(idExpressions.getFirst(), idExpressions.getLast());
-      }
+      case PTHREAD_COND_WAIT -> buildCondWaitFunctionStatements(idExpressions);
       case PTHREAD_MUTEX_LOCK -> buildMutexLockAssignment(Iterables.getOnlyElement(idExpressions));
       case PTHREAD_MUTEX_UNLOCK ->
           ImmutableList.of(buildMutexUnlockAssignment(Iterables.getOnlyElement(idExpressions)));
@@ -369,7 +366,8 @@ public class PthreadFunctionSubstitution {
       new CExportFunctionDefinition(
           COND_WAIT_FUNCTION_DECLARATION,
           new CCompoundStatement(
-              buildCondWaitFunctionStatements(COND_ID_EXPRESSION, MUTEX_ID_EXPRESSION)));
+              buildCondWaitFunctionStatements(
+                  ImmutableList.of(COND_ID_EXPRESSION, MUTEX_ID_EXPRESSION))));
 
   private static ImmutableList<CCompoundStatementElement> buildCondSignalFunctionStatements(
       CIdExpression pCondExpression) {
@@ -383,9 +381,20 @@ public class PthreadFunctionSubstitution {
   }
 
   private static ImmutableList<CCompoundStatementElement> buildCondWaitFunctionStatements(
-      CIdExpression pCondExpression, CIdExpression pMutexExpression) {
+      ImmutableList<CIdExpression> pExpressions) {
 
-    CFieldReference condFieldReference = buildCondFieldReference(pCondExpression);
+    checkArgument(pExpressions.size() == 2);
+
+    CIdExpression condExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_COND_WAIT.getParameterIndex(
+                PthreadObjectType.PTHREAD_COND_T));
+    CIdExpression mutexExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_COND_WAIT.getParameterIndex(
+                PthreadObjectType.PTHREAD_MUTEX_T));
+
+    CFieldReference condFieldReference = buildCondFieldReference(condExpression);
     CExportStatement condAssignment =
         new CStatementWrapper(
             new CExpressionAssignmentStatement(
@@ -397,7 +406,7 @@ public class PthreadFunctionSubstitution {
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(condFieldReference)),
         condAssignment,
         // on return, the mutex is locked and owned by the calling thread
-        buildMutexUnlockAssignment(pMutexExpression));
+        buildMutexUnlockAssignment(mutexExpression));
   }
 
   private static CFieldReference buildCondFieldReference(CIdExpression pCondExpression) {
