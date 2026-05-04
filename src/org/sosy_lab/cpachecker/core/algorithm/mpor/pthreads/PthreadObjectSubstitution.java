@@ -35,18 +35,20 @@ public class PthreadObjectSubstitution {
   /**
    * Substitutes all pthread object types in {@code pType}.
    *
-   * <p>Specific classes to substitute can be specified via {@code pClass}. This can be useful when
-   * substituting the types of {@link CVariableDeclaration}, where it should be desired to
+   * <p>Specific classes to substitute can be specified via {@code pClasses}. This can be useful
+   * when substituting the types of {@link CVariableDeclaration}, where it should be desired to
    * substitute {@link CCompositeType} but only {@link CElaboratedType} so that the {@link
    * CCompositeType} is not redeclared.
    */
-  public static CType substitutePthreadObjectTypes(CType pType, Class<? extends CType> pClass) {
+  public static CType substitutePthreadObjectTypes(
+      CType pType, ImmutableSet<Class<? extends CType>> pClasses) {
+
     CType substituted = pType;
     // replace all pthread object types, which is necessary for structs that contain multiple
     // pthread object types
     for (PthreadObjectType pObjectType : PthreadObjectType.values()) {
       for (CType substituteType : pObjectType.substituteTypes) {
-        if (pClass.isInstance(substituteType)) {
+        if (pClasses.stream().anyMatch(c -> c.isInstance(substituteType))) {
           CTypeSubstitutionVisitor substitutionVisitor =
               new CTypeSubstitutionVisitor(
                   ImmutableSet.of(

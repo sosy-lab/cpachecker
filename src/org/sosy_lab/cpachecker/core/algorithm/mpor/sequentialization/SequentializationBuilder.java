@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -81,7 +82,7 @@ public class SequentializationBuilder {
                 case CComplexTypeDeclaration complexTypeDeclaration -> {
                   CType typeSubstitute =
                       PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                          complexTypeDeclaration.getType(), CCompositeType.class);
+                          complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class));
                   CComplexTypeDeclaration newComplexTypeDeclaration =
                       new CComplexTypeDeclaration(
                           complexTypeDeclaration.getFileLocation(),
@@ -92,7 +93,7 @@ public class SequentializationBuilder {
                 case CTypeDefDeclaration typeDefDeclaration -> {
                   CType typeSubstitute =
                       PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                          typeDefDeclaration.getType(), CElaboratedType.class);
+                          typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class));
                   CTypeDefDeclaration newTypeDefDeclaration =
                       new CTypeDefDeclaration(
                           typeDefDeclaration.getFileLocation(),
@@ -288,18 +289,16 @@ public class SequentializationBuilder {
   private static CVariableDeclaration buildVariableDeclarationWithSubstituteType(
       CVariableDeclaration pVariableDeclaration) {
 
-    CType elaboratedTypeSubstitute =
+    CType typeSubstitute =
         PthreadObjectSubstitution.substitutePthreadObjectTypes(
-            pVariableDeclaration.getType(), CElaboratedType.class);
-    CType typedefTypeSubstitute =
-        PthreadObjectSubstitution.substitutePthreadObjectTypes(
-            elaboratedTypeSubstitute, CTypedefType.class);
+            pVariableDeclaration.getType(),
+            ImmutableSet.of(CElaboratedType.class, CTypedefType.class));
 
     return new CVariableDeclaration(
         pVariableDeclaration.getFileLocation(),
         pVariableDeclaration.isGlobal(),
         pVariableDeclaration.getCStorageClass(),
-        typedefTypeSubstitute,
+        typeSubstitute,
         pVariableDeclaration.getName(),
         pVariableDeclaration.getOrigName(),
         pVariableDeclaration.getQualifiedName(),
