@@ -61,9 +61,10 @@ public class PthreadFunctionSubstitution {
       case PTHREAD_COND_SIGNAL ->
           buildCondSignalFunctionStatements(Iterables.getOnlyElement(expressions));
       case PTHREAD_COND_WAIT -> buildCondWaitFunctionStatements(expressions);
-      case PTHREAD_MUTEX_LOCK -> buildMutexLockAssignment(Iterables.getOnlyElement(expressions));
+      case PTHREAD_MUTEX_LOCK ->
+          buildMutexLockFunctionStatements(Iterables.getOnlyElement(expressions));
       case PTHREAD_MUTEX_UNLOCK ->
-          ImmutableList.of(buildMutexUnlockAssignment(Iterables.getOnlyElement(expressions)));
+          buildMutexUnlockFunctionStatements(Iterables.getOnlyElement(expressions));
       case PTHREAD_RWLOCK_RDLOCK ->
           buildRwLockRdLockFunctionStatements(
               Iterables.getOnlyElement(expressions), pBinaryExpressionBuilder);
@@ -168,27 +169,31 @@ public class PthreadFunctionSubstitution {
         false);
   }
 
-  private static ImmutableList<CCompoundStatementElement> buildMutexLockAssignment(
+  private static ImmutableList<CCompoundStatementElement> buildMutexLockFunctionStatements(
       CExpression pMutexExpression) {
 
     CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
-    CCompoundStatementElement mutexLockAssignment =
-        new CStatementWrapper(
-            new CExpressionAssignmentStatement(
-                FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ONE));
     CCompoundStatementElement mutexLockAssumption =
         SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
             new CLogicalNotExpression(new CExpressionWrapper(mutexFieldReference)));
-    return ImmutableList.of(mutexLockAssumption, mutexLockAssignment);
+    return ImmutableList.of(mutexLockAssumption, buildMutexLockAssignment(pMutexExpression));
   }
 
-  private static CCompoundStatementElement buildMutexUnlockAssignment(
-      CExpression pMutexExpression) {
-
+  private static CCompoundStatementElement buildMutexLockAssignment(CExpression pMutexExpression) {
     CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
     return new CStatementWrapper(
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ZERO));
+            FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ONE));
+  }
+
+  private static ImmutableList<CCompoundStatementElement> buildMutexUnlockFunctionStatements(
+      CExpression pMutexExpression) {
+
+    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
+    return ImmutableList.of(
+        new CStatementWrapper(
+            new CExpressionAssignmentStatement(
+                FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ZERO)));
   }
 
   // pthread_cond_t
@@ -200,7 +205,7 @@ public class PthreadFunctionSubstitution {
     CExportStatement condAssignment =
         new CStatementWrapper(
             new CExpressionAssignmentStatement(
-                FileLocation.DUMMY, condFieldReference, CIntegerLiteralExpression.ZERO));
+                FileLocation.DUMMY, condFieldReference, CIntegerLiteralExpression.ONE));
     return ImmutableList.of(condAssignment);
   }
 
@@ -230,7 +235,7 @@ public class PthreadFunctionSubstitution {
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(condFieldReference)),
         condAssignment,
         // on return, the mutex is locked and owned by the calling thread
-        buildMutexUnlockAssignment(mutexExpression));
+        buildMutexLockAssignment(mutexExpression));
   }
 
   private static CFieldReference buildCondFieldReference(CExpression pCondExpression) {
