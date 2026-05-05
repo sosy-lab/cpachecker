@@ -62,13 +62,17 @@ public record SeqThreadStatement(
         "Either targetPc or targetGoto must be present (exclusive or).");
     if (data.getType().containsVariableDeclarations) {
       checkArgument(
-          exportStatements.stream().anyMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type contains variable declarations, then exportStatements must contain"
-              + " at least one CVariableDeclarationWrapper.");
+          exportStatements.stream()
+              .flatMap(export -> export.getAllNestedStatements().stream())
+              .anyMatch(n -> n instanceof CVariableDeclarationWrapper),
+          "If the statement type contains variable declarations, then exportStatements must"
+              + " contain at least one CVariableDeclarationWrapper.");
     }
     if (!data.getType().containsVariableDeclarations) {
       checkArgument(
-          exportStatements.stream().noneMatch(n -> n instanceof CVariableDeclarationWrapper),
+          exportStatements.stream()
+              .flatMap(export -> export.getAllNestedStatements().stream())
+              .noneMatch(n -> n instanceof CVariableDeclarationWrapper),
           "If the statement type is does not contain variable declarations, then exportStatements"
               + " cannot contain a CVariableDeclarationWrapper.");
     }
