@@ -75,7 +75,7 @@ public class DistributedPredicateCPA
             pPredicateCPA.getSolver().getFormulaManager(), pIdToNodeMap.inverse());
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
-            predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), pIdToNodeMap::get);
+            predicateCPA.getAbstractionManager(), pIdToNodeMap::get);
     proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
     stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
     verificationConditionOperator =
@@ -90,7 +90,8 @@ public class DistributedPredicateCPA
             predicateCPA,
             pNode.getPredecessorIds().isEmpty());
     combineOperator = new CombinePredicateStateOperator(predicateCPA);
-    combinePrecisionOperator = new CombinePredicatePrecisionOperator();
+    combinePrecisionOperator =
+        new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
   }
 
   @Override

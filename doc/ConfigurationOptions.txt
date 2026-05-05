@@ -4642,8 +4642,7 @@ distributedSummaries.decomposition.blockCFAFile = "block_analysis/blocks.json"
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
 distributedSummaries.decomposition.decompositionType = MERGE_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
-             NO_DECOMPOSITION]
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
 distributedSummaries.decomposition.generateBlockGraphOnly = false
@@ -4651,22 +4650,25 @@ distributedSummaries.decomposition.generateBlockGraphOnly = false
 # Import an existing decomposition from a file
 distributedSummaries.decomposition.importDecomposition = no default value
 
+# Limits the horizontal merge so that blocks with more Nodes than this are
+# not merged,allowing for more parallelism in the analysis. Negative value
+# allows all merges
+distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT
+
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
   enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
-
-# If this option is set to true, the analysis will try to cover all violation
-# conditions in the block, even if no valid ARG path exists. In some cases,
-# ARGUtils#getAllPaths does not compute all paths as promised. However,
-# setting this option to true may lead to a significant increase in analysis
-# time.
-distributedSummaries.forcefullyCollectAllViolationConditions = false
 
 # output file for visualizing the block graph
 distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
 
 # output file for visualizing message exchange
 distributedSummaries.logging.reportFiles = "block_analysis/messages"
+
+# Whether to reset the precision for each run of the analysis or to keep the
+# transmitted one. The latter has disadvantages as unnecessary variables
+# might be tracked due to a too precise precision.
+distributedSummaries.resetPrecisionForEveryRun = false
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
