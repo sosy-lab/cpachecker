@@ -21,11 +21,15 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -35,6 +39,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   private final FormulaManagerView fmgr;
   private AcslPredicateToFormulaVisitor predicateVisitor;
+  private SSAMapBuilder ssa; // ToDo where do we get this from??
 
   public AcslTermToFormulaVisitor(FormulaManagerView pFmgr) {
     checkNotNull(pFmgr);
@@ -84,6 +89,11 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslIdTerm pAcslIdTerm) throws NoException {
+    AcslSimpleDeclaration variable = pAcslIdTerm.getDeclaration();
+    String varName = variable.getQualifiedName();
+    int useIndex = getIndex(varName, variable.getType());
+    // return fmgr.makeVariable(pAcslIdTerm.getExpressionType(), varName, useIndex); Is there a
+    // mapping of ACSL types to SMT types that I can use here?
     return null;
   }
 
@@ -129,5 +139,26 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   @Override
   public Formula visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
     return null;
+  }
+
+  /**
+   * Returns the index of a variable in the ssa map, or creates one with value 1 for new variables
+   * (A bit ugly because of code duplication, might remove later if there is another way)
+   *
+   * @return the index of the variable
+   */
+  private int getIndex(String name, AcslType type) {
+    Type existingType = ssa.getType(name);
+    if (existingType != null && !type.equals(existingType)) {
+      throw new IllegalArgumentException(
+          "Variable " + name + " has conflicting types: " + ssa.getType(name) + " and " + type);
+    }
+
+    int idx = ssa.getIndex(name);
+    if (idx <= 0) {
+      idx = 1; // uninitialized variable
+      ssa.setIndex(name, type, idx);
+    }
+    return idx;
   }
 }
