@@ -60,22 +60,17 @@ public record SeqThreadStatement(
     checkArgument(
         targetPc.isPresent() ^ targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present (exclusive or).");
-    if (data.getType().equals(SeqThreadStatementType.CONST_CPACHECKER_TMP)) {
+    if (data.getType().containsVariableDeclarations) {
       checkArgument(
           exportStatements.stream().anyMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type is CONST_CPACHECKER_TMP, then exportStatements must contain"
-              + " a CVariableDeclarationWrapper.");
+          "If the statement type contains variable declarations, then exportStatements must contain"
+              + " at least one CVariableDeclarationWrapper.");
     }
-    if (!data.getType()
-        .in(
-            SeqThreadStatementType.CONST_CPACHECKER_TMP,
-            SeqThreadStatementType.RW_LOCK_RD_LOCK,
-            SeqThreadStatementType.RW_LOCK_UNLOCK)) {
+    if (!data.getType().containsVariableDeclarations) {
       checkArgument(
           exportStatements.stream().noneMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type is %s, then exportStatements cannot contain"
-              + " a CVariableDeclarationWrapper.",
-          data.getType());
+          "If the statement type is does not contain variable declarations, then exportStatements"
+              + " cannot contain a CVariableDeclarationWrapper.");
     }
   }
 
