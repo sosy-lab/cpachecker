@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -51,8 +51,9 @@ public class DistributedPredicateCPA
   private final ProceedOperator proceedOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator stateCoverageOperator;
-  private final CombineOperator combineOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
+  private final PredicateStateCombineViolationConditionOperator combineViolationConditionsOperator;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -89,9 +90,11 @@ public class DistributedPredicateCPA
                 AnalysisDirection.BACKWARD),
             predicateCPA,
             pNode.getPredecessorIds().isEmpty());
-    combineOperator = new CombinePredicateStateOperator(predicateCPA);
+    combinePreconditionsOperator = new CombinePredicateStatePreconditionsOperator(predicateCPA);
     combinePrecisionOperator =
         new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
+    combineViolationConditionsOperator =
+        new PredicateStateCombineViolationConditionOperator(predicateCPA.getPathFormulaManager());
   }
 
   @Override
@@ -148,6 +151,11 @@ public class DistributedPredicateCPA
   }
 
   @Override
+  public PredicateStateCombineViolationConditionOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionsOperator;
+  }
+
+  @Override
   public AbstractState reset(AbstractState pAbstractState) {
     Preconditions.checkArgument(
         pAbstractState instanceof PredicateAbstractState,
@@ -167,8 +175,8 @@ public class DistributedPredicateCPA
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combineOperator;
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
   }
 
   @Override
