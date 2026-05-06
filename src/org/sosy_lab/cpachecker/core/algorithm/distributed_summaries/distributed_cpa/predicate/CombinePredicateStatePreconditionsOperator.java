@@ -44,8 +44,7 @@ public class CombinePredicateStatePreconditionsOperator implements CombinePrecon
    * @return the combined PredicateAbstractState
    */
   @Override
-  public AbstractState combinePreconditions(Collection<AbstractState> states)
-      throws CPAException, InterruptedException {
+  public AbstractState combinePreconditions(Collection<AbstractState> states) {
     Preconditions.checkArgument(!states.isEmpty(), "There must be at least one state to combine.");
     FluentIterable<@NonNull PredicateAbstractState> predicateAbstractStates =
         FluentIterable.from(states).filter(PredicateAbstractState.class);
