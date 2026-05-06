@@ -505,7 +505,8 @@ abstract class AbstractBMCAlgorithm
                 Level.INFO,
                 safe
                     ? "Non-termination mode: current candidate is reachable for the current k."
-                    : "Non-termination mode: current candidate is not reachable for the current k.");
+                    : "Non-termination mode: current candidate is not reachable for the current"
+                          + " k.");
           }
           if (safe && isNonTerminationMode()) {
             candidatesWithSuccessfulBaseCase.add(candidateInvariant);

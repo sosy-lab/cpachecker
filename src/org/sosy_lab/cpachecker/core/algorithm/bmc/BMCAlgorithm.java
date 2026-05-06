@@ -66,8 +66,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
-import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -171,7 +171,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, InterruptedException {
     try {
       AlgorithmStatus status = super.run(reachedSet);
-      if ((terminationMode || nonTerminationMode) && terminationCandidatesIncomplete && status.isSound()) {
+      if ((terminationMode || nonTerminationMode)
+          && terminationCandidatesIncomplete
+          && status.isSound()) {
         logger.log(
             Level.WARNING,
             terminationMode
@@ -266,14 +268,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
     for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      ImmutableSet<CandidateInvariant> loopCandidates = getLoopContinuationCandidates(loop, pNegated);
+      ImmutableSet<CandidateInvariant> loopCandidates =
+          getLoopContinuationCandidates(loop, pNegated);
       if (loopCandidates.isEmpty()) {
         loopsWithoutTerminationCandidates++;
         logger.logf(
             Level.FINE,
             pNegated
-                ? "Termination mode could not derive a loop-continuation candidate for loop heads %s."
-                : "Non-termination mode could not derive a loop-continuation candidate for loop heads %s.",
+                ? "Termination mode could not derive a loop-continuation candidate for loop heads"
+                      + " %s."
+                : "Non-termination mode could not derive a loop-continuation candidate for loop"
+                      + " heads %s.",
             loop.getLoopHeads());
       } else {
         candidates.addAll(loopCandidates);
@@ -319,7 +324,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return new StaticCandidateProvider(continuationCandidates);
   }
 
-  private ImmutableSet<CandidateInvariant> getLoopContinuationCandidates(Loop pLoop, boolean pNegated) {
+  private ImmutableSet<CandidateInvariant> getLoopContinuationCandidates(
+      Loop pLoop, boolean pNegated) {
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
     addLoopHeadCandidates(pLoop, candidates, pNegated);
     addInternalExitGuardCandidates(pLoop, candidates, pNegated);
