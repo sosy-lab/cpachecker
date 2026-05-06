@@ -4618,6 +4618,9 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
+# Whether to combine violation conditions at same program location
+distributedSummaries.combineVcsByHash = true
+
 # Whether to enable debug mode of block-summary analysis. This creates visual
 # output for debugging and exports additional metadata.Creating this
 # information consumes resources and should not be used for benchmarks.

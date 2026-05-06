@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DeserializeValueAnalysisStateOperator.havocVariables;
 
+import com.google.common.collect.Iterables;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -23,8 +25,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -120,6 +123,11 @@ public class DistributedValueAnalysisCPA
   }
 
   @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return (states) -> Iterables.getOnlyElement(states);
+  }
+
+  @Override
   public ProceedOperator getProceedOperator() {
     return proceedOperator;
   }
@@ -135,7 +143,7 @@ public class DistributedValueAnalysisCPA
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
+  public CombinePreconditionsOperator getCombineOperator() {
     return null;
   }
 
@@ -162,6 +170,11 @@ public class DistributedValueAnalysisCPA
   @Override
   public AbstractState reset(AbstractState pAbstractState) {
     return pAbstractState;
+  }
+
+  @Override
+  public int programCounterHash(AbstractState pAbstractState) {
+    return Objects.hash(pAbstractState, this);
   }
 
   @Override
