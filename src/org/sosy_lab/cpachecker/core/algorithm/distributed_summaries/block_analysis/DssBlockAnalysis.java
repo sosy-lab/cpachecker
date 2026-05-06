@@ -121,6 +121,7 @@ public class DssBlockAnalysis {
   private boolean containsViolationInsideBlock;
 
   private final boolean resetPrecisionsForEveryRun;
+  private final boolean combineByHash;
 
   public DssBlockAnalysis(
       LogManager pLogger,
@@ -164,6 +165,7 @@ public class DssBlockAnalysis {
     relevant = new ArrayList<>();
 
     containsViolationInsideBlock = false;
+    combineByHash = pOptions.combineByHash();
   }
 
   /**
@@ -260,12 +262,19 @@ public class DssBlockAnalysis {
       }
     }
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
-    for (Integer i : statePerProgramCounter.keySet()) {
-      vcs.add(
-          new StateAndPrecision(
-              dcpa.getCombineViolationConditionsOperator()
-                  .combineViolationConditionsAtSameProgramHash(statePerProgramCounter.get(i)),
-              makeStartPrecision()));
+    if (combineByHash) {
+      for (Integer i : statePerProgramCounter.keySet()) {
+        vcs.add(
+            new StateAndPrecision(
+                dcpa.getCombineViolationConditionsOperator()
+                    .combineViolationConditionsAtSameProgramHash(statePerProgramCounter.get(i)),
+                makeStartPrecision()));
+      }
+    } else {
+      Precision p = makeStartPrecision();
+      vcs.addAll(
+          FluentIterable.from(statePerProgramCounter.values())
+              .transform(s -> new StateAndPrecision(s, p)));
     }
     ImmutableList<StateAndPrecision> allVcs = vcs.build();
     if (allVcs.isEmpty()) {
@@ -708,7 +717,7 @@ public class DssBlockAnalysis {
       reachedSet.clear();
       reachedSet.add(
           stateAndPrecision.state(),
-          resetPrecisionsForEveryRun
+          resetPrecisionsForEveryRun || isTrivial
               ? makeStartPrecision()
               : combinePrecisionIfPossible().orElse(stateAndPrecision.precision()));
       Objects.requireNonNull(
@@ -720,8 +729,7 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        if ((!result.getFinalLocationStates().isEmpty() && !isTrivial)
-            || (isTrivial && result.getViolationConditionViolations().isEmpty())) {
+        if (!result.getFinalLocationStates().isEmpty()) {
           // pack all summaries
           ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           for (AbstractState summary : result.getFinalLocationStates()) {
