@@ -8,9 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -22,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DistributedConstraintsCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -73,6 +79,11 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   }
 
   @Override
+  public int programCounterHash(AbstractState pAbstractState) {
+    return Objects.hash(this, pAbstractState);
+  }
+
+  @Override
   public ProceedOperator getProceedOperator() {
     return proceedOperator;
   }
@@ -88,8 +99,13 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
+  public CombinePreconditionsOperator getCombineOperator() {
     return null;
+  }
+
+  @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return states -> Iterables.getOnlyElement(states);
   }
 
   @Override
