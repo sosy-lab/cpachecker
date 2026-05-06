@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -40,7 +42,8 @@ public class DistributedARGCPA extends AbstractSingleWrapperCPA
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
-  private final CombineOperator combineOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
+  private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
   public DistributedARGCPA(ARGCPA pARGCPA, DistributedConfigurableProgramAnalysis pWrapped) {
     super(pWrapped);
@@ -53,7 +56,8 @@ public class DistributedARGCPA extends AbstractSingleWrapperCPA
     deserializePrecisionOperator = new DeserializeARGPrecisionOperator(wrappedCPA);
     verificationConditionOperator = new ARGViolationConditionOperator(wrappedCPA);
     coverageOperator = new ARGStateCoverageOperator(wrappedCPA);
-    combineOperator = new ARGStateCombineOperator(wrappedCPA);
+    combinePreconditionsOperator = new ARGStateCombinePreconditionsOperator(wrappedCPA);
+    combineViolationConditionsOperator = new ARGStateCombineViolationConditionOperator(wrappedCPA);
   }
 
   @Override
@@ -128,11 +132,22 @@ public class DistributedARGCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combineOperator;
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
+  }
+
+  @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionsOperator;
   }
 
   public DistributedConfigurableProgramAnalysis getWrappedCPA() {
     return wrappedCPA;
+  }
+
+  @Override
+  public int programCounterHash(AbstractState pAbstractState) {
+    Preconditions.checkArgument(pAbstractState instanceof ARGState);
+    return wrappedCPA.programCounterHash(((ARGState) pAbstractState).getWrappedState());
   }
 }

@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,21 +37,28 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.errorhandling.Either;
+import org.sosy_lab.cpachecker.util.errorhandling.ErrorCase;
+import org.sosy_lab.cpachecker.util.errorhandling.SuccessCase;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   private final BlockNode block;
 
-  private final DssBlockAnalysis dssBlockAnalysis;
+  private final Supplier<Either<DssBlockAnalysis, Exception>> createAnalysis;
   private final LogManager logger;
   private final DssMessageFactory messageFactory;
   private boolean shutdown;
+  private boolean closed;
 
   private final DssConnection connection;
 
   private final ThreadCPUTimer forwardAnalysisTime = new ThreadCPUTimer("Forward Analysis");
   private final ThreadCPUTimer backwardAnalysisTime = new ThreadCPUTimer("Backward Analysis");
+
+  private DssBlockAnalysis dssBlockAnalysis;
+  private String threadName;
 
   /**
    * {@link DssAnalysisWorker}s trigger forward and backward analyses to find a verification
@@ -63,8 +71,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
    * @param pCFA complete CFA of which pBlock is a subgraph
    * @param pSpecification specification that should not be violated
    * @param pShutdownManager handler for unexpected shutdowns
-   * @throws CPAException exceptions that are logged
-   * @throws InterruptedException thrown if user exits program
    * @throws InvalidConfigurationException thrown if configuration contains unexpected values
    * @throws IOException thrown if socket and/or files are not readable
    */
@@ -78,7 +84,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       DssMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager,
       LogManager pLogger)
-      throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+      throws InvalidConfigurationException, IOException {
     super("analysis-worker-" + pId, pMessageFactory, pLogger);
     block = pBlock;
     connection = pConnection;
@@ -93,16 +99,23 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
     messageFactory = pMessageFactory;
     logger = pLogger;
-    dssBlockAnalysis =
-        new DssBlockAnalysis(
-            logger,
-            pBlock,
-            pCFA,
-            pSpecification,
-            forwardConfiguration,
-            pOptions,
-            pMessageFactory,
-            pShutdownManager);
+    createAnalysis =
+        () -> {
+          try {
+            return new SuccessCase<>(
+                new DssBlockAnalysis(
+                    logger,
+                    pBlock,
+                    pCFA,
+                    pSpecification,
+                    forwardConfiguration,
+                    pOptions,
+                    pMessageFactory,
+                    pShutdownManager));
+          } catch (CPAException | InvalidConfigurationException | InterruptedException e) {
+            return new ErrorCase<>(e);
+          }
+        };
   }
 
   public Collection<DssMessage> runInitialAnalysis()
@@ -192,7 +205,10 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             broadcaster.broadcastToIds(message, block.getPredecessorIds());
           }
         }
-        case EXCEPTION, RESULT, STATISTIC -> broadcaster.broadcastToAll(message);
+        case EXCEPTION, RESULT, STATISTIC -> {
+          broadcaster.broadcastToAll(message);
+          close();
+        }
       }
     }
   }
@@ -205,12 +221,19 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   @Override
   public void run() {
     try {
+      threadName = Thread.currentThread().getName();
+      dssBlockAnalysis =
+          switch (createAnalysis.get()) {
+            case SuccessCase<DssBlockAnalysis, Exception> success -> success.value();
+            case ErrorCase<DssBlockAnalysis, Exception> error -> throw error.value();
+          };
       broadcastInitialMessages();
       super.run();
     } catch (Exception | Error e) {
       logger.logException(Level.SEVERE, e, "Worker stopped working due to an error...");
       broadcastOrLogException(
           ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e)));
+      close();
       shutdown = true;
     }
   }
@@ -245,6 +268,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   @Override
   public void close() {
-    CPAs.closeCpaIfPossible(dssBlockAnalysis.getDcpa(), logger);
+    if (!closed && threadName != null && Thread.currentThread().getName().equals(threadName)) {
+      CPAs.closeCpaIfPossible(dssBlockAnalysis.getDcpa(), logger);
+      closed = true;
+    }
   }
 }

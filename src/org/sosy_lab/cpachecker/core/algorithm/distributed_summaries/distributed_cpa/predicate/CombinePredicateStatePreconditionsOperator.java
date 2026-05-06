@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -24,11 +24,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
-public class CombinePredicateStateOperator implements CombineOperator {
+public class CombinePredicateStatePreconditionsOperator implements CombinePreconditionsOperator {
 
   private final PredicateCPA predicateCPA;
 
-  public CombinePredicateStateOperator(PredicateCPA pPredicateCPA) {
+  public CombinePredicateStatePreconditionsOperator(PredicateCPA pPredicateCPA) {
     predicateCPA = pPredicateCPA;
   }
 
@@ -44,8 +44,7 @@ public class CombinePredicateStateOperator implements CombineOperator {
    * @return the combined PredicateAbstractState
    */
   @Override
-  public AbstractState combine(Collection<AbstractState> states)
-      throws CPAException, InterruptedException {
+  public AbstractState combinePreconditions(Collection<AbstractState> states) {
     Preconditions.checkArgument(!states.isEmpty(), "There must be at least one state to combine.");
     FluentIterable<@NonNull PredicateAbstractState> predicateAbstractStates =
         FluentIterable.from(states).filter(PredicateAbstractState.class);

@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -58,6 +59,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   CombinePrecisionOperator getCombinePrecisionOperator();
 
+  CombineViolationConditionsOperator getCombineViolationConditionsOperator();
+
   /**
    * Operator that decides whether to proceed with an analysis based on the given message.
    *
@@ -69,7 +72,7 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   CoverageOperator getCoverageOperator();
 
-  CombineOperator getCombineOperator();
+  CombinePreconditionsOperator getCombineOperator();
 
   /**
    * The abstract state this distributed analysis works n.
@@ -117,5 +120,9 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return getAbstractStateClass().isAssignableFrom(pClass);
+  }
+
+  default int programCounterHash(AbstractState pAbstractState) {
+    return 0;
   }
 }

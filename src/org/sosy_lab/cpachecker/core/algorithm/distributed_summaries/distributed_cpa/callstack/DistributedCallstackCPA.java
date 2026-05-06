@@ -14,10 +14,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -43,11 +44,12 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final DeserializeOperator deserialize;
   private final CoverageOperator coverageOperator;
   private final ViolationConditionOperator verificationConditionOperator;
-  private final CombineOperator combineOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final BlockNode block;
+  private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
@@ -67,10 +69,12 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
         new BackwardTransferViolationConditionOperator(
             callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA);
     coverageOperator = new CallstackStateCoverageOperator();
-    combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
+    combinePreconditionsOperator =
+        new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
+    combineViolationConditionsOperator = new CallstackStateCombineViolationConditionOperator();
   }
 
   @Override
@@ -104,6 +108,11 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
     return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionsOperator;
   }
 
   @Override
@@ -149,7 +158,12 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combineOperator;
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
+  }
+
+  @Override
+  public int programCounterHash(AbstractState pAbstractState) {
+    return ((CallstackState) pAbstractState).proofCheckingHash();
   }
 }

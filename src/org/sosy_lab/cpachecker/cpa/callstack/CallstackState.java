@@ -16,6 +16,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -95,7 +96,7 @@ public class CallstackState
   }
 
   /** for logging and debugging */
-  private List<String> getStack() {
+  public List<String> getStack() {
     final List<String> stack = new ArrayList<>();
     CallstackState state = this;
     while (state != null) {
@@ -132,6 +133,14 @@ public class CallstackState
             || (previousState != null
                 && pOther.previousState != null
                 && previousState.sameStateInProofChecking(pOther.previousState)));
+  }
+
+  public int proofCheckingHash() {
+    return Objects.hash(
+        callerNode.getNodeNumber(),
+        depth,
+        currentFunction,
+        previousState == null ? 0 : previousState.hashCode());
   }
 
   @Override
