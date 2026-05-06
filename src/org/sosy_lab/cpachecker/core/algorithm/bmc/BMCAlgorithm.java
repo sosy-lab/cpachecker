@@ -276,9 +276,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             Level.FINE,
             pNegated
                 ? "Termination mode could not derive a loop-continuation candidate for loop heads"
-                      + " %s."
+                    + " %s."
                 : "Non-termination mode could not derive a loop-continuation candidate for loop"
-                      + " heads %s.",
+                    + " heads %s.",
             loop.getLoopHeads());
       } else {
         candidates.addAll(loopCandidates);

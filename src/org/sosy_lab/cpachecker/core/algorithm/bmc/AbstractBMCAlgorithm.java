@@ -506,7 +506,7 @@ abstract class AbstractBMCAlgorithm
                 safe
                     ? "Non-termination mode: current candidate is reachable for the current k."
                     : "Non-termination mode: current candidate is not reachable for the current"
-                          + " k.");
+                        + " k.");
           }
           if (safe && isNonTerminationMode()) {
             candidatesWithSuccessfulBaseCase.add(candidateInvariant);
@@ -743,7 +743,8 @@ abstract class AbstractBMCAlgorithm
 
   protected void reportConfirmedNonTermination(
       ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
-    // Default: do nothing.
+    checkNotNull(pReachedSet);
+    checkNotNull(pCandidateInvariant);
   }
 
   protected final FormulaManagerView getFormulaManager() {
