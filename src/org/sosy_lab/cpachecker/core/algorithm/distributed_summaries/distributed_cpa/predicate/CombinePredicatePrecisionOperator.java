@@ -8,16 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class CombinePredicatePrecisionOperator implements CombinePrecisionOperator {
@@ -26,6 +33,40 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
 
   public CombinePredicatePrecisionOperator(FormulaManagerView pFmgr) {
     fmgr = pFmgr;
+  }
+
+  private boolean isRequired(AbstractionPredicate p, Set<String> importantVariables) {
+    if (fmgr.getBooleanFormulaManager().isTrue(p.getSymbolicAtom())
+        || fmgr.getBooleanFormulaManager().isFalse(p.getSymbolicAtom())) {
+      return true;
+    }
+    Set<String> containedVariables = fmgr.extractVariables(p.getSymbolicAtom()).keySet();
+    return !Sets.intersection(importantVariables, containedVariables).isEmpty();
+  }
+
+  private <K> ImmutableListMultimap<K, AbstractionPredicate> toMultimap(
+      Collection<Entry<K, AbstractionPredicate>> entries, Set<String> importantVariables) {
+    return entries.stream()
+        .filter(entry -> isRequired(entry.getValue(), importantVariables))
+        .collect(ImmutableListMultimap.toImmutableListMultimap(Entry::getKey, Entry::getValue));
+  }
+
+  /** Create a new precision that is the union of all given precisions. */
+  private Precision unionOf(Collection<Precision> precisions, Set<String> removeOthers) {
+    if (precisions.isEmpty()) {
+      return PredicatePrecision.empty();
+    }
+    if (precisions.size() == 1) {
+      return Iterables.getOnlyElement(precisions);
+    }
+
+    PredicatePrecision union = PredicatePrecision.unionOf(precisions);
+
+    return new PredicatePrecision(
+        toMultimap(union.getLocationInstancePredicates().entries(), removeOthers),
+        toMultimap(union.getLocalPredicates().entries(), removeOthers),
+        toMultimap(union.getFunctionPredicates().entries(), removeOthers),
+        from(union.getGlobalPredicates()).filter(p -> isRequired(p, removeOthers)).toSet());
   }
 
   @Override
@@ -48,6 +89,6 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
         }
       }
     }
-    return PredicatePrecision.unionOf(precisions, count.keySet());
+    return unionOf(precisions, count.keySet());
   }
 }

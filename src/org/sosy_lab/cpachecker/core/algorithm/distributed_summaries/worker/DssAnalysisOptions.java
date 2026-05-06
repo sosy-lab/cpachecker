@@ -65,6 +65,12 @@ public class DssAnalysisOptions {
       secure = true)
   private boolean resetPrecisionForEveryRun = false;
 
+  @Option(
+      name = "combineVcsByHash",
+      description = "Whether to combine violation conditions at same program location",
+      secure = true)
+  private boolean combineByHash = true;
+
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
   }
@@ -91,5 +97,9 @@ public class DssAnalysisOptions {
 
   public Path getLogDirectory() {
     return logDirectory;
+  }
+
+  public boolean combineByHash() {
+    return combineByHash;
   }
 }

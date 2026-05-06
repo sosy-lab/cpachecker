@@ -21,8 +21,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -54,7 +55,8 @@ public class DistributedCompositeCPA
   private final SerializeCompositePrecisionOperator serializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
-  private final CombineOperator combineOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
+  private final CombineViolationConditionsOperator combineViolationConditionOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
 
   private final ImmutableList<ConfigurableProgramAnalysis> wrappedCpas;
@@ -86,7 +88,11 @@ public class DistributedCompositeCPA
     deserializePrecisionOperator = new DeserializeCompositePrecisionOperator(wrappedCpas, pNode);
     verificationConditionOperator = new CompositeViolationConditionOperator(wrappedCpas);
     coverageOperator = new CompositeStateCoverageOperator(wrappedCpas);
-    combineOperator = new CombineCompositeStateOperator(wrappedCpas, pNode.getInitialLocation());
+    combinePreconditionsOperator =
+        new CombineCompositeStatePreconditionsOperator(wrappedCpas, pNode.getInitialLocation());
+    combineViolationConditionOperator =
+        new CombineCompositeStateViolationConditionOperator(
+            wrappedCpas, pNode.getInitialLocation());
     combinePrecisionOperator = new CombineCompositePrecisionOperator(wrappedCpas);
   }
 
@@ -155,8 +161,8 @@ public class DistributedCompositeCPA
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combineOperator;
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
   }
 
   @Override
@@ -172,6 +178,11 @@ public class DistributedCompositeCPA
   @Override
   public CombinePrecisionOperator getCombinePrecisionOperator() {
     return combinePrecisionOperator;
+  }
+
+  @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionOperator;
   }
 
   @Override
@@ -268,5 +279,19 @@ public class DistributedCompositeCPA
     // that must be closed. So we can not delegate to compositeCPA to get the wrapped CPAs; instead,
     // we need to make sure to return the Distributed*CPA versions.
     return wrappedCpas;
+  }
+
+  @Override
+  public int programCounterHash(AbstractState pAbstractState) {
+    CompositeState composite = (CompositeState) pAbstractState;
+    Preconditions.checkArgument(composite.getWrappedStates().size() == wrappedCpas.size());
+    int hash = 0;
+    for (CpaAndState cpaAndState : zip(wrappedCpas, composite)) {
+      if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        Preconditions.checkState(dcpa.doesOperateOn(cpaAndState.state().getClass()));
+        hash = 31 * hash + dcpa.programCounterHash(cpaAndState.state());
+      }
+    }
+    return hash;
   }
 }

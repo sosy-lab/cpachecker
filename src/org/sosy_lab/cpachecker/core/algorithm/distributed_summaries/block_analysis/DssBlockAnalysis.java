@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -122,6 +121,7 @@ public class DssBlockAnalysis {
   private boolean containsViolationInsideBlock;
 
   private final boolean resetPrecisionsForEveryRun;
+  private final boolean combineByHash;
 
   public DssBlockAnalysis(
       LogManager pLogger,
@@ -165,6 +165,7 @@ public class DssBlockAnalysis {
     relevant = new ArrayList<>();
 
     containsViolationInsideBlock = false;
+    combineByHash = pOptions.combineByHash();
   }
 
   /**
@@ -245,16 +246,33 @@ public class DssBlockAnalysis {
 
   private Collection<DssMessage> reportViolationConditions(
       Collection<ArgPathAndCondition> relevantViolations)
-      throws InterruptedException, CPATransferException, SolverException {
-    ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
+      throws InterruptedException, CPAException, SolverException {
+    ArrayListMultimap<Integer, AbstractState> statePerProgramCounter = ArrayListMultimap.create();
     for (ArgPathAndCondition pathAndCondition : relevantViolations) {
       Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(
                   pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition));
       if (violationCondition.isPresent()) {
-        vcs.add(new StateAndPrecision(violationCondition.orElseThrow(), makeStartPrecision()));
+        statePerProgramCounter.put(
+            dcpa.programCounterHash(violationCondition.orElseThrow()),
+            violationCondition.orElseThrow());
       }
+    }
+    ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
+    if (combineByHash) {
+      for (Integer i : statePerProgramCounter.keySet()) {
+        vcs.add(
+            new StateAndPrecision(
+                dcpa.getCombineViolationConditionsOperator()
+                    .combineViolationConditionsAtSameProgramHash(statePerProgramCounter.get(i)),
+                makeStartPrecision()));
+      }
+    } else {
+      Precision p = makeStartPrecision();
+      vcs.addAll(
+          FluentIterable.from(statePerProgramCounter.values())
+              .transform(s -> new StateAndPrecision(s, p)));
     }
     ImmutableList<StateAndPrecision> allVcs = vcs.build();
     if (allVcs.isEmpty()) {
@@ -696,7 +714,7 @@ public class DssBlockAnalysis {
       reachedSet.clear();
       reachedSet.add(
           stateAndPrecision.state(),
-          resetPrecisionsForEveryRun
+          resetPrecisionsForEveryRun || isTrivial
               ? makeStartPrecision()
               : combinePrecisionIfPossible().orElse(stateAndPrecision.precision()));
       Objects.requireNonNull(
