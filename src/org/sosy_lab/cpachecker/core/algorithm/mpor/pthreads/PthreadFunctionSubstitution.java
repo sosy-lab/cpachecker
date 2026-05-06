@@ -25,16 +25,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType.PthreadObjectSubstitutions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
@@ -47,15 +50,29 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 public class PthreadFunctionSubstitution {
 
   public static ImmutableList<CCompoundStatementElement> buildInlinedFunctionStatements(
+      CFAEdge pOriginalCfaEdge,
       ImmutableList<CExpression> pParameterExpressions,
       PthreadFunctionType pFunctionType,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList<CExpression> expressions =
-        isAnyPointer(pParameterExpressions)
-            ? pParameterExpressions
-            : getIdExpressionsFromExpressions(pParameterExpressions);
+    ImmutableList<CExpression> expressions;
+    if (isAnyPointer(pParameterExpressions)) {
+      expressions = pParameterExpressions;
+    } else {
+      ImmutableList.Builder<CExpression> nonPointerExpressions = ImmutableList.builder();
+      for (CExpression expression : pParameterExpressions) {
+        if (expression instanceof CUnaryExpression unaryExpression
+            && unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+          nonPointerExpressions.add(unaryExpression.getOperand());
+        } else {
+          throw new UnsupportedCodeException(
+              "Expected CUnaryExpression with UnaryOperator.AMPER as parameter expression but got ",
+              pOriginalCfaEdge);
+        }
+      }
+      expressions = nonPointerExpressions.build();
+    }
 
     return switch (pFunctionType) {
       case PTHREAD_COND_SIGNAL ->
@@ -95,20 +112,6 @@ public class PthreadFunctionSubstitution {
       }
     }
     return false;
-  }
-
-  private static ImmutableList<CExpression> getIdExpressionsFromExpressions(
-      ImmutableList<CExpression> pExpressions) {
-
-    ImmutableList.Builder<CExpression> rIdExpressions = ImmutableList.builder();
-    for (CExpression expression : pExpressions) {
-      CSimpleDeclaration declaration =
-          Iterables.getOnlyElement(
-              SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(expression, true));
-      CVariableDeclaration variableDeclaration = MPORUtil.convertToVariableDeclaration(declaration);
-      rIdExpressions.add(new CIdExpression(FileLocation.DUMMY, variableDeclaration));
-    }
-    return rIdExpressions.build();
   }
 
   private static ImmutableList<CCompoundStatementElement>
