@@ -63,7 +63,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Bitwuzla in addition to the default options. Format: 
-# "option_name=value" with ?,? to separate options. Option names and values
+# "option_name=value" with ’,’ to separate options. Option names and values
 # can be found in the Bitwuzla documentation online:
 # https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionE
 # Example: "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
@@ -74,7 +74,7 @@ solver.bitwuzla.satSolver = CADICAL
   enum:     [LINGELING, CMS, CADICAL, KISSAT]
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ?,? to separate options. Option names and values
+# "Optionname=value" with ’,’ to separate options. Option names and values
 # can be found in BtorOption or Boolector C Api. Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -219,7 +219,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 Universit? Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
