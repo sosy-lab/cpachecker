@@ -82,8 +82,9 @@ public class BlockGraph {
       if (!blockNode.getSuccessorIds().isEmpty()) {
         Preconditions.checkState(
             isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),
-            "BlockNodes require to have exactly one exit node (%s).",
-            blockNode);
+            "BlockNodes require to have exactly one exit node %s (%s).",
+            blockNode.getFinalLocation(),
+            blockNode.getEdges());
       }
     }
   }
@@ -92,7 +93,7 @@ public class BlockGraph {
     ArrayDeque<CFANode> waiting = new ArrayDeque<>();
     waiting.push(pStartNode);
     SequencedSet<CFANode> covered = new LinkedHashSet<>();
-    int count = 0;
+    ImmutableSet.Builder<CFANode> withoutSuccessor = ImmutableSet.builder();
     while (!waiting.isEmpty()) {
       CFANode curr = waiting.pop();
       boolean hasSuccessor = false;
@@ -105,11 +106,11 @@ public class BlockGraph {
         }
       }
       if (!hasSuccessor) {
-        count++;
+        withoutSuccessor.add(curr);
       }
       covered.add(curr);
     }
-    return count <= 1;
+    return withoutSuccessor.build().size() <= 1;
   }
 
   public static BlockGraph fromBlockNodesWithoutGraphInformation(
