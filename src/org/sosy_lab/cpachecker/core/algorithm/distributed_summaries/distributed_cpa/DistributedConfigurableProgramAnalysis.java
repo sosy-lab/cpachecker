@@ -105,6 +105,15 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   boolean isMostGeneralBlockEntryState(AbstractState pAbstractState);
 
   /**
+   * Hash the current location of the abstract state. This is typically given by the CFA node, the
+   * callstack, and the function pointer state.
+   *
+   * @param pAbstractState Any abstract state.
+   * @return an identifier for unique program points.
+   */
+  int computeProgramPointHash(AbstractState pAbstractState);
+
+  /**
    * Reset the given abstract state to the initial value iff the abstract state is mutable.
    *
    * @param pAbstractState The abstract state to reset.
@@ -120,9 +129,5 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return getAbstractStateClass().isAssignableFrom(pClass);
-  }
-
-  default int programCounterHash(AbstractState pAbstractState) {
-    return 0;
   }
 }

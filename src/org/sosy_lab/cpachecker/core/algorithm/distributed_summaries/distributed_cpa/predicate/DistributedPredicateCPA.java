@@ -151,6 +151,11 @@ public class DistributedPredicateCPA
   }
 
   @Override
+  public int computeProgramPointHash(AbstractState pAbstractState) {
+    return 0;
+  }
+
+  @Override
   public PredicateStateCombineViolationConditionOperator getCombineViolationConditionsOperator() {
     return combineViolationConditionsOperator;
   }
