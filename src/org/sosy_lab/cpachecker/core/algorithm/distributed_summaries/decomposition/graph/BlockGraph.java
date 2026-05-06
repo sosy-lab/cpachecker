@@ -19,8 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,7 +29,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -167,7 +164,7 @@ public class BlockGraph {
     return new BlockGraph(nodes.build());
   }
 
-  public void export(Path blockCFAFile, CFA cfa) throws IOException {
+  public Map<String, Map<String, Object>> getExportData(CFA cfa) {
     Map<String, Map<String, Object>> treeMap = new HashMap<>();
     int minCfaNodeNumber =
         cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().orElseThrow();
@@ -200,7 +197,7 @@ public class BlockGraph {
                       n.getViolationConditionLocation().getNodeNumber(), minCfaNodeNumber));
               treeMap.put(n.getId(), attributes);
             });
-    JSON.writeJSONString(treeMap, blockCFAFile);
+    return treeMap;
   }
 
   // All node IDs are shifted such that they start from 0

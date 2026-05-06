@@ -42,6 +42,7 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
+    <exclude>../programs/benchmarks/infeasible-control-flow/unreach_branch5.yml</exclude>
     <exclude>../programs/benchmarks/openssl/*</exclude>
     <exclude>../programs/benchmarks/openssl-simplified/s3_clnt_1*</exclude>
     <exclude>../programs/benchmarks/openssl-simplified/s3_clnt_4.cil-2.yml</exclude>

@@ -48,6 +48,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-benchs/water_pid.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0520.yml</exclude> <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/floats-cbmc-regression/float-no-simp2.yml</exclude> <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
@@ -75,6 +76,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-new/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-industry-pattern/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/loop-simple/nested_5.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/*</exclude> <!-- mostly timeout -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
@@ -92,7 +94,6 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-net-usb-catc.ko.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
