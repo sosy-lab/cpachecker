@@ -12,6 +12,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -37,30 +38,40 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormula;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormulaNegation;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopScopedFrontierEdgeFormula;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopScopedFrontierEdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.StatewiseCandidateInvariantDisjunction;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
+import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -85,6 +96,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           "Switch BMC from target-state reachability checking to an experimental"
               + " termination-oriented mode.")
   private boolean terminationMode = false;
+
+  @Option(
+      name = "bmc.nonTerminationMode",
+      secure = true,
+      description =
+          "Switch BMC to a strong non-termination mode that uses a SAT base case and"
+              + " safety-style k-induction over loop-continuation conditions.")
+  private boolean nonTerminationMode = false;
 
   // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
   @Option(
@@ -136,6 +155,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         pAggregatedReachedSets);
     pConfig.inject(this);
 
+    if (terminationMode && nonTerminationMode) {
+      throw new InvalidConfigurationException(
+          "bmc.terminationMode and bmc.nonTerminationMode cannot be enabled at the same time.");
+    }
+
     config = pConfig;
     cfa = pCFA;
 
@@ -147,11 +171,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, InterruptedException {
     try {
       AlgorithmStatus status = super.run(reachedSet);
-      if (terminationMode && terminationCandidatesIncomplete && status.isSound()) {
+      if ((terminationMode || nonTerminationMode) && terminationCandidatesIncomplete && status.isSound()) {
         logger.log(
             Level.WARNING,
-            "Termination mode could not derive loop structure information; downgrading the result"
-                + " to UNKNOWN.");
+            terminationMode
+                ? "Termination mode could not derive loop structure information; downgrading the"
+                    + " result to UNKNOWN."
+                : "Non-termination mode could not derive loop structure information; downgrading"
+                    + " the result to UNKNOWN.");
         return status.withSound(false);
       }
       return status;
@@ -168,56 +195,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   @Override
+  protected boolean isNonTerminationMode() {
+    return nonTerminationMode;
+  }
+
+  @Override
   protected CandidateGenerator getCandidateInvariants() {
     if (terminationMode) {
-      terminationCandidatesIncomplete = false;
-      loopsWithoutTerminationCandidates = 0;
-      if (!cfa.getLoopStructure().isPresent()) {
-        terminationCandidatesIncomplete = true;
-        logger.log(
-            Level.WARNING, "Termination mode is enabled, but loop structure is unavailable.");
-        return CandidateGenerator.EMPTY_GENERATOR;
-      }
-      ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
-      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-        ImmutableSet<CandidateInvariant> loopCandidates = getTerminationCandidates(loop);
-        if (loopCandidates.isEmpty()) {
-          loopsWithoutTerminationCandidates++;
-          logger.logf(
-              Level.FINE,
-              "Termination mode could not derive a loop-continuation candidate for loop heads %s.",
-              loop.getLoopHeads());
-        } else {
-          candidates.addAll(loopCandidates);
-        }
-      }
-      ImmutableSet<CandidateInvariant> terminationCandidates = candidates.build();
-      if (terminationCandidates.isEmpty()) {
-        if (loopsWithoutTerminationCandidates > 0) {
-          logger.logf(
-              Level.INFO,
-              "Termination mode could not derive loop-continuation candidates for %d loop(s); "
-                  + "relying on unwinding assertions only.",
-              loopsWithoutTerminationCandidates);
-        } else {
-          logger.log(
-              Level.INFO,
-              "Termination mode is enabled, but no loop-continuation candidates were created.");
-        }
-        return CandidateGenerator.EMPTY_GENERATOR;
-      }
-      if (loopsWithoutTerminationCandidates > 0) {
-        logger.logf(
-            Level.INFO,
-            "Termination mode could not derive loop-continuation candidates for %d loop(s); "
-                + "those loops will be handled via unwinding assertions.",
-            loopsWithoutTerminationCandidates);
-      }
-      logger.logf(
-          Level.INFO,
-          "Termination mode is enabled; checking %d loop-continuation candidates.",
-          terminationCandidates.size());
-      return new StaticCandidateProvider(terminationCandidates);
+      return createLoopContinuationCandidateGenerator(true);
+    }
+    if (nonTerminationMode) {
+      return createLoopContinuationCandidateGenerator(false);
     }
     terminationCandidatesIncomplete = false;
     loopsWithoutTerminationCandidates = 0;
@@ -235,6 +223,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       final BasicProverEnvironment<?> pProver,
       CandidateInvariant pInductionProblem)
       throws CPATransferException, InterruptedException, SolverException {
+    if (nonTerminationMode) {
+      return checkNonTerminationBaseCase(pReachedSet, pProver, pInductionProblem);
+    }
     if (!checkTargetStates) {
       return true;
     }
@@ -242,10 +233,96 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return super.boundedModelCheck(pReachedSet, pProver, pInductionProblem);
   }
 
-  private ImmutableSet<CandidateInvariant> getTerminationCandidates(Loop pLoop) {
+  @Override
+  protected void reportConfirmedNonTermination(
+      ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
+    logger.logf(
+        Level.INFO,
+        "Non-termination mode: k-induction confirmed loop-continuation candidate %s.",
+        pCandidateInvariant);
+    pReachedSet.add(
+        new DummyErrorState(pReachedSet.getLastState()) {
+          @Serial private static final long serialVersionUID = 4603081304830409726L;
+
+          @Override
+          public Set<TargetInformation> getTargetInformation() {
+            return PropertyTargetInformation.singleton(CommonVerificationProperty.TERMINATION);
+          }
+        },
+        SingletonPrecision.getInstance());
+  }
+
+  private CandidateGenerator createLoopContinuationCandidateGenerator(boolean pNegated) {
+    terminationCandidatesIncomplete = false;
+    loopsWithoutTerminationCandidates = 0;
+    if (!cfa.getLoopStructure().isPresent()) {
+      terminationCandidatesIncomplete = true;
+      logger.log(
+          Level.WARNING,
+          pNegated
+              ? "Termination mode is enabled, but loop structure is unavailable."
+              : "Non-termination mode is enabled, but loop structure is unavailable.");
+      return CandidateGenerator.EMPTY_GENERATOR;
+    }
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
-    addLoopHeadCandidates(pLoop, candidates);
-    addInternalExitGuardCandidates(pLoop, candidates);
+    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      ImmutableSet<CandidateInvariant> loopCandidates = getLoopContinuationCandidates(loop, pNegated);
+      if (loopCandidates.isEmpty()) {
+        loopsWithoutTerminationCandidates++;
+        logger.logf(
+            Level.FINE,
+            pNegated
+                ? "Termination mode could not derive a loop-continuation candidate for loop heads %s."
+                : "Non-termination mode could not derive a loop-continuation candidate for loop heads %s.",
+            loop.getLoopHeads());
+      } else {
+        candidates.addAll(loopCandidates);
+      }
+    }
+    ImmutableSet<CandidateInvariant> continuationCandidates = candidates.build();
+    if (continuationCandidates.isEmpty()) {
+      if (loopsWithoutTerminationCandidates > 0) {
+        logger.logf(
+            Level.INFO,
+            pNegated
+                ? "Termination mode could not derive loop-continuation candidates for %d loop(s);"
+                    + " relying on unwinding assertions only."
+                : "Non-termination mode could not derive loop-continuation candidates for %d"
+                    + " loop(s).",
+            loopsWithoutTerminationCandidates);
+      } else {
+        logger.log(
+            Level.INFO,
+            pNegated
+                ? "Termination mode is enabled, but no loop-continuation candidates were created."
+                : "Non-termination mode is enabled, but no loop-continuation candidates were"
+                    + " created.");
+      }
+      return CandidateGenerator.EMPTY_GENERATOR;
+    }
+    if (loopsWithoutTerminationCandidates > 0) {
+      logger.logf(
+          Level.INFO,
+          pNegated
+              ? "Termination mode could not derive loop-continuation candidates for %d loop(s);"
+                  + " those loops will be handled via unwinding assertions."
+              : "Non-termination mode could not derive loop-continuation candidates for %d"
+                  + " loop(s).",
+          loopsWithoutTerminationCandidates);
+    }
+    logger.logf(
+        Level.INFO,
+        pNegated
+            ? "Termination mode is enabled; checking %d loop-continuation candidates."
+            : "Non-termination mode is enabled; checking %d loop-continuation candidates.",
+        continuationCandidates.size());
+    return new StaticCandidateProvider(continuationCandidates);
+  }
+
+  private ImmutableSet<CandidateInvariant> getLoopContinuationCandidates(Loop pLoop, boolean pNegated) {
+    ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
+    addLoopHeadCandidates(pLoop, candidates, pNegated);
+    addInternalExitGuardCandidates(pLoop, candidates, pNegated);
     ImmutableSet<CandidateInvariant> loopCandidates = candidates.build();
     if (loopCandidates.isEmpty()) {
       return loopCandidates;
@@ -254,34 +331,43 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void addLoopHeadCandidates(
-      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates, boolean pNegated) {
     for (CFANode loopHead : pLoop.getLoopHeads()) {
-      addSingleLocationContinuationCandidatesAtNode(pLoop, loopHead, pCandidates);
+      addSingleLocationContinuationCandidatesAtNode(pLoop, loopHead, pCandidates, pNegated);
     }
   }
 
   private void addInternalExitGuardCandidates(
-      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates, boolean pNegated) {
     for (CFANode loopNode : pLoop.getLoopNodes()) {
       if (pLoop.getLoopHeads().contains(loopNode)) {
         continue;
       }
-      addLoopScopedContinuationCandidatesAtNode(pLoop, loopNode, pCandidates);
+      addLoopScopedContinuationCandidatesAtNode(pLoop, loopNode, pCandidates, pNegated);
     }
   }
 
   private void addSingleLocationContinuationCandidatesAtNode(
-      Loop pLoop, CFANode pNode, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+      Loop pLoop,
+      CFANode pNode,
+      ImmutableSet.Builder<CandidateInvariant> pCandidates,
+      boolean pNegated) {
     for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
       if (leavingEdge instanceof AssumeEdge assumeEdge
           && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
-        pCandidates.add(new FrontierEdgeFormulaNegation(pNode, assumeEdge));
+        pCandidates.add(
+            pNegated
+                ? new FrontierEdgeFormulaNegation(pNode, assumeEdge)
+                : new FrontierEdgeFormula(pNode, assumeEdge));
       }
     }
   }
 
   private void addLoopScopedContinuationCandidatesAtNode(
-      Loop pLoop, CFANode pNode, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+      Loop pLoop,
+      CFANode pNode,
+      ImmutableSet.Builder<CandidateInvariant> pCandidates,
+      boolean pNegated) {
     ImmutableSet<CFANode> loopNodes = ImmutableSet.copyOf(pLoop.getLoopNodes());
     boolean hasExitAlternative = false;
     for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
@@ -297,9 +383,57 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (leavingEdge instanceof AssumeEdge assumeEdge
           && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())
           && !branchLeavesLoop(pLoop, assumeEdge)) {
-        pCandidates.add(new LoopScopedFrontierEdgeFormulaNegation(pNode, loopNodes, assumeEdge));
+        pCandidates.add(
+            pNegated
+                ? new LoopScopedFrontierEdgeFormulaNegation(pNode, loopNodes, assumeEdge)
+                : new LoopScopedFrontierEdgeFormula(pNode, loopNodes, assumeEdge));
       }
     }
+  }
+
+  private boolean checkNonTerminationBaseCase(
+      ReachedSet pReachedSet,
+      BasicProverEnvironment<?> pProver,
+      CandidateInvariant pCandidateInvariant)
+      throws CPATransferException, InterruptedException, SolverException {
+    BooleanFormula baseCase = createNonTerminationBaseCaseFormula(pReachedSet, pCandidateInvariant);
+    logger.log(Level.INFO, "Starting satisfiability check for non-termination base case...");
+    stats.satCheck.start();
+    try {
+      pProver.push(baseCase);
+      return !pProver.isUnsat();
+    } finally {
+      stats.satCheck.stop();
+      pProver.pop();
+    }
+  }
+
+  private BooleanFormula createNonTerminationBaseCaseFormula(
+      Iterable<AbstractState> pReachedSet, CandidateInvariant pCandidateInvariant)
+      throws CPATransferException, InterruptedException {
+    BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
+    BooleanFormula result = bfmgr.makeFalse();
+
+    for (AbstractState state : pCandidateInvariant.filterApplicable(pReachedSet)) {
+      PredicateAbstractState predicateState =
+          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      if (predicateState == null) {
+        continue;
+      }
+      PathFormula pathFormula = predicateState.getPathFormula();
+      BooleanFormula stateFormula =
+          bfmgr.and(
+              predicateState.getAbstractionFormula().getBlockFormula().getFormula(),
+              pathFormula.getFormula());
+      if (bfmgr.isFalse(stateFormula)) {
+        continue;
+      }
+      BooleanFormula stateAssertion =
+          pCandidateInvariant.getAssertion(
+              Collections.singleton(state), getFormulaManager(), getPathFormulaManager());
+      result = bfmgr.or(result, bfmgr.and(stateFormula, stateAssertion));
+    }
+    return result;
   }
 
   private boolean branchLeavesLoop(Loop pLoop, CFAEdge pEdge) {

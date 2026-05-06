@@ -484,6 +484,8 @@ abstract class AbstractBMCAlgorithm
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
+        Set<CandidateInvariant> candidatesWithSuccessfulBaseCase = new HashSet<>();
+
         // Perform a bounded model check on each candidate invariant
         Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
         while (candidateInvariantIterator.hasNext()) {
@@ -498,15 +500,25 @@ abstract class AbstractBMCAlgorithm
                 safe
                     ? "Termination mode: current candidate holds for the current k."
                     : "Termination mode: current candidate is violated for the current k.");
+          } else if (isNonTerminationMode()) {
+            logger.log(
+                Level.INFO,
+                safe
+                    ? "Non-termination mode: current candidate is reachable for the current k."
+                    : "Non-termination mode: current candidate is not reachable for the current k.");
+          }
+          if (safe && isNonTerminationMode()) {
+            candidatesWithSuccessfulBaseCase.add(candidateInvariant);
           }
           if (!safe) {
             if (!isTerminationMode()
+                && !isNonTerminationMode()
                 && candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
               return AlgorithmStatus.UNSOUND_AND_PRECISE;
             }
             if (isTerminationMode()) {
               break;
-            } else {
+            } else if (!isNonTerminationMode()) {
               candidateInvariantIterator.remove();
             }
           }
@@ -544,9 +556,20 @@ abstract class AbstractBMCAlgorithm
             }
             try (@SuppressWarnings("resource")
                 KInductionProver kInductionProver = createInductionProver()) {
-              sound =
-                  checkStepCase(
-                      reachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
+              Iterable<CandidateInvariant> inductionCandidates =
+                  isNonTerminationMode() ? candidatesWithSuccessfulBaseCase : candidateGenerator;
+              if (!isNonTerminationMode() || !candidatesWithSuccessfulBaseCase.isEmpty()) {
+                sound =
+                    checkStepCase(
+                        reachedSet,
+                        candidateGenerator,
+                        inductionCandidates,
+                        kInductionProver,
+                        ctiBlockingClauses);
+                if (reachedSet.wasTargetReached()) {
+                  return AlgorithmStatus.UNSOUND_AND_PRECISE;
+                }
+              }
             }
           }
           if (invariantGenerator.isProgramSafe()
@@ -568,6 +591,7 @@ abstract class AbstractBMCAlgorithm
   private boolean checkStepCase(
       final ReachedSet reachedSet,
       final CandidateGenerator candidateGenerator,
+      final Iterable<CandidateInvariant> pCandidatesToCheck,
       KInductionProver kInductionProver,
       Set<Obligation> pCtiBlockingClauses)
       throws InterruptedException, CPAException, SolverException {
@@ -579,7 +603,7 @@ abstract class AbstractBMCAlgorithm
         getCandidateApplicabilityPredicate(reachedSet, checkedKeys);
 
     Set<CandidateInvariant> candidates =
-        FluentIterable.concat(pCtiBlockingClauses, candidateGenerator).filter(isApplicable).toSet();
+        FluentIterable.concat(pCtiBlockingClauses, pCandidatesToCheck).filter(isApplicable).toSet();
     Set<SymbolicCandiateInvariant> checked = new HashSet<>();
 
     shutdownNotifier.shutdownIfNecessary();
@@ -620,6 +644,10 @@ abstract class AbstractBMCAlgorithm
               InvariantStrengthenings.noStrengthening(),
               lifting);
       if (inductionResult.isSuccessful()) {
+        if (isNonTerminationMode()) {
+          reportConfirmedNonTermination(reachedSet, candidate);
+          return false;
+        }
         Iterables.addAll(
             confirmedCandidates, CandidateInvariantCombination.getConjunctiveParts(candidate));
         candidateGenerator.confirmCandidates(
@@ -707,6 +735,27 @@ abstract class AbstractBMCAlgorithm
    * @return the candidate invariants to be checked.
    */
   protected abstract CandidateGenerator getCandidateInvariants();
+
+  protected boolean isNonTerminationMode() {
+    return false;
+  }
+
+  protected void reportConfirmedNonTermination(
+      ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
+    // Default: do nothing.
+  }
+
+  protected final FormulaManagerView getFormulaManager() {
+    return fmgr;
+  }
+
+  protected final PathFormulaManager getPathFormulaManager() {
+    return pmgr;
+  }
+
+  protected final BooleanFormulaManagerView getBooleanFormulaManager() {
+    return bfmgr;
+  }
 
   protected boolean isTerminationMode() {
     return false;

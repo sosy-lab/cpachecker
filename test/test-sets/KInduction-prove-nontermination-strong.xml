@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2026 CPAchecker contributors
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="10 s" hardtimelimit="15 s" memlimit="8 GB" cpuCores="2">
+
+  <option name="--benchmark"/>
+  <option name="--no-output-files"/>
+  <option name="--heap">6000M</option>
+
+  <tasks name="Strong-NonTermination-Supported">
+    <includesfile>../programs/nontermination-strong-local/KInduction-prove-nontermination-strong-supported.set</includesfile>
+    <propertyfile>../programs/bmc-termination-local/termination.prp</propertyfile>
+  </tasks>
+
+  <!--
+    These examples are semantically non-terminating, but the current strong
+    k-induction encoding is expected to return UNKNOWN or time out. The reason
+    is that the recurrent subset is hidden in the arithmetic updates and is not
+    directly expressible via the current loop-continuation guard candidates.
+  -->
+  <tasks name="Strong-NonTermination-Limitations">
+    <includesfile>../programs/nontermination-strong-local/KInduction-prove-nontermination-strong-limitations.set</includesfile>
+    <propertyfile>../programs/bmc-termination-local/termination.prp</propertyfile>
+  </tasks>
+
+  <rundefinition name="KInduction-prove-nontermination-strong">
+    <option name="--config">config/KInduction-prove-nontermination-strong.properties</option>
+    <option name="--option">solver.solver=SMTINTERPOL</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="result">status</column>
+  </columns>
+</benchmark>
