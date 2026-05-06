@@ -52,7 +52,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
-public class Initializer {
+class CToSvLibInitializer {
 
   // TODO change to option! Dont forget prefix!
   // @Option(secure = true, description = "Use SV-COMP semantics for some extern functions.")
@@ -65,7 +65,7 @@ public class Initializer {
 
   private final String INPUT_DUMMY_VAR_PREFIX;
 
-  public Initializer(
+  CToSvLibInitializer(
       CFA pCFA,
       SvLibCurrentScope pCurrentScope,
       FormulaManagerView pFormulaManager,

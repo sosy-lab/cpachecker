@@ -157,8 +157,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     // global variables are added to scope +  declaration commands are added to commandsCollector
     transformationStatistics.initializationTime.start();
     try {
-      Initializer initializer =
-          new Initializer(cfa, scope, formulaManager, converter, INPUT_DUMMY_VAR_PREFIX);
+      CToSvLibInitializer initializer =
+          new CToSvLibInitializer(cfa, scope, formulaManager, converter, INPUT_DUMMY_VAR_PREFIX);
       initializer.initialize(commandsCollector);
     } finally {
       transformationStatistics.initializationTime.stop();
@@ -170,8 +170,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         ImmutableList.builder();
     ImmutableList.Builder<SvLibStatement> procedureBodiesCollector = ImmutableList.builder();
 
-    Transformation transformation =
-        new Transformation(
+    CToSvLibTransformation transformation =
+        new CToSvLibTransformation(
             formulaManager,
             pathFormulaManager,
             formulaToSvLibVisitor,
@@ -199,7 +199,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     commandsCollector.add(proceduresRecDefinitionCommand);
 
     // 3. Step: encode property
-    PropertyEncoder propertyEncoder = new PropertyEncoder(specification);
+    CToSvLibPropertyEncoder propertyEncoder = new CToSvLibPropertyEncoder(specification);
     propertyEncoder.encodeProperty(commandsCollector);
 
     commandsCollector.add(

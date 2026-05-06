@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 
-public class Transformation {
+class CToSvLibTransformation {
   // private final CFA cfa;
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
@@ -73,7 +73,7 @@ public class Transformation {
   private final SvLibCurrentScope scope;
   private final String INPUT_DUMMY_VAR_PREFIX;
 
-  public Transformation(
+  CToSvLibTransformation(
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       FormulaToSvLibVisitor pFormulaToSvLibVisitor,

@@ -28,11 +28,11 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatementVis
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class ErrorLabelEncodingVisitor implements SvLibStatementVisitor<Void, NoException> {
+class CToSvLibErrorLabelEncodingVisitor implements SvLibStatementVisitor<Void, NoException> {
   private final String ERROR_LABEL = "ERROR";
   ImmutableList.Builder<SvLibTagReference> errorLabelTagReferences;
 
-  public ErrorLabelEncodingVisitor(
+  CToSvLibErrorLabelEncodingVisitor(
       ImmutableList.Builder<SvLibTagReference> pErrorLabelTagReferences) {
     errorLabelTagReferences = pErrorLabelTagReferences;
   }

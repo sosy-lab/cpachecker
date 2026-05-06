@@ -27,11 +27,11 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 
-public class PropertyEncoder {
+class CToSvLibPropertyEncoder {
 
   private final Specification specification;
 
-  public PropertyEncoder(Specification pSpecification) {
+  CToSvLibPropertyEncoder(Specification pSpecification) {
     specification = pSpecification;
   }
 
@@ -74,8 +74,8 @@ public class PropertyEncoder {
       SvLibStatement pBody, ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
     ImmutableList.Builder<SvLibTagReference> errorLabelTagReferencesCollector =
         ImmutableList.builder();
-    ErrorLabelEncodingVisitor errorLabelEncodingVisitor =
-        new ErrorLabelEncodingVisitor(errorLabelTagReferencesCollector);
+    CToSvLibErrorLabelEncodingVisitor errorLabelEncodingVisitor =
+        new CToSvLibErrorLabelEncodingVisitor(errorLabelTagReferencesCollector);
     pBody.accept(errorLabelEncodingVisitor);
 
     ImmutableList<SvLibTagReference> errorLabelTagReferences =
