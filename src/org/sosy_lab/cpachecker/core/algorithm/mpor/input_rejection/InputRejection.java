@@ -62,6 +62,10 @@ public class InputRejection {
         "MPOR expects concurrent C program with at least one pthread_create call", false),
     DUPLICATE_STRUCT_MEMBER_NAMES(
         "MPOR does not support non unique nested struct member names in line ", true),
+    MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER(
+        "MPOR does not support multiple declarations in the owner expression of field references in"
+            + " line ",
+        true),
     NO_PTHREAD_OBJECT_ARRAYS(
         "MPOR does not support arrays of pthread objects or arrays of structs with inner pthread"
             + " objects in line ",
@@ -233,6 +237,21 @@ public class InputRejection {
     }
     for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
       checkFunctionPointerRightHandSide(parameterExpression);
+    }
+  }
+
+  public static void checkMultipleDeclarationsInFieldReferenceOwner(CFieldReference pFieldReference)
+      throws UnsupportedCodeException {
+
+    ImmutableSet<CSimpleDeclaration> fieldOwnerDeclarations =
+        SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pFieldReference, false);
+    if (fieldOwnerDeclarations.size() > 1) {
+      throw new UnsupportedCodeException(
+          String.format(
+              InputRejectionMessage.MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER.formatMessage(),
+              pFieldReference.getFileLocation().getStartingLineInOrigin(),
+              pFieldReference.toASTString()),
+          null);
     }
   }
 

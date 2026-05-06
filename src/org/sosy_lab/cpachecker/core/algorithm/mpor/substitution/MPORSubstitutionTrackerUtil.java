@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -297,41 +298,35 @@ public class MPORSubstitutionTrackerUtil {
   // Field References ==============================================================================
 
   static void trackFieldReference(
-      CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker) {
+      CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker)
+      throws UnsupportedCodeException {
 
-    if (pFieldReference.isPointerDereference()) {
-      trackPointerDereferenceByFieldReference(pFieldReference, pIsWrite, pTracker);
+    InputRejection.checkMultipleDeclarationsInFieldReferenceOwner(pFieldReference);
+
+    ImmutableSet<CSimpleDeclaration> fieldOwnerDeclarations =
+        SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pFieldReference, false);
+
+    // it is possible that the CFieldReference contains no CSimpleDeclaration at all:
+    // '((struct s *)0)->list' -> there is no CIdExpression and no CSimpleDeclaration to track
+    if (!fieldOwnerDeclarations.isEmpty()) {
+      CSimpleDeclaration fieldOwnerDeclaration = Iterables.getOnlyElement(fieldOwnerDeclarations);
+      CCompositeTypeMemberDeclaration fieldMember =
+          SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
+              pFieldReference.getFieldOwner().getExpressionType(), pFieldReference.getFieldName());
+
+      if (pFieldReference.isPointerDereference()) {
+        if (pIsWrite) {
+          pTracker.addWrittenFieldReferencePointerDereference(
+              fieldOwnerDeclaration, fieldMember, pFieldReference);
+        }
+        pTracker.addAccessedFieldReferencePointerDereference(
+            fieldOwnerDeclaration, fieldMember, pFieldReference);
+      }
+
+      if (pIsWrite) {
+        pTracker.addWrittenFieldMember(fieldOwnerDeclaration, fieldMember, pFieldReference);
+      }
+      pTracker.addAccessedFieldMember(fieldOwnerDeclaration, fieldMember, pFieldReference);
     }
-
-    CSimpleDeclaration fieldOwner =
-        pFieldReference.accept(new CLeftHandSideSimpleDeclarationVisitor());
-    CCompositeTypeMemberDeclaration fieldMember =
-        SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
-            pFieldReference.getFieldOwner().getExpressionType(), pFieldReference.getFieldName());
-    if (pIsWrite) {
-      pTracker.addWrittenFieldMember(fieldOwner, fieldMember, pFieldReference);
-    }
-    pTracker.addAccessedFieldMember(fieldOwner, fieldMember, pFieldReference);
-  }
-
-  private static void trackPointerDereferenceByFieldReference(
-      CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker) {
-
-    checkArgument(
-        pFieldReference.isPointerDereference(), "pFieldReference must be pointer dereference.");
-    checkArgument(
-        pFieldReference.getFieldOwner().getExpressionType() instanceof CPointerType,
-        "pFieldReference owner type must be CPointerType.");
-
-    CPointerType pointerType = (CPointerType) pFieldReference.getFieldOwner().getExpressionType();
-    CSimpleDeclaration fieldOwner =
-        pFieldReference.accept(new CLeftHandSideSimpleDeclarationVisitor());
-    CCompositeTypeMemberDeclaration fieldMember =
-        SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
-            pointerType.getType(), pFieldReference.getFieldName());
-    if (pIsWrite) {
-      pTracker.addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember, pFieldReference);
-    }
-    pTracker.addAccessedFieldReferencePointerDereference(fieldOwner, fieldMember, pFieldReference);
   }
 }
