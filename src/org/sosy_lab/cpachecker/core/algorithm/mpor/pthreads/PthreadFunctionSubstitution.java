@@ -83,7 +83,7 @@ public class PthreadFunctionSubstitution {
   private static boolean isAnyPointer(ImmutableList<CExpression> pExpressions) {
     for (CExpression expression : pExpressions) {
       ImmutableSet<CSimpleDeclaration> declarations =
-          SeqPointerAliasingUtil.getNestedSimpleDeclarations(expression);
+          SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(expression, true);
       checkState(!declarations.isEmpty());
       // if there are multiple declarations, such as pthread_mutex_array[i], then use the pointer
       if (declarations.size() > 1) {
@@ -103,7 +103,8 @@ public class PthreadFunctionSubstitution {
     ImmutableList.Builder<CExpression> rIdExpressions = ImmutableList.builder();
     for (CExpression expression : pExpressions) {
       CSimpleDeclaration declaration =
-          Iterables.getOnlyElement(SeqPointerAliasingUtil.getNestedSimpleDeclarations(expression));
+          Iterables.getOnlyElement(
+              SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(expression, true));
       CVariableDeclaration variableDeclaration = MPORUtil.convertToVariableDeclaration(declaration);
       rIdExpressions.add(new CIdExpression(FileLocation.DUMMY, variableDeclaration));
     }

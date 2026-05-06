@@ -53,7 +53,7 @@ public class SeqPointerAliasingUtil {
   public static boolean isAnyTypeTargetClass(
       CType pType, Class<? extends CType> pTargetClass, ImmutableSet<String> pStopNames) {
 
-    return getNestedTypes(pType, pStopNames).stream().anyMatch(t -> pTargetClass.isInstance(t));
+    return getAllTypesInType(pType, pStopNames).stream().anyMatch(t -> pTargetClass.isInstance(t));
   }
 
   /**
@@ -65,7 +65,9 @@ public class SeqPointerAliasingUtil {
    * sequentialization, it is only necessary to treat a {@link PthreadObjectType#PTHREAD_MUTEX_T} as
    * a pointer if it is a pointer itself, not any of its inner types.
    */
-  public static ImmutableSet<CType> getNestedTypes(CType pType, ImmutableSet<String> pStopNames) {
+  public static ImmutableSet<CType> getAllTypesInType(
+      CType pType, ImmutableSet<String> pStopNames) {
+
     CTypeCollectorWithStop collector = new CTypeCollectorWithStopNames(pStopNames);
     pType.accept(collector);
     return collector.getCollectedTypes();
@@ -203,26 +205,25 @@ public class SeqPointerAliasingUtil {
   // CCompositeTypeMemberDeclaration
 
   public static CCompositeTypeMemberDeclaration getCompositeTypeMemberDeclarationByFieldName(
-      CType pTypeToSearch, String pFieldName) {
+      CType pType, String pFieldName) {
 
     for (CCompositeTypeMemberDeclaration declaration :
-        getNestedCompositeTypeMemberDeclarations(pTypeToSearch, ImmutableSet.of())) {
+        getAllCompositeTypeMemberDeclarationsInType(pType, ImmutableSet.of())) {
       if (declaration.getName().equals(pFieldName)) {
         return declaration;
       }
     }
     throw new IllegalArgumentException(
         String.format(
-            "No CCompositeTypeMemberDeclaration with name %s found in pTypeToSearch.", pFieldName));
+            "No CCompositeTypeMemberDeclaration with name %s found in pType.", pFieldName));
   }
 
   public static ImmutableList<CCompositeTypeMemberDeclaration>
-      getNestedCompositeTypeMemberDeclarations(
-          CType pTypeToSearch, ImmutableSet<String> pStopNames) {
+      getAllCompositeTypeMemberDeclarationsInType(CType pType, ImmutableSet<String> pStopNames) {
 
     CCompositeTypeMemberDeclarationCollectorWithStopNames collector =
         new CCompositeTypeMemberDeclarationCollectorWithStopNames(pStopNames);
-    pTypeToSearch.accept(collector);
+    pType.accept(collector);
     return collector.getCollectedCompositeTypeMemberDeclarations();
   }
 
@@ -296,22 +297,34 @@ public class SeqPointerAliasingUtil {
 
   // CExpression Visitors
 
-  public static ImmutableSet<CSimpleDeclaration> getNestedSimpleDeclarations(
-      CExpression pExpression) {
+  public static ImmutableSet<CSimpleDeclaration> getAllSimpleDeclarationsInExpression(
+      CExpression pExpression, boolean pSearchSubscriptExpression) {
 
-    CSimpleDeclarationCollector simpleDeclarationCollector = new CSimpleDeclarationCollector();
+    CSimpleDeclarationCollector simpleDeclarationCollector =
+        new CSimpleDeclarationCollector(pSearchSubscriptExpression);
     pExpression.accept(simpleDeclarationCollector);
     return simpleDeclarationCollector.getCollectedSimpleDeclarations();
   }
 
   private static class CSimpleDeclarationCollector extends CExpressionTraversalVisitor {
 
+    private final boolean searchSubscriptExpression;
+
     private final ImmutableSet.Builder<CSimpleDeclaration> simpleDeclarations =
         ImmutableSet.builder();
+
+    private CSimpleDeclarationCollector(boolean pSearchSubscriptExpression) {
+      searchSubscriptExpression = pSearchSubscriptExpression;
+    }
 
     /** Returns the possibly empty set of {@link CSimpleDeclaration} collected during the search. */
     private ImmutableSet<CSimpleDeclaration> getCollectedSimpleDeclarations() {
       return simpleDeclarations.build();
+    }
+
+    @Override
+    boolean shouldSearchSubscriptExpression() {
+      return searchSubscriptExpression;
     }
 
     @Override
@@ -369,6 +382,16 @@ public class SeqPointerAliasingUtil {
       return false;
     }
 
+    /**
+     * Whether the subscript {@link CExpression} of {@link CArraySubscriptExpression} should be
+     * searched.
+     *
+     * @return {@code true} by default
+     */
+    boolean shouldSearchSubscriptExpression() {
+      return true;
+    }
+
     private final Set<CExpression> visitedExpressions = new HashSet<>();
 
     private boolean shouldSearch(CExpression pExpression) {
@@ -382,7 +405,9 @@ public class SeqPointerAliasingUtil {
     public Void visit(CArraySubscriptExpression pArraySubscriptExpression) {
       if (shouldSearch(pArraySubscriptExpression)) {
         pArraySubscriptExpression.getArrayExpression().accept(this);
-        pArraySubscriptExpression.getSubscriptExpression().accept(this);
+        if (shouldSearchSubscriptExpression()) {
+          pArraySubscriptExpression.getSubscriptExpression().accept(this);
+        }
       }
       return null;
     }

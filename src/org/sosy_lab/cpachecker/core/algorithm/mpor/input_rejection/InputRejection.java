@@ -151,7 +151,7 @@ public class InputRejection {
       if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
         if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           ImmutableList<CCompositeTypeMemberDeclaration> memberDeclarations =
-              SeqPointerAliasingUtil.getNestedCompositeTypeMemberDeclarations(
+              SeqPointerAliasingUtil.getAllCompositeTypeMemberDeclarationsInType(
                   variableDeclaration.getType(), stopNames);
           Set<String> memberNames = new HashSet<>();
           for (CCompositeTypeMemberDeclaration memberDeclaration : memberDeclarations) {
@@ -171,7 +171,7 @@ public class InputRejection {
         if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.getType() instanceof CArrayType arrayType) {
             ImmutableSet<CType> nestedTypes =
-                SeqPointerAliasingUtil.getNestedTypes(arrayType, stopNames);
+                SeqPointerAliasingUtil.getAllTypesInType(arrayType, stopNames);
             if (nestedTypes.stream().anyMatch(t -> PthreadUtil.isAnyPthreadObjectType(t))) {
               rejectCfaEdge(cfaEdge, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
             }
@@ -215,7 +215,7 @@ public class InputRejection {
       throws UnsupportedCodeException {
 
     ImmutableSet<CSimpleDeclaration> declarations =
-        SeqPointerAliasingUtil.getNestedSimpleDeclarations(pRightHandSide);
+        SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pRightHandSide, true);
     if (declarations.stream().anyMatch(d -> d instanceof CFunctionDeclaration)) {
       throw new UnsupportedCodeException(
           InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
