@@ -181,7 +181,7 @@ public class Initializer {
       return SvLibSmtLibPredefinedType.INT;
     } else if (encodedFormulaType.isStringType()) {
       return SvLibSmtLibPredefinedType.STRING;
-    } else if (encodedFormulaType.isFloatingPointType() || encodedFormulaType.isRationalType()) {
+    } else if (encodedFormulaType.isRationalType()) {
       return SvLibSmtLibPredefinedType.REAL;
     } else if (encodedFormulaType.isBitvectorType()) {
       BitvectorType bitvectorType = (BitvectorType) formulaType;
