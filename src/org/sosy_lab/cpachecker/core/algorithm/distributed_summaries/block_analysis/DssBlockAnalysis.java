@@ -627,7 +627,9 @@ public class DssBlockAnalysis {
     if (!result.violationConditions().isEmpty()) {
       messages.addAll(reportViolationConditions(result.violationConditions()));
     }
-    messages.addAll(reportPostconditions(result.summaries()));
+    if (!result.summaries().isEmpty()) {
+      messages.addAll(reportPostconditions(result.summaries()));
+    }
     return messages.build();
   }
 
