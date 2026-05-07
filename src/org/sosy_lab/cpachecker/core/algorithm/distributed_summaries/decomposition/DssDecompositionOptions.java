@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.function.Predicate;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -21,6 +24,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -94,7 +98,10 @@ public class DssDecompositionOptions {
 
   public DssBlockDecomposition getConfiguredDecomposition() throws IOException {
     if (importDecomposition != null) {
-      return new ImportDecomposition(importDecomposition);
+      ObjectMapper objectMapper = new ObjectMapper();
+      Map<String, ImportedBlock> importData =
+          objectMapper.readValue(importDecomposition.toFile(), new TypeReference<>() {});
+      return new ImportDecomposition(importData);
     }
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
     return switch (decompositionType) {

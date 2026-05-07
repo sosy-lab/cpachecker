@@ -15,6 +15,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -247,18 +248,21 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportViolationConditions(
       Collection<ArgPathAndCondition> relevantViolations)
       throws InterruptedException, CPAException, SolverException {
-    ArrayListMultimap<Integer, AbstractState> statePerProgramCounter = ArrayListMultimap.create();
+    ImmutableListMultimap.Builder<Integer, AbstractState> statePerProgramCounterBuilder =
+        ImmutableListMultimap.builder();
     for (ArgPathAndCondition pathAndCondition : relevantViolations) {
       Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(
                   pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition));
       if (violationCondition.isPresent()) {
-        statePerProgramCounter.put(
-            dcpa.programCounterHash(violationCondition.orElseThrow()),
+        statePerProgramCounterBuilder.put(
+            dcpa.computeProgramPointHash(violationCondition.orElseThrow()),
             violationCondition.orElseThrow());
       }
     }
+    ImmutableListMultimap<Integer, AbstractState> statePerProgramCounter =
+        statePerProgramCounterBuilder.build();
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
     if (combineByHash) {
       for (Integer i : statePerProgramCounter.keySet()) {
@@ -714,7 +718,7 @@ public class DssBlockAnalysis {
       reachedSet.clear();
       reachedSet.add(
           stateAndPrecision.state(),
-          resetPrecisionsForEveryRun || isTrivial
+          resetPrecisionsForEveryRun
               ? makeStartPrecision()
               : combinePrecisionIfPossible().orElse(stateAndPrecision.precision()));
       Objects.requireNonNull(
@@ -727,13 +731,9 @@ public class DssBlockAnalysis {
 
       if (block.isAbstractionPossible()) {
         if (!result.getFinalLocationStates().isEmpty()) {
-          // pack all summaries
-          ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           for (AbstractState summary : result.getFinalLocationStates()) {
-            summaryWithPrecision.add(
-                new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+            summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
           }
-          summaries.addAll(summaryWithPrecision.build());
         }
         if (!result.getAllViolations().isEmpty()) {
           // pack all violations

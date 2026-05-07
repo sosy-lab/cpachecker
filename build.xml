@@ -127,14 +127,18 @@ SPDX-License-Identifier: Apache-2.0
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
-    <target name="tests" depends="unit-tests, configuration-checks, python-unit-tests" description="Run all tests"/>
+    <target name="tests" depends="unit-tests, configuration-checks"
+            description="Run unit tests (expensive tests only if requested) and configuration checks"/>
 
-    <target name="all-checks" description="Run all tests and checks">
-        <!-- We have to use antcall here to run clean twice. -->
+    <target name="all-checks"
+            description="Run standard checks plus compilation with ECJ and expensive tests">
+        <!-- We have to use antcall here to run clean twice and to overwrite properties. -->
         <antcall target="clean"/>
         <antcall target="build-project-ecj"/>
         <antcall target="clean"/>
-        <antcall target="standard-checks"/>
+        <antcall target="standard-checks">
+            <param name="enableExpensiveTests" value="true"/>
+        </antcall>
     </target>
 
     <!-- Auxiliary targets -->
@@ -164,14 +168,6 @@ SPDX-License-Identifier: Apache-2.0
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target name="standard-checks" depends="tests, spotbugs, checkstyle, forbiddenapis"/>
-
-    <target name="python-unit-tests" depends="build" description="Run unit tests of python scripts">
-        <!-- Tests are only executed if python is available, ignored otherwise. -->
-        <exec executable="python3"
-            failonerror="true"
-            failifexecutionfails="false">
-            <arg line="-m unittest discover scripts"/>
-        </exec>
-    </target>
+    <target name="standard-checks" depends="tests, spotbugs, checkstyle, forbiddenapis"
+            description="Run tests and static analyzers"/>
 </project>

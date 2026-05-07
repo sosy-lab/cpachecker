@@ -89,7 +89,9 @@ public record NumericValue(Number number) implements Value {
     } else if (number instanceof Rational rationalValue) {
       return FloatValue.fromRational(format, rationalValue);
     } else {
-      throw new UnsupportedOperationException("Should be unreachable.");
+      throw new AssertionError(
+          "NumericValue with unexpected value '%s' of type '%s'"
+              .formatted(number, number.getClass()));
     }
   }
 
@@ -120,19 +122,17 @@ public record NumericValue(Number number) implements Value {
    * <p>WARNING: This silently rounds rational and floating point numbers.
    */
   public BigInteger bigIntegerValue() {
-    if (hasIntegerType()) {
-      return getIntegerValue();
-    } else if (number instanceof Rational rationalValue) {
-      BigInteger num = rationalValue.getNum();
-      BigInteger den = rationalValue.getDen();
-      return num.divide(den);
-    } else if (number instanceof Double || number instanceof Float) {
-      return FloatValue.fromDouble(number.doubleValue()).integerValue();
-    } else if (number instanceof FloatValue floatValue) {
-      return floatValue.integerValue();
-    } else {
-      throw new IllegalArgumentException("Should be unreachable.");
-    }
+    return switch (number) {
+      case Number unused when hasIntegerType() -> getIntegerValue();
+      case Rational rationalValue -> rationalValue.getNum().divide(rationalValue.getDen());
+      case Double doubleValue -> FloatValue.fromDouble(doubleValue).integerValue();
+      case Float floatValue -> FloatValue.fromFloat(floatValue).integerValue();
+      case FloatValue floatValue -> floatValue.integerValue();
+      default ->
+          throw new AssertionError(
+              "NumericValue with unexpected value '%s' of type '%s'"
+                  .formatted(number, number.getClass()));
+    };
   }
 
   @Override
@@ -195,7 +195,9 @@ public record NumericValue(Number number) implements Value {
           // FIXME: This might be broken for -MAX_VALUE if the type is not BigInteger
           yield new NumericValue(bigIntegerValue().negate());
         } else {
-          throw new UnsupportedOperationException("Should be unreachable.");
+          throw new AssertionError(
+              "NumericValue with unexpected value '%s' of type '%s'"
+                  .formatted(number, number.getClass()));
         }
       }
     };

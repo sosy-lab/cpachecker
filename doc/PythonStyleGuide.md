@@ -19,3 +19,6 @@ We try to follow the official Python style guide
 [PEP8](https://www.python.org/dev/peps/pep-0008/).
 
 Please use `flake8` to check your code for warnings.
+
+Tests are written as standard Python unit tests and can be executed with
+`python3 -m unittest discover scripts`.

@@ -172,7 +172,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   }
 
   @Override
-  public int programCounterHash(AbstractState pAbstractState) {
+  public int computeProgramPointHash(AbstractState pAbstractState) {
     Preconditions.checkState(pAbstractState instanceof BlockState);
     BlockState blockState = (BlockState) pAbstractState;
     return Objects.hash(blockState.getLocationNode());

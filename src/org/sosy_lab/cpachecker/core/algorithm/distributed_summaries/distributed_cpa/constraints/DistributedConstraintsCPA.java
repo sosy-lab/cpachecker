@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import java.util.Collection;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
@@ -27,7 +25,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DistributedConstraintsCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
