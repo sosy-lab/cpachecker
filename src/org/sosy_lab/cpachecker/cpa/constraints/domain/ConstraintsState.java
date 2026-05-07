@@ -21,6 +21,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
@@ -206,7 +207,12 @@ public final class ConstraintsState extends ForwardingSet<Constraint>
     return false;
   }
 
-  public ImmutableSet<Constraint> getConstraints() {
-    return constraints;
+  public ConstraintsState renameIDs(SymbolicIdentifierRenamer pRenamer) {
+    ConstraintsState newState = new ConstraintsState();
+    for (Constraint constraint : constraints) {
+      assert constraint != null;
+      newState = newState.copyWithNew((Constraint) constraint.accept(pRenamer));
+    }
+    return newState;
   }
 }

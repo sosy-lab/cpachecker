@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpressio
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -1055,6 +1056,20 @@ public final class ValueAnalysisState
       }
     }
     return constraints;
+  }
+
+  public ValueAnalysisState renameIDs(SymbolicIdentifierRenamer pRenamer) {
+    ValueAnalysisState newState = new ValueAnalysisState(machineModel);
+    for (Entry<MemoryLocation, ValueAndType> constant : getConstants()) {
+      if (constant.getValue().getValue() instanceof SymbolicValue symValue) {
+        newState.assignConstant(
+            constant.getKey(), symValue.accept(pRenamer), constant.getValue().getType());
+      } else {
+        newState.assignConstant(
+            constant.getKey(), constant.getValue().getValue(), constant.getValue().getType());
+      }
+    }
+    return newState;
   }
 
   @Override
