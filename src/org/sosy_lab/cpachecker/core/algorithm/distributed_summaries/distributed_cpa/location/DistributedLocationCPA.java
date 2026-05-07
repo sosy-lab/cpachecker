@@ -151,7 +151,7 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   }
 
   @Override
-  public int programCounterHash(AbstractState pAbstractState) {
+  public int computeProgramPointHash(AbstractState pAbstractState) {
     Preconditions.checkArgument(doesOperateOn(pAbstractState.getClass()));
     CFANode cfaNode = AbstractStates.extractLocation(pAbstractState);
     Preconditions.checkNotNull(cfaNode, "LocationState should always have a location");

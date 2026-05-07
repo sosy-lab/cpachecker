@@ -50,7 +50,7 @@ public class DssVisualizationWorker extends DssWorker {
     numberOfBlocks = pBlockGraph.getNodes().size();
     try {
       if (pOptions.getBlockCFAFile() != null) {
-        pBlockGraph.export(pOptions.getBlockCFAFile(), cfa);
+        JSON.writeJSONString(pBlockGraph.getExportData(cfa), pOptions.getBlockCFAFile());
       }
     } catch (IOException e) {
       pLogger.logException(

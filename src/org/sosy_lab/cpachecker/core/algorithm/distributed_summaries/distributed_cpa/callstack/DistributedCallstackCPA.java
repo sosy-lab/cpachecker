@@ -163,7 +163,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public int programCounterHash(AbstractState pAbstractState) {
+  public int computeProgramPointHash(AbstractState pAbstractState) {
     return ((CallstackState) pAbstractState).proofCheckingHash();
   }
 }

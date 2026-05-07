@@ -125,7 +125,7 @@ public class DistributedFunctionPointerCPA
   }
 
   @Override
-  public int programCounterHash(AbstractState pAbstractState) {
+  public int computeProgramPointHash(AbstractState pAbstractState) {
     return getSerializeOperator().serialize(pAbstractState).hashCode();
   }
 
@@ -137,8 +137,7 @@ public class DistributedFunctionPointerCPA
         if (prev == null) {
           prev = (FunctionPointerState) state;
         } else {
-          Preconditions.checkState(
-              getCoverageOperator().areStatesEqual(prev, (FunctionPointerState) state));
+          Preconditions.checkState(getCoverageOperator().areStatesEqual(prev, state));
         }
       }
       return prev;

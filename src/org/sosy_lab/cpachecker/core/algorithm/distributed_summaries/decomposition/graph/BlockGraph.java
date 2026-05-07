@@ -19,8 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,7 +29,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -89,8 +86,9 @@ public class BlockGraph {
       if (!blockNode.getSuccessorIds().isEmpty()) {
         Preconditions.checkState(
             isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),
-            "BlockNodes require to have exactly one exit node (%s).",
-            blockNode);
+            "BlockNodes require to have exactly one exit node %s (%s).",
+            blockNode.getFinalLocation(),
+            blockNode.getEdges());
       }
     }
   }
@@ -99,7 +97,7 @@ public class BlockGraph {
     ArrayDeque<CFANode> waiting = new ArrayDeque<>();
     waiting.push(pStartNode);
     SequencedSet<CFANode> covered = new LinkedHashSet<>();
-    int count = 0;
+    ImmutableSet.Builder<CFANode> withoutSuccessor = ImmutableSet.builder();
     while (!waiting.isEmpty()) {
       CFANode curr = waiting.pop();
       boolean hasSuccessor = false;
@@ -112,11 +110,11 @@ public class BlockGraph {
         }
       }
       if (!hasSuccessor) {
-        count++;
+        withoutSuccessor.add(curr);
       }
       covered.add(curr);
     }
-    return count <= 1;
+    return withoutSuccessor.build().size() <= 1;
   }
 
   public static BlockGraph fromBlockNodesWithoutGraphInformation(
@@ -171,7 +169,7 @@ public class BlockGraph {
     return new BlockGraph(nodes.build());
   }
 
-  public void export(Path blockCFAFile, CFA cfa) throws IOException {
+  public Map<String, Map<String, Object>> getExportData(CFA cfa) {
     Map<String, Map<String, Object>> treeMap = new HashMap<>();
     int minCfaNodeNumber =
         cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().orElseThrow();
@@ -204,7 +202,7 @@ public class BlockGraph {
                       n.getViolationConditionLocation().getNodeNumber(), minCfaNodeNumber));
               treeMap.put(n.getId(), attributes);
             });
-    JSON.writeJSONString(treeMap, blockCFAFile);
+    return treeMap;
   }
 
   // All node IDs are shifted such that they start from 0
