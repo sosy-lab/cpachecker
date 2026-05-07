@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -43,13 +42,9 @@ public class DssMessageFactory {
   }
 
   public DssPostConditionMessage createDssPostConditionMessage(
-      String pSenderId,
-      AlgorithmStatus pStatus,
-      List<String> pReceivers,
-      ImmutableMap<String, String> pStateContent) {
+      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
     return new DssPostConditionMessage(
         pSenderId,
-        pReceivers,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
             .putAll(pStateContent)
