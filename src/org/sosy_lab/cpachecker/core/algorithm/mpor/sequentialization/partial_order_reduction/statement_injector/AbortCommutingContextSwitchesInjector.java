@@ -21,6 +21,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -37,10 +41,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -55,7 +55,7 @@ public record AbortCommutingContextSwitchesInjector(
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
     SeqBitVectorVariables bitVectorVariables,
-    MemoryModel memoryModel,
+    SeqPointerAliasingMap pointerAliasingMap,
     SequentializationUtils utils) {
 
   /**
@@ -102,7 +102,7 @@ public record AbortCommutingContextSwitchesInjector(
             labelBlockMap,
             firstBlock,
             bitVectorVariables,
-            memoryModel,
+            pointerAliasingMap,
             utils);
 
     // if (prev_thread < n) ...
@@ -159,11 +159,11 @@ public record AbortCommutingContextSwitchesInjector(
               String.format(
                   "cannot build updates for partialOrderReductionMode %s",
                   options.partialOrderReductionMode()));
-      case ACCESS_ONLY -> buildDensePrevBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
+      case ACCESS_ONLY -> buildDensePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
-              .addAll(buildDensePrevBitVectorUpdatesByAccessType(MemoryAccessType.READ))
-              .addAll(buildDensePrevBitVectorUpdatesByAccessType(MemoryAccessType.WRITE))
+              .addAll(buildDensePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.READ))
+              .addAll(buildDensePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.WRITE))
               .build();
     };
   }
@@ -175,22 +175,22 @@ public record AbortCommutingContextSwitchesInjector(
               String.format(
                   "cannot build updates for partialOrderReductionMode %s",
                   options.partialOrderReductionMode()));
-      case ACCESS_ONLY -> buildSparsePrevBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
+      case ACCESS_ONLY -> buildSparsePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
-              .addAll(buildSparsePrevBitVectorUpdatesByAccessType(MemoryAccessType.READ))
-              .addAll(buildSparsePrevBitVectorUpdatesByAccessType(MemoryAccessType.WRITE))
+              .addAll(buildSparsePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.READ))
+              .addAll(buildSparsePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.WRITE))
               .build();
     };
   }
 
   private ImmutableList<CExpressionAssignmentStatement> buildDensePrevBitVectorUpdatesByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     PrevDenseBitVector prevDenseBitVector =
         bitVectorVariables.getPrevDenseBitVectorByAccessType(pAccessType);
     CExpression rightHandSide =
-        bitVectorVariables.getDenseBitVector(activeThread, pAccessType, ReachType.DIRECT);
+        bitVectorVariables.getDenseBitVector(activeThread, pAccessType, SeqMemoryReachType.DIRECT);
     CExpressionAssignmentStatement update =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             prevDenseBitVector.directVariable(), rightHandSide);
@@ -198,7 +198,7 @@ public record AbortCommutingContextSwitchesInjector(
   }
 
   private ImmutableList<CExpressionAssignmentStatement> buildSparsePrevBitVectorUpdatesByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableList.Builder<CExpressionAssignmentStatement> rUpdates = ImmutableList.builder();
     ImmutableMap<SeqMemoryLocation, PrevSparseBitVector> prevSparseBitVectors =
@@ -207,7 +207,9 @@ public record AbortCommutingContextSwitchesInjector(
         bitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (var entry : sparseBitVectors.entrySet()) {
       Optional<CIdExpression> directVariable =
-          entry.getValue().tryGetVariableByReachTypeAndThread(ReachType.DIRECT, activeThread);
+          entry
+              .getValue()
+              .tryGetVariableByReachTypeAndThread(SeqMemoryReachType.DIRECT, activeThread);
       // If directVariable is present, then set the prev bit vector to the threads bit vector.
       // Otherwise, then there is no bit vector for the thread and the prev bit vector is set to 0.
       CExpression rightHandSide =

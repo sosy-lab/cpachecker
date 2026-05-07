@@ -14,16 +14,15 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -36,13 +35,12 @@ class NextThreadAndNumStatementsNondeterministicSimulation
 
   NextThreadAndNumStatementsNondeterministicSimulation(
       MPOROptions pOptions,
-      MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
-    super(pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+    super(pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
   }
 
   @Override
@@ -66,7 +64,7 @@ class NextThreadAndNumStatementsNondeterministicSimulation
                 .binaryExpressionBuilder()
                 .buildBinaryExpression(
                     SeqIdExpressions.ROUND_MAX,
-                    SeqIntegerLiteralExpressions.INT_0,
+                    CIntegerLiteralExpression.ZERO,
                     BinaryOperator.GREATER_THAN));
 
     ImmutableList.Builder<CCompoundStatementElement> rStatements = ImmutableList.builder();

@@ -28,7 +28,7 @@ void field_member_parameter_test(int param) {
   param++;
 }
 void field_member_parameter_test_ptr(int * param) {
-  *param++;
+  *param = 7;
 }
 void field_owner_parameter_test_ptr(Inner * param_inner) {
   param_inner->inner_member = 42;
@@ -68,8 +68,8 @@ int main(void) {
   field_owner_parameter_test_ptr(&outer_A.inner);
 
   pthread_t id1;
-  pthread_create(&id, NULL, start_routine, NULL);
+  pthread_create(&id1, NULL, start_routine, NULL);
   void *retval;
-  pthread_join(id, &retval);
+  pthread_join(id1, &retval);
 }
 

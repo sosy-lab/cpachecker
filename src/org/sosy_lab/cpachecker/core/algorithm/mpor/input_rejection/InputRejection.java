@@ -8,8 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -17,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -25,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -35,10 +39,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -50,12 +56,20 @@ public class InputRejection {
 
   enum InputRejectionMessage {
     FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
-    FUNCTION_POINTER_PARAMETER("MPOR does not support function pointers as parameters: ", false),
     INVALID_OPTIONS("Invalid MPOR options, see above errors.", false),
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
-    NO_PTHREAD_OBJECT_ARRAYS("MPOR does not support arrays of pthread objects in line ", true),
+    DUPLICATE_STRUCT_MEMBER_NAMES(
+        "MPOR does not support non unique nested struct member names in line ", true),
+    MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER(
+        "MPOR does not support multiple declarations in the owner expression of field references in"
+            + " line ",
+        true),
+    NO_PTHREAD_OBJECT_ARRAYS(
+        "MPOR does not support arrays of pthread objects or arrays of structs with inner pthread"
+            + " objects in line ",
+        true),
     POINTER_WRITE_BINARY_EXPRESSION(
         "MPOR does not support binary expressions as assignments to pointers in line ", true),
     POINTER_WRITE(
@@ -63,6 +77,7 @@ public class InputRejection {
         true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
+    PTHREAD_OBJECT_POINTER_ALIASING("MPOR does not aliasing for pthread object pointers:", false),
     PTHREAD_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
     RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
@@ -86,24 +101,13 @@ public class InputRejection {
     }
   }
 
-  /**
-   * Handles input program rejections and throws a {@link UnsupportedCodeException} if the input
-   * program...
-   *
-   * <ul>
-   *   <li>is not in C
-   *   <li>has no call to {@code pthread_create} i.e. is not concurrent
-   *   <li>uses arrays for {@code pthread_t} or {@code pthread_mutex_t} identifiers
-   *   <li>stores the return value of any pthread method call
-   *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFunctionType}
-   *   <li>contains a {@code pthread_create} call in a loop
-   *   <li>contains a recursive function call (both direct and indirect)
-   * </ul>
-   */
+  /** Handles input program rejections and throws a {@link UnsupportedCodeException} accordingly. */
   public static void handleRejections(CFA pInputCfa) throws UnsupportedCodeException {
     checkLanguageC(pInputCfa);
     checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
+    checkFunctionPointerInitializer(pInputCfa);
+    checkDuplicateStructMemberNames(pInputCfa);
     checkPthreadObjectArrays(pInputCfa);
     checkPthreadFunctionReturnValues(pInputCfa);
     // these are recursive and can be expensive, so they are last
@@ -143,15 +147,37 @@ public class InputRejection {
     }
   }
 
+  private static void checkDuplicateStructMemberNames(CFA pInputCfa)
+      throws UnsupportedCodeException {
+
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          ImmutableList<CCompositeTypeMemberDeclaration> memberDeclarations =
+              SeqPointerAliasingUtil.getAllCompositeTypeMemberDeclarationsInType(
+                  variableDeclaration.getType(), stopNames);
+          Set<String> memberNames = new HashSet<>();
+          for (CCompositeTypeMemberDeclaration memberDeclaration : memberDeclarations) {
+            if (!memberNames.add(memberDeclaration.getName())) {
+              rejectCfaEdge(declarationEdge, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
+            }
+          }
+        }
+      }
+    }
+  }
+
   private static void checkPthreadObjectArrays(CFA pInputCfa) throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      if (edge instanceof CDeclarationEdge decEdge) {
-        if (decEdge.getDeclaration() instanceof CVariableDeclaration varDec) {
-          if (varDec.getType() instanceof CArrayType arrayType) {
-            if (arrayType.getType() instanceof CTypedefType typedefType) {
-              if (PthreadUtil.isAnyPthreadObjectType(typedefType)) {
-                rejectCfaEdge(edge, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
-              }
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          if (variableDeclaration.getType() instanceof CArrayType arrayType) {
+            ImmutableSet<CType> nestedTypes =
+                SeqPointerAliasingUtil.getAllTypesInType(arrayType, stopNames);
+            if (nestedTypes.stream().anyMatch(t -> PthreadUtil.isAnyPthreadObjectType(t))) {
+              rejectCfaEdge(cfaEdge, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
             }
           }
         }
@@ -174,8 +200,64 @@ public class InputRejection {
     }
   }
 
+  private static void checkFunctionPointerInitializer(CFA pInputCfa)
+      throws UnsupportedCodeException {
+
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          if (variableDeclaration.getInitializer()
+              instanceof CInitializerExpression initializerExpression) {
+            checkFunctionPointerRightHandSide(initializerExpression.getExpression());
+          }
+        }
+      }
+    }
+  }
+
+  public static void checkFunctionPointerRightHandSide(CExpression pRightHandSide)
+      throws UnsupportedCodeException {
+
+    ImmutableSet<CSimpleDeclaration> declarations =
+        SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pRightHandSide, true);
+    if (declarations.stream().anyMatch(d -> d instanceof CFunctionDeclaration)) {
+      throw new UnsupportedCodeException(
+          InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
+          null);
+    }
+  }
+
+  public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
+      throws UnsupportedCodeException {
+
+    // calls to pthread functions with start_routine pointers are allowed
+    if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
+        pFunctionCallExpression, PthreadObjectType.START_ROUTINE)) {
+      return;
+    }
+    for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
+      checkFunctionPointerRightHandSide(parameterExpression);
+    }
+  }
+
+  public static void checkMultipleDeclarationsInFieldReferenceOwner(CFieldReference pFieldReference)
+      throws UnsupportedCodeException {
+
+    ImmutableSet<CSimpleDeclaration> fieldOwnerDeclarations =
+        SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pFieldReference, false);
+    if (fieldOwnerDeclarations.size() > 1) {
+      throw new UnsupportedCodeException(
+          String.format(
+              InputRejectionMessage.MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER.formatMessage(),
+              pFieldReference.getFileLocation().getStartingLineInOrigin(),
+              pFieldReference.toASTString()),
+          null);
+    }
+  }
+
   private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
       throws UnsupportedCodeException {
+
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
       if (functionCall.isPresent()) {
@@ -240,130 +322,16 @@ public class InputRejection {
     }
   }
 
-  public static void checkFunctionPointerAssignment(CSimpleDeclaration pRightHandSide)
-      throws UnsupportedCodeException {
+  public static void checkPointerWriteBinaryExpression(
+      CLeftHandSide pLeftHandSide, CExpression pRightHandSide) throws UnsupportedCodeException {
 
-    if (pRightHandSide instanceof CFunctionDeclaration) {
-      throw new UnsupportedCodeException(
-          InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
-          null);
-    }
-  }
-
-  public static void checkFunctionPointerAssignment(CVariableDeclaration pVariableDeclaration)
-      throws UnsupportedCodeException {
-
-    if (pVariableDeclaration.getInitializer() != null) {
-      if (pVariableDeclaration.getInitializer()
-          instanceof CInitializerExpression initializerExpression) {
-        CExpression expression = initializerExpression.getExpression();
-        if (expression.accept(new FunctionDeclarationVisitor())) {
-          throw new UnsupportedCodeException(
-              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + expression.toASTString(),
-              null);
-        }
-      }
-    }
-  }
-
-  public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
-      throws UnsupportedCodeException {
-
-    // calls to pthread functions with start_routine pointers are allowed
-    if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
-        pFunctionCallExpression, PthreadObjectType.START_ROUTINE)) {
-      return;
-    }
-    for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
-      if (parameterExpression.accept(new FunctionDeclarationVisitor())) {
-        throw new UnsupportedCodeException(
-            InputRejectionMessage.FUNCTION_POINTER_PARAMETER.message
-                + parameterExpression.toASTString(),
-            null);
-      }
-    }
-  }
-
-  private static final class FunctionDeclarationVisitor
-      extends DefaultCExpressionVisitor<Boolean, UnsupportedCodeException> {
-
-    @Override
-    public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression)
-        throws UnsupportedCodeException {
-      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CFieldReference pFieldReference) throws UnsupportedCodeException {
-      return pFieldReference.getFieldOwner().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CPointerExpression pPointerExpression) throws UnsupportedCodeException {
-      return pPointerExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CComplexCastExpression pComplexCastExpression)
-        throws UnsupportedCodeException {
-      return pComplexCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CBinaryExpression pBinaryExpression) throws UnsupportedCodeException {
-      return pBinaryExpression.getOperand1().accept(this)
-          || pBinaryExpression.getOperand2().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCastExpression pCastExpression) throws UnsupportedCodeException {
-      return pCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CUnaryExpression pUnaryExpression) throws UnsupportedCodeException {
-      return pUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CIdExpression pIdExpression) {
-      return pIdExpression.getDeclaration() instanceof CFunctionDeclaration;
-    }
-
-    @Override
-    protected Boolean visitDefault(CExpression pExpression) {
-      return false; // ignore
-    }
-  }
-
-  public static void checkPointerWriteBinaryExpression(CVariableDeclaration pVariableDeclaration)
-      throws UnsupportedCodeException {
-
-    if (pVariableDeclaration.getType() instanceof CPointerType) {
-      if (pVariableDeclaration.getInitializer()
-          instanceof CInitializerExpression initializerExpression) {
-        if (initializerExpression.getExpression().accept(new CBinaryExpressionVisitor())) {
-          throw new UnsupportedCodeException(
-              String.format(
-                  InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
-                  initializerExpression.getExpression().getFileLocation().getStartingLineInOrigin(),
-                  initializerExpression.getExpression().toASTString()),
-              null);
-        }
-      }
-    }
-  }
-
-  public static void checkPointerWriteBinaryExpression(CExpressionAssignmentStatement pAssignment)
-      throws UnsupportedCodeException {
-
-    if (pAssignment.getLeftHandSide().getExpressionType() instanceof CPointerType) {
-      if (pAssignment.getRightHandSide().accept(new CBinaryExpressionVisitor())) {
+    if (pLeftHandSide.getExpressionType() instanceof CPointerType) {
+      if (pRightHandSide.accept(new CBinaryExpressionVisitor())) {
         throw new UnsupportedCodeException(
             String.format(
                 InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
-                pAssignment.getRightHandSide().getFileLocation().getStartingLineInOrigin(),
-                pAssignment.getRightHandSide().toASTString()),
+                pRightHandSide.getFileLocation().getStartingLineInOrigin(),
+                pRightHandSide.toASTString()),
             null);
       }
     }

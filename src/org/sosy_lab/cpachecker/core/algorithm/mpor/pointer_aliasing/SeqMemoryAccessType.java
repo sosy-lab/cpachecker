@@ -6,9 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
-public enum MemoryAccessType {
+public enum SeqMemoryAccessType {
   NONE("", ""),
   /** For both read and write. */
   ACCESS("a", "ACCESS"),
@@ -19,13 +19,13 @@ public enum MemoryAccessType {
 
   public final String longName;
 
-  MemoryAccessType(String pShortName, String pLongName) {
+  SeqMemoryAccessType(String pShortName, String pLongName) {
     shortName = pShortName;
     longName = pLongName;
   }
 
-  public boolean in(MemoryAccessType... pMemoryAccessTypes) {
-    for (MemoryAccessType accessType : pMemoryAccessTypes) {
+  public boolean in(SeqMemoryAccessType... pMemoryAccessTypes) {
+    for (SeqMemoryAccessType accessType : pMemoryAccessTypes) {
       if (accessType.equals(this)) {
         return true;
       }

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -35,9 +34,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
-public class MemoryModelStructTest {
+public class SeqPointerAliasingStructTest {
 
   // Simple Types
 
@@ -153,30 +151,22 @@ public class MemoryModelStructTest {
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final SeqMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
+      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   // Memory Locations (structs)
 
   private final SeqMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          OUTER_STRUCT_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_MEMBER_DECLARATION);
 
   private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
-          Optional.empty(),
-          OUTER_STRUCT_DECLARATION,
-          INNER_STRUCT_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
 
-  public MemoryModelStructTest() throws InvalidConfigurationException {}
+  public SeqPointerAliasingStructTest() {}
 
   @Test
   public void test_field_owner_field_member() {

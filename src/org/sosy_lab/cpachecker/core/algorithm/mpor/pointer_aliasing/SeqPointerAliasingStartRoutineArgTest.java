@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -29,9 +28,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
-public class MemoryModelStartRoutineArgTest {
+public class SeqPointerAliasingStartRoutineArgTest {
 
   // Simple Types
 
@@ -76,21 +74,19 @@ public class MemoryModelStartRoutineArgTest {
     }
   }
 
+  private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
+
   // Memory Locations (primitives)
 
   private final SeqMemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
-
-  private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
+      SeqMemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION);
 
   private final SeqMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(),
-          Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
+          Optional.of(SeqPointerAliasingParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
 
-  public MemoryModelStartRoutineArgTest() throws InvalidConfigurationException {}
+  public SeqPointerAliasingStartRoutineArgTest() {}
 
   @Test
   public void test_local_start_routine_arg_implicit_global() {
@@ -100,7 +96,7 @@ public class MemoryModelStartRoutineArgTest {
             .put(START_ROUTINE_ARG_MEMORY_LOCATION, LOCAL_L1_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.getPointerParameterAssignments(startRoutineArgAssignments);
+        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(startRoutineArgAssignments);
 
     // check that start_routine_arg assignment is recognized as pointer parameter (void *)
     assertThat(pointerParameterAssignments).hasSize(1);
@@ -108,7 +104,7 @@ public class MemoryModelStartRoutineArgTest {
     // local_L1 is now an implicit global memory location, due to start_routine_arg assignment
     assertThat(LOCAL_L1_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
-            MemoryModelBuilder.isImplicitGlobal(
+            SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 LOCAL_L1_MEMORY_LOCATION,
                 ImmutableSetMultimap.of(),
                 startRoutineArgAssignments,
@@ -118,7 +114,7 @@ public class MemoryModelStartRoutineArgTest {
     // start_routine_arg is not explicit or implicit global
     assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
-            MemoryModelBuilder.isImplicitGlobal(
+            SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 START_ROUTINE_ARG_MEMORY_LOCATION,
                 ImmutableSetMultimap.of(),
                 startRoutineArgAssignments,

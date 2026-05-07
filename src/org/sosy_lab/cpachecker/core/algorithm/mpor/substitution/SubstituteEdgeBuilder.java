@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -42,9 +41,7 @@ public class SubstituteEdgeBuilder {
     // using map so that we can use .containsKey (+ linked hash map retains insertion order)
     Map<CFAEdgeForThread, SubstituteEdge> rSubstituteEdges = new LinkedHashMap<>();
     for (MPORSubstitution substitution : pSubstitutions) {
-      MPORThread thread = substitution.thread;
-
-      for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
+      for (CFAEdgeForThread threadEdge : substitution.getThread().cfa().threadEdges) {
         // prevent duplicate keys by excluding parallel edges
         if (!rSubstituteEdges.containsKey(threadEdge)) {
           CFAEdge cfaEdge = threadEdge.cfaEdge;
@@ -75,7 +72,7 @@ public class SubstituteEdgeBuilder {
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     Optional<CFAEdgeForThread> callContext =
         MPORThreadUtil.getCallContextOrStartRoutineCall(
-            pThreadEdge.callContext, pSubstitution.thread);
+            pThreadEdge.callContext, pSubstitution.getThread());
 
     if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
       // TODO what about structs?
@@ -92,7 +89,7 @@ public class SubstituteEdgeBuilder {
           CDeclarationEdge substituteDeclarationEdge =
               substituteDeclarationEdge(declarationEdge, declarationSubstitute);
           return Optional.of(
-              SubstituteEdge.of(pOptions, substituteDeclarationEdge, pThreadEdge, tracker));
+              SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge, pSubstitution, tracker));
         }
       }
 
@@ -102,7 +99,8 @@ public class SubstituteEdgeBuilder {
           pSubstitution.substitute(
               assume.getExpression(), callContext, false, false, false, false, tracker);
       CAssumeEdge substituteAssumeEdge = substituteAssumeEdge(assume, substituteAssumption);
-      return Optional.of(SubstituteEdge.of(pOptions, substituteAssumeEdge, pThreadEdge, tracker));
+      return Optional.of(
+          SubstituteEdge.of(substituteAssumeEdge, pThreadEdge, pSubstitution, tracker));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
@@ -111,7 +109,7 @@ public class SubstituteEdgeBuilder {
       CStatementEdge substituteStatementEdge =
           substituteStatementEdge(statement, substituteStatement);
       return Optional.of(
-          SubstituteEdge.of(pOptions, substituteStatementEdge, pThreadEdge, tracker));
+          SubstituteEdge.of(substituteStatementEdge, pThreadEdge, pSubstitution, tracker));
 
     } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
@@ -122,7 +120,7 @@ public class SubstituteEdgeBuilder {
         CFunctionSummaryEdge substituteFunctionSummaryEdge =
             substituteFunctionSummaryEdge(functionSummary, substituteAssignment);
         return Optional.of(
-            SubstituteEdge.of(pOptions, substituteFunctionSummaryEdge, pThreadEdge, tracker));
+            SubstituteEdge.of(substituteFunctionSummaryEdge, pThreadEdge, pSubstitution, tracker));
       }
 
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
@@ -133,7 +131,7 @@ public class SubstituteEdgeBuilder {
       CFunctionCallEdge substituteFunctionCallEdge =
           substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall);
       return Optional.of(
-          SubstituteEdge.of(pOptions, substituteFunctionCallEdge, pThreadEdge, tracker));
+          SubstituteEdge.of(substituteFunctionCallEdge, pThreadEdge, pSubstitution, tracker));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
@@ -142,7 +140,7 @@ public class SubstituteEdgeBuilder {
       CReturnStatementEdge substituteReturnStatementEdge =
           substituteReturnStatementEdge(returnStatement, substituteReturnStatement);
       return Optional.of(
-          SubstituteEdge.of(pOptions, substituteReturnStatementEdge, pThreadEdge, tracker));
+          SubstituteEdge.of(substituteReturnStatementEdge, pThreadEdge, pSubstitution, tracker));
     }
     return Optional.empty();
   }

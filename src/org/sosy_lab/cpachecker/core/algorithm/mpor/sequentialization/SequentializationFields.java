@@ -16,13 +16,13 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMapBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -58,7 +58,7 @@ public class SequentializationFields {
 
   public final MachineModel machineModel;
 
-  public final Optional<MemoryModel> memoryModel;
+  public final SeqPointerAliasingMap pointerAliasingMap;
 
   public final GhostElements ghostElements;
 
@@ -80,18 +80,19 @@ public class SequentializationFields {
     MPORSubstitutionBuilder substitutionBuilder =
         new MPORSubstitutionBuilder(pOptions, allGlobalVariableDeclarations, threads, pUtils);
     substitutions = substitutionBuilder.buildSubstitutions();
-    mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
+    mainSubstitution =
+        substitutions.stream().filter(s -> s.getThread().isMain()).findAny().orElseThrow();
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
 
     machineModel = pInputCfa.getMachineModel();
 
-    MemoryModelBuilder memoryModelBuilder =
-        new MemoryModelBuilder(
+    SeqPointerAliasingMapBuilder pointerAliasingMapBuilder =
+        new SeqPointerAliasingMapBuilder(
             pOptions,
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values(),
             machineModel);
-    memoryModel = memoryModelBuilder.tryBuildMemoryModel();
+    pointerAliasingMap = pointerAliasingMapBuilder.buildPointerAliasingMap();
 
     GhostElementBuilder ghostElementBuilder =
         new GhostElementBuilder(
@@ -99,7 +100,7 @@ public class SequentializationFields {
             threads,
             substitutions,
             substituteEdges,
-            memoryModel,
+            pointerAliasingMap,
             pUtils.binaryExpressionBuilder());
     ghostElements = ghostElementBuilder.buildGhostElements();
 
@@ -110,7 +111,7 @@ public class SequentializationFields {
             substitutions,
             substituteEdges,
             machineModel,
-            memoryModel,
+            pointerAliasingMap,
             ghostElements,
             pUtils);
     clauses = clauseBuilder.buildClauses();
@@ -119,7 +120,7 @@ public class SequentializationFields {
         pOptions.threadSimulationUnrolling()
             ? Optional.of(
                 NondeterministicSimulationBuilder.buildThreadSimulationFunctions(
-                    pOptions, machineModel, memoryModel, ghostElements, clauses, pUtils))
+                    pOptions, pointerAliasingMap, ghostElements, clauses, pUtils))
             : Optional.empty();
   }
 

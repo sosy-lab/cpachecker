@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -36,14 +37,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.CommutingThreadsFirstInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -106,7 +105,7 @@ public final class SeqMainFunctionBuilder {
                 .binaryExpressionBuilder()
                 .buildBinaryExpression(
                     SeqIdExpressions.THREAD_COUNT,
-                    SeqIntegerLiteralExpressions.INT_0,
+                    CIntegerLiteralExpression.ZERO,
                     BinaryOperator.GREATER_THAN);
         CFunctionCallStatement countAssumption =
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
@@ -144,8 +143,7 @@ public final class SeqMainFunctionBuilder {
       loopBlock.add(
           NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
                   pOptions,
-                  pFields.machineModel,
-                  pFields.memoryModel,
+                  pFields.pointerAliasingMap,
                   pFields.ghostElements,
                   pFields.clauses,
                   pUtils)
@@ -171,7 +169,9 @@ public final class SeqMainFunctionBuilder {
     ImmutableSet<SubstituteEdge> allSubstituteEdges =
         SeqThreadStatementClauseUtil.collectAllSubstituteEdges(pFields.clauses);
     ImmutableSet<CVariableDeclaration> accessedMainFunctionArgs =
-        SubstituteUtil.findAllMainFunctionArgs(allSubstituteEdges);
+        allSubstituteEdges.stream()
+            .flatMap(substituteEdge -> substituteEdge.accessedMainFunctionArgs.stream())
+            .collect(ImmutableSet.toImmutableSet());
 
     // then add main function arg nondet assignments, if necessary
     ImmutableList.Builder<CExportStatement> rAssignments = ImmutableList.builder();
@@ -213,7 +213,7 @@ public final class SeqMainFunctionBuilder {
     if (pOptions.threadSimulationIterations() == 0) {
       // infinite while (1) loop
       return new CWhileLoopStatement(
-          new CExpressionWrapper(SeqIntegerLiteralExpressions.INT_1), pLoopBody);
+          new CExpressionWrapper(CIntegerLiteralExpression.ONE), pLoopBody);
 
     } else {
       // bounded while (i < N) loop

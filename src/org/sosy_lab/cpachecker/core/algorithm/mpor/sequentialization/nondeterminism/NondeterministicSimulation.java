@@ -17,8 +17,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.MultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.AbortCommutingContextSwitchesInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -86,9 +85,7 @@ public abstract class NondeterministicSimulation {
 
   final MPOROptions options;
 
-  final MachineModel machineModel;
-
-  final Optional<MemoryModel> memoryModel;
+  final SeqPointerAliasingMap pointerAliasingMap;
 
   final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
@@ -98,8 +95,7 @@ public abstract class NondeterministicSimulation {
 
   NondeterministicSimulation(
       MPOROptions pOptions,
-      MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
@@ -112,8 +108,7 @@ public abstract class NondeterministicSimulation {
       case NUM_STATEMENTS -> checkArgument(this instanceof NumStatementsNondeterministicSimulation);
     }
     options = pOptions;
-    machineModel = pMachineModel;
-    memoryModel = pMemoryModel;
+    pointerAliasingMap = pPointerAliasingMap;
     ghostElements = pGhostElements;
     clauses = pClauses;
     utils = pUtils;
@@ -201,7 +196,7 @@ public abstract class NondeterministicSimulation {
                     labelClauseMap,
                     labelBlockMap,
                     ghostElements.bitVectorVariables().orElseThrow(),
-                    memoryModel.orElseThrow(),
+                    pointerAliasingMap,
                     utils)
                 .buildAbortCommutingContextSwitchesStatement(pThread);
         rStatements.add(abortCommutingContextSwitchesStatement);

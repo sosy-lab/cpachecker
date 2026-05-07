@@ -6,18 +6,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -25,12 +26,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
- * A class to keep track of all memory locations in the concurrent input program, including pointers
- * associated with a memory location.
+ * A class to keep track of all memory locations in the concurrent input program and pointers and
+ * the memory locations they point to.
  */
-public class MemoryModel {
+public class SeqPointerAliasingMap {
 
-  private final ImmutableList<SeqMemoryLocation> allMemoryLocations;
+  private final ImmutableSet<SeqMemoryLocation> allMemoryLocations;
 
   private final int relevantMemoryLocationAmount;
 
@@ -61,9 +62,9 @@ public class MemoryModel {
 
   public final ImmutableSet<SeqMemoryLocation> pointerDereferences;
 
-  MemoryModel(
+  SeqPointerAliasingMap(
       MPOROptions pOptions,
-      ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
@@ -115,20 +116,23 @@ public class MemoryModel {
 
     // check that all left hand sides in pointer assignments are CPointerType
     for (SeqMemoryLocation memoryLocation : pPointerAssignments.keySet()) {
-      if (memoryLocation.fieldMember().isPresent()) {
-        // for field owner / members: only the member must be CPointerType
+      if (memoryLocation.fieldMember().isEmpty()) {
+        // if there is no field member, then the declaration must be a valid CPointerType
+        checkArgument(
+            isValidDeclarationPointerType(memoryLocation.declaration().getType()),
+            "The CType of the memory locations declaration is not a valid CPointerType: %s",
+            memoryLocation.declaration().getType());
+      } else {
         CCompositeTypeMemberDeclaration memberDeclaration =
             memoryLocation.fieldMember().orElseThrow();
-        checkArgument(
-            memberDeclaration.getType() instanceof CPointerType,
-            "memberDeclaration must be CPointerType, got %s",
-            memberDeclaration.getType());
-      } else {
-        // for all else: the variable itself must be CPointerType
-        checkArgument(
-            memoryLocation.declaration().getType() instanceof CPointerType,
-            "variableDeclaration must be CPointerType, got %s",
-            memoryLocation.declaration().getType());
+        // if there is a field member and the field owner is not a valid CPointerType
+        // then the field member must be a validCPointerType
+        if (!isValidDeclarationPointerType(memoryLocation.declaration().getType())) {
+          checkArgument(
+              isValidDeclarationPointerType(memberDeclaration.getType()),
+              "The CType of the memory locations field member is not a valid CPointerType: %s",
+              memberDeclaration.getType());
+        }
       }
     }
 
@@ -143,6 +147,17 @@ public class MemoryModel {
     }
   }
 
+  private static boolean isValidDeclarationPointerType(CType pType) {
+    if (pType instanceof CPointerType) {
+      return true;
+    }
+    // CArrayType.getType() corresponds to the CType of the arrays elements
+    if (pType instanceof CArrayType arrayType && arrayType.getType() instanceof CPointerType) {
+      return true;
+    }
+    return false;
+  }
+
   // boolean helpers ===============================================================================
 
   /**
@@ -155,23 +170,26 @@ public class MemoryModel {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
+    final boolean isLeftHandSide =
+        pPointerAssignments.containsKey(pMemoryLocation)
+            || pStartRoutineArgAssignments.containsKey(pMemoryLocation)
+            || pPointerParameterAssignments.containsKey(pMemoryLocation);
     if (pMemoryLocation.isFieldOwnerPointerType()) {
-      return isLeftHandSideInPointerAssignment(
-          pMemoryLocation.getFieldOwnerMemoryLocation(),
-          pPointerAssignments,
-          pStartRoutineArgAssignments,
-          pPointerParameterAssignments);
+      return isLeftHandSide
+          || isLeftHandSideInPointerAssignment(
+              pMemoryLocation.getFieldOwnerMemoryLocation(),
+              pPointerAssignments,
+              pStartRoutineArgAssignments,
+              pPointerParameterAssignments);
     }
-    return pPointerAssignments.containsKey(pMemoryLocation)
-        || pStartRoutineArgAssignments.containsKey(pMemoryLocation)
-        || pPointerParameterAssignments.containsKey(pMemoryLocation);
+    return isLeftHandSide;
   }
 
   public boolean isMemoryLocationReachableByThread(
       SeqMemoryLocation pMemoryLocation,
       MPORThread pThread,
       ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
@@ -193,15 +211,11 @@ public class MemoryModel {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
-    if (pMemoryLocation.isFieldOwnerPointerType()) {
-      return getPointerAssignmentRightHandSides(
-          pMemoryLocation.getFieldOwnerMemoryLocation(),
-          pPointerAssignments,
-          pStartRoutineArgAssignments,
-          pPointerParameterAssignments);
-    }
     ImmutableSet.Builder<SeqMemoryLocation> rRightHandSides = ImmutableSet.builder();
-    rRightHandSides.addAll(pPointerAssignments.get(pMemoryLocation));
+
+    if (pPointerAssignments.containsKey(pMemoryLocation)) {
+      rRightHandSides.addAll(pPointerAssignments.get(pMemoryLocation));
+    }
     if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
       rRightHandSides.add(Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
     }
@@ -209,6 +223,15 @@ public class MemoryModel {
       rRightHandSides.add(
           Objects.requireNonNull(pPointerParameterAssignments.get(pMemoryLocation)));
     }
+    if (pMemoryLocation.isFieldOwnerPointerType()) {
+      rRightHandSides.addAll(
+          getPointerAssignmentRightHandSides(
+              pMemoryLocation.getFieldOwnerMemoryLocation(),
+              pPointerAssignments,
+              pStartRoutineArgAssignments,
+              pPointerParameterAssignments));
+    }
+
     return rRightHandSides.build();
   }
 
@@ -216,7 +239,7 @@ public class MemoryModel {
     return relevantMemoryLocationAmount;
   }
 
-  public ImmutableList<SeqMemoryLocation> getAllMemoryLocations() {
+  public ImmutableSet<SeqMemoryLocation> getAllMemoryLocations() {
     return allMemoryLocations;
   }
 

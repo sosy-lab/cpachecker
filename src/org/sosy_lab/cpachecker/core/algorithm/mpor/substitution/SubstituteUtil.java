@@ -8,13 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,11 +22,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CDeclarationTrackerResult;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class SubstituteUtil {
@@ -42,20 +41,6 @@ public class SubstituteUtil {
   static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
     return pSimpleDeclaration instanceof CVariableDeclaration
         || pSimpleDeclaration instanceof CParameterDeclaration;
-  }
-
-  static CVariableDeclaration asVariableDeclaration(CSimpleDeclaration pSimpleDeclaration) {
-    checkArgument(isSubstitutable(pSimpleDeclaration));
-    if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
-      return variableDeclaration;
-    }
-    return ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
-  }
-
-  public static MPORSubstitution extractMainThreadSubstitution(
-      ImmutableList<MPORSubstitution> pSubstitutions) {
-
-    return pSubstitutions.stream().filter(s -> s.thread.isMain()).findAny().orElseThrow();
   }
 
   /** Function and Type declarations are placed outside {@code main()}. */
@@ -98,45 +83,43 @@ public class SubstituteUtil {
   }
 
   static ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
-      MPOROptions pOptions,
       Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker,
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rPointerDereferences = ImmutableSet.builder();
-    for (CVariableDeclaration pointerDereference :
+    for (CVariableDeclarationTrackerResult pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
-      rPointerDereferences.add(SeqMemoryLocation.of(pOptions, pCallContext, pointerDereference));
+      rPointerDereferences.add(
+          SeqMemoryLocation.of(pCallContext, pointerDereference.variableDeclaration()));
     }
-    ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-        fieldReferencePointerDereferences =
-            pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType);
-    for (CVariableDeclaration fieldOwner : fieldReferencePointerDereferences.keySet()) {
-      for (CCompositeTypeMemberDeclaration fieldMember :
-          fieldReferencePointerDereferences.get(fieldOwner)) {
-        rPointerDereferences.add(
-            SeqMemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
-      }
+    for (CFieldReferenceTrackerResult fieldReferencePointerDereference :
+        pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType)) {
+      rPointerDereferences.add(
+          SeqMemoryLocation.of(
+              pCallContext,
+              fieldReferencePointerDereference.fieldOwner(),
+              fieldReferencePointerDereference.fieldMember()));
     }
     return rPointerDereferences.build();
   }
 
   static ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(
-      MPOROptions pOptions,
       Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker,
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
-    for (CVariableDeclaration declaration : pTracker.getDeclarationsByAccessType(pAccessType)) {
-      rMemoryLocations.add(SeqMemoryLocation.of(pOptions, pCallContext, declaration));
+    for (CVariableDeclarationTrackerResult variableDeclaration :
+        pTracker.getDeclarationsByAccessType(pAccessType)) {
+      rMemoryLocations.add(
+          SeqMemoryLocation.of(pCallContext, variableDeclaration.variableDeclaration()));
     }
-    ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
-        pTracker.getFieldMembersByAccessType(pAccessType);
-    for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
-      for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
-        rMemoryLocations.add(SeqMemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
-      }
+    for (CFieldReferenceTrackerResult fieldMembers :
+        pTracker.getFieldMembersByAccessType(pAccessType)) {
+      rMemoryLocations.add(
+          SeqMemoryLocation.of(
+              pCallContext, fieldMembers.fieldOwner(), fieldMembers.fieldMember()));
     }
     return rMemoryLocations.build();
   }
@@ -148,37 +131,19 @@ public class SubstituteUtil {
    * {@code substituteEdges}, including both global and local memory locations.
    */
   static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
-      MPOROptions pOptions,
-      Optional<CFAEdgeForThread> pCallContext,
-      MPORSubstitutionTracker pTracker) {
+      Optional<CFAEdgeForThread> pCallContext, MPORSubstitutionTracker pTracker) {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      SeqMemoryLocation leftHandSide = SeqMemoryLocation.of(pOptions, pCallContext, entry.getKey());
-      SeqMemoryLocation rightHandSide =
-          SeqMemoryLocation.of(pOptions, pCallContext, entry.getValue());
-      rAssignments.put(leftHandSide, rightHandSide);
-    }
-    for (var cell : pTracker.getPointerFieldMemberAssignments().cellSet()) {
+      CDeclarationTrackerResult key = entry.getKey();
       SeqMemoryLocation leftHandSide =
-          SeqMemoryLocation.of(pOptions, pCallContext, cell.getRowKey());
+          new SeqMemoryLocation(pCallContext, key.declaration(), key.fieldMember());
+      CDeclarationTrackerResult value = entry.getValue();
       SeqMemoryLocation rightHandSide =
-          SeqMemoryLocation.of(pOptions, pCallContext, cell.getColumnKey(), cell.getValue());
+          new SeqMemoryLocation(pCallContext, value.declaration(), value.fieldMember());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();
-  }
-
-  // Main Function Arg =============================================================================
-
-  public static ImmutableSet<CVariableDeclaration> findAllMainFunctionArgs(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
-    ImmutableSet.Builder<CVariableDeclaration> rArgs = ImmutableSet.builder();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      rArgs.addAll(substituteEdge.accessedMainFunctionArgs);
-    }
-    return rArgs.build();
   }
 }

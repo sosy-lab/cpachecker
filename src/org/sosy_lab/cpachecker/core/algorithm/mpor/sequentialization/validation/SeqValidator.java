@@ -36,20 +36,27 @@ public class SeqValidator {
   // Program Parsing ===============================================================================
 
   /**
-   * Returns {@code pSequentialization} as is if CPAchecker can parse it, reports an error
-   * otherwise.
+   * If enabled, validates that CPAchecker can parse {@code pSequentialization} and throws {@link
+   * IllegalArgumentException} otherwise.
    *
    * <p>Only use this method if {@link MPOROptions#inputTypeDeclarations()} is enabled, because
    * using preprocessors on source code (i.e. {@code String}s) is not allowed.
    */
-  public static void validateProgramParsing(
-      String pSequentialization, SequentializationUtils pUtils)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
+  public static void tryValidateProgramParsing(
+      MPOROptions pOptions, String pSequentialization, SequentializationUtils pUtils) {
 
-    // validate that seq can be parsed and cfa created -> code compiles
-    CFACreator cfaCreator =
-        MPORUtil.buildTestCfaCreator(pUtils.logger(), pUtils.shutdownNotifier());
-    Verify.verify(cfaCreator.parseSourceAndCreateCFA(pSequentialization) != null);
+    if (pOptions.validateParse()) {
+      try {
+        // validate that the program can be parsed and a cfa can be created
+        CFACreator cfaCreator =
+            MPORUtil.buildTestCfaCreator(pUtils.logger(), pUtils.shutdownNotifier());
+        Verify.verify(cfaCreator.parseSourceAndCreateCFA(pSequentialization) != null);
+      } catch (ParserException | InterruptedException | InvalidConfigurationException e) {
+        throw new IllegalArgumentException(
+            String.format(
+                "An exception occurred while parsing the sequentialization: %s", e.getMessage()));
+      }
+    }
   }
 
   // Clauses =======================================================================================

@@ -15,20 +15,18 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -40,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -58,8 +55,7 @@ public class NondeterministicSimulationBuilder {
 
   public static NondeterministicSimulation buildNondeterministicSimulationBySource(
       MPOROptions pOptions,
-      MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
@@ -67,13 +63,13 @@ public class NondeterministicSimulationBuilder {
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
           new NextThreadNondeterministicSimulation(
-              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+              pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           new NextThreadAndNumStatementsNondeterministicSimulation(
-              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+              pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
       case NUM_STATEMENTS ->
           new NumStatementsNondeterministicSimulation(
-              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+              pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
     };
   }
 
@@ -81,8 +77,7 @@ public class NondeterministicSimulationBuilder {
 
   public static ImmutableMap<MPORThread, CExportFunctionDefinition> buildThreadSimulationFunctions(
       MPOROptions pOptions,
-      MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils)
@@ -92,7 +87,7 @@ public class NondeterministicSimulationBuilder {
     for (MPORThread thread : pClauses.keySet()) {
       CCompoundStatement threadSimulation =
           buildNondeterministicSimulationBySource(
-                  pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils)
+                  pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils)
               .buildSingleThreadSimulation(thread);
       rFunctions.put(
           thread,
@@ -186,7 +181,7 @@ public class NondeterministicSimulationBuilder {
     // r is set to 1, because we increment after the r < K check succeeds
     CExpressionAssignmentStatement roundReset =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            SeqIdExpressions.ROUND, SeqIntegerLiteralExpressions.INT_1);
+            SeqIdExpressions.ROUND, CIntegerLiteralExpression.ONE);
     precedingStatements.add(new CStatementWrapper(roundReset));
 
     return precedingStatements.build();

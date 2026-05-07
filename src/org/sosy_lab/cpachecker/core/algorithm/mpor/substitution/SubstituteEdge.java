@@ -10,15 +10,19 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
@@ -31,34 +35,37 @@ public class SubstituteEdge {
 
   public final ImmutableSet<CVariableDeclaration> accessedMainFunctionArgs;
 
+  public final ImmutableListMultimap<CParameterDeclaration, CIdExpression> parameterSubstitutes;
+
   // POINTER ASSIGNMENTS ===========================================================================
 
   public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
-  /** The set of accessed pointer derefs i.e. reads and writes. */
-  public final ImmutableSet<SeqMemoryLocation> accessedPointerDereferences;
+  /** The set of accessed pointer dereferences i.e. reads and writes. */
+  final ImmutableSet<SeqMemoryLocation> accessedPointerDereferences;
 
-  /** The set of read pointer derefs including reads, e.g. {@code var = 42 + *ptr;} */
-  public final ImmutableSet<SeqMemoryLocation> readPointerDereferences;
+  /** The set of read pointer dereferences including reads, e.g. {@code var = 42 + *ptr;} */
+  private final ImmutableSet<SeqMemoryLocation> readPointerDereferences;
 
-  /** The set of written pointer derefs, .e.g {@code *ptr = 42;} */
-  public final ImmutableSet<SeqMemoryLocation> writtenPointerDereferences;
+  /** The set of written pointer dereferences, .e.g {@code *ptr = 42;} */
+  private final ImmutableSet<SeqMemoryLocation> writtenPointerDereferences;
 
   // MEMORY LOCATIONS ==============================================================================
 
   /** The set of global variable declarations that this edge accesses. */
-  public final ImmutableSet<SeqMemoryLocation> accessedMemoryLocations;
+  final ImmutableSet<SeqMemoryLocation> accessedMemoryLocations;
 
-  public final ImmutableSet<SeqMemoryLocation> readMemoryLocations;
+  private final ImmutableSet<SeqMemoryLocation> readMemoryLocations;
 
-  public final ImmutableSet<SeqMemoryLocation> writtenMemoryLocations;
+  private final ImmutableSet<SeqMemoryLocation> writtenMemoryLocations;
 
   private SubstituteEdge(
       CFAEdge pCfaEdge,
       CFAEdgeForThread pThreadEdge,
       ImmutableSet<CVariableDeclaration> pAccessedMainFunctionArgs,
+      ImmutableListMultimap<CParameterDeclaration, CIdExpression> pParameterSubstitutes,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableSet<SeqMemoryLocation> pAccessedPointerDereferences,
       ImmutableSet<SeqMemoryLocation> pWrittenPointerDereferences,
@@ -74,28 +81,30 @@ public class SubstituteEdge {
 
     cfaEdge = pCfaEdge;
     threadEdge = pThreadEdge;
-    // main function args
+
     accessedMainFunctionArgs = pAccessedMainFunctionArgs;
-    // pointer assignments
+
+    parameterSubstitutes = pParameterSubstitutes;
     pointerAssignments = pPointerAssignments;
-    // pointer dereferences
+
     accessedPointerDereferences = pAccessedPointerDereferences;
     writtenPointerDereferences = pWrittenPointerDereferences;
     readPointerDereferences =
         Sets.symmetricDifference(writtenPointerDereferences, accessedPointerDereferences)
             .immutableCopy();
-    // memory locations
+
     accessedMemoryLocations = pAccessedMemoryLocations;
     writtenMemoryLocations = pWrittenMemoryLocations;
     readMemoryLocations =
         Sets.symmetricDifference(writtenMemoryLocations, accessedMemoryLocations).immutableCopy();
   }
 
-  public static SubstituteEdge of(CFAEdge pCfaEdge, CFAEdgeForThread pThreadEdge) {
+  static SubstituteEdge of(CFAEdge pCfaEdge, CFAEdgeForThread pThreadEdge) {
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
         ImmutableSet.of(),
+        ImmutableListMultimap.of(),
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
@@ -107,29 +116,43 @@ public class SubstituteEdge {
    * Creates a {@link SubstituteEdge} based on the {@link MPORSubstitutionTracker} in {@code
    * pTracker}.
    */
-  public static SubstituteEdge of(
-      MPOROptions pOptions,
+  static SubstituteEdge of(
       CFAEdge pCfaEdge,
       CFAEdgeForThread pThreadEdge,
+      MPORSubstitution pSubstitution,
       MPORSubstitutionTracker pTracker) {
+
+    ImmutableListMultimap<CParameterDeclaration, CIdExpression> parameterSubstitutes =
+        pThreadEdge.callContext.isPresent()
+            ? pSubstitution
+                .parameterSubstitutes
+                .row(pThreadEdge.callContext.orElseThrow())
+                .entrySet()
+                .stream()
+                .flatMap(
+                    entry -> entry.getValue().stream().map(val -> Map.entry(entry.getKey(), val)))
+                .collect(
+                    ImmutableListMultimap.toImmutableListMultimap(Entry::getKey, Entry::getValue))
+            : ImmutableListMultimap.of();
 
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
-        SubstituteUtil.mapPointerAssignments(pOptions, pThreadEdge.callContext, pTracker),
+        parameterSubstitutes,
+        SubstituteUtil.mapPointerAssignments(pThreadEdge.callContext, pTracker),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
+            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.ACCESS),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE),
+            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.WRITE),
         SubstituteUtil.getMemoryLocationsByAccessType(
-            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
+            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.ACCESS),
         SubstituteUtil.getMemoryLocationsByAccessType(
-            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE));
+            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.WRITE));
   }
 
   public ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> accessedMemoryLocations;
@@ -139,7 +162,7 @@ public class SubstituteEdge {
   }
 
   public ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();

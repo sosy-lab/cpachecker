@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariablesBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatementBuilder;
@@ -21,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlagsBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -35,14 +35,14 @@ public record GhostElementBuilder(
     ImmutableList<MPORThread> threads,
     ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
-    Optional<MemoryModel> memoryModel,
+    SeqPointerAliasingMap pointerAliasingMap,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   public GhostElements buildGhostElements() throws UnrecognizedCodeException {
     Optional<SeqBitVectorVariables> bitVectorVariables =
         options.isAnyBitVectorReductionEnabled()
             ? new SeqBitVectorVariablesBuilder(
-                    options, threads, substituteEdges, memoryModel.orElseThrow())
+                    options, threads, substituteEdges, pointerAliasingMap)
                 .buildBitVectorVariables()
             : Optional.empty();
 
@@ -60,8 +60,7 @@ public record GhostElementBuilder(
     ProgramCounterVariables programCounterVariables =
         pcVariableBuilder.buildProgramCounterVariables();
 
-    ThreadSyncFlagsBuilder threadSyncFlagsBuilder =
-        new ThreadSyncFlagsBuilder(options, threads, binaryExpressionBuilder);
+    ThreadSyncFlagsBuilder threadSyncFlagsBuilder = new ThreadSyncFlagsBuilder(options, threads);
     ThreadSyncFlags threadSyncFlags = threadSyncFlagsBuilder.buildThreadSyncFlags();
 
     return new GhostElements(

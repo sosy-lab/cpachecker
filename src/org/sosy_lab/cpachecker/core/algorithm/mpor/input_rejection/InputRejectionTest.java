@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -96,6 +95,13 @@ public class InputRejectionTest {
   }
 
   @Test
+  public void testRejectDuplicateStructMemberNames() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/duplicate-struct-member-names.c");
+    testExpectedRejection(inputFilePath, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
+  }
+
+  @Test
   public void testRejectNotParallel() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sequential-program.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.NOT_CONCURRENT);
@@ -115,7 +121,6 @@ public class InputRejectionTest {
     testExpectedRejection(inputFilePath, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
-  @Ignore
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath =
@@ -160,7 +165,7 @@ public class InputRejectionTest {
         MPOROptions.getDefaultTestInstance(),
         TestDataTools.configurationForTest().build(),
         inputFilePath,
-        InputRejectionMessage.FUNCTION_POINTER_PARAMETER);
+        InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
   }
 
   @Test

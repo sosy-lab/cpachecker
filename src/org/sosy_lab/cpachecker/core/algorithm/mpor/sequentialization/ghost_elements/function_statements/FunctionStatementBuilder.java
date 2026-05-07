@@ -53,7 +53,7 @@ public record FunctionStatementBuilder(
         ImmutableMap.builder();
     for (MPORSubstitution substitution : substitutions) {
       for (MPORThread thread : threads) {
-        if (substitution.thread.equals(thread)) {
+        if (substitution.getThread().equals(thread)) {
           rFunctionStatements.put(thread, buildFunctionStatements(thread, substitution));
         }
       }
@@ -138,7 +138,7 @@ public record FunctionStatementBuilder(
       CFAEdgeForThread callContext = cell.getRowKey();
       if (visited.add(callContext)) {
         // only the thread calling pthread_create assigns the start_routine arg
-        if (pSubstitution.thread.id() == callContext.threadId) {
+        if (pSubstitution.getThread().id() == callContext.threadId) {
           CIdExpression leftHandSide = cell.getValue();
           Optional<CFunctionCall> functionCall =
               PthreadUtil.tryGetFunctionCallFromCfaEdge(callContext.cfaEdge);

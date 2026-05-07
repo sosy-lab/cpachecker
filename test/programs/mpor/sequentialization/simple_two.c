@@ -9,6 +9,28 @@
 #include <pthread.h>
 int x;
 int x = 1;
+pthread_mutex_t mutexA;
+pthread_mutex_t mutexB;
+pthread_mutex_t mutexC;
+// PTHREAD_COND_INITIALIZER is excluded because it is resolved differently based on the JDK version.
+//pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+struct __anonstruct_PQUEUE_63 {
+    int occupied ;
+    pthread_mutex_t inner_mutex ;
+};
+typedef struct __anonstruct_PQUEUE_63 PQUEUE;
+struct __anonstruct_PQUEUE_64 {
+    int occupied ;
+    pthread_mutex_t *inner_mutex_pointer ;
+};
+typedef struct __anonstruct_PQUEUE_64 PQUEUE_PTR;
+PQUEUE struct_with_mutex;
+PQUEUE another_struct_with_mutex;
+PQUEUE struct_with_mutex_explicit = { .inner_mutex = PTHREAD_MUTEX_INITIALIZER };
+PQUEUE struct_with_mutex_implicit = { 0, PTHREAD_MUTEX_INITIALIZER };
+PQUEUE_PTR struct_with_mutex_ptr;
+PQUEUE_PTR yet_another_struct_with_mutex_ptr;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 int printk(const char *arg0, ...) {
   return __VERIFIER_nondet_int();
@@ -47,6 +69,33 @@ void pass_parameter(int number) {
     local_increment(number);
     number += 1;
 }
+void unused_parameter(int number) {
+    if (x == 64) {
+        x = 32;
+    }
+}
+void pass_mutex(pthread_mutex_t the_mutex) {
+    pthread_mutex_lock(&the_mutex);
+    printk("another print");
+    pthread_mutex_unlock(&the_mutex);
+}
+void pass_mutex_pointer(pthread_mutex_t *the_mutex_pointer) {
+    pthread_mutex_lock(the_mutex_pointer);
+    printk("mutex pointer sandwich");
+    pthread_mutex_unlock(the_mutex_pointer);
+}
+void pass_struct_ptr(PQUEUE * a_struct_ptr) {
+    pthread_mutex_lock(a_struct_ptr->inner_mutex);
+    printk("look!", "what happens here?");
+    pthread_mutex_unlock(a_struct_ptr->inner_mutex);
+
+    pass_struct_ptr_again(a_struct_ptr);
+}
+void pass_struct_ptr_again(PQUEUE * a_struct_ptr_again) {
+    pthread_mutex_lock(a_struct_ptr_again->inner_mutex);
+    printk("and what about this?");
+    pthread_mutex_unlock(a_struct_ptr_again->inner_mutex);
+}
 const int global_const = 0;
 int main() {
     const int local_const = 7;
@@ -55,6 +104,61 @@ int main() {
     }
     x = 0;
     local_increment(x);
+    int local_non_const = 3;
+
+    pthread_mutex_init(&mutexA, (void *) 0);
+    pthread_mutex_init(&mutexB, (void *) 0);
+
+    // a ghost variable should still be created for the mutex, even if it is not explicitly accessed
+    pthread_mutex_t *mutexC_ptr = &mutexC;
+    pthread_mutex_init(mutexC_ptr, (void *) 0);
+
+    pthread_mutex_init(&struct_with_mutex.inner_mutex, (void *) 0);
+    pthread_mutex_init(&another_struct_with_mutex.inner_mutex, (void *) 0);
+
+    // this is undefined behavior in the pthread standard (assign mutex and pass by value)
+    /* pthread_mutex_t uninit_mutex;
+    uninit_mutex = mutexA;
+    pass_mutex(mutexA); */
+
+    // passing a pointer to a mutex is fine and not undefined behavior
+    pthread_mutex_t *mutex_ptr;
+    mutex_ptr = &mutexA;
+    pass_mutex_pointer(mutex_ptr);
+
+    PQUEUE *ptr_to_struct;
+    if (x == 123456789) {
+        ptr_to_struct = &struct_with_mutex;
+    }
+    pthread_mutex_lock(ptr_to_struct->inner_mutex);
+
+    pthread_mutex_t *another_mutex_ptr;
+    another_mutex_ptr = &ptr_to_struct->inner_mutex;
+
+    struct_with_mutex_ptr.inner_mutex_pointer = &mutexA;
+    yet_another_struct_with_mutex_ptr.inner_mutex_pointer = &mutexB;
+
+    PQUEUE_PTR *ptr_to_struct_with_ptr;
+    if (x == 987654321) {
+        ptr_to_struct_with_ptr = &struct_with_mutex_ptr;
+    }
+    pass_mutex_pointer(ptr_to_struct_with_ptr->inner_mutex_pointer);
+
+    pthread_mutex_t *yet_another_mutex_ptr;
+    yet_another_mutex_ptr = struct_with_mutex_ptr.inner_mutex_pointer;
+    pthread_mutex_lock(yet_another_mutex_ptr);
+    pthread_mutex_unlock(yet_another_mutex_ptr);
+    pass_mutex_pointer(yet_another_mutex_ptr);
+
+    PQUEUE *another_ptr_to_struct;
+    another_ptr_to_struct = &struct_with_mutex;
+    pass_struct_ptr(another_ptr_to_struct);
+
+    pthread_mutex_destroy(&mutexA);
+    pthread_mutex_destroy(&mutexB);
+    pthread_mutex_destroy(&struct_with_mutex.inner_mutex);
+    pthread_mutex_destroy(&another_struct_with_mutex.inner_mutex);
+
     pthread_t id1, id2;
     pthread_create(&id1, (void *) 0, task1, (void *) 0);
     pthread_create(&id2, (void *) 0, task2, (void *) 0);
@@ -75,6 +179,7 @@ int main() {
         }
     }
     pass_parameter(x);
+    unused_parameter(x);
     while (1) {
         local_increment(x);
     }
