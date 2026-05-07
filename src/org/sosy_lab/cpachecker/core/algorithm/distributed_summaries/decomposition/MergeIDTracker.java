@@ -44,10 +44,12 @@ public class MergeIDTracker {
 
   void merge(Iterable<String> oldIDs, String newID) {
     for (String id : oldIDs) {
-      // assert that these IDs do not already have been replaced
-      assert map.replace(id, id, newID);
+      boolean replaced = map.replace(id, id, newID);
+      // assert that these IDs have not already been replaced before
+      assert replaced;
     }
-    assert map.put(newID, newID) == null;
+    String prev = map.put(newID, newID);
+    assert prev == null;
   }
 
   ImmutableSet<BlockNode> mapBlockNodeEdges(Iterable<BlockNode> nodes) {
