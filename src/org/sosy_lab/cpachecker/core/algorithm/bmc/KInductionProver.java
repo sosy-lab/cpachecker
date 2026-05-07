@@ -139,6 +139,8 @@ class KInductionProver implements AutoCloseable {
 
   private boolean invariantGenerationRunning = true;
 
+  private final boolean requireSatisfiablePredecessor;
+
   /** Creates an instance of the KInductionProver. */
   public KInductionProver(
       CFA pCFA,
@@ -150,7 +152,8 @@ class KInductionProver implements AutoCloseable {
       ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
       Set<CFANode> pLoopHeads,
-      boolean pUnsatCoreGeneration) {
+      boolean pUnsatCoreGeneration,
+      boolean pRequireSatisfiablePredecessor) {
     cfa = checkNotNull(pCFA);
     logger = checkNotNull(pLogger);
     algorithm = checkNotNull(pAlgorithm);
@@ -185,6 +188,7 @@ class KInductionProver implements AutoCloseable {
     expressionTreeSupplier = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
 
     loopHeads = ImmutableSet.copyOf(pLoopHeads);
+    requireSatisfiablePredecessor = pRequireSatisfiablePredecessor;
   }
 
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
@@ -460,6 +464,15 @@ class KInductionProver implements AutoCloseable {
     Object predecessorAssertionId =
         prover.push(
             predecessorAssertion); // Assert the formula we want to prove at the predecessors
+    if (requireSatisfiablePredecessor && prover.isUnsat()) {
+      logger.log(
+          Level.FINER,
+          "The induction predecessor is unsatisfiable; refusing vacuous non-termination proof.");
+      prover.pop(); // Pop invariant predecessor assertion
+      prover.pop(); // Pop end states
+      stats.inductionCheck.stop();
+      return InductionResult.getFailed(ImmutableSet.of(), pK);
+    }
     // Assert that the formula is violated at a successor
     prover.push(successorViolation);
 

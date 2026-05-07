@@ -258,6 +258,9 @@ public class CandidateInvariantCombination {
               if (operand instanceof Combination combination) {
                 return flatten(combination.getOperands());
               }
+              if (operand instanceof StatewiseCandidateInvariantConjunction conjunction) {
+                return flatten(conjunction.getOperands());
+              }
               return Collections.singleton(operand);
             });
   }
@@ -266,6 +269,9 @@ public class CandidateInvariantCombination {
       CandidateInvariant pCandidateInvariant) {
     if (pCandidateInvariant instanceof Combination combination && combination.isConjunction()) {
       return combination.getOperands();
+    }
+    if (pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction conjunction) {
+      return conjunction.getOperands();
     }
     return Collections.singleton(pCandidateInvariant);
   }

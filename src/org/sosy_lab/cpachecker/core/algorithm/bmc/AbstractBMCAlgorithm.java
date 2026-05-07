@@ -435,10 +435,17 @@ abstract class AbstractBMCAlgorithm
       checkedClauses = new HashMap<>();
 
       // In termination mode, we may still be able to prove the property from unwinding assertions
-      // alone, even if no loop-continuation candidates were derived syntactically.
-      if (!candidateGenerator.produceMoreCandidates() && !isTerminationMode()) {
-        reachedSet.clearWaitlist();
-        return AlgorithmStatus.SOUND_AND_PRECISE;
+      // alone. In non-termination mode, however, no candidate means that we cannot soundly report
+      // a proof.
+      if (!candidateGenerator.produceMoreCandidates()) {
+        if (isNonTerminationMode()) {
+          reachedSet.clearWaitlist();
+          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        }
+        if (!isTerminationMode()) {
+          reachedSet.clearWaitlist();
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
       }
 
       // suggest candidates from predicate precision file
@@ -1148,7 +1155,8 @@ abstract class AbstractBMCAlgorithm
         reachedSetFactory,
         shutdownNotifier,
         getLoopHeads(),
-        usePropertyDirection);
+        usePropertyDirection,
+        isNonTerminationMode());
   }
 
   /**

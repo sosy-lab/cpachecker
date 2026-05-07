@@ -16,9 +16,11 @@ import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -38,10 +40,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormula;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormula;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormulaNegation;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopScopedFrontierEdgeFormula;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopScopedFrontierEdgeFormulaNegation;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.StatewiseCandidateInvariantConjunction;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.StatewiseCandidateInvariantDisjunction;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
@@ -49,6 +52,7 @@ import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -57,6 +61,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
@@ -66,6 +71,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -124,6 +130,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final Configuration config;
   private final CFA cfa;
+  private final ConfigurableProgramAnalysis analysisCpa;
 
   private final WitnessExporter argWitnessExporter;
 
@@ -162,6 +169,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     config = pConfig;
     cfa = pCFA;
+    analysisCpa = pCPA;
 
     argWitnessExporter = new WitnessExporter(config, logger, specification, cfa);
   }
@@ -329,11 +337,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
     addLoopHeadCandidates(pLoop, candidates, pNegated);
     addInternalExitGuardCandidates(pLoop, candidates, pNegated);
+    if (!pNegated) {
+      addLoopExitViolationCandidates(pLoop, candidates);
+    }
     ImmutableSet<CandidateInvariant> loopCandidates = candidates.build();
     if (loopCandidates.isEmpty()) {
       return loopCandidates;
     }
-    return ImmutableSet.of(new StatewiseCandidateInvariantDisjunction(loopCandidates));
+    return ImmutableSet.of(
+        pNegated
+            ? new StatewiseCandidateInvariantDisjunction(loopCandidates)
+            : new StatewiseCandidateInvariantConjunction(loopCandidates));
   }
 
   private void addLoopHeadCandidates(
@@ -364,7 +378,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         pCandidates.add(
             pNegated
                 ? new FrontierEdgeFormulaNegation(pNode, assumeEdge)
-                : new FrontierEdgeFormula(pNode, assumeEdge));
+                : new EdgeFormula(pNode, assumeEdge));
       }
     }
   }
@@ -392,8 +406,16 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         pCandidates.add(
             pNegated
                 ? new LoopScopedFrontierEdgeFormulaNegation(pNode, loopNodes, assumeEdge)
-                : new LoopScopedFrontierEdgeFormula(pNode, loopNodes, assumeEdge));
+                : new EdgeFormula(pNode, assumeEdge));
       }
+    }
+  }
+
+  private void addLoopExitViolationCandidates(
+      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+    for (CFAEdge outgoingEdge : pLoop.getOutgoingEdges()) {
+      pCandidates.add(
+          SingleLocationFormulaInvariant.makeBooleanInvariant(outgoingEdge.getSuccessor(), false));
     }
   }
 
@@ -419,27 +441,78 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPATransferException, InterruptedException {
     BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeFalse();
+    int currentK =
+        CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
 
-    for (AbstractState state : pCandidateInvariant.filterApplicable(pReachedSet)) {
-      PredicateAbstractState predicateState =
-          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-      if (predicateState == null) {
+    for (AbstractState state :
+        BMCHelper.filterIteration(pReachedSet, currentK, cfa.getAllLoopHeads().orElseThrow())) {
+      if (!isStopState(state)
+          || !isRelevantForReachability(state)
+          || !candidateAppliesToState(pCandidateInvariant, state)) {
         continue;
       }
-      PathFormula pathFormula = predicateState.getPathFormula();
-      BooleanFormula stateFormula =
-          bfmgr.and(
-              predicateState.getAbstractionFormula().getBlockFormula().getFormula(),
-              pathFormula.getFormula());
-      if (bfmgr.isFalse(stateFormula)) {
+      Optional<BooleanFormula> pathBaseCase =
+          createNonTerminationPathBaseCaseFormula(state, pCandidateInvariant);
+      result = bfmgr.or(result, pathBaseCase.orElse(bfmgr.makeFalse()));
+    }
+    return result;
+  }
+
+  private Optional<BooleanFormula> createNonTerminationPathBaseCaseFormula(
+      AbstractState pStopState, CandidateInvariant pCandidateInvariant)
+      throws CPATransferException, InterruptedException {
+    BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
+    BooleanFormula result = bfmgr.makeTrue();
+    boolean foundApplicableState = false;
+
+    for (AbstractState state : getPathStatesTo(pStopState)) {
+      if (!candidateAppliesToState(pCandidateInvariant, state)) {
+        continue;
+      }
+      Optional<BooleanFormula> stateFormula = createStateFormula(state);
+      if (stateFormula.isEmpty()) {
         continue;
       }
       BooleanFormula stateAssertion =
           pCandidateInvariant.getAssertion(
               Collections.singleton(state), getFormulaManager(), getPathFormulaManager());
-      result = bfmgr.or(result, bfmgr.and(stateFormula, stateAssertion));
+      result = bfmgr.and(result, stateFormula.orElseThrow(), stateAssertion);
+      foundApplicableState = true;
     }
-    return result;
+
+    return foundApplicableState ? Optional.of(result) : Optional.empty();
+  }
+
+  private List<AbstractState> getPathStatesTo(AbstractState pState) {
+    ARGState argState = AbstractStates.extractStateByType(pState, ARGState.class);
+    if (argState == null) {
+      return Collections.singletonList(pState);
+    }
+
+    List<AbstractState> pathStates = new ArrayList<>();
+    pathStates.addAll(ARGUtils.getOnePathTo(argState).asStatesList());
+    return pathStates;
+  }
+
+  private Optional<BooleanFormula> createStateFormula(AbstractState pState) {
+    PredicateAbstractState predicateState =
+        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+    if (predicateState == null) {
+      return Optional.empty();
+    }
+
+    BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
+    PathFormula pathFormula = predicateState.getPathFormula();
+    BooleanFormula stateFormula =
+        bfmgr.and(
+            predicateState.getAbstractionFormula().getBlockFormula().getFormula(),
+            pathFormula.getFormula());
+    return bfmgr.isFalse(stateFormula) ? Optional.empty() : Optional.of(stateFormula);
+  }
+
+  private boolean candidateAppliesToState(
+      CandidateInvariant pCandidateInvariant, AbstractState pState) {
+    return pCandidateInvariant.filterApplicable(Collections.singleton(pState)).iterator().hasNext();
   }
 
   private boolean branchLeavesLoop(Loop pLoop, CFAEdge pEdge) {
