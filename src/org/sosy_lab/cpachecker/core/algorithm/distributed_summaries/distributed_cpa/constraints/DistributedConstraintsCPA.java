@@ -79,11 +79,6 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   }
 
   @Override
-  public int programCounterHash(AbstractState pAbstractState) {
-    return Objects.hash(this, pAbstractState);
-  }
-
-  @Override
   public ProceedOperator getProceedOperator() {
     return proceedOperator;
   }
@@ -122,6 +117,11 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     ConstraintsState constraintsState = (ConstraintsState) pAbstractState;
     return constraintsState.isTop();
+  }
+
+  @Override
+  public int computeProgramPointHash(AbstractState pAbstractState) {
+    return Objects.hash(this, pAbstractState);
   }
 
   @Override

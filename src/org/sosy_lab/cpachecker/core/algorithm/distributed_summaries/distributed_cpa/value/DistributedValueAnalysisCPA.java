@@ -168,13 +168,13 @@ public class DistributedValueAnalysisCPA
   }
 
   @Override
-  public AbstractState reset(AbstractState pAbstractState) {
-    return pAbstractState;
+  public int computeProgramPointHash(AbstractState pAbstractState) {
+    return Objects.hash(pAbstractState, this);
   }
 
   @Override
-  public int programCounterHash(AbstractState pAbstractState) {
-    return Objects.hash(pAbstractState, this);
+  public AbstractState reset(AbstractState pAbstractState) {
+    return pAbstractState;
   }
 
   @Override
