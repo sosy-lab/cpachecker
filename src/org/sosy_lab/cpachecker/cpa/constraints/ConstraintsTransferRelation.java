@@ -13,12 +13,16 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -482,29 +486,6 @@ public class ConstraintsTransferRelation
       }
     }
 
-    private ConstraintsState renameIDsInConstraintsState(ConstraintsState pConstraintsState) {
-      ConstraintsState newState = new ConstraintsState();
-      for (Constraint constraint : pConstraintsState) {
-        assert constraint != null;
-        newState = newState.copyWithNew((Constraint) constraint.accept(visitor));
-      }
-      return newState;
-    }
-
-    private ValueAnalysisState renameIDsInValueState(ValueAnalysisState pValueState) {
-      ValueAnalysisState newState = new ValueAnalysisState(pValueState.getMachineModel());
-      for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
-        if (constant.getValue().getValue() instanceof SymbolicValue symValue) {
-          newState.assignConstant(
-              constant.getKey(), symValue.accept(visitor), constant.getValue().getType());
-        } else {
-          newState.assignConstant(
-              constant.getKey(), constant.getValue().getValue(), constant.getValue().getType());
-        }
-      }
-      return newState;
-    }
-
     private CompositeState getRenamedViolation(BlockState pBlockState) {
 
       visitor = new SymbolicIdentifierRenamer(new HashMap<>(), identifiers);
@@ -518,10 +499,10 @@ public class ConstraintsTransferRelation
       for (AbstractState abstractState : ((CompositeState) wrappedState).getWrappedStates()) {
         AbstractState newState = abstractState;
         if (abstractState instanceof ConstraintsState constraintsState) {
-          newState = renameIDsInConstraintsState(constraintsState);
+          newState = constraintsState.renameIDs(visitor);
         }
         if (abstractState instanceof ValueAnalysisState vState) {
-          newState = renameIDsInValueState(vState);
+          newState = vState.renameIDs(visitor);
         }
         newViolation.add(newState);
       }
@@ -570,25 +551,19 @@ public class ConstraintsTransferRelation
       boolean nothingChanged = true;
 
       for (AbstractState currStrengtheningState : newViolation.getWrappedStates()) {
-        StrengthenOperator strengthenOperator = null;
-
         ConstraintsState currStateToStrengthen = new ConstraintsState(newStates.getFirst());
-        if (currStrengtheningState instanceof ConstraintsState constraintsState) {
-          if (valueState != null) {
-            List<Constraint> valueComparison =
-                ValueAnalysisState.compareInConstraint(
-                    valueState,
-                    AbstractStates.extractStateByType(newViolation, ValueAnalysisState.class));
-            if (!valueComparison.isEmpty()) {
-              currStrengtheningState = constraintsState.copyWithNew(valueComparison);
-            }
-          }
-          strengthenOperator = new ConstraintsAnalysisStrengthenOperator();
-        }
+        if (!(currStrengtheningState instanceof ConstraintsState constraintsState)) continue;
 
-        if (strengthenOperator == null) {
-          continue;
+        if (valueState != null) {
+          List<Constraint> valueComparison =
+              ValueAnalysisState.compareInConstraint(
+                  valueState,
+                  AbstractStates.extractStateByType(newViolation, ValueAnalysisState.class));
+          if (!valueComparison.isEmpty()) {
+            currStrengtheningState = constraintsState.copyWithNew(valueComparison);
+          }
         }
+        StrengthenOperator strengthenOperator = new ConstraintsAnalysisStrengthenOperator();
 
         Optional<Collection<ConstraintsState>> oNewStrengthenedStates =
             strengthenOperator.strengthen(

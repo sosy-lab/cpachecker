@@ -118,7 +118,6 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -1512,14 +1511,9 @@ public class ValueAnalysisTransferRelation
               newState.assignConstant(
                   entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
             }
-            for (Entry<MemoryLocation, ValueAndType> entry : violationState.getConstants()) {
-              if (newState.contains(entry.getKey())) {
-                continue;
-              }
-              if (entry.getValue().getValue() instanceof SymbolicValue sV) {
-                newState.assignConstant(
-                    entry.getKey(), sV.accept(renamer), entry.getValue().getType());
-              } else {
+            for (Entry<MemoryLocation, ValueAndType> entry :
+                violationState.renameIDs(renamer).getConstants()) {
+              if (!newState.contains(entry.getKey())) {
                 newState.assignConstant(
                     entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
               }
