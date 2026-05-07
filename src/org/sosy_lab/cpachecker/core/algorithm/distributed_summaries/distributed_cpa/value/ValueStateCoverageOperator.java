@@ -110,7 +110,7 @@ public class ValueStateCoverageOperator implements CoverageOperator {
         return false;
       }
       if (entry.getValue().getValue() instanceof SymbolicValue symVal) {
-         identifiersState2.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
+        identifiersState2.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
       }
     }
 
