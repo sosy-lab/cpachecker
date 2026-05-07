@@ -337,6 +337,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     addLoopHeadCandidates(pLoop, candidates, pNegated);
     addInternalExitGuardCandidates(pLoop, candidates, pNegated);
     if (!pNegated) {
+      addUnconditionalLoopHeadCandidates(pLoop, candidates);
       addLoopExitViolationCandidates(pLoop, candidates);
     }
     ImmutableSet<CandidateInvariant> loopCandidates = candidates.build();
@@ -363,6 +364,16 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         continue;
       }
       addLoopScopedContinuationCandidatesAtNode(pLoop, loopNode, pCandidates, pNegated);
+    }
+  }
+
+  private void addUnconditionalLoopHeadCandidates(
+      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+    if (!pLoop.getOutgoingEdges().isEmpty()) {
+      return;
+    }
+    for (CFANode loopHead : pLoop.getLoopHeads()) {
+      pCandidates.add(SingleLocationFormulaInvariant.makeBooleanInvariant(loopHead, true));
     }
   }
 

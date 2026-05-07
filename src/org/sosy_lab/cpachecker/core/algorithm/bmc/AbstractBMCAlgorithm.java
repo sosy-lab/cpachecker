@@ -250,6 +250,8 @@ abstract class AbstractBMCAlgorithm
   /** The candidate invariants that have been proven to hold at the loop heads. */
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
+  private boolean nonTerminationConfirmed = false;
+
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
 
@@ -425,6 +427,7 @@ abstract class AbstractBMCAlgorithm
 
     stats.bmcPreparation.start();
     try {
+      nonTerminationConfirmed = false;
       CFANode initialLocation = extractLocation(reachedSet.getFirstState());
       invariantGenerator.start(initialLocation);
 
@@ -487,6 +490,9 @@ abstract class AbstractBMCAlgorithm
         shutdownNotifier.shutdownIfNecessary();
 
         if (invariantGenerator.isProgramSafe()) {
+          if (isNonTerminationMode()) {
+            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+          }
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
@@ -532,6 +538,9 @@ abstract class AbstractBMCAlgorithm
           }
 
           if (invariantGenerator.isProgramSafe()) {
+            if (isNonTerminationMode()) {
+              return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            }
             TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
@@ -544,12 +553,21 @@ abstract class AbstractBMCAlgorithm
         if (status.isSound()) {
 
           // check bounding assertions
-          sound =
-              (isTerminationMode() || candidateGenerator.hasCandidatesAvailable())
-                  ? checkBoundingAssertions(reachedSet, prover)
-                  : true;
+          if (isNonTerminationMode()) {
+            // This mode is a one-sided prover for non-termination. Failing to prove
+            // non-termination must not be interpreted as a termination proof.
+            sound = false;
+          } else {
+            sound =
+                (isTerminationMode() || candidateGenerator.hasCandidatesAvailable())
+                    ? checkBoundingAssertions(reachedSet, prover)
+                    : true;
+          }
 
           if (invariantGenerator.isProgramSafe()) {
+            if (isNonTerminationMode()) {
+              return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            }
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
 
@@ -574,19 +592,26 @@ abstract class AbstractBMCAlgorithm
                         inductionCandidates,
                         kInductionProver,
                         ctiBlockingClauses);
-                if (reachedSet.wasTargetReached()) {
+                if (isNonTerminationMode() && nonTerminationConfirmed) {
+                  return AlgorithmStatus.UNSOUND_AND_PRECISE;
+                }
+                if (!isNonTerminationMode() && reachedSet.wasTargetReached()) {
                   return AlgorithmStatus.UNSOUND_AND_PRECISE;
                 }
               }
             }
           }
-          if (invariantGenerator.isProgramSafe()
-              || (sound && !candidateGenerator.produceMoreCandidates())) {
+          if (!isNonTerminationMode()
+              && (invariantGenerator.isProgramSafe()
+                  || (sound && !candidateGenerator.produceMoreCandidates()))) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
 
         if (!candidateGenerator.hasCandidatesAvailable() && !isTerminationMode()) {
+          if (isNonTerminationMode()) {
+            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+          }
           // no remaining invariants to be proven
           return status;
         }
@@ -653,6 +678,7 @@ abstract class AbstractBMCAlgorithm
               lifting);
       if (inductionResult.isSuccessful()) {
         if (isNonTerminationMode()) {
+          nonTerminationConfirmed = true;
           reportConfirmedNonTermination(reachedSet, candidate);
           return false;
         }
