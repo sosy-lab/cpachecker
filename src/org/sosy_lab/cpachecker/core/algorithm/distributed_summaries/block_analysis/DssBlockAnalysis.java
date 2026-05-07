@@ -225,11 +225,6 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportPostconditions(
       Collection<@NonNull StateAndPrecision> summaries) throws CPAException, InterruptedException {
 
-    if (summaries.isEmpty()) {
-      return ImmutableList.of(
-          messageFactory.createDssPostConditionMessage(block.getId(), status, ImmutableMap.of()));
-    }
-
     // reset all summaries and run cpa algorithm on them to remove redundant ones
     ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
 
@@ -522,10 +517,6 @@ public class DssBlockAnalysis {
     resetStates();
     ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
         deserialize(pReceived);
-    if (deserializedStatesAndPrecisions.isEmpty()) {
-      preconditions.removeAll(pReceived.getSenderId());
-      return DssMessageProcessing.stop();
-    }
     DssMessageProcessing processing = DssMessageProcessing.proceed();
     for (StateAndPrecision stateAndPrecision : deserializedStatesAndPrecisions) {
       processing =
@@ -737,8 +728,10 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (block.isAbstractionPossible()) {
-        for (AbstractState summary : result.getFinalLocationStates()) {
-          summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+        if (!result.getFinalLocationStates().isEmpty()) {
+          for (AbstractState summary : result.getFinalLocationStates()) {
+            summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+          }
         }
         if (!result.getAllViolations().isEmpty()) {
           // pack all violations
