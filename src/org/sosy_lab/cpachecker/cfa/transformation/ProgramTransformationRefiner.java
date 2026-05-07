@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+@SuppressWarnings("unused")
 public class ProgramTransformationRefiner implements Refiner {
 
   private final LogManager logger;
@@ -120,8 +121,8 @@ public class ProgramTransformationRefiner implements Refiner {
       // element itself. Which in turn also removes the updated precision
       List<ARGState> children = Lists.newArrayList(refinementState.getChildren());
 
-      for (int i = 0; i < children.size(); i++) {
-        reached.removeSubtree(children.get(i));
+      for (ARGState child : children) {
+        reached.removeSubtree(child);
       }
 
       return true;

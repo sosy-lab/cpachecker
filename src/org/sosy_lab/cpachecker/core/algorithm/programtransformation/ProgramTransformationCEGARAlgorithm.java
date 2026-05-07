@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.programtransformation;
 
-import static com.google.common.base.Verify.verifyNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -51,6 +50,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+
+@SuppressWarnings("unused")
 public class ProgramTransformationCEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater, AutoCloseable {
 
   private static class ProgramTransformationCEGARStatistics implements Statistics {
@@ -126,25 +127,6 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
   @Options(prefix = "ptcegar")
   public static class ProgramTransformationCEGARAlgorithmFactory implements AlgorithmFactory {
 
-    @Option(
-        secure = true,
-        name = "refiner",
-        required = true,
-        description =
-            "Which refinement algorithm to use? "
-                + "(give class name, required for CEGAR) If the package name starts with "
-                + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
-    @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
-    private Refiner.Factory refinerFactory;
-
-    @Option(
-        secure = true,
-        name = "globalRefinement",
-        description =
-            "Whether to do refinement immediately after finding an error state, or globally after"
-                + " the ARG has been unrolled completely.")
-    private boolean globalRefinement = false;
-
     /*
      * Widely used in CPALockator, as there are many error paths, and refinement all of them takes
      * too much time, so, limit refinement iterations and remove at least some infeasible paths
@@ -182,16 +164,19 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
       pConfig.inject(this);
       algorithmFactory = pAlgorithmFactory;
       logger = pLogger;
-      verifyNotNull(refinerFactory);
-      refiner = refinerFactory.create(pCpa, pLogger, pShutdownNotifier);
       nodesToProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().orElse(ImmutableMultimap.of());
       cpa = pCpa;
+      try {
+        refiner = ProgramTransformationRefiner.create(pCpa, nodesToProgramTransformations);
+      } catch (InterruptedException pE) {
+        throw new RuntimeException(pE);
+      }
     }
 
     @Override
     public ProgramTransformationCEGARAlgorithm newInstance() {
       return new ProgramTransformationCEGARAlgorithm(
-          algorithmFactory.newInstance(), refiner, logger, globalRefinement, maxRefinementNum, cpa, nodesToProgramTransformations);
+          algorithmFactory.newInstance(), refiner, logger, maxRefinementNum, cpa, nodesToProgramTransformations);
     }
   }
 
@@ -199,31 +184,22 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
       new CopyOnWriteArrayList<>();
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
-  private boolean globalRefinement = false;
   private int maxRefinementNum = -1;
 
   private final LogManager logger;
   private final Algorithm algorithm;
-  private final Refiner mRefiner;
-  private final Refiner ptRefiner;
+  private final Refiner refiner;
 
   private ProgramTransformationCEGARAlgorithm(
       Algorithm pAlgorithm,
       Refiner pRefiner,
       LogManager pLogger,
-      boolean pGlobalRefinement,
       int pMaxRefinementNum,
       ConfigurableProgramAnalysis pCPA,
       ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToSubCFA) {
     algorithm = pAlgorithm;
-    mRefiner = Preconditions.checkNotNull(pRefiner);
-    try {
-      ptRefiner = ProgramTransformationRefiner.create(pCPA, pNodesToSubCFA);
-    } catch (InvalidConfigurationException | InterruptedException pE) {
-      throw new RuntimeException(pE);
-    }
+    refiner = Preconditions.checkNotNull(pRefiner);
     logger = pLogger;
-    globalRefinement = pGlobalRefinement;
     maxRefinementNum = pMaxRefinementNum;
 
     // don't store it because we wouldn't know when to unregister anyway
@@ -263,7 +239,8 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
           // Note, with special options reached set still contains violated properties
           // i.e (stopAfterError = true) or race conditions analysis
 
-        } else if (mRefiner instanceof UnsoundRefiner unsoundRefiner) {
+          // TODO is this block needed?
+        } else if (refiner instanceof UnsoundRefiner unsoundRefiner) {
           // restart exploration for unsound refiners, as due to unsound refinement
           // a sound over-approximation has to be found for proving safety
           if (!refinedInPreviousIteration) {
@@ -284,19 +261,18 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
   }
 
   private boolean refinementNecessary(ReachedSet reached, AbstractState previousLastState) {
-    if (globalRefinement) {
-      // check other states
-      return reached.wasTargetReached();
-
-    } else {
-      // Check only last state, but only if it is different from the last iteration.
-      // Otherwise, we would attempt to refine the same state twice if CEGARAlgorithm.run
-      // is called again but this time the inner algorithm does not find any successor states.
-      return !Objects.equals(reached.getLastState(), previousLastState)
-          && isTargetState(reached.getLastState());
-    }
+    // Check only last state, but only if it is different from the last iteration.
+    // Otherwise, we would attempt to refine the same state twice if CEGARAlgorithm.run
+    // is called again but this time the inner algorithm does not find any successor states.
+    // TODO maybe need to change this
+    return !Objects.equals(reached.getLastState(), previousLastState)
+        && isTargetState(reached.getLastState());
   }
 
+  @SuppressWarnings("NonAtomicVolatileUpdate") // statistics written only by one thread
+  @SuppressFBWarnings(
+      value = "VO_VOLATILE_INCREMENT",
+      justification = "only one thread writes countRefinements, others read")
   private boolean refine(ReachedSet reached) throws CPAException, InterruptedException{
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;
@@ -305,11 +281,10 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
         Math.max(stats.maxReachedSizeBeforeRefinement, reached.size());
     sizeOfReachedSetBeforeRefinement = reached.size();
 
-    // First try the standard Refiner
     stats.refinementTimer.start();
     boolean refinementResult;
     try {
-      refinementResult = mRefiner.performRefinement(reached);
+      refinementResult = refiner.performRefinement(reached);
 
     } catch (RefinementFailedException e) {
       stats.countFailedRefinements++;
@@ -325,18 +300,6 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
       stats.totalReachedSizeAfterRefinement += reached.size();
       stats.maxReachedSizeAfterRefinement =
           Math.max(stats.maxReachedSizeAfterRefinement, reached.size());
-    } else {
-      // If the first Refiner fails try the ProgramTransformationRefiner
-      // TODO do program transformation/strategy refinement
-      stats.refinementTimer.start();
-      try {
-        refinementResult = ptRefiner.performRefinement(reached);
-      } catch (RefinementFailedException e) {
-        stats.countFailedRefinements++;
-        throw e;
-      } finally {
-        stats.refinementTimer.stop();
-      }
     }
 
     return refinementResult;
@@ -347,7 +310,7 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
     if (algorithm instanceof StatisticsProvider statisticsProvider) {
       statisticsProvider.collectStatistics(pStatsCollection);
     }
-    if (mRefiner instanceof StatisticsProvider statisticsProvider) {
+    if (refiner instanceof StatisticsProvider statisticsProvider) {
       statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
@@ -377,6 +340,6 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
 
   @Override
   public void close() {
-    CPAs.closeIfPossible(mRefiner, logger);
+    CPAs.closeIfPossible(refiner, logger);
   }
 }
