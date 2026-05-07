@@ -8,15 +8,26 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -45,23 +56,48 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
       return true;
     }
 
+    Set<SymbolicIdentifier> ids = collectIDs(c1, v1);
+    SymbolicIdentifierRenamer visitor = new SymbolicIdentifierRenamer(new HashMap<>(), ids);
+
+    ValueAnalysisState v2Renamed = v2.renameIDs(visitor);
+    ConstraintsState c2Renamed = c2.renameIDs(visitor);
+
     BooleanFormulaManagerView bfm =
         constraintsSolver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula stateAsFormula1 = bfm.and(constraintsSolver.getFullFormula(c1, functionName));
-    BooleanFormula stateAsFormula2 = bfm.and(constraintsSolver.getFullFormula(c2, functionName));
+    BooleanFormula stateAsFormula2 =
+        bfm.and(constraintsSolver.getFullFormula(c2Renamed, functionName));
 
     BooleanFormula compareValues =
         bfm.and(
             constraintsSolver.getFullFormula(
-                ValueAnalysisState.compareInConstraint(v1, v2), functionName));
+                ValueAnalysisState.compareInConstraint(v1, v2Renamed), functionName));
 
     try {
+      if (constraintsSolver.getSolver().isUnsat(bfm.and(stateAsFormula1, compareValues)))
+        return false;
       return constraintsSolver
           .getSolver()
           .implies(bfm.and(stateAsFormula1, compareValues), stateAsFormula2);
     } catch (SolverException e) {
       throw new CPAException("Solver encountered an issue when calculating implication.", e);
     }
+  }
+
+  private Set<SymbolicIdentifier> collectIDs(
+      ConstraintsState pConstraintsState, ValueAnalysisState pValueState) {
+    Set<SymbolicIdentifier> identifiers = new HashSet<>();
+    for (Constraint constraint : pConstraintsState) {
+      assert constraint != null;
+      identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(constraint));
+    }
+
+    for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
+      if (constant.getValue().getValue() instanceof SymbolicValue symVal) {
+        identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
+      }
+    }
+    return identifiers;
   }
 
   @Override
