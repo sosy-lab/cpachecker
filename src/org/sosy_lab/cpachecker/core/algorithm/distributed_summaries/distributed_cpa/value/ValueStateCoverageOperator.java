@@ -97,34 +97,26 @@ public class ValueStateCoverageOperator implements CoverageOperator {
       if (constant.getValue().getValue() instanceof SymbolicValue symVal) {
         identifiersState1.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
       }
-      if (constant.getValue().getValue() instanceof SymbolicIdentifier symID) {
-        identifiersState1.add(symID);
-      }
     }
-
-    ValueAnalysisState valState2Renamed = new ValueAnalysisState(valState2.getMachineModel());
 
     SymbolicIdentifierRenamer visitor =
         new SymbolicIdentifierRenamer(new HashMap<>(), identifiersState1);
+    ValueAnalysisState valState2Renamed = valState2.renameIDs(visitor);
+
     for (Entry<MemoryLocation, ValueAndType> entry : valState2.getConstants()) {
       MemoryLocation key = entry.getKey();
       if (!valState1.contains(key)
           && !(entry.getValue().getValue() instanceof SymbolicIdentifier)) {
         return false;
       }
-      if (entry.getValue().getValue() instanceof SymbolicValue symValue) {
-        valState2Renamed.assignConstant(
-            entry.getKey(), symValue.accept(visitor), entry.getValue().getType());
-        identifiersState2.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symValue));
-      } else {
-        valState2Renamed.assignConstant(
-            entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+      if (entry.getValue().getValue() instanceof SymbolicValue symVal) {
+         identifiersState2.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
       }
     }
 
     ConstraintsState constraints =
         new ConstraintsState(
-            new HashSet<>(ValueAnalysisState.compareInConstraint(valState1, valState2)));
+            new HashSet<>(ValueAnalysisState.compareInConstraint(valState1, valState2Renamed)));
     BooleanFormulaManagerView bfm =
         constraintsSolver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula comparisonFormula =
