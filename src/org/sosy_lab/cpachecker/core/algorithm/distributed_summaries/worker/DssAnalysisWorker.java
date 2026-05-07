@@ -73,7 +73,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       return dssBlockAnalysis;
     }
 
-    public boolean wouldBeCalledFromCorrectThread() {
+    boolean wouldBeCalledFromCorrectThread() {
       return Thread.currentThread().getName().equals(originalThreadName);
     }
   }
