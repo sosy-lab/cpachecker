@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -16,11 +17,9 @@ import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -483,15 +482,13 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return foundApplicableState ? Optional.of(result) : Optional.empty();
   }
 
-  private List<AbstractState> getPathStatesTo(AbstractState pState) {
+  private ImmutableList<AbstractState> getPathStatesTo(AbstractState pState) {
     ARGState argState = AbstractStates.extractStateByType(pState, ARGState.class);
     if (argState == null) {
-      return Collections.singletonList(pState);
+      return ImmutableList.of(pState);
     }
 
-    List<AbstractState> pathStates = new ArrayList<>();
-    pathStates.addAll(ARGUtils.getOnePathTo(argState).asStatesList());
-    return pathStates;
+    return ImmutableList.copyOf(ARGUtils.getOnePathTo(argState).asStatesList());
   }
 
   private Optional<BooleanFormula> createStateFormula(AbstractState pState) {
