@@ -56,7 +56,6 @@ public class InputRejection {
 
   enum InputRejectionMessage {
     FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
-    INVALID_OPTIONS("Invalid MPOR options, see above errors.", false),
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
@@ -77,7 +76,6 @@ public class InputRejection {
         true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
-    PTHREAD_OBJECT_POINTER_ALIASING("MPOR does not aliasing for pthread object pointers:", false),
     PTHREAD_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
     RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),

@@ -178,7 +178,6 @@ public class MPORSubstitutionTrackerUtil {
           case CExpression expression -> {
             CPointerAssignmentVisitResult rightHandSideVisitResult =
                 expression.accept(new CPointerAssignmentVisitor());
-            ;
             // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
             if (rightHandSideVisitResult != null) {
               pTracker.addPointerAssignment(
@@ -188,13 +187,12 @@ public class MPORSubstitutionTrackerUtil {
                   rightHandSideVisitResult.fieldMember());
             }
           }
-          case CFunctionCallExpression functionCallExpression -> {
-            pTracker.addPointerAssignment(
-                leftHandSideVisitResult.declaration(),
-                leftHandSideVisitResult.fieldMember(),
-                functionCallExpression.getDeclaration(),
-                Optional.empty());
-          }
+          case CFunctionCallExpression functionCallExpression ->
+              pTracker.addPointerAssignment(
+                  leftHandSideVisitResult.declaration(),
+                  leftHandSideVisitResult.fieldMember(),
+                  functionCallExpression.getDeclaration(),
+                  Optional.empty());
         }
       }
     }
@@ -216,9 +214,7 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   private record CPointerAssignmentVisitResult(
-      CSimpleDeclaration declaration,
-      Optional<CCompositeTypeMemberDeclaration> fieldMember,
-      CExpression expression) {}
+      CSimpleDeclaration declaration, Optional<CCompositeTypeMemberDeclaration> fieldMember) {}
 
   private static final class CPointerAssignmentVisitor
       extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, NoException> {
@@ -236,7 +232,7 @@ public class MPORSubstitutionTrackerUtil {
           SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
               pFieldReference.getFieldOwner().getExpressionType(), pFieldReference.getFieldName());
       return new CPointerAssignmentVisitResult(
-          fieldOwnerResult.declaration, Optional.of(fieldMember), pFieldReference);
+          fieldOwnerResult.declaration(), Optional.of(fieldMember));
     }
 
     @Override
@@ -261,8 +257,7 @@ public class MPORSubstitutionTrackerUtil {
 
     @Override
     public CPointerAssignmentVisitResult visit(CIdExpression pIdExpression) {
-      return new CPointerAssignmentVisitResult(
-          pIdExpression.getDeclaration(), Optional.empty(), pIdExpression);
+      return new CPointerAssignmentVisitResult(pIdExpression.getDeclaration(), Optional.empty());
     }
 
     @Override
