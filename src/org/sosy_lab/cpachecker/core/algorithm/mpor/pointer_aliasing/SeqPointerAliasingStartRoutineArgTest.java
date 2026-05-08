@@ -102,7 +102,7 @@ public class SeqPointerAliasingStartRoutineArgTest {
     assertThat(pointerParameterAssignments).hasSize(1);
 
     // local_L1 is now an implicit global memory location, due to start_routine_arg assignment
-    assertThat(LOCAL_L1_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(LOCAL_L1_MEMORY_LOCATION.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 LOCAL_L1_MEMORY_LOCATION,
@@ -112,7 +112,7 @@ public class SeqPointerAliasingStartRoutineArgTest {
                 ImmutableSet.of()))
         .isTrue();
     // start_routine_arg is not explicit or implicit global
-    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 START_ROUTINE_ARG_MEMORY_LOCATION,

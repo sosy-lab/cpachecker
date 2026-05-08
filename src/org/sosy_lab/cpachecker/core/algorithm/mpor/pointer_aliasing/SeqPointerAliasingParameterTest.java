@@ -303,9 +303,9 @@ public class SeqPointerAliasingParameterTest {
             .build();
 
     // check that param_Q is now an implicit global memory location, but local_Z is not
-    assertThat(PARAMETER_Q_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();
+    assertThat(PARAMETER_Q_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isGlobal()).isTrue();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
@@ -337,9 +337,9 @@ public class SeqPointerAliasingParameterTest {
         SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // all are not explicit global memory locations
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =

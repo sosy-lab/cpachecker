@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -19,18 +20,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public record SeqMemoryLocation(
     Optional<CFAEdgeForThread> callContext,
-    CVariableDeclaration declaration,
+    CSimpleDeclaration declaration,
     Optional<CCompositeTypeMemberDeclaration> fieldMember) {
 
   public static SeqMemoryLocation of(
-      Optional<CFAEdgeForThread> pCallContext, CVariableDeclaration pDeclaration) {
+      Optional<CFAEdgeForThread> pCallContext, CSimpleDeclaration pDeclaration) {
 
     return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty());
   }
 
   public static SeqMemoryLocation of(
       Optional<CFAEdgeForThread> pCallContext,
-      CVariableDeclaration pDeclaration,
+      CSimpleDeclaration pDeclaration,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
     return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.of(pFieldMember));
@@ -40,7 +41,7 @@ public record SeqMemoryLocation(
     StringBuilder name = new StringBuilder();
 
     // only local variables are prefixed with a thread id
-    if (!declaration.isGlobal()) {
+    if (isGlobal()) {
       // use call context if possible, otherwise use 0 (only main() declarations have no context)
       name.append("T")
           .append(callContext.isPresent() ? callContext.orElseThrow().threadId : 0)
@@ -54,6 +55,11 @@ public record SeqMemoryLocation(
     }
 
     return name.toString();
+  }
+
+  public boolean isGlobal() {
+    return declaration instanceof CVariableDeclaration variableDeclaration
+        && variableDeclaration.isGlobal();
   }
 
   public boolean isFieldOwnerPointerType() {
@@ -80,8 +86,7 @@ public record SeqMemoryLocation(
 
   @Override
   public int hashCode() {
-    // consider call context only for non-global variables
-    return Objects.hash(declaration.isGlobal() ? null : callContext, declaration, fieldMember);
+    return Objects.hash(callContext, declaration, fieldMember);
   }
 
   @Override
@@ -95,8 +100,7 @@ public record SeqMemoryLocation(
                 Optional<CFAEdgeForThread> pCallContext,
                 CVariableDeclaration pDeclaration,
                 Optional<CCompositeTypeMemberDeclaration> pFieldMember)
-        // consider call context only for non-global variables
-        && (declaration.isGlobal() || callContext.equals(pCallContext))
+        && callContext.equals(pCallContext)
         && fieldMember.equals(pFieldMember)
         && declaration.equals(pDeclaration);
   }

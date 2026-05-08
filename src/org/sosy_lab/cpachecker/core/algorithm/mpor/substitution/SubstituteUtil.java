@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CSimpleDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
@@ -136,10 +136,10 @@ public class SubstituteUtil {
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      CDeclarationTrackerResult key = entry.getKey();
+      CSimpleDeclarationTrackerResult key = entry.getKey();
       SeqMemoryLocation leftHandSide =
           new SeqMemoryLocation(pCallContext, key.declaration(), key.fieldMember());
-      CDeclarationTrackerResult value = entry.getValue();
+      CSimpleDeclarationTrackerResult value = entry.getValue();
       SeqMemoryLocation rightHandSide =
           new SeqMemoryLocation(pCallContext, value.declaration(), value.fieldMember());
       rAssignments.put(leftHandSide, rightHandSide);

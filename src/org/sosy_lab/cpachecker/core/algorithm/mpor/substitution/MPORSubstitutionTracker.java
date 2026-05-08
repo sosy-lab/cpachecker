@@ -33,8 +33,8 @@ public class MPORSubstitutionTracker {
 
   record CVariableDeclarationTrackerResult(CVariableDeclaration variableDeclaration) {}
 
-  record CDeclarationTrackerResult(
-      CVariableDeclaration declaration, Optional<CCompositeTypeMemberDeclaration> fieldMember) {}
+  record CSimpleDeclarationTrackerResult(
+      CSimpleDeclaration declaration, Optional<CCompositeTypeMemberDeclaration> fieldMember) {}
 
   /**
    * The set of accessed main function arguments, used to decide whether to assign them
@@ -45,7 +45,8 @@ public class MPORSubstitutionTracker {
 
   // POINTER ASSIGNMENTS ===========================================================================
 
-  private final Map<CDeclarationTrackerResult, CDeclarationTrackerResult> pointerAssignments;
+  private final Map<CSimpleDeclarationTrackerResult, CSimpleDeclarationTrackerResult>
+      pointerAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
@@ -120,12 +121,13 @@ public class MPORSubstitutionTracker {
       Optional<CCompositeTypeMemberDeclaration> pRightHandSideFieldMemberDeclaration) {
 
     pointerAssignments.put(
-        new CDeclarationTrackerResult(
+        // the left-hand side is always converted to a CVariableDeclaration
+        new CSimpleDeclarationTrackerResult(
             MPORUtil.convertToVariableDeclaration(pLeftHandSideDeclaration),
             pLeftHandSideFieldMemberDeclaration),
-        new CDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pRightHandSideDeclaration),
-            pRightHandSideFieldMemberDeclaration));
+        // the right-hand side can be a CFunctionDeclaration from a CFunctionCallExpression
+        new CSimpleDeclarationTrackerResult(
+            pRightHandSideDeclaration, pRightHandSideFieldMemberDeclaration));
   }
 
   void addAccessedPointerDereference(CSimpleDeclaration pAccessedPointerDereference) {
@@ -192,7 +194,8 @@ public class MPORSubstitutionTracker {
     return ImmutableSet.copyOf(accessedMainFunctionArgs);
   }
 
-  ImmutableMap<CDeclarationTrackerResult, CDeclarationTrackerResult> getPointerAssignments() {
+  ImmutableMap<CSimpleDeclarationTrackerResult, CSimpleDeclarationTrackerResult>
+      getPointerAssignments() {
     return ImmutableMap.copyOf(pointerAssignments);
   }
 

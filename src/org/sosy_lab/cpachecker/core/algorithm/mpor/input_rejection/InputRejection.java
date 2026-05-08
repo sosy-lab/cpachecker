@@ -25,11 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -208,22 +208,31 @@ public class InputRejection {
         if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.getInitializer()
               instanceof CInitializerExpression initializerExpression) {
-            checkFunctionPointerRightHandSide(initializerExpression.getExpression());
+            checkFunctionPointerExpression(initializerExpression.getExpression());
           }
         }
       }
     }
   }
 
-  public static void checkFunctionPointerRightHandSide(CExpression pRightHandSide)
+  public static void checkFunctionPointerExpression(CRightHandSide pRightHandSide)
       throws UnsupportedCodeException {
 
-    ImmutableSet<CSimpleDeclaration> declarations =
-        SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pRightHandSide, true);
-    if (declarations.stream().anyMatch(d -> d instanceof CFunctionDeclaration)) {
-      throw new UnsupportedCodeException(
-          InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
-          null);
+    ImmutableSet<CType> allTypes =
+        SeqPointerAliasingUtil.getAllTypesInType(
+            pRightHandSide.getExpressionType(), ImmutableSet.of());
+
+    for (CType type : allTypes) {
+      if (type instanceof CPointerType pointerType) {
+        ImmutableSet<CType> innerPointerTypes =
+            SeqPointerAliasingUtil.getAllTypesInType(pointerType, ImmutableSet.of());
+        if (innerPointerTypes.stream().anyMatch(t -> t instanceof CFunctionType)) {
+          throw new UnsupportedCodeException(
+              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message
+                  + pRightHandSide.toASTString(),
+              null);
+        }
+      }
     }
   }
 
@@ -236,7 +245,7 @@ public class InputRejection {
       return;
     }
     for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
-      checkFunctionPointerRightHandSide(parameterExpression);
+      checkFunctionPointerExpression(parameterExpression);
     }
   }
 
@@ -322,11 +331,11 @@ public class InputRejection {
     }
   }
 
-  public static void checkPointerWriteBinaryExpression(
-      CLeftHandSide pLeftHandSide, CExpression pRightHandSide) throws UnsupportedCodeException {
+  public static void checkBinaryExpressionInRightHandSide(CRightHandSide pRightHandSide)
+      throws UnsupportedCodeException {
 
-    if (pLeftHandSide.getExpressionType() instanceof CPointerType) {
-      if (pRightHandSide.accept(new CBinaryExpressionVisitor())) {
+    if (pRightHandSide instanceof CExpression expression) {
+      if (expression.accept(new CBinaryExpressionVisitor())) {
         throw new UnsupportedCodeException(
             String.format(
                 InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),

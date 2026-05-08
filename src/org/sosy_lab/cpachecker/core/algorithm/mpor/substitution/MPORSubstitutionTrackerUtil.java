@@ -19,10 +19,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -149,19 +151,18 @@ public class MPORSubstitutionTrackerUtil {
   // Pointer Assignments ===========================================================================
 
   static void trackPointerAssignment(
-      CLeftHandSide pLeftHandSide, CExpression pRightHandSide, MPORSubstitutionTracker pTracker)
+      CLeftHandSide pLeftHandSide, CRightHandSide pRightHandSide, MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
-    InputRejection.checkFunctionPointerRightHandSide(pRightHandSide);
-    InputRejection.checkPointerWriteBinaryExpression(pLeftHandSide, pRightHandSide);
-
-    CSimpleDeclaration leftHandSideDeclaration =
-        pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
-    CType leftHandSideType = leftHandSideDeclaration.getType();
+    CType leftHandSideType = pLeftHandSide.getExpressionType();
     ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
 
     if (SeqPointerAliasingUtil.isAnyTypeTargetClass(
         leftHandSideType, CPointerType.class, stopNames)) {
+
+      InputRejection.checkFunctionPointerExpression(pRightHandSide);
+      InputRejection.checkBinaryExpressionInRightHandSide(pRightHandSide);
+
       CPointerAssignmentVisitResult leftHandSideVisitResult =
           pLeftHandSide.accept(new CPointerAssignmentVisitor());
       if (leftHandSideVisitResult != null) {
@@ -173,15 +174,27 @@ public class MPORSubstitutionTrackerUtil {
             return;
           }
         }
-        CPointerAssignmentVisitResult rightHandSideVisitResult =
-            pRightHandSide.accept(new CPointerAssignmentVisitor());
-        // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
-        if (rightHandSideVisitResult != null) {
-          pTracker.addPointerAssignment(
-              leftHandSideVisitResult.declaration(),
-              leftHandSideVisitResult.fieldMember(),
-              rightHandSideVisitResult.declaration(),
-              rightHandSideVisitResult.fieldMember());
+        switch (pRightHandSide) {
+          case CExpression expression -> {
+            CPointerAssignmentVisitResult rightHandSideVisitResult =
+                expression.accept(new CPointerAssignmentVisitor());
+            ;
+            // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
+            if (rightHandSideVisitResult != null) {
+              pTracker.addPointerAssignment(
+                  leftHandSideVisitResult.declaration(),
+                  leftHandSideVisitResult.fieldMember(),
+                  rightHandSideVisitResult.declaration(),
+                  rightHandSideVisitResult.fieldMember());
+            }
+          }
+          case CFunctionCallExpression functionCallExpression -> {
+            pTracker.addPointerAssignment(
+                leftHandSideVisitResult.declaration(),
+                leftHandSideVisitResult.fieldMember(),
+                functionCallExpression.getDeclaration(),
+                Optional.empty());
+          }
         }
       }
     }

@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -299,51 +300,56 @@ public class MPORSubstitution {
       MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
-    switch (pStatement) {
-      // e.g. n = fib(42); or arr[n] = fib(42);
-      case CFunctionCallAssignmentStatement functionCallAssignment -> {
-        CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
-        CExpression leftHandSideSubstitute =
-            substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
-        return new CFunctionCallAssignmentStatement(
-            functionCallAssignment.getFileLocation(),
-            (CLeftHandSide) leftHandSideSubstitute,
-            substitute(functionCallAssignment.getRightHandSide(), pCallContext, pTracker));
-      }
-      // e.g. fib(42);
-      case CFunctionCallStatement functionCall -> {
-        InputRejection.checkFunctionPointerParameter(functionCall.getFunctionCallExpression());
-        return new CFunctionCallStatement(
-            functionCall.getFileLocation(),
-            substitute(functionCall.getFunctionCallExpression(), pCallContext, pTracker));
-      }
-      // e.g. int x = 42;
-      case CExpressionAssignmentStatement assignment -> {
-        CLeftHandSide leftHandSide = assignment.getLeftHandSide();
-        CExpression rightHandSide = assignment.getRightHandSide();
-        CExpression leftHandSideSubstitute =
-            substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
-        CExpressionAssignmentStatement assignmentSubstitute =
-            new CExpressionAssignmentStatement(
+    CStatement substituteStatement =
+        switch (pStatement) {
+          // e.g. n = fib(42); or arr[n] = fib(42);
+          case CFunctionCallAssignmentStatement functionCallAssignment -> {
+            CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
+            CExpression leftHandSideSubstitute =
+                substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
+            yield new CFunctionCallAssignmentStatement(
+                functionCallAssignment.getFileLocation(),
+                (CLeftHandSide) leftHandSideSubstitute,
+                substitute(functionCallAssignment.getRightHandSide(), pCallContext, pTracker));
+          }
+          // e.g. fib(42);
+          case CFunctionCallStatement functionCall -> {
+            InputRejection.checkFunctionPointerParameter(functionCall.getFunctionCallExpression());
+            yield new CFunctionCallStatement(
+                functionCall.getFileLocation(),
+                substitute(functionCall.getFunctionCallExpression(), pCallContext, pTracker));
+          }
+          // e.g. int x = 42;
+          case CExpressionAssignmentStatement assignment -> {
+            CLeftHandSide leftHandSide = assignment.getLeftHandSide();
+            CExpression rightHandSide = assignment.getRightHandSide();
+            CExpression leftHandSideSubstitute =
+                substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
+            yield new CExpressionAssignmentStatement(
                 assignment.getFileLocation(),
                 (CLeftHandSide) leftHandSideSubstitute,
                 // for the RHS, it's not a left hand side of an assignment
                 substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
-        MPORSubstitutionTrackerUtil.trackPointerAssignment(
-            assignmentSubstitute.getLeftHandSide(),
-            assignmentSubstitute.getRightHandSide(),
-            pTracker);
-        return assignmentSubstitute;
-      }
-      case CExpressionStatement expression -> {
-        return new CExpressionStatement(
-            expression.getFileLocation(),
-            substitute(
-                expression.getExpression(), pCallContext, false, false, false, false, pTracker));
-      }
-      default -> {}
+          }
+          case CExpressionStatement expression ->
+              new CExpressionStatement(
+                  expression.getFileLocation(),
+                  substitute(
+                      expression.getExpression(),
+                      pCallContext,
+                      false,
+                      false,
+                      false,
+                      false,
+                      pTracker));
+        };
+
+    if (substituteStatement instanceof CAssignment assignment) {
+      MPORSubstitutionTrackerUtil.trackPointerAssignment(
+          assignment.getLeftHandSide(), assignment.getRightHandSide(), pTracker);
     }
-    return pStatement;
+
+    return substituteStatement;
   }
 
   private CFunctionCallExpression substitute(

@@ -243,36 +243,38 @@ public class SeqMemoryLocationFinder {
     ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
 
     if (SeqPointerAliasingUtil.isAnyTypeTargetClass(currentType, CCompositeType.class, stopNames)) {
-      CInitializer initializer = pPointerDereference.declaration().getInitializer();
-      if (initializer instanceof CInitializerExpression initializerExpression) {
-        CExpressionCollector<CFieldReference> fieldReferenceCollector =
-            new CExpressionCollector<>(CFieldReference.class);
-        initializerExpression.getExpression().accept(fieldReferenceCollector);
-        if (!fieldReferenceCollector.getCollected().isEmpty()) {
-          CFieldReference fieldReference =
-              Iterables.getOnlyElement(fieldReferenceCollector.getCollected());
+      if (pPointerDereference.declaration() instanceof CVariableDeclaration variableDeclaration) {
+        CInitializer initializer = variableDeclaration.getInitializer();
+        if (initializer instanceof CInitializerExpression initializerExpression) {
+          CExpressionCollector<CFieldReference> fieldReferenceCollector =
+              new CExpressionCollector<>(CFieldReference.class);
+          initializerExpression.getExpression().accept(fieldReferenceCollector);
+          if (!fieldReferenceCollector.getCollected().isEmpty()) {
+            CFieldReference fieldReference =
+                Iterables.getOnlyElement(fieldReferenceCollector.getCollected());
+            return getTargetMemoryLocationWithFieldMember(
+                fieldReference.getFieldOwner().getExpressionType(),
+                fieldReference.getFieldName(),
+                pCurrentMemoryLocation);
+          }
+        }
+        if (pPointerDereference.fieldMember().isPresent()) {
           return getTargetMemoryLocationWithFieldMember(
-              fieldReference.getFieldOwner().getExpressionType(),
-              fieldReference.getFieldName(),
+              currentType,
+              pPointerDereference.fieldMember().orElseThrow().getName(),
               pCurrentMemoryLocation);
         }
-      }
-      if (pPointerDereference.fieldMember().isPresent()) {
-        return getTargetMemoryLocationWithFieldMember(
-            currentType,
-            pPointerDereference.fieldMember().orElseThrow().getName(),
-            pCurrentMemoryLocation);
-      }
-      for (SeqMemoryLocation rightHandSide : pPointerDereferenceRightHandSides) {
-        if (rightHandSide.fieldMember().isPresent()) {
-          CType rhsType = rightHandSide.declaration().getType();
-          if (rhsType.equals(currentType)
-              || (rhsType instanceof CPointerType pointerType
-                  && pointerType.getType().equals(currentType))) {
-            return getTargetMemoryLocationWithFieldMember(
-                currentType,
-                rightHandSide.fieldMember().orElseThrow().getName(),
-                pCurrentMemoryLocation);
+        for (SeqMemoryLocation rightHandSide : pPointerDereferenceRightHandSides) {
+          if (rightHandSide.fieldMember().isPresent()) {
+            CType rhsType = rightHandSide.declaration().getType();
+            if (rhsType.equals(currentType)
+                || (rhsType instanceof CPointerType pointerType
+                    && pointerType.getType().equals(currentType))) {
+              return getTargetMemoryLocationWithFieldMember(
+                  currentType,
+                  rightHandSide.fieldMember().orElseThrow().getName(),
+                  pCurrentMemoryLocation);
+            }
           }
         }
       }

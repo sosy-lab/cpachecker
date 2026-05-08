@@ -151,11 +151,13 @@ public record SeqPointerAliasingMapBuilder(
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     // exclude const CPAchecker_TMP, they do not have any effect in the input program
-    if (MPORUtil.isConstCpaCheckerTmp(pMemoryLocation.declaration())) {
-      return false;
+    if (pMemoryLocation.declaration() instanceof CVariableDeclaration variableDeclaration) {
+      if (MPORUtil.isConstCpaCheckerTmp(variableDeclaration)) {
+        return false;
+      }
     }
     // relevant locations are either explicit or implicit (e.g. through pointers) global
-    if (pMemoryLocation.declaration().isGlobal()
+    if (pMemoryLocation.isGlobal()
         || isImplicitGlobal(
             pMemoryLocation,
             pPointerAssignments,
@@ -178,7 +180,7 @@ public record SeqPointerAliasingMapBuilder(
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
-    if (pMemoryLocation.declaration().isGlobal()) {
+    if (pMemoryLocation.isGlobal()) {
       return false;
     }
     // e.g. (void*) arg = &local_var -> local_var can be accessed by creating and created threads
@@ -232,8 +234,7 @@ public record SeqPointerAliasingMapBuilder(
       SeqMemoryLocation pMemoryLocation,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments) {
 
-    return pMemoryLocation.declaration().isGlobal()
-        || pStartRoutineArgAssignments.containsValue(pMemoryLocation);
+    return pMemoryLocation.isGlobal() || pStartRoutineArgAssignments.containsValue(pMemoryLocation);
   }
 
   /**
