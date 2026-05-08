@@ -86,7 +86,8 @@ public record SeqMemoryLocation(
 
   @Override
   public int hashCode() {
-    return Objects.hash(callContext, declaration, fieldMember);
+    // consider call context only for non-global memory locations
+    return Objects.hash(isGlobal() ? null : callContext, declaration, fieldMember);
   }
 
   @Override
@@ -100,7 +101,8 @@ public record SeqMemoryLocation(
                 Optional<CFAEdgeForThread> pCallContext,
                 CVariableDeclaration pDeclaration,
                 Optional<CCompositeTypeMemberDeclaration> pFieldMember)
-        && callContext.equals(pCallContext)
+        // consider call context only for non-global memory locations
+        && (isGlobal() || callContext.equals(pCallContext))
         && fieldMember.equals(pFieldMember)
         && declaration.equals(pDeclaration);
   }

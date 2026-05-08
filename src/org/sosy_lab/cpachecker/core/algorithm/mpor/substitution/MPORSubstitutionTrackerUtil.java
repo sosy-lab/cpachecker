@@ -154,14 +154,20 @@ public class MPORSubstitutionTrackerUtil {
       CLeftHandSide pLeftHandSide, CRightHandSide pRightHandSide, MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
-    CType leftHandSideType = pLeftHandSide.getExpressionType();
+    CSimpleDeclaration leftHandSideDeclaration =
+        Iterables.getOnlyElement(
+            SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pLeftHandSide, false));
     ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
 
     if (SeqPointerAliasingUtil.isAnyTypeTargetClass(
-        leftHandSideType, CPointerType.class, stopNames)) {
+        leftHandSideDeclaration.getType(), CPointerType.class, stopNames)) {
 
       InputRejection.checkFunctionPointerExpression(pRightHandSide);
-      InputRejection.checkBinaryExpressionInRightHandSide(pRightHandSide);
+      // only check for CBinaryExpression in right-hand sides if the left-hand side is not a pointer
+      // dereference. e.g. using a pointer dereference in an increment is fine.
+      if (!SeqPointerAliasingUtil.isPointerDereference(pLeftHandSide)) {
+        InputRejection.checkBinaryExpressionInRightHandSide(pRightHandSide);
+      }
 
       CPointerAssignmentVisitResult leftHandSideVisitResult =
           pLeftHandSide.accept(new CPointerAssignmentVisitor());

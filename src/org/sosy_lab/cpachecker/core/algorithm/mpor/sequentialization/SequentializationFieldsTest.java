@@ -350,8 +350,8 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(7);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
-    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(1);
-    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(2);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(1);
     assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
     // v[0] counts as pointer dereference, but only once (same declaration)
     assertThat(pointerAliasingMap.pointerDereferences).hasSize(1);

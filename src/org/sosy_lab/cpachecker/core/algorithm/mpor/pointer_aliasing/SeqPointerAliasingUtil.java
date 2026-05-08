@@ -257,6 +257,42 @@ public class SeqPointerAliasingUtil {
 
   // CLeftHandSide Visitors
 
+  public static boolean isPointerDereference(CLeftHandSide pLeftHandSide) {
+    return pLeftHandSide.accept(new CLeftHandSidePointerDereferenceVisitor());
+  }
+
+  private static final class CLeftHandSidePointerDereferenceVisitor
+      implements CLeftHandSideVisitor<Boolean, NoException> {
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression) throws NoException {
+
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CFieldReference pFieldReference) throws NoException {
+      return pFieldReference.isPointerDereference();
+    }
+
+    @Override
+    public Boolean visit(CIdExpression pIdExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression pPointerExpression) throws NoException {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression pComplexCastExpression) throws NoException {
+
+      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
+      return operandLeftHandSide.accept(this);
+    }
+  }
+
   public static final class CLeftHandSideSimpleDeclarationVisitor
       implements CLeftHandSideVisitor<CSimpleDeclaration, NoException> {
 
