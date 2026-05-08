@@ -16,8 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -31,17 +29,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAcc
 public class MPORSubstitutionTracker {
 
   record CFieldReferenceTrackerResult(
-      CVariableDeclaration fieldOwner,
-      CCompositeTypeMemberDeclaration fieldMember,
-      CFieldReference fieldReference) {}
+      CVariableDeclaration fieldOwner, CCompositeTypeMemberDeclaration fieldMember) {}
 
-  record CVariableDeclarationTrackerResult(
-      CVariableDeclaration variableDeclaration, CExpression expression) {}
+  record CVariableDeclarationTrackerResult(CVariableDeclaration variableDeclaration) {}
 
   record CDeclarationTrackerResult(
-      CVariableDeclaration declaration,
-      Optional<CCompositeTypeMemberDeclaration> fieldMember,
-      CExpression expression) {}
+      CVariableDeclaration declaration, Optional<CCompositeTypeMemberDeclaration> fieldMember) {}
 
   /**
    * The set of accessed main function arguments, used to decide whether to assign them
@@ -123,92 +116,74 @@ public class MPORSubstitutionTracker {
   void addPointerAssignment(
       CSimpleDeclaration pLeftHandSideDeclaration,
       Optional<CCompositeTypeMemberDeclaration> pLeftHandSideFieldMemberDeclaration,
-      CExpression pLeftHandSide,
       CSimpleDeclaration pRightHandSideDeclaration,
-      Optional<CCompositeTypeMemberDeclaration> pRightHandSideFieldMemberDeclaration,
-      CExpression pRightHandSide) {
+      Optional<CCompositeTypeMemberDeclaration> pRightHandSideFieldMemberDeclaration) {
 
     pointerAssignments.put(
         new CDeclarationTrackerResult(
             MPORUtil.convertToVariableDeclaration(pLeftHandSideDeclaration),
-            pLeftHandSideFieldMemberDeclaration,
-            pLeftHandSide),
+            pLeftHandSideFieldMemberDeclaration),
         new CDeclarationTrackerResult(
             MPORUtil.convertToVariableDeclaration(pRightHandSideDeclaration),
-            pRightHandSideFieldMemberDeclaration,
-            pRightHandSide));
+            pRightHandSideFieldMemberDeclaration));
   }
 
-  void addAccessedPointerDereference(
-      CSimpleDeclaration pAccessedPointerDereference, CExpression pExpression) {
+  void addAccessedPointerDereference(CSimpleDeclaration pAccessedPointerDereference) {
 
     accessedPointerDereferences.add(
         new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pAccessedPointerDereference), pExpression));
+            MPORUtil.convertToVariableDeclaration(pAccessedPointerDereference)));
   }
 
-  void addWrittenPointerDereference(
-      CSimpleDeclaration pWrittenPointerDereference, CExpression pExpression) {
+  void addWrittenPointerDereference(CSimpleDeclaration pWrittenPointerDereference) {
 
     writtenPointerDereferences.add(
         new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pWrittenPointerDereference), pExpression));
+            MPORUtil.convertToVariableDeclaration(pWrittenPointerDereference)));
   }
 
   void addAccessedFieldReferencePointerDereference(
-      CSimpleDeclaration pFieldOwner,
-      CCompositeTypeMemberDeclaration pFieldMember,
-      CFieldReference pFieldReference) {
+      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
 
     accessedFieldReferencePointerDereferences.add(
         new CFieldReferenceTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
+            MPORUtil.convertToVariableDeclaration(pFieldOwner), pFieldMember));
   }
 
   void addWrittenFieldReferencePointerDereference(
-      CSimpleDeclaration pFieldOwner,
-      CCompositeTypeMemberDeclaration pFieldMember,
-      CFieldReference pFieldReference) {
+      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
 
     writtenFieldReferencePointerDereferences.add(
         new CFieldReferenceTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pFieldOwner), pFieldMember, pFieldReference));
+            MPORUtil.convertToVariableDeclaration(pFieldOwner), pFieldMember));
   }
 
-  void addAccessedDeclaration(CSimpleDeclaration pAccessedDeclaration, CExpression pExpression) {
+  void addAccessedDeclaration(CSimpleDeclaration pAccessedDeclaration) {
     accessedDeclarations.add(
         new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pAccessedDeclaration), pExpression));
+            MPORUtil.convertToVariableDeclaration(pAccessedDeclaration)));
   }
 
-  void addWrittenDeclaration(CSimpleDeclaration pWrittenDeclaration, CExpression pExpression) {
+  void addWrittenDeclaration(CSimpleDeclaration pWrittenDeclaration) {
     writtenDeclarations.add(
         new CVariableDeclarationTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pWrittenDeclaration), pExpression));
+            MPORUtil.convertToVariableDeclaration(pWrittenDeclaration)));
   }
 
   void addAccessedFieldMember(
-      CSimpleDeclaration pOwnerDeclaration,
-      CCompositeTypeMemberDeclaration pAccessedFieldMember,
-      CFieldReference pFieldReference) {
+      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pAccessedFieldMember) {
 
     accessedFieldMembers.add(
         new CFieldReferenceTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration),
-            pAccessedFieldMember,
-            pFieldReference));
+            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration), pAccessedFieldMember));
   }
 
   void addWrittenFieldMember(
-      CSimpleDeclaration pOwnerDeclaration,
-      CCompositeTypeMemberDeclaration pWrittenFieldMember,
-      CFieldReference pFieldReference) {
+      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pWrittenFieldMember) {
 
     writtenFieldMembers.add(
         new CFieldReferenceTrackerResult(
-            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration),
-            pWrittenFieldMember,
-            pFieldReference));
+            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration), pWrittenFieldMember));
   }
 
   // getters =======================================================================================
