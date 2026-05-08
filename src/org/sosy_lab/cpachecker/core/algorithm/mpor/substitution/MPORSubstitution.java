@@ -129,7 +129,7 @@ public class MPORSubstitution {
    *       {@code owner->member} then for the expression {@code owner} this value is true
    * </ul>
    */
-  public CExpression substitute(
+  CExpression substitute(
       CExpression pExpression,
       Optional<CFAEdgeForThread> pCallContext,
       boolean pIsDeclaration,
