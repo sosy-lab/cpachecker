@@ -37,10 +37,8 @@ public class AcslTermToFormulaTest {
   public void testAcslXYZTerm() throws InvalidConfigurationException {
     Solver smtSolver = createSolver();
     FormulaManagerView fmgr = smtSolver.getFormulaManager();
-    AcslPredicateToFormulaVisitor visitorP = new AcslPredicateToFormulaVisitor(fmgr);
     AcslTermToFormulaVisitor visitorT = new AcslTermToFormulaVisitor(fmgr);
-    visitorT.setPredicateVisitor(visitorP);
-    visitorP.setTermVisitor(visitorT);
+    AcslPredicateToFormulaVisitor visitorP = new AcslPredicateToFormulaVisitor(fmgr, visitorT);
 
     AcslTerm term = new AcslCharLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, 'a');
     Formula f = term.accept(visitorT);
