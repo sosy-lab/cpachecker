@@ -221,7 +221,10 @@ public class SeqMemoryLocationFinder {
             getTargetMemoryLocation(
                 pPointerDereference, pointerDereferenceRightHandSides, currentMemoryLocation);
         // if field member is a pointer then it must be dereferenced too, otherwise add to found
-        if (targetMemoryLocation.isFieldMemberPointerType()) {
+        if (targetMemoryLocation.isFieldMemberPointerType()
+            // it is possible that the target memory location equals the current memory location,
+            // e.g. if the pointer was assigned '(void *)0' (something without a declaration)
+            && !currentMemoryLocation.equals(targetMemoryLocation)) {
           stack.push(targetMemoryLocation);
         } else {
           found.add(targetMemoryLocation);
@@ -260,10 +263,12 @@ public class SeqMemoryLocationFinder {
           }
         }
         if (pPointerDereference.fieldMember().isPresent()) {
+          String fieldMemberName =
+              pCurrentMemoryLocation.fieldMember().isPresent()
+                  ? pCurrentMemoryLocation.fieldMember().orElseThrow().getName()
+                  : pPointerDereference.fieldMember().orElseThrow().getName();
           return getTargetMemoryLocationWithFieldMember(
-              currentType,
-              pPointerDereference.fieldMember().orElseThrow().getName(),
-              pCurrentMemoryLocation);
+              currentType, fieldMemberName, pCurrentMemoryLocation);
         }
         for (SeqMemoryLocation rightHandSide : pPointerDereferenceRightHandSides) {
           if (rightHandSide.fieldMember().isPresent()) {
