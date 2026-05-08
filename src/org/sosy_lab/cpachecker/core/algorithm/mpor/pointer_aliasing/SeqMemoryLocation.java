@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -21,12 +23,28 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 public record SeqMemoryLocation(
     Optional<CFAEdgeForThread> callContext,
     CSimpleDeclaration declaration,
-    Optional<CCompositeTypeMemberDeclaration> fieldMember) {
+    Optional<CCompositeTypeMemberDeclaration> fieldMember,
+    Optional<CFunctionCallExpression> functionCallExpression) {
+
+  public SeqMemoryLocation {
+    checkArgument(
+        declaration instanceof CFunctionDeclaration || declaration instanceof CVariableDeclaration,
+        "declaration must be CFunctionDeclaration or CVariableDeclaration");
+    checkArgument(
+        !(declaration instanceof CFunctionDeclaration) || functionCallExpression.isPresent(),
+        "If declaration is a CFunctionDeclaration, then functionCallExpression must be present.");
+    checkArgument(
+        !(declaration instanceof CFunctionDeclaration) || fieldMember.isEmpty(),
+        "If declaration is a CFunctionDeclaration, then fieldMember must be empty.");
+    checkArgument(
+        !(declaration instanceof CVariableDeclaration) || functionCallExpression.isEmpty(),
+        "If declaration is a CVariableDeclaration, then functionCallExpression must be empty.");
+  }
 
   public static SeqMemoryLocation of(
       Optional<CFAEdgeForThread> pCallContext, CSimpleDeclaration pDeclaration) {
 
-    return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty());
+    return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty(), Optional.empty());
   }
 
   public static SeqMemoryLocation of(
@@ -34,7 +52,16 @@ public record SeqMemoryLocation(
       CSimpleDeclaration pDeclaration,
       Optional<CCompositeTypeMemberDeclaration> pFieldMember) {
 
-    return new SeqMemoryLocation(pCallContext, pDeclaration, pFieldMember);
+    return new SeqMemoryLocation(pCallContext, pDeclaration, pFieldMember, Optional.empty());
+  }
+
+  public static SeqMemoryLocation of(
+      Optional<CFAEdgeForThread> pCallContext,
+      CSimpleDeclaration pDeclaration,
+      Optional<CCompositeTypeMemberDeclaration> pFieldMember,
+      Optional<CFunctionCallExpression> pFunctionCallExpression) {
+
+    return new SeqMemoryLocation(pCallContext, pDeclaration, pFieldMember, pFunctionCallExpression);
   }
 
   public String getName() {
@@ -87,7 +114,8 @@ public record SeqMemoryLocation(
   @Override
   public int hashCode() {
     // consider call context only for non-global memory locations
-    return Objects.hash(isGlobal() ? null : callContext, declaration, fieldMember);
+    return Objects.hash(
+        isGlobal() ? null : callContext, declaration, fieldMember, functionCallExpression);
   }
 
   @Override
@@ -100,11 +128,13 @@ public record SeqMemoryLocation(
             SeqMemoryLocation(
                 Optional<CFAEdgeForThread> pCallContext,
                 CVariableDeclaration pDeclaration,
-                Optional<CCompositeTypeMemberDeclaration> pFieldMember)
+                Optional<CCompositeTypeMemberDeclaration> pFieldMember,
+                Optional<CFunctionCallExpression> pFunctionCallExpression)
         // consider call context only for non-global memory locations
         && (isGlobal() || callContext.equals(pCallContext))
         && fieldMember.equals(pFieldMember)
-        && declaration.equals(pDeclaration);
+        && declaration.equals(pDeclaration)
+        && functionCallExpression.equals(pFunctionCallExpression);
   }
 
   @Override

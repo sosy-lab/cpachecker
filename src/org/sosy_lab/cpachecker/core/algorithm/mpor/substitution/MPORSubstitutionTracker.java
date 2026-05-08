@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -112,7 +113,8 @@ public class MPORSubstitutionTracker {
       CSimpleDeclaration pLeftHandSideDeclaration,
       Optional<CCompositeTypeMemberDeclaration> pLeftHandSideFieldMemberDeclaration,
       CSimpleDeclaration pRightHandSideDeclaration,
-      Optional<CCompositeTypeMemberDeclaration> pRightHandSideFieldMemberDeclaration) {
+      Optional<CCompositeTypeMemberDeclaration> pRightHandSideFieldMemberDeclaration,
+      Optional<CFunctionCallExpression> pRightHandSideFunctionCallExpression) {
 
     pointerAssignments.put(
         // the left-hand side is always converted to a CVariableDeclaration
@@ -122,7 +124,10 @@ public class MPORSubstitutionTracker {
             pLeftHandSideFieldMemberDeclaration),
         // the right-hand side can be a CFunctionDeclaration from a CFunctionCallExpression
         SeqMemoryLocation.of(
-            pCallContext, pRightHandSideDeclaration, pRightHandSideFieldMemberDeclaration));
+            pCallContext,
+            pRightHandSideDeclaration,
+            pRightHandSideFieldMemberDeclaration,
+            pRightHandSideFunctionCallExpression));
   }
 
   void addAccessedPointerDereference(

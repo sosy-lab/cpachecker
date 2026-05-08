@@ -57,7 +57,8 @@ public class MPORSubstitutionTrackerUtil {
           entry.getKey().declaration(),
           entry.getKey().fieldMember(),
           entry.getValue().declaration(),
-          entry.getValue().fieldMember());
+          entry.getValue().fieldMember(),
+          entry.getValue().functionCallExpression());
     }
     // pointer dereferences
     for (SeqMemoryLocation accessedPointerDereference : pFrom.getAccessedPointerDereferences()) {
@@ -205,7 +206,8 @@ public class MPORSubstitutionTrackerUtil {
                   leftHandSideVisitResult.declaration(),
                   leftHandSideVisitResult.fieldMember(),
                   rightHandSideVisitResult.declaration(),
-                  rightHandSideVisitResult.fieldMember());
+                  rightHandSideVisitResult.fieldMember(),
+                  Optional.empty());
             }
           }
           case CFunctionCallExpression functionCallExpression ->
@@ -214,7 +216,8 @@ public class MPORSubstitutionTrackerUtil {
                   leftHandSideVisitResult.declaration(),
                   leftHandSideVisitResult.fieldMember(),
                   functionCallExpression.getDeclaration(),
-                  Optional.empty());
+                  Optional.empty(),
+                  Optional.of(functionCallExpression));
         }
       }
     }
