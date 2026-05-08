@@ -11,19 +11,16 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -51,10 +48,10 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslBinaryPredicate pBinaryExpression) throws NoException {
-    BooleanFormula operand1Formula = ((AcslPredicate) pBinaryExpression.getOperand1()).accept(this);
-    BooleanFormula operand2Formula = ((AcslPredicate) pBinaryExpression.getOperand2()).accept(this);
+    BooleanFormula operand1Formula = pBinaryExpression.getOperand1().accept(this);
+    BooleanFormula operand2Formula = pBinaryExpression.getOperand2().accept(this);
 
-    return switch ((AcslBinaryPredicateOperator) pBinaryExpression.getOperator()) {
+    return switch (pBinaryExpression.getOperator()) {
       case IMPLICATION -> bfmgr.implication(operand1Formula, operand2Formula);
       case EQUIVALENT -> bfmgr.equivalence(operand1Formula, operand2Formula);
       case AND -> bfmgr.and(operand1Formula, operand2Formula);
@@ -64,9 +61,9 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslUnaryPredicate pAcslUnaryPredicate) throws NoException {
-    BooleanFormula operandFormula = ((AcslPredicate) pAcslUnaryPredicate.getOperand()).accept(this);
+    BooleanFormula operandFormula = pAcslUnaryPredicate.getOperand().accept(this);
 
-    return switch ((AcslUnaryExpressionOperator) pAcslUnaryPredicate.getOperator()) {
+    return switch (pAcslUnaryPredicate.getOperator()) {
       case NEGATION -> bfmgr.not(operandFormula);
     };
   }

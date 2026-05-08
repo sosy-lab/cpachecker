@@ -37,6 +37,16 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
   }
 
   @Override
+  public AcslPredicate getOperand() {
+    return (AcslPredicate) super.getOperand();
+  }
+
+  @Override
+  public AcslUnaryExpressionOperator getOperator() {
+    return (AcslUnaryExpressionOperator) super.getOperator();
+  }
+
+  @Override
   public int hashCode() {
     final int prime = 37;
     int result = 2;
