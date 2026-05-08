@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -36,9 +37,16 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -430,12 +438,62 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private void addNoExitLoopHeadCandidates(
       Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
-    if (!pLoop.getOutgoingEdges().isEmpty()) {
+    if (!pLoop.getOutgoingEdges().isEmpty() || !isPureMainFunctionNoExitLoop(pLoop)) {
       return;
     }
     for (CFANode loopHead : pLoop.getLoopHeads()) {
       pCandidates.add(SingleLocationFormulaInvariant.makeBooleanInvariant(loopHead, true));
     }
+  }
+
+  private boolean isPureMainFunctionNoExitLoop(Loop pLoop) {
+    String mainFunctionName = cfa.getMainFunction().getFunctionName();
+    for (CFANode loopHead : pLoop.getLoopHeads()) {
+      if (!mainFunctionName.equals(loopHead.getFunctionName())) {
+        return false;
+      }
+    }
+
+    for (CFANode loopNode : pLoop.getLoopNodes()) {
+      if (!mainFunctionName.equals(loopNode.getFunctionName())) {
+        continue;
+      }
+      for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
+        if (!pLoop.getLoopNodes().contains(leavingEdge.getSuccessor())
+            && !isVerifierAssertionCall(leavingEdge)) {
+          return false;
+        }
+        if (mayTerminateWithoutLoopExit(leavingEdge)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private boolean mayTerminateWithoutLoopExit(CFAEdge pEdge) {
+    if (pEdge instanceof FunctionCallEdge) {
+      return !isVerifierAssertionCall(pEdge);
+    }
+    if (pEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
+      return true;
+    }
+
+    String rawStatement = pEdge.getRawStatement().toLowerCase(Locale.ROOT);
+    return rawStatement.contains("abort(")
+        || rawStatement.contains("exit(")
+        || rawStatement.contains("__assert_fail")
+        || rawStatement.contains("__verifier_error")
+        || rawStatement.contains("reach_error");
+  }
+
+  private boolean isVerifierAssertionCall(CFAEdge pEdge) {
+    if (!(pEdge instanceof FunctionCallEdge functionCallEdge)) {
+      return false;
+    }
+    String functionName =
+        functionCallEdge.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+    return functionName.equals("__VERIFIER_assert");
   }
 
   private boolean checkNonTerminationBaseCase(
@@ -471,8 +529,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
       ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,
-      Iterable<ValueAssignment> pModelAssignments)
-      throws CPATransferException, InterruptedException {
+      Iterable<ValueAssignment> pModelAssignments) {
     if (!(pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction)) {
       return ImmutableSet.of();
     }
@@ -545,8 +602,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CandidateInvariant pCandidateInvariant,
       PathFormula pPathFormula,
       CFANode pLocation,
-      Iterable<ValueAssignment> pModelAssignments)
-      throws CPATransferException, InterruptedException {
+      Iterable<ValueAssignment> pModelAssignments) {
+    Optional<Set<String>> modifiedVariables = getModifiedVariablesInLoopsContaining(pLocation);
+    if (modifiedVariables.isEmpty()) {
+      return;
+    }
+
     int added = 0;
     for (ValueAssignment valueAssignment : pModelAssignments) {
       Pair<String, OptionalInt> parsedName =
@@ -556,6 +617,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (index.isEmpty()
           || !pPathFormula.getSsa().containsVariable(actualName)
           || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
+          || isModifiedInContainingLoop(actualName, modifiedVariables.orElseThrow())
           || !hasRepeatedStableModelValue(
               actualName, valueAssignment.getValue(), index.orElseThrow(), pModelAssignments)) {
         continue;
@@ -574,6 +636,70 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return;
       }
     }
+  }
+
+  private Optional<Set<String>> getModifiedVariablesInLoopsContaining(CFANode pLocation) {
+    if (cfa.getLoopStructure().isEmpty()) {
+      return Optional.of(Set.of());
+    }
+
+    Set<String> modifiedVariables = new HashSet<>();
+    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      if (!loop.getLoopNodes().contains(pLocation)) {
+        continue;
+      }
+
+      for (CFANode loopNode : loop.getLoopNodes()) {
+        for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
+          if (!collectModifiedVariables(leavingEdge, modifiedVariables)) {
+            return Optional.empty();
+          }
+        }
+      }
+    }
+    return Optional.of(modifiedVariables);
+  }
+
+  private boolean collectModifiedVariables(CFAEdge pEdge, Set<String> pModifiedVariables) {
+    if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+        || pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+        || pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+      return false;
+    }
+
+    if (pEdge instanceof CStatementEdge statementEdge) {
+      if (statementEdge.getStatement() instanceof CAssignment assignment) {
+        return addModifiedVariable(assignment.getLeftHandSide(), pModifiedVariables);
+      }
+      if (statementEdge.getStatement() instanceof CFunctionCall) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean addModifiedVariable(CLeftHandSide pLeftHandSide, Set<String> pModifiedVariables) {
+    if (!(pLeftHandSide instanceof CIdExpression idExpression)) {
+      return false;
+    }
+    pModifiedVariables.add(idExpression.getName());
+    if (idExpression.getDeclaration() != null) {
+      pModifiedVariables.add(idExpression.getDeclaration().getQualifiedName());
+    }
+    return true;
+  }
+
+  private boolean isModifiedInContainingLoop(String pVariableName, Set<String> pModifiedVariables) {
+    if (pModifiedVariables.contains(pVariableName)) {
+      return true;
+    }
+    for (String modifiedVariable : pModifiedVariables) {
+      if (pVariableName.endsWith("::" + modifiedVariable)
+          || modifiedVariable.endsWith("::" + pVariableName)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private boolean isSupportedModelEqualityValue(ValueAssignment pValueAssignment) {
