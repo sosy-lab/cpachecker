@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.StatewiseCandidateInvariantConjunction;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
@@ -319,10 +320,21 @@ class KInductionProver implements AutoCloseable {
     reachedSet.ensureK();
     ReachedSet reached = reachedSet.getReachedSet();
 
+    Optional<CandidateInvariant> predecessorCandidate =
+        getNonTerminationPredecessorCandidate(pCandidateInvariant);
+    if (predecessorCandidate.isEmpty()) {
+      logger.log(
+          Level.FINER,
+          "The non-termination closure predecessor contains only successor-only components;"
+              + " refusing vacuous proof.");
+      stats.inductionPreparation.stop();
+      return false;
+    }
+
     FluentIterable<AbstractState> predecessorStates =
         BMCHelper.filterBmcChecked(filterIterationsUpTo(reached, pK, loopHeads), pCheckedKeys);
     ImmutableSet<AbstractState> inductionHypothesis =
-        ImmutableSet.copyOf(pCandidateInvariant.filterApplicable(predecessorStates));
+        ImmutableSet.copyOf(predecessorCandidate.orElseThrow().filterApplicable(predecessorStates));
     if (inductionHypothesis.isEmpty()) {
       logger.log(
           Level.FINER,
@@ -333,7 +345,7 @@ class KInductionProver implements AutoCloseable {
     }
 
     BooleanFormula predecessorAssertion =
-        pCandidateInvariant.getAssertion(predecessorStates, fmgr, pfmgr);
+        predecessorCandidate.orElseThrow().getAssertion(predecessorStates, fmgr, pfmgr);
     FluentIterable<AbstractState> loopHeadStates =
         AbstractStates.filterLocations(reached, loopHeads);
     BooleanFormula loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
@@ -977,6 +989,31 @@ class KInductionProver implements AutoCloseable {
     }
 
     return stateViolationAssertionsBuilder.build();
+  }
+
+  private Optional<CandidateInvariant> getNonTerminationPredecessorCandidate(
+      CandidateInvariant pCandidateInvariant) throws CPATransferException, InterruptedException {
+    List<CandidateInvariant> predecessorComponents = new ArrayList<>();
+    for (CandidateInvariant component :
+        CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
+      if (!isSuccessorOnlyComponent(component)) {
+        predecessorComponents.add(component);
+      }
+    }
+
+    if (predecessorComponents.isEmpty()) {
+      return Optional.empty();
+    }
+    if (predecessorComponents.size() == 1) {
+      return Optional.of(predecessorComponents.getFirst());
+    }
+    return Optional.of(new StatewiseCandidateInvariantConjunction(predecessorComponents));
+  }
+
+  private boolean isSuccessorOnlyComponent(CandidateInvariant pCandidateInvariant)
+      throws CPATransferException, InterruptedException {
+    return pCandidateInvariant instanceof SingleLocationFormulaInvariant
+        && bfmgr.isFalse(pCandidateInvariant.getFormula(fmgr, pfmgr, null));
   }
 
   private static class VariableMapper implements FormulaVisitor<TraversalProcess> {

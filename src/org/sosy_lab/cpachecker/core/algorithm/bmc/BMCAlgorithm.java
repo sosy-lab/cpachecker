@@ -640,7 +640,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private Optional<Set<String>> getModifiedVariablesInLoopsContaining(CFANode pLocation) {
     if (cfa.getLoopStructure().isEmpty()) {
-      return Optional.of(Set.of());
+      return Optional.of(ImmutableSet.of());
     }
 
     Set<String> modifiedVariables = new HashSet<>();
