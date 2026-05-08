@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement.createNoArgsVoidFunctionCall;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement.createNoArgsFunctionCall;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_BEGIN_DECLARATION;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_END_DECLARATION;
 
@@ -923,15 +923,17 @@ class ASTConverter {
         // section so that concurrent analyses treat the read-modify-write as indivisible.
         // see https://en.cppreference.com/w/c/language/atomic.html
         if (lhs.getExpressionType().isAtomic()) {
+          // If a has an atomic type, a += b is transformed to
+          // atomic_begin(); a = a + b; atomic_end();
           CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
           CExpressionAssignmentStatement result =
               new CExpressionAssignmentStatement(fileLoc, lhs, exp);
 
           sideAssignmentStack.addPreSideAssignment(
-              createNoArgsVoidFunctionCall(lhs.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
           sideAssignmentStack.addPreSideAssignment(result);
           sideAssignmentStack.addPreSideAssignment(
-              createNoArgsVoidFunctionCall(lhs.getFileLocation(), ATOMIC_END_DECLARATION));
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_END_DECLARATION));
 
           return lhs;
         }
@@ -1599,12 +1601,22 @@ class ASTConverter {
         // C11 _Atomic operations must appear inside an atomic section so that concurrent
         // analyses treat the read-modify-write as a single indivisible step.
         if (operandType.isAtomic()) {
+          // if x is an atomic type, ++x is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); return tmp;
+          //
+          // e.g., y = ++x; is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); y = tmp;
+          //
+          // That is, the new value of x is saved to a temporary variable still in the atomic block
+          // so that the value of the expression is correct even for concurrent analyses.
+          // Without the temporary variable, another thread modifying x could interleave with the
+          // incrementing thread after the atomic block end, but before the value of x is read.
           sideAssignmentStack.addPreSideAssignment(
-              createNoArgsVoidFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
           sideAssignmentStack.addPreSideAssignment(result);
           CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPre);
           sideAssignmentStack.addPreSideAssignment(
-              createNoArgsVoidFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
           return tmp;
         }
 
@@ -1633,9 +1645,21 @@ class ASTConverter {
         // C11 _Atomic operations must appear inside an atomic section so that concurrent
         // analyses treat the read-modify-write as a single indivisible step.
         // see https://en.cppreference.com/w/c/language/atomic.html
+
+        // if x is an atomic type, x++ is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); return tmp;
+        //
+        // e.g., y = x++; is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); y = tmp;
+        //
+        // That is, the old value of x is saved to a temporary variable within the atomic block
+        // so that the value of the expression is correct even for concurrent analyses.
+        // Without the temporary variable, another thread modifying x could interleave with the
+        // incrementing thread after saving the old value of x, but before the atomic block start.
+
         if (operandType.isAtomic()) {
           sideAssignmentStack.addPreSideAssignment(
-              createNoArgsVoidFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
         }
 
         CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPost);
@@ -1643,7 +1667,7 @@ class ASTConverter {
 
         if (operandType.isAtomic()) {
           sideAssignmentStack.addPreSideAssignment(
-              createNoArgsVoidFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
         }
 
         return tmp;
