@@ -498,6 +498,7 @@ abstract class AbstractBMCAlgorithm
         }
 
         Set<CandidateInvariant> candidatesWithSuccessfulBaseCase = new HashSet<>();
+        Set<CandidateInvariant> candidatesSuggestedAfterBaseCase = new HashSet<>();
 
         // Perform a bounded model check on each candidate invariant
         Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
@@ -523,6 +524,9 @@ abstract class AbstractBMCAlgorithm
           }
           if (safe && isNonTerminationMode()) {
             candidatesWithSuccessfulBaseCase.add(candidateInvariant);
+            Iterables.addAll(
+                candidatesSuggestedAfterBaseCase,
+                getAdditionalCandidatesAfterSuccessfulBaseCase(reachedSet, candidateInvariant));
           }
           if (!safe) {
             if (!isTerminationMode()
@@ -544,6 +548,13 @@ abstract class AbstractBMCAlgorithm
             TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
+        }
+        if (!candidatesSuggestedAfterBaseCase.isEmpty()
+            && candidateGenerator.suggestCandidates(candidatesSuggestedAfterBaseCase)) {
+          logger.logf(
+              Level.INFO,
+              "Non-termination mode: suggested %d model-equality strengthened candidate(s).",
+              candidatesSuggestedAfterBaseCase.size());
         }
 
         // second check soundness
@@ -778,6 +789,13 @@ abstract class AbstractBMCAlgorithm
       ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
     checkNotNull(pReachedSet);
     checkNotNull(pCandidateInvariant);
+  }
+
+  protected Iterable<CandidateInvariant> getAdditionalCandidatesAfterSuccessfulBaseCase(
+      ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
+    checkNotNull(pReachedSet);
+    checkNotNull(pCandidateInvariant);
+    return ImmutableSet.of();
   }
 
   protected final FormulaManagerView getFormulaManager() {

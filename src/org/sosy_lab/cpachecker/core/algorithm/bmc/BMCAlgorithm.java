@@ -17,10 +17,13 @@ import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -39,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormula;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopScopedFrontierEdgeFormulaNegation;
@@ -72,13 +76,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options
@@ -135,6 +142,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean terminationCandidatesIncomplete = false;
   private int loopsWithoutTerminationCandidates = 0;
+  private ImmutableSet<CandidateInvariant> lastModelEqualityStrengthenings = ImmutableSet.of();
+  private static final int MAX_MODEL_EQUALITY_STRENGTHENINGS = 8;
 
   public BMCAlgorithm(
       Algorithm pAlgorithm,
@@ -337,7 +346,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     addLoopHeadCandidates(pLoop, candidates, pNegated);
     addInternalExitGuardCandidates(pLoop, candidates, pNegated);
     if (!pNegated) {
-      addUnconditionalLoopHeadCandidates(pLoop, candidates);
       addLoopExitViolationCandidates(pLoop, candidates);
     }
     ImmutableSet<CandidateInvariant> loopCandidates = candidates.build();
@@ -364,16 +372,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         continue;
       }
       addLoopScopedContinuationCandidatesAtNode(pLoop, loopNode, pCandidates, pNegated);
-    }
-  }
-
-  private void addUnconditionalLoopHeadCandidates(
-      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
-    if (!pLoop.getOutgoingEdges().isEmpty()) {
-      return;
-    }
-    for (CFANode loopHead : pLoop.getLoopHeads()) {
-      pCandidates.add(SingleLocationFormulaInvariant.makeBooleanInvariant(loopHead, true));
     }
   }
 
@@ -434,16 +432,164 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
+    lastModelEqualityStrengthenings = ImmutableSet.of();
     BooleanFormula baseCase = createNonTerminationBaseCaseFormula(pReachedSet, pCandidateInvariant);
     logger.log(Level.INFO, "Starting satisfiability check for non-termination base case...");
     stats.satCheck.start();
     try {
       pProver.push(baseCase);
-      return !pProver.isUnsat();
+      boolean reachable = !pProver.isUnsat();
+      if (reachable) {
+        lastModelEqualityStrengthenings =
+            createModelEqualityStrengthenings(
+                pReachedSet, pCandidateInvariant, pProver.getModelAssignments());
+      }
+      return reachable;
     } finally {
       stats.satCheck.stop();
       pProver.pop();
     }
+  }
+
+  @Override
+  protected Iterable<CandidateInvariant> getAdditionalCandidatesAfterSuccessfulBaseCase(
+      ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
+    return lastModelEqualityStrengthenings;
+  }
+
+  private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
+      ReachedSet pReachedSet,
+      CandidateInvariant pCandidateInvariant,
+      Iterable<ValueAssignment> pModelAssignments)
+      throws CPATransferException, InterruptedException {
+    if (!(pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction)) {
+      return ImmutableSet.of();
+    }
+
+    ImmutableSet.Builder<CandidateInvariant> strengthenedCandidates = ImmutableSet.builder();
+    int currentK =
+        CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
+    List<ValueAssignment> modelAssignments =
+        prioritizeModelAssignments(pCandidateInvariant, pModelAssignments);
+
+    for (AbstractState stopState :
+        BMCHelper.filterIteration(pReachedSet, currentK, cfa.getAllLoopHeads().orElseThrow())) {
+      if (!isStopState(stopState)
+          || !isRelevantForReachability(stopState)
+          || !candidateAppliesToState(pCandidateInvariant, stopState)) {
+        continue;
+      }
+
+      for (AbstractState state : getPathStatesTo(stopState)) {
+        if (!candidateAppliesToState(pCandidateInvariant, state)) {
+          continue;
+        }
+        PredicateAbstractState predicateState =
+            AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+        if (predicateState == null) {
+          continue;
+        }
+
+        for (CFANode location : AbstractStates.extractLocations(state)) {
+          if (!pCandidateInvariant.appliesTo(location)) {
+            continue;
+          }
+          addModelEqualityStrengtheningsAtLocation(
+              strengthenedCandidates,
+              pCandidateInvariant,
+              predicateState.getPathFormula(),
+              location,
+              modelAssignments);
+          if (strengthenedCandidates.build().size() >= MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+            return strengthenedCandidates.build();
+          }
+        }
+      }
+    }
+    return strengthenedCandidates.build();
+  }
+
+  private List<ValueAssignment> prioritizeModelAssignments(
+      CandidateInvariant pCandidateInvariant, Iterable<ValueAssignment> pModelAssignments) {
+    String candidateText = pCandidateInvariant.toString();
+    List<ValueAssignment> prioritized = new ArrayList<>();
+    List<ValueAssignment> fallback = new ArrayList<>();
+    for (ValueAssignment valueAssignment : pModelAssignments) {
+      if (valueAssignment.isFunction() || !isSupportedModelEqualityValue(valueAssignment)) {
+        continue;
+      }
+      String actualName = FormulaManagerView.parseName(valueAssignment.getName()).getFirst();
+      if (candidateText.contains(actualName)) {
+        prioritized.add(valueAssignment);
+      } else {
+        fallback.add(valueAssignment);
+      }
+    }
+    prioritized.addAll(fallback);
+    return prioritized;
+  }
+
+  private void addModelEqualityStrengtheningsAtLocation(
+      ImmutableSet.Builder<CandidateInvariant> pStrengthenedCandidates,
+      CandidateInvariant pCandidateInvariant,
+      PathFormula pPathFormula,
+      CFANode pLocation,
+      Iterable<ValueAssignment> pModelAssignments)
+      throws CPATransferException, InterruptedException {
+    int added = 0;
+    for (ValueAssignment valueAssignment : pModelAssignments) {
+      Pair<String, OptionalInt> parsedName =
+          FormulaManagerView.parseName(valueAssignment.getName());
+      String actualName = parsedName.getFirst();
+      OptionalInt index = parsedName.getSecond();
+      if (index.isEmpty()
+          || !pPathFormula.getSsa().containsVariable(actualName)
+          || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
+          || !hasRepeatedStableModelValue(
+              actualName, valueAssignment.getValue(), index.orElseThrow(), pModelAssignments)) {
+        continue;
+      }
+
+      BooleanFormula equality =
+          getFormulaManager().uninstantiate(valueAssignment.getAssignmentAsFormula());
+      CandidateInvariant equalityCandidate =
+          SingleLocationFormulaInvariant.makeLocationInvariant(
+              pLocation, equality, getFormulaManager());
+      pStrengthenedCandidates.add(
+          CandidateInvariantCombination.conjunction(
+              ImmutableList.of(pCandidateInvariant, equalityCandidate)));
+      added++;
+      if (added >= MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+        return;
+      }
+    }
+  }
+
+  private boolean isSupportedModelEqualityValue(ValueAssignment pValueAssignment) {
+    Object value = pValueAssignment.getValue();
+    return value instanceof Number || value instanceof Boolean;
+  }
+
+  private boolean hasRepeatedStableModelValue(
+      String pVariableName,
+      Object pValue,
+      int pCurrentIndex,
+      Iterable<ValueAssignment> pModelAssignments) {
+    for (ValueAssignment otherAssignment : pModelAssignments) {
+      if (otherAssignment.isFunction()
+          || !isSupportedModelEqualityValue(otherAssignment)
+          || !pValue.equals(otherAssignment.getValue())) {
+        continue;
+      }
+      Pair<String, OptionalInt> parsedName =
+          FormulaManagerView.parseName(otherAssignment.getName());
+      if (parsedName.getSecond().isPresent()
+          && parsedName.getSecond().orElseThrow() != pCurrentIndex
+          && parsedName.getFirst().equals(pVariableName)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private BooleanFormula createNonTerminationBaseCaseFormula(
