@@ -663,6 +663,16 @@ abstract class AbstractBMCAlgorithm
         pCtiBlockingClauses.remove(candidate);
       }
 
+      if (isNonTerminationMode()) {
+        if (kInductionProver.checkNonTerminationClosure(candidate, k, checkedKeys)) {
+          nonTerminationConfirmed = true;
+          reportConfirmedNonTermination(reachedSet, candidate);
+          return false;
+        }
+        sound = false;
+        continue;
+      }
+
       boolean extractCtiBlockingClauses = usePropertyDirection;
 
       Lifting lifting =

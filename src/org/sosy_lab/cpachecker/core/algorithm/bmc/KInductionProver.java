@@ -307,6 +307,83 @@ class KInductionProver implements AutoCloseable {
         StandardLiftings.NO_LIFTING);
   }
 
+  public final boolean checkNonTerminationClosure(
+      CandidateInvariant pCandidateInvariant, int pK, Set<Object> pCheckedKeys)
+      throws CPAException, InterruptedException, SolverException {
+
+    stats.inductionPreparation.start();
+
+    logger.log(Level.INFO, "Running algorithm to create non-termination closure check");
+
+    reachedSet.setDesiredK(pK + 1);
+    reachedSet.ensureK();
+    ReachedSet reached = reachedSet.getReachedSet();
+
+    FluentIterable<AbstractState> predecessorStates =
+        BMCHelper.filterBmcChecked(filterIterationsUpTo(reached, pK, loopHeads), pCheckedKeys);
+    ImmutableSet<AbstractState> inductionHypothesis =
+        ImmutableSet.copyOf(pCandidateInvariant.filterApplicable(predecessorStates));
+    if (inductionHypothesis.isEmpty()) {
+      logger.log(
+          Level.FINER,
+          "The non-termination closure predecessor has no applicable states; refusing vacuous"
+              + " proof.");
+      stats.inductionPreparation.stop();
+      return false;
+    }
+
+    BooleanFormula predecessorAssertion =
+        pCandidateInvariant.getAssertion(predecessorStates, fmgr, pfmgr);
+    FluentIterable<AbstractState> loopHeadStates =
+        AbstractStates.filterLocations(reached, loopHeads);
+    BooleanFormula loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
+
+    Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
+    BooleanFormula successorExistsAssertion =
+        createFormulaFor(endStates, bfmgr, Optional.of(shutdownNotifier));
+    Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
+        getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis);
+    if (successorViolationAssertions.isEmpty()) {
+      logger.log(
+          Level.FINER,
+          "The non-termination closure check has no successor assertions; refusing vacuous proof.");
+      stats.inductionPreparation.stop();
+      return false;
+    }
+    BooleanFormula successorViolation =
+        BMCHelper.disjoinStateViolationAssertions(bfmgr, successorViolationAssertions);
+
+    stats.inductionPreparation.stop();
+
+    logger.log(Level.INFO, "Starting non-termination closure check...");
+
+    stats.inductionCheck.start();
+    int pushes = 0;
+    try {
+      prover.push(successorExistsAssertion);
+      pushes++;
+      prover.push(predecessorAssertion);
+      pushes++;
+      if (requireSatisfiablePredecessor && prover.isUnsat()) {
+        logger.log(
+            Level.FINER,
+            "The non-termination closure predecessor is unsatisfiable; refusing vacuous proof.");
+        return false;
+      }
+      prover.push(successorViolation);
+      pushes++;
+      prover.push(loopHeadInv);
+      pushes++;
+      return prover.isUnsat();
+    } finally {
+      while (pushes > 0) {
+        prover.pop();
+        pushes--;
+      }
+      stats.inductionCheck.stop();
+    }
+  }
+
   /**
    * Attempts to perform the inductive check over the candidate invariant.
    *
@@ -850,6 +927,37 @@ class KInductionProver implements AutoCloseable {
       assertionStates =
           filterIteration(pCandidateInvariant.filterApplicable(reached), pK, loopHeads);
     }
+
+    for (AbstractState state : assertionStates) {
+      Set<AbstractState> stateAsSet = Collections.singleton(state);
+      BooleanFormula stateFormula =
+          BMCHelper.createFormulaFor(stateAsSet, bfmgr, Optional.of(shutdownNotifier));
+      BooleanFormula invariantFormula = bfmgr.makeTrue();
+      for (CandidateInvariant component :
+          CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
+        if (!Iterables.isEmpty(component.filterApplicable(stateAsSet))) {
+          shutdownNotifier.shutdownIfNecessary();
+          invariantFormula =
+              bfmgr.and(
+                  invariantFormula, BMCHelper.assertAt(stateAsSet, component, fmgr, pfmgr, true));
+        }
+      }
+      stateViolationAssertionsBuilder.put(stateFormula, bfmgr.not(invariantFormula));
+    }
+
+    return stateViolationAssertionsBuilder.build();
+  }
+
+  private Multimap<BooleanFormula, BooleanFormula> getNonTerminationClosureViolationAssertions(
+      CandidateInvariant pCandidateInvariant, Set<AbstractState> pHypothesis)
+      throws CPATransferException, InterruptedException {
+    ReachedSet reached = reachedSet.getReachedSet();
+
+    ImmutableListMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
+        ImmutableListMultimap.builder();
+    Iterable<AbstractState> assertionStates =
+        from(pCandidateInvariant.filterApplicable(reached))
+            .filter(state -> !pHypothesis.contains(state));
 
     for (AbstractState state : assertionStates) {
       Set<AbstractState> stateAsSet = Collections.singleton(state);
