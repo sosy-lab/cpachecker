@@ -166,8 +166,6 @@ public class SeqPointerAliasingStructTest {
       SeqMemoryLocation.of(
           Optional.empty(), OUTER_STRUCT_DECLARATION, Optional.of(INNER_STRUCT_MEMBER_DECLARATION));
 
-  public SeqPointerAliasingStructTest() {}
-
   @Test
   public void test_field_owner_field_member() {
     // global_ptr_A = &outer_struct.outer_member; i.e. pointer assignment

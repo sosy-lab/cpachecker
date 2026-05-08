@@ -232,8 +232,6 @@ public class SeqPointerAliasingParameterTest {
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration());
 
-  public SeqPointerAliasingParameterTest() {}
-
   @Test
   public void test_pointer_parameter_dereference() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment

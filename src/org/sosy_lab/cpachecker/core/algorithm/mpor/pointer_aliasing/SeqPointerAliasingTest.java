@@ -149,8 +149,6 @@ public class SeqPointerAliasingTest {
   private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
       SeqMemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
 
-  public SeqPointerAliasingTest() {}
-
   @Test
   public void test_memory_location_equals() {
     // create new MemoryLocation with the same parameters

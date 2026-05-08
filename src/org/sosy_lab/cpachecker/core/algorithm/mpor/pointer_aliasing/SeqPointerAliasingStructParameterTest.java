@@ -236,8 +236,6 @@ public class SeqPointerAliasingStructParameterTest {
           Optional.of(SeqPointerAliasingParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration());
 
-  public SeqPointerAliasingStructParameterTest() {}
-
   @Test
   public void test_outer_struct_pointer_parameter_dereference() {
     // param_ptr_outer = &outer; i.e. pointer parameter assignment

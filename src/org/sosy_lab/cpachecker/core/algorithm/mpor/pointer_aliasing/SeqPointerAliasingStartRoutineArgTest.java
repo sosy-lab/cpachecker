@@ -86,8 +86,6 @@ public class SeqPointerAliasingStartRoutineArgTest {
           Optional.of(SeqPointerAliasingParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
 
-  public SeqPointerAliasingStartRoutineArgTest() {}
-
   @Test
   public void test_local_start_routine_arg_implicit_global() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
