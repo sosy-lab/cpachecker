@@ -32,9 +32,9 @@ public record SeqMemoryLocation(
   public static SeqMemoryLocation of(
       Optional<CFAEdgeForThread> pCallContext,
       CSimpleDeclaration pDeclaration,
-      CCompositeTypeMemberDeclaration pFieldMember) {
+      Optional<CCompositeTypeMemberDeclaration> pFieldMember) {
 
-    return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.of(pFieldMember));
+    return new SeqMemoryLocation(pCallContext, pDeclaration, pFieldMember);
   }
 
   public String getName() {

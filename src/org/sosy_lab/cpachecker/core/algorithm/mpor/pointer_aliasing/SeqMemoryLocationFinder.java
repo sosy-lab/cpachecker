@@ -17,6 +17,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -291,6 +292,6 @@ public class SeqMemoryLocationFinder {
     return SeqMemoryLocation.of(
         pCurrentMemoryLocation.callContext(),
         pCurrentMemoryLocation.declaration(),
-        fieldMemberDeclaration);
+        Optional.of(fieldMemberDeclaration));
   }
 }

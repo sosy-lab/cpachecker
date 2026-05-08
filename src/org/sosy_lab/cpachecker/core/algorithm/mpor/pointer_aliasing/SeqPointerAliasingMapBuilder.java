@@ -537,7 +537,7 @@ public record SeqPointerAliasingMapBuilder(
         }
       }
     }
-    return SeqMemoryLocation.of(Optional.of(pCallContext), pFieldOwner, pFieldMember);
+    return SeqMemoryLocation.of(Optional.of(pCallContext), pFieldOwner, Optional.of(pFieldMember));
   }
 
   // Pointer Parameter Assignments =================================================================

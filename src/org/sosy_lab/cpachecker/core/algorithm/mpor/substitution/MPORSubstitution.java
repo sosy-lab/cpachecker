@@ -155,6 +155,7 @@ public class MPORSubstitution {
           MPORSubstitutionTrackerUtil.trackDeclarationAccess(
               options,
               idExpressionSubstitute,
+              pCallContext,
               pIsWrite,
               pIsPointerDereference,
               pIsFieldReference,
@@ -209,7 +210,7 @@ public class MPORSubstitution {
                   arraySubstitute,
                   subscriptSubstitute);
           MPORSubstitutionTrackerUtil.trackPointerDereferenceByLeftHandSide(
-              arraySubscriptSubstitute, pIsWrite, pTracker);
+              arraySubscriptSubstitute, pCallContext, pIsWrite, pTracker);
           return arraySubscriptSubstitute;
         }
       }
@@ -236,7 +237,7 @@ public class MPORSubstitution {
                   fieldOwnerSubstitute,
                   fieldReference.isPointerDereference());
           MPORSubstitutionTrackerUtil.trackFieldReference(
-              fieldReferenceSubstitute, pIsWrite, pTracker);
+              fieldReferenceSubstitute, pCallContext, pIsWrite, pTracker);
           return fieldReferenceSubstitute;
         }
       }
@@ -271,7 +272,7 @@ public class MPORSubstitution {
                     false,
                     pTracker));
         MPORSubstitutionTrackerUtil.trackPointerDereferenceByLeftHandSide(
-            pointerSubstitute, pIsWrite, pTracker);
+            pointerSubstitute, pCallContext, pIsWrite, pTracker);
         return pointerSubstitute;
       }
       case CCastExpression cast -> {
@@ -346,7 +347,7 @@ public class MPORSubstitution {
 
     if (substituteStatement instanceof CAssignment assignment) {
       MPORSubstitutionTrackerUtil.trackPointerAssignment(
-          assignment.getLeftHandSide(), assignment.getRightHandSide(), pTracker);
+          assignment.getLeftHandSide(), assignment.getRightHandSide(), pCallContext, pTracker);
     }
 
     return substituteStatement;
@@ -504,7 +505,7 @@ public class MPORSubstitution {
     CVariableDeclaration variableDeclarationSubstitute =
         (CVariableDeclaration) idExpressionSubstitute.getDeclaration();
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
-        variableDeclarationSubstitute, idExpressionSubstitute, pTracker);
+        variableDeclarationSubstitute, idExpressionSubstitute, pCallContext, pTracker);
     return variableDeclarationSubstitute;
   }
 

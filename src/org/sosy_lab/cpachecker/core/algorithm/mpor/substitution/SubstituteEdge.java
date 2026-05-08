@@ -140,15 +140,11 @@ public class SubstituteEdge {
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
         parameterSubstitutes,
-        SubstituteUtil.mapPointerAssignments(pThreadEdge.callContext, pTracker),
-        SubstituteUtil.getPointerDereferencesByAccessType(
-            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.ACCESS),
-        SubstituteUtil.getPointerDereferencesByAccessType(
-            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.WRITE),
-        SubstituteUtil.getMemoryLocationsByAccessType(
-            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.ACCESS),
-        SubstituteUtil.getMemoryLocationsByAccessType(
-            pThreadEdge.callContext, pTracker, SeqMemoryAccessType.WRITE));
+        pTracker.getPointerAssignments(),
+        SubstituteUtil.getPointerDereferencesByAccessType(pTracker, SeqMemoryAccessType.ACCESS),
+        SubstituteUtil.getPointerDereferencesByAccessType(pTracker, SeqMemoryAccessType.WRITE),
+        SubstituteUtil.getMemoryLocationsByAccessType(pTracker, SeqMemoryAccessType.ACCESS),
+        SubstituteUtil.getMemoryLocationsByAccessType(pTracker, SeqMemoryAccessType.WRITE));
   }
 
   public ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(

@@ -10,11 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -26,10 +24,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CSimpleDeclarationTrackerResult;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class SubstituteUtil {
 
@@ -83,67 +77,21 @@ public class SubstituteUtil {
   }
 
   static ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
-      Optional<CFAEdgeForThread> pCallContext,
-      MPORSubstitutionTracker pTracker,
-      SeqMemoryAccessType pAccessType) {
+      MPORSubstitutionTracker pTracker, SeqMemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rPointerDereferences = ImmutableSet.builder();
-    for (CVariableDeclarationTrackerResult pointerDereference :
-        pTracker.getPointerDereferencesByAccessType(pAccessType)) {
-      rPointerDereferences.add(
-          SeqMemoryLocation.of(pCallContext, pointerDereference.variableDeclaration()));
-    }
-    for (CFieldReferenceTrackerResult fieldReferencePointerDereference :
-        pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType)) {
-      rPointerDereferences.add(
-          SeqMemoryLocation.of(
-              pCallContext,
-              fieldReferencePointerDereference.fieldOwner(),
-              fieldReferencePointerDereference.fieldMember()));
-    }
+    rPointerDereferences.addAll(pTracker.getPointerDereferencesByAccessType(pAccessType));
+    rPointerDereferences.addAll(
+        pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType));
     return rPointerDereferences.build();
   }
 
   static ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(
-      Optional<CFAEdgeForThread> pCallContext,
-      MPORSubstitutionTracker pTracker,
-      SeqMemoryAccessType pAccessType) {
+      MPORSubstitutionTracker pTracker, SeqMemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
-    for (CVariableDeclarationTrackerResult variableDeclaration :
-        pTracker.getDeclarationsByAccessType(pAccessType)) {
-      rMemoryLocations.add(
-          SeqMemoryLocation.of(pCallContext, variableDeclaration.variableDeclaration()));
-    }
-    for (CFieldReferenceTrackerResult fieldMembers :
-        pTracker.getFieldMembersByAccessType(pAccessType)) {
-      rMemoryLocations.add(
-          SeqMemoryLocation.of(
-              pCallContext, fieldMembers.fieldOwner(), fieldMembers.fieldMember()));
-    }
+    rMemoryLocations.addAll(pTracker.getDeclarationsByAccessType(pAccessType));
+    rMemoryLocations.addAll(pTracker.getFieldMembersByAccessType(pAccessType));
     return rMemoryLocations.build();
-  }
-
-  // Pointer Assignments ===========================================================================
-
-  /**
-   * Maps pointers {@code ptr} to the memory locations e.g. {@code &var} assigned to them based on
-   * {@code substituteEdges}, including both global and local memory locations.
-   */
-  static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
-      Optional<CFAEdgeForThread> pCallContext, MPORSubstitutionTracker pTracker) {
-
-    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
-        ImmutableMap.builder();
-    for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      CSimpleDeclarationTrackerResult key = entry.getKey();
-      SeqMemoryLocation leftHandSide =
-          new SeqMemoryLocation(pCallContext, key.declaration(), key.fieldMember());
-      CSimpleDeclarationTrackerResult value = entry.getValue();
-      SeqMemoryLocation rightHandSide =
-          new SeqMemoryLocation(pCallContext, value.declaration(), value.fieldMember());
-      rAssignments.put(leftHandSide, rightHandSide);
-    }
-    return rAssignments.buildOrThrow();
   }
 }

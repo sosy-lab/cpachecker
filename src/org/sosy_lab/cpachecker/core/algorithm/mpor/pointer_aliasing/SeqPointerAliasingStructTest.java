@@ -160,11 +160,11 @@ public class SeqPointerAliasingStructTest {
 
   private final SeqMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, Optional.of(OUTER_STRUCT_MEMBER_DECLARATION));
 
   private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, Optional.of(INNER_STRUCT_MEMBER_DECLARATION));
 
   public SeqPointerAliasingStructTest() {}
 
