@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
  * @param nextThreadActiveExpression The optional expression to index the {@code next_thread} in the
  *     {@code pc} array.
  */
-public record ProgramCounterVariables(
+public record SeqProgramCounterVariables(
     ImmutableList<CLeftHandSide> pcLeftHandSides,
     ImmutableList<CVariableDeclaration> pcDeclarations,
     ImmutableList<CBinaryExpression> threadActiveExpressions,

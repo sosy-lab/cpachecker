@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockMerger;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.StatementLinker;
@@ -52,7 +52,7 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
     MachineModel machineModel,
     SeqPointerAliasingMap pointerAliasingMap,
-    GhostElements ghostElements,
+    SeqGhostElements ghostElements,
     SequentializationUtils utils) {
 
   public ImmutableListMultimap<MPORThread, SeqThreadStatementClause> buildClauses()
@@ -186,7 +186,7 @@ public record SeqThreadStatementClauseBuilder(
   /**
    * Returns a {@link SeqThreadStatementClause} which represents case statements in the
    * sequentializations while loop. Returns {@link Optional#empty()} if pThreadNode has no leaving
-   * edges i.e. its {@code pc} is {@link ProgramCounterVariables#EXIT_PC}.
+   * edges i.e. its {@code pc} is {@link SeqProgramCounterVariables#EXIT_PC}.
    */
   private ImmutableList<SeqThreadStatementClause> buildClausesFromThreadNode(
       MPORThread pThread,
@@ -245,7 +245,7 @@ public record SeqThreadStatementClauseBuilder(
   private boolean isExcludedNode(CFANodeForThread pThreadNode) {
     // no leaving edges -> exit node of thread reached -> no clause because no edges with code
     if (pThreadNode.leavingEdges().isEmpty()) {
-      assert pThreadNode.pc == ProgramCounterVariables.EXIT_PC
+      assert pThreadNode.pc == SeqProgramCounterVariables.EXIT_PC
           : "A CFANodeForThread without any leaving edges must have EXIT_PC.";
       return true;
     }

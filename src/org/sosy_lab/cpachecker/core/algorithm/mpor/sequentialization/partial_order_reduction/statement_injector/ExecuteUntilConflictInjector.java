@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
@@ -49,7 +49,7 @@ record ExecuteUntilConflictInjector(
       ImmutableList.Builder<SeqInstrumentation> newInstrumentation = ImmutableList.builder();
       int targetPc = pStatement.targetPc().orElseThrow();
       // exclude exit pc, don't want 'assume(conflict)' there
-      if (targetPc != ProgramCounterVariables.EXIT_PC) {
+      if (targetPc != SeqProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(labelClauseMap.get(targetPc));
         if (isReductionAllowed(newTarget)) {
           SeqInstrumentation evaluationStatement =

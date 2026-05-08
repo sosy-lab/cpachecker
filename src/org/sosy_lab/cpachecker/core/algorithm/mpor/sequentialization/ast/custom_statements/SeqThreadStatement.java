@@ -18,7 +18,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
@@ -90,18 +90,18 @@ public record SeqThreadStatement(
 
   /**
    * Returns true if the target {@code pc} is present and not equal to {@link
-   * ProgramCounterVariables#EXIT_PC}, i.e. if it actually targets another statement.
+   * SeqProgramCounterVariables#EXIT_PC}, i.e. if it actually targets another statement.
    */
   public boolean isTargetPcValid() {
-    return targetPc.filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
+    return targetPc.filter(pc -> pc != SeqProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /**
    * Returns true if the target {@code pc} is present and equal to {@link
-   * ProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
+   * SeqProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
    */
   public boolean isTargetPcExit() {
-    return targetPc.filter(pc -> pc == ProgramCounterVariables.EXIT_PC).isPresent();
+    return targetPc.filter(pc -> pc == SeqProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /**
@@ -129,10 +129,10 @@ public record SeqThreadStatement(
   public SeqThreadStatement withTargetPc(int pTargetPc) {
     if (data.getType().equals(SeqThreadStatementType.THREAD_EXIT)) {
       checkArgument(
-          pTargetPc == ProgramCounterVariables.EXIT_PC,
+          pTargetPc == SeqProgramCounterVariables.EXIT_PC,
           "%s should only be cloned with exit pc %s",
           SeqThreadStatementType.THREAD_EXIT,
-          ProgramCounterVariables.EXIT_PC);
+          SeqProgramCounterVariables.EXIT_PC);
     }
     return new SeqThreadStatement(
         data, Optional.of(pTargetPc), Optional.empty(), instrumentation, exportStatements);

@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -56,7 +56,7 @@ public class NondeterministicSimulationBuilder {
   public static NondeterministicSimulation buildNondeterministicSimulationBySource(
       MPOROptions pOptions,
       SeqPointerAliasingMap pPointerAliasingMap,
-      GhostElements pGhostElements,
+      SeqGhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
@@ -78,7 +78,7 @@ public class NondeterministicSimulationBuilder {
   public static ImmutableMap<MPORThread, CExportFunctionDefinition> buildThreadSimulationFunctions(
       MPOROptions pOptions,
       SeqPointerAliasingMap pPointerAliasingMap,
-      GhostElements pGhostElements,
+      SeqGhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -214,7 +214,7 @@ public class NondeterministicSimulationBuilder {
     if (pStatement.targetPc().isPresent()) {
       // int target is present -> retrieve label by pc from map
       int targetPc = pStatement.targetPc().orElseThrow();
-      if (targetPc != ProgramCounterVariables.EXIT_PC) {
+      if (targetPc != SeqProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         // check if the target is a separate loop
         if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {

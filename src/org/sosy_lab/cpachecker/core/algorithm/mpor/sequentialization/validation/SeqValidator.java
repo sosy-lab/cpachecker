@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -123,7 +123,7 @@ public class SeqValidator {
       throws IllegalArgumentException {
 
     // exclude INIT_PC, it is (often) not present as a target pc
-    if (pLabelPc != ProgramCounterVariables.INIT_PC) {
+    if (pLabelPc != SeqProgramCounterVariables.INIT_PC) {
       // check if label is a target pc anywhere in this threads switch statement
       if (!pAllTargetPc.contains(pLabelPc)) {
         throw new IllegalStateException(
@@ -139,7 +139,7 @@ public class SeqValidator {
 
     for (int targetPc : pTargetPcs) {
       // exclude EXIT_PC, it is never present as a label pc
-      if (targetPc != ProgramCounterVariables.EXIT_PC) {
+      if (targetPc != SeqProgramCounterVariables.EXIT_PC) {
         if (!pLabelPcs.contains(targetPc)) {
           throw new IllegalStateException(
               String.format(

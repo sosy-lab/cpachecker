@@ -22,12 +22,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryRea
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public record SeqBitVectorVariables(
-    Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors,
-    Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors,
-    Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors,
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseAccessBitVectors,
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseReadBitVectors,
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseWriteBitVectors,
+    Optional<ImmutableSet<SeqDenseBitVector>> denseAccessBitVectors,
+    Optional<ImmutableSet<SeqDenseBitVector>> denseReadBitVectors,
+    Optional<ImmutableSet<SeqDenseBitVector>> denseWriteBitVectors,
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseAccessBitVectors,
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseReadBitVectors,
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseWriteBitVectors,
     Optional<PrevDenseBitVector> prevDenseAccessBitVector,
     Optional<PrevDenseBitVector> prevDenseReadBitVector,
     Optional<PrevDenseBitVector> prevDenseWriteBitVector,
@@ -38,7 +38,7 @@ public record SeqBitVectorVariables(
   /**
    * Represents a dense bit vector variable where each index represents a relevant memory locations.
    */
-  public record DenseBitVector(
+  public record SeqDenseBitVector(
       MPORThread thread,
       Optional<CIdExpression> directVariable,
       Optional<CIdExpression> reachableVariable) {
@@ -59,7 +59,7 @@ public record SeqBitVectorVariables(
    * Represents a sparse bit vector, where each memory location, for each thread, has its own
    * variable in the sequentialization which can be either {@code 0} or {@code 1}.
    */
-  public static final class SparseBitVector {
+  public static final class SeqSparseBitVector {
 
     private final boolean isPruned;
 
@@ -67,7 +67,7 @@ public record SeqBitVectorVariables(
 
     private final ImmutableMap<MPORThread, CIdExpression> reachableVariables;
 
-    public SparseBitVector(
+    public SeqSparseBitVector(
         boolean pIsPruned,
         ImmutableMap<MPORThread, CIdExpression> pDirectVariables,
         ImmutableMap<MPORThread, CIdExpression> pReachableVariables) {
@@ -110,7 +110,7 @@ public record SeqBitVectorVariables(
   public CIdExpression getDenseBitVector(
       MPORThread pThread, SeqMemoryAccessType pAccessType, SeqMemoryReachType pReachType) {
 
-    for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
+    for (SeqDenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
       if (denseBitVector.thread().equals(pThread)) {
         return denseBitVector.getVariableByReachType(pReachType);
       }
@@ -122,7 +122,7 @@ public record SeqBitVectorVariables(
       SeqMemoryAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
 
     ImmutableSet.Builder<CExpression> rDenseBitVectors = ImmutableSet.builder();
-    for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
+    for (SeqDenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
       if (pOtherThreads.contains(denseBitVector.thread())) {
         rDenseBitVectors.add(denseBitVector.getVariableByReachType(SeqMemoryReachType.REACHABLE));
       }
@@ -130,7 +130,7 @@ public record SeqBitVectorVariables(
     return rDenseBitVectors.build();
   }
 
-  public ImmutableSet<DenseBitVector> getDenseBitVectorsByAccessType(
+  public ImmutableSet<SeqDenseBitVector> getDenseBitVectorsByAccessType(
       SeqMemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
@@ -140,7 +140,7 @@ public record SeqBitVectorVariables(
     };
   }
 
-  public ImmutableMap<SeqMemoryLocation, SparseBitVector> getSparseBitVectorByAccessType(
+  public ImmutableMap<SeqMemoryLocation, SeqSparseBitVector> getSparseBitVectorByAccessType(
       SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {

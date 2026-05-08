@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
  * @param syncFlags maps {@link MPORThread}s to their {@code sync} flag that indicates whether a
  *     thread is at a location that synchronizes threads, e.g. {@code pthread_join}.
  */
-public record ThreadSyncFlags(ImmutableMap<MPORThread, CIdExpression> syncFlags) {
+public record SeqThreadSyncFlags(ImmutableMap<MPORThread, CIdExpression> syncFlags) {
 
   /** Returns all declarations of the thread synchronization variables. */
   public ImmutableList<CSimpleDeclaration> getDeclarations(MPOROptions pOptions) {

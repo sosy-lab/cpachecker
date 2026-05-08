@@ -62,8 +62,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements.SeqFunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.SeqThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
@@ -84,9 +84,9 @@ public record SeqThreadStatementBuilder(
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
     SeqPointerAliasingMap pointerAliasingMap,
     SeqFunctionStatements functionStatements,
-    ThreadSyncFlags threadSyncFlags,
+    SeqThreadSyncFlags threadSyncFlags,
     CLeftHandSide pcLeftHandSide,
-    ProgramCounterVariables pcVariables,
+    SeqProgramCounterVariables pcVariables,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   private static final String REACH_ERROR_FUNCTION_NAME = "reach_error";
@@ -670,9 +670,9 @@ public record SeqThreadStatementBuilder(
     }
     exportStatements.add(
         new CStatementWrapper(
-            ProgramCounterVariables.buildPcAssignmentStatement(
+            SeqProgramCounterVariables.buildPcAssignmentStatement(
                 pcVariables().getPcLeftHandSide(createdThread.id()),
-                ProgramCounterVariables.INIT_PC)));
+                SeqProgramCounterVariables.INIT_PC)));
 
     return SeqThreadStatement.of(data, pTargetPc, exportStatements.build());
   }

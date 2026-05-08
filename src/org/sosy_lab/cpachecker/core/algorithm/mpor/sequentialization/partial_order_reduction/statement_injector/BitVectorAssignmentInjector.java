@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -53,7 +53,7 @@ public record BitVectorAssignmentInjector(
     if (pStatement.targetPc().isPresent()) {
       ImmutableList.Builder<SeqInstrumentation> newInstrumentation = ImmutableList.builder();
       int targetPc = pStatement.targetPc().orElseThrow();
-      if (targetPc == ProgramCounterVariables.EXIT_PC) {
+      if (targetPc == SeqProgramCounterVariables.EXIT_PC) {
         // for the exit pc, reset the bit vector to just 0s
         newInstrumentation.addAll(buildBitVectorResets());
         return SeqThreadStatementUtil.appendedInstrumentationStatement(

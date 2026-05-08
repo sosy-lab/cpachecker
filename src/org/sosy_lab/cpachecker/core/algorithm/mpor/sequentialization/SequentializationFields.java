@@ -20,8 +20,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMapBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
@@ -60,7 +60,7 @@ public class SequentializationFields {
 
   public final SeqPointerAliasingMap pointerAliasingMap;
 
-  public final GhostElements ghostElements;
+  public final SeqGhostElements ghostElements;
 
   public final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
@@ -94,8 +94,8 @@ public class SequentializationFields {
             machineModel);
     pointerAliasingMap = pointerAliasingMapBuilder.buildPointerAliasingMap();
 
-    GhostElementBuilder ghostElementBuilder =
-        new GhostElementBuilder(
+    SeqGhostElementBuilder ghostElementBuilder =
+        new SeqGhostElementBuilder(
             pOptions,
             threads,
             substitutions,
