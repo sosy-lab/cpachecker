@@ -38,17 +38,11 @@ import org.sosy_lab.java_smt.api.Formula;
 public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoException> {
 
   private final FormulaManagerView fmgr;
-  private AcslPredicateToFormulaVisitor predicateVisitor;
   private SSAMapBuilder ssa; // ToDo where do we get this from??
 
   public AcslTermToFormulaVisitor(FormulaManagerView pFmgr) {
     checkNotNull(pFmgr);
     this.fmgr = pFmgr;
-    this.predicateVisitor = new AcslPredicateToFormulaVisitor(pFmgr);
-  }
-
-  public void setPredicateVisitor(AcslPredicateToFormulaVisitor pPredicateVisitor) {
-    this.predicateVisitor = pPredicateVisitor;
   }
 
   @Override
@@ -114,6 +108,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
+    AcslPredicateToFormulaVisitor predicateVisitor = new AcslPredicateToFormulaVisitor(fmgr, this);
     BooleanFormula conditionFormula = pAcslTernaryTerm.getCondition().accept(predicateVisitor);
     Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
     Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
