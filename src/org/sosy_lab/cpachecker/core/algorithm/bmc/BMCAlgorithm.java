@@ -617,7 +617,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (index.isEmpty()
           || !pPathFormula.getSsa().containsVariable(actualName)
           || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
-          || isModifiedInContainingLoop(actualName, modifiedVariables.orElseThrow())
           || !hasRepeatedStableModelValue(
               actualName, valueAssignment.getValue(), index.orElseThrow(), pModelAssignments)) {
         continue;
