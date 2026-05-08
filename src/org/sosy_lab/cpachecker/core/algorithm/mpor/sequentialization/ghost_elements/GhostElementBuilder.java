@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariablesBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariableBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
@@ -46,9 +46,9 @@ public record GhostElementBuilder(
                 .buildBitVectorVariables()
             : Optional.empty();
 
-    FunctionStatementBuilder functionStatementBuilder =
-        new FunctionStatementBuilder(threads, substitutions, substituteEdges);
-    ImmutableMap<MPORThread, FunctionStatements> functionStatements =
+    SeqFunctionStatementBuilder functionStatementBuilder =
+        new SeqFunctionStatementBuilder(threads, substitutions, substituteEdges);
+    ImmutableMap<MPORThread, SeqFunctionStatements> functionStatements =
         functionStatementBuilder.buildFunctionStatements();
 
     ProgramCounterVariableBuilder pcVariableBuilder =

@@ -59,9 +59,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements.SeqFunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -83,7 +83,7 @@ public record SeqThreadStatementBuilder(
     ImmutableList<MPORThread> allThreads,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
     SeqPointerAliasingMap pointerAliasingMap,
-    FunctionStatements functionStatements,
+    SeqFunctionStatements functionStatements,
     ThreadSyncFlags threadSyncFlags,
     CLeftHandSide pcLeftHandSide,
     ProgramCounterVariables pcVariables,
@@ -485,7 +485,7 @@ public record SeqThreadStatementBuilder(
 
     // handle (some arbitrary) function with parameters
     if (functionStatements.parameterAssignments().containsKey(pThreadEdge)) {
-      ImmutableList<FunctionParameterAssignment> assignments =
+      ImmutableList<SeqFunctionParameterAssignment> assignments =
           functionStatements.parameterAssignments().get(pThreadEdge);
       return buildParameterAssignmentStatement(
           functionName, assignments, parameterAssignmentData, pTargetPc);
@@ -510,7 +510,7 @@ public record SeqThreadStatementBuilder(
 
   private SeqThreadStatement buildParameterAssignmentStatement(
       String pFunctionName,
-      ImmutableList<FunctionParameterAssignment> pFunctionParameterAssignments,
+      ImmutableList<SeqFunctionParameterAssignment> pFunctionParameterAssignments,
       SeqThreadStatementData pData,
       int pTargetPc) {
 
@@ -524,9 +524,9 @@ public record SeqThreadStatementBuilder(
     if (pFunctionName.equals(REACH_ERROR_FUNCTION_NAME)) {
       functionStatementBuilder.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
     }
-    for (FunctionParameterAssignment assignment : pFunctionParameterAssignments) {
+    for (SeqFunctionParameterAssignment assignment : pFunctionParameterAssignments) {
       functionStatementBuilder.add(
-          new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
+          new CStatementWrapper(assignment.expressionAssignmentStatement()));
     }
     return SeqThreadStatement.of(pData, pTargetPc, functionStatementBuilder.build());
   }
@@ -536,13 +536,15 @@ public record SeqThreadStatementBuilder(
 
     // returning from non-start-routine function: assign return value to return vars
     if (functionStatements.returnValueAssignments().containsKey(pThreadEdge)) {
-      FunctionReturnValueAssignment assignment =
+      SeqFunctionReturnValueAssignment assignment =
           Objects.requireNonNull(functionStatements.returnValueAssignments().get(pThreadEdge));
       SeqThreadStatementData data =
           SeqThreadStatementData.of(
               SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pcLeftHandSide);
       return SeqThreadStatement.of(
-          data, pTargetPc, ImmutableList.of(new CStatementWrapper(assignment.statement())));
+          data,
+          pTargetPc,
+          ImmutableList.of(new CStatementWrapper(assignment.expressionAssignmentStatement())));
     }
 
     // -> function does not return anything, i.e. return;
@@ -657,14 +659,14 @@ public record SeqThreadStatementBuilder(
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_T);
     MPORThread createdThread =
         MPORThreadUtil.getThreadByObject(allThreads, Optional.of(pthreadTObject));
-    Optional<FunctionParameterAssignment> startRoutineArgAssignment =
-        functionStatements.tryGetStartRoutineArgAssignmentByThreadEdge(pThreadEdge);
 
     ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
-    if (startRoutineArgAssignment.isPresent()) {
+    if (functionStatements.startRoutineArgAssignments().containsKey(pThreadEdge)) {
       exportStatements.add(
           new CStatementWrapper(
-              startRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement()));
+              Objects.requireNonNull(
+                      functionStatements.startRoutineArgAssignments().get(pThreadEdge))
+                  .expressionAssignmentStatement()));
     }
     exportStatements.add(
         new CStatementWrapper(
@@ -685,12 +687,13 @@ public record SeqThreadStatementBuilder(
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.THREAD_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
-    FunctionReturnValueAssignment returnValueAssignment =
+    SeqFunctionReturnValueAssignment returnValueAssignment =
         Objects.requireNonNull(functionStatements.startRoutineExitAssignments().get(pThreadEdge));
     return SeqThreadStatement.of(
         data,
         pTargetPc,
-        ImmutableList.of(new CStatementWrapper(returnValueAssignment.statement())));
+        ImmutableList.of(
+            new CStatementWrapper(returnValueAssignment.expressionAssignmentStatement())));
   }
 
   private SeqThreadStatement buildThreadJoinStatement(

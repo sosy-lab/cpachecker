@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -139,14 +139,16 @@ public class SequentializationFieldsTest {
     // this program contains a lot of __CPAchecker_TMP variables, and we want to ensure that they
     // are in their correct place and not mixed up during the substitution process.
     Set<CLeftHandSide> visited = new HashSet<>();
-    for (FunctionStatements functionStatements :
+    for (SeqFunctionStatements functionStatements :
         fields.ghostElements.functionStatements().values()) {
-      for (FunctionReturnValueAssignment returnValueAssignment :
+      for (SeqFunctionReturnValueAssignment returnValueAssignment :
           functionStatements.returnValueAssignments().values()) {
         assertWithMessage(
                 "Duplicate __CPAchecker_TMP variable encountered in assignment: %s",
-                returnValueAssignment.statement().toASTString())
-            .that(visited.add(returnValueAssignment.statement().getLeftHandSide()))
+                returnValueAssignment.expressionAssignmentStatement().toASTString())
+            .that(
+                visited.add(
+                    returnValueAssignment.expressionAssignmentStatement().getLeftHandSide()))
             .isTrue();
       }
     }
