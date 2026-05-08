@@ -170,12 +170,14 @@ unit-tests:jdk-25:
 refaster:
   <<: *source_check
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+  variables:
+    REFASTER_SOURCE_PATTERN: "**/*.java"
   before_script:
     - 'test -d refaster || git clone https://gitlab.com/sosy-lab/software/refaster.git'
     - 'cd refaster'
     - 'git fetch'
     - 'git checkout $REFASTER_REPO_REVISION'
-    - 'ant build-refaster-rule -Drefaster.source.pattern=**/*.java -Drefaster.rule.file=../rule.refaster -Derrorprone.version=$REFASTER_VERSION'
+    - 'ant build-refaster-rule -Drefaster.source.pattern=$REFASTER_SOURCE_PATTERN -Drefaster.rule.file=../rule.refaster -Derrorprone.version=$REFASTER_VERSION'
     - 'cd -'
   script:
     - 'ant $ANT_PROPS_BUILD refaster -Drefaster.rule.file=rule.refaster'

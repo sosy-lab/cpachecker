@@ -351,6 +351,16 @@ unit-tests:jdk-25:
     - if: $[[ inputs.tests_per_java_version ]] == true
 
 
+# Parallelize Refaster job
+refaster:
+  parallel:
+    matrix:
+      # Must list all directories of https://gitlab.com/sosy-lab/software/refaster/-/tree/java21/src/org/sosy_lab/refaster/rules here
+      - REFASTER_SOURCE_DIR: [common, guava, java, java_collection, truth]
+  variables:
+    REFASTER_SOURCE_PATTERN: "**/$REFASTER_SOURCE_DIR/**/*.java"
+
+
 # Override Java version for some jobs
 image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
