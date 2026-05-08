@@ -40,6 +40,21 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     return v.visit(this);
   }
 
+  @Override
+  public AcslPredicate getOperand1() {
+    return (AcslPredicate) super.getOperand1();
+  }
+
+  @Override
+  public AcslPredicate getOperand2() {
+    return (AcslPredicate) super.getOperand2();
+  }
+
+  @Override
+  public AcslBinaryPredicateOperator getOperator() {
+    return (AcslBinaryPredicateOperator) super.getOperator();
+  }
+
   public enum AcslBinaryPredicateOperator implements ABinaryOperator, AcslAstNode {
     IMPLICATION("==>"),
     EQUIVALENT("<==>"),
