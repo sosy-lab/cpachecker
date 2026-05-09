@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -150,11 +151,13 @@ public class MPORSubstitutionTrackerUtil {
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
       Optional<CFAEdgeForThread> pCallContext,
+      CFA pInputCfa,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
     Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> pointerAssignment =
-        SeqPointerAliasingUtil.tryMapPointerAssignment(pLeftHandSide, pRightHandSide, pCallContext);
+        SeqPointerAliasingUtil.tryMapPointerAssignment(
+            pLeftHandSide, pRightHandSide, pCallContext, pInputCfa);
     if (pointerAssignment.isPresent()) {
       pTracker.addPointerAssignment(
           pointerAssignment.orElseThrow().getKey(), pointerAssignment.orElseThrow().getValue());
@@ -165,6 +168,7 @@ public class MPORSubstitutionTrackerUtil {
       CVariableDeclaration pVariableDeclaration,
       CIdExpression pIdExpression,
       Optional<CFAEdgeForThread> pCallContext,
+      CFA pInputCfa,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
@@ -174,7 +178,7 @@ public class MPORSubstitutionTrackerUtil {
     if (pVariableDeclaration.getInitializer()
         instanceof CInitializerExpression initializerExpression) {
       trackPointerAssignment(
-          pIdExpression, initializerExpression.getExpression(), pCallContext, pTracker);
+          pIdExpression, initializerExpression.getExpression(), pCallContext, pInputCfa, pTracker);
     }
   }
 

@@ -173,6 +173,12 @@ int main() {
     typedef unsigned int typedef_inside_function;
     pthread_join(id1, (void *) 0);
     pthread_join(id2, (void *) 0);
+
+    pthread_t id3;
+    pthread_create(&id3, (void *) 0, task1, (void *) 0);
+    void* return_value;
+    pthread_join(id3, & return_value);
+
     if (x < 2) {
       __assert_fail("0", "simple_two.c", 24, __extension__ __PRETTY_FUNCTION__);
     } else if (x == 2) {
@@ -204,8 +210,4 @@ int main() {
       __VERIFIER_atomic_end();
     }
     top = 42;
-    pthread_t id3;
-    pthread_create(&id3, (void *) 0, task1, (void *) 0);
-    void* return_value;
-    pthread_join(& id3, & return_value);
 }

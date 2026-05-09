@@ -367,17 +367,22 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    // there are 3 pthread_create calls + the main thread. however, the last pthread_create is not
-    // reachable due to a while (1) loop that never terminates.
-    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(4);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
-    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(20);
-    // 9 explicit, 5 parameter pointer assignments
-    assertThat(pointerAliasingMap.pointerAssignments).hasSize(14);
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(24);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(20);
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
         .hasSize(5);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.RETURN_VALUE))
+        .hasSize(1);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_EXIT))
+        .hasSize(2);
     assertThat(pointerAliasingMap.pointerDereferences).hasSize(4);
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(
@@ -389,7 +394,8 @@ public class SequentializationFieldsTest {
     assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
     assertThat(fields.threads.getFirst().cfa().getLoopHeads()).hasSize(3);
     assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.getLast().cfa().getLoopHeads()).hasSize(2);
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).hasSize(2);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test

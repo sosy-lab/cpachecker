@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -64,7 +66,8 @@ public class SeqPointerAliasingUtil {
   public static Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> tryMapPointerAssignment(
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
-      Optional<CFAEdgeForThread> pCallContext)
+      Optional<CFAEdgeForThread> pCallContext,
+      CFA pInputCfa)
       throws UnsupportedCodeException {
 
     CSimpleDeclaration leftHandSideDeclaration =
@@ -114,13 +117,17 @@ public class SeqPointerAliasingUtil {
             }
           }
           case CFunctionCallExpression functionCallExpression -> {
-            SeqMemoryLocation rightHandSideMemoryLocation =
-                SeqMemoryLocation.of(
-                    pCallContext,
-                    functionCallExpression.getDeclaration(),
-                    Optional.empty(),
-                    Optional.of(functionCallExpression));
-            return Optional.of(Map.entry(leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+            // do not track defined functions, since they have return statements that are tracked
+            if (!MPORUtil.isFunctionDefined(functionCallExpression, pInputCfa)) {
+              SeqMemoryLocation rightHandSideMemoryLocation =
+                  SeqMemoryLocation.of(
+                      pCallContext,
+                      functionCallExpression.getDeclaration(),
+                      Optional.empty(),
+                      Optional.of(functionCallExpression));
+              return Optional.of(
+                  Map.entry(leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+            }
           }
         }
       }

@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableTable;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -298,6 +299,7 @@ public class MPORSubstitution {
   CStatement substitute(
       CStatement pStatement,
       Optional<CFAEdgeForThread> pCallContext,
+      CFA pInputCfa,
       MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
@@ -347,7 +349,11 @@ public class MPORSubstitution {
 
     if (substituteStatement instanceof CAssignment assignment) {
       MPORSubstitutionTrackerUtil.trackPointerAssignment(
-          assignment.getLeftHandSide(), assignment.getRightHandSide(), pCallContext, pTracker);
+          assignment.getLeftHandSide(),
+          assignment.getRightHandSide(),
+          pCallContext,
+          pInputCfa,
+          pTracker);
     }
 
     return substituteStatement;
@@ -497,6 +503,7 @@ public class MPORSubstitution {
   CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
+      CFA pInputCfa,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
@@ -505,7 +512,7 @@ public class MPORSubstitution {
     CVariableDeclaration variableDeclarationSubstitute =
         (CVariableDeclaration) idExpressionSubstitute.getDeclaration();
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
-        variableDeclarationSubstitute, idExpressionSubstitute, pCallContext, pTracker);
+        variableDeclarationSubstitute, idExpressionSubstitute, pCallContext, pInputCfa, pTracker);
     return variableDeclarationSubstitute;
   }
 

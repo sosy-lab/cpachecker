@@ -19,9 +19,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -41,6 +43,17 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Contains static methods that can be reused outside the MPOR context. */
 public final class MPORUtil {
+
+  public static boolean isFunctionDefined(
+      CFunctionCallExpression pFunctionCallExpression, CFA pCfa) {
+
+    // do not use the CFunctionDeclaration since it may be null if the function is not declared
+    return pCfa.getAllFunctions().entrySet().stream()
+        .anyMatch(
+            f ->
+                f.getKey()
+                    .equals(pFunctionCallExpression.getFunctionNameExpression().toASTString()));
+  }
 
   /**
    * Returns {@code true} if pOrigin can be reached through its successor {@link CFANode}. <br>

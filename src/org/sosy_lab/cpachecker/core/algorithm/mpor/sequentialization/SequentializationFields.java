@@ -86,7 +86,7 @@ public class SequentializationFields {
     substitutions = substitutionBuilder.buildSubstitutions();
     mainSubstitution =
         substitutions.stream().filter(s -> s.getThread().isMain()).findAny().orElseThrow();
-    substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
+    substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions, pInputCfa);
 
     SeqFunctionStatementBuilder functionStatementBuilder =
         new SeqFunctionStatementBuilder(threads, substitutions, substituteEdges);
@@ -100,6 +100,7 @@ public class SequentializationFields {
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values(),
             functionStatements.values(),
+            pInputCfa,
             machineModel);
     pointerAliasingMap = pointerAliasingMapBuilder.buildPointerAliasingMap();
 

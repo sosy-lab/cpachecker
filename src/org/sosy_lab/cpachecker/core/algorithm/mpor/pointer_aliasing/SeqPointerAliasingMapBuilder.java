@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -36,6 +37,7 @@ public record SeqPointerAliasingMapBuilder(
     ImmutableList<SeqMemoryLocation> initialMemoryLocations,
     ImmutableCollection<SubstituteEdge> substituteEdges,
     ImmutableCollection<SeqFunctionStatements> functionStatements,
+    CFA inputCfa,
     MachineModel machineModel) {
 
   private static final int INITIAL_MEMORY_LOCATION_ID = 0;
@@ -50,7 +52,8 @@ public record SeqPointerAliasingMapBuilder(
         mapAssignmentsFromFunctionStatements(
             functionStatements.stream()
                 .flatMap(s -> s.parameterAssignments().values().stream())
-                .collect(ImmutableSet.toImmutableSet()));
+                .collect(ImmutableSet.toImmutableSet()),
+            inputCfa);
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         extractPointerAssignments(parameterAssignments);
 
@@ -58,7 +61,8 @@ public record SeqPointerAliasingMapBuilder(
         mapAssignmentsFromFunctionStatements(
             functionStatements.stream()
                 .flatMap(s -> s.returnValueAssignments().values().stream())
-                .collect(ImmutableSet.toImmutableSet()));
+                .collect(ImmutableSet.toImmutableSet()),
+            inputCfa);
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerReturnValueAssignments =
         extractPointerAssignments(returnValueAssignments);
 
@@ -66,12 +70,14 @@ public record SeqPointerAliasingMapBuilder(
         mapAssignmentsFromFunctionStatements(
             functionStatements.stream()
                 .flatMap(s -> s.startRoutineArgAssignments().values().stream())
-                .collect(ImmutableSet.toImmutableSet()));
+                .collect(ImmutableSet.toImmutableSet()),
+            inputCfa);
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineExitAssignments =
         mapAssignmentsFromFunctionStatements(
             functionStatements.stream()
                 .flatMap(s -> s.startRoutineExitAssignments().values().stream())
-                .collect(ImmutableSet.toImmutableSet()));
+                .collect(ImmutableSet.toImmutableSet()),
+            inputCfa);
 
     ImmutableSet<SeqPointerAssignment> allPointerAssignments =
         getAllPointerAssignments(
@@ -297,7 +303,7 @@ public record SeqPointerAliasingMapBuilder(
   // Function Statement Assignments
 
   private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapAssignmentsFromFunctionStatements(
-      ImmutableCollection<SeqFunctionStatement> pFunctionStatements)
+      ImmutableCollection<SeqFunctionStatement> pFunctionStatements, CFA pInputCfa)
       throws UnsupportedCodeException {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
@@ -310,7 +316,7 @@ public record SeqPointerAliasingMapBuilder(
           functionStatement.getExpressionAssignmentStatement().getRightHandSide();
       Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> pointerAssignment =
           SeqPointerAliasingUtil.tryMapPointerAssignment(
-              leftHandSide, rightHandSide, functionStatement.getCallContext());
+              leftHandSide, rightHandSide, functionStatement.getCallContext(), pInputCfa);
       if (pointerAssignment.isPresent()) {
         rAssignments.put(
             pointerAssignment.orElseThrow().getKey(), pointerAssignment.orElseThrow().getValue());
