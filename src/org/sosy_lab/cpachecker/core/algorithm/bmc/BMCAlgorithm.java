@@ -38,9 +38,12 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -73,6 +76,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationPro
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
@@ -152,6 +156,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private int loopsWithoutTerminationCandidates = 0;
   private ImmutableSet<CandidateInvariant> lastModelEqualityStrengthenings = ImmutableSet.of();
   private static final int MAX_MODEL_EQUALITY_STRENGTHENINGS = 8;
+  private static final int MAX_PATH_ASSIGNMENT_STRENGTHENINGS = 8;
 
   public BMCAlgorithm(
       Algorithm pAlgorithm,
@@ -529,12 +534,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
       ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,
-      Iterable<ValueAssignment> pModelAssignments) {
+      Iterable<ValueAssignment> pModelAssignments)
+      throws CPATransferException, InterruptedException {
     if (!(pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction)) {
       return ImmutableSet.of();
     }
 
     ImmutableSet.Builder<CandidateInvariant> strengthenedCandidates = ImmutableSet.builder();
+    int pathAssignmentStrengthenings = 0;
     int currentK =
         CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
     List<ValueAssignment> modelAssignments =
@@ -546,6 +553,15 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           || !isRelevantForReachability(stopState)
           || !candidateAppliesToState(pCandidateInvariant, stopState)) {
         continue;
+      }
+
+      if (pathAssignmentStrengthenings < MAX_PATH_ASSIGNMENT_STRENGTHENINGS) {
+        pathAssignmentStrengthenings +=
+            addPathAssignmentStrengthenings(
+                strengthenedCandidates,
+                pCandidateInvariant,
+                stopState,
+                MAX_PATH_ASSIGNMENT_STRENGTHENINGS - pathAssignmentStrengthenings);
       }
 
       for (AbstractState state : getPathStatesTo(stopState)) {
@@ -575,6 +591,75 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     }
     return strengthenedCandidates.build();
+  }
+
+  private int addPathAssignmentStrengthenings(
+      ImmutableSet.Builder<CandidateInvariant> pStrengthenedCandidates,
+      CandidateInvariant pCandidateInvariant,
+      AbstractState pStopState,
+      int pLimit)
+      throws CPATransferException, InterruptedException {
+    if (pLimit <= 0) {
+      return 0;
+    }
+
+    ARGState stopArgState = AbstractStates.extractStateByType(pStopState, ARGState.class);
+    if (stopArgState == null) {
+      return 0;
+    }
+
+    int added = 0;
+    ARGPath path = ARGUtils.getOnePathTo(stopArgState);
+    for (CFAEdge edge : path.getFullPath()) {
+      if (added >= pLimit) {
+        return added;
+      }
+      if (!isSimpleConstantAssignmentEdge(edge) || !isLoopNode(edge.getSuccessor())) {
+        continue;
+      }
+
+      PathFormula assignmentPathFormula =
+          getPathFormulaManager().makeAnd(getPathFormulaManager().makeEmptyPathFormula(), edge);
+      BooleanFormula assignmentFormula =
+          getFormulaManager().uninstantiate(assignmentPathFormula.getFormula());
+      if (getBooleanFormulaManager().isTrue(assignmentFormula)
+          || getBooleanFormulaManager().isFalse(assignmentFormula)) {
+        continue;
+      }
+
+      CandidateInvariant assignmentCandidate =
+          SingleLocationFormulaInvariant.makeLocationInvariant(
+              edge.getSuccessor(), assignmentFormula, getFormulaManager());
+      pStrengthenedCandidates.add(
+          CandidateInvariantCombination.conjunction(
+              ImmutableList.of(pCandidateInvariant, assignmentCandidate)));
+      added++;
+    }
+    return added;
+  }
+
+  private boolean isSimpleConstantAssignmentEdge(CFAEdge pEdge) {
+    if (!(pEdge instanceof CStatementEdge statementEdge)
+        || !(statementEdge.getStatement() instanceof CAssignment assignment)
+        || !(assignment.getLeftHandSide() instanceof CIdExpression)) {
+      return false;
+    }
+
+    CRightHandSide rightHandSide = assignment.getRightHandSide();
+    return rightHandSide instanceof CIntegerLiteralExpression
+        || rightHandSide instanceof CCharLiteralExpression;
+  }
+
+  private boolean isLoopNode(CFANode pNode) {
+    if (cfa.getLoopStructure().isEmpty()) {
+      return false;
+    }
+    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      if (loop.getLoopNodes().contains(pNode)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private List<ValueAssignment> prioritizeModelAssignments(
@@ -686,19 +771,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       pModifiedVariables.add(idExpression.getDeclaration().getQualifiedName());
     }
     return true;
-  }
-
-  private boolean isModifiedInContainingLoop(String pVariableName, Set<String> pModifiedVariables) {
-    if (pModifiedVariables.contains(pVariableName)) {
-      return true;
-    }
-    for (String modifiedVariable : pModifiedVariables) {
-      if (pVariableName.endsWith("::" + modifiedVariable)
-          || modifiedVariable.endsWith("::" + pVariableName)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private boolean isSupportedModelEqualityValue(ValueAssignment pValueAssignment) {
