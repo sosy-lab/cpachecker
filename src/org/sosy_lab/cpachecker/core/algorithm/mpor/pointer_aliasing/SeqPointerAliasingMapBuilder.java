@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -316,7 +317,11 @@ public record SeqPointerAliasingMapBuilder(
           functionStatement.getExpressionAssignmentStatement().getRightHandSide();
       Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> pointerAssignment =
           SeqPointerAliasingUtil.tryMapPointerAssignment(
-              leftHandSide, rightHandSide, functionStatement.getCallContext(), pInputCfa);
+              leftHandSide,
+              rightHandSide,
+              functionStatement.getLeftHandSideCallContext(),
+              functionStatement.getRightHandSideCallContext(),
+              pInputCfa);
       if (pointerAssignment.isPresent()) {
         rAssignments.put(
             pointerAssignment.orElseThrow().getKey(), pointerAssignment.orElseThrow().getValue());
@@ -372,7 +377,7 @@ public record SeqPointerAliasingMapBuilder(
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rPointerAssignments =
         ImmutableMap.builder();
     for (var entry : pAssignments.entrySet()) {
-      if (entry.getKey().declaration().getType() instanceof CPointerType) {
+      if (Objects.requireNonNull(entry.getKey().declaration()).getType() instanceof CPointerType) {
         rPointerAssignments.put(entry);
       }
     }

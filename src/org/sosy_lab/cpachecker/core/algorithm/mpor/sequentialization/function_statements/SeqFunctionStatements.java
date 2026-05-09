@@ -24,7 +24,9 @@ public record SeqFunctionStatements(
   public interface SeqFunctionStatement {
     CExpressionAssignmentStatement getExpressionAssignmentStatement();
 
-    Optional<CFAEdgeForThread> getCallContext();
+    Optional<CFAEdgeForThread> getLeftHandSideCallContext();
+
+    Optional<CFAEdgeForThread> getRightHandSideCallContext();
   }
 
   /**
@@ -43,12 +45,17 @@ public record SeqFunctionStatements(
    * @param expressionAssignmentStatement The assignment statement. This is not a {@link
    *     CFunctionCallAssignmentStatement} to exclude parameters that call a function such as {@code
    *     function(another_function());}.
-   * @param callContext The call context for the parameter assignment. The call context is always
-   *     present because it is the call to the function itself e.g. {@code function(0)} in the
-   *     example above.
+   * @param leftHandSideCallContext The call context for the left-hand side of the parameter
+   *     assignment. This is always present because it is the call to the function itself e.g.
+   *     {@code function(0)} in the example above.
+   * @param rightHandSideCallContext The call context for the right-hand side of the parameter
+   *     assignment. This can be empty if the function call itself has no call context, e.g. if it
+   *     is placed inside the {@code main()} function as shown in the example above.
    */
   public record SeqFunctionParameterAssignment(
-      CExpressionAssignmentStatement expressionAssignmentStatement, CFAEdgeForThread callContext)
+      CExpressionAssignmentStatement expressionAssignmentStatement,
+      CFAEdgeForThread leftHandSideCallContext,
+      Optional<CFAEdgeForThread> rightHandSideCallContext)
       implements SeqFunctionStatement {
 
     @Override
@@ -57,8 +64,13 @@ public record SeqFunctionStatements(
     }
 
     @Override
-    public Optional<CFAEdgeForThread> getCallContext() {
-      return Optional.of(callContext);
+    public Optional<CFAEdgeForThread> getLeftHandSideCallContext() {
+      return Optional.of(leftHandSideCallContext);
+    }
+
+    @Override
+    public Optional<CFAEdgeForThread> getRightHandSideCallContext() {
+      return rightHandSideCallContext;
     }
   }
 
@@ -79,13 +91,17 @@ public record SeqFunctionStatements(
    * @param expressionAssignmentStatement The assignment statement. This is not a {@link
    *     CFunctionCallAssignmentStatement} to exclude return statements that call a function such as
    *     {@code return another_function();}.
-   * @param callContext The {@link Optional} call context for the return value assignment. The call
-   *     context may not be present e.g. or function return value assignments in the {@code main()}
-   *     function as seen in the example above.
+   * @param leftHandSideCallContext The {@link Optional} call context for the left-hand side of the
+   *     return value assignment. This can be empty e.g. for function return value assignments in
+   *     the {@code main()} function as seen in the example above.
+   * @param rightHandSideCallContext The call context for the right-hand side of the return value
+   *     assignment. This is always present because the right-hand side is extracted from the {@code
+   *     return} statements inside the function which always has a call context.
    */
   public record SeqFunctionReturnValueAssignment(
       CExpressionAssignmentStatement expressionAssignmentStatement,
-      Optional<CFAEdgeForThread> callContext)
+      Optional<CFAEdgeForThread> leftHandSideCallContext,
+      CFAEdgeForThread rightHandSideCallContext)
       implements SeqFunctionStatement {
 
     @Override
@@ -94,8 +110,13 @@ public record SeqFunctionStatements(
     }
 
     @Override
-    public Optional<CFAEdgeForThread> getCallContext() {
-      return callContext;
+    public Optional<CFAEdgeForThread> getLeftHandSideCallContext() {
+      return leftHandSideCallContext;
+    }
+
+    @Override
+    public Optional<CFAEdgeForThread> getRightHandSideCallContext() {
+      return Optional.of(rightHandSideCallContext);
     }
   }
 }

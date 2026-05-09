@@ -157,7 +157,10 @@ public class MPORSubstitutionTrackerUtil {
 
     Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> pointerAssignment =
         SeqPointerAliasingUtil.tryMapPointerAssignment(
-            pLeftHandSide, pRightHandSide, pCallContext, pInputCfa);
+            // since all raw assignments from the input program are not across a function (e.g.
+            // parameter or return value assignments), the same call context is used for the
+            // left-hand and right-hand sides
+            pLeftHandSide, pRightHandSide, pCallContext, pCallContext, pInputCfa);
     if (pointerAssignment.isPresent()) {
       pTracker.addPointerAssignment(
           pointerAssignment.orElseThrow().getKey(), pointerAssignment.orElseThrow().getValue());

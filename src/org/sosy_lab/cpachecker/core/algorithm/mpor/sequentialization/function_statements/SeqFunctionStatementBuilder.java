@@ -115,12 +115,12 @@ public record SeqFunctionStatementBuilder(
           (CFunctionCallEdge) Objects.requireNonNull(substituteEdges.get(pCallContext)).cfaEdge;
       // go through all parameter substitutes. if there is more than one, the function is variadic
       for (int j = 0; j < parameterSubstitutes.size(); j++) {
-        CExpression argumentSubstitute = callContextSubstitute.getArguments().get(i + j);
+        CExpressionAssignmentStatement expressionAssignmentStatement =
+            SeqStatementBuilder.buildExpressionAssignmentStatement(
+                parameterSubstitutes.get(j), callContextSubstitute.getArguments().get(i + j));
         rAssignments.add(
             new SeqFunctionParameterAssignment(
-                SeqStatementBuilder.buildExpressionAssignmentStatement(
-                    parameterSubstitutes.get(j), argumentSubstitute),
-                pCallContext));
+                expressionAssignmentStatement, pCallContext, pCallContext.callContext));
       }
     }
     return rAssignments.build();
@@ -145,11 +145,12 @@ public record SeqFunctionStatementBuilder(
           if (functionCallSubstitute.isPresent()) {
             CExpression rightHandSideSubstitute =
                 PthreadUtil.extractStartRoutineArg(functionCallSubstitute.orElseThrow());
+            CExpressionAssignmentStatement expressionAssignmentStatement =
+                SeqStatementBuilder.buildExpressionAssignmentStatement(
+                    cell.getValue(), rightHandSideSubstitute);
             SeqFunctionParameterAssignment startRoutineArgAssignment =
                 new SeqFunctionParameterAssignment(
-                    SeqStatementBuilder.buildExpressionAssignmentStatement(
-                        cell.getValue(), rightHandSideSubstitute),
-                    callContext);
+                    expressionAssignmentStatement, callContext, callContext.callContext);
             rAssignments.put(callContext, startRoutineArgAssignment);
           }
         }
@@ -256,7 +257,9 @@ public record SeqFunctionStatementBuilder(
                 pReturnStatementEdge.getExpression().orElseThrow());
         return Optional.of(
             new SeqFunctionReturnValueAssignment(
-                assignmentStatement, pFunctionSummaryEdge.getCallContext()));
+                assignmentStatement,
+                pFunctionSummaryEdge.getCallContext(),
+                pFunctionSummaryEdge.getThreadEdge()));
       }
     }
     return Optional.empty();
@@ -286,9 +289,10 @@ public record SeqFunctionStatementBuilder(
               SeqStatementBuilder.buildExpressionAssignmentStatement(
                   pThread.startRoutineExitVariable().orElseThrow(),
                   PthreadUtil.extractExitReturnValue(substituteFunctionCall));
+          CFAEdgeForThread callContext = substituteEdge.getCallContext().orElseThrow();
           SeqFunctionReturnValueAssignment assignment =
               new SeqFunctionReturnValueAssignment(
-                  assignmentStatement, substituteEdge.getCallContext());
+                  assignmentStatement, callContext.callContext, callContext);
           rStartRoutineExitAssignments.put(threadEdge, assignment);
         }
       }

@@ -66,7 +66,8 @@ public class SeqPointerAliasingUtil {
   public static Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> tryMapPointerAssignment(
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
-      Optional<CFAEdgeForThread> pCallContext,
+      Optional<CFAEdgeForThread> pLeftHandSideCallContext,
+      Optional<CFAEdgeForThread> pRightHandSideCallContext,
       CFA pInputCfa)
       throws UnsupportedCodeException {
 
@@ -98,7 +99,7 @@ public class SeqPointerAliasingUtil {
         }
         SeqMemoryLocation leftHandSideMemoryLocation =
             SeqMemoryLocation.of(
-                pCallContext,
+                pLeftHandSideCallContext,
                 leftHandSideVisitResult.declaration(),
                 leftHandSideVisitResult.fieldMember());
         switch (pRightHandSide) {
@@ -109,7 +110,7 @@ public class SeqPointerAliasingUtil {
             if (rightHandSideVisitResult != null) {
               SeqMemoryLocation rightHandSideMemoryLocation =
                   SeqMemoryLocation.of(
-                      pCallContext,
+                      pRightHandSideCallContext,
                       rightHandSideVisitResult.declaration(),
                       rightHandSideVisitResult.fieldMember());
               return Optional.of(
@@ -121,7 +122,7 @@ public class SeqPointerAliasingUtil {
             if (!MPORUtil.isFunctionDefined(functionCallExpression, pInputCfa)) {
               SeqMemoryLocation rightHandSideMemoryLocation =
                   SeqMemoryLocation.of(
-                      pCallContext,
+                      pRightHandSideCallContext,
                       functionCallExpression.getDeclaration(),
                       Optional.empty(),
                       Optional.of(functionCallExpression));
