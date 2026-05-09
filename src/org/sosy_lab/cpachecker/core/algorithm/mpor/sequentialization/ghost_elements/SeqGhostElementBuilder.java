@@ -16,14 +16,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariablesBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariableBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.SeqThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.SeqThreadSyncFlagsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -33,7 +30,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 public record SeqGhostElementBuilder(
     MPOROptions options,
     ImmutableList<MPORThread> threads,
-    ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
     SeqPointerAliasingMap pointerAliasingMap,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
@@ -45,11 +41,6 @@ public record SeqGhostElementBuilder(
                     options, threads, substituteEdges, pointerAliasingMap)
                 .buildBitVectorVariables()
             : Optional.empty();
-
-    SeqFunctionStatementBuilder functionStatementBuilder =
-        new SeqFunctionStatementBuilder(threads, substitutions, substituteEdges);
-    ImmutableMap<MPORThread, SeqFunctionStatements> functionStatements =
-        functionStatementBuilder.buildFunctionStatements();
 
     SeqProgramCounterVariableBuilder pcVariableBuilder =
         new SeqProgramCounterVariableBuilder(
@@ -65,11 +56,7 @@ public record SeqGhostElementBuilder(
     SeqThreadSyncFlags threadSyncFlags = threadSyncFlagsBuilder.buildThreadSyncFlags();
 
     return new SeqGhostElements(
-        bitVectorVariables,
-        functionStatements,
-        programCounterVariables,
-        buildThreadLabels(),
-        threadSyncFlags);
+        bitVectorVariables, programCounterVariables, buildThreadLabels(), threadSyncFlags);
   }
 
   private ImmutableMap<MPORThread, CLabelStatement> buildThreadLabels() {

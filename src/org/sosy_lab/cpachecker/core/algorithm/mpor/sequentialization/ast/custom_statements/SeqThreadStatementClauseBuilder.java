@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockMerger;
@@ -50,6 +51,7 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableList<MPORThread> allThreads,
     ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
+    ImmutableMap<MPORThread, SeqFunctionStatements> functionStatements,
     MachineModel machineModel,
     SeqPointerAliasingMap pointerAliasingMap,
     SeqGhostElements ghostElements,
@@ -169,10 +171,10 @@ public record SeqThreadStatementClauseBuilder(
             allThreads,
             substituteEdges,
             pointerAliasingMap,
-            ghostElements.getFunctionStatementsByThread(pThread),
+            Objects.requireNonNull(functionStatements.get(pThread)),
             ghostElements.threadSyncFlags(),
-            ghostElements.getPcVariables().getPcLeftHandSide(pThread.id()),
-            ghostElements.getPcVariables(),
+            ghostElements.programCounterVariables().getPcLeftHandSide(pThread.id()),
+            ghostElements.programCounterVariables(),
             utils.binaryExpressionBuilder());
     for (CFANodeForThread threadNode : pThread.cfa().threadNodes) {
       if (pVisitedNodes.add(threadNode)) {
@@ -221,7 +223,8 @@ public record SeqThreadStatementClauseBuilder(
       return multiClauseEdge;
 
     } else {
-      CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
+      CLeftHandSide pcLeftHandSide =
+          ghostElements.programCounterVariables().getPcLeftHandSide(pThread.id());
       ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
       if (pThreadNode.getCfaNode() instanceof FunctionExitNode) {
         ImmutableSet<SubstituteEdge> edges =

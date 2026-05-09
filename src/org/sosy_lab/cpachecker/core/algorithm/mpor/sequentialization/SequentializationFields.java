@@ -20,6 +20,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMapBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
@@ -56,6 +58,8 @@ public class SequentializationFields {
 
   public final ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges;
 
+  public final ImmutableMap<MPORThread, SeqFunctionStatements> functionStatements;
+
   public final MachineModel machineModel;
 
   public final SeqPointerAliasingMap pointerAliasingMap;
@@ -84,6 +88,10 @@ public class SequentializationFields {
         substitutions.stream().filter(s -> s.getThread().isMain()).findAny().orElseThrow();
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
 
+    SeqFunctionStatementBuilder functionStatementBuilder =
+        new SeqFunctionStatementBuilder(threads, substitutions, substituteEdges);
+    functionStatements = functionStatementBuilder.buildFunctionStatements();
+
     machineModel = pInputCfa.getMachineModel();
 
     SeqPointerAliasingMapBuilder pointerAliasingMapBuilder =
@@ -91,6 +99,7 @@ public class SequentializationFields {
             pOptions,
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values(),
+            functionStatements.values(),
             machineModel);
     pointerAliasingMap = pointerAliasingMapBuilder.buildPointerAliasingMap();
 
@@ -98,7 +107,6 @@ public class SequentializationFields {
         new SeqGhostElementBuilder(
             pOptions,
             threads,
-            substitutions,
             substituteEdges,
             pointerAliasingMap,
             pUtils.binaryExpressionBuilder());
@@ -110,6 +118,7 @@ public class SequentializationFields {
             threads,
             substitutions,
             substituteEdges,
+            functionStatements,
             machineModel,
             pointerAliasingMap,
             ghostElements,

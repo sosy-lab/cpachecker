@@ -125,7 +125,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
     return Optional.of(
         new CStatementWrapper(
             ghostElements
-                .getPcVariables()
+                .programCounterVariables()
                 .buildScalarProgramCounterUnequalExitPcAssumption(pThread)));
   }
 

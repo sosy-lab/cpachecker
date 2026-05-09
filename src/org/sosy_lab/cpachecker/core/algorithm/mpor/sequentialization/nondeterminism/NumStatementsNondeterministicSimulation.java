@@ -64,7 +64,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
 
     // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
-        ghostElements.getPcVariables().getThreadActiveExpression(pThread.id());
+        ghostElements.programCounterVariables().getThreadActiveExpression(pThread.id());
     ImmutableList.Builder<CCompoundStatementElement> ifBlock = ImmutableList.builder();
 
     // add the round_max = nondet assignment for this thread

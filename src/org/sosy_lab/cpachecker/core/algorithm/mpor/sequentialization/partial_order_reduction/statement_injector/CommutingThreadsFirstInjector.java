@@ -167,7 +167,7 @@ public record CommutingThreadsFirstInjector(
       throws UnrecognizedCodeException {
 
     CExpression threadActiveExpression =
-        ghostElements.getPcVariables().getThreadActiveExpression(activeThread.id());
+        ghostElements.programCounterVariables().getThreadActiveExpression(activeThread.id());
     CExpression syncEqualsZero = buildSyncEqualsZeroExpression();
     CExportExpression bitVectorExpression = buildBitVectorEvaluationExpression();
     return CLogicalAndExpression.of(

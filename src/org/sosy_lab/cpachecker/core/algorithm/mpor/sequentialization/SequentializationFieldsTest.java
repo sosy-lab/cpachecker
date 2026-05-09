@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -139,8 +139,7 @@ public class SequentializationFieldsTest {
     // this program contains a lot of __CPAchecker_TMP variables, and we want to ensure that they
     // are in their correct place and not mixed up during the substitution process.
     Set<CLeftHandSide> visited = new HashSet<>();
-    for (SeqFunctionStatements functionStatements :
-        fields.ghostElements.functionStatements().values()) {
+    for (SeqFunctionStatements functionStatements : fields.functionStatements.values()) {
       for (SeqFunctionReturnValueAssignment returnValueAssignment :
           functionStatements.returnValueAssignments().values()) {
         assertWithMessage(
