@@ -96,6 +96,14 @@ public class SeqPointerAliasingStartRoutineArgTest {
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         SeqPointerAliasingMapBuilder.extractPointerAssignments(startRoutineArgAssignments);
 
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            ImmutableSetMultimap.of(),
+            pointerParameterAssignments,
+            ImmutableMap.of(),
+            startRoutineArgAssignments,
+            ImmutableMap.of());
+
     // check that start_routine_arg assignment is recognized as pointer parameter (void *)
     assertThat(pointerParameterAssignments).hasSize(1);
 
@@ -103,25 +111,13 @@ public class SeqPointerAliasingStartRoutineArgTest {
     assertThat(LOCAL_L1_MEMORY_LOCATION.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                LOCAL_L1_MEMORY_LOCATION,
-                ImmutableSetMultimap.of(),
-                pointerParameterAssignments,
-                ImmutableMap.of(),
-                startRoutineArgAssignments,
-                ImmutableMap.of(),
-                ImmutableSet.of()))
+                LOCAL_L1_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
         .isTrue();
     // start_routine_arg is not explicit or implicit global
     assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                START_ROUTINE_ARG_MEMORY_LOCATION,
-                ImmutableSetMultimap.of(),
-                pointerParameterAssignments,
-                ImmutableMap.of(),
-                startRoutineArgAssignments,
-                ImmutableMap.of(),
-                ImmutableSet.of()))
+                START_ROUTINE_ARG_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
         .isFalse();
   }
 }

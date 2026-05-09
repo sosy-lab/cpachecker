@@ -168,15 +168,18 @@ public class SeqPointerAliasingTest {
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .build();
 
-    // find the memory locations associated with dereference of 'global_ptr_A'
-    ImmutableSet<SeqMemoryLocation> memoryLocations =
-        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION,
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
             pointerAssignments,
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of());
+
+    // find the memory locations associated with dereference of 'global_ptr_A'
+    ImmutableSet<SeqMemoryLocation> memoryLocations =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            GLOBAL_POINTER_A_MEMORY_LOCATION, allPointerAssignments);
 
     // only memory location of 'global_X' should be associated with dereference of 'global_ptr_A'
     assertThat(memoryLocations).hasSize(1);
@@ -192,15 +195,18 @@ public class SeqPointerAliasingTest {
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, GLOBAL_Y_MEMORY_LOCATION)
             .build();
 
-    // find the memory locations associated with dereference of 'global_ptr_A'
-    ImmutableSet<SeqMemoryLocation> memoryLocations =
-        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION,
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
             pointerAssignments,
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of());
+
+    // find the memory locations associated with dereference of 'global_ptr_A'
+    ImmutableSet<SeqMemoryLocation> memoryLocations =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            GLOBAL_POINTER_A_MEMORY_LOCATION, allPointerAssignments);
 
     // mem location of 'global_X' and 'global_Y' should be associated with deref of 'global_ptr_A'
     assertThat(memoryLocations).hasSize(2);
@@ -218,15 +224,18 @@ public class SeqPointerAliasingTest {
             .put(GLOBAL_POINTER_B_MEMORY_LOCATION, GLOBAL_POINTER_A_MEMORY_LOCATION)
             .build();
 
-    // find the memory locations associated with dereference of 'global_ptr_B'
-    ImmutableSet<SeqMemoryLocation> memoryLocations =
-        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_B_MEMORY_LOCATION,
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
             pointerAssignments,
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of());
+
+    // find the memory locations associated with dereference of 'global_ptr_B'
+    ImmutableSet<SeqMemoryLocation> memoryLocations =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            GLOBAL_POINTER_B_MEMORY_LOCATION, allPointerAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'global_ptr_B'
     // even without direct assignment, due to transitive assignment of 'global_ptr_B = global_ptr_A'
@@ -242,19 +251,21 @@ public class SeqPointerAliasingTest {
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
             .build();
 
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            pointerAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of());
+
     // test that local_Z is now an implicit global memory location, because the global pointer
     // 'global_ptr_A' gets its address, and can be dereferenced by other threads
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isGlobal()).isTrue();
     assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                LOCAL_Z_MEMORY_LOCATION,
-                pointerAssignments,
-                ImmutableMap.of(),
-                ImmutableMap.of(),
-                ImmutableMap.of(),
-                ImmutableMap.of(),
-                ImmutableSet.of()))
+                LOCAL_Z_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
         .isTrue();
   }
 
@@ -269,6 +280,14 @@ public class SeqPointerAliasingTest {
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, LOCAL_POINTER_D_MEMORY_LOCATION)
             .build();
 
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            pointerAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of());
+
     // test that local_Z is now an implicit global memory location, because of transitivity:
     // 'global_ptr_A -> local_ptr_D -> local_ptr_C', and can then be dereferenced by other threads
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isGlobal()).isTrue();
@@ -277,13 +296,7 @@ public class SeqPointerAliasingTest {
     assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                LOCAL_Z_MEMORY_LOCATION,
-                pointerAssignments,
-                ImmutableMap.of(),
-                ImmutableMap.of(),
-                ImmutableMap.of(),
-                ImmutableMap.of(),
-                ImmutableSet.of()))
+                LOCAL_Z_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
         .isTrue();
   }
 }

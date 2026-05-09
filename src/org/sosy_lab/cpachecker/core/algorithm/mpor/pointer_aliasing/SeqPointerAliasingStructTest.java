@@ -174,15 +174,18 @@ public class SeqPointerAliasingStructTest {
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
             .build();
 
-    // find the memory locations associated with dereference of 'global_ptr_A'
-    ImmutableSet<SeqMemoryLocation> memoryLocations =
-        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION,
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
             pointerAssignments,
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of());
+
+    // find the memory locations associated with dereference of 'global_ptr_A'
+    ImmutableSet<SeqMemoryLocation> memoryLocations =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            GLOBAL_POINTER_A_MEMORY_LOCATION, allPointerAssignments);
 
     // mem location 'outer_struct.outer_member' should be associated with dereference of
     // 'global_ptr_A'
@@ -200,15 +203,18 @@ public class SeqPointerAliasingStructTest {
             .put(GLOBAL_POINTER_B_MEMORY_LOCATION, INNER_STRUCT_MEMBER_MEMORY_LOCATION)
             .build();
 
-    // find the memory locations associated with dereference of 'global_ptr_A'
-    ImmutableSet<SeqMemoryLocation> memoryLocationsA =
-        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION,
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
             pointerAssignments,
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of());
+
+    // find the memory locations associated with dereference of 'global_ptr_A'
+    ImmutableSet<SeqMemoryLocation> memoryLocationsA =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            GLOBAL_POINTER_A_MEMORY_LOCATION, allPointerAssignments);
     // mem location 'outer_struct.outer_member' should be associated with deref of 'global_ptr_A'
     assertThat(memoryLocationsA).hasSize(1);
     assertThat(memoryLocationsA).contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION);
@@ -216,12 +222,7 @@ public class SeqPointerAliasingStructTest {
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<SeqMemoryLocation> memoryLocationsB =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_B_MEMORY_LOCATION,
-            pointerAssignments,
-            ImmutableMap.of(),
-            ImmutableMap.of(),
-            ImmutableMap.of(),
-            ImmutableMap.of());
+            GLOBAL_POINTER_B_MEMORY_LOCATION, allPointerAssignments);
     // mem location 'outer_struct.inner_struct.member' should be associated with deref
     // 'global_ptr_B'
     assertThat(memoryLocationsB).hasSize(1);

@@ -8,17 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -41,25 +34,7 @@ public class SeqPointerAliasingMap {
    */
   private final ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocations;
 
-  public final ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments;
-
-  /** The subset of parameter assignments that are pointers. */
-  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments;
-
-  /** The subset of return value assignments that are pointers. */
-  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerReturnValueAssignments;
-
-  /**
-   * Keep track of {@code start_routine arg} assignments in {@code pthread_create} separately, since
-   * even a local memory address passed here is implicitly global.
-   */
-  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments;
-
-  /**
-   * Keep track of {@code start_routine} exit assignments in {@code pthread_join} separately, since
-   * even a local memory address passed here is implicitly global.
-   */
-  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineExitAssignments;
+  public final ImmutableSet<SeqPointerAssignment> pointerAssignments;
 
   public final ImmutableSet<SeqMemoryLocation> pointerDereferences;
 
@@ -67,11 +42,7 @@ public class SeqPointerAliasingMap {
       MPOROptions pOptions,
       ImmutableSet<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
-      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments,
+      ImmutableSet<SeqPointerAssignment> pPointerAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences,
       MachineModel pMachineModel)
       throws UnsupportedCodeException {
@@ -89,50 +60,11 @@ public class SeqPointerAliasingMap {
       }
     }
 
-    // check that all left hand sides in pointer assignments are CPointerType
-    for (SeqMemoryLocation memoryLocation : pPointerAssignments.keySet()) {
-      if (memoryLocation.fieldMember().isEmpty()) {
-        // if there is no field member, then the declaration must be a valid CPointerType
-        checkArgument(
-            isValidDeclarationPointerType(memoryLocation.declaration().getType()),
-            "The CType of the memory locations declaration is not a valid CPointerType: %s",
-            memoryLocation.declaration().getType());
-      } else {
-        CCompositeTypeMemberDeclaration memberDeclaration =
-            memoryLocation.fieldMember().orElseThrow();
-        // if there is a field member and the field owner is not a valid CPointerType
-        // then the field member must be a validCPointerType
-        if (!isValidDeclarationPointerType(memoryLocation.declaration().getType())) {
-          checkArgument(
-              isValidDeclarationPointerType(memberDeclaration.getType()),
-              "The CType of the memory locations field member is not a valid CPointerType: %s",
-              memberDeclaration.getType());
-        }
-      }
-    }
-
     allMemoryLocations = pAllMemoryLocations;
     relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
     relevantMemoryLocations = pRelevantMemoryLocationIds;
-
     pointerAssignments = pPointerAssignments;
-    pointerParameterAssignments = pPointerParameterAssignments;
-    pointerReturnValueAssignments = pPointerReturnValueAssignments;
-    startRoutineArgAssignments = pStartRoutineArgAssignments;
-    startRoutineExitAssignments = pStartRoutineExitAssignments;
-
     pointerDereferences = pPointerDereferences;
-  }
-
-  private static boolean isValidDeclarationPointerType(CType pType) {
-    if (pType instanceof CPointerType) {
-      return true;
-    }
-    // CArrayType.getType() corresponds to the CType of the arrays elements
-    if (pType instanceof CArrayType arrayType && arrayType.getType() instanceof CPointerType) {
-      return true;
-    }
-    return false;
   }
 
   // boolean helpers ===============================================================================
@@ -142,22 +74,15 @@ public class SeqPointerAliasingMap {
    * the address of a non-pointer {@code &non_ptr}.
    */
   static boolean isLeftHandSideInPointerAssignment(
-      SeqMemoryLocation pMemoryLocation,
-      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      SeqMemoryLocation pMemoryLocation, ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
 
     final boolean isLeftHandSide =
-        pPointerAssignments.containsKey(pMemoryLocation)
-            || pStartRoutineArgAssignments.containsKey(pMemoryLocation)
-            || pPointerParameterAssignments.containsKey(pMemoryLocation);
+        pPointerAssignments.stream()
+            .anyMatch(a -> a.leftHandSideMemoryLocation().equals(pMemoryLocation));
     if (pMemoryLocation.isFieldOwnerPointerType()) {
       return isLeftHandSide
           || isLeftHandSideInPointerAssignment(
-              pMemoryLocation.getFieldOwnerMemoryLocation(),
-              pPointerAssignments,
-              pStartRoutineArgAssignments,
-              pPointerParameterAssignments);
+              pMemoryLocation.getFieldOwnerMemoryLocation(), pPointerAssignments);
     }
     return isLeftHandSide;
   }
@@ -182,43 +107,28 @@ public class SeqPointerAliasingMap {
 
   // getters =======================================================================================
 
+  public ImmutableSet<SeqPointerAssignment> extractPointerAssignmentsByType(
+      SeqPointerAssignmentType pType) {
+
+    return pointerAssignments.stream()
+        .filter(a -> a.type().equals(pType))
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
   static ImmutableSet<SeqMemoryLocation> getPointerAssignmentRightHandSides(
-      SeqMemoryLocation pMemoryLocation,
-      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments) {
+      SeqMemoryLocation pMemoryLocation, ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rRightHandSides = ImmutableSet.builder();
 
-    if (pPointerAssignments.containsKey(pMemoryLocation)) {
-      rRightHandSides.addAll(pPointerAssignments.get(pMemoryLocation));
-    }
-    if (pPointerParameterAssignments.containsKey(pMemoryLocation)) {
-      rRightHandSides.add(
-          Objects.requireNonNull(pPointerParameterAssignments.get(pMemoryLocation)));
-    }
-    if (pPointerReturnValueAssignments.containsKey(pMemoryLocation)) {
-      rRightHandSides.add(
-          Objects.requireNonNull(pPointerReturnValueAssignments.get(pMemoryLocation)));
-    }
-    if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
-      rRightHandSides.add(Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
-    }
-    if (pStartRoutineExitAssignments.containsKey(pMemoryLocation)) {
-      rRightHandSides.add(
-          Objects.requireNonNull(pStartRoutineExitAssignments.get(pMemoryLocation)));
+    for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {
+      if (pointerAssignment.leftHandSideMemoryLocation().equals(pMemoryLocation)) {
+        rRightHandSides.add(pointerAssignment.rightHandSideMemoryLocation());
+      }
     }
     if (pMemoryLocation.isFieldOwnerPointerType()) {
       rRightHandSides.addAll(
           getPointerAssignmentRightHandSides(
-              pMemoryLocation.getFieldOwnerMemoryLocation(),
-              pPointerAssignments,
-              pPointerParameterAssignments,
-              pPointerReturnValueAssignments,
-              pStartRoutineArgAssignments,
-              pStartRoutineExitAssignments));
+              pMemoryLocation.getFieldOwnerMemoryLocation(), pPointerAssignments));
     }
 
     return rRightHandSides.build();

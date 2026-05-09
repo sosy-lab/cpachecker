@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -141,31 +140,15 @@ public class SeqMemoryLocationFinder {
       SeqPointerAliasingMap pPointerAliasingMap,
       SeqMemoryAccessType pAccessType) {
 
-    return ImmutableSet.<SeqMemoryLocation>builder()
-        .addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType))
-        .addAll(
-            findMemoryLocationsByPointerDereferences(
-                pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType),
-                pPointerAliasingMap))
-        .build();
-  }
-
-  public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereferences(
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences,
-      SeqPointerAliasingMap pPointerAliasingMap) {
-
-    return pPointerDereferences.stream()
-        .flatMap(
-            pointerDereference ->
-                findMemoryLocationsByPointerDereference(
-                    pointerDereference,
-                    pPointerAliasingMap.pointerAssignments,
-                    pPointerAliasingMap.pointerParameterAssignments,
-                    pPointerAliasingMap.pointerReturnValueAssignments,
-                    pPointerAliasingMap.startRoutineArgAssignments,
-                    pPointerAliasingMap.startRoutineExitAssignments)
-                    .stream())
-        .collect(ImmutableSet.toImmutableSet());
+    ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
+    rMemoryLocations.addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType));
+    for (SeqMemoryLocation pointerDereference :
+        pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType)) {
+      rMemoryLocations.addAll(
+          findMemoryLocationsByPointerDereference(
+              pointerDereference, pPointerAliasingMap.pointerAssignments));
+    }
+    return rMemoryLocations.build();
   }
 
   // Extraction by Pointer Dereference =============================================================
@@ -177,11 +160,7 @@ public class SeqMemoryLocationFinder {
    */
   static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
       final SeqMemoryLocation pPointerDereference,
-      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments) {
+      ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
 
     // the set of memory locations associated with the pointer dereference
     Set<SeqMemoryLocation> found = new HashSet<>();
@@ -196,31 +175,18 @@ public class SeqMemoryLocationFinder {
 
     final ImmutableSet<SeqMemoryLocation> pointerDereferenceRightHandSides =
         SeqPointerAliasingMap.getPointerAssignmentRightHandSides(
-            pPointerDereference,
-            pPointerAssignments,
-            pPointerParameterAssignments,
-            pPointerReturnValueAssignments,
-            pStartRoutineArgAssignments,
-            pStartRoutineExitAssignments);
+            pPointerDereference, pPointerAssignments);
 
     while (!stack.isEmpty()) {
       SeqMemoryLocation currentMemoryLocation = stack.pop();
       // check if the current location is a pointer (an LHS in an assignment)
       if (SeqPointerAliasingMap.isLeftHandSideInPointerAssignment(
-          currentMemoryLocation,
-          pPointerAssignments,
-          pStartRoutineArgAssignments,
-          pPointerParameterAssignments)) {
+          currentMemoryLocation, pPointerAssignments)) {
 
         // if it is a pointer, find what it points to (the RHS in the assignment)
         ImmutableSet<SeqMemoryLocation> rightHandSides =
             SeqPointerAliasingMap.getPointerAssignmentRightHandSides(
-                currentMemoryLocation,
-                pPointerAssignments,
-                pPointerParameterAssignments,
-                pPointerReturnValueAssignments,
-                pStartRoutineArgAssignments,
-                pStartRoutineExitAssignments);
+                currentMemoryLocation, pPointerAssignments);
 
         // add unvisited RHSs into the stack
         rightHandSides.stream().filter(visited::add).forEach(stack::push);
