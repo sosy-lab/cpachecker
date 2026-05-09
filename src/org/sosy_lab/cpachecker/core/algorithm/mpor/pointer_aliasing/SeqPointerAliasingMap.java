@@ -43,6 +43,12 @@ public class SeqPointerAliasingMap {
 
   public final ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments;
 
+  /** The subset of parameter assignments that are pointers. */
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments;
+
+  /** The subset of return value assignments that are pointers. */
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerReturnValueAssignments;
+
   /**
    * Keep track of {@code start_routine arg} assignments in {@code pthread_create} separately, since
    * even a local memory address passed here is implicitly global.
@@ -50,15 +56,10 @@ public class SeqPointerAliasingMap {
   public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments;
 
   /**
-   * The map of call context-sensitive {@link SeqMemoryLocation} mapped to their assigned {@link
-   * SeqMemoryLocation}. Each parameter is only assigned once due to function cloning. Note that
-   * this is not restricted to pointers, since non-pointer parameters can be made implicitly global
-   * through global pointers.
+   * Keep track of {@code start_routine} exit assignments in {@code pthread_join} separately, since
+   * even a local memory address passed here is implicitly global.
    */
-  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments;
-
-  /** The subset of parameters that are pointers. */
-  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments;
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineExitAssignments;
 
   public final ImmutableSet<SeqMemoryLocation> pointerDereferences;
 
@@ -67,37 +68,11 @@ public class SeqPointerAliasingMap {
       ImmutableSet<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences,
-      MachineModel pMachineModel)
-      throws UnsupportedCodeException {
-
-    checkArguments(
-        pOptions,
-        pRelevantMemoryLocationIds,
-        pPointerAssignments,
-        pParameterAssignments,
-        pPointerParameterAssignments,
-        pMachineModel);
-
-    allMemoryLocations = pAllMemoryLocations;
-    relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
-    relevantMemoryLocations = pRelevantMemoryLocationIds;
-    startRoutineArgAssignments = pStartRoutineArgAssignments;
-    pointerAssignments = pPointerAssignments;
-    parameterAssignments = pParameterAssignments;
-    pointerParameterAssignments = pPointerParameterAssignments;
-    pointerDereferences = pPointerDereferences;
-  }
-
-  private static void checkArguments(
-      MPOROptions pOptions,
-      ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
-      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       MachineModel pMachineModel)
       throws UnsupportedCodeException {
 
@@ -136,15 +111,17 @@ public class SeqPointerAliasingMap {
       }
     }
 
-    // check that pointer assignments contains all pointer parameter assignments (i.e. subset)
-    for (var entry : pPointerParameterAssignments.entrySet()) {
-      checkArgument(
-          pParameterAssignments.containsKey(entry.getKey()),
-          "pParameterAssignments must contain all pPointerParameterAssignments");
-      checkArgument(
-          Objects.equals(pParameterAssignments.get(entry.getKey()), entry.getValue()),
-          "pParameterAssignments must contain all pPointerParameterAssignments");
-    }
+    allMemoryLocations = pAllMemoryLocations;
+    relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
+    relevantMemoryLocations = pRelevantMemoryLocationIds;
+
+    pointerAssignments = pPointerAssignments;
+    pointerParameterAssignments = pPointerParameterAssignments;
+    pointerReturnValueAssignments = pPointerReturnValueAssignments;
+    startRoutineArgAssignments = pStartRoutineArgAssignments;
+    startRoutineExitAssignments = pStartRoutineExitAssignments;
+
+    pointerDereferences = pPointerDereferences;
   }
 
   private static boolean isValidDeclarationPointerType(CType pType) {
@@ -208,28 +185,40 @@ public class SeqPointerAliasingMap {
   static ImmutableSet<SeqMemoryLocation> getPointerAssignmentRightHandSides(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rRightHandSides = ImmutableSet.builder();
 
     if (pPointerAssignments.containsKey(pMemoryLocation)) {
       rRightHandSides.addAll(pPointerAssignments.get(pMemoryLocation));
     }
-    if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
-      rRightHandSides.add(Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
-    }
     if (pPointerParameterAssignments.containsKey(pMemoryLocation)) {
       rRightHandSides.add(
           Objects.requireNonNull(pPointerParameterAssignments.get(pMemoryLocation)));
+    }
+    if (pPointerReturnValueAssignments.containsKey(pMemoryLocation)) {
+      rRightHandSides.add(
+          Objects.requireNonNull(pPointerReturnValueAssignments.get(pMemoryLocation)));
+    }
+    if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
+      rRightHandSides.add(Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
+    }
+    if (pStartRoutineExitAssignments.containsKey(pMemoryLocation)) {
+      rRightHandSides.add(
+          Objects.requireNonNull(pStartRoutineExitAssignments.get(pMemoryLocation)));
     }
     if (pMemoryLocation.isFieldOwnerPointerType()) {
       rRightHandSides.addAll(
           getPointerAssignmentRightHandSides(
               pMemoryLocation.getFieldOwnerMemoryLocation(),
               pPointerAssignments,
+              pPointerParameterAssignments,
+              pPointerReturnValueAssignments,
               pStartRoutineArgAssignments,
-              pPointerParameterAssignments));
+              pStartRoutineExitAssignments));
     }
 
     return rRightHandSides.build();

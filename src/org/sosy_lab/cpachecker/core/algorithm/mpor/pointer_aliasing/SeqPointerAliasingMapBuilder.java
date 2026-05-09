@@ -46,19 +46,32 @@ public record SeqPointerAliasingMapBuilder(
             .flatMap(edge -> edge.pointerAssignments.asMultimap().entries().stream())
             .collect(ImmutableSetMultimap.toImmutableSetMultimap(Entry::getKey, Entry::getValue));
 
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
-        mapAssignmentsFromFunctionStatements(
-            functionStatements.stream()
-                .flatMap(s -> s.startRoutineArgAssignments().values().stream())
-                .collect(ImmutableSet.toImmutableSet()));
-
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
         mapAssignmentsFromFunctionStatements(
             functionStatements.stream()
                 .flatMap(s -> s.parameterAssignments().values().stream())
                 .collect(ImmutableSet.toImmutableSet()));
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        getPointerParameterAssignments(parameterAssignments);
+        extractPointerAssignments(parameterAssignments);
+
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> returnValueAssignments =
+        mapAssignmentsFromFunctionStatements(
+            functionStatements.stream()
+                .flatMap(s -> s.returnValueAssignments().values().stream())
+                .collect(ImmutableSet.toImmutableSet()));
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerReturnValueAssignments =
+        extractPointerAssignments(returnValueAssignments);
+
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
+        mapAssignmentsFromFunctionStatements(
+            functionStatements.stream()
+                .flatMap(s -> s.startRoutineArgAssignments().values().stream())
+                .collect(ImmutableSet.toImmutableSet()));
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineExitAssignments =
+        mapAssignmentsFromFunctionStatements(
+            functionStatements.stream()
+                .flatMap(s -> s.startRoutineExitAssignments().values().stream())
+                .collect(ImmutableSet.toImmutableSet()));
 
     ImmutableSet<SeqMemoryLocation> pointerDereferences =
         substituteEdges.stream()
@@ -79,8 +92,10 @@ public record SeqPointerAliasingMapBuilder(
                     SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
                         d,
                         pointerAssignments,
+                        pointerParameterAssignments,
+                        pointerReturnValueAssignments,
                         startRoutineArgAssignments,
-                        pointerParameterAssignments)
+                        startRoutineExitAssignments)
                         .stream())
             .collect(ImmutableSet.toImmutableSet());
 
@@ -88,16 +103,21 @@ public record SeqPointerAliasingMapBuilder(
         ImmutableSet.<SeqMemoryLocation>builder()
             .addAll(initialMemoryLocations)
             .addAll(parameterAssignments.values())
+            .addAll(returnValueAssignments.values())
             .addAll(startRoutineArgAssignments.keySet())
             .addAll(startRoutineArgAssignments.values())
+            .addAll(startRoutineExitAssignments.keySet())
+            .addAll(startRoutineExitAssignments.values())
             .addAll(pointerDereferenceMemoryLocations)
             .build();
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         getRelevantMemoryLocationsIds(
             allMemoryLocations,
             pointerAssignments,
-            startRoutineArgAssignments,
             pointerParameterAssignments,
+            pointerReturnValueAssignments,
+            startRoutineArgAssignments,
+            startRoutineExitAssignments,
             pointerDereferences);
 
     return new SeqPointerAliasingMap(
@@ -105,9 +125,10 @@ public record SeqPointerAliasingMapBuilder(
         allMemoryLocations,
         relevantMemoryLocationIds,
         pointerAssignments,
-        startRoutineArgAssignments,
-        parameterAssignments,
         pointerParameterAssignments,
+        pointerReturnValueAssignments,
+        startRoutineArgAssignments,
+        startRoutineExitAssignments,
         pointerDereferences,
         machineModel);
   }
@@ -117,8 +138,10 @@ public record SeqPointerAliasingMapBuilder(
   private ImmutableMap<SeqMemoryLocation, Integer> getRelevantMemoryLocationsIds(
       ImmutableSet<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     ImmutableMap.Builder<SeqMemoryLocation, Integer> rRelevantIds = ImmutableMap.builder();
@@ -127,8 +150,10 @@ public record SeqPointerAliasingMapBuilder(
       if (isRelevantMemoryLocation(
           memoryLocation,
           pPointerAssignments,
-          pStartRoutineArgAssignments,
           pPointerParameterAssignments,
+          pPointerReturnValueAssignments,
+          pStartRoutineArgAssignments,
+          pStartRoutineExitAssignments,
           pPointerDereferences)) {
         rRelevantIds.put(memoryLocation, currentId++);
       }
@@ -139,8 +164,10 @@ public record SeqPointerAliasingMapBuilder(
   private boolean isRelevantMemoryLocation(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     // exclude const CPAchecker_TMP, they do not have any effect in the input program
@@ -154,8 +181,10 @@ public record SeqPointerAliasingMapBuilder(
         || isImplicitGlobal(
             pMemoryLocation,
             pPointerAssignments,
-            pStartRoutineArgAssignments,
             pPointerParameterAssignments,
+            pPointerReturnValueAssignments,
+            pStartRoutineArgAssignments,
+            pStartRoutineExitAssignments,
             pPointerDereferences)) {
       return true;
     }
@@ -169,8 +198,10 @@ public record SeqPointerAliasingMapBuilder(
   static boolean isImplicitGlobal(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     if (pMemoryLocation.isGlobal()) {
@@ -185,8 +216,10 @@ public record SeqPointerAliasingMapBuilder(
       if (isImplicitGlobalByPointerAssignmentsAndDereferences(
           pMemoryLocation,
           pPointerAssignments,
-          pStartRoutineArgAssignments,
           pPointerParameterAssignments,
+          pPointerReturnValueAssignments,
+          pStartRoutineArgAssignments,
+          pStartRoutineExitAssignments,
           pPointerDereferences)) {
         return true;
       }
@@ -197,8 +230,10 @@ public record SeqPointerAliasingMapBuilder(
   private static boolean isImplicitGlobalByPointerAssignmentsAndDereferences(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     // inexpensive shortcut: first check for direct assignments
@@ -210,8 +245,10 @@ public record SeqPointerAliasingMapBuilder(
     if (isImplicitGlobalByPointerDereference(
         pMemoryLocation,
         pPointerAssignments,
-        pStartRoutineArgAssignments,
         pPointerParameterAssignments,
+        pPointerReturnValueAssignments,
+        pStartRoutineArgAssignments,
+        pStartRoutineExitAssignments,
         pPointerDereferences)) {
       return true;
     }
@@ -251,8 +288,10 @@ public record SeqPointerAliasingMapBuilder(
   private static boolean isImplicitGlobalByPointerDereference(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     for (SeqMemoryLocation pointerDereference : pPointerDereferences) {
@@ -261,8 +300,10 @@ public record SeqPointerAliasingMapBuilder(
             SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
                 pointerDereference,
                 pPointerAssignments,
+                pPointerParameterAssignments,
+                pPointerReturnValueAssignments,
                 pStartRoutineArgAssignments,
-                pPointerParameterAssignments);
+                pStartRoutineExitAssignments);
         for (SeqMemoryLocation memoryLocation : memoryLocations) {
           if (isExplicitGlobalOrStartRoutineArg(memoryLocation, pStartRoutineArgAssignments)) {
             return true;
@@ -381,15 +422,16 @@ public record SeqPointerAliasingMapBuilder(
   }
 
   @VisibleForTesting
-  static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> getPointerParameterAssignments(
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments) {
+  static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> extractPointerAssignments(
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pAssignments) {
 
-    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rPointers = ImmutableMap.builder();
-    for (var entry : pParameterAssignments.entrySet()) {
+    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rPointerAssignments =
+        ImmutableMap.builder();
+    for (var entry : pAssignments.entrySet()) {
       if (entry.getKey().declaration().getType() instanceof CPointerType) {
-        rPointers.put(entry);
+        rPointerAssignments.put(entry);
       }
     }
-    return rPointers.buildOrThrow();
+    return rPointerAssignments.buildOrThrow();
   }
 }

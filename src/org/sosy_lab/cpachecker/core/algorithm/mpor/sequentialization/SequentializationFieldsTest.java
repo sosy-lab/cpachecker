@@ -216,7 +216,6 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(45);
-    assertThat(pointerAliasingMap.parameterAssignments).isEmpty();
     assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
     assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
     assertThat(pointerAliasingMap.pointerDereferences).isEmpty();

@@ -180,6 +180,8 @@ public class SeqPointerAliasingStructTest {
             GLOBAL_POINTER_A_MEMORY_LOCATION,
             pointerAssignments,
             ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of());
 
     // mem location 'outer_struct.outer_member' should be associated with dereference of
@@ -204,6 +206,8 @@ public class SeqPointerAliasingStructTest {
             GLOBAL_POINTER_A_MEMORY_LOCATION,
             pointerAssignments,
             ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of());
     // mem location 'outer_struct.outer_member' should be associated with deref of 'global_ptr_A'
     assertThat(memoryLocationsA).hasSize(1);
@@ -214,6 +218,8 @@ public class SeqPointerAliasingStructTest {
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
             GLOBAL_POINTER_B_MEMORY_LOCATION,
             pointerAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of());
     // mem location 'outer_struct.inner_struct.member' should be associated with deref

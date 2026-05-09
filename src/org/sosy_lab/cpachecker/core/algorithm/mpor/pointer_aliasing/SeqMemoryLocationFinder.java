@@ -160,8 +160,10 @@ public class SeqMemoryLocationFinder {
                 findMemoryLocationsByPointerDereference(
                     pointerDereference,
                     pPointerAliasingMap.pointerAssignments,
+                    pPointerAliasingMap.pointerParameterAssignments,
+                    pPointerAliasingMap.pointerReturnValueAssignments,
                     pPointerAliasingMap.startRoutineArgAssignments,
-                    pPointerAliasingMap.pointerParameterAssignments)
+                    pPointerAliasingMap.startRoutineExitAssignments)
                     .stream())
         .collect(ImmutableSet.toImmutableSet());
   }
@@ -176,8 +178,10 @@ public class SeqMemoryLocationFinder {
   static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
       final SeqMemoryLocation pPointerDereference,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerReturnValueAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments) {
 
     // the set of memory locations associated with the pointer dereference
     Set<SeqMemoryLocation> found = new HashSet<>();
@@ -194,8 +198,10 @@ public class SeqMemoryLocationFinder {
         SeqPointerAliasingMap.getPointerAssignmentRightHandSides(
             pPointerDereference,
             pPointerAssignments,
+            pPointerParameterAssignments,
+            pPointerReturnValueAssignments,
             pStartRoutineArgAssignments,
-            pPointerParameterAssignments);
+            pStartRoutineExitAssignments);
 
     while (!stack.isEmpty()) {
       SeqMemoryLocation currentMemoryLocation = stack.pop();
@@ -211,8 +217,10 @@ public class SeqMemoryLocationFinder {
             SeqPointerAliasingMap.getPointerAssignmentRightHandSides(
                 currentMemoryLocation,
                 pPointerAssignments,
+                pPointerParameterAssignments,
+                pPointerReturnValueAssignments,
                 pStartRoutineArgAssignments,
-                pPointerParameterAssignments);
+                pStartRoutineExitAssignments);
 
         // add unvisited RHSs into the stack
         rightHandSides.stream().filter(visited::add).forEach(stack::push);

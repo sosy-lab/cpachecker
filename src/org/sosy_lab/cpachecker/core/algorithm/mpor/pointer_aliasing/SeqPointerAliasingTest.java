@@ -174,6 +174,8 @@ public class SeqPointerAliasingTest {
             GLOBAL_POINTER_A_MEMORY_LOCATION,
             pointerAssignments,
             ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of());
 
     // only memory location of 'global_X' should be associated with dereference of 'global_ptr_A'
@@ -195,6 +197,8 @@ public class SeqPointerAliasingTest {
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
             GLOBAL_POINTER_A_MEMORY_LOCATION,
             pointerAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of());
 
@@ -219,6 +223,8 @@ public class SeqPointerAliasingTest {
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
             GLOBAL_POINTER_B_MEMORY_LOCATION,
             pointerAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of());
 
@@ -246,6 +252,8 @@ public class SeqPointerAliasingTest {
                 pointerAssignments,
                 ImmutableMap.of(),
                 ImmutableMap.of(),
+                ImmutableMap.of(),
+                ImmutableMap.of(),
                 ImmutableSet.of()))
         .isTrue();
   }
@@ -271,6 +279,8 @@ public class SeqPointerAliasingTest {
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
                 pointerAssignments,
+                ImmutableMap.of(),
+                ImmutableMap.of(),
                 ImmutableMap.of(),
                 ImmutableMap.of(),
                 ImmutableSet.of()))
