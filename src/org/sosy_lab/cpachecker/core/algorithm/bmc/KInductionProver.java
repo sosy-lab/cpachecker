@@ -1013,7 +1013,7 @@ class KInductionProver implements AutoCloseable {
   private boolean isSuccessorOnlyComponent(CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException {
     return pCandidateInvariant instanceof SingleLocationFormulaInvariant
-        && bfmgr.isFalse(pCandidateInvariant.getFormula(fmgr, pfmgr, null));
+        && bfmgr.isFalse(pCandidateInvariant.getFormula(fmgr, pfmgr, pfmgr.makeEmptyPathFormula()));
   }
 
   private static class VariableMapper implements FormulaVisitor<TraversalProcess> {
