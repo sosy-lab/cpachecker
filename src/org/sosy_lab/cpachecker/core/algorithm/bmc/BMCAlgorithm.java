@@ -614,7 +614,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (added >= pLimit) {
         return added;
       }
-      if (!isSimpleConstantAssignmentEdge(edge) || !isLoopNode(edge.getSuccessor())) {
+      if (!isSimpleConstantAssignmentEdge(edge)
+          || !isLoopNode(edge.getSuccessor())
+          || assignsVariableModifiedInContainingLoop(edge)) {
         continue;
       }
 
@@ -702,6 +704,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (index.isEmpty()
           || !pPathFormula.getSsa().containsVariable(actualName)
           || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
+          || modifiedVariables.orElseThrow().contains(actualName)
           || !hasRepeatedStableModelValue(
               actualName, valueAssignment.getValue(), index.orElseThrow(), pModelAssignments)) {
         continue;
@@ -760,6 +763,26 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     }
     return true;
+  }
+
+  private boolean assignsVariableModifiedInContainingLoop(CFAEdge pEdge) {
+    if (!(pEdge instanceof CStatementEdge statementEdge)
+        || !(statementEdge.getStatement() instanceof CAssignment assignment)
+        || !(assignment.getLeftHandSide() instanceof CIdExpression idExpression)) {
+      return true;
+    }
+
+    Optional<Set<String>> modifiedVariables =
+        getModifiedVariablesInLoopsContaining(pEdge.getSuccessor());
+    if (modifiedVariables.isEmpty()) {
+      return true;
+    }
+
+    return modifiedVariables.orElseThrow().contains(idExpression.getName())
+        || (idExpression.getDeclaration() != null
+            && modifiedVariables
+                .orElseThrow()
+                .contains(idExpression.getDeclaration().getQualifiedName()));
   }
 
   private boolean addModifiedVariable(CLeftHandSide pLeftHandSide, Set<String> pModifiedVariables) {

@@ -1,0 +1,15 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 CPAchecker contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Known finite terminating tasks that previously triggered incorrect FALSE
+# results in KInduction-prove-nontermination-strong.
+../../sv-benchmarks/c/termination-crafted/4BitCounterPointer.yml
+../../sv-benchmarks/c/termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wcet2.yml
+../../sv-benchmarks/c/termination-memory-alloca/c.01-no-inv-alloca.yml
+../../sv-benchmarks/c/ldv-regression/test_while_int.yml
+../../sv-benchmarks/c/loops/terminator_01.yml
