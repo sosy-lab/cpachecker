@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -316,7 +317,7 @@ class KInductionProver implements AutoCloseable {
 
     logger.log(Level.INFO, "Running algorithm to create non-termination closure check");
 
-    reachedSet.setDesiredK(pK + 1);
+    reachedSet.setDesiredK(pK + 2);
     reachedSet.ensureK();
     ReachedSet reached = reachedSet.getReachedSet();
 
@@ -332,7 +333,7 @@ class KInductionProver implements AutoCloseable {
     }
 
     FluentIterable<AbstractState> predecessorStates =
-        BMCHelper.filterBmcChecked(filterIterationsUpTo(reached, pK, loopHeads), pCheckedKeys);
+        filterNonTerminationPredecessorStates(reached, pK, pCheckedKeys);
     ImmutableSet<AbstractState> inductionHypothesis =
         ImmutableSet.copyOf(predecessorCandidate.orElseThrow().filterApplicable(predecessorStates));
     if (inductionHypothesis.isEmpty()) {
@@ -989,6 +990,21 @@ class KInductionProver implements AutoCloseable {
     }
 
     return stateViolationAssertionsBuilder.build();
+  }
+
+  private FluentIterable<AbstractState> filterNonTerminationPredecessorStates(
+      Iterable<AbstractState> pReached, int pK, Set<Object> pCheckedKeys) {
+    return BMCHelper.filterBmcChecked(filterIterationsUpTo(pReached, pK, loopHeads), pCheckedKeys)
+        .filter(state -> !isTerminalLoopHeadSuccessor(state, pK));
+  }
+
+  private boolean isTerminalLoopHeadSuccessor(AbstractState pState, int pK) {
+    if (!BMCHelper.hasMatchingLocation(pState, loopHeads)) {
+      return false;
+    }
+    LoopIterationReportingState loopState =
+        AbstractStates.extractStateByType(pState, LoopIterationReportingState.class);
+    return loopState != null && loopState.getDeepestIteration() == pK + 1;
   }
 
   private Optional<CandidateInvariant> getNonTerminationPredecessorCandidate(
