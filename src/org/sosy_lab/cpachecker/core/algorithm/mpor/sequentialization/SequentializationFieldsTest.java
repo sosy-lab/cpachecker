@@ -216,7 +216,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(45);
-    assertThat(pointerAliasingMap.parameterAssignments).hasSize(2);
+    assertThat(pointerAliasingMap.parameterAssignments).isEmpty();
     assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
     assertThat(pointerAliasingMap.pointerParameterAssignments).isEmpty();
     assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
@@ -270,7 +270,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     // check that each member of queue struct is identified as relevant individually
-    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(10);
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(9);
     assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
     // 2 in main, 3 in t1, 1 in t2
     // (pthread_mutex_lock(&m) does not count as pointer parameter assignment)

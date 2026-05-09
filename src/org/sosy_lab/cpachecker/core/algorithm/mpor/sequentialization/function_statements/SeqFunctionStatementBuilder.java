@@ -119,7 +119,8 @@ public record SeqFunctionStatementBuilder(
         rAssignments.add(
             new SeqFunctionParameterAssignment(
                 SeqStatementBuilder.buildExpressionAssignmentStatement(
-                    parameterSubstitutes.get(j), argumentSubstitute)));
+                    parameterSubstitutes.get(j), argumentSubstitute),
+                pCallContext));
       }
     }
     return rAssignments.build();
@@ -147,7 +148,8 @@ public record SeqFunctionStatementBuilder(
             SeqFunctionParameterAssignment startRoutineArgAssignment =
                 new SeqFunctionParameterAssignment(
                     SeqStatementBuilder.buildExpressionAssignmentStatement(
-                        cell.getValue(), rightHandSideSubstitute));
+                        cell.getValue(), rightHandSideSubstitute),
+                    callContext);
             rAssignments.put(callContext, startRoutineArgAssignment);
           }
         }
@@ -252,7 +254,9 @@ public record SeqFunctionStatementBuilder(
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 functionCallAssignmentStatement.getLeftHandSide(),
                 pReturnStatementEdge.getExpression().orElseThrow());
-        return Optional.of(new SeqFunctionReturnValueAssignment(assignmentStatement));
+        return Optional.of(
+            new SeqFunctionReturnValueAssignment(
+                assignmentStatement, pFunctionSummaryEdge.getCallContext()));
       }
     }
     return Optional.empty();
@@ -283,7 +287,8 @@ public record SeqFunctionStatementBuilder(
                   pThread.startRoutineExitVariable().orElseThrow(),
                   PthreadUtil.extractExitReturnValue(substituteFunctionCall));
           SeqFunctionReturnValueAssignment assignment =
-              new SeqFunctionReturnValueAssignment(assignmentStatement);
+              new SeqFunctionReturnValueAssignment(
+                  assignmentStatement, substituteEdge.getCallContext());
           rStartRoutineExitAssignments.put(threadEdge, assignment);
         }
       }
