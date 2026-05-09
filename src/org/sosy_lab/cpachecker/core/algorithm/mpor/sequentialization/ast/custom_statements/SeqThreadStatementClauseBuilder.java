@@ -30,14 +30,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockMerger;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.StatementLinker;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.StatementPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -67,7 +67,7 @@ public record SeqThreadStatementClauseBuilder(
     // if enabled, prune clauses so that no clause has only pc writes
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> prunedClauses =
         options.pruneEmptyStatements()
-            ? SeqPruner.pruneClauses(options, initialClauses)
+            ? StatementPruner.pruneClauses(options, initialClauses)
             : initialClauses;
 
     // ensure that atomic blocks are not interleaved by adding direct gotos
@@ -105,7 +105,7 @@ public record SeqThreadStatementClauseBuilder(
         partialOrderReducer.reduceClauses();
 
     // validate clauses based on pOptions
-    SeqValidator.tryValidateClauses(options, reducedClauses);
+    SequentializationValidator.tryValidateClauses(options, reducedClauses);
     return reducedClauses;
   }
 
@@ -120,7 +120,7 @@ public record SeqThreadStatementClauseBuilder(
       rClauses.putAll(thread, initClausesForSingleThread(thread, new HashSet<>()));
     }
     // only check pc validation, since clauses are not reordered at this point
-    SeqValidator.tryValidateProgramCounters(options, rClauses.build());
+    SequentializationValidator.tryValidateProgramCounters(options, rClauses.build());
     return reorderClauses(rClauses.build());
   }
 
@@ -140,7 +140,7 @@ public record SeqThreadStatementClauseBuilder(
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       SeqThreadStatementClause first = clauses.getFirst();
       SeqThreadStatementClause nonBlank =
-          SeqPruner.recursivelyFindNonBlankClause(Optional.empty(), first, labelClauseMap);
+          StatementPruner.recursivelyFindNonBlankClause(Optional.empty(), first, labelClauseMap);
       if (SeqThreadStatementClauseUtil.isConsecutiveLabelPath(first, nonBlank, labelClauseMap)) {
         rReordered.putAll(thread, clauses); // put case clauses as they were
       } else {
