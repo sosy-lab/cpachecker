@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -20,25 +22,41 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
+/**
+ * Represents an overapproximating memory location that can be used to create partial order
+ * reduction statements in the output program.
+ *
+ * @param callContext The call context for this memory location. Separate call contexts result in
+ *     separate memory locations.
+ * @param declaration The {@link CSimpleDeclaration} of the memory location which can be null for
+ *     functions that were not declared.
+ * @param fieldMember The optional {@link CCompositeTypeMemberDeclaration} that is accessed in a
+ *     {@link CFieldReference}.
+ * @param functionCallExpression The optional {@link CFunctionCallExpression} that returns a memory
+ *     location such as {@code malloc}.
+ */
 public record SeqMemoryLocation(
     Optional<CFAEdgeForThread> callContext,
-    CSimpleDeclaration declaration,
+    @Nullable CSimpleDeclaration declaration,
     Optional<CCompositeTypeMemberDeclaration> fieldMember,
     Optional<CFunctionCallExpression> functionCallExpression) {
 
   public SeqMemoryLocation {
-    checkArgument(
-        declaration instanceof CFunctionDeclaration || declaration instanceof CVariableDeclaration,
-        "declaration must be CFunctionDeclaration or CVariableDeclaration");
-    checkArgument(
-        !(declaration instanceof CFunctionDeclaration) || functionCallExpression.isPresent(),
-        "If declaration is a CFunctionDeclaration, then functionCallExpression must be present.");
-    checkArgument(
-        !(declaration instanceof CFunctionDeclaration) || fieldMember.isEmpty(),
-        "If declaration is a CFunctionDeclaration, then fieldMember must be empty.");
-    checkArgument(
-        !(declaration instanceof CVariableDeclaration) || functionCallExpression.isEmpty(),
-        "If declaration is a CVariableDeclaration, then functionCallExpression must be empty.");
+    if (declaration != null) {
+      checkArgument(
+          declaration instanceof CFunctionDeclaration
+              || declaration instanceof CVariableDeclaration,
+          "declaration must be CFunctionDeclaration or CVariableDeclaration");
+      checkArgument(
+          !(declaration instanceof CFunctionDeclaration) || functionCallExpression.isPresent(),
+          "If declaration is a CFunctionDeclaration, then functionCallExpression must be present.");
+      checkArgument(
+          !(declaration instanceof CFunctionDeclaration) || fieldMember.isEmpty(),
+          "If declaration is a CFunctionDeclaration, then fieldMember must be empty.");
+      checkArgument(
+          !(declaration instanceof CVariableDeclaration) || functionCallExpression.isEmpty(),
+          "If declaration is a CVariableDeclaration, then functionCallExpression must be empty.");
+    }
   }
 
   public static SeqMemoryLocation of(
@@ -75,10 +93,16 @@ public record SeqMemoryLocation(
           .append("_");
     }
 
-    name.append(declaration.getName());
+    if (declaration != null) {
+      name.append(declaration.getName());
+    }
 
     if (fieldMember.isPresent()) {
       name.append("_").append(fieldMember.orElseThrow().getName());
+    }
+
+    if (functionCallExpression.isPresent()) {
+      name.append("_").append(functionCallExpression.orElseThrow().toASTString());
     }
 
     return name.toString();
@@ -90,8 +114,10 @@ public record SeqMemoryLocation(
   }
 
   public boolean isFieldOwnerPointerType() {
-    if (fieldMember.isPresent()) {
-      return declaration.getType() instanceof CPointerType;
+    if (declaration != null) {
+      if (fieldMember.isPresent()) {
+        return declaration.getType() instanceof CPointerType;
+      }
     }
     return false;
   }
@@ -104,6 +130,8 @@ public record SeqMemoryLocation(
   }
 
   public SeqMemoryLocation getFieldOwnerMemoryLocation() {
+    checkArgument(
+        declaration != null, "Cannot get field owner MemoryLocation because declaration is null.");
     checkArgument(
         fieldMember.isPresent(),
         "Cannot get field owner MemoryLocation because field member is empty.");
@@ -133,15 +161,26 @@ public record SeqMemoryLocation(
         // consider call context only for non-global memory locations
         && (isGlobal() || callContext.equals(pCallContext))
         && fieldMember.equals(pFieldMember)
-        && declaration.equals(pDeclaration)
+        && (declaration != null && declaration.equals(pDeclaration))
         && functionCallExpression.equals(pFunctionCallExpression);
   }
 
   @Override
   public String toString() {
-    if (fieldMember.isEmpty()) {
-      return declaration.toASTString();
+    StringBuilder stringBuilder = new StringBuilder("SeqMemoryLocation[");
+
+    stringBuilder.append("name='").append(getName()).append("'");
+
+    callContext.ifPresent(cfaEdge -> stringBuilder.append(", thread=").append(cfaEdge.threadId));
+
+    if (isGlobal()) {
+      stringBuilder.append(", [GLOBAL]");
+    } else if (functionCallExpression.isPresent()) {
+      stringBuilder.append(", [FUNCTION]");
+    } else {
+      stringBuilder.append(", [LOCAL]");
     }
-    return declaration.toASTString() + " -> " + fieldMember.orElseThrow().toASTString();
+
+    return stringBuilder.append("]").toString();
   }
 }

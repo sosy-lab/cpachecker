@@ -75,10 +75,9 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(2);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
-    // mutex1, mutex2, i (implicit global with pthread_create) and __global_lock (from racemacros.h)
-    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(4);
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(5);
     // we want to identify int * p = (int *) arg; as a pointer assignment, even on declaration
-    assertThat(pointerAliasingMap.pointerAssignments).hasSize(1);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(2);
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
         .isEmpty();
@@ -308,7 +307,7 @@ public class SequentializationFieldsTest {
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     // check that each member of queue struct is identified as relevant individually
     assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(9);
-    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(8);
     // 2 in main, 3 in t1, 1 in t2
     // (pthread_mutex_lock(&m) does not count as pointer parameter assignment)
     assertThat(
@@ -373,8 +372,9 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
-    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(16);
-    assertThat(pointerAliasingMap.pointerAssignments).hasSize(9);
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(20);
+    // 9 explicit, 5 parameter pointer assignments
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(14);
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
         .hasSize(5);
@@ -437,7 +437,8 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(3);
-    assertThat(pointerAliasingMap.pointerAssignments).hasSize(1);
+    // 1 explicit, 2 parameter pointer assignments
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(3);
     // unsigned int * stack = static unsigned int arr[SIZE]
     // counts as pointer parameter assignments
     assertThat(
