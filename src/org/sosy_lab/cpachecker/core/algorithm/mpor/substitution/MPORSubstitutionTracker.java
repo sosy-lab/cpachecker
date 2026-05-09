@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
@@ -16,7 +18,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -109,25 +110,13 @@ public class MPORSubstitutionTracker {
   }
 
   void addPointerAssignment(
-      Optional<CFAEdgeForThread> pCallContext,
-      CSimpleDeclaration pLeftHandSideDeclaration,
-      Optional<CCompositeTypeMemberDeclaration> pLeftHandSideFieldMemberDeclaration,
-      CSimpleDeclaration pRightHandSideDeclaration,
-      Optional<CCompositeTypeMemberDeclaration> pRightHandSideFieldMemberDeclaration,
-      Optional<CFunctionCallExpression> pRightHandSideFunctionCallExpression) {
+      SeqMemoryLocation pLeftHandSideMemoryLocation,
+      SeqMemoryLocation pRightHandSideMemoryLocation) {
 
-    pointerAssignments.put(
-        // the left-hand side is always converted to a CVariableDeclaration
-        SeqMemoryLocation.of(
-            pCallContext,
-            MPORUtil.convertToVariableDeclaration(pLeftHandSideDeclaration),
-            pLeftHandSideFieldMemberDeclaration),
-        // the right-hand side can be a CFunctionDeclaration from a CFunctionCallExpression
-        SeqMemoryLocation.of(
-            pCallContext,
-            pRightHandSideDeclaration,
-            pRightHandSideFieldMemberDeclaration,
-            pRightHandSideFunctionCallExpression));
+    checkArgument(
+        pLeftHandSideMemoryLocation.declaration() instanceof CVariableDeclaration,
+        "pLeftHandSideMemoryLocation.declaration() must be CVariableDeclaration.");
+    pointerAssignments.put(pLeftHandSideMemoryLocation, pRightHandSideMemoryLocation);
   }
 
   void addAccessedPointerDereference(

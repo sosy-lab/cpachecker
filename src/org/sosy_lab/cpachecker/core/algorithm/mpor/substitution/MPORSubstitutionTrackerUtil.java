@@ -12,25 +12,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.Map;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
@@ -39,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitutionTrackerUtil {
@@ -52,13 +42,7 @@ public class MPORSubstitutionTrackerUtil {
     }
     // pointer assignments
     for (var entry : pFrom.getPointerAssignments().entrySet()) {
-      pTo.addPointerAssignment(
-          entry.getKey().callContext(),
-          entry.getKey().declaration(),
-          entry.getKey().fieldMember(),
-          entry.getValue().declaration(),
-          entry.getValue().fieldMember(),
-          entry.getValue().functionCallExpression());
+      pTo.addPointerAssignment(entry.getKey(), entry.getValue());
     }
     // pointer dereferences
     for (SeqMemoryLocation accessedPointerDereference : pFrom.getAccessedPointerDereferences()) {
@@ -169,57 +153,11 @@ public class MPORSubstitutionTrackerUtil {
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
-    CSimpleDeclaration leftHandSideDeclaration =
-        Iterables.getOnlyElement(
-            SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pLeftHandSide, false));
-    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
-
-    if (SeqPointerAliasingUtil.isAnyTypeTargetClass(
-        leftHandSideDeclaration.getType(), CPointerType.class, stopNames)) {
-
-      InputRejection.checkFunctionPointerExpression(pRightHandSide);
-      // only check for CBinaryExpression in right-hand sides if the left-hand side is not a pointer
-      // dereference. e.g. using a pointer dereference in an increment is fine.
-      if (!SeqPointerAliasingUtil.isPointerDereference(pLeftHandSide)) {
-        InputRejection.checkBinaryExpressionInRightHandSide(pRightHandSide);
-      }
-
-      CPointerAssignmentVisitResult leftHandSideVisitResult =
-          pLeftHandSide.accept(new CPointerAssignmentVisitor());
-      if (leftHandSideVisitResult != null) {
-        // if LHS has a field member that is not CPointerType, then it is not a pointer assignment
-        if (leftHandSideVisitResult.fieldMember().isPresent()) {
-          CType fieldMemberType = leftHandSideVisitResult.fieldMember().orElseThrow().getType();
-          if (!SeqPointerAliasingUtil.isAnyTypeTargetClass(
-              fieldMemberType, CPointerType.class, stopNames)) {
-            return;
-          }
-        }
-        switch (pRightHandSide) {
-          case CExpression expression -> {
-            CPointerAssignmentVisitResult rightHandSideVisitResult =
-                expression.accept(new CPointerAssignmentVisitor());
-            // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
-            if (rightHandSideVisitResult != null) {
-              pTracker.addPointerAssignment(
-                  pCallContext,
-                  leftHandSideVisitResult.declaration(),
-                  leftHandSideVisitResult.fieldMember(),
-                  rightHandSideVisitResult.declaration(),
-                  rightHandSideVisitResult.fieldMember(),
-                  Optional.empty());
-            }
-          }
-          case CFunctionCallExpression functionCallExpression ->
-              pTracker.addPointerAssignment(
-                  pCallContext,
-                  leftHandSideVisitResult.declaration(),
-                  leftHandSideVisitResult.fieldMember(),
-                  functionCallExpression.getDeclaration(),
-                  Optional.empty(),
-                  Optional.of(functionCallExpression));
-        }
-      }
+    Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> pointerAssignment =
+        SeqPointerAliasingUtil.tryMapPointerAssignment(pLeftHandSide, pRightHandSide, pCallContext);
+    if (pointerAssignment.isPresent()) {
+      pTracker.addPointerAssignment(
+          pointerAssignment.orElseThrow().getKey(), pointerAssignment.orElseThrow().getValue());
     }
   }
 
@@ -237,59 +175,6 @@ public class MPORSubstitutionTrackerUtil {
         instanceof CInitializerExpression initializerExpression) {
       trackPointerAssignment(
           pIdExpression, initializerExpression.getExpression(), pCallContext, pTracker);
-    }
-  }
-
-  private record CPointerAssignmentVisitResult(
-      CSimpleDeclaration declaration, Optional<CCompositeTypeMemberDeclaration> fieldMember) {}
-
-  private static final class CPointerAssignmentVisitor
-      extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, NoException> {
-
-    @Override
-    public CPointerAssignmentVisitResult visit(
-        CArraySubscriptExpression pArraySubscriptExpression) {
-      return pArraySubscriptExpression.getArrayExpression().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference) {
-      CPointerAssignmentVisitResult fieldOwnerResult = pFieldReference.getFieldOwner().accept(this);
-      CCompositeTypeMemberDeclaration fieldMember =
-          SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
-              pFieldReference.getFieldOwner().getExpressionType(), pFieldReference.getFieldName());
-      return new CPointerAssignmentVisitResult(
-          fieldOwnerResult.declaration(), Optional.of(fieldMember));
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CPointerExpression pPointerExpression) {
-      return pPointerExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CComplexCastExpression pComplexCastExpression) {
-      return pComplexCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CCastExpression pCastExpression) {
-      return pCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CUnaryExpression pUnaryExpression) {
-      return pUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CIdExpression pIdExpression) {
-      return new CPointerAssignmentVisitResult(pIdExpression.getDeclaration(), Optional.empty());
-    }
-
-    @Override
-    protected @Nullable CPointerAssignmentVisitResult visitDefault(CExpression exp) {
-      return null;
     }
   }
 

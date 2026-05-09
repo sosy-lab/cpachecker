@@ -483,6 +483,8 @@ public record SeqPointerAliasingMapBuilder(
             + " pVariadicArgumentIndex.");
   }
 
+  // Memory Location Extraction
+
   private Optional<SeqMemoryLocation> extractMemoryLocation(
       CFAEdgeForThread pCallContext, CExpression pRightHandSide) {
 
