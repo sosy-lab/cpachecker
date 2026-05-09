@@ -113,20 +113,12 @@ public record SeqMemoryLocation(
         && variableDeclaration.isGlobal();
   }
 
-  public boolean isFieldOwnerPointerType() {
-    if (declaration != null) {
-      if (fieldMember.isPresent()) {
-        return declaration.getType() instanceof CPointerType;
-      }
-    }
-    return false;
+  public boolean isDeclarationPointerType() {
+    return declaration != null && declaration.getType() instanceof CPointerType;
   }
 
   public boolean isFieldMemberPointerType() {
-    if (fieldMember.isPresent()) {
-      return fieldMember.orElseThrow().getType() instanceof CPointerType;
-    }
-    return false;
+    return fieldMember.isPresent() && fieldMember.orElseThrow().getType() instanceof CPointerType;
   }
 
   public SeqMemoryLocation getFieldOwnerMemoryLocation() {

@@ -79,7 +79,7 @@ public class SeqPointerAliasingMap {
     final boolean isLeftHandSide =
         pPointerAssignments.stream()
             .anyMatch(a -> a.leftHandSideMemoryLocation().equals(pMemoryLocation));
-    if (pMemoryLocation.isFieldOwnerPointerType()) {
+    if (pMemoryLocation.isDeclarationPointerType() && pMemoryLocation.fieldMember().isPresent()) {
       return isLeftHandSide
           || isLeftHandSideInPointerAssignment(
               pMemoryLocation.getFieldOwnerMemoryLocation(), pPointerAssignments);
@@ -125,7 +125,7 @@ public class SeqPointerAliasingMap {
         rRightHandSides.add(pointerAssignment.rightHandSideMemoryLocation());
       }
     }
-    if (pMemoryLocation.isFieldOwnerPointerType()) {
+    if (pMemoryLocation.isDeclarationPointerType() && pMemoryLocation.fieldMember().isPresent()) {
       rRightHandSides.addAll(
           getPointerAssignmentRightHandSides(
               pMemoryLocation.getFieldOwnerMemoryLocation(), pPointerAssignments));

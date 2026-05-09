@@ -214,8 +214,8 @@ public class SeqMemoryLocationFinder {
       SeqMemoryLocation pCurrentMemoryLocation) {
 
     checkArgument(
-        !pCurrentMemoryLocation.isFieldOwnerPointerType(),
-        "pCurrentMemoryLocation field owner cannot be CPointerType.");
+        !pCurrentMemoryLocation.isDeclarationPointerType(),
+        "pCurrentMemoryLocation declaration cannot be CPointerType.");
 
     CType currentType = pCurrentMemoryLocation.declaration().getType();
     ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
