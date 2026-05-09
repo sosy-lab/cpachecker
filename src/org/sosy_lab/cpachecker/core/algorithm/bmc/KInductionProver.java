@@ -310,12 +310,17 @@ class KInductionProver implements AutoCloseable {
   }
 
   public final boolean checkNonTerminationClosure(
-      CandidateInvariant pCandidateInvariant, int pK, Set<Object> pCheckedKeys)
+      CandidateInvariant pCandidateInvariant,
+      int pK,
+      Set<Object> pCheckedKeys,
+      Optional<NonTerminationLoopScope> pLoopScope)
       throws CPAException, InterruptedException, SolverException {
 
     stats.inductionPreparation.start();
 
     logger.log(Level.INFO, "Running algorithm to create non-termination closure check");
+    Set<CFANode> relevantLoopHeads =
+        pLoopScope.map(NonTerminationLoopScope::loopHeads).orElse(loopHeads);
 
     reachedSet.setDesiredK(pK + 2);
     reachedSet.ensureK();
@@ -333,7 +338,7 @@ class KInductionProver implements AutoCloseable {
     }
 
     FluentIterable<AbstractState> predecessorStates =
-        filterNonTerminationPredecessorStates(reached, pK, pCheckedKeys);
+        filterNonTerminationPredecessorStates(reached, pK, pCheckedKeys, pLoopScope);
     ImmutableSet<AbstractState> inductionHypothesis =
         ImmutableSet.copyOf(predecessorCandidate.orElseThrow().filterApplicable(predecessorStates));
     if (inductionHypothesis.isEmpty()) {
@@ -348,8 +353,9 @@ class KInductionProver implements AutoCloseable {
     BooleanFormula predecessorAssertion =
         predecessorCandidate.orElseThrow().getAssertion(predecessorStates, fmgr, pfmgr);
     FluentIterable<AbstractState> loopHeadStates =
-        AbstractStates.filterLocations(reached, loopHeads);
-    BooleanFormula loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
+        AbstractStates.filterLocations(reached, relevantLoopHeads);
+    BooleanFormula loopHeadInv =
+        inductiveLoopHeadInvariantAssertion(loopHeadStates, relevantLoopHeads);
 
     Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
     BooleanFormula successorExistsAssertion =
@@ -743,13 +749,25 @@ class KInductionProver implements AutoCloseable {
 
   private BooleanFormula inductiveLoopHeadInvariantAssertion(
       Iterable<AbstractState> pLoopHeadStates) throws CPATransferException, InterruptedException {
-    Iterable<AbstractState> loopHeadStates = filterInductiveAssertionIteration(pLoopHeadStates);
+    return inductiveLoopHeadInvariantAssertion(pLoopHeadStates, loopHeads);
+  }
+
+  private BooleanFormula inductiveLoopHeadInvariantAssertion(
+      Iterable<AbstractState> pLoopHeadStates, Set<CFANode> pLoopHeads)
+      throws CPATransferException, InterruptedException {
+    Iterable<AbstractState> loopHeadStates =
+        filterInductiveAssertionIteration(pLoopHeadStates, pLoopHeads);
     return assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr);
   }
 
   private FluentIterable<AbstractState> filterInductiveAssertionIteration(
       Iterable<AbstractState> pStates) {
-    return filterIteration(pStates, 1, loopHeads);
+    return filterInductiveAssertionIteration(pStates, loopHeads);
+  }
+
+  private FluentIterable<AbstractState> filterInductiveAssertionIteration(
+      Iterable<AbstractState> pStates, Set<CFANode> pLoopHeads) {
+    return filterIteration(pStates, 1, pLoopHeads);
   }
 
   private AlgorithmStatus ensureK(
@@ -993,13 +1011,25 @@ class KInductionProver implements AutoCloseable {
   }
 
   private FluentIterable<AbstractState> filterNonTerminationPredecessorStates(
-      Iterable<AbstractState> pReached, int pK, Set<Object> pCheckedKeys) {
-    return BMCHelper.filterBmcChecked(filterIterationsUpTo(pReached, pK, loopHeads), pCheckedKeys)
-        .filter(state -> !isTerminalLoopHeadSuccessor(state, pK));
+      Iterable<AbstractState> pReached,
+      int pK,
+      Set<Object> pCheckedKeys,
+      Optional<NonTerminationLoopScope> pLoopScope) {
+    Set<CFANode> relevantLoopHeads =
+        pLoopScope.map(NonTerminationLoopScope::loopHeads).orElse(loopHeads);
+    Iterable<AbstractState> scopedReached =
+        pLoopScope
+            .<Iterable<AbstractState>>map(
+                loopScope -> AbstractStates.filterLocations(pReached, loopScope.loopNodes()))
+            .orElse(pReached);
+    return BMCHelper.filterBmcChecked(
+            filterIterationsUpTo(scopedReached, pK, relevantLoopHeads), pCheckedKeys)
+        .filter(state -> !isTerminalLoopHeadSuccessor(state, pK, relevantLoopHeads));
   }
 
-  private boolean isTerminalLoopHeadSuccessor(AbstractState pState, int pK) {
-    if (!BMCHelper.hasMatchingLocation(pState, loopHeads)) {
+  private boolean isTerminalLoopHeadSuccessor(
+      AbstractState pState, int pK, Set<CFANode> pLoopHeads) {
+    if (!BMCHelper.hasMatchingLocation(pState, pLoopHeads)) {
       return false;
     }
     LoopIterationReportingState loopState =

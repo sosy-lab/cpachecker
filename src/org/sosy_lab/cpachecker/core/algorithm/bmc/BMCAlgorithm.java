@@ -20,9 +20,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -38,7 +40,10 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -154,6 +159,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean terminationCandidatesIncomplete = false;
   private int loopsWithoutTerminationCandidates = 0;
+  private final Set<CandidateInvariant> directlyConfirmedNonTerminationCandidates = new HashSet<>();
+  private final Map<CandidateInvariant, NonTerminationLoopScope> nonTerminationLoopScopes =
+      new HashMap<>();
   private ImmutableSet<CandidateInvariant> lastModelEqualityStrengthenings = ImmutableSet.of();
   private static final int MAX_MODEL_EQUALITY_STRENGTHENINGS = 8;
   private static final int MAX_PATH_ASSIGNMENT_STRENGTHENINGS = 8;
@@ -286,6 +294,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private CandidateGenerator createLoopContinuationCandidateGenerator(boolean pNegated) {
     terminationCandidatesIncomplete = false;
     loopsWithoutTerminationCandidates = 0;
+    directlyConfirmedNonTerminationCandidates.clear();
+    nonTerminationLoopScopes.clear();
     if (!cfa.getLoopStructure().isPresent()) {
       terminationCandidatesIncomplete = true;
       logger.log(
@@ -356,6 +366,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> getLoopContinuationCandidates(
       Loop pLoop, boolean pNegated) {
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
+    boolean directlyNonTerminatingNoExitLoop =
+        !pNegated && isDirectlyNonTerminatingNoExitLoop(pLoop);
+    boolean directlyNonTerminatingStutteringLoop =
+        !pNegated && isDirectlyNonTerminatingStutteringLoop(pLoop);
     addLoopHeadCandidates(pLoop, candidates, pNegated);
     addInternalExitGuardCandidates(pLoop, candidates, pNegated);
     if (!pNegated) {
@@ -366,10 +380,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (loopCandidates.isEmpty()) {
       return loopCandidates;
     }
-    return ImmutableSet.of(
+    CandidateInvariant loopCandidate =
         pNegated
             ? new StatewiseCandidateInvariantDisjunction(loopCandidates)
-            : new StatewiseCandidateInvariantConjunction(loopCandidates));
+            : new StatewiseCandidateInvariantConjunction(loopCandidates);
+    if (!pNegated) {
+      nonTerminationLoopScopes.put(loopCandidate, NonTerminationLoopScope.of(pLoop));
+      if (directlyNonTerminatingNoExitLoop || directlyNonTerminatingStutteringLoop) {
+        directlyConfirmedNonTerminationCandidates.add(loopCandidate);
+      }
+    }
+    return ImmutableSet.of(loopCandidate);
   }
 
   private void addLoopHeadCandidates(
@@ -443,12 +464,124 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private void addNoExitLoopHeadCandidates(
       Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
-    if (!pLoop.getOutgoingEdges().isEmpty() || !isPureMainFunctionNoExitLoop(pLoop)) {
+    if (!isDirectlyNonTerminatingNoExitLoop(pLoop)) {
       return;
     }
     for (CFANode loopHead : pLoop.getLoopHeads()) {
       pCandidates.add(SingleLocationFormulaInvariant.makeBooleanInvariant(loopHead, true));
     }
+  }
+
+  private boolean isDirectlyNonTerminatingNoExitLoop(Loop pLoop) {
+    return pLoop.getOutgoingEdges().isEmpty() && isPureMainFunctionNoExitLoop(pLoop);
+  }
+
+  private boolean isDirectlyNonTerminatingStutteringLoop(Loop pLoop) {
+    if (!hasOnlyLoopHeadAssumeExits(pLoop) || !hasNoAbruptTerminationInMainFunctionLoop(pLoop)) {
+      return false;
+    }
+
+    Set<String> guardVariables = new HashSet<>();
+    boolean hasContinuationGuard = false;
+    for (CFANode loopHead : pLoop.getLoopHeads()) {
+      for (CFAEdge leavingEdge : loopHead.getLeavingEdges()) {
+        if (leavingEdge instanceof AssumeEdge assumeEdge
+            && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
+          hasContinuationGuard = true;
+          if (!(assumeEdge.getExpression() instanceof CExpression expression)
+              || !collectVariables(expression, guardVariables)) {
+            return false;
+          }
+        }
+      }
+    }
+    return hasContinuationGuard
+        && !guardVariables.isEmpty()
+        && loopOnlyNoOpModifiesVariables(pLoop, guardVariables);
+  }
+
+  private boolean hasOnlyLoopHeadAssumeExits(Loop pLoop) {
+    for (CFAEdge outgoingEdge : pLoop.getOutgoingEdges()) {
+      if (!(outgoingEdge instanceof AssumeEdge)
+          || !pLoop.getLoopHeads().contains(outgoingEdge.getPredecessor())) {
+        return false;
+      }
+    }
+    return !pLoop.getOutgoingEdges().isEmpty();
+  }
+
+  private boolean hasNoAbruptTerminationInMainFunctionLoop(Loop pLoop) {
+    String mainFunctionName = cfa.getMainFunction().getFunctionName();
+    for (CFANode loopNode : pLoop.getLoopNodes()) {
+      if (!mainFunctionName.equals(loopNode.getFunctionName())) {
+        return false;
+      }
+      for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
+        if (mayTerminateWithoutLoopExit(leavingEdge)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private boolean collectVariables(CExpression pExpression, Set<String> pVariables) {
+    if (pExpression instanceof CIdExpression idExpression) {
+      pVariables.add(idExpression.getName());
+      if (idExpression.getDeclaration() != null) {
+        pVariables.add(idExpression.getDeclaration().getQualifiedName());
+      }
+      return true;
+    }
+    if (pExpression instanceof CBinaryExpression binaryExpression) {
+      return collectVariables(binaryExpression.getOperand1(), pVariables)
+          && collectVariables(binaryExpression.getOperand2(), pVariables);
+    }
+    return pExpression instanceof CIntegerLiteralExpression
+        || pExpression instanceof CCharLiteralExpression;
+  }
+
+  private boolean loopOnlyNoOpModifiesVariables(Loop pLoop, Set<String> pVariables) {
+    for (CFANode loopNode : pLoop.getLoopNodes()) {
+      for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
+        if (leavingEdge instanceof CStatementEdge statementEdge) {
+          if (statementEdge.getStatement() instanceof CAssignment assignment) {
+            if (assignment.getLeftHandSide() instanceof CIdExpression idExpression
+                && !matchesAnyVariable(idExpression, pVariables)) {
+              continue;
+            }
+            if (!assignmentKeepsAnyVariable(assignment, pVariables)) {
+              return false;
+            }
+          }
+          continue;
+        }
+        if (leavingEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+            || leavingEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private boolean matchesAnyVariable(CIdExpression pIdExpression, Set<String> pVariables) {
+    return pVariables.contains(pIdExpression.getName())
+        || (pIdExpression.getDeclaration() != null
+            && pVariables.contains(pIdExpression.getDeclaration().getQualifiedName()));
+  }
+
+  private boolean assignmentKeepsAnyVariable(CAssignment pAssignment, Set<String> pVariables) {
+    if (!(pAssignment.getLeftHandSide() instanceof CIdExpression idExpression)) {
+      return false;
+    }
+    if (pVariables.contains(idExpression.getName())
+        && isNoOpAssignment(pAssignment, idExpression.getName())) {
+      return true;
+    }
+    return idExpression.getDeclaration() != null
+        && pVariables.contains(idExpression.getDeclaration().getQualifiedName())
+        && isNoOpAssignment(pAssignment, idExpression.getDeclaration().getQualifiedName());
   }
 
   private boolean isPureMainFunctionNoExitLoop(Loop pLoop) {
@@ -531,6 +664,18 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return lastModelEqualityStrengthenings;
   }
 
+  @Override
+  protected boolean isDirectlyConfirmedNonTerminationCandidate(
+      CandidateInvariant pCandidateInvariant) {
+    return directlyConfirmedNonTerminationCandidates.contains(pCandidateInvariant);
+  }
+
+  @Override
+  protected Optional<NonTerminationLoopScope> getNonTerminationLoopScope(
+      CandidateInvariant pCandidateInvariant) {
+    return Optional.ofNullable(nonTerminationLoopScopes.get(pCandidateInvariant));
+  }
+
   private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
       ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,
@@ -544,12 +689,13 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     int pathAssignmentStrengthenings = 0;
     int currentK =
         CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
+    Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
     List<ValueAssignment> modelAssignments =
         prioritizeModelAssignments(pCandidateInvariant, pModelAssignments);
 
     for (AbstractState stopState :
-        BMCHelper.filterIteration(pReachedSet, currentK, cfa.getAllLoopHeads().orElseThrow())) {
-      if (!isStopState(stopState)
+        getNonTerminationBaseCaseStates(pReachedSet, currentK, loopScope)) {
+      if ((loopScope.isEmpty() && !isStopState(stopState))
           || !isRelevantForReachability(stopState)
           || !candidateAppliesToState(pCandidateInvariant, stopState)) {
         continue;
@@ -632,7 +778,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CandidateInvariant assignmentCandidate =
           SingleLocationFormulaInvariant.makeLocationInvariant(
               edge.getSuccessor(), assignmentFormula, getFormulaManager());
-      pStrengthenedCandidates.add(
+      addStrengthenedCandidate(
+          pStrengthenedCandidates,
+          pCandidateInvariant,
           CandidateInvariantCombination.conjunction(
               ImmutableList.of(pCandidateInvariant, assignmentCandidate)));
       added++;
@@ -701,12 +849,19 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           FormulaManagerView.parseName(valueAssignment.getName());
       String actualName = parsedName.getFirst();
       OptionalInt index = parsedName.getSecond();
+      boolean modifiedInLoop = modifiedVariables.orElseThrow().contains(actualName);
+      boolean onlyNoOpModifiedInLoop =
+          modifiedInLoop && isOnlyNoOpModifiedInLoopsContaining(pLocation, actualName);
       if (index.isEmpty()
           || !pPathFormula.getSsa().containsVariable(actualName)
           || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
-          || modifiedVariables.orElseThrow().contains(actualName)
-          || !hasRepeatedStableModelValue(
-              actualName, valueAssignment.getValue(), index.orElseThrow(), pModelAssignments)) {
+          || (modifiedInLoop && !onlyNoOpModifiedInLoop)
+          || (!onlyNoOpModifiedInLoop
+              && !hasRepeatedStableModelValue(
+                  actualName,
+                  valueAssignment.getValue(),
+                  index.orElseThrow(),
+                  pModelAssignments))) {
         continue;
       }
 
@@ -715,7 +870,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CandidateInvariant equalityCandidate =
           SingleLocationFormulaInvariant.makeLocationInvariant(
               pLocation, equality, getFormulaManager());
-      pStrengthenedCandidates.add(
+      addStrengthenedCandidate(
+          pStrengthenedCandidates,
+          pCandidateInvariant,
           CandidateInvariantCombination.conjunction(
               ImmutableList.of(pCandidateInvariant, equalityCandidate)));
       added++;
@@ -723,6 +880,99 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return;
       }
     }
+  }
+
+  private void addStrengthenedCandidate(
+      ImmutableSet.Builder<CandidateInvariant> pStrengthenedCandidates,
+      CandidateInvariant pBaseCandidate,
+      CandidateInvariant pStrengthenedCandidate) {
+    pStrengthenedCandidates.add(pStrengthenedCandidate);
+    NonTerminationLoopScope loopScope = nonTerminationLoopScopes.get(pBaseCandidate);
+    if (loopScope != null) {
+      nonTerminationLoopScopes.put(pStrengthenedCandidate, loopScope);
+    }
+  }
+
+  private boolean isOnlyNoOpModifiedInLoopsContaining(CFANode pLocation, String pVariableName) {
+    if (cfa.getLoopStructure().isEmpty()) {
+      return false;
+    }
+
+    boolean foundAssignment = false;
+    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      if (!loop.getLoopNodes().contains(pLocation)) {
+        continue;
+      }
+      for (CFANode loopNode : loop.getLoopNodes()) {
+        for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
+          if (!(leavingEdge instanceof CStatementEdge statementEdge)
+              || !(statementEdge.getStatement() instanceof CAssignment assignment)
+              || !assignsVariable(assignment, pVariableName)) {
+            continue;
+          }
+          foundAssignment = true;
+          if (!isNoOpAssignment(assignment, pVariableName)) {
+            return false;
+          }
+        }
+      }
+    }
+    return foundAssignment;
+  }
+
+  private boolean assignsVariable(CAssignment pAssignment, String pVariableName) {
+    if (!(pAssignment.getLeftHandSide() instanceof CIdExpression idExpression)) {
+      return false;
+    }
+    return matchesVariable(idExpression, pVariableName);
+  }
+
+  private boolean isNoOpAssignment(CAssignment pAssignment, String pVariableName) {
+    if (!(pAssignment.getLeftHandSide() instanceof CIdExpression idExpression)) {
+      return false;
+    }
+    return isNoOpExpression(pAssignment.getRightHandSide(), idExpression, pVariableName);
+  }
+
+  private boolean isNoOpExpression(
+      CRightHandSide pExpression, CIdExpression pIdExpression, String pVariableName) {
+    if (pExpression instanceof CIdExpression rightIdExpression) {
+      return matchesSameVariable(rightIdExpression, pIdExpression, pVariableName);
+    }
+    if (pExpression instanceof CBinaryExpression binaryExpression) {
+      BinaryOperator operator = binaryExpression.getOperator();
+      CExpression operand1 = binaryExpression.getOperand1();
+      CExpression operand2 = binaryExpression.getOperand2();
+      if (operator == BinaryOperator.PLUS) {
+        return (matchesSameVariable(operand1, pIdExpression, pVariableName)
+                && isZeroLiteral(operand2))
+            || (isZeroLiteral(operand1)
+                && matchesSameVariable(operand2, pIdExpression, pVariableName));
+      }
+      if (operator == BinaryOperator.MINUS) {
+        return matchesSameVariable(operand1, pIdExpression, pVariableName)
+            && isZeroLiteral(operand2);
+      }
+    }
+    return false;
+  }
+
+  private boolean matchesSameVariable(
+      CExpression pExpression, CIdExpression pIdExpression, String pVariableName) {
+    return pExpression instanceof CIdExpression rightIdExpression
+        && matchesVariable(rightIdExpression, pIdExpression.getName())
+        && matchesVariable(rightIdExpression, pVariableName);
+  }
+
+  private boolean matchesVariable(CIdExpression pIdExpression, String pVariableName) {
+    return pIdExpression.getName().equals(pVariableName)
+        || (pIdExpression.getDeclaration() != null
+            && pIdExpression.getDeclaration().getQualifiedName().equals(pVariableName));
+  }
+
+  private boolean isZeroLiteral(CExpression pExpression) {
+    return pExpression instanceof CIntegerLiteralExpression integerLiteralExpression
+        && integerLiteralExpression.getValue().signum() == 0;
   }
 
   private Optional<Set<String>> getModifiedVariablesInLoopsContaining(CFANode pLocation) {
@@ -778,11 +1028,20 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return true;
     }
 
-    return modifiedVariables.orElseThrow().contains(idExpression.getName())
-        || (idExpression.getDeclaration() != null
-            && modifiedVariables
-                .orElseThrow()
-                .contains(idExpression.getDeclaration().getQualifiedName()));
+    boolean modifiedInContainingLoop =
+        modifiedVariables.orElseThrow().contains(idExpression.getName())
+            || (idExpression.getDeclaration() != null
+                && modifiedVariables
+                    .orElseThrow()
+                    .contains(idExpression.getDeclaration().getQualifiedName()));
+    if (!modifiedInContainingLoop) {
+      return false;
+    }
+
+    return !isOnlyNoOpModifiedInLoopsContaining(pEdge.getSuccessor(), idExpression.getName())
+        && (idExpression.getDeclaration() == null
+            || !isOnlyNoOpModifiedInLoopsContaining(
+                pEdge.getSuccessor(), idExpression.getDeclaration().getQualifiedName()));
   }
 
   private boolean addModifiedVariable(CLeftHandSide pLeftHandSide, Set<String> pModifiedVariables) {
@@ -830,10 +1089,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula result = bfmgr.makeFalse();
     int currentK =
         CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
+    Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
 
-    for (AbstractState state :
-        BMCHelper.filterIteration(pReachedSet, currentK, cfa.getAllLoopHeads().orElseThrow())) {
-      if (!isStopState(state)
+    for (AbstractState state : getNonTerminationBaseCaseStates(pReachedSet, currentK, loopScope)) {
+      if ((loopScope.isEmpty() && !isStopState(state))
           || !isRelevantForReachability(state)
           || !candidateAppliesToState(pCandidateInvariant, state)) {
         continue;
@@ -843,6 +1102,20 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       result = bfmgr.or(result, pathBaseCase.orElse(bfmgr.makeFalse()));
     }
     return result;
+  }
+
+  private Iterable<AbstractState> getNonTerminationBaseCaseStates(
+      Iterable<AbstractState> pReachedSet,
+      int pCurrentK,
+      Optional<NonTerminationLoopScope> pLoopScope) {
+    if (pLoopScope.isPresent()) {
+      NonTerminationLoopScope loopScope = pLoopScope.orElseThrow();
+      return BMCHelper.filterIterationsUpTo(
+          AbstractStates.filterLocations(pReachedSet, loopScope.loopNodes()),
+          pCurrentK,
+          loopScope.loopHeads());
+    }
+    return BMCHelper.filterIteration(pReachedSet, pCurrentK, cfa.getAllLoopHeads().orElseThrow());
   }
 
   private Optional<BooleanFormula> createNonTerminationPathBaseCaseFormula(

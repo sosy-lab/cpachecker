@@ -523,6 +523,11 @@ abstract class AbstractBMCAlgorithm
                         + " k.");
           }
           if (safe && isNonTerminationMode()) {
+            if (isDirectlyConfirmedNonTerminationCandidate(candidateInvariant)) {
+              nonTerminationConfirmed = true;
+              reportConfirmedNonTermination(reachedSet, candidateInvariant);
+              return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            }
             candidatesWithSuccessfulBaseCase.add(candidateInvariant);
             Iterables.addAll(
                 candidatesSuggestedAfterBaseCase,
@@ -664,7 +669,8 @@ abstract class AbstractBMCAlgorithm
       }
 
       if (isNonTerminationMode()) {
-        if (kInductionProver.checkNonTerminationClosure(candidate, k, checkedKeys)) {
+        if (kInductionProver.checkNonTerminationClosure(
+            candidate, k, checkedKeys, getNonTerminationLoopScope(candidate))) {
           nonTerminationConfirmed = true;
           reportConfirmedNonTermination(reachedSet, candidate);
           return false;
@@ -799,6 +805,18 @@ abstract class AbstractBMCAlgorithm
       ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
     checkNotNull(pReachedSet);
     checkNotNull(pCandidateInvariant);
+  }
+
+  protected boolean isDirectlyConfirmedNonTerminationCandidate(
+      CandidateInvariant pCandidateInvariant) {
+    checkNotNull(pCandidateInvariant);
+    return false;
+  }
+
+  protected Optional<NonTerminationLoopScope> getNonTerminationLoopScope(
+      CandidateInvariant pCandidateInvariant) {
+    checkNotNull(pCandidateInvariant);
+    return Optional.empty();
   }
 
   protected Iterable<CandidateInvariant> getAdditionalCandidatesAfterSuccessfulBaseCase(
@@ -1370,6 +1388,13 @@ abstract class AbstractBMCAlgorithm
       }
       if (!cfa.getLoopStructure().isPresent()) {
         return getLoopHeads().isEmpty();
+      }
+      if (isNonTerminationMode()) {
+        Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(candidate);
+        if (loopScope.isPresent()) {
+          Integer reachedIteration = reachedK.get(loopScope.orElseThrow().loop());
+          return reachedIteration != null && reachedIteration >= finalMaxK;
+        }
       }
       Set<CFANode> locations =
           AbstractStates.extractLocations(candidate.filterApplicable(pReached)).toSet();
