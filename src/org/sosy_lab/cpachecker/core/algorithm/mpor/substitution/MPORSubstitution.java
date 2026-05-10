@@ -237,7 +237,7 @@ public class MPORSubstitution {
                   fieldReference.getFieldName(),
                   fieldOwnerSubstitute,
                   fieldReference.isPointerDereference());
-          MPORSubstitutionTrackerUtil.trackFieldReference(
+          MPORSubstitutionTrackerUtil.trackPointerDereferenceByLeftHandSide(
               fieldReferenceSubstitute, pCallContext, pIsWrite, pTracker);
           return fieldReferenceSubstitute;
         }

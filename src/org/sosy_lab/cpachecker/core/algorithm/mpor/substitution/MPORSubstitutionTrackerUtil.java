@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -201,22 +202,31 @@ public class MPORSubstitutionTrackerUtil {
       CLeftHandSide pLeftHandSide,
       Optional<CFAEdgeForThread> pCallContext,
       boolean pIsWrite,
-      MPORSubstitutionTracker pTracker) {
+      MPORSubstitutionTracker pTracker)
+      throws UnsupportedCodeException {
 
-    CSimpleDeclaration declaration =
-        pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
-    // do not consider CFunctionDeclarations
-    if (SubstituteUtil.isSubstitutable(declaration)) {
-      if (pIsWrite) {
-        pTracker.addWrittenPointerDereference(pCallContext, declaration);
+    if (pLeftHandSide instanceof CFieldReference fieldReference) {
+      trackFieldReference(fieldReference, pCallContext, pIsWrite, pTracker);
+
+    } else if (pLeftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression
+        && arraySubscriptExpression.getArrayExpression()
+            instanceof CFieldReference fieldReference) {
+      trackFieldReference(fieldReference, pCallContext, pIsWrite, pTracker);
+
+    } else {
+      CSimpleDeclaration declaration =
+          pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
+      // do not consider CFunctionDeclarations
+      if (SubstituteUtil.isSubstitutable(declaration)) {
+        if (pIsWrite) {
+          pTracker.addWrittenPointerDereference(pCallContext, declaration);
+        }
+        pTracker.addAccessedPointerDereference(pCallContext, declaration);
       }
-      pTracker.addAccessedPointerDereference(pCallContext, declaration);
     }
   }
 
-  // Field References ==============================================================================
-
-  static void trackFieldReference(
+  private static void trackFieldReference(
       CFieldReference pFieldReference,
       Optional<CFAEdgeForThread> pCallContext,
       boolean pIsWrite,

@@ -127,7 +127,6 @@ public record SeqMemoryLocation(
     if (fieldMember.isPresent()) {
       return unwrapPointerAndArrayType(fieldMember.orElseThrow().getType());
     }
-    // ignore function call e.g. malloc always returns (void*)0
     if (declaration != null) {
       return unwrapPointerAndArrayType(declaration.getType());
     }

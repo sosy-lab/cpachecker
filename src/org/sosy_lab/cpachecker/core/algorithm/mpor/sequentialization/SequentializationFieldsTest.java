@@ -313,7 +313,7 @@ public class SequentializationFieldsTest {
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
         .hasSize(6);
-    assertThat(pointerAliasingMap.pointerDereferences).hasSize(20);
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(17);
     // both pthread_create calls take &queue as arguments
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(
