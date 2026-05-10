@@ -104,7 +104,7 @@ public class InputRejection {
     checkLanguageC(pInputCfa);
     checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
-    checkFunctionPointerInitializer(pInputCfa);
+    checkFunctionPointerInInitializer(pInputCfa);
     checkDuplicateStructMemberNames(pInputCfa);
     checkPthreadObjectArrays(pInputCfa);
     checkPthreadFunctionReturnValues(pInputCfa);
@@ -198,7 +198,7 @@ public class InputRejection {
     }
   }
 
-  private static void checkFunctionPointerInitializer(CFA pInputCfa)
+  private static void checkFunctionPointerInInitializer(CFA pInputCfa)
       throws UnsupportedCodeException {
 
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
@@ -206,14 +206,14 @@ public class InputRejection {
         if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.getInitializer()
               instanceof CInitializerExpression initializerExpression) {
-            checkFunctionPointerExpression(initializerExpression.getExpression());
+            checkFunctionPointerInRightHandSide(initializerExpression.getExpression());
           }
         }
       }
     }
   }
 
-  public static void checkFunctionPointerExpression(CRightHandSide pRightHandSide)
+  public static void checkFunctionPointerInRightHandSide(CRightHandSide pRightHandSide)
       throws UnsupportedCodeException {
 
     ImmutableSet<CType> allTypes =
@@ -243,7 +243,7 @@ public class InputRejection {
       return;
     }
     for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
-      checkFunctionPointerExpression(parameterExpression);
+      checkFunctionPointerInRightHandSide(parameterExpression);
     }
   }
 

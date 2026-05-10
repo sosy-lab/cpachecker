@@ -241,7 +241,7 @@ public class SeqMemoryLocationFinder {
    * int main() {
    *   int a;
    *   int *ptr = & a;
-   *   ti_cas(& ptr, & a, ((void *)0));
+   *   compare_and_swap(& ptr, & a, ((void *)0));
    * }
    * }</pre>
    */

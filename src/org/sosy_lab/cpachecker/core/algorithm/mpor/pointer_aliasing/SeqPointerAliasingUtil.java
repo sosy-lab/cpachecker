@@ -79,7 +79,7 @@ public class SeqPointerAliasingUtil {
     if (SeqPointerAliasingUtil.isAnyTypeTargetClass(
         leftHandSideDeclaration.getType(), CPointerType.class, stopNames)) {
 
-      InputRejection.checkFunctionPointerExpression(pRightHandSide);
+      InputRejection.checkFunctionPointerInRightHandSide(pRightHandSide);
       // only check for CBinaryExpression in right-hand sides if the left-hand side is not a pointer
       // dereference. e.g. using a pointer dereference in an increment is fine.
       if (!SeqPointerAliasingUtil.isPointerDereference(pLeftHandSide)) {
