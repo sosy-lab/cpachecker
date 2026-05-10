@@ -330,10 +330,23 @@ public class SeqMemoryLocationFinder {
       SeqMemoryLocation pPointerDereference, SeqMemoryLocation pTargetMemoryLocation) {
 
     if (pPointerDereference.declaration() != null) {
-      checkArgument(
-          pPointerDereference.declaration().getType() instanceof CPointerType
-              || pPointerDereference.declaration().getType() instanceof CArrayType,
-          "pPointerDereference declaration must be CPointerType or CArrayType.");
+      CType declarationType = pPointerDereference.declaration().getType();
+
+      if (pPointerDereference.fieldMember().isPresent()) {
+        CType fieldMemberType = pPointerDereference.fieldMember().orElseThrow().getType();
+        checkArgument(
+            declarationType instanceof CPointerType
+                || declarationType instanceof CArrayType
+                || fieldMemberType instanceof CPointerType
+                || fieldMemberType instanceof CArrayType,
+            "pPointerDereference declaration or fieldMember CType must be CPointerType or"
+                + " CArrayType.");
+
+      } else {
+        checkArgument(
+            declarationType instanceof CPointerType || declarationType instanceof CArrayType,
+            "pPointerDereference declaration CType must be CPointerType or CArrayType.");
+      }
     }
 
     // ignore function call right-hand side e.g. malloc always returns (void*)0 which may not match
