@@ -553,8 +553,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             if (!assignmentKeepsAnyVariable(assignment, pVariables)) {
               return false;
             }
+            continue;
           }
-          continue;
+          return false;
         }
         if (leavingEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
             || leavingEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
@@ -597,8 +598,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         continue;
       }
       for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
-        if (!pLoop.getLoopNodes().contains(leavingEdge.getSuccessor())
-            && !isVerifierAssertionCall(leavingEdge)) {
+        if (!pLoop.getLoopNodes().contains(leavingEdge.getSuccessor())) {
           return false;
         }
         if (mayTerminateWithoutLoopExit(leavingEdge)) {
@@ -611,7 +611,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean mayTerminateWithoutLoopExit(CFAEdge pEdge) {
     if (pEdge instanceof FunctionCallEdge) {
-      return !isVerifierAssertionCall(pEdge);
+      return true;
     }
     if (pEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
       return true;
