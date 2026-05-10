@@ -200,6 +200,7 @@ public class SeqMemoryLocationFinder {
         SeqMemoryLocation targetMemoryLocation =
             getTargetMemoryLocation(
                 pPointerDereference, pointerDereferenceRightHandSides, currentMemoryLocation);
+
         // if field member is a pointer then it must be dereferenced too, otherwise add to found
         if (targetMemoryLocation.isFieldMemberPointerType()
             // it is possible that the target memory location equals the current memory location,
@@ -249,8 +250,6 @@ public class SeqMemoryLocationFinder {
       final ImmutableSet<SeqMemoryLocation> pPointerDereferenceRightHandSides,
       SeqMemoryLocation pCurrentMemoryLocation) {
 
-    SeqMemoryLocation targetMemoryLocation = pCurrentMemoryLocation;
-
     if (pCurrentMemoryLocation.declaration() != null) {
       CType currentType = pCurrentMemoryLocation.declaration().getType();
       ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
@@ -258,8 +257,10 @@ public class SeqMemoryLocationFinder {
       // only add a field reference memory location if there is at least one CCompositeType
       if (SeqPointerAliasingUtil.isAnyTypeTargetClass(
           currentType, CCompositeType.class, stopNames)) {
+
         if (pPointerDereference.declaration() instanceof CVariableDeclaration variableDeclaration) {
           CInitializer initializer = variableDeclaration.getInitializer();
+
           if (initializer instanceof CInitializerExpression initializerExpression) {
             CExpressionCollector<CFieldReference> fieldReferenceCollector =
                 new CExpressionCollector<>(CFieldReference.class);
@@ -267,41 +268,50 @@ public class SeqMemoryLocationFinder {
             if (!fieldReferenceCollector.getCollected().isEmpty()) {
               CFieldReference fieldReference =
                   Iterables.getOnlyElement(fieldReferenceCollector.getCollected());
-              targetMemoryLocation =
+              SeqMemoryLocation targetMemoryLocation =
                   getTargetMemoryLocationWithFieldMember(
                       fieldReference.getFieldOwner().getExpressionType(),
                       fieldReference.getFieldName(),
                       pCurrentMemoryLocation);
+              checkTypeEquivalence(pPointerDereference, targetMemoryLocation);
+              return targetMemoryLocation;
             }
-          } else if (pPointerDereference.fieldMember().isPresent()) {
+          }
+
+          if (pPointerDereference.fieldMember().isPresent()) {
             String fieldMemberName =
                 pCurrentMemoryLocation.fieldMember().isPresent()
                     ? pCurrentMemoryLocation.fieldMember().orElseThrow().getName()
                     : pPointerDereference.fieldMember().orElseThrow().getName();
-            targetMemoryLocation =
+            SeqMemoryLocation targetMemoryLocation =
                 getTargetMemoryLocationWithFieldMember(
                     currentType, fieldMemberName, pCurrentMemoryLocation);
-          } else {
-            for (SeqMemoryLocation rightHandSide : pPointerDereferenceRightHandSides) {
-              if (rightHandSide.fieldMember().isPresent()) {
-                CType rhsType = rightHandSide.declaration().getType();
-                if (rhsType.equals(currentType)
-                    || (rhsType instanceof CPointerType pointerType
-                        && pointerType.getType().equals(currentType))) {
-                  targetMemoryLocation =
-                      getTargetMemoryLocationWithFieldMember(
-                          currentType,
-                          rightHandSide.fieldMember().orElseThrow().getName(),
-                          pCurrentMemoryLocation);
-                }
+            checkTypeEquivalence(pPointerDereference, targetMemoryLocation);
+            return targetMemoryLocation;
+          }
+
+          for (SeqMemoryLocation rightHandSide : pPointerDereferenceRightHandSides) {
+            if (rightHandSide.fieldMember().isPresent()) {
+              CType rhsType = Objects.requireNonNull(rightHandSide.declaration()).getType();
+              if (rhsType.equals(currentType)
+                  || (rhsType instanceof CPointerType pointerType
+                      && pointerType.getType().equals(currentType))) {
+                SeqMemoryLocation targetMemoryLocation =
+                    getTargetMemoryLocationWithFieldMember(
+                        currentType,
+                        rightHandSide.fieldMember().orElseThrow().getName(),
+                        pCurrentMemoryLocation);
+                checkTypeEquivalence(pPointerDereference, targetMemoryLocation);
+                return targetMemoryLocation;
               }
             }
           }
         }
       }
     }
-    checkTypeEquivalence(pPointerDereference, targetMemoryLocation);
-    return targetMemoryLocation;
+
+    checkTypeEquivalence(pPointerDereference, pCurrentMemoryLocation);
+    return pCurrentMemoryLocation;
   }
 
   private static SeqMemoryLocation getTargetMemoryLocationWithFieldMember(
@@ -333,9 +343,8 @@ public class SeqMemoryLocationFinder {
         checkArgument(
             typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
             String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
-      }
 
-      if (pTargetMemoryLocation.declaration() != null
+      } else if (pTargetMemoryLocation.declaration() != null
           // ignore function call e.g. malloc always returns (void*)0 which may not match
           && pTargetMemoryLocation.functionCallExpression().isEmpty()) {
         CType typeB = getUnwrappedType(pTargetMemoryLocation.declaration().getType());
@@ -352,9 +361,8 @@ public class SeqMemoryLocationFinder {
         checkArgument(
             typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
             String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
-      }
 
-      if (pTargetMemoryLocation.declaration() != null
+      } else if (pTargetMemoryLocation.declaration() != null
           // ignore function call e.g. malloc always returns (void*)0 which may not match
           && pTargetMemoryLocation.functionCallExpression().isEmpty()) {
         CType typeB = getUnwrappedType(pTargetMemoryLocation.declaration().getType());
