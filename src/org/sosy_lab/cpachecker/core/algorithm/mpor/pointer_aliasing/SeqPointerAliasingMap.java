@@ -116,27 +116,35 @@ public class SeqPointerAliasingMap {
   }
 
   static ImmutableSet<SeqMemoryLocation> getPointerAssignmentRightHandSides(
-      SeqMemoryLocation pMemoryLocation, ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
+      SeqMemoryLocation pLeftHandSideMemoryLocation,
+      ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rRightHandSides = ImmutableSet.builder();
     for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {
-      if (pointerAssignment.leftHandSideMemoryLocation().equals(pMemoryLocation)) {
+      if (pointerAssignment.leftHandSideMemoryLocation().equals(pLeftHandSideMemoryLocation)) {
         rRightHandSides.add(pointerAssignment.rightHandSideMemoryLocation());
       }
     }
-    if (pMemoryLocation.isDeclarationPointerType() && pMemoryLocation.fieldMember().isPresent()) {
-      SeqMemoryLocation fieldOwnerMemoryLocation = pMemoryLocation.getFieldOwnerMemoryLocation();
+    if (pLeftHandSideMemoryLocation.isDeclarationPointerType()
+        && pLeftHandSideMemoryLocation.fieldMember().isPresent()) {
+      SeqMemoryLocation fieldOwnerMemoryLocation =
+          pLeftHandSideMemoryLocation.getFieldOwnerMemoryLocation();
       for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {
         if (pointerAssignment.leftHandSideMemoryLocation().equals(fieldOwnerMemoryLocation)) {
           SeqMemoryLocation rightHandSideMemoryLocation =
               pointerAssignment.rightHandSideMemoryLocation();
-          SeqMemoryLocation rightHandSideMemoryLocationWithFieldMember =
-              new SeqMemoryLocation(
-                  rightHandSideMemoryLocation.callContext(),
-                  rightHandSideMemoryLocation.declaration(),
-                  pMemoryLocation.fieldMember(),
-                  rightHandSideMemoryLocation.functionCallExpression());
-          rRightHandSides.add(rightHandSideMemoryLocationWithFieldMember);
+          if (rightHandSideMemoryLocation.functionCallExpression().isEmpty()) {
+            // use the left-hand side field member for the right hand side memory location.
+            // otherwise it is possible that a type mismatch occurs
+            SeqMemoryLocation rightHandSideMemoryLocationWithFieldMember =
+                SeqMemoryLocation.of(
+                    rightHandSideMemoryLocation.callContext(),
+                    Objects.requireNonNull(rightHandSideMemoryLocation.declaration()),
+                    pLeftHandSideMemoryLocation.fieldMember());
+            rRightHandSides.add(rightHandSideMemoryLocationWithFieldMember);
+          } else {
+            rRightHandSides.add(rightHandSideMemoryLocation);
+          }
         }
       }
     }
