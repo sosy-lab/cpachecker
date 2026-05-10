@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -25,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -298,6 +300,7 @@ public class SeqMemoryLocationFinder {
         }
       }
     }
+    checkTypeEquivalence(pPointerDereference, targetMemoryLocation);
     return targetMemoryLocation;
   }
 
@@ -311,5 +314,64 @@ public class SeqMemoryLocationFinder {
         pCurrentMemoryLocation.callContext(),
         Objects.requireNonNull(pCurrentMemoryLocation.declaration()),
         Optional.of(fieldMemberDeclaration));
+  }
+
+  private static void checkTypeEquivalence(
+      SeqMemoryLocation pPointerDereference, SeqMemoryLocation pTargetMemoryLocation) {
+
+    if (pPointerDereference.declaration() != null) {
+      checkArgument(
+          pPointerDereference.declaration().getType() instanceof CPointerType,
+          "pPointerDereference declaration must be CPointerType");
+    }
+
+    if (pPointerDereference.fieldMember().isPresent()) {
+      CType typeA = getUnwrappedType(pPointerDereference.fieldMember().orElseThrow().getType());
+
+      if (pTargetMemoryLocation.fieldMember().isPresent()) {
+        CType typeB = getUnwrappedType(pTargetMemoryLocation.fieldMember().orElseThrow().getType());
+        checkArgument(
+            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
+            String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
+      }
+
+      if (pTargetMemoryLocation.declaration() != null
+          // ignore function call e.g. malloc always returns (void*)0 which may not match
+          && pTargetMemoryLocation.functionCallExpression().isEmpty()) {
+        CType typeB = getUnwrappedType(pTargetMemoryLocation.declaration().getType());
+        checkArgument(
+            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
+            String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
+      }
+
+    } else if (pPointerDereference.declaration() != null) {
+      CType typeA = getUnwrappedType(pPointerDereference.declaration().getType());
+
+      if (pTargetMemoryLocation.fieldMember().isPresent()) {
+        CType typeB = getUnwrappedType(pTargetMemoryLocation.fieldMember().orElseThrow().getType());
+        checkArgument(
+            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
+            String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
+      }
+
+      if (pTargetMemoryLocation.declaration() != null
+          // ignore function call e.g. malloc always returns (void*)0 which may not match
+          && pTargetMemoryLocation.functionCallExpression().isEmpty()) {
+        CType typeB = getUnwrappedType(pTargetMemoryLocation.declaration().getType());
+        checkArgument(
+            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
+            String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
+      }
+    }
+  }
+
+  private static CType getUnwrappedType(CType pType) {
+    if (pType instanceof CPointerType pointerType) {
+      return getUnwrappedType(pointerType.getType());
+    }
+    if (pType instanceof CArrayType arrayType) {
+      return getUnwrappedType(arrayType.getType());
+    }
+    return pType;
   }
 }
