@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
@@ -68,7 +69,8 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslIdPredicate pAcslIdPredicate) throws NoException {
-    return null;
+    AcslPredicateDeclaration declaration = pAcslIdPredicate.getDeclaration();
+    return bfmgr.makeVariable(declaration.getName());
   }
 
   @Override
