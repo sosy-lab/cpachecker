@@ -489,10 +489,7 @@ abstract class AbstractBMCAlgorithm
         }
         shutdownNotifier.shutdownIfNecessary();
 
-        if (invariantGenerator.isProgramSafe()) {
-          if (isNonTerminationMode()) {
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          }
+        if (!isNonTerminationMode() && invariantGenerator.isProgramSafe()) {
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
@@ -546,10 +543,7 @@ abstract class AbstractBMCAlgorithm
             }
           }
 
-          if (invariantGenerator.isProgramSafe()) {
-            if (isNonTerminationMode()) {
-              return AlgorithmStatus.UNSOUND_AND_PRECISE;
-            }
+          if (!isNonTerminationMode() && invariantGenerator.isProgramSafe()) {
             TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
@@ -580,10 +574,7 @@ abstract class AbstractBMCAlgorithm
                     : true;
           }
 
-          if (invariantGenerator.isProgramSafe()) {
-            if (isNonTerminationMode()) {
-              return AlgorithmStatus.UNSOUND_AND_PRECISE;
-            }
+          if (!isNonTerminationMode() && invariantGenerator.isProgramSafe()) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
 
@@ -669,8 +660,12 @@ abstract class AbstractBMCAlgorithm
       }
 
       if (isNonTerminationMode()) {
-        if (kInductionProver.checkNonTerminationClosure(
-            candidate, k, checkedKeys, getNonTerminationLoopScope(candidate))) {
+        reportNonTerminationClosureCheckStarted(candidate);
+        boolean closureSuccessful =
+            kInductionProver.checkNonTerminationClosure(
+                candidate, k, checkedKeys, getNonTerminationLoopScope(candidate));
+        reportNonTerminationClosureCheckFinished(candidate, closureSuccessful);
+        if (closureSuccessful) {
           nonTerminationConfirmed = true;
           reportConfirmedNonTermination(reachedSet, candidate);
           return false;
@@ -804,6 +799,15 @@ abstract class AbstractBMCAlgorithm
   protected void reportConfirmedNonTermination(
       ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
     checkNotNull(pReachedSet);
+    checkNotNull(pCandidateInvariant);
+  }
+
+  protected void reportNonTerminationClosureCheckStarted(CandidateInvariant pCandidateInvariant) {
+    checkNotNull(pCandidateInvariant);
+  }
+
+  protected void reportNonTerminationClosureCheckFinished(
+      CandidateInvariant pCandidateInvariant, boolean pSuccessful) {
     checkNotNull(pCandidateInvariant);
   }
 
