@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
-import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -16,11 +15,15 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -154,9 +157,10 @@ public class SeqMemoryLocationFinder {
   // Extraction by Pointer Dereference =============================================================
 
   /**
-   * Finds the set of {@link SeqMemoryLocation}s that have {@link CVariableDeclaration}s that are
-   * associated by the given pointer dereference, i.e. the set of global variables whose addresses
-   * are at some point in the program assigned to the pointer.
+   * Finds the set of {@link SeqMemoryLocation}s that are associated by the given pointer
+   * dereference, i.e. the set of {@link SeqMemoryLocation} that are at some point {@link
+   * CRightHandSide} in an assignment where the pointer that is dereferenced is a {@link
+   * CLeftHandSide}.
    */
   static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
       final SeqMemoryLocation pPointerDereference,
@@ -208,58 +212,93 @@ public class SeqMemoryLocationFinder {
     return ImmutableSet.copyOf(found);
   }
 
+  /**
+   * Returns the target memory location that is found when dereferencing {@code
+   * pPointerDereference}. The target memory location is either:
+   *
+   * <ul>
+   *   <li>{@code pCurrentMemoryLocation}
+   *   <li>{@code pCurrentMemoryLocation} with an added {@link CCompositeTypeMemberDeclaration} in
+   *       case the dereference does not target {@code pCurrentMemoryLocation} but one of its field
+   *       members.
+   * </ul>
+   *
+   * Note that the returned {@link SeqMemoryLocation} can also be of type {@link CPointerType}, e.g.
+   * in the following example. In this case the dereference of {@code ptr} in the {@code main()}
+   * function would backtrack the assignments and result in the set of target memory locations
+   * {@code { a, new }} and not {@code { a, (void *)0 }} since {@code (void *)0} is not a {@link
+   * SeqMemoryLocation} because it has no {@link CSimpleDeclaration} in it.
+   *
+   * <pre>{@code
+   * void compare_and_swap(int **p, int* cmp, int* new) {
+   *     if (*p == cmp) {
+   *         *p = new;
+   *     }
+   * }
+   * int main() {
+   *   int a;
+   *   int *ptr = & a;
+   *   ti_cas(& ptr, & a, ((void *)0));
+   * }
+   * }</pre>
+   */
   private static SeqMemoryLocation getTargetMemoryLocation(
       final SeqMemoryLocation pPointerDereference,
       final ImmutableSet<SeqMemoryLocation> pPointerDereferenceRightHandSides,
       SeqMemoryLocation pCurrentMemoryLocation) {
 
-    checkArgument(
-        !pCurrentMemoryLocation.isDeclarationPointerType(),
-        "pCurrentMemoryLocation declaration cannot be CPointerType.");
+    SeqMemoryLocation targetMemoryLocation = pCurrentMemoryLocation;
 
-    CType currentType = pCurrentMemoryLocation.declaration().getType();
-    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+    if (pCurrentMemoryLocation.declaration() != null) {
+      CType currentType = pCurrentMemoryLocation.declaration().getType();
+      ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
 
-    if (SeqPointerAliasingUtil.isAnyTypeTargetClass(currentType, CCompositeType.class, stopNames)) {
-      if (pPointerDereference.declaration() instanceof CVariableDeclaration variableDeclaration) {
-        CInitializer initializer = variableDeclaration.getInitializer();
-        if (initializer instanceof CInitializerExpression initializerExpression) {
-          CExpressionCollector<CFieldReference> fieldReferenceCollector =
-              new CExpressionCollector<>(CFieldReference.class);
-          initializerExpression.getExpression().accept(fieldReferenceCollector);
-          if (!fieldReferenceCollector.getCollected().isEmpty()) {
-            CFieldReference fieldReference =
-                Iterables.getOnlyElement(fieldReferenceCollector.getCollected());
-            return getTargetMemoryLocationWithFieldMember(
-                fieldReference.getFieldOwner().getExpressionType(),
-                fieldReference.getFieldName(),
-                pCurrentMemoryLocation);
-          }
-        }
-        if (pPointerDereference.fieldMember().isPresent()) {
-          String fieldMemberName =
-              pCurrentMemoryLocation.fieldMember().isPresent()
-                  ? pCurrentMemoryLocation.fieldMember().orElseThrow().getName()
-                  : pPointerDereference.fieldMember().orElseThrow().getName();
-          return getTargetMemoryLocationWithFieldMember(
-              currentType, fieldMemberName, pCurrentMemoryLocation);
-        }
-        for (SeqMemoryLocation rightHandSide : pPointerDereferenceRightHandSides) {
-          if (rightHandSide.fieldMember().isPresent()) {
-            CType rhsType = rightHandSide.declaration().getType();
-            if (rhsType.equals(currentType)
-                || (rhsType instanceof CPointerType pointerType
-                    && pointerType.getType().equals(currentType))) {
-              return getTargetMemoryLocationWithFieldMember(
-                  currentType,
-                  rightHandSide.fieldMember().orElseThrow().getName(),
-                  pCurrentMemoryLocation);
+      // only add a field reference memory location if there is at least one CCompositeType
+      if (SeqPointerAliasingUtil.isAnyTypeTargetClass(
+          currentType, CCompositeType.class, stopNames)) {
+        if (pPointerDereference.declaration() instanceof CVariableDeclaration variableDeclaration) {
+          CInitializer initializer = variableDeclaration.getInitializer();
+          if (initializer instanceof CInitializerExpression initializerExpression) {
+            CExpressionCollector<CFieldReference> fieldReferenceCollector =
+                new CExpressionCollector<>(CFieldReference.class);
+            initializerExpression.getExpression().accept(fieldReferenceCollector);
+            if (!fieldReferenceCollector.getCollected().isEmpty()) {
+              CFieldReference fieldReference =
+                  Iterables.getOnlyElement(fieldReferenceCollector.getCollected());
+              targetMemoryLocation =
+                  getTargetMemoryLocationWithFieldMember(
+                      fieldReference.getFieldOwner().getExpressionType(),
+                      fieldReference.getFieldName(),
+                      pCurrentMemoryLocation);
+            }
+          } else if (pPointerDereference.fieldMember().isPresent()) {
+            String fieldMemberName =
+                pCurrentMemoryLocation.fieldMember().isPresent()
+                    ? pCurrentMemoryLocation.fieldMember().orElseThrow().getName()
+                    : pPointerDereference.fieldMember().orElseThrow().getName();
+            targetMemoryLocation =
+                getTargetMemoryLocationWithFieldMember(
+                    currentType, fieldMemberName, pCurrentMemoryLocation);
+          } else {
+            for (SeqMemoryLocation rightHandSide : pPointerDereferenceRightHandSides) {
+              if (rightHandSide.fieldMember().isPresent()) {
+                CType rhsType = rightHandSide.declaration().getType();
+                if (rhsType.equals(currentType)
+                    || (rhsType instanceof CPointerType pointerType
+                        && pointerType.getType().equals(currentType))) {
+                  targetMemoryLocation =
+                      getTargetMemoryLocationWithFieldMember(
+                          currentType,
+                          rightHandSide.fieldMember().orElseThrow().getName(),
+                          pCurrentMemoryLocation);
+                }
+              }
             }
           }
         }
       }
     }
-    return pCurrentMemoryLocation;
+    return targetMemoryLocation;
   }
 
   private static SeqMemoryLocation getTargetMemoryLocationWithFieldMember(
@@ -270,7 +309,7 @@ public class SeqMemoryLocationFinder {
             pFieldOwnerType, pFieldName);
     return SeqMemoryLocation.of(
         pCurrentMemoryLocation.callContext(),
-        pCurrentMemoryLocation.declaration(),
+        Objects.requireNonNull(pCurrentMemoryLocation.declaration()),
         Optional.of(fieldMemberDeclaration));
   }
 }

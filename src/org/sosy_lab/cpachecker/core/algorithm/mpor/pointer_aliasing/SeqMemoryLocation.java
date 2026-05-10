@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 /**
  * Represents an overapproximating memory location that can be used to create partial order
- * reduction statements in the output program.
+ * reduction statements in the sequentialization.
  *
  * @param callContext The call context for this memory location. Separate call contexts result in
  *     separate memory locations.
