@@ -14,13 +14,19 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSetType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
@@ -30,19 +36,25 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 @SuppressWarnings("unused")
 public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoException> {
 
   private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
   private SSAMapBuilder ssa; // ToDo where do we get this from??
+  private CtoFormulaConverter ctoFormulaConverter; // ToDo where do we get this from??
 
   public AcslTermToFormulaVisitor(FormulaManagerView pFmgr) {
     checkNotNull(pFmgr);
     this.fmgr = pFmgr;
+    this.bfmgr = fmgr.getBooleanFormulaManager();
   }
 
   @Override
@@ -52,7 +64,9 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslStringLiteralTerm pAcslStringLiteralTerm) throws NoException {
-    // return ctoFormulaConverter.makeString but this is not a public method?
+    // return ctoFormulaConverter.makeAnd(PathFormula.createManually(bfmgr.makeTrue(),
+    // SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0), TODO create edge here,
+    // ErrorConditions.dummyInstance(fmgr.getBooleanFormulaManager()));
     return null;
   }
 
@@ -86,9 +100,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     AcslSimpleDeclaration variable = pAcslIdTerm.getDeclaration();
     String varName = variable.getQualifiedName();
     int useIndex = getIndex(varName, variable.getType());
-    // return fmgr.makeVariable(pAcslIdTerm.getExpressionType(), varName, useIndex); Is there a
-    // mapping of ACSL types to SMT types that I can use here?
-    return null;
+
+    return fmgr.makeVariable(getFormulaType(pAcslIdTerm.getExpressionType()), varName, useIndex);
   }
 
   @Override
@@ -113,17 +126,14 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
     Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
 
-    if (fmgr.getBooleanFormulaManager().isTrue(conditionFormula)) {
+    if (bfmgr.isTrue(conditionFormula)) {
       return ifTrueFormula;
     }
-    if (fmgr.getBooleanFormulaManager().isFalse(conditionFormula)) {
+    if (bfmgr.isFalse(conditionFormula)) {
       return ifFalseFormula;
     }
 
-    // TODO this seems wrong but how do I make if then else?
-    return fmgr.makeOr(
-        fmgr.makeAnd(conditionFormula, ifTrueFormula),
-        fmgr.makeAnd(fmgr.getBooleanFormulaManager().not(conditionFormula), ifFalseFormula));
+    return bfmgr.ifThenElse(conditionFormula, ifTrueFormula, ifFalseFormula);
   }
 
   @Override
@@ -155,5 +165,19 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       ssa.setIndex(name, type, idx);
     }
     return idx;
+  }
+
+  private FormulaType<?> getFormulaType(AcslType acslType) {
+    // TODO implement mapping
+    return switch (acslType) {
+      case AcslCType cType -> ctoFormulaConverter.getFormulaTypeFromType(cType.getType());
+      case AcslFunctionType funcType ->
+          throw new UnsupportedOperationException("Not yet implemented");
+      case AcslLogicType logType -> throw new UnsupportedOperationException("Not yet implemented");
+      case AcslPointerType poinType ->
+          throw new UnsupportedOperationException("Not yet implemented");
+      case AcslPredicateType predType -> FormulaType.BooleanType;
+      case AcslSetType setType -> throw new UnsupportedOperationException("Not yet implemented");
+    };
   }
 }
