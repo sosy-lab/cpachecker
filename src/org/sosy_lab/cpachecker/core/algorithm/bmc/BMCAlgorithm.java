@@ -395,8 +395,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
     boolean directlyNonTerminatingNoExitLoop =
         !pNegated && isDirectlyNonTerminatingNoExitLoop(pLoop);
-    boolean directlyNonTerminatingStutteringLoop =
-        !pNegated && isDirectlyNonTerminatingStutteringLoop(pLoop);
     addLoopHeadCandidates(pLoop, candidates, pNegated);
     addInternalExitGuardCandidates(pLoop, candidates, pNegated);
     if (!pNegated) {
@@ -414,7 +412,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (!pNegated) {
       nonTerminationCandidatesGenerated++;
       nonTerminationLoopScopes.put(loopCandidate, NonTerminationLoopScope.of(pLoop));
-      if (directlyNonTerminatingNoExitLoop || directlyNonTerminatingStutteringLoop) {
+      if (directlyNonTerminatingNoExitLoop) {
         directlyConfirmedNonTerminationCandidates.add(loopCandidate);
         logger.logf(
             Level.FINE,
