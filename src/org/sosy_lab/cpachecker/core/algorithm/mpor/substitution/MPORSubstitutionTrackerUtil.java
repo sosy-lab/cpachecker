@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -48,46 +49,51 @@ public class MPORSubstitutionTrackerUtil {
     // pointer dereferences
     for (SeqMemoryLocation accessedPointerDereference : pFrom.getAccessedPointerDereferences()) {
       pTo.addAccessedPointerDereference(
-          accessedPointerDereference.callContext(), accessedPointerDereference.declaration());
+          accessedPointerDereference.callContext(),
+          Objects.requireNonNull(accessedPointerDereference.declaration()));
     }
     for (SeqMemoryLocation writtenPointerDereference : pFrom.getWrittenPointerDereferences()) {
       pTo.addWrittenPointerDereference(
-          writtenPointerDereference.callContext(), writtenPointerDereference.declaration());
+          writtenPointerDereference.callContext(),
+          Objects.requireNonNull(writtenPointerDereference.declaration()));
     }
     // pointer dereferences from field members
     for (SeqMemoryLocation fieldReferencePointerDereference :
         pFrom.getAccessedFieldReferencePointerDereferences()) {
       pTo.addAccessedFieldReferencePointerDereference(
           fieldReferencePointerDereference.callContext(),
-          fieldReferencePointerDereference.declaration(),
+          Objects.requireNonNull(fieldReferencePointerDereference.declaration()),
           fieldReferencePointerDereference.fieldMember().orElseThrow());
     }
     for (SeqMemoryLocation fieldReferencePointerDereference :
         pFrom.getWrittenFieldReferencePointerDereferences()) {
       pTo.addWrittenFieldReferencePointerDereference(
           fieldReferencePointerDereference.callContext(),
-          fieldReferencePointerDereference.declaration(),
+          Objects.requireNonNull(fieldReferencePointerDereference.declaration()),
           fieldReferencePointerDereference.fieldMember().orElseThrow());
     }
     // declarations accessed
     for (SeqMemoryLocation accessedDeclaration : pFrom.getAccessedDeclarations()) {
       pTo.addAccessedDeclaration(
-          accessedDeclaration.callContext(), accessedDeclaration.declaration());
+          accessedDeclaration.callContext(),
+          Objects.requireNonNull(accessedDeclaration.declaration()));
     }
     for (SeqMemoryLocation writtenDeclaration : pFrom.getWrittenDeclarations()) {
-      pTo.addWrittenDeclaration(writtenDeclaration.callContext(), writtenDeclaration.declaration());
+      pTo.addWrittenDeclaration(
+          writtenDeclaration.callContext(),
+          Objects.requireNonNull(writtenDeclaration.declaration()));
     }
     // field members accessed
     for (SeqMemoryLocation fieldMember : pFrom.getAccessedFieldMembers()) {
       pTo.addAccessedFieldMember(
           fieldMember.callContext(),
-          fieldMember.declaration(),
+          Objects.requireNonNull(fieldMember.declaration()),
           fieldMember.fieldMember().orElseThrow());
     }
     for (SeqMemoryLocation fieldMember : pFrom.getWrittenFieldMembers()) {
       pTo.addWrittenFieldMember(
           fieldMember.callContext(),
-          fieldMember.declaration(),
+          Objects.requireNonNull(fieldMember.declaration()),
           fieldMember.fieldMember().orElseThrow());
     }
   }

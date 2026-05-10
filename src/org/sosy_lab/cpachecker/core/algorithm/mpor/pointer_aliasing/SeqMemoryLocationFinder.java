@@ -331,8 +331,9 @@ public class SeqMemoryLocationFinder {
 
     if (pPointerDereference.declaration() != null) {
       checkArgument(
-          pPointerDereference.declaration().getType() instanceof CPointerType,
-          "pPointerDereference declaration must be CPointerType");
+          pPointerDereference.declaration().getType() instanceof CPointerType
+              || pPointerDereference.declaration().getType() instanceof CArrayType,
+          "pPointerDereference declaration must be CPointerType or CArrayType.");
     }
 
     if (pPointerDereference.fieldMember().isPresent()) {
@@ -342,7 +343,9 @@ public class SeqMemoryLocationFinder {
         CType typeB = getUnwrappedType(pTargetMemoryLocation.fieldMember().orElseThrow().getType());
         checkArgument(
             typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-            String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
+            "CTypes are not equivalent or assignable: %s, %s",
+            typeA,
+            typeB);
 
       } else if (pTargetMemoryLocation.declaration() != null
           // ignore function call e.g. malloc always returns (void*)0 which may not match
@@ -350,7 +353,9 @@ public class SeqMemoryLocationFinder {
         CType typeB = getUnwrappedType(pTargetMemoryLocation.declaration().getType());
         checkArgument(
             typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-            String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
+            "CTypes are not equivalent or assignable: %s, %s",
+            typeA,
+            typeB);
       }
 
     } else if (pPointerDereference.declaration() != null) {
@@ -360,7 +365,9 @@ public class SeqMemoryLocationFinder {
         CType typeB = getUnwrappedType(pTargetMemoryLocation.fieldMember().orElseThrow().getType());
         checkArgument(
             typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-            String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
+            "CTypes are not equivalent or assignable: %s, %s",
+            typeA,
+            typeB);
 
       } else if (pTargetMemoryLocation.declaration() != null
           // ignore function call e.g. malloc always returns (void*)0 which may not match
@@ -368,7 +375,9 @@ public class SeqMemoryLocationFinder {
         CType typeB = getUnwrappedType(pTargetMemoryLocation.declaration().getType());
         checkArgument(
             typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-            String.format("CTypes are not equivalent: %s, %s", typeA, typeB));
+            "CTypes are not equivalent or assignable: %s, %s",
+            typeA,
+            typeB);
       }
     }
   }
