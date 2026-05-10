@@ -461,7 +461,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private void addNoExitLoopHeadCandidates(
       Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
-    if (!isDirectlyNonTerminatingNoExitLoop(pLoop)) {
+    if (!isNoExitLoopCandidate(pLoop)) {
       return;
     }
     for (CFANode loopHead : pLoop.getLoopHeads()) {
@@ -471,6 +471,36 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean isDirectlyNonTerminatingNoExitLoop(Loop pLoop) {
     return pLoop.getOutgoingEdges().isEmpty() && isPureMainFunctionNoExitLoop(pLoop);
+  }
+
+  private boolean isNoExitLoopCandidate(Loop pLoop) {
+    return pLoop.getOutgoingEdges().isEmpty()
+        && hasNoCandidateBlockingTerminationInMainFunctionLoop(pLoop);
+  }
+
+  private boolean hasNoCandidateBlockingTerminationInMainFunctionLoop(Loop pLoop) {
+    String mainFunctionName = cfa.getMainFunction().getFunctionName();
+    for (CFANode loopHead : pLoop.getLoopHeads()) {
+      if (!mainFunctionName.equals(loopHead.getFunctionName())) {
+        return false;
+      }
+    }
+
+    for (CFANode loopNode : pLoop.getLoopNodes()) {
+      if (!mainFunctionName.equals(loopNode.getFunctionName())) {
+        continue;
+      }
+      for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
+        if (!pLoop.getLoopNodes().contains(leavingEdge.getSuccessor())
+            && !isVerifierAssertionCall(leavingEdge)) {
+          return false;
+        }
+        if (mayTerminateWithoutLoopExitCandidate(leavingEdge)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   private boolean isDirectlyNonTerminatingStutteringLoop(Loop pLoop) {
@@ -613,6 +643,22 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean mayTerminateWithoutLoopExit(CFAEdge pEdge) {
     if (pEdge instanceof FunctionCallEdge) {
       return true;
+    }
+    if (pEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
+      return true;
+    }
+
+    String rawStatement = pEdge.getRawStatement().toLowerCase(Locale.ROOT);
+    return rawStatement.contains("abort(")
+        || rawStatement.contains("exit(")
+        || rawStatement.contains("__assert_fail")
+        || rawStatement.contains("__verifier_error")
+        || rawStatement.contains("reach_error");
+  }
+
+  private boolean mayTerminateWithoutLoopExitCandidate(CFAEdge pEdge) {
+    if (pEdge instanceof FunctionCallEdge) {
+      return !isVerifierAssertionCall(pEdge);
     }
     if (pEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
       return true;
