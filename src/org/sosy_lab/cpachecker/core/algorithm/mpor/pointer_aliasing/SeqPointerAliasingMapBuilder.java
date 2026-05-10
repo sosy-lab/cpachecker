@@ -192,41 +192,40 @@ public record SeqPointerAliasingMapBuilder(
     return false;
   }
 
+  /**
+   * Checks whether {@code pMemoryLocation} is implicitly global through (transitive) pointer
+   * assignments and pointer dereferences. Example:
+   *
+   * <pre>{@code
+   * int global = 0;
+   * int main() {
+   *   int * local_ptr;
+   *   local_ptr = & global;
+   *   // dereference is now implicitly global through a pointer assignment
+   *   *local_ptr = 1;
+   * }
+   * }</pre>
+   *
+   * Note that pointer assignments that are performed on function return are excluded. This is
+   * because the memory location on the right-hand side is not implicitly global even if the pointer
+   * on the left-hand side is global because it is assigned only after the function returns.
+   */
   private static boolean isImplicitGlobalByPointerAssignmentsAndDereferences(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSet<SeqPointerAssignment> pPointerAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
-    // inexpensive shortcut: first check for direct assignments
-    if (isImplicitGlobalByDirectPointerAssignments(pPointerAssignments)) {
-      return true;
+    // check for explicit pointer assignments
+    for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {
+      if (!pointerAssignment.type().isPerformedOnFunctionReturn()) {
+        if (isExplicitGlobalOrStartRoutineArg(
+            pointerAssignment.leftHandSideMemoryLocation(), pPointerAssignments)) {
+          return true;
+        }
+      }
     }
-    // then check if a global pointer deref is associated with the memory location
-    if (isImplicitGlobalByPointerDereference(
-        pMemoryLocation, pPointerAssignments, pPointerDereferences)) {
-      return true;
-    }
-    // lastly perform most expensive check on transitive pointer assignments
-    if (isImplicitGlobalByTransitivePointerAssignments(pPointerAssignments)) {
-      return true;
-    }
-    return false;
-  }
 
-  private static boolean isExplicitGlobalOrStartRoutineArg(
-      SeqMemoryLocation pMemoryLocation, ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
-
-    return pMemoryLocation.isGlobal()
-        || pPointerAssignments.stream()
-            .filter(a -> a.type().equals(SeqPointerAssignmentType.START_ROUTINE_ARG))
-            .anyMatch(a -> a.leftHandSideMemoryLocation().equals(pMemoryLocation));
-  }
-
-  private static boolean isImplicitGlobalByPointerDereference(
-      SeqMemoryLocation pMemoryLocation,
-      ImmutableSet<SeqPointerAssignment> pPointerAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
-
+    // check if a global pointer dereference is associated with the memory location
     for (SeqMemoryLocation pointerDereference : pPointerDereferences) {
       if (pointerDereference.equals(pMemoryLocation)) {
         ImmutableSet<SeqMemoryLocation> memoryLocations =
@@ -239,45 +238,35 @@ public record SeqPointerAliasingMapBuilder(
         }
       }
     }
-    return false;
-  }
 
-  private static boolean isImplicitGlobalByDirectPointerAssignments(
-      ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
-
+    // check on transitive pointer assignments
     for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {
-      if (isExplicitGlobalOrStartRoutineArg(
-          pointerAssignment.leftHandSideMemoryLocation(), pPointerAssignments)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static boolean isImplicitGlobalByTransitivePointerAssignments(
-      ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
-
-    for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {
-      ImmutableSet<SeqMemoryLocation> transitivePointerDeclarations =
-          findPointerDeclarationsByPointerAssignments(
-              pointerAssignment.leftHandSideMemoryLocation(), pPointerAssignments);
-      for (SeqMemoryLocation transitivePointerDeclaration : transitivePointerDeclarations) {
-        if (isExplicitGlobalOrStartRoutineArg(transitivePointerDeclaration, pPointerAssignments)) {
-          return true;
+      if (!pointerAssignment.type().isPerformedOnFunctionReturn()) {
+        Set<SeqMemoryLocation> transitivePointerMemoryLocations = new HashSet<>();
+        recursivelyFindPointerDeclarationsByPointerAssignments(
+            pointerAssignment.leftHandSideMemoryLocation(),
+            pPointerAssignments,
+            transitivePointerMemoryLocations,
+            new HashSet<>());
+        for (SeqMemoryLocation transitivePointerDeclaration : transitivePointerMemoryLocations) {
+          if (isExplicitGlobalOrStartRoutineArg(
+              transitivePointerDeclaration, pPointerAssignments)) {
+            return true;
+          }
         }
       }
     }
+
     return false;
   }
 
-  private static ImmutableSet<SeqMemoryLocation> findPointerDeclarationsByPointerAssignments(
-      SeqMemoryLocation pPointerDeclaration,
-      ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
+  private static boolean isExplicitGlobalOrStartRoutineArg(
+      SeqMemoryLocation pMemoryLocation, ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
 
-    Set<SeqMemoryLocation> rFound = new HashSet<>();
-    recursivelyFindPointerDeclarationsByPointerAssignments(
-        pPointerDeclaration, pPointerAssignments, rFound, new HashSet<>());
-    return ImmutableSet.copyOf(rFound);
+    return pMemoryLocation.isGlobal()
+        || pPointerAssignments.stream()
+            .filter(a -> a.type().equals(SeqPointerAssignmentType.START_ROUTINE_ARG))
+            .anyMatch(a -> a.leftHandSideMemoryLocation().equals(pMemoryLocation));
   }
 
   private static void recursivelyFindPointerDeclarationsByPointerAssignments(
@@ -289,13 +278,15 @@ public record SeqPointerAliasingMapBuilder(
     if (SeqPointerAliasingMap.isLeftHandSideInPointerAssignment(
         pCurrentMemoryLocation, pPointerAssignments)) {
       for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {
-        if (pVisited.add(pointerAssignment.leftHandSideMemoryLocation())) {
-          pFound.add(pointerAssignment.leftHandSideMemoryLocation());
-          recursivelyFindPointerDeclarationsByPointerAssignments(
-              pointerAssignment.rightHandSideMemoryLocation(),
-              pPointerAssignments,
-              pFound,
-              pVisited);
+        if (!pointerAssignment.type().isPerformedOnFunctionReturn()) {
+          if (pVisited.add(pointerAssignment.leftHandSideMemoryLocation())) {
+            pFound.add(pointerAssignment.leftHandSideMemoryLocation());
+            recursivelyFindPointerDeclarationsByPointerAssignments(
+                pointerAssignment.rightHandSideMemoryLocation(),
+                pPointerAssignments,
+                pFound,
+                pVisited);
+          }
         }
       }
     }

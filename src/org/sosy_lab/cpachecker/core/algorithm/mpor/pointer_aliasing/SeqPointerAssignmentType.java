@@ -20,7 +20,7 @@ public enum SeqPointerAssignmentType {
    * }
    * }</pre>
    */
-  EXPLICIT,
+  EXPLICIT(false),
 
   /**
    * A pointer assignment through a parameter such as:
@@ -35,7 +35,7 @@ public enum SeqPointerAssignmentType {
    * }
    * }</pre>
    */
-  PARAMETER,
+  PARAMETER(false),
 
   /**
    * A pointer assignment through the return value of a function such as:
@@ -50,7 +50,7 @@ public enum SeqPointerAssignmentType {
    * }
    * }</pre>
    */
-  RETURN_VALUE,
+  RETURN_VALUE(true),
 
   /**
    * A pointer assignment through a call to {@code pthread_create} of a thread such as:
@@ -66,7 +66,7 @@ public enum SeqPointerAssignmentType {
    * }
    * }</pre>
    */
-  START_ROUTINE_ARG,
+  START_ROUTINE_ARG(false),
 
   /**
    * A pointer assignment through a call to {@code pthread_exit} in the {@code start_routine} of a
@@ -85,5 +85,19 @@ public enum SeqPointerAssignmentType {
    * }
    * }</pre>
    */
-  START_ROUTINE_EXIT
+  START_ROUTINE_EXIT(true);
+
+  private final boolean isPerformedOnFunctionReturn;
+
+  SeqPointerAssignmentType(boolean pIsPerformedOnFunctionReturn) {
+    isPerformedOnFunctionReturn = pIsPerformedOnFunctionReturn;
+  }
+
+  /**
+   * Whether the pointer assignment is performed on function return, i.e., not inside the scope of
+   * the right-hand side of the assignment.
+   */
+  public boolean isPerformedOnFunctionReturn() {
+    return isPerformedOnFunctionReturn;
+  }
 }
