@@ -18,8 +18,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 /**
@@ -119,6 +121,28 @@ public record SeqMemoryLocation(
 
   public boolean isFieldMemberPointerType() {
     return fieldMember.isPresent() && fieldMember.orElseThrow().getType() instanceof CPointerType;
+  }
+
+  public CType getUnwrappedType() {
+    if (fieldMember.isPresent()) {
+      return unwrapPointerAndArrayType(fieldMember.orElseThrow().getType());
+    }
+    // ignore function call e.g. malloc always returns (void*)0
+    if (declaration != null) {
+      return unwrapPointerAndArrayType(declaration.getType());
+    }
+    throw new IllegalStateException(
+        "Could not extract CType, both fieldMember and declaration are not present.");
+  }
+
+  private static CType unwrapPointerAndArrayType(CType pType) {
+    if (pType instanceof CPointerType pointerType) {
+      return unwrapPointerAndArrayType(pointerType.getType());
+    }
+    if (pType instanceof CArrayType arrayType) {
+      return unwrapPointerAndArrayType(arrayType.getType());
+    }
+    return pType;
   }
 
   public SeqMemoryLocation getFieldOwnerMemoryLocation() {

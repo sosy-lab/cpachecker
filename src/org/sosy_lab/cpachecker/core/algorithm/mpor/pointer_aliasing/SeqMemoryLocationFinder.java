@@ -336,59 +336,15 @@ public class SeqMemoryLocationFinder {
           "pPointerDereference declaration must be CPointerType or CArrayType.");
     }
 
-    if (pPointerDereference.fieldMember().isPresent()) {
-      CType typeA = getUnwrappedType(pPointerDereference.fieldMember().orElseThrow().getType());
-
-      if (pTargetMemoryLocation.fieldMember().isPresent()) {
-        CType typeB = getUnwrappedType(pTargetMemoryLocation.fieldMember().orElseThrow().getType());
-        checkArgument(
-            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-            "CTypes are not equivalent or assignable: %s, %s",
-            typeA,
-            typeB);
-
-      } else if (pTargetMemoryLocation.declaration() != null
-          // ignore function call e.g. malloc always returns (void*)0 which may not match
-          && pTargetMemoryLocation.functionCallExpression().isEmpty()) {
-        CType typeB = getUnwrappedType(pTargetMemoryLocation.declaration().getType());
-        checkArgument(
-            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-            "CTypes are not equivalent or assignable: %s, %s",
-            typeA,
-            typeB);
-      }
-
-    } else if (pPointerDereference.declaration() != null) {
-      CType typeA = getUnwrappedType(pPointerDereference.declaration().getType());
-
-      if (pTargetMemoryLocation.fieldMember().isPresent()) {
-        CType typeB = getUnwrappedType(pTargetMemoryLocation.fieldMember().orElseThrow().getType());
-        checkArgument(
-            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-            "CTypes are not equivalent or assignable: %s, %s",
-            typeA,
-            typeB);
-
-      } else if (pTargetMemoryLocation.declaration() != null
-          // ignore function call e.g. malloc always returns (void*)0 which may not match
-          && pTargetMemoryLocation.functionCallExpression().isEmpty()) {
-        CType typeB = getUnwrappedType(pTargetMemoryLocation.declaration().getType());
-        checkArgument(
-            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-            "CTypes are not equivalent or assignable: %s, %s",
-            typeA,
-            typeB);
-      }
+    // ignore function call right-hand side e.g. malloc always returns (void*)0 which may not match
+    if (pTargetMemoryLocation.functionCallExpression().isEmpty()) {
+      CType typeA = pPointerDereference.getUnwrappedType();
+      CType typeB = pTargetMemoryLocation.getUnwrappedType();
+      checkArgument(
+          typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
+          "CTypes are not equivalent or assignable: %s, %s",
+          typeA,
+          typeB);
     }
-  }
-
-  private static CType getUnwrappedType(CType pType) {
-    if (pType instanceof CPointerType pointerType) {
-      return getUnwrappedType(pointerType.getType());
-    }
-    if (pType instanceof CArrayType arrayType) {
-      return getUnwrappedType(arrayType.getType());
-    }
-    return pType;
   }
 }

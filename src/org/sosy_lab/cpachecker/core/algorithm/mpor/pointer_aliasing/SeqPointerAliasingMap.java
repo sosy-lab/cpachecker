@@ -119,18 +119,27 @@ public class SeqPointerAliasingMap {
       SeqMemoryLocation pMemoryLocation, ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rRightHandSides = ImmutableSet.builder();
-
     for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {
       if (pointerAssignment.leftHandSideMemoryLocation().equals(pMemoryLocation)) {
         rRightHandSides.add(pointerAssignment.rightHandSideMemoryLocation());
       }
     }
     if (pMemoryLocation.isDeclarationPointerType() && pMemoryLocation.fieldMember().isPresent()) {
-      rRightHandSides.addAll(
-          getPointerAssignmentRightHandSides(
-              pMemoryLocation.getFieldOwnerMemoryLocation(), pPointerAssignments));
+      SeqMemoryLocation fieldOwnerMemoryLocation = pMemoryLocation.getFieldOwnerMemoryLocation();
+      for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {
+        if (pointerAssignment.leftHandSideMemoryLocation().equals(fieldOwnerMemoryLocation)) {
+          SeqMemoryLocation rightHandSideMemoryLocation =
+              pointerAssignment.rightHandSideMemoryLocation();
+          SeqMemoryLocation rightHandSideMemoryLocationWithFieldMember =
+              new SeqMemoryLocation(
+                  rightHandSideMemoryLocation.callContext(),
+                  rightHandSideMemoryLocation.declaration(),
+                  pMemoryLocation.fieldMember(),
+                  rightHandSideMemoryLocation.functionCallExpression());
+          rRightHandSides.add(rightHandSideMemoryLocationWithFieldMember);
+        }
+      }
     }
-
     return rRightHandSides.build();
   }
 
