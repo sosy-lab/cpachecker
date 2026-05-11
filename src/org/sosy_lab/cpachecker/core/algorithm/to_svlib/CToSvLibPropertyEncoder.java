@@ -38,21 +38,18 @@ class CToSvLibPropertyEncoder {
   void encodeProperty(ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
     Set<Property> properties = specification.getProperties();
     for (Property property : properties) {
-      if (property.equals(Property.CommonVerificationProperty.REACHABILITY_LABEL)) {
-        encodeReachabilityLabel(pCommandsCollector);
+      switch (property) {
+        case CommonVerificationProperty.REACHABILITY_LABEL ->
+            encodeReachabilityLabel(pCommandsCollector);
+        case CommonVerificationProperty.REACHABILITY ->
+            encodeReachabilityOfProcedure("__VERIFIER_error", pCommandsCollector);
+        case CommonVerificationProperty.REACHABILITY_ERROR ->
+            encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
+        default -> throw new UnsupportedOperationException(
+            "Encoding for property "
+                + property
+                + " is not supported in the transformation to SV-LIB.");
       }
-
-      // TODO SV-Comp reachability has 2 properties: REACHABILITY (__VERIFIER_error) &
-      //  REACHABILITY_ERROR (reach_error)
-      //  => need to split encoding accordingly
-      if (property.equals(Property.CommonVerificationProperty.REACHABILITY)) {
-        encodeReachability(pCommandsCollector);
-      }
-      if (property.equals(CommonVerificationProperty.REACHABILITY_ERROR)) {
-        encodeReachabilityError(pCommandsCollector);
-      }
-
-      // TODO throw for other specs
     }
   }
 
@@ -88,17 +85,17 @@ class CToSvLibPropertyEncoder {
     }
   }
 
-  private void encodeReachability(ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
-    // Encode reachability of call to __VERIFIER_error
+  private void encodeReachabilityOfProcedure(
+      String pProcedureName, ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
     for (SvLibCommand command : pCommandsCollector.build()) {
       if (command instanceof SvLibProcedureDefinitionCommand procedureDefinitionCommand) {
         SvLibProcedureDeclaration procedureDeclaration =
             procedureDefinitionCommand.getProcedureDeclaration();
-        if (procedureDeclaration.getProcedureName().startsWith("__VERIFIER_error")) {
-          SvLibAnnotateTagCommand annnotateTagCommand_reach_error =
+        if (procedureDeclaration.getProcedureName().startsWith(pProcedureName)) {
+          SvLibAnnotateTagCommand annotateTagCommandProcedureCall =
               createFalseAnnotateTagCommand(
                   procedureDefinitionCommand.getBody().getTagReferences().getFirst());
-          pCommandsCollector.add(annnotateTagCommand_reach_error);
+          pCommandsCollector.add(annotateTagCommandProcedureCall);
           return;
         }
 
@@ -115,49 +112,10 @@ class CToSvLibPropertyEncoder {
           SvLibProcedureDeclaration procedureDeclaration = procedureDefinition.procedureDeclaration;
           SvLibStatement procedureBody = procedureDefinition.body;
 
-          if (procedureDeclaration.getProcedureName().startsWith("__VERIFIER_error")) {
-            SvLibAnnotateTagCommand annnotateTagCommand_reach_error =
+          if (procedureDeclaration.getProcedureName().startsWith(pProcedureName)) {
+            SvLibAnnotateTagCommand annotateTagCommandProcedureCall =
                 createFalseAnnotateTagCommand(procedureBody.getTagReferences().getFirst());
-            pCommandsCollector.add(annnotateTagCommand_reach_error);
-            return;
-          }
-        }
-      }
-    }
-  }
-
-  private void encodeReachabilityError(ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
-    // Encode reachability of call to reach_error
-    for (SvLibCommand command : pCommandsCollector.build()) {
-      if (command instanceof SvLibProcedureDefinitionCommand procedureDefinitionCommand) {
-        SvLibProcedureDeclaration procedureDeclaration =
-            procedureDefinitionCommand.getProcedureDeclaration();
-        if (procedureDeclaration.getProcedureName().startsWith("reach_error")) {
-
-          SvLibAnnotateTagCommand annotateTagCommand_reach_error =
-              createFalseAnnotateTagCommand(
-                  procedureDefinitionCommand.getBody().getTagReferences().getFirst());
-          pCommandsCollector.add(annotateTagCommand_reach_error);
-          return;
-        }
-
-      } else if (command
-          instanceof SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand) {
-        List<ProcedureDefinition> procedureDefinitions =
-            Streams.zip(
-                    proceduresRecDefinitionCommand.getProcedureDeclarations().stream(),
-                    proceduresRecDefinitionCommand.getBodies().stream(),
-                    ProcedureDefinition::new)
-                .toList();
-
-        for (ProcedureDefinition procedureDefinition : procedureDefinitions) {
-          SvLibProcedureDeclaration procedureDeclaration = procedureDefinition.procedureDeclaration;
-          SvLibStatement procedureBody = procedureDefinition.body;
-
-          if (procedureDeclaration.getProcedureName().startsWith("reach_error")) {
-            SvLibAnnotateTagCommand annotateTagCommand_reach_error =
-                createFalseAnnotateTagCommand(procedureBody.getTagReferences().getFirst());
-            pCommandsCollector.add(annotateTagCommand_reach_error);
+            pCommandsCollector.add(annotateTagCommandProcedureCall);
             return;
           }
         }
