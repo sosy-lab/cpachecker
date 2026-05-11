@@ -367,6 +367,11 @@ class KInductionProver implements AutoCloseable {
                 pK + 1,
                 relevantLoopHeads));
 
+    // Path formula (transition relation) shared by both the existential and universal checks.
+    Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
+    BooleanFormula successorExistsAssertion =
+        createFormulaFor(endStates, bfmgr, Optional.of(shutdownNotifier));
+
     stats.inductionPreparation.stop();
 
     if (!loopHeadSuccessors.isEmpty()) {
@@ -376,6 +381,8 @@ class KInductionProver implements AutoCloseable {
       stats.inductionCheck.start();
       int ePushes = 0;
       try {
+        prover.push(successorExistsAssertion);
+        ePushes++;
         prover.push(predecessorAssertion);
         ePushes++;
         if (requireSatisfiablePredecessor && prover.isUnsat()) {
@@ -385,7 +392,7 @@ class KInductionProver implements AutoCloseable {
         } else {
           prover.push(successorSatisfaction);
           ePushes++;
-          if (prover.isSat()) {
+          if (!prover.isUnsat()) {
             logger.log(
                 Level.INFO,
                 "Existential non-termination closure confirmed: loop-body execution"
@@ -410,9 +417,6 @@ class KInductionProver implements AutoCloseable {
     // This is stronger than the existential check and handles deterministic programs.
     BooleanFormula loopHeadInv =
         inductiveLoopHeadInvariantAssertion(loopHeadStates, relevantLoopHeads);
-    Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
-    BooleanFormula successorExistsAssertion =
-        createFormulaFor(endStates, bfmgr, Optional.of(shutdownNotifier));
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
         getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis);
     if (successorViolationAssertions.isEmpty()) {
