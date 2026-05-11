@@ -1955,7 +1955,7 @@ public class ValueAnalysisTransferRelation
 
     Set<SymbolicIdentifier> identifiers = new HashSet<>();
 
-    public ViolationConditionStrengthenOperator(Iterable<AbstractState> pElements) {
+    private ViolationConditionStrengthenOperator(Iterable<AbstractState> pElements) {
       for (AbstractState abstractState : pElements) {
         if (abstractState instanceof ConstraintsState constraintsState) {
           collectIDsFromConstraints(constraintsState);
