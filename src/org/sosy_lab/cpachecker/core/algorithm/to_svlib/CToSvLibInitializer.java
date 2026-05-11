@@ -56,7 +56,13 @@ class CToSvLibInitializer {
 
   // TODO change to option! Dont forget prefix!
   // @Option(secure = true, description = "Use SV-COMP semantics for some extern functions.")
-  private boolean useSvCompSemanticsForExternFunctions = true;
+  private ExternalFunctionsEncodingMode encodingModeForExternalFunctions =
+      CToSvLibInitializer.ExternalFunctionsEncodingMode.SV_COMP;
+
+  private enum ExternalFunctionsEncodingMode {
+    SV_COMP,
+    HAVOC
+  }
 
   private final CFA cfa;
   private final SvLibCurrentScope scope;
@@ -351,7 +357,7 @@ class CToSvLibInitializer {
           ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)));
     }
 
-    if (useSvCompSemanticsForExternFunctions) {
+    if (encodingModeForExternalFunctions.equals(ExternalFunctionsEncodingMode.SV_COMP)) {
       if (procedureName.startsWith("__VERIFIER_nondet_memory")) {
         // implement when a memory model exists
         throw new UnsupportedOperationException(
