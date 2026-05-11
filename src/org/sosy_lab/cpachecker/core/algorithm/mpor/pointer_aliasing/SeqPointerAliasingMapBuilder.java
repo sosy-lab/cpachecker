@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -320,9 +321,9 @@ public record SeqPointerAliasingMapBuilder(
    * Maps the all assignments from the given {@link SeqFunctionStatement}s, including pointer and
    * non-pointer assignments.
    *
-   * <p>This function returns an {@link ImmutableSetMultimap} because it is possible that the same
-   * left-hand side {@link SeqMemoryLocation} is assigned multiple right-hand side {@link
-   * SeqMemoryLocation} as shown in the example below.
+   * <p>Note that it is possible that the given {@code pFunctionStatements} can contain the same
+   * left-hand side {@link SeqMemoryLocation} in multiple assignments, but only for {@link
+   * SeqPointerAssignmentType#RETURN_VALUE}:
    *
    * <pre>{@code
    * int squared(int x) {
@@ -340,6 +341,11 @@ public record SeqPointerAliasingMapBuilder(
       CFA pInputCfa,
       SeqPointerAssignmentType pType)
       throws UnsupportedCodeException {
+
+    checkArgument(
+        !pType.equals(SeqPointerAssignmentType.EXPLICIT),
+        "pType cannot be EXPLICIT because pointer assignments from function statements are never"
+            + " explicit.");
 
     ImmutableSet.Builder<SeqPointerAssignment> rAssignments = ImmutableSet.builder();
 
