@@ -407,17 +407,16 @@ class CToSvLibTransformation {
 
         return Optional.of(assignmentStatement);
       }
-    } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm outerSymbolApplicationTerm
-        && outerSymbolApplicationTerm.getSymbol().getName().equals("and")
-        && outerSymbolApplicationTerm.getTerms().size() == 2
-        && outerSymbolApplicationTerm.getTerms().getFirst()
-            instanceof SvLibSymbolApplicationTerm innerSymbolApplicationTerm
-        && innerSymbolApplicationTerm.getSymbol().getName().equals("=")
-        && innerSymbolApplicationTerm.getTerms().size() == 2) {
+    } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm outerTerm
+        && outerTerm.getSymbol().getName().equals("and")
+        && outerTerm.getTerms().size() == 2
+        && outerTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm innerTerm
+        && innerTerm.getSymbol().getName().equals("=")
+        && innerTerm.getTerms().size() == 2) {
 
-      SvLibTerm assignedTo = innerSymbolApplicationTerm.getTerms().getFirst();
-      SvLibTerm assignedTerm = innerSymbolApplicationTerm.getTerms().get(1);
-      SvLibTerm assumeTerm = outerSymbolApplicationTerm.getTerms().get(1);
+      SvLibTerm assignedTo = innerTerm.getTerms().getFirst();
+      SvLibTerm assignedTerm = innerTerm.getTerms().get(1);
+      SvLibTerm assumeTerm = outerTerm.getTerms().get(1);
 
       if (assignedTo instanceof SvLibIdTerm idTerm
           && (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
