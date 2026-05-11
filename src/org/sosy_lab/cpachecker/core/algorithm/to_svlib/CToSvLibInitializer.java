@@ -316,12 +316,17 @@ class CToSvLibInitializer {
     ImmutableList<CParameterDeclaration> inputParameters = pCFunctionDeclaration.getParameters();
     ImmutableList.Builder<SvLibParsingParameterDeclaration> convertedInputParametersCollector =
         ImmutableList.builder();
-    for (CParameterDeclaration inputParameter : inputParameters) {
+    for (int i = 0; i < inputParameters.size(); i++) {
+      CParameterDeclaration inputParameter = inputParameters.get(i);
+      String inputParameterName =
+          !inputParameter.getName().isEmpty()
+              ? inputParameter.getName()
+              : "inputDummy_" + i + "_extern";
       SvLibParsingParameterDeclaration convertedInputParameter =
           new SvLibParsingParameterDeclaration(
               FileLocation.DUMMY,
               convertToSvLibType(inputParameter.getType()),
-              inputParameter.getName(),
+              inputParameterName,
               functionName);
       convertedInputParametersCollector.add(convertedInputParameter);
     }
