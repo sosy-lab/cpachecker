@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -36,7 +37,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
@@ -98,6 +98,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -108,6 +109,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -118,7 +120,10 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -319,10 +324,10 @@ public class ValueAnalysisTransferRelation
 
   // Functions that we know are safe to ignore
   private static final Set<String> IGNORED_UNSUPPORTED_FUNCTIONS =
-      ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable");
+      ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable", "__assert_fail");
 
   public ValueAnalysisTransferRelation(
-      LogManager pLogger,
+      LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
       ValueTransferOptions pOptions,
       MemoryLocationValueHandler pUnknownValueHandler,
@@ -330,7 +335,8 @@ public class ValueAnalysisTransferRelation
       @Nullable ValueAnalysisCPAStatistics pStats) {
     options = pOptions;
     machineModel = pCfa.getMachineModel();
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    logger = pLogger;
+
     stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
@@ -1491,12 +1497,10 @@ public class ValueAnalysisTransferRelation
               throw new CPATransferException("Interrupted during block strengthening", e);
             }
           }
+
           result.clear();
-          SymbolicIdentifierRenamer renamer =
-              new SymbolicIdentifierRenamer(
-                  SymbolicIdentifierRenamer.blockRenaming.get(blockState.getBlockNode().getId()),
-                  SymbolicIdentifierRenamer.blockIdentifiers.get(
-                      blockState.getBlockNode().getId()));
+          ViolationConditionStrengthenOperator strengthenOperator =
+              new ViolationConditionStrengthenOperator(pElements);
           AbstractState wrappedState = blockState.getViolationConditions().getFirst();
           ValueAnalysisState violationState =
               AbstractStates.extractStateByType(wrappedState, ValueAnalysisState.class);
@@ -1505,19 +1509,8 @@ public class ValueAnalysisTransferRelation
           }
           for (ValueAnalysisState stateToStrengthen : toStrengthen) {
             super.setInfo(pElement, pPrecision, pCfaEdge);
-            ValueAnalysisState newState = new ValueAnalysisState(machineModel);
-            for (Entry<MemoryLocation, ValueAndType> entry : stateToStrengthen.getConstants()) {
-              newState.assignConstant(entry.getKey(),
-                  entry.getValue().getValue(),
-                  entry.getValue().getType());
-            }
-            for (Entry<MemoryLocation, ValueAndType> entry :
-                violationState.renameIDs(renamer).getConstants()) {
-              if (!newState.contains(entry.getKey())) {
-                newState.assignConstant(
-                    entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
-              }
-            }
+            ValueAnalysisState newState =
+                strengthenOperator.strengthen(stateToStrengthen, blockState);
             result.add(newState);
           }
           toStrengthen.clear();
@@ -1917,7 +1910,11 @@ public class ValueAnalysisTransferRelation
 
     if (isUnsupportedFunction(calledFunctionName)) {
       if (options.ignoreCallsToUnknownFunctions) {
-        String additionalMsg = "";
+        // CVoidType -> No return value
+        boolean hasReturnValue =
+            !(funcCallExpr.getExpressionType().getCanonicalType() instanceof CVoidType);
+        String sideEffectsMsg = "";
+
         if (functionCall.getFunctionCallExpression().getParameterExpressions().stream()
             .anyMatch(
                 p ->
@@ -1925,20 +1922,87 @@ public class ValueAnalysisTransferRelation
                         || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
           // It is UNSOUND to ignore these (in case of side effects)!!!!
           // It might be that the variable of the side effect is already overapproximated though.
-          additionalMsg =
-              " Side-effects of the function call are ignored! The analysis may no longer be"
+          sideEffectsMsg =
+              " Side-effects of function call "
+                  + functionCall
+                  + " are ignored! The analysis may no longer be"
                   + " sound!";
         }
-        logger.logOnce(
-            Level.WARNING,
-            "Return value for unknown and unhandled function call "
-                + functionCall
-                + " is overapproximated."
-                + additionalMsg);
+
+        if (hasReturnValue) {
+          logger.logOnce(
+              Level.WARNING,
+              "Return value for unknown and unhandled function call "
+                  + functionCall
+                  + " is overapproximated."
+                  + sideEffectsMsg);
+
+        } else if (!sideEffectsMsg.isEmpty()) {
+          // No return value, but possible side effects
+          logger.logOnce(
+              Level.WARNING,
+              "Found unhandled function call " + functionCall + "." + sideEffectsMsg);
+        }
+
       } else {
         throw new UnsupportedCodeException(
             "Unhandled call to function " + functionCall, cfaEdge, fn);
       }
+    }
+  }
+
+  private class ViolationConditionStrengthenOperator {
+
+    Set<SymbolicIdentifier> identifiers = new HashSet<>();
+
+    public ViolationConditionStrengthenOperator(Iterable<AbstractState> pElements) {
+      for (AbstractState abstractState : pElements) {
+        if (abstractState instanceof ConstraintsState constraintsState) {
+          collectIDsFromConstraints(constraintsState);
+        }
+      }
+    }
+
+    private void collectIDsFromConstraints(ConstraintsState pConstraintsState) {
+      for (Constraint constraint : pConstraintsState) {
+        assert constraint != null;
+        identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(constraint));
+      }
+    }
+
+    private ValueAnalysisState strengthen(ValueAnalysisState pValueState, BlockState pBlockState) {
+      for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
+        if (constant.getValue().getValue() instanceof SymbolicValue symVal) {
+          identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
+        }
+      }
+
+      SymbolicIdentifierRenamer renamer =
+          new SymbolicIdentifierRenamer(new HashMap<>(), identifiers);
+
+      ValueAnalysisState newState = new ValueAnalysisState(machineModel);
+
+      for (Entry<MemoryLocation, ValueAndType> entry : pValueState.getConstants()) {
+        newState.assignConstant(
+            entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+      }
+      ValueAnalysisState violationState =
+          AbstractStates.extractStateByType(
+              pBlockState.getViolationConditions().getFirst(), ValueAnalysisState.class);
+
+      assert violationState != null;
+      for (Entry<MemoryLocation, ValueAndType> entry :
+          violationState.renameIDs(renamer).getConstants()) {
+        if (!newState.contains(entry.getKey())) {
+          newState.assignConstant(
+              entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+        }
+      }
+      SymbolicIdentifierRenamer.blockRenaming.put(
+          pBlockState.getBlockNode().getId(), renamer.getIdentifierMap());
+      SymbolicIdentifierRenamer.blockIdentifiers.put(
+          pBlockState.getBlockNode().getId(), identifiers);
+      return newState;
     }
   }
 }
