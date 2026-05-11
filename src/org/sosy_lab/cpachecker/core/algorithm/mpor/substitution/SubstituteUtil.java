@@ -69,7 +69,9 @@ public class SubstituteUtil {
     List<SeqMemoryLocation> rMemoryLocations = new ArrayList<>();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rMemoryLocations.addAll(substituteEdge.accessedMemoryLocations);
-      rMemoryLocations.addAll(substituteEdge.pointerAssignments.values());
+      substituteEdge
+          .getPointerAssignments()
+          .forEach(a -> rMemoryLocations.add(a.rightHandSideMemoryLocation()));
       rMemoryLocations.addAll(substituteEdge.accessedPointerDereferences);
     }
     // remove duplicates

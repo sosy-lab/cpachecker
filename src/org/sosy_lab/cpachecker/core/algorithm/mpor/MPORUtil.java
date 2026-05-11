@@ -14,12 +14,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.List;
+import java.util.NavigableMap;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -45,10 +46,11 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public final class MPORUtil {
 
   public static boolean isFunctionDefined(
-      CFunctionCallExpression pFunctionCallExpression, CFA pCfa) {
+      CFunctionCallExpression pFunctionCallExpression,
+      NavigableMap<String, FunctionEntryNode> pAllFunctions) {
 
     // do not use the CFunctionDeclaration since it may be null if the function is not declared
-    return pCfa.getAllFunctions().entrySet().stream()
+    return pAllFunctions.entrySet().stream()
         .anyMatch(
             f ->
                 f.getKey()

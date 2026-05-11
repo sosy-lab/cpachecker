@@ -16,11 +16,10 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -36,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -56,19 +56,19 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 public class SeqPointerAliasingUtil {
 
   /**
-   * Tries to extract and map the left-hand side {@link SeqMemoryLocation} to the right-hand side
-   * {@link SeqMemoryLocation}.
+   * Tries to build the pointer assignment from the given left- and right-hand sides.
    *
-   * @return The {@link Map#entry(Object, Object)} of memory locations or {@link Optional#empty()}
-   *     if the memory locations cannot be extracted or if the left-hand side is not a {@link
+   * @return The {@link SeqPointerAssignment} of memory locations or {@link Optional#empty()} if the
+   *     memory locations cannot be extracted or if the left-hand side is not a {@link
    *     CPointerType}.
    */
-  public static Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> tryMapPointerAssignment(
+  public static Optional<SeqPointerAssignment> tryBuildPointerAssignment(
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
       Optional<CFAEdgeForThread> pLeftHandSideCallContext,
       Optional<CFAEdgeForThread> pRightHandSideCallContext,
-      CFA pInputCfa)
+      NavigableMap<String, FunctionEntryNode> pAllFunctions,
+      SeqPointerAssignmentType pType)
       throws UnsupportedCodeException {
 
     CSimpleDeclaration leftHandSideDeclaration =
@@ -114,12 +114,13 @@ public class SeqPointerAliasingUtil {
                       rightHandSideVisitResult.declaration(),
                       rightHandSideVisitResult.fieldMember());
               return Optional.of(
-                  Map.entry(leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+                  new SeqPointerAssignment(
+                      pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
           case CFunctionCallExpression functionCallExpression -> {
             // do not track defined functions, since they have return statements that are tracked
-            if (!MPORUtil.isFunctionDefined(functionCallExpression, pInputCfa)) {
+            if (!MPORUtil.isFunctionDefined(functionCallExpression, pAllFunctions)) {
               SeqMemoryLocation rightHandSideMemoryLocation =
                   SeqMemoryLocation.of(
                       pRightHandSideCallContext,
@@ -127,7 +128,8 @@ public class SeqPointerAliasingUtil {
                       Optional.empty(),
                       Optional.of(functionCallExpression));
               return Optional.of(
-                  Map.entry(leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+                  new SeqPointerAssignment(
+                      pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
         }

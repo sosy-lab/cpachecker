@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Map;
@@ -23,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
@@ -39,7 +39,7 @@ public class SubstituteEdge {
 
   // POINTER ASSIGNMENTS ===========================================================================
 
-  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments;
+  private final ImmutableSet<SeqPointerAssignment> pointerAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
@@ -66,7 +66,7 @@ public class SubstituteEdge {
       CFAEdgeForThread pThreadEdge,
       ImmutableSet<CVariableDeclaration> pAccessedMainFunctionArgs,
       ImmutableListMultimap<CParameterDeclaration, CIdExpression> pParameterSubstitutes,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableSet<SeqPointerAssignment> pPointerAssignments,
       ImmutableSet<SeqMemoryLocation> pAccessedPointerDereferences,
       ImmutableSet<SeqMemoryLocation> pWrittenPointerDereferences,
       ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
@@ -105,7 +105,7 @@ public class SubstituteEdge {
         pThreadEdge,
         ImmutableSet.of(),
         ImmutableListMultimap.of(),
-        ImmutableMap.of(),
+        ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
@@ -145,6 +145,10 @@ public class SubstituteEdge {
         SubstituteUtil.getPointerDereferencesByAccessType(pTracker, SeqMemoryAccessType.WRITE),
         SubstituteUtil.getMemoryLocationsByAccessType(pTracker, SeqMemoryAccessType.ACCESS),
         SubstituteUtil.getMemoryLocationsByAccessType(pTracker, SeqMemoryAccessType.WRITE));
+  }
+
+  public ImmutableSet<SeqPointerAssignment> getPointerAssignments() {
+    return pointerAssignments;
   }
 
   public ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(

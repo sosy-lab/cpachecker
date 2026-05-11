@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -40,6 +41,10 @@ public record SeqPointerAssignment(
             memberDeclaration.getType());
       }
     }
+  }
+
+  public ImmutableSet<SeqMemoryLocation> getAllMemoryLocations() {
+    return ImmutableSet.of(leftHandSideMemoryLocation, rightHandSideMemoryLocation);
   }
 
   private static boolean isValidDeclarationPointerType(CType pType) {

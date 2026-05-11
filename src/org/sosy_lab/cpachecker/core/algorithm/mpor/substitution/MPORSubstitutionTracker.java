@@ -10,11 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -24,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 /**
@@ -41,7 +39,7 @@ public class MPORSubstitutionTracker {
 
   // POINTER ASSIGNMENTS ===========================================================================
 
-  private final Map<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments;
+  private final Set<SeqPointerAssignment> pointerAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
@@ -88,7 +86,7 @@ public class MPORSubstitutionTracker {
   public MPORSubstitutionTracker() {
     accessedMainFunctionArgs = new HashSet<>();
 
-    pointerAssignments = new HashMap<>();
+    pointerAssignments = new HashSet<>();
 
     accessedPointerDereferences = new HashSet<>();
     writtenPointerDereferences = new HashSet<>();
@@ -109,14 +107,13 @@ public class MPORSubstitutionTracker {
     accessedMainFunctionArgs.add(MPORUtil.convertToVariableDeclaration(pMainFunctionArg));
   }
 
-  void addPointerAssignment(
-      SeqMemoryLocation pLeftHandSideMemoryLocation,
-      SeqMemoryLocation pRightHandSideMemoryLocation) {
-
+  void addPointerAssignment(SeqPointerAssignment pPointerAssignment) {
     checkArgument(
-        pLeftHandSideMemoryLocation.declaration() instanceof CVariableDeclaration,
+        pPointerAssignment.leftHandSideMemoryLocation().declaration()
+            instanceof CVariableDeclaration,
         "pLeftHandSideMemoryLocation.declaration() must be CVariableDeclaration.");
-    pointerAssignments.put(pLeftHandSideMemoryLocation, pRightHandSideMemoryLocation);
+    // pointer assignments in substitutions are always explicit
+    pointerAssignments.add(pPointerAssignment);
   }
 
   void addAccessedPointerDereference(
@@ -203,9 +200,8 @@ public class MPORSubstitutionTracker {
     return ImmutableSet.copyOf(accessedMainFunctionArgs);
   }
 
-  ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> getPointerAssignments() {
-
-    return ImmutableMap.copyOf(pointerAssignments);
+  ImmutableSet<SeqPointerAssignment> getPointerAssignments() {
+    return ImmutableSet.copyOf(pointerAssignments);
   }
 
   // pointer dereferences
