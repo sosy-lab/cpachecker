@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdgeBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -97,7 +96,6 @@ public class SequentializationFields {
     SeqPointerAliasingMapBuilder pointerAliasingMapBuilder =
         new SeqPointerAliasingMapBuilder(
             pOptions,
-            SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values(),
             functionStatements.values(),
             pInputCfa,

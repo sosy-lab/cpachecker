@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -30,7 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record SeqPointerAliasingMapBuilder(
     MPOROptions options,
-    ImmutableList<SeqMemoryLocation> initialMemoryLocations,
     ImmutableCollection<SubstituteEdge> substituteEdges,
     ImmutableCollection<SeqFunctionStatements> functionStatements,
     CFA inputCfa,
@@ -106,7 +104,19 @@ public record SeqPointerAliasingMapBuilder(
 
     ImmutableSet<SeqMemoryLocation> allMemoryLocations =
         ImmutableSet.<SeqMemoryLocation>builder()
-            .addAll(initialMemoryLocations)
+            // add memory locations that are accessed directly in the edges
+            .addAll(
+                substituteEdges.stream()
+                    .flatMap(
+                        substituteEdge ->
+                            substituteEdge
+                                .getMemoryLocationsByAccessType(SeqMemoryAccessType.ACCESS)
+                                .stream())
+                    .collect(ImmutableSet.toImmutableSet()))
+            .addAll(
+                pointerAssignments.stream()
+                    .flatMap(a -> a.getAllMemoryLocations().stream())
+                    .collect(ImmutableSet.toImmutableSet()))
             // for pointer parameter assignments we only need the right-hand side since that is
             // an actual memory location. the left-hand side is not allocated
             .addAll(
@@ -127,8 +137,11 @@ public record SeqPointerAliasingMapBuilder(
                 startRoutineExitAssignments.stream()
                     .flatMap(a -> a.getAllMemoryLocations().stream())
                     .collect(ImmutableSet.toImmutableSet()))
+            // add memory locations from pointer dereferences
+            .addAll(pointerDereferences)
             .addAll(pointerDereferenceMemoryLocations)
             .build();
+
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         getRelevantMemoryLocationsIds(
             allMemoryLocations, allPointerAssignments, pointerDereferences);
