@@ -314,8 +314,6 @@ class CToSvLibInitializer {
     }
 
     ImmutableList<CParameterDeclaration> inputParameters = pCFunctionDeclaration.getParameters();
-    // TODO Ask: is there a reason to prefer one over the other?
-    //  ImmutableList<CType> parameters_as_CType = pCFunctionDeclaration.getType().getParameters();
     ImmutableList.Builder<SvLibParsingParameterDeclaration> convertedInputParametersCollector =
         ImmutableList.builder();
     for (CParameterDeclaration inputParameter : inputParameters) {
@@ -340,7 +338,7 @@ class CToSvLibInitializer {
       SvLibProcedureDeclaration pProcedureDeclaration) {
     String procedureName = pProcedureDeclaration.getProcedureName();
 
-    if (procedureName.contains("abort")) {
+    if (procedureName.startsWith("abort")) {
       return new SvLibAssumeStatement(
           FileLocation.DUMMY,
           new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
@@ -349,12 +347,12 @@ class CToSvLibInitializer {
     }
 
     if (useSvCompSemanticsForExternFunctions) {
-      if (procedureName.contains("__VERIFIER_nondet_memory")) {
+      if (procedureName.startsWith("__VERIFIER_nondet_memory")) {
         // implement when a memory model exists
         throw new UnsupportedOperationException(
             "Transformation of programs that include extern function __VERIFIER_nondet_memory() is"
                 + " not supported.");
-      } else if (procedureName.contains("__VERIFIER_nondet")) {
+      } else if (procedureName.startsWith("__VERIFIER_nondet")) {
         if (!pProcedureDeclaration.getReturnValues().isEmpty()) {
           // TODO assume statement to conform to C type
           return new SvLibHavocStatement(
@@ -369,8 +367,8 @@ class CToSvLibInitializer {
                     + " because the return parameter is empty.");
           }*/
 
-      } else if (procedureName.contains("assert_fail")
-          || procedureName.contains("__VERIFIER_error")) {
+      } else if (procedureName.startsWith("assert_fail")
+          || procedureName.startsWith("__VERIFIER_error")) {
         // FIXME probably better to just leave empty and encode later depending on property
         return new SvLibAssumeStatement(
             FileLocation.DUMMY,
