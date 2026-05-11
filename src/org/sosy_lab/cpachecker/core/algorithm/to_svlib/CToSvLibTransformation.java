@@ -38,10 +38,13 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibCurrentScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
@@ -142,6 +145,16 @@ class CToSvLibTransformation {
     for (CFAEdge currentEdge : relevantEdges) {
       handleEdge(currentEdge, statementCollector);
       addLabelStatement(currentEdge.getSuccessor(), statementCollector, labelsCreated);
+
+      if (!(currentEdge instanceof CReturnStatementEdge)
+          && currentEdge.getSuccessor() instanceof FunctionExitNode functionExitNode) {
+        statementCollector.put(
+            functionExitNode,
+            new SvLibReturnStatement(FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of()));
+      }
+      if (currentEdge.getSuccessor() instanceof CFATerminationNode terminationNode) {
+        statementCollector.put(terminationNode, encodeTerminationNode(terminationNode));
+      }
     }
 
     SvLibStatement procedureBodySequence =
@@ -446,6 +459,17 @@ class CToSvLibTransformation {
         FileLocation.DUMMY,
         ImmutableList.of(),
         ImmutableList.of());
+  }
+
+  private SvLibAssumeStatement encodeTerminationNode(CFATerminationNode pTerminationNode) {
+    // TODO ask if this transformation is sufficient or if adding a return statement makes sense?
+    return new SvLibAssumeStatement(
+        FileLocation.DUMMY,
+        new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+        ImmutableList.of(),
+        ImmutableList.of(
+            new SvLibTagReference(
+                "CFATerminationNode_N" + pTerminationNode.getNodeNumber(), FileLocation.DUMMY)));
   }
 
   private SvLibGotoStatement createGotoStatement(CFANode pGotoTarget) {
