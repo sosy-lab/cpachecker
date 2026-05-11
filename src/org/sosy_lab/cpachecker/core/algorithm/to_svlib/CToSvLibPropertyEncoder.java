@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -36,24 +38,51 @@ class CToSvLibPropertyEncoder {
   }
 
   void encodeProperty(ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    // Encode properties based on specification files, since currently specification.getProperties
+    // is always null
+    ImmutableSet<Path> specificationFiles = specification.getFiles();
+    for (Path specificationFile : specificationFiles) {
+      if (specificationFile.toString().endsWith("ErrorLabel.spc")
+          || specificationFile.toString().endsWith("sv-comp-errorlabel.spc")) {
+        encodeReachabilityErrorLabel(pCommandsCollector);
+      } else if (specificationFile.toString().endsWith("sv-comp-reachability.spc")) {
+        encodeReachability_reach_error(pCommandsCollector);
+        encodeReachability_VERIFIER_error(pCommandsCollector);
+      } else if (specificationFile.toString().endsWith("Assertion.spc")) {
+        encodeReachability_assert_fail(pCommandsCollector);
+        encodeReachability_assert_func(pCommandsCollector);
+      } else if (specificationFile.toString().endsWith("default.spc")) {
+        encodeReachability_assert_fail(pCommandsCollector);
+        encodeReachability_assert_func(pCommandsCollector);
+        encodeReachabilityErrorLabel(pCommandsCollector);
+      } else {
+        throw new UnsupportedOperationException(
+            "Encoding of the specification file "
+                + specificationFile
+                + " is not supported for the transformation to SV-LIB.");
+      }
+    }
+
     Set<Property> properties = specification.getProperties();
     for (Property property : properties) {
       switch (property) {
         case CommonVerificationProperty.REACHABILITY_LABEL ->
-            encodeReachabilityLabel(pCommandsCollector);
+            encodeReachabilityErrorLabel(pCommandsCollector);
         case CommonVerificationProperty.REACHABILITY ->
             encodeReachabilityOfProcedure("__VERIFIER_error", pCommandsCollector);
         case CommonVerificationProperty.REACHABILITY_ERROR ->
             encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
-        default -> throw new UnsupportedOperationException(
-            "Encoding for property "
-                + property
-                + " is not supported in the transformation to SV-LIB.");
+        default ->
+            throw new UnsupportedOperationException(
+                "Encoding for property "
+                    + property
+                    + " is not supported in the transformation to SV-LIB.");
       }
     }
   }
 
-  private void encodeReachabilityLabel(ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+  private void encodeReachabilityErrorLabel(
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
     // Encode reachability of ERROR label
     for (SvLibCommand command : pCommandsCollector.build()) {
       if (command instanceof SvLibProcedureDefinitionCommand pProcedureDefinitionCommand) {
@@ -83,6 +112,26 @@ class CToSvLibPropertyEncoder {
           createFalseAnnotateTagCommand(tagReference);
       pCommandsCollector.add(annotateTagCommand_ERROR);
     }
+  }
+
+  private void encodeReachability_VERIFIER_error(
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    encodeReachabilityOfProcedure("__VERIFIER_error", pCommandsCollector);
+  }
+
+  private void encodeReachability_reach_error(
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
+  }
+
+  private void encodeReachability_assert_fail(
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    encodeReachabilityOfProcedure("__assert_fail", pCommandsCollector);
+  }
+
+  private void encodeReachability_assert_func(
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    encodeReachabilityOfProcedure("__assert_func", pCommandsCollector);
   }
 
   private void encodeReachabilityOfProcedure(
