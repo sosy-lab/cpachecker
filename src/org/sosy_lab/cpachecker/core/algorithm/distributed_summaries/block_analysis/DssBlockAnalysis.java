@@ -235,9 +235,7 @@ public class DssBlockAnalysis {
     // pack the message
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableMap<String, String> serialized = serialize(uniqueSummaries);
-    messages.add(
-        messageFactory.createDssPostConditionMessage(
-            block.getId(), status, ImmutableList.copyOf(block.getSuccessorIds()), serialized));
+    messages.add(messageFactory.createDssPostConditionMessage(block.getId(), status, serialized));
     return messages.build();
   }
 
@@ -477,7 +475,6 @@ public class DssBlockAnalysis {
           messageFactory.createDssPostConditionMessage(
               block.getId(),
               status,
-              ImmutableList.copyOf(block.getSuccessorIds()),
               serialize(ImmutableList.of(new StateAndPrecision(startState, startPrecision)))));
     }
     return messages.addAll(reportFirstViolationConditions(result.getAllViolations())).build();
@@ -734,13 +731,9 @@ public class DssBlockAnalysis {
 
       if (block.isAbstractionPossible()) {
         if (!result.getFinalLocationStates().isEmpty()) {
-          // pack all summaries
-          ImmutableList.Builder<StateAndPrecision> summaryWithPrecision = ImmutableList.builder();
           for (AbstractState summary : result.getFinalLocationStates()) {
-            summaryWithPrecision.add(
-                new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+            summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
           }
-          summaries.addAll(summaryWithPrecision.build());
         }
         if (!result.getAllViolations().isEmpty()) {
           // pack all violations

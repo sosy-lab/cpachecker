@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -47,9 +48,40 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
         throws CPAException, InvalidConfigurationException, InterruptedException;
   }
 
+  private static class CreateOrRetrieveThreadLocalAnalysis {
+
+    private final AnalysisCreation createAnalysis;
+    private DssBlockAnalysis dssBlockAnalysis;
+    private String originalThreadName;
+
+    private CreateOrRetrieveThreadLocalAnalysis(AnalysisCreation pAnalysisCreation) {
+      createAnalysis = pAnalysisCreation;
+    }
+
+    DssBlockAnalysis getDssBlockAnalysis() {
+      if (dssBlockAnalysis == null) {
+        try {
+          dssBlockAnalysis = createAnalysis.createDssBlockAnalysis();
+        } catch (InterruptedException | InvalidConfigurationException | CPAException e) {
+          throw new AssertionError("Could not create DssBlockAnalysis but it is required", e);
+        }
+        originalThreadName = Thread.currentThread().getName();
+      }
+      assert originalThreadName != null && dssBlockAnalysis != null;
+      Preconditions.checkState(
+          wouldBeCalledFromCorrectThread(), "Cannot invoke analysis from different thread.");
+      return dssBlockAnalysis;
+    }
+
+    boolean wouldBeCalledFromCorrectThread() {
+      return Thread.currentThread().getName().equals(originalThreadName);
+    }
+  }
+
+  private final CreateOrRetrieveThreadLocalAnalysis analysis;
+
   private final BlockNode block;
 
-  private final AnalysisCreation createAnalysis;
   private final LogManager logger;
   private final DssMessageFactory messageFactory;
 
@@ -58,8 +90,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   private final ThreadCPUTimer forwardAnalysisTime = new ThreadCPUTimer("Forward Analysis");
   private final ThreadCPUTimer backwardAnalysisTime = new ThreadCPUTimer("Backward Analysis");
 
-  private DssBlockAnalysis dssBlockAnalysis;
-  private String threadName;
   private boolean shutdown;
   private boolean closed;
 
@@ -102,22 +132,23 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
     messageFactory = pMessageFactory;
     logger = pLogger;
-    createAnalysis =
-        () ->
-            new DssBlockAnalysis(
-                logger,
-                pBlock,
-                pCFA,
-                pSpecification,
-                forwardConfiguration,
-                pOptions,
-                pMessageFactory,
-                pShutdownManager);
+    analysis =
+        new CreateOrRetrieveThreadLocalAnalysis(
+            () ->
+                new DssBlockAnalysis(
+                    logger,
+                    pBlock,
+                    pCFA,
+                    pSpecification,
+                    forwardConfiguration,
+                    pOptions,
+                    pMessageFactory,
+                    pShutdownManager));
   }
 
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, SolverException, InterruptedException {
-    return dssBlockAnalysis.runInitialAnalysis();
+    return analysis.getDssBlockAnalysis().runInitialAnalysis();
   }
 
   @Override
@@ -127,11 +158,11 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
         try {
           forwardAnalysisTime.start();
           DssMessageProcessing processing =
-              dssBlockAnalysis.storePrecondition((DssPostConditionMessage) message);
+              analysis.getDssBlockAnalysis().storePrecondition((DssPostConditionMessage) message);
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          yield dssBlockAnalysis.analyzePrecondition();
+          yield analysis.getDssBlockAnalysis().analyzePrecondition();
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
@@ -142,11 +173,13 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
         try {
           backwardAnalysisTime.start();
           DssMessageProcessing processing =
-              dssBlockAnalysis.storeViolationCondition((DssViolationConditionMessage) message);
+              analysis
+                  .getDssBlockAnalysis()
+                  .storeViolationCondition((DssViolationConditionMessage) message);
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          yield dssBlockAnalysis.analyzeViolationCondition(message.getSenderId());
+          yield analysis.getDssBlockAnalysis().analyzeViolationCondition(message.getSenderId());
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
@@ -167,8 +200,11 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     return switch (message.getType()) {
       case STATISTIC, RESULT, EXCEPTION -> DssMessageProcessing.stop();
       case VIOLATION_CONDITION ->
-          dssBlockAnalysis.storeViolationCondition((DssViolationConditionMessage) message);
-      case POST_CONDITION -> dssBlockAnalysis.storePrecondition((DssPostConditionMessage) message);
+          analysis
+              .getDssBlockAnalysis()
+              .storeViolationCondition((DssViolationConditionMessage) message);
+      case POST_CONDITION ->
+          analysis.getDssBlockAnalysis().storePrecondition((DssPostConditionMessage) message);
     };
   }
 
@@ -190,8 +226,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       switch (message.getType()) {
         case POST_CONDITION -> {
           broadcaster.broadcastToObserver(message);
-          broadcaster.broadcastToIds(
-              message, ImmutableSet.copyOf(((DssPostConditionMessage) message).getReceivers()));
+          broadcaster.broadcastToIds(message, block.getSuccessorIds());
         }
         case VIOLATION_CONDITION -> {
           if (block.getPredecessorIds().isEmpty()) {
@@ -212,14 +247,12 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   public void broadcastInitialMessages()
       throws CPAException, SolverException, InterruptedException {
-    broadcast(dssBlockAnalysis.runInitialAnalysis());
+    broadcast(analysis.getDssBlockAnalysis().runInitialAnalysis());
   }
 
   @Override
   public void run() {
     try {
-      threadName = Thread.currentThread().getName();
-      dssBlockAnalysis = createAnalysis.createDssBlockAnalysis();
       broadcastInitialMessages();
       super.run();
     } catch (Exception | Error e) {
@@ -243,7 +276,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   private ImmutableMap<StatisticsKey, String> getStats() {
     ImmutableMap.Builder<StatisticsKey, String> stats = ImmutableMap.builder();
 
-    if (dssBlockAnalysis.getDcpa() instanceof DistributedARGCPA arg
+    if (analysis.getDssBlockAnalysis().getDcpa() instanceof DistributedARGCPA arg
         && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
       stats.putAll(composite.getStatistics().getStatistics());
     }
@@ -261,8 +294,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   @Override
   public void close() {
-    if (!closed && threadName != null && Thread.currentThread().getName().equals(threadName)) {
-      CPAs.closeCpaIfPossible(dssBlockAnalysis.getDcpa(), logger);
+    if (!closed && analysis.wouldBeCalledFromCorrectThread()) {
+      CPAs.closeCpaIfPossible(analysis.getDssBlockAnalysis().getDcpa(), logger);
       closed = true;
     }
   }
