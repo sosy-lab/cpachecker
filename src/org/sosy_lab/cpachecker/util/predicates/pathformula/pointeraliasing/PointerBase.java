@@ -56,7 +56,7 @@ public record PointerBase(String name) implements Comparable<PointerBase> {
    * Return how to encode this base as a term in formulas. The result should not be used for
    * anything except creating formula terms!
    */
-  String formulaEncoding() {
+  public String formulaEncoding() {
     return BASE_PREFIX + name;
   }
 

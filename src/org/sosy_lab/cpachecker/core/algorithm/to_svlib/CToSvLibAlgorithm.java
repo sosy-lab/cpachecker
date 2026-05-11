@@ -158,7 +158,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     transformationStatistics.initializationTime.start();
     try {
       CToSvLibInitializer initializer =
-          new CToSvLibInitializer(cfa, scope, formulaManager, converter, INPUT_DUMMY_VAR_PREFIX);
+          new CToSvLibInitializer(
+              cfa, scope, formulaManager, pathFormulaManager, converter, INPUT_DUMMY_VAR_PREFIX);
       initializer.initialize(commandsCollector);
     } finally {
       transformationStatistics.initializationTime.stop();
