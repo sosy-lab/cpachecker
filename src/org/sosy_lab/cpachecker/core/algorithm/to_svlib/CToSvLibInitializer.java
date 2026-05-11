@@ -371,17 +371,7 @@ class CToSvLibInitializer {
                     + procedureName
                     + " because the return parameter is empty.");
           }*/
-
-      } else if (procedureName.startsWith("assert_fail")
-          || procedureName.startsWith("__VERIFIER_error")) {
-        // FIXME probably better to just leave empty and encode later depending on property
-        return new SvLibAssumeStatement(
-            FileLocation.DUMMY,
-            new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
-            ImmutableList.of(),
-            ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)));
       }
-      // TODO implement verifier_assume?
     }
 
     // havoc return value for extern, non-void functions
