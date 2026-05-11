@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -108,6 +109,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -118,7 +120,10 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -1492,12 +1497,10 @@ public class ValueAnalysisTransferRelation
               throw new CPATransferException("Interrupted during block strengthening", e);
             }
           }
+
           result.clear();
-          SymbolicIdentifierRenamer renamer =
-              new SymbolicIdentifierRenamer(
-                  SymbolicIdentifierRenamer.blockRenaming.get(blockState.getBlockNode().getId()),
-                  SymbolicIdentifierRenamer.blockIdentifiers.get(
-                      blockState.getBlockNode().getId()));
+          ViolationConditionStrengthenOperator strengthenOperator =
+              new ViolationConditionStrengthenOperator(pElements);
           AbstractState wrappedState = blockState.getViolationConditions().getFirst();
           ValueAnalysisState violationState =
               AbstractStates.extractStateByType(wrappedState, ValueAnalysisState.class);
@@ -1506,18 +1509,8 @@ public class ValueAnalysisTransferRelation
           }
           for (ValueAnalysisState stateToStrengthen : toStrengthen) {
             super.setInfo(pElement, pPrecision, pCfaEdge);
-            ValueAnalysisState newState = new ValueAnalysisState(machineModel);
-            for (Entry<MemoryLocation, ValueAndType> entry : stateToStrengthen.getConstants()) {
-              newState.assignConstant(
-                  entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
-            }
-            for (Entry<MemoryLocation, ValueAndType> entry :
-                violationState.renameIDs(renamer).getConstants()) {
-              if (!newState.contains(entry.getKey())) {
-                newState.assignConstant(
-                    entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
-              }
-            }
+            ValueAnalysisState newState =
+                strengthenOperator.strengthen(stateToStrengthen, blockState);
             result.add(newState);
           }
           toStrengthen.clear();
@@ -1955,6 +1948,61 @@ public class ValueAnalysisTransferRelation
         throw new UnsupportedCodeException(
             "Unhandled call to function " + functionCall, cfaEdge, fn);
       }
+    }
+  }
+
+  private class ViolationConditionStrengthenOperator {
+
+    Set<SymbolicIdentifier> identifiers = new HashSet<>();
+
+    public ViolationConditionStrengthenOperator(Iterable<AbstractState> pElements) {
+      for (AbstractState abstractState : pElements) {
+        if (abstractState instanceof ConstraintsState constraintsState) {
+          collectIDsFromConstraints(constraintsState);
+        }
+      }
+    }
+
+    private void collectIDsFromConstraints(ConstraintsState pConstraintsState) {
+      for (Constraint constraint : pConstraintsState) {
+        assert constraint != null;
+        identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(constraint));
+      }
+    }
+
+    private ValueAnalysisState strengthen(ValueAnalysisState pValueState, BlockState pBlockState) {
+      for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
+        if (constant.getValue().getValue() instanceof SymbolicValue symVal) {
+          identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
+        }
+      }
+
+      SymbolicIdentifierRenamer renamer =
+          new SymbolicIdentifierRenamer(new HashMap<>(), identifiers);
+
+      ValueAnalysisState newState = new ValueAnalysisState(machineModel);
+
+      for (Entry<MemoryLocation, ValueAndType> entry : pValueState.getConstants()) {
+        newState.assignConstant(
+            entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+      }
+      ValueAnalysisState violationState =
+          AbstractStates.extractStateByType(
+              pBlockState.getViolationConditions().getFirst(), ValueAnalysisState.class);
+
+      assert violationState != null;
+      for (Entry<MemoryLocation, ValueAndType> entry :
+          violationState.renameIDs(renamer).getConstants()) {
+        if (!newState.contains(entry.getKey())) {
+          newState.assignConstant(
+              entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+        }
+      }
+      SymbolicIdentifierRenamer.blockRenaming.put(
+          pBlockState.getBlockNode().getId(), renamer.getIdentifierMap());
+      SymbolicIdentifierRenamer.blockIdentifiers.put(
+          pBlockState.getBlockNode().getId(), identifiers);
+      return newState;
     }
   }
 }

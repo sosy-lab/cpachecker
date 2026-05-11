@@ -13,10 +13,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -60,16 +58,12 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverRe
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierRenamer;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Transfer relation for Symbolic Execution Analysis. */
@@ -464,27 +458,12 @@ public class ConstraintsTransferRelation
     private ValueAnalysisState valueState;
     SymbolicIdentifierRenamer visitor;
 
-    private void collectIDs(ConstraintsState pConstraintsState) {
-      for (Constraint constraint : pConstraintsState) {
-        assert constraint != null;
-        identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(constraint));
-      }
-    }
-
-    private void collectIDs(ValueAnalysisState pValueState) {
-      for (Entry<MemoryLocation, ValueAndType> constant : pValueState.getConstants()) {
-        if (constant.getValue().getValue() instanceof SymbolicValue symVal) {
-          identifiers.addAll(SymbolicValues.getContainedSymbolicIdentifiers(symVal));
-        }
-        if (constant.getValue().getValue() instanceof SymbolicIdentifier symID) {
-          identifiers.add(symID);
-        }
-      }
-    }
-
     private CompositeState getRenamedViolation(BlockState pBlockState) {
 
-      visitor = new SymbolicIdentifierRenamer(new HashMap<>(), identifiers);
+      visitor =
+          new SymbolicIdentifierRenamer(
+              SymbolicIdentifierRenamer.blockRenaming.get(pBlockState.getBlockNode().getId()),
+              SymbolicIdentifierRenamer.blockIdentifiers.get(pBlockState.getBlockNode().getId()));
       AbstractState violation = pBlockState.getViolationConditions().getFirst();
       List<AbstractState> newViolation = new ArrayList<>();
 
@@ -511,12 +490,8 @@ public class ConstraintsTransferRelation
 
     private BlockAnalysisStrengthenOperator(final Iterable<AbstractState> pStrengtheningStates) {
       for (AbstractState abstractState : pStrengtheningStates) {
-        if (abstractState instanceof ConstraintsState constraintsState) {
-          collectIDs(constraintsState);
-        }
         if (abstractState instanceof ValueAnalysisState vS) {
           valueState = vS;
-          collectIDs(valueState);
         }
       }
     }
