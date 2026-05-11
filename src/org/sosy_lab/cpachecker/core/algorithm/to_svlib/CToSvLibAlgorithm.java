@@ -108,6 +108,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     config = pConfiguration;
+    config.inject(this);
     specification = pSpecification;
 
     cfa = pCfa;
