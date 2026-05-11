@@ -318,11 +318,7 @@ class KInductionProver implements AutoCloseable {
 
     stats.inductionPreparation.start();
 
-    logger.log(
-        Level.INFO,
-        "Running strong non-termination closure check. The check tries to prove that "
-            + "the selected loop-continuation candidate is closed under the considered "
-            + "successor relation.");
+    logger.log(Level.INFO, "Running algorithm to create non-termination closure check");
     Set<CFANode> relevantLoopHeads =
         pLoopScope.map(NonTerminationLoopScope::loopHeads).orElse(loopHeads);
 
@@ -333,11 +329,10 @@ class KInductionProver implements AutoCloseable {
     Optional<CandidateInvariant> predecessorCandidate =
         getNonTerminationPredecessorCandidate(pCandidateInvariant);
     if (predecessorCandidate.isEmpty()) {
-      logger.logf(
-          Level.FINE,
-          "Strong non-termination closure failed for candidate %s: predecessor contains "
-              + "only successor-only components; refusing vacuous proof.",
-          pCandidateInvariant);
+      logger.log(
+          Level.FINER,
+          "The non-termination closure predecessor contains only successor-only components;"
+              + " refusing vacuous proof.");
       stats.inductionPreparation.stop();
       return false;
     }
@@ -347,11 +342,10 @@ class KInductionProver implements AutoCloseable {
     ImmutableSet<AbstractState> inductionHypothesis =
         ImmutableSet.copyOf(predecessorCandidate.orElseThrow().filterApplicable(predecessorStates));
     if (inductionHypothesis.isEmpty()) {
-      logger.logf(
-          Level.FINE,
-          "Strong non-termination closure failed for candidate %s: no applicable "
-              + "predecessor states.",
-          pCandidateInvariant);
+      logger.log(
+          Level.FINER,
+          "The non-termination closure predecessor has no applicable states; refusing vacuous"
+              + " proof.");
       stats.inductionPreparation.stop();
       return false;
     }
@@ -369,11 +363,9 @@ class KInductionProver implements AutoCloseable {
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
         getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis);
     if (successorViolationAssertions.isEmpty()) {
-      logger.logf(
-          Level.FINE,
-          "Strong non-termination closure failed for candidate %s: no successor violation "
-              + "assertions; refusing vacuous proof.",
-          pCandidateInvariant);
+      logger.log(
+          Level.FINER,
+          "The non-termination closure check has no successor assertions; refusing vacuous proof.");
       stats.inductionPreparation.stop();
       return false;
     }
@@ -392,26 +384,16 @@ class KInductionProver implements AutoCloseable {
       prover.push(predecessorAssertion);
       pushes++;
       if (requireSatisfiablePredecessor && prover.isUnsat()) {
-        logger.logf(
-            Level.FINE,
-            "Strong non-termination closure failed for candidate %s: predecessor assertion "
-                + "is unsatisfiable; refusing vacuous proof.",
-            pCandidateInvariant);
+        logger.log(
+            Level.FINER,
+            "The non-termination closure predecessor is unsatisfiable; refusing vacuous proof.");
         return false;
       }
       prover.push(successorViolation);
       pushes++;
       prover.push(loopHeadInv);
       pushes++;
-      boolean proved = prover.isUnsat();
-      logger.logf(
-          proved ? Level.INFO : Level.FINE,
-          proved
-              ? "Strong non-termination closure succeeded for candidate %s."
-              : "Strong non-termination closure failed for candidate %s: successor violation "
-                  + "is satisfiable.",
-          pCandidateInvariant);
-      return proved;
+      return prover.isUnsat();
     } finally {
       while (pushes > 0) {
         prover.pop();

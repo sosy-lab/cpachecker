@@ -159,11 +159,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean terminationCandidatesIncomplete = false;
   private int loopsWithoutTerminationCandidates = 0;
-  private int nonTerminationCandidatesGenerated = 0;
-  private int nonTerminationBaseCasesTried = 0;
-  private int nonTerminationBaseCasesSuccessful = 0;
-  private int nonTerminationClosureChecksTried = 0;
-  private int nonTerminationClosureChecksSuccessful = 0;
   private final Set<CandidateInvariant> directlyConfirmedNonTerminationCandidates = new HashSet<>();
   private final Map<CandidateInvariant, NonTerminationLoopScope> nonTerminationLoopScopes =
       new HashMap<>();
@@ -229,7 +224,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
-      logStrongNonTerminationSummaryIfNeeded();
       invariantGenerator.cancel();
     }
   }
@@ -285,15 +279,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         Level.INFO,
         "Non-termination mode: k-induction confirmed loop-continuation candidate %s.",
         pCandidateInvariant);
-    logger.logf(
-        Level.INFO,
-        "Strong non-termination statistics at confirmation: generated candidates=%d, "
-            + "base cases tried/succeeded=%d/%d, closure checks tried/succeeded=%d/%d.",
-        nonTerminationCandidatesGenerated,
-        nonTerminationBaseCasesTried,
-        nonTerminationBaseCasesSuccessful,
-        nonTerminationClosureChecksTried,
-        nonTerminationClosureChecksSuccessful);
     pReachedSet.add(
         new DummyErrorState(pReachedSet.getLastState()) {
           @Serial private static final long serialVersionUID = 4603081304830409726L;
@@ -311,18 +296,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     loopsWithoutTerminationCandidates = 0;
     directlyConfirmedNonTerminationCandidates.clear();
     nonTerminationLoopScopes.clear();
-    if (!pNegated) {
-      nonTerminationCandidatesGenerated = 0;
-      nonTerminationBaseCasesTried = 0;
-      nonTerminationBaseCasesSuccessful = 0;
-      nonTerminationClosureChecksTried = 0;
-      nonTerminationClosureChecksSuccessful = 0;
-      logger.log(
-          Level.INFO,
-          "Running strong non-termination mode: trying to prove loop-continuation "
-              + "candidates with a SAT base case and a safety-style k-induction closure "
-              + "check. The check is sound but incomplete for may-nontermination.");
-    }
     if (!cfa.getLoopStructure().isPresent()) {
       terminationCandidatesIncomplete = true;
       logger.log(
@@ -410,20 +383,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             ? new StatewiseCandidateInvariantDisjunction(loopCandidates)
             : new StatewiseCandidateInvariantConjunction(loopCandidates);
     if (!pNegated) {
-      nonTerminationCandidatesGenerated++;
-      nonTerminationLoopScopes.put(loopCandidate, NonTerminationLoopScope.of(pLoop));
       if (directlyNonTerminatingNoExitLoop) {
         directlyConfirmedNonTerminationCandidates.add(loopCandidate);
-        logger.logf(
-            Level.FINE,
-            "Non-termination mode: directly confirmable candidate generated for loop heads %s.",
-            pLoop.getLoopHeads());
-      } else {
-        logger.logf(
-            Level.FINER,
-            "Non-termination mode: strong candidate generated for loop heads %s: %s.",
-            pLoop.getLoopHeads(),
-            loopCandidate);
       }
     }
     return ImmutableSet.of(loopCandidate);
@@ -725,7 +686,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
-    nonTerminationBaseCasesTried++;
     lastModelEqualityStrengthenings = ImmutableSet.of();
     BooleanFormula baseCase = createNonTerminationBaseCaseFormula(pReachedSet, pCandidateInvariant);
     logger.log(Level.INFO, "Starting satisfiability check for non-termination base case...");
@@ -734,19 +694,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       pProver.push(baseCase);
       boolean reachable = !pProver.isUnsat();
       if (reachable) {
-        nonTerminationBaseCasesSuccessful++;
-        logger.logf(
-            Level.FINE,
-            "Non-termination mode: base case succeeded for candidate %s.",
-            pCandidateInvariant);
         lastModelEqualityStrengthenings =
             createModelEqualityStrengthenings(
                 pReachedSet, pCandidateInvariant, pProver.getModelAssignments());
-      } else {
-        logger.logf(
-            Level.FINER,
-            "Non-termination mode: base case failed for candidate %s.",
-            pCandidateInvariant);
       }
       return reachable;
     } finally {
@@ -759,46 +709,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   protected Iterable<CandidateInvariant> getAdditionalCandidatesAfterSuccessfulBaseCase(
       ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
     return lastModelEqualityStrengthenings;
-  }
-
-  @Override
-  protected void reportNonTerminationClosureCheckStarted(CandidateInvariant pCandidateInvariant) {
-    nonTerminationClosureChecksTried++;
-    logger.logf(
-        Level.FINER,
-        "Non-termination mode: starting closure check for candidate %s.",
-        pCandidateInvariant);
-  }
-
-  @Override
-  protected void reportNonTerminationClosureCheckFinished(
-      CandidateInvariant pCandidateInvariant, boolean pSuccessful) {
-    if (pSuccessful) {
-      nonTerminationClosureChecksSuccessful++;
-    }
-    logger.logf(
-        pSuccessful ? Level.INFO : Level.FINE,
-        pSuccessful
-            ? "Non-termination mode: closure check succeeded for candidate %s."
-            : "Non-termination mode: closure check failed for candidate %s.",
-        pCandidateInvariant);
-  }
-
-  private void logStrongNonTerminationSummaryIfNeeded() {
-    if (!nonTerminationMode) {
-      return;
-    }
-    logger.logf(
-        Level.INFO,
-        "Strong non-termination summary: generated candidates=%d, "
-            + "base cases tried/succeeded=%d/%d, closure checks tried/succeeded=%d/%d. "
-            + "Failure to prove non-termination does not imply termination, because this "
-            + "strong baseline is incomplete for may-nontermination.",
-        nonTerminationCandidatesGenerated,
-        nonTerminationBaseCasesTried,
-        nonTerminationBaseCasesSuccessful,
-        nonTerminationClosureChecksTried,
-        nonTerminationClosureChecksSuccessful);
   }
 
   @Override
