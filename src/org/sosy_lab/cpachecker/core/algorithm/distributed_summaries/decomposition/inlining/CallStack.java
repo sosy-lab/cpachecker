@@ -19,7 +19,7 @@ public class CallStack {
   private record CallFrame(Optional<CallFrame> parent, FunctionSCC scc, BlockNode callBlock) {
     void appendAsString(StringBuilder builder) {
       builder.append(scc);
-      builder.append(':');
+      builder.append('#');
       builder.append(callBlock.getId());
       if (parent.isPresent()) {
         builder.append('@');
