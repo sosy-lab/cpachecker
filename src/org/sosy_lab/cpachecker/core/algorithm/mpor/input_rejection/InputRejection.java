@@ -25,11 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -56,7 +56,6 @@ public class InputRejection {
 
   enum InputRejectionMessage {
     FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
-    INVALID_OPTIONS("Invalid MPOR options, see above errors.", false),
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
@@ -77,7 +76,6 @@ public class InputRejection {
         true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
-    PTHREAD_OBJECT_POINTER_ALIASING("MPOR does not aliasing for pthread object pointers:", false),
     PTHREAD_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
     RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
@@ -106,7 +104,7 @@ public class InputRejection {
     checkLanguageC(pInputCfa);
     checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
-    checkFunctionPointerInitializer(pInputCfa);
+    checkFunctionPointerInInitializer(pInputCfa);
     checkDuplicateStructMemberNames(pInputCfa);
     checkPthreadObjectArrays(pInputCfa);
     checkPthreadFunctionReturnValues(pInputCfa);
@@ -200,7 +198,7 @@ public class InputRejection {
     }
   }
 
-  private static void checkFunctionPointerInitializer(CFA pInputCfa)
+  private static void checkFunctionPointerInInitializer(CFA pInputCfa)
       throws UnsupportedCodeException {
 
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
@@ -208,22 +206,31 @@ public class InputRejection {
         if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.getInitializer()
               instanceof CInitializerExpression initializerExpression) {
-            checkFunctionPointerRightHandSide(initializerExpression.getExpression());
+            checkFunctionPointerInRightHandSide(initializerExpression.getExpression());
           }
         }
       }
     }
   }
 
-  public static void checkFunctionPointerRightHandSide(CExpression pRightHandSide)
+  public static void checkFunctionPointerInRightHandSide(CRightHandSide pRightHandSide)
       throws UnsupportedCodeException {
 
-    ImmutableSet<CSimpleDeclaration> declarations =
-        SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pRightHandSide, true);
-    if (declarations.stream().anyMatch(d -> d instanceof CFunctionDeclaration)) {
-      throw new UnsupportedCodeException(
-          InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
-          null);
+    ImmutableSet<CType> allTypes =
+        SeqPointerAliasingUtil.getAllTypesInType(
+            pRightHandSide.getExpressionType(), ImmutableSet.of());
+
+    for (CType type : allTypes) {
+      if (type instanceof CPointerType pointerType) {
+        ImmutableSet<CType> innerPointerTypes =
+            SeqPointerAliasingUtil.getAllTypesInType(pointerType, ImmutableSet.of());
+        if (innerPointerTypes.stream().anyMatch(t -> t instanceof CFunctionType)) {
+          throw new UnsupportedCodeException(
+              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message
+                  + pRightHandSide.toASTString(),
+              null);
+        }
+      }
     }
   }
 
@@ -236,7 +243,7 @@ public class InputRejection {
       return;
     }
     for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
-      checkFunctionPointerRightHandSide(parameterExpression);
+      checkFunctionPointerInRightHandSide(parameterExpression);
     }
   }
 
@@ -322,11 +329,11 @@ public class InputRejection {
     }
   }
 
-  public static void checkPointerWriteBinaryExpression(
-      CLeftHandSide pLeftHandSide, CExpression pRightHandSide) throws UnsupportedCodeException {
+  public static void checkBinaryExpressionInRightHandSide(CRightHandSide pRightHandSide)
+      throws UnsupportedCodeException {
 
-    if (pLeftHandSide.getExpressionType() instanceof CPointerType) {
-      if (pRightHandSide.accept(new CBinaryExpressionVisitor())) {
+    if (pRightHandSide instanceof CExpression expression) {
+      if (expression.accept(new CBinaryExpressionVisitor())) {
         throw new UnsupportedCodeException(
             String.format(
                 InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),

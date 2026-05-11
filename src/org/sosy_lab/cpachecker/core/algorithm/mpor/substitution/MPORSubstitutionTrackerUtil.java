@@ -12,34 +12,27 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CFieldReferenceTrackerResult;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker.CVariableDeclarationTrackerResult;
-import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitutionTrackerUtil {
@@ -52,58 +45,57 @@ public class MPORSubstitutionTrackerUtil {
     }
     // pointer assignments
     for (var entry : pFrom.getPointerAssignments().entrySet()) {
-      pTo.addPointerAssignment(
-          entry.getKey().declaration(),
-          entry.getKey().fieldMember(),
-          entry.getKey().expression(),
-          entry.getValue().declaration(),
-          entry.getKey().fieldMember(),
-          entry.getValue().expression());
+      pTo.addPointerAssignment(entry.getKey(), entry.getValue());
     }
     // pointer dereferences
-    for (CVariableDeclarationTrackerResult accessedPointerDereference :
-        pFrom.getAccessedPointerDereferences()) {
+    for (SeqMemoryLocation accessedPointerDereference : pFrom.getAccessedPointerDereferences()) {
       pTo.addAccessedPointerDereference(
-          accessedPointerDereference.variableDeclaration(),
-          accessedPointerDereference.expression());
+          accessedPointerDereference.callContext(),
+          Objects.requireNonNull(accessedPointerDereference.declaration()));
     }
-    for (CVariableDeclarationTrackerResult writtenPointerDereference :
-        pFrom.getWrittenPointerDereferences()) {
+    for (SeqMemoryLocation writtenPointerDereference : pFrom.getWrittenPointerDereferences()) {
       pTo.addWrittenPointerDereference(
-          writtenPointerDereference.variableDeclaration(), writtenPointerDereference.expression());
+          writtenPointerDereference.callContext(),
+          Objects.requireNonNull(writtenPointerDereference.declaration()));
     }
     // pointer dereferences from field members
-    for (CFieldReferenceTrackerResult fieldReferencePointerDereference :
+    for (SeqMemoryLocation fieldReferencePointerDereference :
         pFrom.getAccessedFieldReferencePointerDereferences()) {
       pTo.addAccessedFieldReferencePointerDereference(
-          fieldReferencePointerDereference.fieldOwner(),
-          fieldReferencePointerDereference.fieldMember(),
-          fieldReferencePointerDereference.fieldReference());
+          fieldReferencePointerDereference.callContext(),
+          Objects.requireNonNull(fieldReferencePointerDereference.declaration()),
+          fieldReferencePointerDereference.fieldMember().orElseThrow());
     }
-    for (CFieldReferenceTrackerResult fieldReferencePointerDereference :
+    for (SeqMemoryLocation fieldReferencePointerDereference :
         pFrom.getWrittenFieldReferencePointerDereferences()) {
       pTo.addWrittenFieldReferencePointerDereference(
-          fieldReferencePointerDereference.fieldOwner(),
-          fieldReferencePointerDereference.fieldMember(),
-          fieldReferencePointerDereference.fieldReference());
+          fieldReferencePointerDereference.callContext(),
+          Objects.requireNonNull(fieldReferencePointerDereference.declaration()),
+          fieldReferencePointerDereference.fieldMember().orElseThrow());
     }
     // declarations accessed
-    for (CVariableDeclarationTrackerResult accessedDeclaration : pFrom.getAccessedDeclarations()) {
+    for (SeqMemoryLocation accessedDeclaration : pFrom.getAccessedDeclarations()) {
       pTo.addAccessedDeclaration(
-          accessedDeclaration.variableDeclaration(), accessedDeclaration.expression());
+          accessedDeclaration.callContext(),
+          Objects.requireNonNull(accessedDeclaration.declaration()));
     }
-    for (CVariableDeclarationTrackerResult writtenDeclaration : pFrom.getWrittenDeclarations()) {
+    for (SeqMemoryLocation writtenDeclaration : pFrom.getWrittenDeclarations()) {
       pTo.addWrittenDeclaration(
-          writtenDeclaration.variableDeclaration(), writtenDeclaration.expression());
+          writtenDeclaration.callContext(),
+          Objects.requireNonNull(writtenDeclaration.declaration()));
     }
     // field members accessed
-    for (CFieldReferenceTrackerResult fieldMember : pFrom.getAccessedFieldMembers()) {
+    for (SeqMemoryLocation fieldMember : pFrom.getAccessedFieldMembers()) {
       pTo.addAccessedFieldMember(
-          fieldMember.fieldOwner(), fieldMember.fieldMember(), fieldMember.fieldReference());
+          fieldMember.callContext(),
+          Objects.requireNonNull(fieldMember.declaration()),
+          fieldMember.fieldMember().orElseThrow());
     }
-    for (CFieldReferenceTrackerResult fieldMember : pFrom.getWrittenFieldMembers()) {
+    for (SeqMemoryLocation fieldMember : pFrom.getWrittenFieldMembers()) {
       pTo.addWrittenFieldMember(
-          fieldMember.fieldOwner(), fieldMember.fieldMember(), fieldMember.fieldReference());
+          fieldMember.callContext(),
+          Objects.requireNonNull(fieldMember.declaration()),
+          fieldMember.fieldMember().orElseThrow());
     }
   }
 
@@ -117,6 +109,7 @@ public class MPORSubstitutionTrackerUtil {
   static void trackDeclarationAccess(
       MPOROptions pOptions,
       CIdExpression pIdExpression,
+      Optional<CFAEdgeForThread> pCallContext,
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsFieldReference,
@@ -134,12 +127,12 @@ public class MPORSubstitutionTrackerUtil {
     // exclude pointer dereferences, they are handled separately
     if (!pIsPointerDereference) {
       CSimpleDeclaration simpleDeclaration = pIdExpression.getDeclaration();
-      pTracker.addAccessedDeclaration(simpleDeclaration, pIdExpression);
+      pTracker.addAccessedDeclaration(pCallContext, simpleDeclaration);
       CType type = simpleDeclaration.getType();
       boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
       // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
       if (pIsWrite || isMutex) {
-        pTracker.addWrittenDeclaration(simpleDeclaration, pIdExpression);
+        pTracker.addWrittenDeclaration(pCallContext, simpleDeclaration);
       }
     }
   }
@@ -162,49 +155,30 @@ public class MPORSubstitutionTrackerUtil {
   // Pointer Assignments ===========================================================================
 
   static void trackPointerAssignment(
-      CLeftHandSide pLeftHandSide, CExpression pRightHandSide, MPORSubstitutionTracker pTracker)
+      CLeftHandSide pLeftHandSide,
+      CRightHandSide pRightHandSide,
+      Optional<CFAEdgeForThread> pCallContext,
+      CFA pInputCfa,
+      MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
-    InputRejection.checkFunctionPointerRightHandSide(pRightHandSide);
-    InputRejection.checkPointerWriteBinaryExpression(pLeftHandSide, pRightHandSide);
-
-    CSimpleDeclaration leftHandSideDeclaration =
-        pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
-    CType leftHandSideType = leftHandSideDeclaration.getType();
-    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
-
-    if (SeqPointerAliasingUtil.isAnyTypeTargetClass(
-        leftHandSideType, CPointerType.class, stopNames)) {
-      CPointerAssignmentVisitResult leftHandSideVisitResult =
-          pLeftHandSide.accept(new CPointerAssignmentVisitor());
-      if (leftHandSideVisitResult != null) {
-        // if LHS has a field member that is not CPointerType, then it is not a pointer assignment
-        if (leftHandSideVisitResult.fieldMember().isPresent()) {
-          CType fieldMemberType = leftHandSideVisitResult.fieldMember().orElseThrow().getType();
-          if (!SeqPointerAliasingUtil.isAnyTypeTargetClass(
-              fieldMemberType, CPointerType.class, stopNames)) {
-            return;
-          }
-        }
-        CPointerAssignmentVisitResult rightHandSideVisitResult =
-            pRightHandSide.accept(new CPointerAssignmentVisitor());
-        // visitResult can be null, e.g., if pRightHandSide is a literal int like '0'
-        if (rightHandSideVisitResult != null) {
-          pTracker.addPointerAssignment(
-              leftHandSideVisitResult.declaration(),
-              leftHandSideVisitResult.fieldMember(),
-              leftHandSideVisitResult.expression(),
-              rightHandSideVisitResult.declaration(),
-              rightHandSideVisitResult.fieldMember(),
-              rightHandSideVisitResult.expression());
-        }
-      }
+    Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> pointerAssignment =
+        SeqPointerAliasingUtil.tryMapPointerAssignment(
+            // since all raw assignments from the input program are not across a function (e.g.
+            // parameter or return value assignments), the same call context is used for the
+            // left-hand and right-hand sides
+            pLeftHandSide, pRightHandSide, pCallContext, pCallContext, pInputCfa);
+    if (pointerAssignment.isPresent()) {
+      pTracker.addPointerAssignment(
+          pointerAssignment.orElseThrow().getKey(), pointerAssignment.orElseThrow().getValue());
     }
   }
 
   static void trackPointerAssignmentInVariableDeclaration(
       CVariableDeclaration pVariableDeclaration,
       CIdExpression pIdExpression,
+      Optional<CFAEdgeForThread> pCallContext,
+      CFA pInputCfa,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
@@ -213,63 +187,8 @@ public class MPORSubstitutionTrackerUtil {
         "pVariableDeclaration must be equal to pIdExpression.getDeclaration().");
     if (pVariableDeclaration.getInitializer()
         instanceof CInitializerExpression initializerExpression) {
-      trackPointerAssignment(pIdExpression, initializerExpression.getExpression(), pTracker);
-    }
-  }
-
-  private record CPointerAssignmentVisitResult(
-      CSimpleDeclaration declaration,
-      Optional<CCompositeTypeMemberDeclaration> fieldMember,
-      CExpression expression) {}
-
-  private static final class CPointerAssignmentVisitor
-      extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, NoException> {
-
-    @Override
-    public CPointerAssignmentVisitResult visit(
-        CArraySubscriptExpression pArraySubscriptExpression) {
-      return pArraySubscriptExpression.getArrayExpression().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference) {
-      CPointerAssignmentVisitResult fieldOwnerResult = pFieldReference.getFieldOwner().accept(this);
-      CCompositeTypeMemberDeclaration fieldMember =
-          SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
-              pFieldReference.getFieldOwner().getExpressionType(), pFieldReference.getFieldName());
-      return new CPointerAssignmentVisitResult(
-          fieldOwnerResult.declaration, Optional.of(fieldMember), pFieldReference);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CPointerExpression pPointerExpression) {
-      return pPointerExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CComplexCastExpression pComplexCastExpression) {
-      return pComplexCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CCastExpression pCastExpression) {
-      return pCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CUnaryExpression pUnaryExpression) {
-      return pUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public CPointerAssignmentVisitResult visit(CIdExpression pIdExpression) {
-      return new CPointerAssignmentVisitResult(
-          pIdExpression.getDeclaration(), Optional.empty(), pIdExpression);
-    }
-
-    @Override
-    protected @Nullable CPointerAssignmentVisitResult visitDefault(CExpression exp) {
-      return null;
+      trackPointerAssignment(
+          pIdExpression, initializerExpression.getExpression(), pCallContext, pInputCfa, pTracker);
     }
   }
 
@@ -280,25 +199,38 @@ public class MPORSubstitutionTrackerUtil {
    * which is equivalent to {@code *(arr + i)}.
    */
   static void trackPointerDereferenceByLeftHandSide(
-      CLeftHandSide pLeftHandSide, boolean pIsWrite, MPORSubstitutionTracker pTracker) {
+      CLeftHandSide pLeftHandSide,
+      Optional<CFAEdgeForThread> pCallContext,
+      boolean pIsWrite,
+      MPORSubstitutionTracker pTracker)
+      throws UnsupportedCodeException {
 
-    CSimpleDeclaration declaration =
-        pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
-    // do not consider CFunctionDeclarations
-    if (SubstituteUtil.isSubstitutable(declaration)) {
-      CVariableDeclaration variableDeclaration = MPORUtil.convertToVariableDeclaration(declaration);
-      CIdExpression idExpression = new CIdExpression(FileLocation.DUMMY, variableDeclaration);
-      if (pIsWrite) {
-        pTracker.addWrittenPointerDereference(declaration, idExpression);
+    if (pLeftHandSide instanceof CFieldReference fieldReference) {
+      trackFieldReference(fieldReference, pCallContext, pIsWrite, pTracker);
+
+    } else if (pLeftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression
+        && arraySubscriptExpression.getArrayExpression()
+            instanceof CFieldReference fieldReference) {
+      trackFieldReference(fieldReference, pCallContext, pIsWrite, pTracker);
+
+    } else {
+      CSimpleDeclaration declaration =
+          pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
+      // do not consider CFunctionDeclarations
+      if (SubstituteUtil.isSubstitutable(declaration)) {
+        if (pIsWrite) {
+          pTracker.addWrittenPointerDereference(pCallContext, declaration);
+        }
+        pTracker.addAccessedPointerDereference(pCallContext, declaration);
       }
-      pTracker.addAccessedPointerDereference(declaration, idExpression);
     }
   }
 
-  // Field References ==============================================================================
-
-  static void trackFieldReference(
-      CFieldReference pFieldReference, boolean pIsWrite, MPORSubstitutionTracker pTracker)
+  private static void trackFieldReference(
+      CFieldReference pFieldReference,
+      Optional<CFAEdgeForThread> pCallContext,
+      boolean pIsWrite,
+      MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
     InputRejection.checkMultipleDeclarationsInFieldReferenceOwner(pFieldReference);
@@ -317,16 +249,16 @@ public class MPORSubstitutionTrackerUtil {
       if (pFieldReference.isPointerDereference()) {
         if (pIsWrite) {
           pTracker.addWrittenFieldReferencePointerDereference(
-              fieldOwnerDeclaration, fieldMember, pFieldReference);
+              pCallContext, fieldOwnerDeclaration, fieldMember);
         }
         pTracker.addAccessedFieldReferencePointerDereference(
-            fieldOwnerDeclaration, fieldMember, pFieldReference);
+            pCallContext, fieldOwnerDeclaration, fieldMember);
       }
 
       if (pIsWrite) {
-        pTracker.addWrittenFieldMember(fieldOwnerDeclaration, fieldMember, pFieldReference);
+        pTracker.addWrittenFieldMember(pCallContext, fieldOwnerDeclaration, fieldMember);
       }
-      pTracker.addAccessedFieldMember(fieldOwnerDeclaration, fieldMember, pFieldReference);
+      pTracker.addAccessedFieldMember(pCallContext, fieldOwnerDeclaration, fieldMember);
     }
   }
 }

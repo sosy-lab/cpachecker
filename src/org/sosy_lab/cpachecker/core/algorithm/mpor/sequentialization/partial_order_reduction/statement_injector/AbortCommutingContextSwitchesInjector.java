@@ -38,9 +38,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SeqSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -93,7 +93,7 @@ public record AbortCommutingContextSwitchesInjector(
 
     // *conflict between prev_thread and current_thread*
     SeqThreadStatementBlock firstBlock =
-        Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
+        Objects.requireNonNull(labelBlockMap.get(SeqProgramCounterVariables.INIT_PC));
     Optional<CExportExpression> prevBitVectorEvaluation =
         BitVectorEvaluationBuilder.buildPrevBitVectorEvaluation(
             options,
@@ -203,7 +203,7 @@ public record AbortCommutingContextSwitchesInjector(
     ImmutableList.Builder<CExpressionAssignmentStatement> rUpdates = ImmutableList.builder();
     ImmutableMap<SeqMemoryLocation, PrevSparseBitVector> prevSparseBitVectors =
         bitVectorVariables.getPrevSparseBitVectorByAccessType(pAccessType);
-    ImmutableMap<SeqMemoryLocation, SparseBitVector> sparseBitVectors =
+    ImmutableMap<SeqMemoryLocation, SeqSparseBitVector> sparseBitVectors =
         bitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (var entry : sparseBitVectors.entrySet()) {
       Optional<CIdExpression> directVariable =

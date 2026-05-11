@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record ProgramCounterVariableBuilder(
+public record SeqProgramCounterVariableBuilder(
     boolean scalarProgramCounters,
     NondeterminismSource nondeterminismSource,
     int numThreads,
@@ -43,10 +43,10 @@ public record ProgramCounterVariableBuilder(
   private static final String PROGRAM_COUNTER_VARIABLE_NAME = "pc";
 
   public static final CIntegerLiteralExpression INIT_PC_LITERAL_EXPRESSION =
-      buildIntegerLiteralExpression(ProgramCounterVariables.INIT_PC);
+      buildIntegerLiteralExpression(SeqProgramCounterVariables.INIT_PC);
 
   public static final CIntegerLiteralExpression EXIT_PC_LITERAL_EXPRESSION =
-      buildIntegerLiteralExpression(ProgramCounterVariables.EXIT_PC);
+      buildIntegerLiteralExpression(SeqProgramCounterVariables.EXIT_PC);
 
   private static final CInitializer INIT_PC_INITIALIZER =
       new CInitializerExpression(FileLocation.DUMMY, INIT_PC_LITERAL_EXPRESSION);
@@ -66,7 +66,8 @@ public record ProgramCounterVariableBuilder(
               PROGRAM_COUNTER_VARIABLE_NAME,
               SeqInitializers.EMPTY_LIST));
 
-  public ProgramCounterVariables buildProgramCounterVariables() throws UnrecognizedCodeException {
+  public SeqProgramCounterVariables buildProgramCounterVariables()
+      throws UnrecognizedCodeException {
     ImmutableList<CLeftHandSide> pcLeftHandSides = buildPcLeftHandSides();
     ImmutableList<CVariableDeclaration> pcDeclarations =
         buildPcDeclarations(numThreads, pcLeftHandSides);
@@ -78,7 +79,7 @@ public record ProgramCounterVariableBuilder(
         buildPcBinaryExpressions(pcLeftHandSides, BinaryOperator.EQUALS);
     // pc[next_thread] != 0, present only if options make it necessary
     Optional<CBinaryExpression> nextThreadActiveExpression = buildNextThreadActiveExpression();
-    return new ProgramCounterVariables(
+    return new SeqProgramCounterVariables(
         pcLeftHandSides,
         pcDeclarations,
         threadActiveExpressions,
@@ -186,8 +187,8 @@ public record ProgramCounterVariableBuilder(
   // Initializer
 
   /**
-   * Returns the {@link CInitializer} for {@link ProgramCounterVariables#INIT_PC} for the main
-   * thread and {@link ProgramCounterVariables#EXIT_PC} for all other threads.
+   * Returns the {@link CInitializer} for {@link SeqProgramCounterVariables#INIT_PC} for the main
+   * thread and {@link SeqProgramCounterVariables#EXIT_PC} for all other threads.
    */
   private static CInitializer getPcInitializer(boolean pIsMainThread) {
     return pIsMainThread ? INIT_PC_INITIALIZER : EXIT_PC_INITIALIZER;

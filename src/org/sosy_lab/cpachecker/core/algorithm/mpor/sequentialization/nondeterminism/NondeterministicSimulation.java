@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.AbortCommutingContextSwitchesInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -89,14 +89,14 @@ public abstract class NondeterministicSimulation {
 
   final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
-  final GhostElements ghostElements;
+  final SeqGhostElements ghostElements;
 
   final SequentializationUtils utils;
 
   NondeterministicSimulation(
       MPOROptions pOptions,
       SeqPointerAliasingMap pPointerAliasingMap,
-      GhostElements pGhostElements,
+      SeqGhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
@@ -131,7 +131,10 @@ public abstract class NondeterministicSimulation {
               "cannot build statements for MultiSelectionStatementEncoding " + pEncoding);
       case BINARY_SEARCH_TREE ->
           CMultiSelectionStatementBuilder.buildBinarySearchTree(
-              ProgramCounterVariables.INIT_PC, pExpression, pStatements, pBinaryExpressionBuilder);
+              SeqProgramCounterVariables.INIT_PC,
+              pExpression,
+              pStatements,
+              pBinaryExpressionBuilder);
       case IF_ELSE_CHAIN ->
           CMultiSelectionStatementBuilder.buildIfElseChain(pStatements, Optional.empty());
       case SWITCH_CASE -> new CSwitchStatement(pExpression, pStatements);
@@ -154,7 +157,8 @@ public abstract class NondeterministicSimulation {
                 options, clauses.get(pThread), utils.binaryExpressionBuilder())
             : clauses.get(pThread);
 
-    CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
+    CLeftHandSide pcLeftHandSide =
+        ghostElements.programCounterVariables().getPcLeftHandSide(pThread.id());
     ImmutableMap<CExportExpression, CCompoundStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionsToCompoundStatements(
             options, pcLeftHandSide, withInjectedStatements, utils.binaryExpressionBuilder());

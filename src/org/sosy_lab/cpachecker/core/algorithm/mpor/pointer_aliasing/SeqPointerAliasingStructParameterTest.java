@@ -192,19 +192,23 @@ public class SeqPointerAliasingStructParameterTest {
 
   private final SeqMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, Optional.of(OUTER_STRUCT_MEMBER_DECLARATION));
 
   private final SeqMemoryLocation OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_POINTER_MEMBER_DECLARATION);
+          Optional.empty(),
+          OUTER_STRUCT_DECLARATION,
+          Optional.of(OUTER_STRUCT_POINTER_MEMBER_DECLARATION));
 
   private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
+          Optional.empty(), OUTER_STRUCT_DECLARATION, Optional.of(INNER_STRUCT_MEMBER_DECLARATION));
 
   private final SeqMemoryLocation INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       SeqMemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_POINTER_MEMBER_DECLARATION);
+          Optional.empty(),
+          OUTER_STRUCT_DECLARATION,
+          Optional.of(INNER_STRUCT_POINTER_MEMBER_DECLARATION));
 
   // Memory Locations (primitives)
 
@@ -232,8 +236,6 @@ public class SeqPointerAliasingStructParameterTest {
           Optional.of(SeqPointerAliasingParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration());
 
-  public SeqPointerAliasingStructParameterTest() {}
-
   @Test
   public void test_outer_struct_pointer_parameter_dereference() {
     // param_ptr_outer = &outer; i.e. pointer parameter assignment
@@ -242,15 +244,20 @@ public class SeqPointerAliasingStructParameterTest {
             .put(PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION, OUTER_STRUCT_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
+
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            ImmutableSetMultimap.of(),
+            pointerParameterAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of());
 
     // find the mem locations associated with deref of 'param_ptr_outer'
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION,
-            ImmutableSetMultimap.of(),
-            ImmutableMap.of(),
-            pointerParameterAssignments);
+            PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION, allPointerAssignments);
 
     // memory location of 'outer' should be associated with deref of 'param_ptr_outer'
     assertThat(memoryLocations).hasSize(1);
@@ -267,22 +274,24 @@ public class SeqPointerAliasingStructParameterTest {
             .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_MEMBER_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
+
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            ImmutableSetMultimap.of(),
+            pointerParameterAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of());
 
     // find the mem locations associated with deref of 'param_ptr_P1'
     ImmutableSet<SeqMemoryLocation> memoryLocationsP1 =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P1_MEMORY_LOCATION,
-            ImmutableSetMultimap.of(),
-            ImmutableMap.of(),
-            pointerParameterAssignments);
+            PARAMETER_POINTER_P1_MEMORY_LOCATION, allPointerAssignments);
     // find the mem locations associated with deref of 'param_ptr_P2'
     ImmutableSet<SeqMemoryLocation> memoryLocationsP2 =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P2_MEMORY_LOCATION,
-            ImmutableSetMultimap.of(),
-            ImmutableMap.of(),
-            pointerParameterAssignments);
+            PARAMETER_POINTER_P2_MEMORY_LOCATION, allPointerAssignments);
 
     // memory location of 'outer.member' should be associated with deref of 'param_ptr_P1'
     assertThat(memoryLocationsP1).hasSize(1);
@@ -309,20 +318,22 @@ public class SeqPointerAliasingStructParameterTest {
             .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
+
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            pointerAssignments,
+            pointerParameterAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of());
 
     ImmutableSet<SeqMemoryLocation> memoryLocationsP1 =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P1_MEMORY_LOCATION,
-            pointerAssignments,
-            ImmutableMap.of(),
-            pointerParameterAssignments);
+            PARAMETER_POINTER_P1_MEMORY_LOCATION, allPointerAssignments);
     ImmutableSet<SeqMemoryLocation> memoryLocationsP2 =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P2_MEMORY_LOCATION,
-            pointerAssignments,
-            ImmutableMap.of(),
-            pointerParameterAssignments);
+            PARAMETER_POINTER_P2_MEMORY_LOCATION, allPointerAssignments);
 
     // check that param_ptr_P1 is associated with local_l1 and param_ptr_P2 with global_G1
     assertThat(memoryLocationsP1).hasSize(1);

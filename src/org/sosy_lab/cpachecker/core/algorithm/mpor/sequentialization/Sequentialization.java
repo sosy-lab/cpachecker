@@ -15,7 +15,6 @@ import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Sequentialization {
@@ -51,7 +50,7 @@ public class Sequentialization {
             : initProgram;
 
     // if enabled, check that the program can be parsed by CPAchecker
-    SeqValidator.tryValidateProgramParsing(pOptions, rFormattedProgram, pUtils);
+    SequentializationValidator.tryValidateProgramParsing(pOptions, rFormattedProgram, pUtils);
 
     return rFormattedProgram;
   }

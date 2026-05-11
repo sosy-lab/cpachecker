@@ -16,29 +16,25 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariablesBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariableBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlagsBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariableBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.SeqThreadSyncFlags;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.SeqThreadSyncFlagsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
-public record GhostElementBuilder(
+public record SeqGhostElementBuilder(
     MPOROptions options,
     ImmutableList<MPORThread> threads,
-    ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
     SeqPointerAliasingMap pointerAliasingMap,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
-  public GhostElements buildGhostElements() throws UnrecognizedCodeException {
+  public SeqGhostElements buildGhostElements() throws UnrecognizedCodeException {
     Optional<SeqBitVectorVariables> bitVectorVariables =
         options.isAnyBitVectorReductionEnabled()
             ? new SeqBitVectorVariablesBuilder(
@@ -46,29 +42,21 @@ public record GhostElementBuilder(
                 .buildBitVectorVariables()
             : Optional.empty();
 
-    FunctionStatementBuilder functionStatementBuilder =
-        new FunctionStatementBuilder(threads, substitutions, substituteEdges);
-    ImmutableMap<MPORThread, FunctionStatements> functionStatements =
-        functionStatementBuilder.buildFunctionStatements();
-
-    ProgramCounterVariableBuilder pcVariableBuilder =
-        new ProgramCounterVariableBuilder(
+    SeqProgramCounterVariableBuilder pcVariableBuilder =
+        new SeqProgramCounterVariableBuilder(
             options.scalarProgramCounters(),
             options.nondeterminismSource(),
             threads.size(),
             binaryExpressionBuilder);
-    ProgramCounterVariables programCounterVariables =
+    SeqProgramCounterVariables programCounterVariables =
         pcVariableBuilder.buildProgramCounterVariables();
 
-    ThreadSyncFlagsBuilder threadSyncFlagsBuilder = new ThreadSyncFlagsBuilder(options, threads);
-    ThreadSyncFlags threadSyncFlags = threadSyncFlagsBuilder.buildThreadSyncFlags();
+    SeqThreadSyncFlagsBuilder threadSyncFlagsBuilder =
+        new SeqThreadSyncFlagsBuilder(options, threads);
+    SeqThreadSyncFlags threadSyncFlags = threadSyncFlagsBuilder.buildThreadSyncFlags();
 
-    return new GhostElements(
-        bitVectorVariables,
-        functionStatements,
-        programCounterVariables,
-        buildThreadLabels(),
-        threadSyncFlags);
+    return new SeqGhostElements(
+        bitVectorVariables, programCounterVariables, buildThreadLabels(), threadSyncFlags);
   }
 
   private ImmutableMap<MPORThread, CLabelStatement> buildThreadLabels() {

@@ -18,9 +18,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public record ThreadSyncFlagsBuilder(MPOROptions options, ImmutableList<MPORThread> threads) {
+public record SeqThreadSyncFlagsBuilder(MPOROptions options, ImmutableList<MPORThread> threads) {
 
-  public ThreadSyncFlags buildThreadSyncFlags() {
+  public SeqThreadSyncFlags buildThreadSyncFlags() {
     ImmutableMap.Builder<MPORThread, CIdExpression> syncFlags = ImmutableMap.builder();
     for (MPORThread thread : threads) {
       String name = SeqNameUtil.buildThreadPrefix(options, thread.id()) + "_SYNC";
@@ -31,6 +31,6 @@ public record ThreadSyncFlagsBuilder(MPOROptions options, ImmutableList<MPORThre
               true, CNumericTypes.UNSIGNED_CHAR, name, SeqInitializers.INT_0);
       syncFlags.put(thread, sync);
     }
-    return new ThreadSyncFlags(syncFlags.buildOrThrow());
+    return new SeqThreadSyncFlags(syncFlags.buildOrThrow());
   }
 }

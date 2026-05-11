@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -35,7 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SubstituteEdgeBuilder {
 
   public static ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges(
-      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions, CFA pInputCfa)
       throws UnrecognizedCodeException {
 
     // using map so that we can use .containsKey (+ linked hash map retains insertion order)
@@ -46,7 +47,7 @@ public class SubstituteEdgeBuilder {
         if (!rSubstituteEdges.containsKey(threadEdge)) {
           CFAEdge cfaEdge = threadEdge.cfaEdge;
           Optional<SubstituteEdge> substitute =
-              trySubstituteEdge(pOptions, substitution, threadEdge);
+              trySubstituteEdge(pOptions, substitution, threadEdge, pInputCfa);
           // if edge is not substituted: just use original edge
           rSubstituteEdges.put(
               threadEdge,
@@ -66,7 +67,10 @@ public class SubstituteEdgeBuilder {
    * function declarations from the input program are included if specified by {@link MPOROptions}.
    */
   private static Optional<SubstituteEdge> trySubstituteEdge(
-      MPOROptions pOptions, MPORSubstitution pSubstitution, CFAEdgeForThread pThreadEdge)
+      MPOROptions pOptions,
+      MPORSubstitution pSubstitution,
+      CFAEdgeForThread pThreadEdge,
+      CFA pInputCfa)
       throws UnrecognizedCodeException {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
@@ -85,7 +89,7 @@ public class SubstituteEdgeBuilder {
           MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
           CVariableDeclaration declarationSubstitute =
               pSubstitution.getVariableDeclarationSubstitute(
-                  variableDeclaration, callContext, tracker);
+                  variableDeclaration, callContext, pInputCfa, tracker);
           CDeclarationEdge substituteDeclarationEdge =
               substituteDeclarationEdge(declarationEdge, declarationSubstitute);
           return Optional.of(
@@ -105,7 +109,7 @@ public class SubstituteEdgeBuilder {
     } else if (cfaEdge instanceof CStatementEdge statement) {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
       CStatement substituteStatement =
-          pSubstitution.substitute(statement.getStatement(), callContext, tracker);
+          pSubstitution.substitute(statement.getStatement(), callContext, pInputCfa, tracker);
       CStatementEdge substituteStatementEdge =
           substituteStatementEdge(statement, substituteStatement);
       return Optional.of(
@@ -116,7 +120,7 @@ public class SubstituteEdgeBuilder {
       if (functionSummary.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
         MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
         CStatement substituteAssignment =
-            pSubstitution.substitute(assignment, callContext, tracker);
+            pSubstitution.substitute(assignment, callContext, pInputCfa, tracker);
         CFunctionSummaryEdge substituteFunctionSummaryEdge =
             substituteFunctionSummaryEdge(functionSummary, substituteAssignment);
         return Optional.of(
@@ -127,7 +131,7 @@ public class SubstituteEdgeBuilder {
       // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
       CStatement substituteFunctionCall =
-          pSubstitution.substitute(functionCall.getFunctionCall(), callContext, tracker);
+          pSubstitution.substitute(functionCall.getFunctionCall(), callContext, pInputCfa, tracker);
       CFunctionCallEdge substituteFunctionCallEdge =
           substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall);
       return Optional.of(

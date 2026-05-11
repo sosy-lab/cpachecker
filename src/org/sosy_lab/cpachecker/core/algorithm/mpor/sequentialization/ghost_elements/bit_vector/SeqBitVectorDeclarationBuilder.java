@@ -31,10 +31,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.DenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SeqDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SeqSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -97,9 +97,9 @@ public record SeqBitVectorDeclarationBuilder(
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
 
-    ImmutableSet<DenseBitVector> denseBitVectors =
+    ImmutableSet<SeqDenseBitVector> denseBitVectors =
         bitVectorVariables.getDenseBitVectorsByAccessType(pAccessType);
-    for (DenseBitVector denseBitVector : denseBitVectors) {
+    for (SeqDenseBitVector denseBitVector : denseBitVectors) {
       MPORThread thread = denseBitVector.thread();
 
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
@@ -191,7 +191,7 @@ public record SeqBitVectorDeclarationBuilder(
 
   private ImmutableList<CVariableDeclaration> buildCurrentSparseBitVectorDeclarations(
       MPORThread pThread,
-      ImmutableMap<SeqMemoryLocation, SparseBitVector> pSparseBitVectors,
+      ImmutableMap<SeqMemoryLocation, SeqSparseBitVector> pSparseBitVectors,
       ImmutableList<SeqThreadStatementClause> pClauses,
       SeqMemoryAccessType pAccessType) {
 

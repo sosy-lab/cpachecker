@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -22,16 +22,19 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-public class SeqValidator {
+/**
+ * A class to validate specific properties that should hold on components of the sequentialization,
+ * e.g., that CPAchecker is able to parse the output {@code String} program.
+ */
+public class SequentializationValidator {
 
   // Program Parsing ===============================================================================
 
@@ -123,7 +126,7 @@ public class SeqValidator {
       throws IllegalArgumentException {
 
     // exclude INIT_PC, it is (often) not present as a target pc
-    if (pLabelPc != ProgramCounterVariables.INIT_PC) {
+    if (pLabelPc != SeqProgramCounterVariables.INIT_PC) {
       // check if label is a target pc anywhere in this threads switch statement
       if (!pAllTargetPc.contains(pLabelPc)) {
         throw new IllegalStateException(
@@ -139,7 +142,7 @@ public class SeqValidator {
 
     for (int targetPc : pTargetPcs) {
       // exclude EXIT_PC, it is never present as a label pc
-      if (targetPc != ProgramCounterVariables.EXIT_PC) {
+      if (targetPc != SeqProgramCounterVariables.EXIT_PC) {
         if (!pLabelPcs.contains(targetPc)) {
           throw new IllegalStateException(
               String.format(

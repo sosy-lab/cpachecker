@@ -46,6 +46,8 @@ void *task1(void *arg) {
     x++;
     printk("hello!");
     printk("hello", "my", "friend", ":)");
+    int* result = malloc(sizeof(int));
+    pthread_exit((void*)result);
 }
 void *task2(void *arg) {
     x++;
@@ -95,6 +97,10 @@ void pass_struct_ptr_again(PQUEUE * a_struct_ptr_again) {
     pthread_mutex_lock(a_struct_ptr_again->inner_mutex);
     printk("and what about this?");
     pthread_mutex_unlock(a_struct_ptr_again->inner_mutex);
+}
+int * return_pointer() {
+   int* return_value = malloc(sizeof(int));
+   return return_value;
 }
 const int global_const = 0;
 int main() {
@@ -159,12 +165,20 @@ int main() {
     pthread_mutex_destroy(&struct_with_mutex.inner_mutex);
     pthread_mutex_destroy(&another_struct_with_mutex.inner_mutex);
 
+    int* an_integer_ptr = return_pointer();
+
     pthread_t id1, id2;
     pthread_create(&id1, (void *) 0, task1, (void *) 0);
     pthread_create(&id2, (void *) 0, task2, (void *) 0);
     typedef unsigned int typedef_inside_function;
     pthread_join(id1, (void *) 0);
     pthread_join(id2, (void *) 0);
+
+    pthread_t id3;
+    pthread_create(&id3, (void *) 0, task1, (void *) 0);
+    void* return_value;
+    pthread_join(id3, & return_value);
+
     if (x < 2) {
       __assert_fail("0", "simple_two.c", 24, __extension__ __PRETTY_FUNCTION__);
     } else if (x == 2) {
@@ -196,6 +210,4 @@ int main() {
       __VERIFIER_atomic_end();
     }
     top = 42;
-    pthread_t id3;
-    pthread_create(&id3, (void *) 0, task1, (void *) 0);
 }

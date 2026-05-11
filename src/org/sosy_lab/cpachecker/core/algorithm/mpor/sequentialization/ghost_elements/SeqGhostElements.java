@@ -10,32 +10,22 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.SeqThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
 /**
- * Contains ghost elements not present in the input program, e.g. to simulate threads or functions.
+ * Contains ghost elements not present in the input program, e.g. to simulate threads or partial
+ * order reduction.
  */
-public record GhostElements(
+public record SeqGhostElements(
     Optional<SeqBitVectorVariables> bitVectorVariables,
-    ImmutableMap<MPORThread, FunctionStatements> functionStatements,
-    ProgramCounterVariables programCounterVariables,
+    SeqProgramCounterVariables programCounterVariables,
     ImmutableMap<MPORThread, CLabelStatement> threadLabels,
-    ThreadSyncFlags threadSyncFlags) {
-
-  public FunctionStatements getFunctionStatementsByThread(MPORThread pThread) {
-    return Objects.requireNonNull(functionStatements.get(pThread));
-  }
-
-  public ProgramCounterVariables getPcVariables() {
-    return programCounterVariables;
-  }
+    SeqThreadSyncFlags threadSyncFlags) {
 
   /**
    * Returns the {@link CLabelStatement} of the next thread relative to {@code pThread}, i.e. the

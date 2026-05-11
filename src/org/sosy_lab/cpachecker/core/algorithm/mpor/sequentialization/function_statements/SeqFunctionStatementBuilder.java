@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -33,23 +33,24 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-public record FunctionStatementBuilder(
+public record SeqFunctionStatementBuilder(
     ImmutableList<MPORThread> threads,
     ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges) {
 
-  public ImmutableMap<MPORThread, FunctionStatements> buildFunctionStatements()
+  public ImmutableMap<MPORThread, SeqFunctionStatements> buildFunctionStatements()
       throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<MPORThread, FunctionStatements> rFunctionStatements =
+    ImmutableMap.Builder<MPORThread, SeqFunctionStatements> rFunctionStatements =
         ImmutableMap.builder();
     for (MPORSubstitution substitution : substitutions) {
       for (MPORThread thread : threads) {
@@ -61,10 +62,10 @@ public record FunctionStatementBuilder(
     return rFunctionStatements.buildOrThrow();
   }
 
-  private FunctionStatements buildFunctionStatements(
+  private SeqFunctionStatements buildFunctionStatements(
       MPORThread pThread, MPORSubstitution pSubstitution) throws UnrecognizedCodeException {
 
-    return new FunctionStatements(
+    return new SeqFunctionStatements(
         buildParameterAssignments(pSubstitution),
         buildStartRoutineArgAssignments(pSubstitution),
         buildReturnValueAssignments(pThread),
@@ -75,16 +76,16 @@ public record FunctionStatementBuilder(
 
   /**
    * Maps {@link CFAEdgeForThread}s whose {@link CFAEdge} is a {@link CFunctionCallEdge} to a list
-   * of {@link FunctionParameterAssignment}s.
+   * of {@link SeqFunctionParameterAssignment}s.
    *
    * <p>E.g. {@code func(&paramA, paramB);} in thread 0 is linked to {@code __t0_0_paramA = &paramA
    * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution variables are declared in {@link
    * MPORSubstitution#parameterSubstitutes}.
    */
-  private ImmutableListMultimap<CFAEdgeForThread, FunctionParameterAssignment>
-      buildParameterAssignments(MPORSubstitution pSubstitution) throws UnrecognizedCodeException {
+  private ImmutableListMultimap<CFAEdgeForThread, SeqFunctionParameterAssignment>
+      buildParameterAssignments(MPORSubstitution pSubstitution) {
 
-    ImmutableListMultimap.Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments =
+    ImmutableListMultimap.Builder<CFAEdgeForThread, SeqFunctionParameterAssignment> rAssignments =
         ImmutableListMultimap.builder();
     // for each function call edge (= calling context)
     for (CFAEdgeForThread callContext : pSubstitution.parameterSubstitutes.rowKeySet()) {
@@ -96,13 +97,12 @@ public record FunctionStatementBuilder(
     return rAssignments.build();
   }
 
-  private ImmutableList<FunctionParameterAssignment> buildFunctionParameterAssignments(
+  private ImmutableList<SeqFunctionParameterAssignment> buildFunctionParameterAssignments(
       CFunctionCallEdge pFunctionCallEdge,
       CFAEdgeForThread pCallContext,
-      MPORSubstitution pSubstitution)
-      throws UnrecognizedCodeException {
+      MPORSubstitution pSubstitution) {
 
-    ImmutableList.Builder<FunctionParameterAssignment> rAssignments = ImmutableList.builder();
+    ImmutableList.Builder<SeqFunctionParameterAssignment> rAssignments = ImmutableList.builder();
     CFunctionDeclaration functionDeclaration =
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
     for (int i = 0; i < functionDeclaration.getParameters().size(); i++) {
@@ -110,27 +110,27 @@ public record FunctionStatementBuilder(
           MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
       ImmutableList<CIdExpression> parameterSubstitutes =
           pSubstitution.getParameterDeclarationSubstitute(pCallContext, parameterDeclaration);
+      // for normal function calls the call context is always a CFunctionCallEdge
+      CFunctionCallEdge callContextSubstitute =
+          (CFunctionCallEdge) Objects.requireNonNull(substituteEdges.get(pCallContext)).cfaEdge;
       // go through all parameter substitutes. if there is more than one, the function is variadic
       for (int j = 0; j < parameterSubstitutes.size(); j++) {
-        CExpression argument = pFunctionCallEdge.getArguments().get(i + j);
-        MPORSubstitutionTracker dummyTracker = new MPORSubstitutionTracker();
-        CExpression argumentSubstitute =
-            pSubstitution.substitute(
-                // use "outer" call context, since pCallContext is the given pFunctionCallEdge
-                argument, pCallContext.callContext, false, false, false, false, dummyTracker);
-        CIdExpression parameterSubstitute = parameterSubstitutes.get(j);
+        CExpressionAssignmentStatement expressionAssignmentStatement =
+            SeqStatementBuilder.buildExpressionAssignmentStatement(
+                parameterSubstitutes.get(j), callContextSubstitute.getArguments().get(i + j));
         rAssignments.add(
-            new FunctionParameterAssignment(pCallContext, parameterSubstitute, argumentSubstitute));
+            new SeqFunctionParameterAssignment(
+                expressionAssignmentStatement, pCallContext, pCallContext.callContext));
       }
     }
     return rAssignments.build();
   }
 
-  private ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment>
+  private ImmutableMap<CFAEdgeForThread, SeqFunctionParameterAssignment>
       buildStartRoutineArgAssignments(MPORSubstitution pSubstitution)
           throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments =
+    ImmutableMap.Builder<CFAEdgeForThread, SeqFunctionParameterAssignment> rAssignments =
         ImmutableMap.builder();
     Set<CFAEdgeForThread> visited = new HashSet<>();
     for (var cell : pSubstitution.startRoutineArgSubstitutes.cellSet()) {
@@ -139,26 +139,18 @@ public record FunctionStatementBuilder(
       if (visited.add(callContext)) {
         // only the thread calling pthread_create assigns the start_routine arg
         if (pSubstitution.getThread().id() == callContext.threadId) {
-          CIdExpression leftHandSide = cell.getValue();
-          Optional<CFunctionCall> functionCall =
-              PthreadUtil.tryGetFunctionCallFromCfaEdge(callContext.cfaEdge);
-          if (functionCall.isPresent()) {
-            CExpression rightHandSide =
-                PthreadUtil.extractStartRoutineArg(functionCall.orElseThrow());
-            MPORSubstitutionTracker dummyTracker = new MPORSubstitutionTracker();
-            FunctionParameterAssignment startRoutineArgAssignment =
-                new FunctionParameterAssignment(
-                    callContext,
-                    leftHandSide,
-                    pSubstitution.substitute(
-                        // the inner call context is the context in which pthread_create is called
-                        rightHandSide,
-                        callContext.callContext,
-                        false,
-                        false,
-                        false,
-                        false,
-                        dummyTracker));
+          SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(callContext));
+          Optional<CFunctionCall> functionCallSubstitute =
+              PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge);
+          if (functionCallSubstitute.isPresent()) {
+            CExpression rightHandSideSubstitute =
+                PthreadUtil.extractStartRoutineArg(functionCallSubstitute.orElseThrow());
+            CExpressionAssignmentStatement expressionAssignmentStatement =
+                SeqStatementBuilder.buildExpressionAssignmentStatement(
+                    cell.getValue(), rightHandSideSubstitute);
+            SeqFunctionParameterAssignment startRoutineArgAssignment =
+                new SeqFunctionParameterAssignment(
+                    expressionAssignmentStatement, callContext, callContext.callContext);
             rAssignments.put(callContext, startRoutineArgAssignment);
           }
         }
@@ -171,7 +163,7 @@ public record FunctionStatementBuilder(
 
   /**
    * Maps {@link CFAEdgeForThread}s whose {@link CFAEdge} is a {@link CReturnStatementEdge} to
-   * {@link FunctionReturnValueAssignment}s where the CPAchecker_TMP vars are assigned the return
+   * {@link SeqFunctionReturnValueAssignment}s where the CPAchecker_TMP vars are assigned the return
    * value.
    *
    * <p>The return statement may be linked to multiple function calls, thus the inner set.
@@ -179,10 +171,10 @@ public record FunctionStatementBuilder(
    * <p>Note that {@code main} functions and start_routines of threads oftentimes do not have
    * corresponding {@link CFunctionSummaryEdge}s.
    */
-  private ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> buildReturnValueAssignments(
-      MPORThread pThread) {
+  private ImmutableMap<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
+      buildReturnValueAssignments(MPORThread pThread) {
 
-    ImmutableMap.Builder<CFAEdgeForThread, FunctionReturnValueAssignment> rReturnStatements =
+    ImmutableMap.Builder<CFAEdgeForThread, SeqFunctionReturnValueAssignment> rReturnStatements =
         ImmutableMap.builder();
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       checkState(
@@ -196,7 +188,7 @@ public record FunctionStatementBuilder(
               tryGetFunctionSummaryEdgeByReturnStatementEdge(
                   pThread, returnStatementEdge, callContext);
           if (functionSummaryEdge.isPresent()) {
-            Optional<FunctionReturnValueAssignment> assignment =
+            Optional<SeqFunctionReturnValueAssignment> assignment =
                 tryBuildReturnValueAssignment(
                     functionSummaryEdge.orElseThrow(), returnStatementEdge);
             if (assignment.isPresent()) {
@@ -247,7 +239,7 @@ public record FunctionStatementBuilder(
     return Optional.empty();
   }
 
-  private Optional<FunctionReturnValueAssignment> tryBuildReturnValueAssignment(
+  private Optional<SeqFunctionReturnValueAssignment> tryBuildReturnValueAssignment(
       SubstituteEdge pFunctionSummaryEdge, CReturnStatementEdge pReturnStatementEdge) {
 
     CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) pFunctionSummaryEdge.cfaEdge;
@@ -263,7 +255,11 @@ public record FunctionStatementBuilder(
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 functionCallAssignmentStatement.getLeftHandSide(),
                 pReturnStatementEdge.getExpression().orElseThrow());
-        return Optional.of(new FunctionReturnValueAssignment(assignmentStatement));
+        return Optional.of(
+            new SeqFunctionReturnValueAssignment(
+                assignmentStatement,
+                pFunctionSummaryEdge.getCallContext(),
+                pFunctionSummaryEdge.getThreadEdge()));
       }
     }
     return Optional.empty();
@@ -273,13 +269,13 @@ public record FunctionStatementBuilder(
 
   /**
    * Links {@link CFAEdgeForThread}s that call {@code pthread_exit} to {@link
-   * FunctionReturnValueAssignment} where the {@code retval} is stored in an intermediate value that
-   * can be retrieved by other threads calling {@code pthread_join}.
+   * SeqFunctionReturnValueAssignment} where the {@code retval} is stored in an intermediate value
+   * that can be retrieved by other threads calling {@code pthread_join}.
    */
-  private ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment>
+  private ImmutableMap<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
       buildStartRoutineExitAssignments(MPORThread pThread) throws UnsupportedCodeException {
 
-    ImmutableMap.Builder<CFAEdgeForThread, FunctionReturnValueAssignment>
+    ImmutableMap.Builder<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
         rStartRoutineExitAssignments = ImmutableMap.builder();
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       Optional<CFunctionCall> functionCall =
@@ -293,8 +289,10 @@ public record FunctionStatementBuilder(
               SeqStatementBuilder.buildExpressionAssignmentStatement(
                   pThread.startRoutineExitVariable().orElseThrow(),
                   PthreadUtil.extractExitReturnValue(substituteFunctionCall));
-          FunctionReturnValueAssignment assignment =
-              new FunctionReturnValueAssignment(assignmentStatement);
+          CFAEdgeForThread callContext = substituteEdge.getCallContext().orElseThrow();
+          SeqFunctionReturnValueAssignment assignment =
+              new SeqFunctionReturnValueAssignment(
+                  assignmentStatement, callContext.callContext, callContext);
           rStartRoutineExitAssignments.put(threadEdge, assignment);
         }
       }

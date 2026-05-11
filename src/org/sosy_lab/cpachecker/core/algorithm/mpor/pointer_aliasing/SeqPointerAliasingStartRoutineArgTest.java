@@ -86,8 +86,6 @@ public class SeqPointerAliasingStartRoutineArgTest {
           Optional.of(SeqPointerAliasingParameterTest.DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
 
-  public SeqPointerAliasingStartRoutineArgTest() {}
-
   @Test
   public void test_local_start_routine_arg_implicit_global() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
@@ -96,30 +94,30 @@ public class SeqPointerAliasingStartRoutineArgTest {
             .put(START_ROUTINE_ARG_MEMORY_LOCATION, LOCAL_L1_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(startRoutineArgAssignments);
+        SeqPointerAliasingMapBuilder.extractPointerAssignments(startRoutineArgAssignments);
+
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            ImmutableSetMultimap.of(),
+            pointerParameterAssignments,
+            ImmutableMap.of(),
+            startRoutineArgAssignments,
+            ImmutableMap.of());
 
     // check that start_routine_arg assignment is recognized as pointer parameter (void *)
     assertThat(pointerParameterAssignments).hasSize(1);
 
     // local_L1 is now an implicit global memory location, due to start_routine_arg assignment
-    assertThat(LOCAL_L1_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(LOCAL_L1_MEMORY_LOCATION.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                LOCAL_L1_MEMORY_LOCATION,
-                ImmutableSetMultimap.of(),
-                startRoutineArgAssignments,
-                pointerParameterAssignments,
-                ImmutableSet.of()))
+                LOCAL_L1_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
         .isTrue();
     // start_routine_arg is not explicit or implicit global
-    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                START_ROUTINE_ARG_MEMORY_LOCATION,
-                ImmutableSetMultimap.of(),
-                startRoutineArgAssignments,
-                pointerParameterAssignments,
-                ImmutableSet.of()))
+                START_ROUTINE_ARG_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
         .isFalse();
   }
 }

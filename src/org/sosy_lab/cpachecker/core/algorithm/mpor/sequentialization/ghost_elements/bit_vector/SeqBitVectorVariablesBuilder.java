@@ -25,10 +25,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.DenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SeqDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SeqSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -52,10 +52,10 @@ public record SeqBitVectorVariablesBuilder(
 
   private Optional<SeqBitVectorVariables> buildAccessOnlyBitVectorVariables() {
     // create bit vector access variables for all threads, e.g. __uint8_t ba0
-    Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
+    Optional<ImmutableSet<SeqDenseBitVector>> denseAccessBitVectors =
         buildDenseBitVectorsByAccessType(SeqMemoryAccessType.ACCESS);
     // create access variables for all global variables for all threads (for sparse bit vectors)
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseAccessBitVectors =
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseAccessBitVectors =
         buildSparseBitVectors(SeqMemoryAccessType.ACCESS);
     // prev bit vector used to store the bit vector of a thread before context switch
     Optional<PrevDenseBitVector> prevDenseAccessBitVectors =
@@ -81,19 +81,19 @@ public record SeqBitVectorVariablesBuilder(
   private Optional<SeqBitVectorVariables> buildReadWriteBitVectorVariables() {
 
     // create bit vector read + write variables for all threads, e.g. __uint8_t br0, bw0
-    Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
+    Optional<ImmutableSet<SeqDenseBitVector>> denseAccessBitVectors =
         buildDenseBitVectorsByAccessType(SeqMemoryAccessType.ACCESS);
-    Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors =
+    Optional<ImmutableSet<SeqDenseBitVector>> denseReadBitVectors =
         buildDenseBitVectorsByAccessType(SeqMemoryAccessType.READ);
-    Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors =
+    Optional<ImmutableSet<SeqDenseBitVector>> denseWriteBitVectors =
         buildDenseBitVectorsByAccessType(SeqMemoryAccessType.WRITE);
 
     // create read + write variables (for sparse bit vectors)
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseAccessBitVectors =
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseAccessBitVectors =
         buildSparseBitVectors(SeqMemoryAccessType.ACCESS);
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseReadBitVectors =
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseReadBitVectors =
         buildSparseBitVectors(SeqMemoryAccessType.READ);
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseWriteBitVectors =
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseWriteBitVectors =
         buildSparseBitVectors(SeqMemoryAccessType.WRITE);
 
     // prev bit vector used to store the bit vector of a thread before context switch
@@ -124,19 +124,19 @@ public record SeqBitVectorVariablesBuilder(
 
   // Dense / Sparse Bit Vectors ====================================================================
 
-  private Optional<ImmutableSet<DenseBitVector>> buildDenseBitVectorsByAccessType(
+  private Optional<ImmutableSet<SeqDenseBitVector>> buildDenseBitVectorsByAccessType(
       SeqMemoryAccessType pAccessType) {
 
     if (!options.bitVectorEncoding().isDense) {
       return Optional.empty();
     }
-    ImmutableSet.Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
+    ImmutableSet.Builder<SeqDenseBitVector> rBitVectors = ImmutableSet.builder();
     for (MPORThread thread : threads) {
       Optional<CIdExpression> directVariable =
           buildDenseBitVector(thread, pAccessType, SeqMemoryReachType.DIRECT);
       Optional<CIdExpression> reachableVariable =
           buildDenseBitVector(thread, pAccessType, SeqMemoryReachType.REACHABLE);
-      rBitVectors.add(new DenseBitVector(thread, directVariable, reachableVariable));
+      rBitVectors.add(new SeqDenseBitVector(thread, directVariable, reachableVariable));
     }
     return Optional.of(rBitVectors.build());
   }
@@ -167,13 +167,13 @@ public record SeqBitVectorVariablesBuilder(
     };
   }
 
-  private Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> buildSparseBitVectors(
+  private Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> buildSparseBitVectors(
       SeqMemoryAccessType pAccessType) {
 
     if (options.bitVectorEncoding().isDense) {
       return Optional.empty();
     }
-    ImmutableMap.Builder<SeqMemoryLocation, SparseBitVector> rAccessVariables =
+    ImmutableMap.Builder<SeqMemoryLocation, SeqSparseBitVector> rAccessVariables =
         ImmutableMap.builder();
     for (SeqMemoryLocation memoryLocation :
         pointerAliasingMap.getRelevantMemoryLocations().keySet()) {
@@ -183,7 +183,7 @@ public record SeqBitVectorVariablesBuilder(
           buildSparseBitVectors(memoryLocation, pAccessType, SeqMemoryReachType.REACHABLE);
       rAccessVariables.put(
           memoryLocation,
-          new SparseBitVector(
+          new SeqSparseBitVector(
               options.pruneSparseBitVectors(), directVariables, reachableVariables));
     }
     return Optional.of(rAccessVariables.buildOrThrow());

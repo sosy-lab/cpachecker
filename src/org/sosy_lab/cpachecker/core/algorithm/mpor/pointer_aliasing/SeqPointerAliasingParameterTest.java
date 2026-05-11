@@ -232,8 +232,6 @@ public class SeqPointerAliasingParameterTest {
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration());
 
-  public SeqPointerAliasingParameterTest() {}
-
   @Test
   public void test_pointer_parameter_dereference() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
@@ -242,15 +240,19 @@ public class SeqPointerAliasingParameterTest {
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
+    ImmutableSet<SeqPointerAssignment> pointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            ImmutableSetMultimap.of(),
+            pointerParameterAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of());
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION,
-            ImmutableSetMultimap.of(),
-            ImmutableMap.of(),
-            pointerParameterAssignments);
+            PARAMETER_POINTER_P_MEMORY_LOCATION, pointerAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
     assertThat(memoryLocations).hasSize(1);
@@ -265,7 +267,7 @@ public class SeqPointerAliasingParameterTest {
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, LOCAL_POINTER_C_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
 
     // local_ptr_C = &global_X; i.e. pointer assignment
     ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
@@ -273,13 +275,18 @@ public class SeqPointerAliasingParameterTest {
             .put(LOCAL_POINTER_C_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .build();
 
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            pointerAssignments,
+            pointerParameterAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of());
+
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION,
-            pointerAssignments,
-            ImmutableMap.of(),
-            pointerParameterAssignments);
+            PARAMETER_POINTER_P_MEMORY_LOCATION, allPointerAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
     assertThat(memoryLocations).hasSize(1);
@@ -294,7 +301,7 @@ public class SeqPointerAliasingParameterTest {
             .put(PARAMETER_Q_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
 
     // global_ptr_A = &param_Q; i.e. pointer assignment
     ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
@@ -302,25 +309,25 @@ public class SeqPointerAliasingParameterTest {
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, PARAMETER_Q_MEMORY_LOCATION)
             .build();
 
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            pointerAssignments,
+            pointerParameterAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of());
+
     // check that param_Q is now an implicit global memory location, but local_Z is not
-    assertThat(PARAMETER_Q_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();
+    assertThat(PARAMETER_Q_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isGlobal()).isTrue();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                LOCAL_Z_MEMORY_LOCATION,
-                pointerAssignments,
-                ImmutableMap.of(),
-                pointerParameterAssignments,
-                ImmutableSet.of()))
+                LOCAL_Z_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
         .isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                PARAMETER_Q_MEMORY_LOCATION,
-                pointerAssignments,
-                ImmutableMap.of(),
-                parameterAssignments,
-                ImmutableSet.of()))
+                PARAMETER_Q_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
         .isTrue();
   }
 
@@ -334,20 +341,25 @@ public class SeqPointerAliasingParameterTest {
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, PARAMETER_POINTER_R_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.getPointerParameterAssignments(parameterAssignments);
+        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
+
+    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
+        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
+            ImmutableSetMultimap.of(),
+            pointerParameterAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of());
 
     // all are not explicit global memory locations
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION,
-            ImmutableSetMultimap.of(),
-            ImmutableMap.of(),
-            pointerParameterAssignments);
+            PARAMETER_POINTER_P_MEMORY_LOCATION, allPointerAssignments);
 
     assertThat(memoryLocations).hasSize(1);
     assertThat(memoryLocations).contains(LOCAL_Z_MEMORY_LOCATION);
