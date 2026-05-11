@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -122,7 +123,7 @@ class CToSvLibInitializer {
       // external functions
       for (CDeclaration declaration : declarations) {
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
-          SvLibType type = convertToSvLibType(variableDeclaration.getType());
+          SvLibType type = convertToSvLibSmtLibType(variableDeclaration.getType());
 
           if (variableDeclaration.isGlobal()) {
             SvLibParsingVariableDeclaration globalVariable =
@@ -177,7 +178,7 @@ class CToSvLibInitializer {
     }
   }
 
-  private SvLibType convertToSvLibType(CType pCType) {
+  private SvLibSmtLibType convertToSvLibSmtLibType(CType pCType) {
     FormulaType<?> formulaType = converter.getFormulaTypeFromType(pCType);
     FormulaType<Formula> encodedFormulaType = formulaManager.getEncodedFormulaType(formulaType);
 
@@ -209,7 +210,7 @@ class CToSvLibInitializer {
         parameterCollector.add(
             new SvLibParsingParameterDeclaration(
                 FileLocation.DUMMY,
-                convertToSvLibType(asSimpleType),
+                convertToSvLibSmtLibType(asSimpleType),
                 getNameForInputParameterDummy(parameter.getName()),
                 pProcedureName));
       }
@@ -227,7 +228,7 @@ class CToSvLibInitializer {
       return ImmutableList.of(
           new SvLibParsingParameterDeclaration(
               FileLocation.DUMMY,
-              convertToSvLibType(asSimpleType),
+              convertToSvLibSmtLibType(asSimpleType),
               pReturnVariable.orElseThrow().getName(),
               pProcedureName));
     }
@@ -290,7 +291,10 @@ class CToSvLibInitializer {
     if (!(pReturnType instanceof CVoidType)) {
       returnParameterCollector.add(
           new SvLibParsingParameterDeclaration(
-              FileLocation.DUMMY, convertToSvLibType(pReturnType), "__retval__", pFunctionName));
+              FileLocation.DUMMY,
+              convertToSvLibSmtLibType(pReturnType),
+              "__retval__",
+              pFunctionName));
     }
     SvLibProcedureDeclaration procedureDeclarationForUndeclaredFunction =
         new SvLibProcedureDeclaration(
@@ -312,7 +316,7 @@ class CToSvLibInitializer {
         ImmutableList.builder();
     CType originalCReturnType = pCFunctionDeclaration.getType().getReturnType();
     if (!(originalCReturnType instanceof CVoidType)) {
-      SvLibType convertedReturnType = convertToSvLibType(originalCReturnType);
+      SvLibType convertedReturnType = convertToSvLibSmtLibType(originalCReturnType);
       SvLibParsingParameterDeclaration returnParameterDeclaration =
           new SvLibParsingParameterDeclaration(
               FileLocation.DUMMY, convertedReturnType, "_retval_", functionName);
@@ -331,7 +335,7 @@ class CToSvLibInitializer {
       SvLibParsingParameterDeclaration convertedInputParameter =
           new SvLibParsingParameterDeclaration(
               FileLocation.DUMMY,
-              convertToSvLibType(inputParameter.getType()),
+              convertToSvLibSmtLibType(inputParameter.getType()),
               inputParameterName,
               functionName);
       convertedInputParametersCollector.add(convertedInputParameter);
